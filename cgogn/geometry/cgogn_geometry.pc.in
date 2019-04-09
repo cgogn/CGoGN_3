@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=@CMAKE_INSTALL_LIBDIR@
+includedir=@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: @PROJECT_NAME@
+Description: geometry library of the cgogn geometric modeling kernel
+Version: @CGoGN_VERSION@
+Requires: @PKG_CONFIG_REQUIRES@
+
+Libs: -L${libdir} -l@PROJECT_NAME@
+Cflags: -I${includedir}

@@ -1,0 +1,260 @@
+# This file describes the settings to be used by doxygen for a project
+# This includes *header* files.
+
+#---------------------------------------------------------------------------
+# General configuration options
+#---------------------------------------------------------------------------
+
+# The PROJECT_NAME tag is a single word (or a sequence of word surrounded
+# by quotes) that should identify the project. 
+
+PROJECT_NAME           = "CGoGN"
+
+# The PROJECT_NUMBER tag can be used to enter a project or revision number.
+# This could be handy for archiving the generated documentation or 
+# if some version control system is used.
+
+PROJECT_NUMBER         = "Version"
+
+# The PROJECT_BRIEF tag can provide an optional one line description for 
+# a project.
+
+PROJECT_BRIEF          = "n-dimensional meshes with combinatorial maps"
+
+# The WARN_LOGFILE tag can be used to specify a file to which warning and 
+# error messages should be written.
+
+WARN_LOGFILE           	= @DOC_OUTPUT_DIR@/full.log
+
+# If the FULL_PATH_NAMES tag is set to YES Doxygen will prepend the full
+# path before files name in the file list and in the header files. If set
+# to NO the shortest path that makes the file name unique will be used.
+
+FULL_PATH_NAMES      	= YES
+
+# If the FULL_PATH_NAMES tag is set to YES then the STRIP_FROM_PATH tag
+# can be used to strip a user defined part of the path. Stripping is
+# only done if the specified string matches the left-hand part of the path.
+
+STRIP_FROM_PATH     	= @CMAKE_SOURCE_DIR@/
+
+# The STRIP_FROM_INC_PATH tag can be used to strip a user-defined part of 
+# the path mentioned in the documentation of a class, which tells the 
+# reader which header file to include in order to use a class.
+
+STRIP_FROM_INC_PATH    	= @CMAKE_SOURCE_DIR@/cgogn/
+
+# The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
+# base path where the generated documentation will be put. 
+# If a relative path is entered, it will be relative to the location 
+# where doxygen was started. If left blank the current directory will be used.
+
+OUTPUT_DIRECTORY     	= @DOC_OUTPUT_DIR@/full
+
+# If the EXTRACT_ALL tag is set to YES, doxygen will assume all entities 
+# in documentation are documented, even if no documentation was available. 
+# Private class members and static file members will be hidden unless the 
+# EXTRACT_PRIVATE respectively EXTRACT_STATIC tags are set to YES.
+
+EXTRACT_ALL           	= YES
+
+# If the EXTRACT_PRIVATE tag is set to YES, all private members of a 
+# class will be included in the documentation.
+
+EXTRACT_PRIVATE        	= YES
+
+# If the EXTRACT_STATIC tag is set to YES, all static members of a 
+# file will be included in the documentation.
+
+EXTRACT_STATIC         	= YES
+
+# If the EXTRACT_LOCAL_CLASSES tag is set to YES, classes (and structs) 
+# defined locally in source files will be included in the documentation.
+
+EXTRACT_LOCAL_CLASSES  	= YES
+
+# If this flag is set to YES, the members of anonymous namespaces will 
+# be extracted and appear in the documentation as a namespace called 
+# 'anonymous_namespace{file}', where file will be replaced with the 
+# base name of the file that contains the anonymous namespace.
+
+EXTRACT_ANON_NSPACES   	= YES
+
+
+#---------------------------------------------------------------------------
+# configuration options related to the input files
+#---------------------------------------------------------------------------
+
+# The INPUT tag can be used to specify the files and/or directories that contain 
+# documented source files. You may enter file names like "myfile.cpp" or 
+# directories like "/usr/src/myproject". Separate the files or directories 
+# with spaces.
+
+INPUT                  	= @CMAKE_SOURCE_DIR@/cgogn @CMAKE_SOURCE_DIR@/doc/full @CMAKE_SOURCE_DIR@/doc/full
+
+# If the value of the INPUT tag contains directories, you can use the 
+# FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
+# and *.h) to filter out the source-files in the directories. If left 
+# blank all files are included.
+
+FILE_PATTERNS          	= *.h *.cpp *.dox
+
+# The RECURSIVE tag can be used to turn specify whether or not subdirectories
+# should be searched for input files as well. Possible values are YES and NO.
+# If left blank NO is used.
+
+RECURSIVE            	= YES
+
+# If the value of the INPUT tag contains directories, you can use the
+# EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude
+# certain files from those directories.
+
+EXCLUDE_PATTERNS     	= */.git/*
+
+# The TAB_SIZE tag can be used to set the number of spaces in a tab.
+
+TAB_SIZE               	= 8
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to source browsing
+#---------------------------------------------------------------------------
+
+# If the SOURCE_BROWSER tag is set to YES then a list of source files will 
+# be generated. Documented entities will be cross-referenced with these sources.
+
+SOURCE_BROWSER         	= YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the HTML output
+#---------------------------------------------------------------------------
+
+# If the GENERATE_HTML tag is set to YES, doxygen will generate HTML output.
+
+GENERATE_HTML			= YES
+
+# If the HTML_TIMESTAMP tag is set to YES then the footer of each generated 
+# HTML page will contain the date and time when the page was generated.
+
+HTML_TIMESTAMP         	= YES
+
+# The GENERATE_TREEVIEW tag is used to specify whether a tree-like index 
+# structure should be generated to display hierarchical information.
+
+GENERATE_TREEVIEW      	= YES
+
+HTML_FILE_EXTENSION 	= .xtml
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the LaTeX output
+#---------------------------------------------------------------------------
+
+# If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
+
+GENERATE_LATEX 			= NO
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the preprocessor
+#---------------------------------------------------------------------------
+
+# If the ENABLE_PREPROCESSING tag is set to YES, doxygen will evaluate 
+# all C-preprocessor directives found in the sources and include files.
+ENABLE_PREPROCESSING 	= YES
+
+# If the SEARCH_INCLUDES tag is set to YES, the include files in the 
+# INCLUDE_PATH will be searched if a #include is found.
+
+SEARCH_INCLUDES 		= YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to external references 
+#---------------------------------------------------------------------------
+
+# When a file name is specified after GENERATE_TAGFILE, doxygen will create
+# a tag file that is based on the input files it reads.
+
+GENERATE_TAGFILE       	= @DOC_OUTPUT_DIR@/full.tags
+
+
+#---------------------------------------------------------------------------
+#  Configuration options related to the dot tool
+#---------------------------------------------------------------------------
+
+# If you set the HAVE_DOT tag to YES then doxygen will assume the dot tool 
+# is available from the path.
+
+HAVE_DOT               	= @DOXYGEN_DOT_FOUND@
+
+# The DOT_PATH tag can be used to specify the path where the dot tool can 
+# be found.
+
+DOT_PATH               	= @DOXYGEN_DOT_PATH@
+
+# If set to YES the inheritance and collaboration graphs will hide 
+# inheritance and usage relations if the target is undocumented or is not a 
+# class.
+HIDE_UNDOC_RELATIONS   	= NO
+
+# If the COLLABORATION_GRAPH tag is set to YES then doxygen will generate 
+# a graph for each documented class showing the direct and indirect 
+# implementation dependencies (inheritance, containment, and class references 
+# variables) of the class with other documented classes.
+
+COLLABORATION_GRAPH    	= YES
+
+# If the TEMPLATE_RELATIONS tag is set to YES then the inheritance and 
+# collaboration graphs will show the relations between templates and their 
+# instances.
+
+TEMPLATE_RELATIONS     	= YES
+
+# If the REFERENCES_RELATION tag is set to YES then for each documented 
+# function all documented entities called/used by that function will be listed.
+
+REFERENCES_RELATION    	= YES
+
+# If the CALL_GRAPH tag is set to YES then doxygen will generate a call 
+# dependency graph for every global function or class method. 
+
+CALL_GRAPH             	= YES
+
+# If the CALLER_GRAPH tag is set to YES then doxygen will generate a caller
+# dependency graph for every global function or class method. 
+
+CALLER_GRAPH           	= YES
+
+# If the INCLUDE_GRAPH, ENABLE_PREPROCESSING and SEARCH_INCLUDES tags are 
+# set to YES then doxygen will generate a graph for each documented file 
+# showing the direct and indirect include dependencies of the file with other 
+# documented files.
+
+INCLUDE_GRAPH          	= YES
+
+# If the INCLUDED_BY_GRAPH, ENABLE_PREPROCESSING and SEARCH_INCLUDES tags 
+# are set to YES then doxygen will generate a graph for each documented 
+# file showing the direct and indirect include dependencies of the file 
+# with other documented files.
+
+INCLUDED_BY_GRAPH      	= YES
+
+# If DOT_IMAGE_FORMAT is set to svg, then this option can be set to YES to 
+# enable generation of interactive SVG images that allow zooming and panning.
+
+INTERACTIVE_SVG        	= YES
+
+# Set the DOT_MULTI_TARGETS tag to YES to allow dot to generate multiple 
+# output files in one run (dot version > 1.8.10).
+
+DOT_MULTI_TARGETS      	= YES
+
+# The DOT_IMAGE_FORMAT tag can be used to set the image format of the 
+# images generated by dot
+
+DOT_IMAGE_FORMAT 		= svg
+
+
+

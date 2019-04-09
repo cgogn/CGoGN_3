@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(cgogn_core REQUIRED)
+find_dependency(cgogn_geometry REQUIRED)
+find_dependency(ply REQUIRED)
+find_dependency(Meshb REQUIRED)
+find_dependency(TinyXML2 REQUIRED)
+find_dependency(ZLIB REQUIRED)
+
+if(NOT TARGET cgogn::io)
+	include("${CMAKE_CURRENT_LIST_DIR}/cgogn_ioTargets.cmake")
+endif()

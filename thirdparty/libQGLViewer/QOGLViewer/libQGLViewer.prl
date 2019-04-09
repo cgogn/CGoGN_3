@@ -1,0 +1,5 @@
+QMAKE_PRL_BUILD_DIR = /home/thery/Devel/libQGLViewer-2.6.3/build-QGLViewer-5_5-Debug
+QMAKE_PRO_INPUT = QGLViewer.pro
+QMAKE_PRL_TARGET = libQGLViewer.so.2.6.3
+QMAKE_PRL_CONFIG = lex yacc debug exceptions depend_includepath testcase_targets import_plugins import_qpa_plugin qt warn_on link_prl incremental shared qpa no_mocdepend qt_no_framework linux unix posix gcc debug qml_debug opengl thread create_prl rtti no_keywords have_target dll debug_info uic opengl moc resources
+QMAKE_PRL_VERSION = 2.6.3
