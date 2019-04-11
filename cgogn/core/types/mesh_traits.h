@@ -43,6 +43,7 @@ struct mesh_traits<CMap0>
 
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
 };
 
 template <>
@@ -56,6 +57,7 @@ struct mesh_traits<CMap1>
 
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
 };
 
 template <>
@@ -70,6 +72,7 @@ struct mesh_traits<CMap2>
 
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
 };
 
 template <>
@@ -84,6 +87,7 @@ struct mesh_traits<CMap3>
 
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
 };
 
 } // namespace cgogn

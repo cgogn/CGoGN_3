@@ -90,9 +90,9 @@ get_attribute(const MESH& m, const std::string& name)
 // CMapBase //
 //////////////
 
-template <typename T, typename CELL, typename MESH,
+template <typename CELL, typename MESH,
 		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
-void remove_attribute(MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute)
+void remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGenPtr attribute)
 {
 	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);

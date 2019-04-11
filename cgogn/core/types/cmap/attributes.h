@@ -142,8 +142,7 @@ public:
 		return std::shared_ptr<Attribute<T>>();
 	}
 
-	template <typename T>
-	void remove_attribute(std::shared_ptr<Attribute<T>> attribute)
+	void remove_attribute(std::shared_ptr<AttributeGen> attribute)
 	{
 		const std::string& name = attribute->name();
 		auto it = std::find_if(

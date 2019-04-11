@@ -192,7 +192,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 //			cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
 //		}
 
-	remove_attribute<std::vector<Dart>, CMap2::Vertex>(m, darts_per_vertex);
+	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 
 //		cgogn_assert(map_.template is_well_embedded<Vertex>());
 //		if (map_.template is_embedded<Face::ORBIT>())

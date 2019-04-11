@@ -53,7 +53,7 @@ int main()
 		return true;
 	});
 
-	remove_attribute<Vec3, CMap2::Vertex>(map2, position);
+	remove_attribute<CMap2::Vertex>(map2, position);
 
 	///////////////////////
 
