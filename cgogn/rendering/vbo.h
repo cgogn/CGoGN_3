@@ -159,7 +159,7 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
  * @param vbo vbo to update
  */
 template <typename ATTRIBUTE>
-void update_vbo(const ATTRIBUTE* attribute, VBO* vbo)
+void update_vbo(const ATTRIBUTE attribute, VBO* vbo)
 {
 	// set vbo name based on attribute name
 	vbo->set_name(attribute->name());

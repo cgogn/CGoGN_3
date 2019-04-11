@@ -47,7 +47,7 @@ namespace cgogn
 
 template <typename T, typename CELL, typename MESH,
 		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
-typename mesh_traits<MESH>::template Attribute<T>*
+typename mesh_traits<MESH>::template AttributePtr<T>
 add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -62,7 +62,7 @@ add_attribute(MESH& m, const std::string& name)
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
-// typename mesh_traits<MESH>::template Attribute<T>* get_attribute(MESH& m, const std::string& name);
+// typename mesh_traits<MESH>::template Attribute<T>* get_attribute(const MESH& m, const std::string& name);
 
 /*****************************************************************************/
 
@@ -72,11 +72,30 @@ add_attribute(MESH& m, const std::string& name)
 
 template <typename T, typename CELL, typename MESH,
 		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
-typename mesh_traits<MESH>::template Attribute<T>*
+typename mesh_traits<MESH>::template AttributePtr<T>
 get_attribute(const MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
+}
+
+/*****************************************************************************/
+
+// template <typename T, typename CELL, typename MESH>
+// void remove_attribute(MESH& m, typename mesh_traits<MESH>::template Attribute<T> attribute)
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename T, typename CELL, typename MESH,
+		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
+void remove_attribute(MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute)
+{
+	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
+	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
 
 /*****************************************************************************/
@@ -125,7 +144,7 @@ index_of(const MESH& m, CELL c)
 
 template <typename T, typename CELL, typename MESH>
 const T&
-value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<const T> attribute, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
@@ -133,7 +152,7 @@ value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* at
 
 template <typename T, typename CELL, typename MESH>
 T&
-value(const MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];

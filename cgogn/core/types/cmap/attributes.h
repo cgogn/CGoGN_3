@@ -30,6 +30,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace cgogn
 {
@@ -87,7 +88,7 @@ public:
 	inline T& operator[](uint32 index) { return data_[index]; }
 	inline const T& operator[](uint32 index) const { return data_[index]; }
 
-	inline void swap(Attribute<T>* attribute)
+	inline void swap(std::shared_ptr<Attribute<T>> attribute)
 	{
 		if (attribute->container_ == this->container_)
 			data_.swap(attribute->data_);
@@ -97,6 +98,7 @@ public:
 class CGOGN_CORE_EXPORT AttributeContainer
 {
 	std::vector<AttributeGen*> attributes_;
+	std::vector<std::shared_ptr<AttributeGen>> attributes_shared_ptr_;
 	std::vector<Attribute<uint8>*> mark_attributes_;
 	uint32 size_;
 
@@ -112,32 +114,48 @@ public:
 	{}
 
 	~AttributeContainer()
-	{
-		for (AttributeGen* ag : attributes_)
-			delete ag;
-	}
+	{}
 
 	uint32 size() const { return size_; }
 
 	template <typename T>
-	Attribute<T>* add_attribute(const std::string& name)
+	std::shared_ptr<Attribute<T>> add_attribute(const std::string& name)
 	{
-		Attribute<T>* a = new Attribute<T>(this, false, name);
-		a->resize(size_);
-		attributes_.push_back(a);
-		return a;
+		std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, false, name);
+		Attribute<T>* ap = asp.get();
+		ap->resize(size_);
+		attributes_.push_back(ap);
+		attributes_shared_ptr_.push_back(asp);
+		return asp;
 	}
 
 	template <typename T>
-	Attribute<T>* get_attribute(const std::string& name) const
+	std::shared_ptr<Attribute<T>> get_attribute(const std::string& name) const
 	{
-		const_iterator it = std::find_if(attributes_.begin(), attributes_.end(), [&] (AttributeGen* att) { return att->name().compare(name) == 0; });
-		if (it != attributes_.end())
+		auto it = std::find_if(
+			attributes_shared_ptr_.begin(),
+			attributes_shared_ptr_.end(),
+			[&] (const std::shared_ptr<AttributeGen>& att) { return att->name().compare(name) == 0; }
+		);
+		if (it != attributes_shared_ptr_.end())
+			return std::dynamic_pointer_cast<Attribute<T>>(*it);
+		return std::shared_ptr<Attribute<T>>();
+	}
+
+	template <typename T>
+	void remove_attribute(std::shared_ptr<Attribute<T>> attribute)
+	{
+		const std::string& name = attribute->name();
+		auto it = std::find_if(
+			attributes_shared_ptr_.begin(),
+			attributes_shared_ptr_.end(),
+			[&] (const std::shared_ptr<AttributeGen>& att) { return att->name().compare(name) == 0; }
+		);
+		if (it != attributes_shared_ptr_.end())
 		{
-			Attribute<T>* res = dynamic_cast<Attribute<T>*>(*it);
-			return res;
+			*it = attributes_shared_ptr_.back();
+			attributes_shared_ptr_.pop_back();
 		}
-		return nullptr;
 	}
 
 	Attribute<uint8>* add_mark_attribute()

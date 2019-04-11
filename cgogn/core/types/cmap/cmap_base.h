@@ -44,11 +44,11 @@ struct CGOGN_CORE_EXPORT CMapBase
 	// Dart container
 	mutable AttributeContainer topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<Attribute<Dart>*> relations_;
+	std::vector<std::shared_ptr<Attribute<Dart>>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<Attribute<uint32>*, NB_ORBITS> embeddings_;
+	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	Attribute<uint8>* boundary_marker_;
+	std::shared_ptr<Attribute<uint8>> boundary_marker_;
 
 	// Cells attributes containers
 	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
@@ -58,9 +58,9 @@ struct CGOGN_CORE_EXPORT CMapBase
 
 protected:
 
-	Attribute<Dart>* add_relation(const std::string& name)
+	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
-		Attribute<Dart>* rel = topology_.add_attribute<Dart>(name);
+		std::shared_ptr<Attribute<Dart>> rel = topology_.add_attribute<Dart>(name);
 		relations_.push_back(rel);
 		return rel;
 	}
@@ -121,7 +121,7 @@ public:
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		std::ostringstream oss;
 		oss << "emb_" << orbit_name(orbit);
-		Attribute<uint32>* emb = topology_.add_attribute<uint32>(oss.str());
+		std::shared_ptr<Attribute<uint32>> emb = topology_.add_attribute<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
 			i = INVALID_INDEX;

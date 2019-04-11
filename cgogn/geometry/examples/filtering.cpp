@@ -62,7 +62,7 @@ using Face = Map2::Face;
 using Vec3 = Eigen::Vector3f;
 
 template <typename T>
-using Attribute = typename cgogn::mesh_traits<Map2>::Attribute<T>;
+using AttributePtr = typename cgogn::mesh_traits<Map2>::AttributePtr<T>;
 
 class Viewer : public QOGLViewer
 {
@@ -89,9 +89,9 @@ private:
 	Map2 map_;
 	cgogn::CellFilter<Map2> filtered_map_;
 
-	Attribute<Vec3>* vertex_position_;
-	Attribute<Vec3>* vertex_position2_;
-	Attribute<Vec3>* vertex_normal_;
+	AttributePtr<Vec3> vertex_position_;
+	AttributePtr<Vec3> vertex_position2_;
+	AttributePtr<Vec3> vertex_normal_;
 
 	Vec3 bb_min_, bb_max_;
 
@@ -121,6 +121,7 @@ Viewer::Viewer() :
 	map_(),
 	filtered_map_(map_),
 	vertex_position_(nullptr),
+	vertex_position2_(nullptr),
 	vertex_normal_(nullptr),
 	render_(nullptr),
 	vbo_position_(nullptr),
@@ -337,7 +338,7 @@ void Viewer::init()
 	glClearColor(0.1f,0.1f,0.3f,0.0f);
 
 	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>();
-	cgogn::rendering::update_vbo<Attribute<Vec3>>(vertex_position_, vbo_position_.get());
+	cgogn::rendering::update_vbo<AttributePtr<Vec3>>(vertex_position_, vbo_position_.get());
 
 	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>();
 	cgogn::rendering::update_vbo(vertex_normal_, vbo_normal_.get());

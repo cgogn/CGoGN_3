@@ -71,7 +71,7 @@ hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 /////////////
 
 template <typename VEC, typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<VEC>* vertex_position)
+void subdivide(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position)
 {
 	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
