@@ -26,7 +26,7 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/attributes.h>
+#include <cgogn/core/types/container/chunk_array_container.h>
 #include <cgogn/core/types/cmap/cell.h>
 
 #include <cgogn/core/utils/type_traits.h>
@@ -41,26 +41,31 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
+	using ChunkArrayContainer = ChunkArrayContainerImpl<32>;
+	template <typename T>
+	using ChunkArray = ChunkArrayContainer::ChunkArray<T>;
+	using ChunkArrayGen = ChunkArrayContainer::ChunkArrayGen;
+
 	// Dart container
-	mutable AttributeContainer topology_;
+	mutable ChunkArrayContainer topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<std::shared_ptr<Attribute<Dart>>> relations_;
+	std::vector<std::shared_ptr<ChunkArray<Dart>>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
+	std::array<std::shared_ptr<ChunkArray<uint32>>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	std::shared_ptr<Attribute<uint8>> boundary_marker_;
+	std::shared_ptr<ChunkArray<uint8>> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
+	mutable std::array<ChunkArrayContainer, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
 
 protected:
 
-	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
+	std::shared_ptr<ChunkArray<Dart>> add_relation(const std::string& name)
 	{
-		std::shared_ptr<Attribute<Dart>> rel = topology_.add_attribute<Dart>(name);
+		std::shared_ptr<ChunkArray<Dart>> rel = topology_.add_chunk_array<Dart>(name);
 		relations_.push_back(rel);
 		return rel;
 	}
@@ -121,7 +126,7 @@ public:
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		std::ostringstream oss;
 		oss << "emb_" << orbit_name(orbit);
-		std::shared_ptr<Attribute<uint32>> emb = topology_.add_attribute<uint32>(oss.str());
+		std::shared_ptr<ChunkArray<uint32>> emb = topology_.add_chunk_array<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
 			i = INVALID_INDEX;
@@ -129,7 +134,7 @@ public:
 
 	Dart add_dart()
 	{
-		uint32 index = topology_.add_line();
+		uint32 index = topology_.get_index();
 		Dart d(index);
 		for (auto rel : relations_)
 			(*rel)[d.index] = d;

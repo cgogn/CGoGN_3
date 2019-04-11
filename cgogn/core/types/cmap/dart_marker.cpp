@@ -22,14 +22,13 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/cmap/dart_marker.h>
-#include <cgogn/core/types/cmap/cmap_base.h>
 
 namespace cgogn
 {
 
 DartMarker::DartMarker(const CMapBase& map)
 {
-	mark_attribute_ = map.topology_.add_mark_attribute();
+	mark_attribute_ = map.topology_.add_mark_chunk_array();
 }
 
 DartMarker::~DartMarker()

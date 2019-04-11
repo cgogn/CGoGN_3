@@ -39,13 +39,13 @@ class CellMarker
 protected:
 
 	const CMapBase& map_;
-	Attribute<uint8>* mark_attribute_;
+	CMapBase::ChunkArray<uint8>* mark_attribute_;
 
 public:
 
 	CellMarker(const CMapBase& map) : map_(map)
 	{
-		mark_attribute_ = map.attribute_containers_[orbit].add_mark_attribute();
+		mark_attribute_ = map.attribute_containers_[orbit].add_mark_chunk_array();
 	}
 
 	virtual ~CellMarker()

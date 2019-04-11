@@ -230,8 +230,11 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 //			bb_rendering_ = !bb_rendering_;
 //			break;
 		case Qt::Key_A: {
-			for (cgogn::uint32 i = 0; i < vertex_position2_->size(); ++i)
-				(*vertex_position2_)[i] = (*vertex_position_)[i];
+			cgogn::foreach_value<Vec3>(vertex_position2_, [&] (Vec3& v, cgogn::uint32 index) -> bool
+			{
+				v = (*vertex_position_)[index];
+				return true;
+			});
 			cgogn::geometry::filter_average<Vec3>(filtered_map_, vertex_position_, vertex_position2_);
 			vertex_position_->swap(vertex_position2_);
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
@@ -338,7 +341,7 @@ void Viewer::init()
 	glClearColor(0.1f,0.1f,0.3f,0.0f);
 
 	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>();
-	cgogn::rendering::update_vbo<AttributePtr<Vec3>>(vertex_position_, vbo_position_.get());
+	cgogn::rendering::update_vbo(vertex_position_, vbo_position_.get());
 
 	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>();
 	cgogn::rendering::update_vbo(vertex_normal_, vbo_normal_.get());

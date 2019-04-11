@@ -34,14 +34,14 @@ int main()
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
 	std::cout << "vertex attributes:" << std::endl;
-	for (AttributeGen* ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	io::import_OFF<Vec3>(map2, "/home/kraemer/Media/Data/surface/lowRes/cube_tri.off");
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
 	std::cout << "vertex attributes:" << std::endl;
-	for (AttributeGen* ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	auto position = get_attribute<Vec3, CMap2::Vertex>(map2, "position");
@@ -62,7 +62,7 @@ int main()
 	do_something(map1);
 
 	std::cout << "nb darts: " << map1.nb_darts() << std::endl;
-	for (AttributeGen* ag : map1.attribute_containers_[CMap1::Face::ORBIT])
+	for (auto ag : map1.attribute_containers_[CMap1::Face::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	auto att1 = get_attribute<float64, CMap2::Face>(map1, "value");

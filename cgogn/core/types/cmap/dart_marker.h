@@ -26,17 +26,14 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/dart.h>
-#include <cgogn/core/types/cmap/attributes.h>
+#include <cgogn/core/types/cmap/cmap_base.h>
 
 namespace cgogn
 {
 
-class CMapBase;
-
 class CGOGN_CORE_EXPORT DartMarker
 {
-	Attribute<uint8>* mark_attribute_;
+	CMapBase::ChunkArray<uint8>* mark_attribute_;
 
 public:
 

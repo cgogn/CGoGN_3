@@ -20,8 +20,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/attributes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/attributes.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.cpp"
@@ -35,6 +33,9 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap3.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
+
+        "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
+        "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array_container.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"

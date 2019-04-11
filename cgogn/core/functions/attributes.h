@@ -37,7 +37,7 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
-// typename mesh_traits<MESH>::template Attribute<T>* add_attribute(MESH& m, const std::string& name);
+// typename mesh_traits<MESH>::template AttributePtr<T> add_attribute(MESH& m, const std::string& name);
 
 /*****************************************************************************/
 
@@ -56,13 +56,13 @@ add_attribute(MESH& m, const std::string& name)
 		m.template create_embedding<CELL>();
 		create_embeddings<CELL>(m);
 	}
-	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
+	return m.attribute_containers_[CELL::ORBIT].template add_chunk_array<T>(name);
 }
 
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
-// typename mesh_traits<MESH>::template Attribute<T>* get_attribute(const MESH& m, const std::string& name);
+// typename mesh_traits<MESH>::template AttributePtr<T> get_attribute(const MESH& m, const std::string& name);
 
 /*****************************************************************************/
 
@@ -76,13 +76,13 @@ typename mesh_traits<MESH>::template AttributePtr<T>
 get_attribute(const MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
+	return m.attribute_containers_[CELL::ORBIT].template get_chunk_array<T>(name);
 }
 
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
-// void remove_attribute(MESH& m, typename mesh_traits<MESH>::template Attribute<T> attribute)
+// void remove_attribute(MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute)
 
 /*****************************************************************************/
 
@@ -95,7 +95,7 @@ template <typename CELL, typename MESH,
 void remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGenPtr attribute)
 {
 	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
-	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
+	m.attribute_containers_[CELL::ORBIT].remove_chunk_array(attribute);
 }
 
 /*****************************************************************************/
@@ -134,7 +134,7 @@ index_of(const MESH& m, CELL c)
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
-// T& value(MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c);
+// T& value(MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute, CELL c);
 
 /*****************************************************************************/
 
@@ -156,6 +156,32 @@ value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attrib
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
+}
+
+/*****************************************************************************/
+
+// template <typename T, typename FUNC>
+// void foreach_value(typename mesh_traits<MESH>::template AttributePtr<T> attribute, const FUNC& f);
+
+/*****************************************************************************/
+
+////////////////
+// ChunkArray //
+////////////////
+
+template <typename T, typename FUNC>
+void
+foreach_value(std::shared_ptr<CMapBase::ChunkArray<T>> attribute, const FUNC& f)
+{
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	static_assert(is_ith_func_parameter_same<FUNC, 0, T&>::value, "Wrong function parameter type");
+	static_assert(is_ith_func_parameter_same<FUNC, 1, uint32>::value, "Wrong function parameter type");
+
+	for (typename CMapBase::ChunkArray<T>::iterator it = attribute->begin(), end = attribute->end(); it != end; ++it)
+	{
+		if (!f(*it, it.index()))
+			break;
+	}
 }
 
 } // namespace cgogn

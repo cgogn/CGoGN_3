@@ -42,8 +42,8 @@ struct mesh_traits<CMap0>
 	using Cells = CMap0::Cells;
 
 	template <typename T>
-	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
+	using AttributePtr = std::shared_ptr<CMapBase::ChunkArray<T>>;
+	using AttributeGenPtr = std::shared_ptr<CMapBase::ChunkArrayGen>;
 };
 
 template <>
@@ -56,8 +56,8 @@ struct mesh_traits<CMap1>
 	using Cells = CMap1::Cells;
 
 	template <typename T>
-	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
+	using AttributePtr = std::shared_ptr<CMapBase::ChunkArray<T>>;
+	using AttributeGenPtr = std::shared_ptr<CMapBase::ChunkArrayGen>;
 };
 
 template <>
@@ -71,8 +71,8 @@ struct mesh_traits<CMap2>
 	using Cells = CMap2::Cells;
 
 	template <typename T>
-	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
+	using AttributePtr = std::shared_ptr<CMapBase::ChunkArray<T>>;
+	using AttributeGenPtr = std::shared_ptr<CMapBase::ChunkArrayGen>;
 };
 
 template <>
@@ -86,8 +86,8 @@ struct mesh_traits<CMap3>
 	using Cells = CMap3::Cells;
 
 	template <typename T>
-	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
+	using AttributePtr = std::shared_ptr<CMapBase::ChunkArray<T>>;
+	using AttributeGenPtr = std::shared_ptr<CMapBase::ChunkArrayGen>;
 };
 
 } // namespace cgogn
