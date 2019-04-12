@@ -28,7 +28,7 @@ namespace cgogn
 
 DartMarker::DartMarker(const CMapBase& map)
 {
-	mark_attribute_ = map.topology_.add_mark_chunk_array();
+	mark_attribute_ = map.topology_.add_mark_attribute();
 }
 
 DartMarker::~DartMarker()

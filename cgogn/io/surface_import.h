@@ -45,6 +45,8 @@ namespace io
 template <typename VEC3>
 void import_OFF(CMap2& m, const std::string& filename)
 {
+	Scoped_C_Locale loc;
+
 	std::vector<uint32> faces_nb_edges;
 	std::vector<uint32> faces_vertex_indices;
 

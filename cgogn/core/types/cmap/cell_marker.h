@@ -45,7 +45,7 @@ public:
 
 	CellMarker(const CMapBase& map) : map_(map)
 	{
-		mark_attribute_ = map.attribute_containers_[orbit].add_mark_chunk_array();
+		mark_attribute_ = map.attribute_containers_[orbit].add_mark_attribute();
 	}
 
 	virtual ~CellMarker()

@@ -236,7 +236,7 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 				return true;
 			});
 			cgogn::geometry::filter_average<Vec3>(filtered_map_, vertex_position_, vertex_position2_);
-			vertex_position_->swap(vertex_position2_);
+			vertex_position_->swap(vertex_position2_.get());
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
 			cgogn::rendering::update_vbo(vertex_position_, vbo_position_.get());
 			cgogn::rendering::update_vbo(vertex_normal_, vbo_normal_.get());

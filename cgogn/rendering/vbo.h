@@ -150,7 +150,7 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
 	vbo->allocate(nb_elements, 3);
 	const uint32 vbo_bytes = nb_elements * 3 * uint32(sizeof(float32));
 
-	// copy
+	// copy data
 	vbo->bind();
 	vbo->copy_data(0, vbo_bytes, vector.data());
 	vbo->release();
@@ -170,13 +170,16 @@ void update_vbo(CMapBase::AttributePtr<VEC3> attribute, VBO* vbo)
 {
 	vbo->set_name(attribute->name());
 
-	uint32 nb_elements = attribute->capacity();
-	vbo->allocate(nb_elements, 3);
+	uint32 nb_elements = attribute->maximum_index();
 
-	uint32 chunk_byte_size; // = CMapBase::ChunkArray<VEC3>::CHUNKSIZE * 3 * uint32(sizeof(float32));
+	// TODO: remove chunk array hack
+
+	vbo->allocate(nb_elements + (512 - nb_elements % 512), 3);
+
+	uint32 chunk_byte_size;
 	std::vector<const void*> chunk_pointers = attribute->chunk_pointers(chunk_byte_size);
 
-	// copy
+	// copy data
 	vbo->bind();
 	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
 		vbo->copy_data(i * chunk_byte_size, chunk_byte_size, chunk_pointers[i]);

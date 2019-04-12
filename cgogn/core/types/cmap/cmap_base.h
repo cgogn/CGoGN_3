@@ -26,7 +26,9 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/container/chunk_array_container.h>
+//#include <cgogn/core/types/container/chunk_array_container.h>
+#include <cgogn/core/types/container/attribute_container.h>
+#include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/cmap/cell.h>
 
 #include <cgogn/core/utils/type_traits.h>
@@ -41,18 +43,17 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
-	using AttributeContainer = ChunkArrayContainer<32>;
+	using AttributeContainerT = AttributeContainer<ChunkArray>;
 
 	template <typename T>
-	using Attribute = AttributeContainer::ChunkArray<T>;
+	using Attribute = AttributeContainerT::Attribute<T>;
 	template <typename T>
-	using AttributePtr = AttributeContainer::ChunkArrayPtr<T>;
+	using AttributePtr = AttributeContainerT::AttributePtr<T>;
 
-	using AttributeGen = AttributeContainer::ChunkArrayGen;
-	using AttributeGenPtr = AttributeContainer::ChunkArrayGenPtr;
+	using AttributeGenPtr = AttributeContainerT::AttributeGenPtr;
 
 	// Dart container
-	mutable AttributeContainer topology_;
+	mutable AttributeContainerT topology_;
 	// shortcuts to relations Dart attributes
 	std::vector<AttributePtr<Dart>> relations_;
 	// shortcuts to embedding indices Dart attributes
@@ -61,7 +62,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 	AttributePtr<uint8> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
+	mutable std::array<AttributeContainerT, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
@@ -70,7 +71,7 @@ protected:
 
 	AttributePtr<Dart> add_relation(const std::string& name)
 	{
-		AttributePtr<Dart> rel = topology_.add_chunk_array<Dart>(name);
+		AttributePtr<Dart> rel = topology_.add_attribute<Dart>(name);
 		relations_.push_back(rel);
 		return rel;
 	}
@@ -79,7 +80,7 @@ public:
 
 	uint32 nb_darts()
 	{
-		return topology_.size();
+		return topology_.nb_elements();
 	}
 
 	void set_boundary(Dart d, bool b)
@@ -131,7 +132,7 @@ public:
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		std::ostringstream oss;
 		oss << "emb_" << orbit_name(orbit);
-		AttributePtr<uint32> emb = topology_.add_chunk_array<uint32>(oss.str());
+		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
 			i = INVALID_INDEX;
@@ -151,7 +152,7 @@ public:
 	{
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = 0; i < topology_.size(); ++i)
+		for (uint32 i = 0; i < topology_.nb_elements(); ++i)
 			if (!f(Dart(i)))
 				break;
 	}

@@ -56,7 +56,7 @@ add_attribute(MESH& m, const std::string& name)
 		m.template create_embedding<CELL>();
 		create_embeddings<CELL>(m);
 	}
-	return m.attribute_containers_[CELL::ORBIT].template add_chunk_array<T>(name);
+	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }
 
 /*****************************************************************************/
@@ -76,7 +76,7 @@ typename mesh_traits<MESH>::template AttributePtr<T>
 get_attribute(const MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::ORBIT].template get_chunk_array<T>(name);
+	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
 }
 
 /*****************************************************************************/
@@ -95,7 +95,7 @@ template <typename CELL, typename MESH,
 void remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGenPtr attribute)
 {
 	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
-	m.attribute_containers_[CELL::ORBIT].remove_chunk_array(attribute);
+	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
 
 /*****************************************************************************/

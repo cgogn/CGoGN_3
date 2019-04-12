@@ -30,7 +30,7 @@ CMapBase::CMapBase()
 {
 	for (auto& e : embeddings_)
 		e = nullptr;
-	boundary_marker_ = topology_.add_chunk_array<uint8>("__boundary");
+	boundary_marker_ = topology_.add_attribute<uint8>("__boundary");
 }
 
 CMapBase::~CMapBase()
