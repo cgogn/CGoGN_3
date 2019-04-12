@@ -33,7 +33,7 @@ namespace cgogn
 
 class CGOGN_CORE_EXPORT DartMarker
 {
-	CMapBase::ChunkArray<uint8>* mark_attribute_;
+	CMapBase::Attribute<uint8>* mark_attribute_;
 
 public:
 

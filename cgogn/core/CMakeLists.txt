@@ -34,7 +34,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
 
-        "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array_container.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"

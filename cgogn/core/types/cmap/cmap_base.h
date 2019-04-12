@@ -41,31 +41,36 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
-	using ChunkArrayContainer = ChunkArrayContainerImpl<32>;
+	using AttributeContainer = ChunkArrayContainer<32>;
+
 	template <typename T>
-	using ChunkArray = ChunkArrayContainer::ChunkArray<T>;
-	using ChunkArrayGen = ChunkArrayContainer::ChunkArrayGen;
+	using Attribute = AttributeContainer::ChunkArray<T>;
+	template <typename T>
+	using AttributePtr = AttributeContainer::ChunkArrayPtr<T>;
+
+	using AttributeGen = AttributeContainer::ChunkArrayGen;
+	using AttributeGenPtr = AttributeContainer::ChunkArrayGenPtr;
 
 	// Dart container
-	mutable ChunkArrayContainer topology_;
+	mutable AttributeContainer topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<std::shared_ptr<ChunkArray<Dart>>> relations_;
+	std::vector<AttributePtr<Dart>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<std::shared_ptr<ChunkArray<uint32>>, NB_ORBITS> embeddings_;
+	std::array<AttributePtr<uint32>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	std::shared_ptr<ChunkArray<uint8>> boundary_marker_;
+	AttributePtr<uint8> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<ChunkArrayContainer, NB_ORBITS> attribute_containers_;
+	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
 
 protected:
 
-	std::shared_ptr<ChunkArray<Dart>> add_relation(const std::string& name)
+	AttributePtr<Dart> add_relation(const std::string& name)
 	{
-		std::shared_ptr<ChunkArray<Dart>> rel = topology_.add_chunk_array<Dart>(name);
+		AttributePtr<Dart> rel = topology_.add_chunk_array<Dart>(name);
 		relations_.push_back(rel);
 		return rel;
 	}
@@ -126,7 +131,7 @@ public:
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		std::ostringstream oss;
 		oss << "emb_" << orbit_name(orbit);
-		std::shared_ptr<ChunkArray<uint32>> emb = topology_.add_chunk_array<uint32>(oss.str());
+		AttributePtr<uint32> emb = topology_.add_chunk_array<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
 			i = INVALID_INDEX;

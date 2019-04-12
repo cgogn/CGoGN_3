@@ -171,13 +171,13 @@ value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attrib
 
 template <typename T, typename FUNC>
 void
-foreach_value(std::shared_ptr<CMapBase::ChunkArray<T>> attribute, const FUNC& f)
+foreach_value(CMapBase::AttributePtr<T> attribute, const FUNC& f)
 {
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	static_assert(is_ith_func_parameter_same<FUNC, 0, T&>::value, "Wrong function parameter type");
 	static_assert(is_ith_func_parameter_same<FUNC, 1, uint32>::value, "Wrong function parameter type");
 
-	for (typename CMapBase::ChunkArray<T>::iterator it = attribute->begin(), end = attribute->end(); it != end; ++it)
+	for (typename CMapBase::Attribute<T>::iterator it = attribute->begin(), end = attribute->end(); it != end; ++it)
 	{
 		if (!f(*it, it.index()))
 			break;

@@ -39,7 +39,7 @@ class CellMarker
 protected:
 
 	const CMapBase& map_;
-	CMapBase::ChunkArray<uint8>* mark_attribute_;
+	CMapBase::Attribute<uint8>* mark_attribute_;
 
 public:
 

@@ -166,7 +166,7 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
  * @param vbo vbo to update
  */
 template <typename VEC3>
-void update_vbo(std::shared_ptr<CMapBase::ChunkArray<VEC3>> attribute, VBO* vbo)
+void update_vbo(CMapBase::AttributePtr<VEC3> attribute, VBO* vbo)
 {
 	vbo->set_name(attribute->name());
 

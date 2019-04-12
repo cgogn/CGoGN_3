@@ -33,7 +33,7 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 {
-	std::shared_ptr<ChunkArray<Dart>> phi3_;
+	AttributePtr<Dart> phi3_;
 
 	using Vertex = Cell<PHI21_PHI31>;
 	using Edge = Cell<PHI2_PHI3>;
