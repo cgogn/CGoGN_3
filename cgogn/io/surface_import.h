@@ -82,7 +82,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 
 		VEC3 pos{x, y, z};
 
-		uint32 vertex_id = m.attribute_containers_[CMap2::Vertex::ORBIT].get_index();
+		uint32 vertex_id = m.attribute_containers_[CMap2::Vertex::ORBIT].new_index();
 		(*position)[vertex_id] = pos;
 
 		vertices_id.push_back(vertex_id);

@@ -74,22 +74,35 @@ void AttributeContainerGen::delete_attribute(AttributeGen* attribute)
 
 AttributeContainerGen::AttributeContainerGen() : nb_elements_(0), maximum_index_(0)
 {
-	attributes_.reserve(16);
-	attributes_shared_ptr_.reserve(16);
-	mark_attributes_.reserve(16);
+	attributes_.reserve(32);
+	attributes_shared_ptr_.reserve(32);
+	mark_attributes_.reserve(32);
+	available_indices_.reserve(1024);
 }
 
 AttributeContainerGen::~AttributeContainerGen()
 {}
 
-uint32 AttributeContainerGen::get_index()
+uint32 AttributeContainerGen::new_index()
 {
-	uint32 index = maximum_index_++;
+	uint32 index;
+	if (available_indices_.size() > 0)
+	{
+		index = available_indices_.back();
+		available_indices_.pop_back();
+	}
+	else
+		index = maximum_index_++;
+
 	for (AttributeGen* ag : attributes_)
 		ag->manage_index(index);
 	for (AttributeGen* ag : mark_attributes_)
 		ag->manage_index(index);
+
+	init_ref_counter(index);
+	init_mark_attributes(index);
 	nb_elements_++;
+
 	return index;
 }
 

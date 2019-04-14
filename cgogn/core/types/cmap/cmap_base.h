@@ -26,8 +26,8 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-//#include <cgogn/core/types/container/chunk_array_container.h>
 #include <cgogn/core/types/container/attribute_container.h>
+#include <cgogn/core/types/container/vector.h>
 #include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/cmap/cell.h>
 
@@ -43,6 +43,7 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
+//	using AttributeContainerT = AttributeContainer<Vector>;
 	using AttributeContainerT = AttributeContainer<ChunkArray>;
 
 	template <typename T>
@@ -114,7 +115,12 @@ public:
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		(*embeddings_[orbit])[d.index] = emb;
+		const uint32 old = (*embeddings_[orbit])[d.index];
+		// ref_line() is done before unref_line() to avoid deleting the indexed line if old == emb
+		attribute_containers_[orbit].ref_index(emb);		// ref the new emb
+		if (old != INVALID_INDEX)
+			attribute_containers_[orbit].unref_index(old);	// unref the old emb
+		(*embeddings_[orbit])[d.index] = emb;				// affect the embedding to the dart
 	}
 
 	template <typename CELL>
@@ -140,10 +146,13 @@ public:
 
 	Dart add_dart()
 	{
-		uint32 index = topology_.get_index();
+		uint32 index = topology_.new_index();
 		Dart d(index);
 		for (auto rel : relations_)
 			(*rel)[d.index] = d;
+		for (auto emb : embeddings_)
+			if (emb)
+				(*emb)[d.index] = INVALID_INDEX;
 		return d;
 	}
 
@@ -152,7 +161,7 @@ public:
 	{
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = 0; i < topology_.nb_elements(); ++i)
+		for (uint32 i = topology_.first_index(); i < topology_.last_index(); i = topology_.next_index(i))
 			if (!f(Dart(i)))
 				break;
 	}

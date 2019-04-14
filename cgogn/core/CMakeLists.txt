@@ -37,6 +37,7 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"

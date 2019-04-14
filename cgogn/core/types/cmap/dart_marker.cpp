@@ -32,9 +32,7 @@ DartMarker::DartMarker(const CMapBase& map)
 }
 
 DartMarker::~DartMarker()
-{
-	delete mark_attribute_;
-}
+{}
 
 DartMarkerStore::DartMarkerStore(const CMapBase& map) :
 	DartMarker(map)

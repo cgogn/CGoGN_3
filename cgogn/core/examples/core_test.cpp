@@ -37,7 +37,7 @@ int main()
 	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
-	io::import_OFF<Vec3>(map2, "/home/kraemer/Media/Data/surface/lowRes/cube_tri.off");
+	io::import_OFF<Vec3>(map2, "/Users/kraemer/Data/surface/cube_tri.off");
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
 	std::cout << "vertex attributes:" << std::endl;

@@ -33,7 +33,7 @@ namespace cgogn
 
 class CGOGN_CORE_EXPORT DartMarker
 {
-	CMapBase::Attribute<uint8>* mark_attribute_;
+	std::unique_ptr<CMapBase::Attribute<uint8>> mark_attribute_;
 
 public:
 
@@ -50,7 +50,9 @@ public:
 
 	inline void unmark_all()
 	{
-		std::fill(mark_attribute_->begin(), mark_attribute_->end(), 0u);
+//		std::fill(mark_attribute_->begin(), mark_attribute_->end(), 0u);
+		for (uint8& m : *mark_attribute_)
+			m = 0u;
 	}
 };
 

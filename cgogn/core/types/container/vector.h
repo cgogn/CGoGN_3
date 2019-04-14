@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_CONTAINER_CHUNK_ARRAY_H_
-#define CGOGN_CORE_CONTAINER_CHUNK_ARRAY_H_
+#ifndef CGOGN_CORE_CONTAINER_VECTOR_H_
+#define CGOGN_CORE_CONTAINER_VECTOR_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
@@ -37,84 +37,64 @@
 namespace cgogn
 {
 
-//////////////////////
-// ChunkArray class //
-//////////////////////
+//////////////////
+// Vector class //
+//////////////////
 
 template <typename T>
-class CGOGN_CORE_EXPORT ChunkArray : public AttributeGen
+class CGOGN_CORE_EXPORT Vector : public AttributeGen
 {
-public:
-
-	static const uint32 CHUNK_SIZE = 512;
-
 private:
 
-	std::vector<T*> chunks_;
-
-	void add_chunk() { chunks_.push_back(new T[CHUNK_SIZE]()); }
+	std::vector<T> data_;
 
 	void manage_index(uint32 index) override
 	{
-		uint32 capacity = chunks_.size() * CHUNK_SIZE;
-		while (index >= capacity)
-		{
-			add_chunk();
-			capacity = chunks_.size() * CHUNK_SIZE;
-		}
+		while (index >= data_.size())
+			data_.push_back(T());
 	}
 
 public:
 
-	ChunkArray(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGen(container, is_mark, name)
+	Vector(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGen(container, is_mark, name)
 	{
-		chunks_.reserve(512u);
+		data_.reserve(512u);
 	}
 
-	~ChunkArray() override
-	{
-		for (auto chunk : chunks_)
-			delete[] chunk;
-	}
+	~Vector() override
+	{}
 
 	inline T& operator[](uint32 index)
 	{
-		cgogn_message_assert(index / CHUNK_SIZE < chunks_.size(), "index out of bounds");
-		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
+		cgogn_message_assert(index < data_.size(), "index out of bounds");
+		return data_[index];
 	}
 
 	inline const T& operator[](uint32 index) const
 	{
-		cgogn_message_assert(index / CHUNK_SIZE < chunks_.size(), "index out of bounds");
-		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
+		cgogn_message_assert(index < data_.size(), "index out of bounds");
+		return data_[index];
 	}
 
-	inline void swap(ChunkArray<T>* ca)
+	inline void swap(Vector<T>* ca)
 	{
 		if (ca->container_ == this->container_)
-			chunks_.swap(ca->chunks_);
+			data_.swap(ca->data_);
 	}
 
-	inline std::vector<const void*> chunk_pointers(uint32& chunk_byte_size) const
+	inline const void* data_pointer() const
 	{
-		chunk_byte_size = CHUNK_SIZE * sizeof(T);
-
-		std::vector<const void*> pointers;
-		pointers.reserve(chunks_.size());
-		for (auto c : chunks_)
-			pointers.push_back(c);
-
-		return pointers;
+		return &data_[0];
 	}
 
 	class const_iterator
 	{
-		const ChunkArray<T>* ca_;
+		const Vector<T>* ca_;
 		uint32 index_;
 
 	public:
 
-		inline const_iterator(const ChunkArray<T>* ca, uint32 index) : ca_(ca), index_(index)
+		inline const_iterator(const Vector<T>* ca, uint32 index) : ca_(ca), index_(index)
 		{}
 		inline const_iterator(const const_iterator& it) : ca_(it.ca_), index_(it.index_)
 		{}
@@ -145,12 +125,12 @@ public:
 
 	class iterator
 	{
-		ChunkArray<T>* ca_;
+		Vector<T>* ca_;
 		uint32 index_;
 
 	public:
 
-		inline iterator(ChunkArray<T>* ca, uint32 index) : ca_(ca), index_(index)
+		inline iterator(Vector<T>* ca, uint32 index) : ca_(ca), index_(index)
 		{}
 		inline iterator(const iterator& it) : ca_(it.ca_), index_(it.index_)
 		{}
@@ -182,4 +162,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_CONTAINER_CHUNK_ARRAY_H_
+#endif // CGOGN_CORE_CONTAINER_VECTOR_H_

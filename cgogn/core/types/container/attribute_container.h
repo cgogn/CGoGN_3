@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/utils/unique_ptr.h>
 
 #include <vector>
 #include <string>
@@ -86,6 +87,8 @@ protected:
 
 	std::vector<AttributeGen*> mark_attributes_;
 
+	std::vector<uint32> available_indices_;
+
 	uint32 nb_elements_;
 	uint32 maximum_index_;
 
@@ -93,21 +96,48 @@ protected:
 
 	void delete_attribute(AttributeGen* attribute);
 
+	virtual void init_ref_counter(uint32 index) = 0;
+	virtual uint32 nb_refs(uint32 index) const = 0;
+	virtual void init_mark_attributes(uint32 index) = 0;
+
 public:
 
-	using const_iterator = typename std::vector<AttributeGenPtr>::const_iterator;
-	inline const_iterator begin() const { return attributes_shared_ptr_.begin(); }
-	inline const_iterator end() const { return attributes_shared_ptr_.end(); }
-
 	AttributeContainerGen();
-	~AttributeContainerGen();
+	virtual ~AttributeContainerGen();
 
 	inline uint32 nb_elements() const { return nb_elements_; }
 	inline uint32 maximum_index() const { return maximum_index_; }
 
-	uint32 get_index();
+	uint32 new_index();
 
 	void remove_attribute(AttributeGenPtr attribute);
+
+	using const_iterator = std::vector<AttributeGen*>::const_iterator;
+	inline const_iterator begin() const { return attributes_.begin(); }
+	inline const_iterator end() const { return attributes_.end(); }
+
+	inline uint32 first_index() const
+	{
+		uint32 index = 0u;
+		while (index < maximum_index_ && nb_refs(index) == 0)
+			++index;
+		return index;
+	}
+
+	inline uint32 last_index() const
+	{
+		return maximum_index_;
+	}
+
+	inline uint32 next_index(uint32 index) const
+	{
+		do { ++index; }
+		while (
+			index < maximum_index_ &&
+			nb_refs(index) == 0
+		);
+		return index;
+	}
 };
 
 //////////////////////////////
@@ -124,8 +154,31 @@ public:
 	template <typename T>
 	using AttributePtr = std::shared_ptr<AttributeT<T>>;
 
+protected:
+
+	std::unique_ptr<Attribute<uint32>> ref_counters_;
+
+	void init_ref_counter(uint32 index) override
+	{
+		static_cast<AttributeGen*>(ref_counters_.get())->manage_index(index);
+		(*ref_counters_)[index] = 1u;
+	}
+
+	void init_mark_attributes(uint32 index) override
+	{
+		for (auto mark_attribute : mark_attributes_)
+		{
+			Attribute<uint8>* m = static_cast<Attribute<uint8>*>(mark_attribute);
+			(*m)[index] = 0u;
+		}
+	}
+
+public:
+
 	AttributeContainer() : AttributeContainerGen()
-	{}
+	{
+		ref_counters_ = cgogn::make_unique<Attribute<uint32>>(this, true, "__refs");
+	}
 
 	~AttributeContainer()
 	{}
@@ -154,12 +207,35 @@ public:
 		return AttributePtr<T>();
 	}
 
-	Attribute<uint8>* add_mark_attribute()
+	std::unique_ptr<Attribute<uint8>> add_mark_attribute()
 	{
 		Attribute<uint8>* ca = new Attribute<uint8>(this, true, "mark");
 		static_cast<AttributeGen*>(ca)->manage_index(maximum_index_);
 		mark_attributes_.push_back(ca);
-		return ca;
+		return std::unique_ptr<Attribute<uint8>>(ca);
+	}
+
+	uint32 nb_refs(uint32 index) const override
+	{
+		return (*ref_counters_)[index];
+	}
+
+	void ref_index(uint32 index)
+	{
+		(*ref_counters_)[index]++;
+	}
+
+	bool unref_index(uint32 index)
+	{
+		(*ref_counters_)[index]--;
+		if ((*ref_counters_)[index] == 1u)
+		{
+			available_indices_.push_back(index);
+			(*ref_counters_)[index] = 0u;
+			--nb_elements_;
+			return true;
+		}
+		return false;
 	}
 };
 

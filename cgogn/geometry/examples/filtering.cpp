@@ -184,6 +184,17 @@ void Viewer::import(const std::string& surface_mesh)
 	Vec3 center = (bb_max_ + bb_min_) / 2.0;
 	setSceneCenter(qoglviewer::Vec(center[0], center[1], center[2]));
 	showEntireScene();
+
+//	for (auto ag : map_.attribute_containers_[Map2::Vertex::ORBIT])
+//		std::cout << ag->name() << std::endl;
+
+//	std::cout << map_.attribute_containers_[Map2::Vertex::ORBIT].first_index() << ", ";
+//	std::cout << map_.attribute_containers_[Map2::Vertex::ORBIT].last_index() << ", ";
+//	std::cout << std::endl;
+
+//	for (auto v : *vertex_position_)
+//		std::cout << v << " / " << std::endl;
+//	std::cout << std::endl;
 }
 
 void Viewer::update_bb()
@@ -230,11 +241,8 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 //			bb_rendering_ = !bb_rendering_;
 //			break;
 		case Qt::Key_A: {
-			cgogn::foreach_value<Vec3>(vertex_position2_, [&] (Vec3& v, cgogn::uint32 index) -> bool
-			{
-				v = (*vertex_position_)[index];
-				return true;
-			});
+			for (auto it = vertex_position2_->begin(), end = vertex_position2_->end(); it != end; ++it)
+				*it = (*vertex_position_)[it.index()];
 			cgogn::geometry::filter_average<Vec3>(filtered_map_, vertex_position_, vertex_position2_);
 			vertex_position_->swap(vertex_position2_.get());
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
