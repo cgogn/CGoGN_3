@@ -34,6 +34,7 @@
 #include <cgogn/core/utils/type_traits.h>
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/assert.h>
 
 #include <array>
 #include <sstream>
@@ -136,8 +137,9 @@ public:
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
+		cgogn_message_assert(!is_embedded<CELL>(), "Trying to create an already created embedding");
 		std::ostringstream oss;
-		oss << "emb_" << orbit_name(orbit);
+		oss << "__emb_" << orbit_name(orbit);
 		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
@@ -154,6 +156,20 @@ public:
 			if (emb)
 				(*emb)[d.index] = INVALID_INDEX;
 		return d;
+	}
+
+	void remove_dart(Dart d)
+	{
+		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
+		{
+			if (embeddings_[orbit])
+			{
+				uint32 index = (*embeddings_[orbit])[d.index];
+				if (index != INVALID_INDEX)
+					attribute_containers_[orbit].unref_index(index);
+			}
+		}
+		topology_.release_index(d.index);
 	}
 
 	template <typename FUNC>

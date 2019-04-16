@@ -2,6 +2,8 @@ project(cgogn_geometry
 	LANGUAGES CXX
 )
 
+find_package(cgogn_core REQUIRED)
+
 # Hide symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
@@ -9,7 +11,7 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 find_package(Eigen3 3.2)
 
 add_library(${PROJECT_NAME} SHARED "")
-add_library(cgogn::geometry ALIAS cgogn_geometry)
+add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
@@ -20,8 +22,8 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/algos/centroid.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
@@ -50,8 +52,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_geometry_export.h to the current binary directory
-include(GenerateExportHeader)
-generate_export_header(cgogn_geometry)
+generate_export_header(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
 

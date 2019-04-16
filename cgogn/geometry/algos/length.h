@@ -21,10 +21,16 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
-#define CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#ifndef CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#define CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/functions/vector_ops.h>
 
 namespace cgogn
 {
@@ -32,60 +38,41 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-void
-normalize(VEC& v)
+template <typename VEC, typename MESH>
+typename vector_traits<VEC>::Scalar
+length(
+	const MESH& m,
+	typename mesh_traits<MESH>::Edge e,
+	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	std::vector<Vertex> vertices = incident_vertices(m, e);
+	return norm(value<VEC>(m, vertex_position, vertices[0]) - value<VEC>(m, vertex_position, vertices[1]));
+}
+
+template <typename VEC, typename MESH>
+typename vector_traits<VEC>::Scalar
+mean_edge_length(
+	const MESH& m,
+	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+)
 {
 	using Scalar = typename vector_traits<VEC>::Scalar;
-	const Scalar norm2 = v.squaredNorm();
-	if (norm2 > Scalar(0))
-		v /= std::sqrt(norm2);
-}
-
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-norm(VEC& v)
-{
-	return v.norm();
-}
-
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-squared_norm(VEC& v)
-{
-	v.squareNorm();
-}
-
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v.setZero();
-}
-
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v = 0;
-}
-
-template <typename VEC3,
-		  typename = typename std::enable_if<is_eigen<VEC3>::value>::type>
-VEC3
-cross(const VEC3& v1, const VEC3& v2)
-{
-	static_assert (vector_traits<VEC3>::SIZE == 3, "vec_ops: cross product is only defined for vectors of dimension 3");
-	return v1.cross(v2);
+	using Edge = typename mesh_traits<MESH>::Edge;
+	Scalar length_sum = 0;
+	uint32 nbe = 0;
+	foreach_cell(m, [&] (Edge e) -> bool
+	{
+		length_sum += length<VEC>(m, e, vertex_position);
+		++nbe;
+		return true;
+	});
+	return length_sum / Scalar(nbe);
 }
 
 } // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#endif // CGOGN_GEOMETRY_ALGOS_LENGTH_H_

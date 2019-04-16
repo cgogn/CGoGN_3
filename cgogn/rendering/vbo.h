@@ -134,12 +134,12 @@ public:
 	GLuint id() const { return buffer_.bufferId(); }
 };
 
-////////////
-// vector //
-////////////
+/////////////////
+// std::vector //
+/////////////////
 
 /**
-  * @brief update vbo from a std::vector<VEC>
+  * @brief update vbo from a std::vector<VEC3>
   * @param vector
   * @param vbo vbo to update
   */
@@ -156,34 +156,41 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
 	vbo->release();
 }
 
-//////////////////
-// AttributePtr //
-//////////////////
-
-// TODO: be generic
+////////////
+// Vector //
+////////////
 
 /**
- * @brief update vbo from one Attribute
- * @param attribute Attribute (must contain Vec3<float>)
+ * @brief update vbo from a Vector<VEC3>
+ * @param attribute
  * @param vbo vbo to update
  */
-//template <typename VEC3>
-//void update_vbo(CMapBase::AttributePtr<VEC3> attribute, VBO* vbo)
-//{
-//	vbo->set_name(attribute->name());
-
-//	uint32 nb_elements = attribute->maximum_index();
-
-//	vbo->allocate(nb_elements, 3);
-
-//	// copy data
-//	vbo->bind();
-//	vbo->copy_data(0, nb_elements * sizeof (VEC3), attribute->data_pointer());
-//	vbo->release();
-//}
-
 template <typename VEC3>
-void update_vbo(CMapBase::AttributePtr<VEC3> attribute, VBO* vbo)
+void update_vbo(const Vector<VEC3>* attribute, VBO* vbo)
+{
+	vbo->set_name(attribute->name());
+
+	uint32 nb_elements = attribute->maximum_index();
+
+	vbo->allocate(nb_elements, 3);
+
+	// copy data
+	vbo->bind();
+	vbo->copy_data(0, nb_elements * sizeof (VEC3), attribute->data_pointer());
+	vbo->release();
+}
+
+////////////////
+// ChunkArray //
+////////////////
+
+/**
+ * @brief update vbo from a Vector<VEC3>
+ * @param attribute
+ * @param vbo vbo to update
+ */
+template <typename VEC3>
+void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo)
 {
 	vbo->set_name(attribute->name());
 

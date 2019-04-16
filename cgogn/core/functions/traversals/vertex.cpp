@@ -21,21 +21,18 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
 
 /*****************************************************************************/
 
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+// template <typename CELL, typename MESH>
+// std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m, CELL c);
 
 /*****************************************************************************/
 
@@ -43,62 +40,29 @@ namespace cgogn
 // CMap1 //
 ///////////
 
-CMap1::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+std::vector<CMap1::Vertex> incident_vertices(const CMap1& m, CMap1::Face f)
 {
-	return cut_edge(m.mesh(), e, set_indices);
+	std::vector<CMap1::Vertex> vertices;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap1::Vertex(d)); return true; });
+	return vertices;
 }
 
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
-
 ///////////
 // CMap2 //
 ///////////
 
-CMap2::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 {
-	return cut_edge(m.mesh(), e, set_indices);
+	std::vector<CMap2::Vertex> vertices;
+	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Face f)
+{
+	std::vector<CMap2::Vertex> vertices;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	return vertices;
 }
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_

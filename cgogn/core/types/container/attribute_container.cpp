@@ -22,6 +22,7 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/container/attribute_container.h>
+#include <cgogn/core/utils/assert.h>
 
 namespace cgogn
 {
@@ -101,9 +102,17 @@ uint32 AttributeContainerGen::new_index()
 
 	init_ref_counter(index);
 	init_mark_attributes(index);
-	nb_elements_++;
+	++nb_elements_;
 
 	return index;
+}
+
+void AttributeContainerGen::release_index(uint32 index)
+{
+	cgogn_message_assert(nb_refs(index) > 0, "Trying to release an unused index");
+	available_indices_.push_back(index);
+	reset_ref_counter(index);
+	--nb_elements_;
 }
 
 void AttributeContainerGen::remove_attribute(AttributeGenPtr attribute)

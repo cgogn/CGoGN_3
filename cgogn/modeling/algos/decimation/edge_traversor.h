@@ -21,71 +21,39 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
-#define CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#ifndef CGOGN_MODELING_ALGOS_DECIMATION_EDGE_TRAVERSOR_H_
+#define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_TRAVERSOR_H_
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-void
-normalize(VEC& v)
+template <typename MESH>
+class EdgeTraversor
 {
-	using Scalar = typename vector_traits<VEC>::Scalar;
-	const Scalar norm2 = v.squaredNorm();
-	if (norm2 > Scalar(0))
-		v /= std::sqrt(norm2);
-}
+public:
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-norm(VEC& v)
-{
-	return v.norm();
-}
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-squared_norm(VEC& v)
-{
-	v.squareNorm();
-}
+	inline EdgeTraversor(MESH& m) : m_(m)
+	{}
+	virtual ~EdgeTraversor()
+	{}
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v.setZero();
-}
+	virtual void pre_collapse(Edge e) = 0;
+	virtual void post_collapse() = 0;
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v = 0;
-}
+protected:
 
-template <typename VEC3,
-		  typename = typename std::enable_if<is_eigen<VEC3>::value>::type>
-VEC3
-cross(const VEC3& v1, const VEC3& v2)
-{
-	static_assert (vector_traits<VEC3>::SIZE == 3, "vec_ops: cross product is only defined for vectors of dimension 3");
-	return v1.cross(v2);
-}
+	MESH& m_;
+};
 
-} // namespace geometry
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#endif // CGOGN_MODELING_ALGOS_DECIMATION_EDGE_TRAVERSOR_H_

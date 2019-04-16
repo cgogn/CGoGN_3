@@ -21,71 +21,56 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
-#define CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#ifndef CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_
+#define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_
+
+#include <cgogn/modeling/algos/decimation/edge_approximator.h>
+
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/traversals/edge.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-void
-normalize(VEC& v)
+template <typename MESH, typename VEC>
+class EdgeApproximator_MidEdge : public EdgeApproximator<MESH, VEC>
 {
-	using Scalar = typename vector_traits<VEC>::Scalar;
-	const Scalar norm2 = v.squaredNorm();
-	if (norm2 > Scalar(0))
-		v /= std::sqrt(norm2);
-}
+public:
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-norm(VEC& v)
-{
-	return v.norm();
-}
+	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-template <typename VEC,
-		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-typename vector_traits<VEC>::Scalar
-squared_norm(VEC& v)
-{
-	v.squareNorm();
-}
+	inline EdgeApproximator_MidEdge(
+		const MESH& m,
+		const typename mesh_traits<MESH>::template AttributePtr<VEC> position
+	) : EdgeApproximator<MESH, VEC>(m),
+		position_(position)
+	{}
+	virtual ~EdgeApproximator_MidEdge()
+	{}
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v.setZero();
-}
+	void init()
+	{}
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v = 0;
-}
+	VEC operator()(Edge e) const
+	{
+		auto vertices = incident_vertices(this->m_, e);
+		return Scalar(0.5) * (value<VEC>(this->m_, position_, vertices[0]) + value<VEC>(this->m_, position_, vertices[1]));
+	}
 
-template <typename VEC3,
-		  typename = typename std::enable_if<is_eigen<VEC3>::value>::type>
-VEC3
-cross(const VEC3& v1, const VEC3& v2)
-{
-	static_assert (vector_traits<VEC3>::SIZE == 3, "vec_ops: cross product is only defined for vectors of dimension 3");
-	return v1.cross(v2);
-}
+private:
 
-} // namespace geometry
+	const typename mesh_traits<MESH>::template AttributePtr<VEC> position_;
+};
+
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_FUNCTIONS_VEC_OPS_H_
+#endif // CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_

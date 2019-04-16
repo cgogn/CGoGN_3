@@ -21,12 +21,11 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
+#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/traversals/edge.h>
 
 namespace cgogn
 {
@@ -44,31 +43,62 @@ namespace cgogn
 ///////////
 
 CMap1::Face
-CGOGN_CORE_EXPORT add_face(CMap1& m, uint32 size, bool set_indices = true);
+add_face(CMap1& m, uint32 size, bool set_indices)
+{
+	Dart d = m.add_dart();
+	for (uint32 i = 1u; i < size; ++i)
+	{
+		Dart e = m.add_dart();
+		m.phi1_sew(d, e);
+	}
+	CMap1::Face f(d);
+
+	if (set_indices)
+	{
+		if (m.is_embedded<CMap1::Vertex>())
+			foreach_incident_vertex(m, f, [&] (CMap1::Vertex v) -> bool { create_embedding(m, v); return true; });
+		if (m.is_embedded<CMap1::Face>())
+			create_embedding(m, f);
+	}
+
+	return f;
+}
 
 ///////////
 // CMap2 //
 ///////////
 
 CMap2::Face
-CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Face
-add_face(MESH& m, uint32 size, bool set_incides = true)
+add_face(CMap2& m, uint32 size, bool set_indices)
 {
-	return add_face(m.mesh(), size, set_incides);
+	CMap2::Face f = add_face(static_cast<CMap1&>(m), size, false);
+	CMap2::Face b = add_face(static_cast<CMap1&>(m), size, false);
+	Dart it = b.dart;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool
+	{
+		m.set_boundary(it, true);
+		m.phi2_sew(d, it);
+		it = m.phi_1(it);
+		return true;
+	});
+
+	if (set_indices)
+	{
+		if (m.is_embedded<CMap2::Vertex>())
+			foreach_incident_vertex(m, f, [&] (CMap2::Vertex v) -> bool { create_embedding(m, v); return true; });
+		if (m.is_embedded<CMap2::Edge>())
+			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool { create_embedding(m, e); return true; });
+		if (m.is_embedded<CMap2::Face>())
+			create_embedding(m, f);
+	}
+
+	return f;
 }
 
 /*****************************************************************************/
 
 // template <typename MESH>
-// void
+// typename mesh_traits<MESH>::Face
 // remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true);
 
 /*****************************************************************************/
@@ -78,18 +108,19 @@ add_face(MESH& m, uint32 size, bool set_incides = true)
 ///////////
 
 void
-CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
-remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_incides = true)
+remove_face(CMap1& m, CMap1::Face f, bool set_indices)
 {
-	return remove_face(m.mesh(), f, set_incides);
+	Dart it = m.phi1(f.dart);
+	while(it != f.dart)
+	{
+		Dart next = m.phi1(it);
+		m.remove_dart(it);
+		it = next;
+	}
+	m.remove_dart(f.dart);
+
+	if (set_indices)
+	{}
 }
 
 /*****************************************************************************/
@@ -105,20 +136,40 @@ remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_incides = true
 ///////////
 
 CMap2::Edge
-CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Edge
-cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_incides = true)
+cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices)
 {
-	return cut_face(m.mesh(), v1, v2, set_incides);
+	Dart dd = m.phi_1(v1.dart);
+	Dart ee = m.phi_1(v2.dart);
+	CMap1::Vertex nv1 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(dd), false);
+	CMap1::Vertex nv2 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(ee), false);
+	m.phi1_sew(nv1.dart, nv2.dart);
+	m.phi2_sew(nv1.dart, nv2.dart);
+	m.set_boundary(nv1.dart, m.is_boundary(dd));
+	m.set_boundary(nv2.dart, m.is_boundary(ee));
+	CMap2::Edge e(nv1.dart);
+
+	if (set_indices)
+	{
+		if (m.is_embedded<CMap2::Vertex>())
+		{
+			m.copy_embedding<CMap2::Vertex>(nv1.dart, v1.dart);
+			m.copy_embedding<CMap2::Vertex>(nv2.dart, v2.dart);
+		}
+		if (m.is_embedded<CMap2::Edge>())
+			create_embedding(m, CMap2::Edge(nv1.dart));
+		if (m.is_embedded<CMap2::Face>())
+		{
+			m.copy_embedding<CMap2::Face>(nv2.dart, v1.dart);
+			create_embedding(m, CMap2::Face(v2.dart));
+		}
+		if (m.is_embedded<CMap2::Volume>())
+		{
+			m.copy_embedding<CMap2::Volume>(nv1.dart, v2.dart);
+			m.copy_embedding<CMap2::Volume>(nv2.dart, v1.dart);
+		}
+	}
+
+	return e;
 }
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_H_

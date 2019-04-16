@@ -97,6 +97,7 @@ protected:
 	void delete_attribute(AttributeGen* attribute);
 
 	virtual void init_ref_counter(uint32 index) = 0;
+	virtual void reset_ref_counter(uint32 index) = 0;
 	virtual uint32 nb_refs(uint32 index) const = 0;
 	virtual void init_mark_attributes(uint32 index) = 0;
 
@@ -109,6 +110,7 @@ public:
 	inline uint32 maximum_index() const { return maximum_index_; }
 
 	uint32 new_index();
+	void release_index(uint32 index);
 
 	void remove_attribute(AttributeGenPtr attribute);
 
@@ -164,6 +166,11 @@ protected:
 		(*ref_counters_)[index] = 1u;
 	}
 
+	void reset_ref_counter(uint32 index) override
+	{
+		(*ref_counters_)[index] = 0u;
+	}
+
 	void init_mark_attributes(uint32 index) override
 	{
 		for (auto mark_attribute : mark_attributes_)
@@ -186,12 +193,14 @@ public:
 	template <typename T>
 	AttributePtr<T> add_attribute(const std::string& name)
 	{
-		AttributePtr<T> casp = std::make_shared<Attribute<T>>(this, false, name);
-		Attribute<T>* cap = casp.get();
-		static_cast<AttributeGen*>(cap)->manage_index(maximum_index_);
-		attributes_.push_back(cap);
-		attributes_shared_ptr_.push_back(casp);
-		return casp;
+		AttributePtr<T> asp = get_attribute<T>(name);
+		if (!asp)
+			asp = std::make_shared<Attribute<T>>(this, false, name);
+		Attribute<T>* ap = asp.get();
+		static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+		attributes_.push_back(ap);
+		attributes_shared_ptr_.push_back(asp);
+		return asp;
 	}
 
 	template <typename T>
@@ -209,10 +218,10 @@ public:
 
 	std::unique_ptr<Attribute<uint8>> add_mark_attribute()
 	{
-		Attribute<uint8>* ca = new Attribute<uint8>(this, true, "mark");
-		static_cast<AttributeGen*>(ca)->manage_index(maximum_index_);
-		mark_attributes_.push_back(ca);
-		return std::unique_ptr<Attribute<uint8>>(ca);
+		Attribute<uint8>* ap = new Attribute<uint8>(this, true, "__mark");
+		static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+		mark_attributes_.push_back(ap);
+		return std::unique_ptr<Attribute<uint8>>(ap);
 	}
 
 	uint32 nb_refs(uint32 index) const override
@@ -222,17 +231,17 @@ public:
 
 	void ref_index(uint32 index)
 	{
+		cgogn_message_assert(nb_refs(index) > 0, "Trying to ref an unused index");
 		(*ref_counters_)[index]++;
 	}
 
 	bool unref_index(uint32 index)
 	{
+		cgogn_message_assert(nb_refs(index) > 0, "Trying to unref an unused index");
 		(*ref_counters_)[index]--;
 		if ((*ref_counters_)[index] == 1u)
 		{
-			available_indices_.push_back(index);
-			(*ref_counters_)[index] = 0u;
-			--nb_elements_;
+			release_index(index);
 			return true;
 		}
 		return false;

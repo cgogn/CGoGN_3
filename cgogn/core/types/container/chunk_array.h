@@ -52,14 +52,12 @@ private:
 
 	std::vector<T*> chunks_;
 
-	void add_chunk() { chunks_.push_back(new T[CHUNK_SIZE]()); }
-
 	void manage_index(uint32 index) override
 	{
 		uint32 capacity = chunks_.size() * CHUNK_SIZE;
 		while (index >= capacity)
 		{
-			add_chunk();
+			chunks_.push_back(new T[CHUNK_SIZE]());
 			capacity = chunks_.size() * CHUNK_SIZE;
 		}
 	}
@@ -101,8 +99,8 @@ public:
 
 		std::vector<const void*> pointers;
 		pointers.reserve(chunks_.size());
-		for (auto c : chunks_)
-			pointers.push_back(c);
+		for (auto chunk : chunks_)
+			pointers.push_back(chunk);
 
 		return pointers;
 	}
