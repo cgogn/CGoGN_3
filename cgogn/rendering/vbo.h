@@ -196,7 +196,8 @@ void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo)
 
 	uint32 nb_elements = attribute->maximum_index();
 
-	vbo->allocate(nb_elements + (512 - nb_elements % 512), 3);
+	uint32 chunk_size = ChunkArray<VEC3>::CHUNK_SIZE;
+	vbo->allocate(nb_elements + (chunk_size - nb_elements % chunk_size), 3);
 
 	uint32 chunk_byte_size;
 	std::vector<const void*> chunk_pointers = attribute->chunk_pointers(chunk_byte_size);
