@@ -21,15 +21,14 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_
-#define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_
+#ifndef CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#define CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
 
-#include <cgogn/modeling/algos/decimation/edge_approximator.h>
-
+#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/global.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <map>
 
 namespace cgogn
 {
@@ -37,40 +36,71 @@ namespace cgogn
 namespace modeling
 {
 
-template <typename MESH, typename VEC>
-class EdgeApproximator_MidEdge : public EdgeApproximator<MESH, VEC>
+template <typename CELL>
+class CellQueue
 {
 public:
 
-	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge = typename mesh_traits<MESH>::Edge;
+	using Self = CellQueue<CELL>;
 
-	inline EdgeApproximator_MidEdge(
-		const MESH& m,
-		const typename mesh_traits<MESH>::template AttributePtr<VEC> position
-	) : EdgeApproximator<MESH, VEC>(m),
-		position_(position)
-	{}
-	virtual ~EdgeApproximator_MidEdge()
-	{}
-
-	void init()
-	{}
-
-	VEC operator()(Edge e) const
+	struct CellInfo
 	{
-		auto vertices = incident_vertices(this->m_, e);
-		return Scalar(0.5) * (value<VEC>(this->m_, position_, vertices[0]) + value<VEC>(this->m_, position_, vertices[1]));
-	}
+		typename std::multimap<cgogn::float32, CELL>::const_iterator it_;
+		bool valid_;
+		CellInfo() : valid_(false) {}
+	};
 
-private:
+	inline CellQueue()
+	{}
+	virtual ~CellQueue()
+	{}
 
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> position_;
+	std::multimap<cgogn::float32, CELL> cells_;
+
+	class const_iterator
+	{
+	public:
+
+		const Self* const queue_ptr_;
+		typename std::multimap<cgogn::float32, CELL>::const_iterator cell_it_;
+
+		inline const_iterator(const Self* trav, typename std::multimap<cgogn::float32, CELL>::const_iterator it) :
+			queue_ptr_(trav),
+			cell_it_(it)
+		{}
+		inline const_iterator(const const_iterator& it) :
+			queue_ptr_(it.queue_ptr_),
+			cell_it_(it.cell_it_)
+		{}
+
+		inline const_iterator& operator=(const const_iterator& it)
+		{
+			queue_ptr_ = it.queue_ptr_;
+			cell_it_ = it.cell_it_;
+			return *this;
+		}
+		inline const_iterator& operator++()
+		{
+			cell_it_ = queue_ptr_->cells_.begin();
+			return *this;
+		}
+		inline const CELL& operator*() const
+		{
+			return (*cell_it_).second;
+		}
+		inline bool operator!=(const_iterator it) const
+		{
+			cgogn_assert(queue_ptr_ == it.queue_ptr_);
+			return cell_it_ != it.cell_it_;
+		}
+	};
+
+	const_iterator begin() const { return const_iterator(this, cells_.begin()); }
+	const_iterator end() const { return const_iterator(this, cells_.end()); }
 };
 
 } // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_MID_EDGE_H_
+#endif // CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_

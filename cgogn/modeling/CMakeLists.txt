@@ -14,10 +14,9 @@ add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/decimation.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator_mid_edge.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_traversor.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_traversor_edge_length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
 )
 

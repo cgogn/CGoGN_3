@@ -25,6 +25,10 @@
 #define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
+
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/traversals/edge.h>
 
 namespace cgogn
 {
@@ -32,25 +36,13 @@ namespace cgogn
 namespace modeling
 {
 
-template <typename MESH, typename VEC>
-class EdgeApproximator
+template <typename VEC, typename MESH>
+VEC mid_edge(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, typename mesh_traits<MESH>::Edge e)
 {
-public:
-
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	inline EdgeApproximator(const MESH& m) : m_(m)
-	{}
-	virtual ~EdgeApproximator()
-	{}
-
-	virtual void init() = 0;
-	virtual VEC operator()(Edge e) const = 0;
-
-protected:
-
-	const MESH& m_;
-};
+	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
+	auto vertices = incident_vertices(m, e);
+	return Scalar(0.5) * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+}
 
 } // namespace modeling
 

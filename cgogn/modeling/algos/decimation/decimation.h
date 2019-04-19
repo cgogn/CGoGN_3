@@ -28,10 +28,8 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/modeling/algos/decimation/edge_approximator_mid_edge.h>
-#include <cgogn/modeling/algos/decimation/edge_traversor_edge_length.h>
+#include <cgogn/modeling/algos/decimation/edge_approximator.h>
+#include <cgogn/modeling/algos/decimation/edge_queue_edge_length.h>
 
 namespace cgogn
 {
@@ -46,27 +44,41 @@ namespace modeling
 template <typename VEC, typename MESH>
 void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, uint32 nb_vertices_to_remove)
 {
+	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-	EdgeApproximator_MidEdge<MESH, VEC> approximator(m, vertex_position);
-	EdgeTraversor_EdgeLength<MESH, VEC> traversor(m, vertex_position);
+	CellQueue<Edge> edge_queue;
+	using EdgeInfo = typename CellQueue<Edge>::CellInfo;
+	auto edge_info = add_attribute<EdgeInfo, Edge>(m, "__decimate_edge_info");
+	auto edge_cost = [&] (Edge e) -> Scalar
+	{
+		return geometry::length<VEC>(m, e, vertex_position);
+	};
+
+	foreach_cell(m, [&] (Edge e) -> bool
+	{
+		update_edge_queue(m, e, edge_queue, edge_info, edge_cost);
+		return true;
+	});
 
 	uint32 count = 0;
-	for (auto it = traversor.begin(); it != traversor.end(); ++it)
+	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		VEC newpos = approximator(*it);
+		VEC newpos = mid_edge<VEC>(m, vertex_position, *it);
 
-		traversor.pre_collapse(*it);
-
+		Edge e1, e2;
+		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_info);
 		Vertex v = collapse_edge(m, *it);
 		value<VEC>(m, vertex_position, v) = newpos;
-
-		traversor.post_collapse();
+		post_collapse_edge_length(m, e1, e2, edge_queue, edge_info, edge_cost);
 
 		++count;
 		if (count >= nb_vertices_to_remove)
 			break;
 	}
+
+	remove_attribute<Edge>(m, edge_info);
 }
 
 } // namespace modeling

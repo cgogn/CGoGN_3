@@ -226,7 +226,7 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 //			bb_rendering_ = !bb_rendering_;
 //			break;
 		case Qt::Key_D: {
-			cgogn::modeling::decimate<Vec3>(map_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(map_)));
+			cgogn::modeling::decimate<Vec3>(filtered_map_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_map_)));
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
 			Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);

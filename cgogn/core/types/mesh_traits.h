@@ -34,6 +34,10 @@ namespace cgogn
 template <typename MESH>
 struct mesh_traits;
 
+//template <typename MESH>
+//struct mesh_traits<const MESH> : mesh_traits<MESH>
+//{};
+
 template <>
 struct mesh_traits<CMap0>
 {

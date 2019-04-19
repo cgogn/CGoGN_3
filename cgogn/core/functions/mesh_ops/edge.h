@@ -96,7 +96,7 @@ template <typename MESH,
 typename mesh_traits<MESH>::Vertex
 collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
 {
-	return cut_edge(m.mesh(), e, set_indices);
+	return collapse_edge(m.mesh(), e, set_indices);
 }
 
 } // namespace cgogn
