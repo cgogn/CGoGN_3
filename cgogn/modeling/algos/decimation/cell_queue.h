@@ -43,11 +43,11 @@ public:
 
 	using Self = CellQueue<CELL>;
 
-	struct CellInfo
+	struct CellQueueInfo
 	{
 		typename std::multimap<cgogn::float32, CELL>::const_iterator it_;
 		bool valid_;
-		CellInfo() : valid_(false) {}
+		CellQueueInfo() : valid_(false) {}
 	};
 
 	inline CellQueue()

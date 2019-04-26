@@ -49,8 +49,8 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> ve
 	using Edge = typename mesh_traits<MESH>::Edge;
 
 	CellQueue<Edge> edge_queue;
-	using EdgeInfo = typename CellQueue<Edge>::CellInfo;
-	auto edge_info = add_attribute<EdgeInfo, Edge>(m, "__decimate_edge_info");
+	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
+	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
 	auto edge_cost = [&] (Edge e) -> Scalar
 	{
 		return geometry::length<VEC>(m, e, vertex_position);
@@ -58,7 +58,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> ve
 
 	foreach_cell(m, [&] (Edge e) -> bool
 	{
-		update_edge_queue(m, e, edge_queue, edge_info, edge_cost);
+		update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 		return true;
 	});
 
@@ -68,17 +68,17 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> ve
 		VEC newpos = mid_edge<VEC>(m, vertex_position, *it);
 
 		Edge e1, e2;
-		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_info);
+		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info);
 		Vertex v = collapse_edge(m, *it);
 		value<VEC>(m, vertex_position, v) = newpos;
-		post_collapse_edge_length(m, e1, e2, edge_queue, edge_info, edge_cost);
+		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
 
 		++count;
 		if (count >= nb_vertices_to_remove)
 			break;
 	}
 
-	remove_attribute<Edge>(m, edge_info);
+	remove_attribute<Edge>(m, edge_queue_info);
 }
 
 } // namespace modeling

@@ -242,7 +242,7 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 			break;
 		}
 		case Qt::Key_S: {
-			cgogn::modeling::subdivide<Vec3>(map_, vertex_position_);
+			cgogn::modeling::subdivide<Vec3>(filtered_map_, vertex_position_);
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
 			Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
