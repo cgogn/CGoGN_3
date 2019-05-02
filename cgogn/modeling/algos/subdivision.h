@@ -21,37 +21,39 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#define CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/mesh_views/cell_cache.h>
+
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
 
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
+namespace modeling
+{
 
 ///////////
 // CMap2 //
 ///////////
 
-CMap2::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+void hexagon_to_triangles(CMap2& m, CMap2::Face f)
+{
+	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
+	Dart d0 = m.phi1(f.dart);
+	Dart d1 = m.template phi<11>(d0);
+	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
+	Dart d2 = m.template phi<11>(d1);
+	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
+	Dart d3 = m.template phi<11>(d2);
+	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
+}
 
 //////////////
 // MESHVIEW //
@@ -59,46 +61,46 @@ CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+void
+hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 {
-	return cut_edge(m.mesh(), e, set_indices);
+	hexagon_to_triangles(m.mesh(), f);
 }
 
-/*****************************************************************************/
+/////////////
+// GENERIC //
+/////////////
 
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+template <typename VEC, typename MESH>
+void subdivide(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position)
 {
-	return collapse_edge(m.mesh(), e, set_indices);
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
+	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	using Face = typename cgogn::mesh_traits<MESH>::Face;
+
+	CellCache<MESH> cache(m);
+	cache.template build<Edge>();
+	cache.template build<Face>();
+
+	foreach_cell(cache, [&] (Edge e) -> bool
+	{
+		std::vector<Vertex> vertices = incident_vertices(m, e);
+		Vertex v = cut_edge(m, e);
+		value<VEC>(m, vertex_position, v) =
+			0.5 * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+		return true;
+	});
+
+	foreach_cell(cache, [&] (Face f) -> bool
+	{
+		if (codegree(m, f) == 6)
+			hexagon_to_triangles(m, f);
+		return true;
+	});
 }
+
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
+#endif // CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_

@@ -21,37 +21,86 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/core/types/cmap/attributes.h>
+#ifndef CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#define CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/traversals/global.h>
+
+#include <map>
 
 namespace cgogn
 {
 
-AttributeGen::AttributeGen(AttributeContainer* container, bool is_mark, const std::string& name) :
-	name_(name),
-	container_(container),
-	is_mark_(is_mark)
-{}
-
-AttributeGen::~AttributeGen()
+namespace modeling
 {
-	if (is_mark_)
+
+template <typename CELL>
+class CellQueue
+{
+public:
+
+	using Self = CellQueue<CELL>;
+
+	struct CellQueueInfo
 	{
-		auto iter = std::find(container_->mark_attributes_.begin(), container_->mark_attributes_.end(), this);
-		if (iter != container_->mark_attributes_.end())
-		{
-			*iter = container_->mark_attributes_.back();
-			container_->mark_attributes_.pop_back();
-		}
-	}
-	else
+		typename std::multimap<cgogn::float32, CELL>::const_iterator it_;
+		bool valid_;
+		CellQueueInfo() : valid_(false) {}
+	};
+
+	inline CellQueue()
+	{}
+	virtual ~CellQueue()
+	{}
+
+	std::multimap<cgogn::float32, CELL> cells_;
+
+	class const_iterator
 	{
-		auto iter = std::find(container_->attributes_.begin(), container_->attributes_.end(), this);
-		if (iter != container_->attributes_.end())
+	public:
+
+		const Self* const queue_ptr_;
+		typename std::multimap<cgogn::float32, CELL>::const_iterator cell_it_;
+
+		inline const_iterator(const Self* trav, typename std::multimap<cgogn::float32, CELL>::const_iterator it) :
+			queue_ptr_(trav),
+			cell_it_(it)
+		{}
+		inline const_iterator(const const_iterator& it) :
+			queue_ptr_(it.queue_ptr_),
+			cell_it_(it.cell_it_)
+		{}
+
+		inline const_iterator& operator=(const const_iterator& it)
 		{
-			*iter = container_->attributes_.back();
-			container_->attributes_.pop_back();
+			queue_ptr_ = it.queue_ptr_;
+			cell_it_ = it.cell_it_;
+			return *this;
 		}
-	}
-}
+		inline const_iterator& operator++()
+		{
+			cell_it_ = queue_ptr_->cells_.begin();
+			return *this;
+		}
+		inline const CELL& operator*() const
+		{
+			return (*cell_it_).second;
+		}
+		inline bool operator!=(const_iterator it) const
+		{
+			cgogn_assert(queue_ptr_ == it.queue_ptr_);
+			return cell_it_ != it.cell_it_;
+		}
+	};
+
+	const_iterator begin() const { return const_iterator(this, cells_.begin()); }
+	const_iterator end() const { return const_iterator(this, cells_.end()); }
+};
+
+} // namespace modeling
 
 } // namespace cgogn
+
+#endif // CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_

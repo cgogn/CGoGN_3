@@ -48,7 +48,7 @@ void
 create_embedding(CMAP& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	uint32 emb = m.attribute_containers_[CELL::ORBIT].add_line();
+	uint32 emb = m.attribute_containers_[CELL::ORBIT].new_index();
 	set_embedding(m, c, emb);
 }
 

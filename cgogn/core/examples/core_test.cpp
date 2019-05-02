@@ -33,23 +33,27 @@ int main()
 	do_something(map2);
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
-	for (AttributeGen* ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	std::cout << "vertex attributes:" << std::endl;
+	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	io::import_OFF<Vec3>(map2, "/Users/kraemer/Data/surface/cube_tri.off");
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
-	for (AttributeGen* ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	std::cout << "vertex attributes:" << std::endl;
+	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
-	auto att2 = get_attribute<Vec3, CMap2::Vertex>(map2, "position");
+	auto position = get_attribute<Vec3, CMap2::Vertex>(map2, "position");
 
 	foreach_cell(map2, [&] (CMap2::Vertex v) -> bool
 	{
-		const Vec3& vec = value<Vec3>(map2, att2, v);
+		const Vec3& vec = value<Vec3>(map2, position, v);
 		std::cout << "vertex " << map2.embedding(v) << " : " << vec[0] << "," << vec[1] << "," << vec[2] << std::endl;
 		return true;
 	});
+
+	remove_attribute<CMap2::Vertex>(map2, position);
 
 	///////////////////////
 
@@ -58,7 +62,7 @@ int main()
 	do_something(map1);
 
 	std::cout << "nb darts: " << map1.nb_darts() << std::endl;
-	for (AttributeGen* ag : map1.attribute_containers_[CMap1::Face::ORBIT])
+	for (auto ag : map1.attribute_containers_[CMap1::Face::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	auto att1 = get_attribute<float64, CMap2::Face>(map1, "value");

@@ -64,6 +64,7 @@ class CellFilter
 public:
 
 	static const bool is_mesh_view = true;
+	using MeshType = MESH;
 
 	CellFilter(MESH& m) : m_(m) {}
 

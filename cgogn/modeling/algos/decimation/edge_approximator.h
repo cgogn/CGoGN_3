@@ -21,79 +21,31 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MESH_TRAITS_H_
-#define CGOGN_CORE_TYPES_MESH_TRAITS_H_
+#ifndef CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
+#define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/traversals/edge.h>
 
 namespace cgogn
 {
 
-template <typename MESH>
-struct mesh_traits;
-
-//template <typename MESH>
-//struct mesh_traits<const MESH> : mesh_traits<MESH>
-//{};
-
-template <>
-struct mesh_traits<CMap0>
+namespace modeling
 {
-	using Vertex = typename CMap0::Vertex;
 
-	using Cells = CMap0::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap1>
+template <typename VEC, typename MESH>
+VEC mid_edge(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, typename mesh_traits<MESH>::Edge e)
 {
-	using Vertex = CMap1::Vertex;
-	using Edge = CMap1::Edge;
-	using Face = CMap1::Face;
+	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
+	auto vertices = incident_vertices(m, e);
+	return Scalar(0.5) * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+}
 
-	using Cells = CMap1::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap2>
-{
-	using Vertex = CMap2::Vertex;
-	using Edge = CMap2::Edge;
-	using Face = CMap2::Face;
-	using Volume = CMap2::Volume;
-
-	using Cells = CMap2::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap3>
-{
-	using Vertex = CMap3::Vertex;
-	using Edge = CMap3::Edge;
-	using Face = CMap3::Face;
-	using Volume = CMap3::Volume;
-
-	using Cells = CMap3::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_MESH_TRAITS_H_
+#endif // CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_

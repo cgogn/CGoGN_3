@@ -21,79 +21,47 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MESH_TRAITS_H_
-#define CGOGN_CORE_TYPES_MESH_TRAITS_H_
+#include <cgogn/core/functions/traversals/face.h>
 
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
 
-template <typename MESH>
-struct mesh_traits;
+/*****************************************************************************/
 
-//template <typename MESH>
-//struct mesh_traits<const MESH> : mesh_traits<MESH>
-//{};
+// template <typename MESH, typename CELL>
+// std::vector<typename mesh_traits<MESH>::Face> incident_faces(MESH& m, CELL c);
 
-template <>
-struct mesh_traits<CMap0>
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
 {
-	using Vertex = typename CMap0::Vertex;
+	std::vector<CMap2::Face> faces;
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	{
+		if (!m.is_boundary(d))
+			faces.push_back(CMap2::Face(d));
+		return true;
+	});
+	return faces;
+}
 
-	using Cells = CMap0::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap1>
+std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 {
-	using Vertex = CMap1::Vertex;
-	using Edge = CMap1::Edge;
-	using Face = CMap1::Face;
-
-	using Cells = CMap1::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap2>
-{
-	using Vertex = CMap2::Vertex;
-	using Edge = CMap2::Edge;
-	using Face = CMap2::Face;
-	using Volume = CMap2::Volume;
-
-	using Cells = CMap2::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap3>
-{
-	using Vertex = CMap3::Vertex;
-	using Edge = CMap3::Edge;
-	using Face = CMap3::Face;
-	using Volume = CMap3::Volume;
-
-	using Cells = CMap3::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
+	std::vector<CMap2::Face> faces;
+	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
+	{
+		if (!m.is_boundary(d))
+			faces.push_back(CMap2::Face(d));
+		return true;
+	});
+	return faces;
+}
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_TYPES_MESH_TRAITS_H_

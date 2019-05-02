@@ -24,17 +24,37 @@
 #ifndef CGOGN_IO_UTILS_H_
 #define CGOGN_IO_UTILS_H_
 
-//#include <Eigen/Dense>
-
 #include <cgogn/core/utils/numerics.h>
 
 #include <iostream>
+#include <clocale>
 
 namespace cgogn
 {
 
 namespace io
 {
+
+struct Scoped_C_Locale
+{
+	// set numeric locale to C after saving current locale
+	inline Scoped_C_Locale()
+	{
+		current_locale_ = std::string(std::setlocale(LC_NUMERIC, nullptr));
+		setlocale(LC_NUMERIC, "C");
+	}
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Scoped_C_Locale);
+
+	// restore locale
+	inline ~Scoped_C_Locale()
+	{
+		std::setlocale(LC_NUMERIC, current_locale_.c_str());
+	}
+
+private:
+
+	std::string current_locale_;
+};
 
 std::istream& getline_safe(std::istream& is, std::string& str)
 {

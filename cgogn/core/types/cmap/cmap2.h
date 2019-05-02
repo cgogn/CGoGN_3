@@ -34,7 +34,7 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 {
-	Attribute<Dart>* phi2_;
+	AttributePtr<Dart> phi2_;
 
 	using Vertex = Cell<PHI21>;
 	using Edge = Cell<PHI2>;

@@ -46,6 +46,14 @@ normalize(VEC& v)
 template <typename VEC,
 		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
 typename vector_traits<VEC>::Scalar
+norm(VEC& v)
+{
+	return v.norm();
+}
+
+template <typename VEC,
+		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
+typename vector_traits<VEC>::Scalar
 squared_norm(VEC& v)
 {
 	v.squareNorm();

@@ -43,8 +43,8 @@
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
-#include <cgogn/geometry/algos/filtering.h>
 
+#include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
 #include <cgogn/rendering/mesh_render.h>
@@ -95,7 +95,6 @@ private:
 	cgogn::CellFilter<Map2> filtered_map_;
 
 	AttributePtr<Vec3> vertex_position_;
-	AttributePtr<Vec3> vertex_position2_;
 	AttributePtr<Vec3> vertex_normal_;
 
 	Vec3 bb_min_, bb_max_;
@@ -171,15 +170,13 @@ void Viewer::import(const std::string& surface_mesh)
 		std::exit(EXIT_FAILURE);
 	}
 
-	vertex_position2_ = cgogn::add_attribute<Vec3, Vertex>(map_, "position2");
-
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(map_, "normal");
 	cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
 
 	update_bb();
 
 	Vec3 diagonal = bb_max_ - bb_min_;
-	setSceneRadius(cgogn::geometry::norm(diagonal) / 2.0f);
+	setSceneRadius(diagonal.norm() / 2.0f);
 	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
 	setSceneCenter(qoglviewer::Vec(center[0], center[1], center[2]));
 	showEntireScene();
@@ -192,7 +189,7 @@ void Viewer::update_bb()
 		bb_min_[i] = std::numeric_limits<cgogn::float32>::max();
 		bb_max_[i] = std::numeric_limits<cgogn::float32>::lowest();
 	}
-	for (Vec3& p : *vertex_position_)
+	for (const Vec3& p : *vertex_position_)
 	{
 		for (cgogn::uint32 i = 0; i < 3; ++i)
 		{
@@ -228,39 +225,23 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 //		case Qt::Key_B:
 //			bb_rendering_ = !bb_rendering_;
 //			break;
-		case Qt::Key_A: {
-			for (auto it = vertex_position2_->begin(), end = vertex_position2_->end(); it != end; ++it)
-				*it = (*vertex_position_)[it.index()];
-			cgogn::geometry::filter_average<Vec3>(filtered_map_, vertex_position_, vertex_position2_);
-			vertex_position_->swap(vertex_position2_.get());
+		case Qt::Key_D: {
+			cgogn::modeling::decimate<Vec3>(filtered_map_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_map_)));
+			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
+			Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+			param_point_sprite_->size_ = mel / 6.0f;
 			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+			render_->init_primitives(map_, cgogn::rendering::POINTS);
+			render_->init_primitives(map_, cgogn::rendering::LINES);
+			render_->init_primitives(map_, cgogn::rendering::TRIANGLES);
 			update_bb();
 			Vec3 diagonal = bb_max_ - bb_min_;
 			setSceneRadius(diagonal.norm() / 2.0f);
 			break;
 		}
 		case Qt::Key_S: {
-//			cgogn::CellCache<Map2> cached_map(map_);
-//			cached_map.build<Vertex>();
-//			cached_map.build<Edge>();
-//			cached_map.build<Face>();
-
-//			cgogn::CellFilter<cgogn::CellCache<Map2>> filtered_map(cached_map);
-//			filtered_map.set_filter<Edge>([&] (Edge e) -> bool
-//			{
-//				std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, e);
-//				auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
-//				return v != vertices.end();
-//			});
-//			filtered_map.set_filter<Face>([&] (Face f) -> bool
-//			{
-//				std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, f);
-//				auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
-//				return v != vertices.end();
-//			});
-
 			cgogn::modeling::subdivide<Vec3>(filtered_map_, vertex_position_);
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
 			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
@@ -339,9 +320,9 @@ void Viewer::init()
 	glClearColor(0.1f,0.1f,0.3f,0.0f);
 
 	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>();
-	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
-
 	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>();
+
+	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
 
 	render_ = cgogn::make_unique<cgogn::rendering::MeshRender>();
@@ -392,7 +373,7 @@ int main(int argc, char** argv)
 
 	// Instantiate the viewer.
 	Viewer viewer;
-	viewer.setWindowTitle("filtering");
+	viewer.setWindowTitle("subdivision");
 	viewer.import(surface_mesh);
 	viewer.show();
 

@@ -63,6 +63,7 @@ class CellCache
 public:
 
 	static const bool is_mesh_view = true;
+	using MeshType = MESH;
 
 	template <typename CELL>
 	typename std::vector<CELL>::const_iterator begin() const

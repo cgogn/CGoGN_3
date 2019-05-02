@@ -21,79 +21,48 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MESH_TRAITS_H_
-#define CGOGN_CORE_TYPES_MESH_TRAITS_H_
+#include <cgogn/core/functions/traversals/vertex.h>
 
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
 
-template <typename MESH>
-struct mesh_traits;
+/*****************************************************************************/
 
-//template <typename MESH>
-//struct mesh_traits<const MESH> : mesh_traits<MESH>
-//{};
+// template <typename CELL, typename MESH>
+// std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m, CELL c);
 
-template <>
-struct mesh_traits<CMap0>
+/*****************************************************************************/
+
+///////////
+// CMap1 //
+///////////
+
+std::vector<CMap1::Vertex> incident_vertices(const CMap1& m, CMap1::Face f)
 {
-	using Vertex = typename CMap0::Vertex;
+	std::vector<CMap1::Vertex> vertices;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap1::Vertex(d)); return true; });
+	return vertices;
+}
 
-	using Cells = CMap0::Cells;
+///////////
+// CMap2 //
+///////////
 
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap1>
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 {
-	using Vertex = CMap1::Vertex;
-	using Edge = CMap1::Edge;
-	using Face = CMap1::Face;
+	std::vector<CMap2::Vertex> vertices;
+	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	return vertices;
+}
 
-	using Cells = CMap1::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap2>
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Face f)
 {
-	using Vertex = CMap2::Vertex;
-	using Edge = CMap2::Edge;
-	using Face = CMap2::Face;
-	using Volume = CMap2::Volume;
-
-	using Cells = CMap2::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
-
-template <>
-struct mesh_traits<CMap3>
-{
-	using Vertex = CMap3::Vertex;
-	using Edge = CMap3::Edge;
-	using Face = CMap3::Face;
-	using Volume = CMap3::Volume;
-
-	using Cells = CMap3::Cells;
-
-	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
-};
+	std::vector<CMap2::Vertex> vertices;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	return vertices;
+}
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_TYPES_MESH_TRAITS_H_

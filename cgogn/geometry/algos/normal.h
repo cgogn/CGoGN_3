@@ -45,7 +45,7 @@ VEC3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template Attribute<VEC3>* vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position
 )
 {
 	using Scalar = typename vector_traits<VEC3>::Scalar;
@@ -82,7 +82,7 @@ VEC3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Vertex v,
-	const typename mesh_traits<MESH>::template Attribute<VEC3>* vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position
 )
 {
 	using Scalar = typename vector_traits<VEC3>::Scalar;
@@ -102,8 +102,8 @@ template <typename VEC3, typename MESH>
 void
 compute_normal(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template Attribute<VEC3>* vertex_position,
-	typename mesh_traits<MESH>::template Attribute<VEC3>* vertex_normal
+	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position,
+	typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_normal
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;

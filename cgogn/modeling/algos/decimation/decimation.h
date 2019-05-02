@@ -21,85 +21,68 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
-#define CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#ifndef CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
+#define CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/mesh_views/cell_cache.h>
-
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
+
+#include <cgogn/modeling/algos/decimation/edge_approximator.h>
+#include <cgogn/modeling/algos/decimation/edge_queue_edge_length.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
-
-///////////
-// CMap2 //
-///////////
-
-void hexagon_to_triangles(CMap2& m, CMap2::Face f)
-{
-	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
-	Dart d0 = m.phi1(f.dart);
-	Dart d1 = m.template phi<11>(d0);
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
-	Dart d2 = m.template phi<11>(d1);
-	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
-	Dart d3 = m.template phi<11>(d2);
-	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
-hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
-{
-	hexagon_to_triangles(m.mesh(), f);
-}
 
 /////////////
 // GENERIC //
 /////////////
 
 template <typename VEC, typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<VEC>* vertex_position)
+void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, uint32 nb_vertices_to_remove)
 {
-	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
-	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
-	using Face = typename cgogn::mesh_traits<MESH>::Face;
+	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
-	cache.template build<Face>();
-
-	foreach_cell(cache, [&] (Edge e) -> bool
+	CellQueue<Edge> edge_queue;
+	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
+	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
+	auto edge_cost = [&] (Edge e) -> Scalar
 	{
-		std::vector<Vertex> vertices = incident_vertices(m, e);
-		Vertex v = cut_edge(m, e);
-		value<VEC>(m, vertex_position, v) =
-			0.5 * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+		return geometry::length<VEC>(m, e, vertex_position);
+	};
+
+	foreach_cell(m, [&] (Edge e) -> bool
+	{
+		update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 		return true;
 	});
 
-	foreach_cell(cache, [&] (Face f) -> bool
+	uint32 count = 0;
+	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		if (codegree(m, f) == 6)
-			hexagon_to_triangles(m, f);
-		return true;
-	});
+		VEC newpos = mid_edge<VEC>(m, vertex_position, *it);
+
+		Edge e1, e2;
+		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info);
+		Vertex v = collapse_edge(m, *it);
+		value<VEC>(m, vertex_position, v) = newpos;
+		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
+
+		++count;
+		if (count >= nb_vertices_to_remove)
+			break;
+	}
+
+	remove_attribute<Edge>(m, edge_queue_info);
 }
 
-} // namespace geometry
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#endif // CGOGN_GEOMETRY_ALGOS_DECIMATION_H_

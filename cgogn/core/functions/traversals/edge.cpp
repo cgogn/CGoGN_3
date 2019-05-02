@@ -21,42 +21,48 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_FUNCTIONS_NORMAL_H_
-#define CGOGN_GEOMETRY_FUNCTIONS_NORMAL_H_
+#include <cgogn/core/functions/traversals/edge.h>
 
-#include <cgogn/geometry/types/geometry_traits.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
-{
+/*****************************************************************************/
 
-/**
- * normal of the plane spanned by 3 points in 3D
- */
-template <typename VEC3a, typename VEC3b, typename VEC3c>
-inline typename vector_traits<VEC3a>::Type normal(const Eigen::MatrixBase<VEC3a>& p1, const Eigen::MatrixBase<VEC3b>& p2, const Eigen::MatrixBase<VEC3c>& p3)
+// template <typename MESH, typename CELL>
+// std::vector<typename mesh_traits<MESH>::Edge> incident_edges(MESH& m, CELL c);
+
+/*****************************************************************************/
+
+///////////
+// CMap1 //
+///////////
+
+std::vector<CMap1::Vertex> incident_edges(const CMap1& m, CMap1::Face f)
 {
-	static_assert(is_same_vector<VEC3a,VEC3b,VEC3c>::value, "parameters must have same type");
-	static_assert(is_dim_of<VEC3a, 3>::value, "The size of the vector must be equal to 3.");
-	return (p2-p1).cross(p3-p1);
+	std::vector<CMap1::Edge> edges;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap1::Edge(d)); return true; });
+	return edges;
 }
 
+///////////
+// CMap2 //
+///////////
 
-
-
-template <typename VEC3>
-inline auto normal(const VEC3& p1, const VEC3& p2, const VEC3& p3)
- -> typename std::enable_if <is_vec_non_eigen<VEC3>::value, VEC3>::type
+std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Vertex v)
 {
-	static_assert(is_dim_of<VEC3, 3>::value, "The size of the vector must be equal to 3.");
-	return copy_to_vec<VEC3>(normal(eigenize(p1),eigenize(p2),eigenize(p3)));
+	std::vector<CMap2::Edge> edges;
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
+	return edges;
 }
 
-
-} // namespace geometry
+std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Face f)
+{
+	std::vector<CMap2::Edge> edges;
+	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
+	return edges;
+}
 
 } // namespace cgogn
-
-#endif // CGOGN_GEOMETRY_FUNCTIONS_NORMAL_H_

@@ -39,7 +39,7 @@ class CellMarker
 protected:
 
 	const CMapBase& map_;
-	Attribute<uint8>* mark_attribute_;
+	std::unique_ptr<CMapBase::Attribute<uint8>> mark_attribute_;
 
 public:
 
@@ -49,9 +49,7 @@ public:
 	}
 
 	virtual ~CellMarker()
-	{
-		delete mark_attribute_;
-	}
+	{}
 
 	inline void mark(CELL c) { (*mark_attribute_)[map_.embedding(c)] = 1u; }
 	inline void unmark(CELL c) { (*mark_attribute_)[map_.embedding(c)] = 0u; }

@@ -2,6 +2,8 @@ project(cgogn_rendering
 	LANGUAGES CXX
 )
 
+find_package(cgogn_core REQUIRED)
+
 # Hide symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
@@ -13,8 +15,7 @@ find_package(QOGLViewer REQUIRED)
 set(CMAKE_AUTORCC ON)
 
 add_library(${PROJECT_NAME} SHARED "")
-
-add_library(cgogn::rendering ALIAS cgogn_rendering)
+add_library(cgogn::rendering ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
@@ -66,8 +67,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_rendering_export.h to the current binary directory
-include(GenerateExportHeader)
-generate_export_header(cgogn_rendering)
+generate_export_header(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry Qt5::Gui QOGLViewer)
 

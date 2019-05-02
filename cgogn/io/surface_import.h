@@ -45,6 +45,8 @@ namespace io
 template <typename VEC3>
 void import_OFF(CMap2& m, const std::string& filename)
 {
+	Scoped_C_Locale loc;
+
 	std::vector<uint32> faces_nb_edges;
 	std::vector<uint32> faces_vertex_indices;
 
@@ -80,7 +82,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 
 		VEC3 pos{x, y, z};
 
-		uint32 vertex_id = m.attribute_containers_[CMap2::Vertex::ORBIT].add_line();
+		uint32 vertex_id = m.attribute_containers_[CMap2::Vertex::ORBIT].new_index();
 		(*position)[vertex_id] = pos;
 
 		vertices_id.push_back(vertex_id);
@@ -192,7 +194,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 //			cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
 //		}
 
-	delete darts_per_vertex;
+	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 
 //		cgogn_assert(map_.template is_well_embedded<Vertex>());
 //		if (map_.template is_embedded<Face::ORBIT>())

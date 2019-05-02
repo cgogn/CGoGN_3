@@ -24,9 +24,10 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 
-#include <cgogn/core/utils/type_traits.h>
+#include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
@@ -42,30 +43,18 @@ namespace cgogn
 // CMap1 //
 ///////////
 
-std::vector<CMap1::Vertex> incident_edges(const CMap1& m, CMap1::Face f)
-{
-	std::vector<CMap1::Edge> edges;
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap1::Edge(d)); return true; });
-	return edges;
-}
+std::vector<CMap1::Vertex>
+CGOGN_CORE_EXPORT incident_edges(const CMap1& m, CMap1::Face f);
 
 ///////////
 // CMap2 //
 ///////////
 
-std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Vertex v)
-{
-	std::vector<CMap2::Edge> edges;
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
-	return edges;
-}
+std::vector<CMap2::Edge>
+CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Vertex v);
 
-std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Face f)
-{
-	std::vector<CMap2::Edge> edges;
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
-	return edges;
-}
+std::vector<CMap2::Edge>
+CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Face f);
 
 //////////////
 // MESHVIEW //

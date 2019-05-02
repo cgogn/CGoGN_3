@@ -132,42 +132,80 @@ public:
 	uint32 size() const { return uint32(nb_vectors_); }
 
 	GLuint id() const { return buffer_.bufferId(); }
-
 };
 
+/////////////////
+// std::vector //
+/////////////////
+
 /**
-  * @brief update vbo from a std::vector<VEC>
+  * @brief update vbo from a std::vector<VEC3>
   * @param vector
   * @param vbo vbo to update
   */
 template <typename VEC3>
 void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
 {
-	uint32 vec_sz = uint32(vector.size());
-	vbo->allocate(vec_sz, 3);
-	const uint32 vbo_bytes =  3 * vec_sz * uint32(sizeof(float32));
+	uint32 nb_elements = uint32(vector.size());
+	vbo->allocate(nb_elements, 3);
+	const uint32 vbo_bytes = nb_elements * 3 * uint32(sizeof(float32));
 
-	// copy
+	// copy data
 	vbo->bind();
 	vbo->copy_data(0, vbo_bytes, vector.data());
 	vbo->release();
 }
 
+////////////
+// Vector //
+////////////
+
 /**
- * @brief update vbo from one Attribute
- * @param attribute Attribute (must contain Vec3<float>)
+ * @brief update vbo from a Vector<VEC3>
+ * @param attribute
  * @param vbo vbo to update
  */
-template <typename ATTRIBUTE>
-void update_vbo(const ATTRIBUTE* attribute, VBO* vbo)
+template <typename VEC3>
+void update_vbo(const Vector<VEC3>* attribute, VBO* vbo)
 {
-	// set vbo name based on attribute name
 	vbo->set_name(attribute->name());
-	vbo->allocate(attribute->size(), 3);
 
-	// copy
+	uint32 nb_elements = attribute->maximum_index();
+
+	vbo->allocate(nb_elements, 3);
+
+	// copy data
 	vbo->bind();
-	vbo->copy_data(0, attribute->size() * 3 * sizeof(float32), attribute->data_ptr());
+	vbo->copy_data(0, nb_elements * sizeof (VEC3), attribute->data_pointer());
+	vbo->release();
+}
+
+////////////////
+// ChunkArray //
+////////////////
+
+/**
+ * @brief update vbo from a Vector<VEC3>
+ * @param attribute
+ * @param vbo vbo to update
+ */
+template <typename VEC3>
+void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo)
+{
+	vbo->set_name(attribute->name());
+
+	uint32 nb_elements = attribute->maximum_index();
+
+	uint32 chunk_size = ChunkArray<VEC3>::CHUNK_SIZE;
+	vbo->allocate(nb_elements + (chunk_size - nb_elements % chunk_size), 3);
+
+	uint32 chunk_byte_size;
+	std::vector<const void*> chunk_pointers = attribute->chunk_pointers(chunk_byte_size);
+
+	// copy data
+	vbo->bind();
+	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
+		vbo->copy_data(i * chunk_byte_size, chunk_byte_size, chunk_pointers[i]);
 	vbo->release();
 }
 

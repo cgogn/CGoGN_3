@@ -43,8 +43,8 @@ namespace geometry
 template <typename VEC, typename MESH>
 void filter_average(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute_in,
-	typename mesh_traits<MESH>::template Attribute<VEC>* attribute_out
+	const typename mesh_traits<MESH>::template AttributePtr<VEC> attribute_in,
+	typename mesh_traits<MESH>::template AttributePtr<VEC> attribute_out
 )
 {
 	using Scalar = typename vector_traits<VEC>::Scalar;
