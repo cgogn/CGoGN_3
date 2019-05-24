@@ -197,9 +197,9 @@ template <typename MAP, typename VERTEX_ATTR>
 auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 -> typename std::enable_if<MAP::DIMENSION == 2, void>::type
 {
-	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
+//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
 
-	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
+//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 	using Vertex = typename MAP::Vertex;
 	using Face = typename MAP::Face;
 	using Scalar = typename geometry::vector_traits<VEC3>::Scalar;
