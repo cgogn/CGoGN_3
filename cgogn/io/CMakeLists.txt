@@ -17,6 +17,7 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})

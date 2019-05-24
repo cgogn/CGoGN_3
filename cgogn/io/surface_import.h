@@ -80,7 +80,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
 
-		VEC3 pos{x, y, z};
+		VEC3 pos(x, y, z);
 
 		uint32 vertex_id = m.attribute_containers_[CMap2::Vertex::ORBIT].new_index();
 		(*position)[vertex_id] = pos;

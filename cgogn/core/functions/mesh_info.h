@@ -177,7 +177,7 @@ is_incident_to_boundary(const MESH& m, CELL c)
 // CMap2 //
 ///////////
 
-bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
+inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
 {
 	using Vertex = CMap2::Vertex;
 	using Face = CMap2::Face;

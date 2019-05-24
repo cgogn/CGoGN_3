@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+
+if(NOT TARGET ImGUI)
+        include("${CMAKE_CURRENT_LIST_DIR}/ImGUITargets.cmake")
+endif()
