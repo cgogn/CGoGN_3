@@ -147,7 +147,7 @@ public:
 //////////////////////////////
 
 template <template <typename> class AttributeT>
-class AttributeContainer : public AttributeContainerGen
+class CGOGN_CORE_EXPORT AttributeContainer : public AttributeContainerGen
 {
 public:
 

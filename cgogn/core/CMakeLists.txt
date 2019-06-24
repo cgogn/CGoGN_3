@@ -11,7 +11,11 @@ find_package(Eigen3 3.2)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED "")
+if (MSVC)
+	add_library(${PROJECT_NAME} STATIC "")
+else()
+	add_library(${PROJECT_NAME} SHARED "")
+endif()
 add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
