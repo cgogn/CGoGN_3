@@ -58,16 +58,16 @@
 
 #include <cgogn/io/surface_import.h>
 
-using Map2 = cgogn::CMap2;
-using Vertex = Map2::Vertex;
-using Edge = Map2::Edge;
-using Face = Map2::Face;
+using Mesh = cgogn::CMap2;
 
-using Vec3 = Eigen::Vector3f;
-using Scalar = typename cgogn::geometry::vector_traits<Vec3>::Scalar;
+using Vertex = Mesh::Vertex;
+using Edge = Mesh::Edge;
+using Face = Mesh::Face;
+
+using Vec3 = cgogn::geometry::Vec3;
 
 template <typename T>
-using AttributePtr = typename cgogn::mesh_traits<Map2>::AttributePtr<T>;
+using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
 
 class Viewer : public QOGLViewer
 {
@@ -91,8 +91,8 @@ public:
 
 private:
 
-	Map2 map_;
-	cgogn::CellFilter<Map2> filtered_map_;
+	Mesh map_;
+	cgogn::CellFilter<Mesh> filtered_map_;
 
 	AttributePtr<Vec3> vertex_position_;
 	AttributePtr<Vec3> vertex_position2_;
@@ -162,7 +162,7 @@ void Viewer::closeEvent(QCloseEvent*)
 
 void Viewer::import(const std::string& surface_mesh)
 {
-	cgogn::io::import_OFF<Vec3>(map_, surface_mesh);
+	cgogn::io::import_OFF(map_, surface_mesh);
 
 	vertex_position_ = cgogn::get_attribute<Vec3, Vertex>(map_, "position");
 	if (!vertex_position_)
@@ -174,12 +174,12 @@ void Viewer::import(const std::string& surface_mesh)
 	vertex_position2_ = cgogn::add_attribute<Vec3, Vertex>(map_, "position2");
 
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(map_, "normal");
-	cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
+	cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
 
 	update_bb();
 
 	Vec3 diagonal = bb_max_ - bb_min_;
-	setSceneRadius(cgogn::geometry::norm(diagonal) / 2.0f);
+	setSceneRadius(diagonal.norm() / 2.0f);
 	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
 	setSceneCenter(qoglviewer::Vec(center[0], center[1], center[2]));
 	showEntireScene();
@@ -189,8 +189,8 @@ void Viewer::update_bb()
 {
 	for (cgogn::uint32 i = 0; i < 3; ++i)
 	{
-		bb_min_[i] = std::numeric_limits<cgogn::float32>::max();
-		bb_max_[i] = std::numeric_limits<cgogn::float32>::lowest();
+		bb_min_[i] = std::numeric_limits<cgogn::float64>::max();
+		bb_max_[i] = std::numeric_limits<cgogn::float64>::lowest();
 	}
 	for (Vec3& p : *vertex_position_)
 	{
@@ -233,7 +233,7 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 				*it = (*vertex_position_)[it.index()];
 			cgogn::geometry::filter_average<Vec3>(filtered_map_, vertex_position_, vertex_position2_);
 			vertex_position_->swap(vertex_position2_.get());
-			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
+			cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
 			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
 			update_bb();
@@ -242,12 +242,12 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 			break;
 		}
 		case Qt::Key_S: {
-//			cgogn::CellCache<Map2> cached_map(map_);
+//			cgogn::CellCache<Mesh> cached_map(map_);
 //			cached_map.build<Vertex>();
 //			cached_map.build<Edge>();
 //			cached_map.build<Face>();
 
-//			cgogn::CellFilter<cgogn::CellCache<Map2>> filtered_map(cached_map);
+//			cgogn::CellFilter<cgogn::CellCache<Mesh>> filtered_map(cached_map);
 //			filtered_map.set_filter<Edge>([&] (Edge e) -> bool
 //			{
 //				std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, e);
@@ -263,8 +263,8 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 
 			cgogn::modeling::subdivide<Vec3>(filtered_map_, vertex_position_);
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
-			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
-			Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+			cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
+			double mel = cgogn::geometry::mean_edge_length(map_, vertex_position_);
 			param_point_sprite_->size_ = mel / 6.0f;
 			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
@@ -353,7 +353,7 @@ void Viewer::init()
 	param_point_sprite_ = cgogn::rendering::ShaderPointSprite::generate_param();
 	param_point_sprite_->set_position_vbo(vbo_position_.get());
 	param_point_sprite_->color_ = QColor(255, 0, 0);
-	Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+	double mel = cgogn::geometry::mean_edge_length(map_, vertex_position_);
 	param_point_sprite_->size_ = mel / 6.0f;
 
 	param_edge_ = cgogn::rendering::ShaderBoldLine::generate_param();

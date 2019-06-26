@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/vector_ops.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/algos/centroid.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/curvature.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"

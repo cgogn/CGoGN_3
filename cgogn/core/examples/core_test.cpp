@@ -5,6 +5,8 @@
 
 #include <cgogn/io/surface_import.h>
 
+#include <cgogn/geometry/types/vector_traits.h>
+
 using namespace cgogn;
 
 template <typename MESH>
@@ -24,7 +26,7 @@ void do_something(MESH& m)
 
 
 
-using Vec3 = Eigen::Vector3f;
+using Vec3 = geometry::Vec3;
 
 int main()
 {
@@ -37,7 +39,7 @@ int main()
 	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
-	io::import_OFF<Vec3>(map2, "/Users/kraemer/Data/surface/cube_tri.off");
+	io::import_OFF(map2, "/Users/kraemer/Data/surface/cube_tri.off");
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
 	std::cout << "vertex attributes:" << std::endl;

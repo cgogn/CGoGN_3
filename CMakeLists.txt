@@ -78,7 +78,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #### ThirdParty options
 set(CGOGN_THIRDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 option(CGOGN_BUILD_TESTS "Build cgogn unit tests using google test framework." OFF)
-option(CGOGN_BUILD_EXAMPLES "Build some example apps." OFF)
+option(CGOGN_BUILD_EXAMPLES "Build some example apps." ON)
 option(CGOGN_USE_OPENMP "Activate openMP directives." OFF)
 option(CGOGN_USE_SIMD "Enable SIMD instructions (sse,avx...)" ON)
 option(CGOGN_ENABLE_LTO "Enable link-time optimizations (only with gcc)" ON)

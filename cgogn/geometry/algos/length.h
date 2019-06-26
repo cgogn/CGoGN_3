@@ -38,37 +38,36 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC, typename MESH>
-typename vector_traits<VEC>::Scalar
+template <typename MESH>
+double
 length(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return norm(value<VEC>(m, vertex_position, vertices[0]) - value<VEC>(m, vertex_position, vertices[1]));
+	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
 }
 
-template <typename VEC, typename MESH>
-typename vector_traits<VEC>::Scalar
+template <typename MESH>
+double
 mean_edge_length(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
 )
 {
-	using Scalar = typename vector_traits<VEC>::Scalar;
 	using Edge = typename mesh_traits<MESH>::Edge;
-	Scalar length_sum = 0;
+	double length_sum = 0.0;
 	uint32 nbe = 0;
 	foreach_cell(m, [&] (Edge e) -> bool
 	{
-		length_sum += length<VEC>(m, e, vertex_position);
+		length_sum += length(m, e, vertex_position);
 		++nbe;
 		return true;
 	});
-	return length_sum / Scalar(nbe);
+	return length_sum / double(nbe);
 }
 
 } // namespace geometry

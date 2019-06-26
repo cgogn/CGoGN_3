@@ -32,6 +32,23 @@ namespace cgogn
 namespace geometry
 {
 
+using Vec2 = Eigen::Vector2d;
+using Vec3 = Eigen::Vector3d;
+using Vec4 = Eigen::Vector4d;
+
+using Vec2f = Eigen::Vector2f;
+using Vec3f = Eigen::Vector3f;
+using Vec4f = Eigen::Vector4f;
+
+using Vec2i = Eigen::Vector2i;
+using Vec3i = Eigen::Vector3i;
+using Vec4i = Eigen::Vector4i;
+
+using Mat2 = Eigen::Matrix2d;
+using Mat3 = Eigen::Matrix3d;
+using Mat4 = Eigen::Matrix3d;
+
+
 template <typename VEC, typename Enable = void>
 struct vector_traits;
 

@@ -93,6 +93,11 @@ public:
 			chunks_.swap(ca->chunks_);
 	}
 
+	inline uint32 nb_chunks() const
+	{
+		return chunks_.size();
+	}
+
 	inline std::vector<const void*> chunk_pointers(uint32& chunk_byte_size) const
 	{
 		chunk_byte_size = CHUNK_SIZE * sizeof(T);

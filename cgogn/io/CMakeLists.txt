@@ -16,6 +16,7 @@ add_library(cgogn::io ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
 )
 
