@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
