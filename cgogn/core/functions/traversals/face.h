@@ -89,12 +89,12 @@ void foreach_incident_face(const CMap2& m, CMap2::Vertex v, const FUNC& func)
 template <typename FUNC>
 void foreach_incident_face(const CMap2& m, CMap2::Edge e, const FUNC& func)
 {
-	static_assert(is_func_parameter_same<FUNC, CMap2::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_parameter_same<FUNC, CMap2::Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
 	{
 		if (!m.is_boundary(d))
-			return func(CMap2::Vertex(d));
+			return func(CMap2::Face(d));
 		return true;
 	});
 }

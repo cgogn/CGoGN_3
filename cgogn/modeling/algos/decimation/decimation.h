@@ -28,6 +28,8 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 
+#include <cgogn/geometry/types/vector_traits.h>
+
 #include <cgogn/modeling/algos/decimation/edge_approximator.h>
 #include <cgogn/modeling/algos/decimation/edge_queue_edge_length.h>
 
@@ -37,14 +39,16 @@ namespace cgogn
 namespace modeling
 {
 
+using Vec3 = geometry::Vec3;
+using Scalar = typename geometry::vector_traits<Vec3>::Scalar;
+
 /////////////
 // GENERIC //
 /////////////
 
-template <typename VEC, typename MESH>
-void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, uint32 nb_vertices_to_remove)
+template <typename MESH>
+void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<geometry::Vec3> vertex_position, uint32 nb_vertices_to_remove)
 {
-	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
@@ -53,7 +57,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> ve
 	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
 	auto edge_cost = [&] (Edge e) -> Scalar
 	{
-		return geometry::length<VEC>(m, e, vertex_position);
+		return geometry::length(m, e, vertex_position);
 	};
 
 	foreach_cell(m, [&] (Edge e) -> bool
@@ -65,12 +69,12 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> ve
 	uint32 count = 0;
 	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		VEC newpos = mid_edge<VEC>(m, vertex_position, *it);
+		Vec3 newpos = mid_edge(m, vertex_position, *it);
 
 		Edge e1, e2;
 		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info);
 		Vertex v = collapse_edge(m, *it);
-		value<VEC>(m, vertex_position, v) = newpos;
+		value<Vec3>(m, vertex_position, v) = newpos;
 //		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
 
 		++count;

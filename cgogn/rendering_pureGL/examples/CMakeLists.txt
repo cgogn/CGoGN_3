@@ -10,6 +10,10 @@ find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering_pureGL REQUIRED)
 find_package(cgogn_modeling REQUIRED)
 
+if(MACOSX)
+  find_library(CORE_FOUNDATION NAMES CoreFoundation)
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation")
+endif()
 
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
@@ -31,23 +35,22 @@ target_link_libraries(simple_viewerPGL cgogn::core cgogn::io cgogn::renderingPGL
 #add_executable(viewer_topo3PGL viewer_topo3.cpp)
 #target_link_libraries(viewer_topo3PGL cgogn::core cgogn::io cgogn::renderingPGL)
 
-
 #[[add_executable(viewer_per_face viewer_per_face.cpp)
 target_link_libraries(viewer_per_face cgogn::core cgogn::io cgogn::rendering)
+
 
 add_executable(picking_viewer picking_viewer.cpp)
 target_link_libraries(picking_viewer cgogn::core cgogn::io cgogn::rendering)
 
-
 add_executable(mt_viewer mt_viewer.cpp)
 target_link_libraries(mt_viewer cgogn::core cgogn::io cgogn::rendering)
-
 
 add_executable(point_set_drawing point_set_drawing.cpp)
 target_link_libraries(point_set_drawing cgogn::rendering cgogn::io QOGLViewer)
 
 add_executable(polyline_drawing polyline_drawing.cpp)
 target_link_libraries(polyline_drawing cgogn::rendering cgogn::io QOGLViewer)
+
 
 set_target_properties(simple_viewer viewer_per_face viewer_topo drawing picking_viewer viewer_topo3 mt_viewer text_drawing point_set_drawing
 PROPERTIES FOLDER examples/rendering)

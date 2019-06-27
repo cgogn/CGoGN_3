@@ -2,6 +2,12 @@ project(cgogn_rendering_pureGL
 	LANGUAGES CXX C
 )
 
+if(APPLE)
+  find_library(CORE_FOUNDATION CoreFoundation)
+  find_library(CARBON Carbon)
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation -framework Carbon")
+endif()
+
 add_library(${PROJECT_NAME} SHARED "")
 
 add_library(cgogn::renderingPGL ALIAS cgogn_rendering_pureGL)
@@ -112,6 +118,7 @@ else()
 	message(WARNING "Qt version < 5.6 : not compiling transparency rendering (need MRT FBO)")
 endif()
 ]]
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
 										DEBUG_POSTFIX "_d"
 										EXPORT_NAME rendering)
@@ -125,11 +132,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
-#target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry ImGUI)
 target_link_libraries(${PROJECT_NAME} cgogn::core ImGUI)
 
-
-generate_export_header(cgogn_rendering_pureGL)
+# Write out cgogn_rendering_pureGL_export.h to the current binary directory
+generate_export_header(${PROJECT_NAME})
 
 set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_rendering_pureGL.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_pureGL.pc @ONLY)
@@ -151,7 +157,5 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_pureGL_export.h
 )
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
-
-
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)

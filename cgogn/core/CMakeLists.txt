@@ -253,7 +253,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_core_export.h to the current binary directory
-generate_export_header(cgogn_core)
+generate_export_header(${PROJECT_NAME})
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
 	target_compile_definitions(${PROJECT_NAME} PUBLIC "CGOGN_USE_EXTERNAL_TEMPLATES")

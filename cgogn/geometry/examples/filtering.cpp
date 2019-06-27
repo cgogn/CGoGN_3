@@ -60,9 +60,9 @@
 
 using Mesh = cgogn::CMap2;
 
-using Vertex = Mesh::Vertex;
-using Edge = Mesh::Edge;
-using Face = Mesh::Face;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Edge = typename cgogn::mesh_traits<Mesh>::Edge;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 using Vec3 = cgogn::geometry::Vec3;
 
@@ -261,7 +261,7 @@ void Viewer::keyPressEvent(QKeyEvent *ev)
 //				return v != vertices.end();
 //			});
 
-			cgogn::modeling::subdivide<Vec3>(filtered_map_, vertex_position_);
+			cgogn::modeling::subdivide(filtered_map_, vertex_position_);
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
 			cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
 			double mel = cgogn::geometry::mean_edge_length(map_, vertex_position_);

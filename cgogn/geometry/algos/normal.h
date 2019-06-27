@@ -86,7 +86,6 @@ normal(
 {
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
-	const Vec3& p = value<Vec3>(m, vertex_position, v);
 	foreach_incident_face(m, v, [&] (Face f) -> bool
 	{
 		n += normal(m, f, vertex_position);

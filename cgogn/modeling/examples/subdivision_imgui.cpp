@@ -20,7 +20,6 @@
 * Contact information: cgogn@unistra.fr                                        *
 *                                                                              *
 *******************************************************************************/
-#include <Eigen/Dense>
 
 #include <cgogn/rendering_pureGL/imgui_viewer.h>
 #include <GLFW/glfw3.h>
@@ -52,16 +51,15 @@
 #include <cgogn/rendering_pureGL/shaders/shader_point_sprite.h>
 
 #include <cgogn/io/surface_import.h>
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
 using Map2 = cgogn::CMap2;
 using Vertex = Map2::Vertex;
 using Edge = Map2::Edge;
 using Face = Map2::Face;
 
-using Vec3 = Eigen::Vector3f;
-using Scalar = typename cgogn::geometry::vector_traits<Vec3>::Scalar;
+using Vec3 = cgogn::geometry::Vec3;
 
 template <typename T>
 using AttributePtr = typename cgogn::mesh_traits<Map2>::AttributePtr<T>;
@@ -73,6 +71,7 @@ class App;
 class Viewer : public GL::ImGUIViewer
 {
 	friend class App;
+
 public:
 
 	Viewer();
@@ -80,7 +79,6 @@ public:
 
 	Viewer(const Viewer&) = delete;
 	Viewer& operator=(const Viewer&) = delete;
-
 
 	void import(const std::string& surface_mesh);
 	void update_bb();
@@ -111,7 +109,7 @@ private:
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPhong::Param> param_phong_;
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPointSprite::Param> param_point_sprite_;
 
-	Scalar mel_;
+	double mel_;
 
 	bool phong_rendering_;
 	bool flat_rendering_;
@@ -123,17 +121,19 @@ private:
 class App: public GL::ImGUIApp
 {
 	int current_view_;
+
 public:
+
 	App():	current_view_(0) {}
 	Viewer* view() { return static_cast<Viewer*>(viewers_[current_view_]); }
 	bool interface() override;
 	void key_press_event(int k) override;
 };
 
+
 ////////////////////
 // IMPLEMENTATION //
 ////////////////////
-
 
 void App::key_press_event(int k)
 {
@@ -268,7 +268,7 @@ void Viewer::close_event()
 
 void Viewer::import(const std::string& surface_mesh)
 {
-	cgogn::io::import_OFF<Vec3>(map_, surface_mesh);
+	cgogn::io::import_OFF(map_, surface_mesh);
 
 	vertex_position_ = cgogn::get_attribute<Vec3, Vertex>(map_, "position");
 	if (!vertex_position_)
@@ -278,7 +278,7 @@ void Viewer::import(const std::string& surface_mesh)
 	}
 
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(map_, "normal");
-	cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
+	cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
 
 	update_bb();
 
@@ -307,17 +307,15 @@ void Viewer::update_bb()
 	}
 }
 
-
-
 void Viewer::key_press_event(cgogn::int32 k)
 {
 	switch(k)
 	{
 		case int('D'): {
-			cgogn::modeling::decimate<Vec3>(filtered_map_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_map_)));
+			cgogn::modeling::decimate(filtered_map_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_map_)));
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
-			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
-			Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+			cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
+			double mel = cgogn::geometry::mean_edge_length(map_, vertex_position_);
 			param_point_sprite_->size_ = mel / 6.0f;
 			GL::update_vbo(vertex_position_.get(), vbo_position_.get());
 			GL::update_vbo(vertex_normal_.get(), vbo_normal_.get());
@@ -330,10 +328,10 @@ void Viewer::key_press_event(cgogn::int32 k)
 			break;
 		}
 		case int('S'): {
-			cgogn::modeling::subdivide<Vec3>(filtered_map_, vertex_position_);
+			cgogn::modeling::subdivide(filtered_map_, vertex_position_);
 			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(map_) << std::endl;
-			cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
-			mel_ = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+			cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
+			mel_ = cgogn::geometry::mean_edge_length(map_, vertex_position_);
 			param_point_sprite_->size_ = mel_ / 6.0f;
 			GL::update_vbo(vertex_position_.get(), vbo_position_.get());
 			GL::update_vbo(vertex_normal_.get(), vbo_normal_.get());
@@ -352,7 +350,6 @@ void Viewer::key_press_event(cgogn::int32 k)
 	ask_update();
 }
 
-
 void Viewer::draw()
 {
 	glEnable(GL_DEPTH_TEST);
@@ -360,7 +357,6 @@ void Viewer::draw()
 
 	GL::GLMat4 proj = get_projection_matrix();
 	GL::GLMat4 view = get_modelview_matrix();
-
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.0f, 2.0f);
@@ -423,7 +419,7 @@ void Viewer::init()
 	param_point_sprite_ = GL::ShaderPointSprite::generate_param();
 	param_point_sprite_->set_vbos(vbo_position_.get());
 	param_point_sprite_->color_ = GL::GLColor(1, 0, 0,1);
-	Scalar mel = cgogn::geometry::mean_edge_length<Vec3>(map_, vertex_position_);
+	double mel = cgogn::geometry::mean_edge_length(map_, vertex_position_);
 	param_point_sprite_->size_ = mel / 6.0f;
 
 	param_edge_ = GL::ShaderBoldLine::generate_param();

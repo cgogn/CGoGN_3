@@ -46,12 +46,28 @@ int main()
 	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
+	auto bla = add_attribute<uint32, CMap2::Vertex>(map2, "bla");
+	auto bli = get_attribute<uint32, CMap2::Vertex>(map2, "bla");
+
+	foreach_cell(map2, [&] (CMap2::Vertex v) -> bool
+	{
+		uint32 i = value<uint32>(map2, bli, v);
+		uint32 j = value<uint32>(map2, bla, v);
+		std::cout << "vertex " << index_of(map2, v) << " : " << i << "," << j << std::endl;
+		return true;
+	});
+
 	auto position = get_attribute<Vec3, CMap2::Vertex>(map2, "position");
+
+	// std::cout << "  core_test: typeid: " << typeid(position).name() << std::endl;
+
+	if (!position)
+		std::cout << "position not valid" << std::endl;
 
 	foreach_cell(map2, [&] (CMap2::Vertex v) -> bool
 	{
 		const Vec3& vec = value<Vec3>(map2, position, v);
-		std::cout << "vertex " << map2.embedding(v) << " : " << vec[0] << "," << vec[1] << "," << vec[2] << std::endl;
+		std::cout << "vertex " << index_of(map2, v) << " : " << vec[0] << "," << vec[1] << "," << vec[2] << std::endl;
 		return true;
 	});
 

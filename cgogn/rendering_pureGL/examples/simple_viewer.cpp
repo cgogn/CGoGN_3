@@ -22,12 +22,16 @@
 *******************************************************************************/
 
 #include <cgogn/rendering_pureGL/imgui_viewer.h>
+
 #include <GLFW/glfw3.h>
 #include <iostream>
 
 #include <cgogn/core/types/cmap/cmap2.h>
+
 #include <cgogn/io/surface_import.h>
+
 #include <cgogn/geometry/algos/normal.h>
+
 #include <cgogn/rendering_pureGL/map_render.h>
 #include <cgogn/rendering_pureGL/shaders/shader_simple_color.h>
 #include <cgogn/rendering_pureGL/shaders/shader_flat.h>
@@ -39,16 +43,17 @@
 #include <cgogn/rendering_pureGL/drawer.h>
 #include <cgogn/rendering_pureGL/vbo_update.h>
 #include <cgogn/rendering_pureGL/fbo.h>
+
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
-using Map2 = cgogn::CMap2;
-using Vec3 = Eigen::Vector3f;
+using namespace cgogn;
+
+using Map2 = CMap2;
+using Vec3 = geometry::Vec3;
 
 template <typename T>
-using AttributePtr = typename cgogn::mesh_traits<Map2>::AttributePtr<T>;
+using AttributePtr = typename mesh_traits<Map2>::AttributePtr<T>;
 
-
-using namespace cgogn;
 namespace GL = ::cgogn::rendering_pgl;
 
 class App;
@@ -56,7 +61,9 @@ class App;
 class Viewer : public GL::ImGUIViewer
 {
 	friend class App;
+
 public:
+
 	Viewer();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Viewer);
 
@@ -89,30 +96,34 @@ public:
 
 	Vec3 bb_min_, bb_max_;
 
-
 	bool phong_rendering_;
 	bool vertices_rendering_;
 	bool edge_rendering_;
 	bool normal_rendering_;
 	bool bb_rendering_;
-public:
+	
 	void update_bb();
 	void draw() override;
 	void init() override;
 	void key_press_event(int k) override;
 	void close_event() override;
-
 };
+
 class App: public GL::ImGUIApp
 {
 	int current_view_;
+
 public:
+
 	App():	current_view_(0) {}
 	Viewer* view() { return static_cast<Viewer*>(viewers_[current_view_]); }
 	bool interface() override;
 	void key_press_event(int k) override;
 };
 
+/*****************************************************************************/
+/*                          App IMPLEMENTATION                               */
+/*****************************************************************************/
 
 bool App::interface()
 {
@@ -199,6 +210,10 @@ void App::key_press_event(int32 k)
 	ImGUIApp::key_press_event(k);
 }
 
+/*****************************************************************************/
+/*                       Viewer IMPLEMENTATION                               */
+/*****************************************************************************/
+
 Viewer::Viewer() :
 	map_(),
 	render_(nullptr),
@@ -233,7 +248,6 @@ void Viewer::update_bb()
 		}
 	}
 }
-
 
 void Viewer::close_event()
 {
@@ -282,12 +296,11 @@ void Viewer::key_press_event(int k)
 	ImGUIViewer::key_press_event(k);
 }
 
-
 void Viewer::import(const std::string& surface_mesh)
 {
 	using Vertex = typename mesh_traits<Map2>::Vertex;
 
-	cgogn::io::import_OFF<Vec3>(map_,surface_mesh);
+	cgogn::io::import_OFF(map_,surface_mesh);
 
 	vertex_position_ = get_attribute<Vec3, Vertex>(map_,"position");
 
@@ -296,10 +309,9 @@ void Viewer::import(const std::string& surface_mesh)
 	if (vertex_normal_ == nullptr)
 	{
 		vertex_normal_ = add_attribute<Vec3, Vertex>(map_,"normal");
-		cgogn::geometry::compute_normal<Vec3>(map_, vertex_position_, vertex_normal_);
+		cgogn::geometry::compute_normal(map_, vertex_position_, vertex_normal_);
 	}
 }
-
 
 void Viewer::init()
 {
@@ -396,7 +408,6 @@ void Viewer::init()
 	drawer_->end_list();
 }
 
-
 void Viewer::draw()
 {
 	glEnable(GL_DEPTH_TEST);
@@ -452,9 +463,7 @@ void Viewer::draw()
 	{
 		drawer_rend_->draw(proj,view);
 	}
-
 }
-
 
 int main(int argc, char** argv)
 {
@@ -468,8 +477,6 @@ int main(int argc, char** argv)
 
 	std::string surface_mesh2 = std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off");
 
-
-
 	App app;
 	gl3wInit();
 	Viewer view;
@@ -480,4 +487,3 @@ int main(int argc, char** argv)
 	app.add_view(&view2);
 	return app.launch();
 }
-

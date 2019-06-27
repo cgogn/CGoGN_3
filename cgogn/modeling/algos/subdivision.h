@@ -27,6 +27,8 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
+#include <cgogn/geometry/types/vector_traits.h>
+
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
@@ -38,6 +40,8 @@ namespace cgogn
 
 namespace modeling
 {
+
+using Vec3 = geometry::Vec3;
 
 ///////////
 // CMap2 //
@@ -71,8 +75,8 @@ hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 // GENERIC //
 /////////////
 
-template <typename VEC, typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position)
+template <typename MESH>
+void subdivide(MESH& m, typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position)
 {
 	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
@@ -86,8 +90,8 @@ void subdivide(MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> v
 	{
 		std::vector<Vertex> vertices = incident_vertices(m, e);
 		Vertex v = cut_edge(m, e);
-		value<VEC>(m, vertex_position, v) =
-			0.5 * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+		value<Vec3>(m, vertex_position, v) =
+			0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
 		return true;
 	});
 

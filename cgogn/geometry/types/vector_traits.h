@@ -52,7 +52,7 @@ using Mat4 = Eigen::Matrix3d;
 template <typename VEC, typename Enable = void>
 struct vector_traits;
 
-// specialization for uniform manip of vec & scalar (vbo)
+// specialization for uniform manipulation of vectors & scalar types (vbo)
 
 template <typename T>
 struct vector_traits<T, typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value>::type>
@@ -60,7 +60,6 @@ struct vector_traits<T, typename std::enable_if<std::is_integral<T>::value || st
 	static const std::size_t SIZE = 1;
 	using Scalar = T;
 };
-
 
 // specialization : Eigen::Vector
 

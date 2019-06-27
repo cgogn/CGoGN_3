@@ -33,7 +33,8 @@ namespace cgogn
 namespace io
 {
 
-void CGOGN_IO_EXPORT import_OFF(CMap2& m, const std::string& filename);
+void
+CGOGN_IO_EXPORT import_OFF(CMap2& m, const std::string& filename);
 
 } // namespace io
 

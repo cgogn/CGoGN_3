@@ -15,8 +15,6 @@ imstb_truetype.h
 
 set(SOURCE_FILES
 gl3w.c
-#glad.c
-#glew.c
 imgui.cpp
 imgui_draw.cpp
 imgui_impl_glfw.cpp

@@ -21,6 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
+#include <cgogn/io/surface_import.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/utils/numerics.h>

@@ -32,6 +32,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iostream>
 
 namespace cgogn
 {
@@ -195,11 +196,13 @@ public:
 	{
 		AttributePtr<T> asp = get_attribute<T>(name);
 		if (!asp)
+		{
 			asp = std::make_shared<Attribute<T>>(this, false, name);
-		Attribute<T>* ap = asp.get();
-		static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
-		attributes_.push_back(ap);
-		attributes_shared_ptr_.push_back(asp);
+			Attribute<T>* ap = asp.get();
+			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+			attributes_.push_back(ap);
+			attributes_shared_ptr_.push_back(asp);
+		}
 		return asp;
 	}
 
@@ -207,12 +210,22 @@ public:
 	AttributePtr<T> get_attribute(const std::string& name) const
 	{
 		auto it = std::find_if(
-			attributes_shared_ptr_.begin(),
-			attributes_shared_ptr_.end(),
-			[&] (const AttributeGenPtr& att) { return att->name().compare(name) == 0; }
+			attributes_.begin(),
+			attributes_.end(),
+			[&] (AttributeGen* att) { return att->name().compare(name) == 0; }
 		);
-		if (it != attributes_shared_ptr_.end())
-			return std::dynamic_pointer_cast<Attribute<T>>(*it);
+		if (it != attributes_.end())
+		{
+			std::cout << "get_attribute: " << name << " found" << std::endl;
+			if (!*it) std::cout << "  null ptr.." << std::endl;
+			else std::cout << "  ptr: " << *it << std::endl;
+			std::cout << "  typeid:" << typeid(Attribute<T>).name() << std::endl;
+			std::cout << "  typeid:" << typeid(**it).name() << std::endl;
+			Attribute<T>* ap = dynamic_cast<Attribute<T>*>(*it);
+			if (!ap) std::cout << "  dynamic conversion failed.." << std::endl;
+			return AttributePtr<T>(ap);
+		}
+		std::cout << "get_attribute: " << name << " not found" << std::endl;
 		return AttributePtr<T>();
 	}
 

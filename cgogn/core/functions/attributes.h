@@ -99,7 +99,7 @@ get_attribute(const MESH& m, const std::string& name)
 template <typename T, typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 typename mesh_traits<MESH>::template AttributePtr<T>
-get_attribute(MESH& m, const std::string& name)
+get_attribute(const MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return get_attribute<T, CELL>(m.mesh(), name);

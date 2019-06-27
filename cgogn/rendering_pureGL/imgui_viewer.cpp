@@ -248,7 +248,7 @@ ImGUIApp::ImGUIApp():
 		ImGui::GetIO().MousePos = ImVec2(cx,cy);
 
 		ImGUIApp* that = static_cast<ImGUIApp*>(glfwGetWindowUserPointer(wi));
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsMouseHoveringAnyWindow())
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
 			that->view_inputs_.mouse_buttons_ = 0;
@@ -327,7 +327,7 @@ ImGUIApp::ImGUIApp():
 		ImGui::GetIO().MousePos = ImVec2(cx,cy);
 
 		ImGUIApp* that = static_cast<ImGUIApp*>(glfwGetWindowUserPointer(wi));
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsMouseHoveringAnyWindow())
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
 			that->view_inputs_.mouse_buttons_ = 0;
@@ -360,7 +360,7 @@ ImGUIApp::ImGUIApp():
 		ImGui::GetIO().MousePos = ImVec2(cx,cy);
 
 		ImGUIApp* that = static_cast<ImGUIApp*>(glfwGetWindowUserPointer(wi));
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsMouseHoveringAnyWindow())
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
 			that->view_inputs_.mouse_buttons_ = 0;

@@ -36,12 +36,14 @@ namespace cgogn
 namespace modeling
 {
 
-template <typename VEC, typename MESH>
-VEC mid_edge(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position, typename mesh_traits<MESH>::Edge e)
+using Vec3 = geometry::Vec3;
+using Scalar = typename geometry::vector_traits<Vec3>::Scalar;
+
+template <typename MESH>
+Vec3 mid_edge(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position, typename mesh_traits<MESH>::Edge e)
 {
-	using Scalar = typename geometry::vector_traits<VEC>::Scalar;
 	auto vertices = incident_vertices(m, e);
-	return Scalar(0.5) * (value<VEC>(m, vertex_position, vertices[0]) + value<VEC>(m, vertex_position, vertices[1]));
+	return Scalar(0.5) * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
 }
 
 } // namespace modeling
