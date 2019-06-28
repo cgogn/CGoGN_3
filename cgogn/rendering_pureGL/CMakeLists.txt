@@ -2,15 +2,17 @@ project(cgogn_rendering_pureGL
 	LANGUAGES CXX C
 )
 
+find_package(cgogn_core REQUIRED)
+find_package(ImGUI REQUIRED)
+
 if(APPLE)
-  find_library(CORE_FOUNDATION CoreFoundation)
+  find_library(CORE_FOUNDATION NAMES CoreFoundation)
   find_library(CARBON Carbon)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation -framework Carbon")
 endif()
 
 add_library(${PROJECT_NAME} SHARED "")
-
-add_library(cgogn::renderingPGL ALIAS cgogn_rendering_pureGL)
+add_library(cgogn::rendering_pureGL ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
@@ -95,33 +97,10 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_histo.cpp"
 )
 
-#[[
-if (Qt5Gui_VERSION VERSION_GREATER 5.5.99)
-	target_sources(${PROJECT_NAME}
-		PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_quad.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_quad.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_flat.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_flat.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_phong.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_phong.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_volumes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_transparent_volumes.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_copy_depth.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_shaders/shader_copy_depth.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_drawer.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_drawer.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_volume_drawer.h"
-		"${CMAKE_CURRENT_LIST_DIR}/transparency_volume_drawer.cpp"
-	)
-else()
-	message(WARNING "Qt version < 5.6 : not compiling transparency rendering (need MRT FBO)")
-endif()
-]]
-
 set_target_properties(${PROJECT_NAME} PROPERTIES
-										DEBUG_POSTFIX "_d"
-										EXPORT_NAME rendering)
+	DEBUG_POSTFIX "_d"
+	EXPORT_NAME rendering_pureGL
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
@@ -134,10 +113,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} cgogn::core ImGUI)
 
-# Write out cgogn_rendering_pureGL_export.h to the current binary directory
+# Write out cgogn_rendering_puregl_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 
-set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
+set(PKG_CONFIG_REQUIRES "cgogn_core ImGUI")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_rendering_pureGL.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_pureGL.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_pureGL.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
@@ -151,7 +130,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 	REGEX "(examples|tests)" EXCLUDE
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_pureGL_export.h
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_puregl_export.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/rendering_pureGL
 	COMPONENT cgogn_rendering_pureGL_headers
 )

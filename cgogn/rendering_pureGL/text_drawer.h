@@ -24,9 +24,10 @@
 #ifndef CGOGN_RENDERING_TEXT_DRAWER_H_
 #define CGOGN_RENDERING_TEXT_DRAWER_H_
 
-#include <array>
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/shaders/shader_text.h>
+
+#include <array>
 
 namespace cgogn
 {
@@ -102,23 +103,23 @@ public:
 
 	static TextDrawer::End end;
 
-	Self& operator << (TextDrawer::End);
+	Self& operator <<(TextDrawer::End);
 
 	template <typename VEC3>
-	inline auto operator << (const VEC3& p) -> typename std::enable_if< geometry::vector_traits<VEC3>::OK, Self&>::type
+	inline auto operator <<(const VEC3& p) -> typename std::enable_if<geometry::vector_traits<VEC3>::OK, Self&>::type
 	{
 		current_pos_ = Vec3f{ float32(p[0]), float32(p[1]), float32(p[2]) };
 		next_pos_ = true;
 		return *this;
 	}
 
-	Self& operator << (const GLColor& col);
+	Self& operator <<(const GLColor& col);
 
-	Self& operator << (float32 sz);
+	Self& operator <<(float32 sz);
 
-	Self& operator << (const std::string& str);
+	Self& operator <<(const std::string& str);
 
-	inline Self& operator << (const char* cstr)
+	inline Self& operator <<(const char* cstr)
 	{
 		return this->operator<<(std::string(cstr));
 	}
@@ -126,9 +127,6 @@ public:
 	void update_text(std::size_t pos, const std::string& str);
 
 	void scale_text(float sc);
-
-
-
 
 	class CGOGN_RENDERING_PUREGL_EXPORT Renderer
 	{
@@ -138,6 +136,7 @@ public:
 		Renderer(TextDrawer* td);
 
 	public:
+
 		~Renderer();
 
 		void draw(const GLMat4& projection, const GLMat4& modelview);
@@ -160,13 +159,10 @@ public:
 	{
 		return std::unique_ptr<Renderer>(new Renderer(this));
 	}
-
 };
 
-
-
-} // namespace rendering
+} // namespace rendering_pgl
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_VOLUME_DRAWER_H_
+#endif // CGOGN_RENDERING_TEXT_DRAWER_H_

@@ -25,17 +25,12 @@
 #ifndef CGOGN_RENDERING_MFRAME_H_
 #define CGOGN_RENDERING_MFRAME_H_
 
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <Eigen/Eigen>
-#include <Eigen/Geometry>
-#include <Eigen/SVD>
-
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/types.h>
 
 namespace cgogn
 {
+
 namespace rendering_pgl
 {
 
@@ -54,6 +49,8 @@ struct CGOGN_RENDERING_PUREGL_EXPORT MovingFrame
 	//GLVec3d local_coordinates(GLVec3d glob);
 };
 
-}
-}
-#endif
+} // namespace cgogn
+
+} // namespace rendering_pgl
+
+#endif // CGOGN_RENDERING_MFRAME_H_

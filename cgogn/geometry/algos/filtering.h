@@ -51,7 +51,7 @@ void filter_average(
 	foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		T sum;
-		set_zero(sum);
+		sum.setZero();
 		uint32 count = 0;
 		foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
 		{

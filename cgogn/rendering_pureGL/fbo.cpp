@@ -66,15 +66,16 @@ FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 void FBO::resize(int w, int h)
 {
 	for (auto* t: tex_)
-		t->resize(w,h);
+		t->resize(w, h);
 
 	if (depth_render_buffer_ != 0)
 	{
-		glBindRenderbuffer( GL_RENDERBUFFER, depth_render_buffer_ );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h );
+		glBindRenderbuffer( GL_RENDERBUFFER, depth_render_buffer_);
+		glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
 		glBindRenderbuffer( GL_RENDERBUFFER, 0);
 	}
 }
 
-}
-}
+} // namespace cgogn
+
+} // namespace rendering_pgl

@@ -25,7 +25,9 @@
 #ifndef CGOGN_RENDERING_CAMERA_H_
 #define CGOGN_RENDERING_CAMERA_H_
 
-#include <iostream>
+#include <cgogn/rendering_pureGL/mframe.h>
+#include <cgogn/core/utils/numerics.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
@@ -33,19 +35,22 @@
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 
-#include <cgogn/rendering_pureGL/mframe.h>
-#include <cgogn/core/utils/numerics.h>
+#include <iostream>
 
 namespace cgogn
 {
+
 namespace rendering_pgl
 {
 	
 class CGOGN_RENDERING_PUREGL_EXPORT Camera : public MovingFrame
 {
 public:
+
 	enum Type { PERSPECTIVE, ORTHOGRAPHIC };
+
 private:
+
 	Type type_;
 	float64 field_of_view_;
 	float64 asp_ratio_; // width/height
@@ -61,25 +66,25 @@ private:
 
 	GLMat4d ortho(float64 znear, float64 zfar) const;
 
-
 public:
+
 	inline Camera():
 		type_(PERSPECTIVE),
 		field_of_view_(0.78),
 		asp_ratio_(1.0),
-		pivot_shift_(0,0,0)
+		pivot_shift_(0, 0, 0)
 	{}
 
-	inline float64 width() const { return (asp_ratio_>1.0) ? asp_ratio_ : 1.0;}
+	inline float64 width() const { return (asp_ratio_>1.0) ? asp_ratio_ : 1.0; }
 	
-	inline float64 height() const { return (asp_ratio_>1.0) ? 1.0 : 1.0/asp_ratio_;}
+	inline float64 height() const { return (asp_ratio_>1.0) ? 1.0 : 1.0 / asp_ratio_; }
 	
 	inline void set_type(Type type) { type_ = type; need_computing_ = 3; }
 	
 	inline void set_field_of_view(float64 fov)
 	{
 		field_of_view_ = fov;
-		focal_dist_ = scene_radius_/std::tan(field_of_view_/2.0);
+		focal_dist_ = scene_radius_/std::tan(field_of_view_ / 2.0);
 		need_computing_ = 3;
 	}
 
@@ -94,7 +99,7 @@ public:
 	inline void set_scene_radius(float64 radius)
 	{
 		scene_radius_ = radius;
-		focal_dist_ = scene_radius_/std::tan(field_of_view_/2.0);
+		focal_dist_ = scene_radius_/std::tan(field_of_view_ / 2.0);
 		need_computing_ = 3;
 	}
 	
@@ -113,13 +118,13 @@ public:
 
 	inline void center_scene()
 	{
-		this->frame_.matrix().block<3,1>(0,3).setZero();
+		this->frame_.matrix().block<3,1>(0, 3).setZero();
 		need_computing_ = 3;
 	}
 	
 	inline void show_entire_scene() 
 	{
-		this->frame_.matrix().block<3,1>(0,3).setZero();
+		this->frame_.matrix().block<3,1>(0, 3).setZero();
 		need_computing_ = 3;
 	}
 
@@ -139,19 +144,18 @@ public:
 //		Transfo3d tr = this->frame_ * Eigen::Translation3d(-pivot_shift_);
 //		float64 d = focal_dist_ - (tr.translation()/*this->frame_.translation()-pivot_shift_*/).z();
 		float64 d = focal_dist_ - this->frame_.translation().z();
-		float64 znear = std::max(0.001, d - 2.0*scene_radius_);
-		float64 zfar = d + 2.0*scene_radius_;
-		proj_ = ((type_==PERSPECTIVE) ? perspective(znear,zfar) : ortho(znear,zfar));
+		float64 znear = std::max(0.001, d - 2.0 * scene_radius_);
+		float64 zfar = d + 2.0 * scene_radius_;
+		proj_ = ((type_==PERSPECTIVE) ? perspective(znear, zfar) : ortho(znear, zfar));
 		return proj_;
 	}
 
 	inline GLMat4d get_modelview_matrix_d() const
 	{
-		Transfo3d m = Eigen::Translation3d(GLVec3d(0.0,0.0,-focal_dist_)) * this->frame_ * Eigen::Translation3d(-pivot_point_);
+		Transfo3d m = Eigen::Translation3d(GLVec3d(0.0, 0.0, -focal_dist_)) * this->frame_ * Eigen::Translation3d(-pivot_point_);
 		mv_ = m.matrix();
 		return mv_;
 	}
-
 
 	inline GLMat4 get_projection_matrix() const
 	{
@@ -162,10 +166,10 @@ public:
 	{
 		return get_modelview_matrix_d().cast<float32>();
 	}
-
-
 };
 
-}
-}
-#endif
+} // namespace cgogn
+
+} // namespace rendering_pgl
+
+#endif // CGOGN_RENDERING_CAMERA_H_

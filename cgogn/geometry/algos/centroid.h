@@ -30,7 +30,6 @@
 #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 
 namespace cgogn
 {
@@ -49,8 +48,9 @@ centroid(
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
+
 	VEC result;
-	set_zero(result);
+	result.setZero();
 	uint32 count = 0;
 	foreach_incident_vertex(m, c, [&] (Vertex v)
 	{
@@ -70,8 +70,9 @@ centroid(
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
+
 	VEC result;
-	set_zero(result);
+	result.setZero();
 	uint32 count = 0;
 	foreach_cell(m, [&] (Vertex v)
 	{
@@ -106,6 +107,7 @@ central_vertex(
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
+	
 	VEC center = centroid<VEC>(m, attribute);
 	Scalar min_dist = std::numeric_limits<Scalar>::max();
 	Vertex min_vertex;

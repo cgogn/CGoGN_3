@@ -26,12 +26,13 @@
 #define CGOGN_RENDERING_FBO_H_
 
 #include <GL/gl3w.h>
-#include <vector>
+
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/texture.h>
 #include <cgogn/rendering_pureGL/shaders/shader_fullscreen_texture.h>
 
+#include <vector>
 
 namespace cgogn
 {
@@ -42,8 +43,10 @@ namespace rendering_pgl
 class CGOGN_RENDERING_PUREGL_EXPORT FBO
 {
 	GLint initial_viewport_[4];
+
 public:
-	FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from );
+
+	FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from);
 
 	inline void bind()
 	{
@@ -68,11 +71,14 @@ public:
 	inline GLint height() const { return tex_.front()->height(); }
 
 protected:
+
 	GLuint id_;
 	GLuint depth_render_buffer_;
 	std::vector<Texture2D*> tex_;
 };
 
-}
-}
-#endif
+} // namespace cgogn
+
+} // namespace rendering_pgl
+
+#endif // CGOGN_RENDERING_FBO_H_

@@ -21,22 +21,25 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_TYPE_H_
-#define CGOGN_RENDERING_TYPE_H_
+#ifndef CGOGN_RENDERING_TYPES_H_
+#define CGOGN_RENDERING_TYPES_H_
 
 #include <GL/gl3w.h>
+
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/core/utils/numerics.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
-#include <string>
 
+#include <string>
 
 namespace cgogn
 {
+
 namespace rendering_pgl
 {
 
@@ -47,13 +50,12 @@ using GLMat3d = Eigen::Matrix3d;
 using GLMat4d = Eigen::Matrix4d;
 using Mat4f = Eigen::Matrix4f;
 using Transfo3d = Eigen::Affine3d;
-using GLMat4  = Eigen::Matrix4f;
-using GLMat3  = Eigen::Matrix3f;
+using GLMat4 = Eigen::Matrix4f;
+using GLMat3 = Eigen::Matrix3f;
 using GLColor = Eigen::Vector4f;
-using GLVec2  = Eigen::Vector2f;
-using GLVec3  = Eigen::Vector3f;
-using GLVec4  = Eigen::Vector4f;
-
+using GLVec2 = Eigen::Vector2f;
+using GLVec3 = Eigen::Vector3f;
+using GLVec4 = Eigen::Vector4f;
 
 inline GLColor col4i(uint8 R, uint8 G, uint8 B, uint8 A)
 {
@@ -70,7 +72,6 @@ inline GLColor col1i(uint8 R)
 	return GLColor(R/255.0f, R/255.0f, R/255.0f, 1.0f);
 }
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT GLImage
 {
 	uint8* data_;
@@ -80,10 +81,13 @@ class CGOGN_RENDERING_PUREGL_EXPORT GLImage
 	bool stb_;
 
 public:
+
 	GLImage(int32 w, int32 h, int32 d);
 	GLImage(const std::string& filename);
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(GLImage);
 	~GLImage();
+
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(GLImage);
+
 	inline int32 width() const { return width_; }
 	inline int32 height() const { return height_; }
 	inline int32 depth() const { return bpp_; }
@@ -97,8 +101,7 @@ public:
 };
 
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
-
-
-#endif // CGOGN_RENDERING_SHADERS_SHADERPROGRAM_H_
+#endif // CGOGN_RENDERING_TYPES_H_

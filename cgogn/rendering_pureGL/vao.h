@@ -26,11 +26,12 @@
 #define CGOGN_RENDERING_VAO_H_
 
 #include <GL/gl3w.h>
-#include <string>
+
 #include <cgogn/rendering_pureGL/vbo.h>
+
+#include <string>
 #include <vector>
 #include <tuple>
-
 
 namespace cgogn
 {
@@ -41,14 +42,17 @@ namespace rendering_pgl
 class CGOGN_RENDERING_PUREGL_EXPORT VAO
 {
 protected:
+
 	GLuint id_;
 	std::size_t nb_;
 	std::string name_;
 
 public:
 
-	inline VAO():id_(0),nb_(0) {}
-
+	inline VAO() :
+		id_(0),
+		nb_(0)
+	{}
 
 	inline bool is_created()
 	{
@@ -61,8 +65,7 @@ public:
 		glGenVertexArrays(1, &id_);
 	}
 
-
-	inline VAO(const std::vector<std::tuple<GLint,VBO,GLint>>& params)
+	inline VAO(const std::vector<std::tuple<GLint, VBO, GLint>>& params)
 	{
 		nb_ = std::get<1>(params[0]).size();
 		glGenVertexArrays(1, &id_);
@@ -82,6 +85,7 @@ public:
 	{
 		glBindVertexArray(id_);
 	}
+
 	static inline void release()
 	{
 		glBindVertexArray(0);

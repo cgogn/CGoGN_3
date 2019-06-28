@@ -26,25 +26,24 @@
 #define CGOGN_RENDERING_PURE_GL_VIEWER_H_
 
 #include <GL/gl3w.h>
+
+#include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
+#include <cgogn/rendering_pureGL/camera.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
-
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 
-#include <cgogn/rendering_pureGL/camera.h>
-
-#include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
-
 namespace cgogn
 {
+
 namespace rendering_pgl
 {
 
-class CGOGN_RENDERING_PUREGL_EXPORT ViewerInputs
+struct CGOGN_RENDERING_PUREGL_EXPORT ViewerInputs
 {
-public:
 	ViewerInputs();
 
 	float64 wheel_sensitivity_;
@@ -52,10 +51,10 @@ public:
 	float64 spin_sensitivity_;
 	float64 double_click_timeout_;
 
-
 	float64 last_mouse_x_;
 	float64 last_mouse_y_;
 	uint32 mouse_buttons_;
+
 	bool need_redraw_;
 	bool shift_pressed_;
 	bool control_pressed_;
@@ -63,10 +62,10 @@ public:
 	bool meta_pressed_;
 };
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT PureGLViewer
 {
 protected:
+
 	Camera cam_;
 	MovingFrame* current_frame_;
 	Transfo3d inv_cam_;
@@ -79,60 +78,35 @@ protected:
 
 	ViewerInputs* inputs_;
 	bool need_redraw_;
-//	float64 wheel_sensitivity_;
-//	float64 mouse_sensitivity_;
-//	float64 spin_sensitivity_;
-
-//	float64 last_mouse_x_;
-//	float64 last_mouse_y_;
-//	uint32 mouse_buttons_;
-//	bool shift_pressed_;
-//	bool control_pressed_;
-//	bool alt_pressed_;
-//	bool meta_pressed_;
 
 	void spin();
 
-	inline void set_inputs(ViewerInputs *vin) {inputs_ = vin;}
+	inline void set_inputs(ViewerInputs *vin) { inputs_ = vin; }
 
 public:
 
 	PureGLViewer();
+	virtual ~PureGLViewer();
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(PureGLViewer);
 
-	virtual ~PureGLViewer();
-
-	inline bool obj_mode() const { return  current_frame_ != &cam_;}
-
-	inline void ask_update() { need_redraw_ = true; }
-
-	inline Camera camera() {return cam_;}
-
-	inline GLMat4 get_projection_matrix() const
-	{
-		return cam_.get_projection_matrix();
-	}
-
-	inline GLMat4 get_modelview_matrix() const
-	{
-		return cam_.get_modelview_matrix();
-	}
+	inline bool obj_mode() const { return  current_frame_ != &cam_; }
+	inline void request_update() { need_redraw_ = true; }
+	inline Camera camera() { return cam_; }
+	inline GLMat4 get_projection_matrix() const { return cam_.get_projection_matrix(); }
+	inline GLMat4 get_modelview_matrix() const { return cam_.get_modelview_matrix(); }
 
 	inline void set_scene_radius(float64 radius) { cam_.set_scene_radius(radius); }
 	inline void set_scene_center(const GLVec3d& center) { scene_center_ = center; cam_.set_pivot_point(scene_center_); }
 	inline void set_scene_pivot(const GLVec3d& piv) { cam_.change_pivot_point(piv); }
-
 	inline void set_scene_center(const GLVec3& center) { scene_center_ = center.cast<float64>(); cam_.set_pivot_point(scene_center_); }
 	inline void set_scene_pivot(const GLVec3& piv) { cam_.change_pivot_point(piv.cast<float64>()); }
-
-
 	inline void center_scene() { cam_.center_scene(); }
 	inline void show_entire_scene() { cam_.show_entire_scene(); }
 
 	inline int32 width() const { return vp_w_; }
 	inline int32 height() const { return vp_h_; }
-	inline void set_vp() {glViewport(vp_x_,vp_y_, vp_w_, vp_h_);}
+	inline void set_vp() { glViewport(vp_x_, vp_y_, vp_w_, vp_h_); }
 
 	void manip(MovingFrame* fr);
 
@@ -144,11 +118,13 @@ public:
 
 	virtual bool get_pixel_scene_position(int32 x, int32 y,GLVec3d& P) = 0;
 
-	inline void set_wheel_sensitivity(float64 s) { inputs_->wheel_sensitivity_ = s*0.005; }
-	inline void set_mouse_sensitivity(float64 s) { inputs_->mouse_sensitivity_ = s*0.005; }
-	inline void set_spin_sensitivity(float64 s) { inputs_->spin_sensitivity_ = s*0.025; }
+	inline void set_wheel_sensitivity(float64 s) { inputs_->wheel_sensitivity_ = s * 0.005; }
+	inline void set_mouse_sensitivity(float64 s) { inputs_->mouse_sensitivity_ = s * 0.005; }
+	inline void set_spin_sensitivity(float64 s) { inputs_->spin_sensitivity_ = s * 0.025; }
 };
 
-}
-}
-#endif
+} // namespace cgogn
+
+} // namespace rendering_pgl
+
+#endif // CGOGN_RENDERING_PURE_GL_VIEWER_H_

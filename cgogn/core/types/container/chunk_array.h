@@ -71,6 +71,8 @@ public:
 
 	~ChunkArray() override
 	{
+		if (!is_mark_)
+			std::cout << "ChunkArray destructor: " << name_ << std::endl;
 		for (auto chunk : chunks_)
 			delete[] chunk;
 	}

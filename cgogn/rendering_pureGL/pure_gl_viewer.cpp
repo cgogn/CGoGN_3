@@ -22,20 +22,22 @@
 *                                                                              *
 *******************************************************************************/
 
+#include <cgogn/rendering_pureGL/pure_gl_viewer.h>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
-
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 
 #include <iostream>
-#include <cgogn/rendering_pureGL/pure_gl_viewer.h>
 
 namespace cgogn
 {
+
 namespace rendering_pgl
 {
+
 ViewerInputs::ViewerInputs():
 	wheel_sensitivity_(0.0025),
 	mouse_sensitivity_(0.005),
@@ -63,7 +65,6 @@ PureGLViewer::PureGLViewer():
 PureGLViewer::~PureGLViewer()
 {}
 
-
 void PureGLViewer::manip(MovingFrame* fr)
 {
 	if (fr != nullptr)
@@ -76,7 +77,6 @@ void PureGLViewer::manip(MovingFrame* fr)
 		current_frame_ = &(cam_);
 	}
 }
-
 
 void PureGLViewer::mouse_press_event(int32 button, float64 x, float64 y)
 {
@@ -103,7 +103,6 @@ void PureGLViewer::mouse_release_event(int32 button, float64 x, float64 y)
 	}
 }
 
-
 void PureGLViewer::mouse_move_event(float64 x, float64 y)
 {
 	float64 dx = x - inputs_->last_mouse_x_;
@@ -112,15 +111,15 @@ void PureGLViewer::mouse_move_event(float64 x, float64 y)
 	inputs_->last_mouse_x_ = x;
 	inputs_->last_mouse_y_ = y;
 
-	if ((inputs_->mouse_buttons_ & 1) && ((std::abs(dx)+ std::abs(dy))>0.0))
+	if ((inputs_->mouse_buttons_ & 1) && ((std::abs(dx) + std::abs(dy)) > 0.0))
 	{
-		GLVec3d axis(dy,dx,0.0);
+		GLVec3d axis(dy, dx, 0.0);
 		spinning_speed_ = axis.norm();
 		axis /= spinning_speed_;
 		spinning_speed_ *= inputs_->mouse_sensitivity_;
 		if (obj_mode())
 		{
-			Transfo3d sm(Eigen::AngleAxisd(2.0*spinning_speed_,axis));
+			Transfo3d sm(Eigen::AngleAxisd(2.0 * spinning_speed_, axis));
 			current_frame_->spin_ = inv_cam_ *  sm * cam_.frame_;
 			auto tr = current_frame_->frame_.translation().eval();
 			current_frame_->frame_.translation().setZero();
@@ -129,10 +128,10 @@ void PureGLViewer::mouse_move_event(float64 x, float64 y)
 		}
 		else
 		{
-			current_frame_->spin_ = Eigen::AngleAxisd(0.2*spinning_speed_,axis);
+			current_frame_->spin_ = Eigen::AngleAxisd(0.2 * spinning_speed_, axis);
 			auto tr = current_frame_->frame_.translation().eval();
 			current_frame_->frame_.translation().setZero();
-			current_frame_->frame_ = Eigen::AngleAxisd(spinning_speed_,axis) * current_frame_->frame_;
+			current_frame_->frame_ = Eigen::AngleAxisd(spinning_speed_, axis) * current_frame_->frame_;
 			current_frame_->frame_.translation() = tr;
 		}
 		need_redraw_ = true;
@@ -140,27 +139,26 @@ void PureGLViewer::mouse_move_event(float64 x, float64 y)
 	
 	if (inputs_->mouse_buttons_ & 2)
 	{
-		float64 zcam = 1.0/std::tan(cam_.field_of_view()/2.0);
-		float64 a = cam_.scene_radius() - cam_.frame_.translation().z()/ zcam;
+		float64 zcam = 1.0 / std::tan(cam_.field_of_view() / 2.0);
+		float64 a = cam_.scene_radius() - cam_.frame_.translation().z() / zcam;
 		if (obj_mode())
 		{
 			
 			float64 tx = dx / vp_w_ * cam_.width() * a;
 			float64 ty = - dy / vp_h_ * cam_.height() * a;
-			Transfo3d ntr = inv_cam_ * Eigen::Translation3d(GLVec3d(tx,ty,0.0)) * cam_.frame_;
+			Transfo3d ntr = inv_cam_ * Eigen::Translation3d(GLVec3d(tx, ty, 0.0)) * cam_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
 		{
 			float64 nx = float64(dx) / vp_w_ * cam_.width() * a;
 			float64 ny = - 1.0 * float64(dy) / vp_h_ * cam_.height() * a;
-			cam_.frame_.translation().x() += 2*nx;
-			cam_.frame_.translation().y() += 2*ny;
+			cam_.frame_.translation().x() += 2 * nx;
+			cam_.frame_.translation().y() += 2 * ny;
 		}
 		need_redraw_ = true;
 	}
 }
-
 
 void PureGLViewer::spin()
 {
@@ -174,40 +172,39 @@ void PureGLViewer::spin()
 	}
 }
 
-
 void PureGLViewer::mouse_dbl_click_event(int32 buttons, float64 x, float64 y)
 {
 	if (inputs_->shift_pressed_)
 	{
 		GLVec3d P;
-		if (get_pixel_scene_position(x,y,P))
+		if (get_pixel_scene_position(x, y, P))
 		{
-			std::cout << P << std::endl;
+//			std::cout << P << std::endl;
 			set_scene_pivot(P);
 			need_redraw_ = true;
 		}
 	}
 }
 
-
 void PureGLViewer::mouse_wheel_event(float64 dx, float64 dy)
 {
-	if (dy!=0.0)
+	if (dy != 0.0)
 	{
 		if (obj_mode())
 		{
-			auto ntr = inv_cam_ * Eigen::Translation3d(GLVec3d(0,0,-0.0025*dy)) * cam_.frame_;
+			auto ntr = inv_cam_ * Eigen::Translation3d(GLVec3d(0, 0, -0.0025 * dy)) * cam_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
 		{
-			float64 zcam = 1.0/std::tan(cam_.field_of_view()/2.0);
-			float64 a = cam_.scene_radius() - cam_.frame_.translation().z()/zcam/cam_.scene_radius();
-			cam_.frame_.translation().z() -= inputs_->wheel_sensitivity_*dy*std::max(0.1,a);
+			float64 zcam = 1.0 / std::tan(cam_.field_of_view() / 2.0);
+			float64 a = cam_.scene_radius() - cam_.frame_.translation().z() / zcam / cam_.scene_radius();
+			cam_.frame_.translation().z() -= inputs_->wheel_sensitivity_ * dy * std::max(0.1, a);
 		}
 		need_redraw_=true;
 	}
 }
 
-}
-}
+} // namespace cgogn
+
+} // namespace rendering_pgl

@@ -26,10 +26,12 @@
 #define CGOGN_RENDERING_TEXTURE_H_
 
 #include <GL/gl3w.h>
-#include <string>
-#include <cgogn/core/utils/numerics.h>
+
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/types.h>
+#include <cgogn/core/utils/numerics.h>
+
+#include <string>
 
 namespace cgogn
 {
@@ -40,7 +42,8 @@ namespace rendering_pgl
 class CGOGN_RENDERING_PUREGL_EXPORT Texture2D
 {
 public:
-	inline Texture2D():
+
+	inline Texture2D() :
 		internal_(0),
 		external_(0),
 		data_type_(0),
@@ -57,7 +60,6 @@ public:
 		depth_ = false;
 	}
 
-
 	inline ~Texture2D()
 	{
 		glDeleteTextures(1,&id_);
@@ -68,7 +70,6 @@ public:
 		return id_;
 	}
 
-
 	inline void alloc(GLsizei w, GLsizei h, GLint internal, GLenum external, const uint8* ptr=nullptr, GLenum data_type = GL_UNSIGNED_BYTE)
 	{
 		internal_ = internal;
@@ -77,7 +78,7 @@ public:
 		height_ = h;
 		data_type_ = data_type;
 		depth_ = ((internal == GL_DEPTH_COMPONENT32F) || (internal == GL_DEPTH_COMPONENT24));
-		if (w*h > 0)
+		if (w * h > 0)
 		{
 			bind();
 			glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, external, data_type, ptr);
@@ -85,22 +86,20 @@ public:
 		}
 	}
 
-
 	inline void load(const GLImage& img)
 	{
 		switch (img.depth())
 		{
 			case 1:
-				alloc(img.width(),img.height(),GL_R8,GL_RED, img.data());
+				alloc(img.width(),img.height(), GL_R8, GL_RED, img.data());
 				break;
 			case 3:
-				alloc(img.width(),img.height(),GL_RGB8,GL_RGB, img.data());
+				alloc(img.width(),img.height(), GL_RGB8, GL_RGB, img.data());
 				break;
 			case 4:
-				alloc(img.width(),img.height(),GL_RGBA8,GL_RGBA, img.data());
+				alloc(img.width(),img.height(), GL_RGBA8, GL_RGBA, img.data());
 				break;
 		}
-
 	}
 
 	inline void resize(GLsizei w, GLsizei h)
@@ -140,6 +139,7 @@ public:
 	}
 
 protected:
+
 	GLuint id_;
 	GLint internal_;
 	GLenum external_;
@@ -149,6 +149,8 @@ protected:
 	bool depth_;
 };
 
-}
-}
-#endif
+} // namespace rendering_pgl
+
+} // namespace cgogn
+
+#endif // CGOGN_RENDERING_TEXTURE_H_

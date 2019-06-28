@@ -26,9 +26,11 @@
 #define CGOGN_RENDERING_EBO_H_
 
 #include <GL/gl3w.h>
-#include <string>
-#include <cgogn/core/utils/numerics.h>
+
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
+#include <cgogn/core/utils/numerics.h>
+
+#include <string>
 
 namespace cgogn
 {
@@ -39,12 +41,15 @@ namespace rendering_pgl
 class CGOGN_RENDERING_PUREGL_EXPORT EBO
 {
 protected:
+
 	GLuint id_;
 	std::size_t nb_;
+
 public:
 
 	inline EBO() :
-		id_(0), nb_(0)
+		id_(0),
+		nb_(0)
 	{}
 
 	inline void create()
@@ -77,7 +82,7 @@ public:
 		if (nb_ind != nb_) // only allocate when > ?
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind*sizeof(GLuint)), nullptr, GL_STATIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), nullptr, GL_STATIC_DRAW);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			nb_ = nb_ind;
 		}
@@ -88,14 +93,14 @@ public:
 		if (nb_ind != nb_) // only allocate when > ?
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind*sizeof(GLuint)), indices, GL_STATIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), indices, GL_STATIC_DRAW);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			nb_ = nb_ind;
 		}
 		else
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
-			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, GLsizeiptr(nb_ind*sizeof(GLuint)), indices);
+			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, GLsizeiptr(nb_ind * sizeof(GLuint)), indices);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
 	}
@@ -107,7 +112,7 @@ public:
 	inline GLuint* lock_pointer()
 	{
 		this->bind();
-		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER,GL_READ_ONLY));
+		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
 	}
 
 	/**

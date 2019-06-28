@@ -26,9 +26,11 @@
 #define CGOGN_RENDERING_VBO_H_
 
 #include <GL/gl3w.h>
-#include <string>
-#include <cgogn/core/utils/numerics.h>
+
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
+#include <cgogn/core/utils/numerics.h>
+
+#include <string>
 
 namespace cgogn
 {
@@ -39,6 +41,7 @@ namespace rendering_pgl
 class CGOGN_RENDERING_PUREGL_EXPORT VBO
 {
 protected:
+
 	GLuint id_;
 	std::size_t nb_vectors_;
 	int32 vector_dimension_;
@@ -157,7 +160,6 @@ public:
 		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4, reinterpret_cast<GLvoid *>(first * uint64(vector_dimension()) * 4u));
 		release();
 	}
-
 };
 
 } // namespace rendering_pgl

@@ -59,21 +59,21 @@ namespace geometry
 // 	v.squaredNorm();
 // }
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v.setZero();
-}
+// template <typename VEC,
+// 		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
+// void
+// set_zero(VEC& v)
+// {
+// 	v.setZero();
+// }
 
-template <typename VEC,
-		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
-void
-set_zero(VEC& v)
-{
-	v = 0;
-}
+// template <typename VEC,
+// 		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
+// void
+// set_zero(VEC& v)
+// {
+// 	v = 0;
+// }
 
 // template <typename VEC3,
 // 		  typename = typename std::enable_if<is_eigen<VEC3>::value>::type>

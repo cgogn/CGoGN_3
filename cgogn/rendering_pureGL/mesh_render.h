@@ -31,7 +31,7 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-//#include <cgogn/geometry/algos/ear_triangulation.h>
+// #include <cgogn/geometry/algos/ear_triangulation.h>
 
 #include <memory>
 

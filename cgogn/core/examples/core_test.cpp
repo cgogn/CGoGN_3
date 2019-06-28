@@ -38,8 +38,11 @@ int main()
 	std::cout << "vertex attributes:" << std::endl;
 	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
+	std::cout << "face attributes:" << std::endl;
+	for (auto ag : map2.attribute_containers_[CMap2::Face::ORBIT])
+		std::cout << ag->name() << std::endl;
 
-	io::import_OFF(map2, "/Users/kraemer/Data/surface/cube_tri.off");
+	io::import_OFF(map2, "/home/kraemer/Media/Data/surface/lowRes/cube_tri.off");
 
 	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
 	std::cout << "vertex attributes:" << std::endl;
@@ -58,9 +61,6 @@ int main()
 	});
 
 	auto position = get_attribute<Vec3, CMap2::Vertex>(map2, "position");
-
-	// std::cout << "  core_test: typeid: " << typeid(position).name() << std::endl;
-
 	if (!position)
 		std::cout << "position not valid" << std::endl;
 
@@ -73,6 +73,10 @@ int main()
 
 	remove_attribute<CMap2::Vertex>(map2, position);
 
+	std::cout << "vertex attributes:" << std::endl;
+	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+		std::cout << ag->name() << std::endl;
+
 	///////////////////////
 
 	CMap1 map1;
@@ -80,6 +84,7 @@ int main()
 	do_something(map1);
 
 	std::cout << "nb darts: " << map1.nb_darts() << std::endl;
+	std::cout << "face attributes:" << std::endl;
 	for (auto ag : map1.attribute_containers_[CMap1::Face::ORBIT])
 		std::cout << ag->name() << std::endl;
 
@@ -90,4 +95,6 @@ int main()
 		std::cout << "face " << map1.embedding(f) << " : " << value<float64>(map1, att1, f) << std::endl;
 		return true;
 	});
+
+//	remove_attribute<CMap1::Face>(map1, att1);
 }

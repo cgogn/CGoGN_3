@@ -26,9 +26,11 @@
 #define CGOGN_RENDERING_UBO_H_
 
 #include <GL/gl3w.h>
-#include <string>
+
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+
+#include <string>
 
 namespace cgogn
 {

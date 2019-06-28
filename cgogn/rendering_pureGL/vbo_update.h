@@ -25,15 +25,16 @@
 #ifndef CGOGN_RENDERING_SHADERS_VBO_H_
 #define CGOGN_RENDERING_SHADERS_VBO_H_
 
+#include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/rendering_pureGL/vbo.h>
+
 #include <GL/gl3w.h>
+
 #include <string>
 #include <iostream>
 #include <vector>
 #include <array>
-
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/rendering_pureGL/vbo.h>
 
 namespace cgogn
 {
@@ -62,6 +63,7 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
 	vbo->copy_data(0, vbo_bytes, vector.data());
 	vbo->release();
 }
+
 template <typename VEC3, typename FUNC>
 void update_vbo(const std::vector<VEC3>& vector, VBO* vbo, const FUNC& convert)
 {
@@ -134,7 +136,6 @@ void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo)
 	vbo->release();
 }
 
-
 template <typename VEC3, typename FUNC>
 void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo, const FUNC& convert)
 {
@@ -160,8 +161,6 @@ void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo, const FUNC& convert
 	}
 	vbo->release_pointer();
 }
-
-
 
 } // namespace rendering_pgl
 
