@@ -39,10 +39,11 @@ class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPointSprite : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(color_,ambiant_color_,light_pos_,size_,plane_clip_,plane_clip2_);
+		shader_->set_uniforms_values(color_, ambiant_color_, light_pos_, size_, plane_clip_, plane_clip2_);
 	}
 
 public:
+
 	GLColor color_;
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
@@ -58,8 +59,8 @@ public:
 		ambiant_color_(color_ambiant_default),
 		light_pos_(10, 100, 1000),
 		size_(2),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamPointSprite() override {}
@@ -72,17 +73,17 @@ public:
 	}
 };
 
-
 DECLARE_SHADER_CLASS(PointSpriteColor)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(ambiant_color_,light_pos_,size_,plane_clip_,plane_clip2_);
+		shader_->set_uniforms_values(ambiant_color_, light_pos_, size_, plane_clip_, plane_clip2_);
 	}
 
 public:
+
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
 	float32 size_;
@@ -96,8 +97,8 @@ public:
 		ambiant_color_(color_ambiant_default),
 		light_pos_(10, 100, 1000),
 		size_(2),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamPointSpriteColor() override {}
@@ -110,17 +111,17 @@ public:
 	}
 };
 
-
 DECLARE_SHADER_CLASS(PointSpriteSize)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(color_,ambiant_color_,light_pos_,plane_clip_,plane_clip2_);
+		shader_->set_uniforms_values(color_, ambiant_color_, light_pos_, plane_clip_, plane_clip2_);
 	}
 
 public:
+
 	GLColor color_;
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
@@ -135,8 +136,8 @@ public:
 		color_(color_point_default),
 		ambiant_color_(color_ambiant_default),
 		light_pos_(10, 100, 1000),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamPointSpriteSize() override {}
@@ -149,18 +150,17 @@ public:
 	}
 };
 
-
-
 DECLARE_SHADER_CLASS(PointSpriteColorSize)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPointSpriteColorSize : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(ambiant_color_,light_pos_,plane_clip_,plane_clip2_);
+		shader_->set_uniforms_values(ambiant_color_, light_pos_, plane_clip_, plane_clip2_);
 	}
 
 public:
+
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
@@ -172,8 +172,8 @@ public:
 		ShaderParam(sh),
 		ambiant_color_(color_ambiant_default),
 		light_pos_(10, 100, 1000),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamPointSpriteColorSize() override {}
@@ -186,11 +186,8 @@ public:
 	}
 };
 
-
-
-
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADER_POINT_SPRITE_H_

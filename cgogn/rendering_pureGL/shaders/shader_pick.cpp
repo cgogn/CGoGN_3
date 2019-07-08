@@ -23,7 +23,6 @@
 
 #include <cgogn/rendering_pureGL/shaders/shader_pick.h>
 
-
 namespace cgogn
 {
 
@@ -55,10 +54,10 @@ ShaderPick::ShaderPick()
 	"	position = vec4(pos,1.0);\n"
 	"}\n";
 
-	load2_bind(vertex_shader_source,fragment_shader_source,
+	load2_bind(vertex_shader_source, fragment_shader_source,
 			  "vertex_pos");
-
 }
 
-}
-}
+} // namespace rendering_pgl
+
+} // namespace cgogn

@@ -23,10 +23,9 @@
 
 #define CGOGN_RENDER_SHADERS_ROUND_POINT_CPP_
 
-#include <iostream>
-
 #include <cgogn/rendering_pureGL/shaders/shader_round_point_color.h>
 
+#include <iostream>
 
 namespace cgogn
 {
@@ -94,16 +93,15 @@ static const char* fragment_shader_source =
 "   fragColor = vec4(color_f,(1.0-r2*r2));\n"
 "}\n";
 
-
 ShaderRoundPointColor* ShaderRoundPointColor::instance_ = nullptr;
 
 ShaderRoundPointColor::ShaderRoundPointColor()
 {
-	load3_bind(vertex_shader_source,fragment_shader_source,geometry_shader_source,
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source,
 		 "vertex_pos", "vertex_color");
-	add_uniforms("pointSizes","plane_clip","plane_clip2");
+	add_uniforms("pointSizes", "plane_clip", "plane_clip2");
 }
 
-} // namespace rendering
+} // namespace rendering_pgl
 
 } // namespace cgogn

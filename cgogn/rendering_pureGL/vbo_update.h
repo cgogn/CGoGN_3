@@ -47,40 +47,79 @@ namespace rendering_pgl
 /////////////////
 
 /**
-  * @brief update vbo from a std::vector<VEC3>
+  * @brief update vbo from a std::vector<VEC>
   * @param vector
   * @param vbo vbo to update
   */
-template <typename VEC3>
-void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float32>::value>::type* = nullptr>
+void update_vbo(const std::vector<VEC>& vector, VBO* vbo)
 {
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
 	uint32 nb_elements = uint32(vector.size());
-	vbo->allocate(nb_elements, 3);
-	const uint32 vbo_bytes = nb_elements * 3 * uint32(sizeof(float32));
+	vbo->allocate(nb_elements, element_size);
 
 	// copy data
 	vbo->bind();
-	vbo->copy_data(0, vbo_bytes, vector.data());
+	vbo->copy_data(0, nb_elements * element_size * uint32(sizeof(float32)), vector.data());
 	vbo->release();
 }
 
-template <typename VEC3, typename FUNC>
-void update_vbo(const std::vector<VEC3>& vector, VBO* vbo, const FUNC& convert)
+/**
+ * @brief update vbo from an on-the-fly converted std::vector<VEC>
+ * @param vector
+ * @param vbo vbo to update
+ * @param convert the conversion function
+ */
+template <typename VEC, typename FUNC>
+void update_vbo(const std::vector<VEC>& vector, VBO* vbo, const FUNC& convert)
 {
-	using Vec3f = std::array<float32, 3>;
+	static_assert(is_func_parameter_same<FUNC, const VEC&>::value, "Wrong conversion function parameter type");
+	
+	using OutputType = func_return_type<FUNC>;
+	static const std::size_t output_type_size = geometry::vector_traits<OutputType>::SIZE;
+
 	uint32 nb_elements = uint32(vector.size());
-	std::vector<Vec3f> converted;
-	converted.reserve(nb_elements);
-	for(const auto& v: vector)
-		converted.push_back(convert(v));
+	vbo->allocate(nb_elements, output_type_size);
 
-	vbo->allocate(nb_elements, 3);
-	const uint32 vbo_bytes = nb_elements * 3 * uint32(sizeof(float32));
+	OutputType* dst = reinterpret_cast<OutputType*>(vbo->lock_pointer());
+	for (const VEC& v : vector)
+		*dst++ = convert(v);
+	vbo->release_pointer();
+}
 
-	// copy data
-	vbo->bind();
-	vbo->copy_data(0, vbo_bytes, converted.data());
-	vbo->release();
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float64>::value>::type* = nullptr>
+void update_vbo(const std::vector<VEC>* vector, VBO* vbo)
+{
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
+	switch (element_size)
+	{
+		case 1:
+			update_vbo(vector, vbo, [] (const VEC& n) -> float32
+			{
+				return float32(n[0]);
+			});
+			break;
+		case 2:
+			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec2f
+			{
+				return { float32(n[0]), float32(n[1]) };
+			});
+			break;
+		case 3:
+			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec3f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]) };
+			});
+			break;
+		case 4:
+			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec4f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+			});
+			break;
+	}
 }
 
 ////////////
@@ -88,78 +127,174 @@ void update_vbo(const std::vector<VEC3>& vector, VBO* vbo, const FUNC& convert)
 ////////////
 
 /**
- * @brief update vbo from a Vector<VEC3>
+ * @brief update vbo from a Vector<VEC>
  * @param attribute
  * @param vbo vbo to update
  */
-template <typename VEC3>
-void update_vbo(const Vector<VEC3>* attribute, VBO* vbo)
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float32>::value>::type* = nullptr>
+void update_vbo(const Vector<VEC>* attribute, VBO* vbo)
 {
 	vbo->set_name(attribute->name());
 
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
 	uint32 nb_elements = attribute->maximum_index();
-
-	vbo->allocate(nb_elements, 3);
+	vbo->allocate(nb_elements, element_size);
 
 	// copy data
 	vbo->bind();
-	vbo->copy_data(0, nb_elements * sizeof (VEC3), attribute->data_pointer());
+	vbo->copy_data(0, nb_elements * element_size * uint32(sizeof(float32)), attribute->data_pointer());
 	vbo->release();
+}
+
+/**
+ * @brief update vbo from an on-the-fly converted Vector<VEC>
+ * @param attribute
+ * @param vbo vbo to update
+ * @param convert the conversion function
+ */
+template <typename VEC, typename FUNC>
+void update_vbo(const Vector<VEC>* attribute, VBO* vbo, const FUNC& convert)
+{
+	static_assert(is_func_parameter_same<FUNC, const VEC&>::value, "Wrong conversion function parameter type");
+	
+	vbo->set_name(attribute->name());
+
+	using OutputType = func_return_type<FUNC>;
+	static const std::size_t output_type_size = geometry::vector_traits<OutputType>::SIZE;
+
+	uint32 nb_elements = attribute->maximum_index();
+	vbo->allocate(nb_elements, output_type_size);
+
+	OutputType* dst = reinterpret_cast<OutputType*>(vbo->lock_pointer());
+	for (const VEC& v : attribute)
+		*dst++ = convert(v);
+	vbo->release_pointer();
+}
+
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float64>::value>::type* = nullptr>
+void update_vbo(const Vector<VEC>* attribute, VBO* vbo)
+{
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
+	switch (element_size)
+	{
+		case 1:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> float32
+			{
+				return float32(n[0]);
+			});
+			break;
+		case 2:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
+			{
+				return { float32(n[0]), float32(n[1]) };
+			});
+			break;
+		case 3:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]) };
+			});
+			break;
+		case 4:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+			});
+			break;
+	}
 }
 
 ////////////////
 // ChunkArray //
 ////////////////
 
-/**
- * @brief update vbo from a Vector<VEC3>
- * @param attribute
- * @param vbo vbo to update
- */
-template <typename VEC3>
-void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo)
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float32>::value>::type* = nullptr>
+void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo)
 {
 	vbo->set_name(attribute->name());
 
-	uint32 nb_elements = attribute->maximum_index();
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
+	static const uint32 chunk_size = ChunkArray<VEC>::CHUNK_SIZE;
+	uint32 nb_chunks = attribute->nb_chunks();
+	vbo->allocate(nb_chunks * chunk_size, element_size);
 
-	uint32 chunk_size = ChunkArray<VEC3>::CHUNK_SIZE;
-	vbo->allocate(nb_elements + (chunk_size - nb_elements % chunk_size), 3);
-
-	uint32 chunk_byte_size;
-	std::vector<const void*> chunk_pointers = attribute->chunk_pointers(chunk_byte_size);
+	std::vector<const void*> chunk_pointers = attribute->chunk_pointers();
 
 	// copy data
+	uint32 vbo_chunk_byte_size = chunk_size * element_size * uint32(sizeof(float32));
 	vbo->bind();
 	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
-		vbo->copy_data(i * chunk_byte_size, chunk_byte_size, chunk_pointers[i]);
+		vbo->copy_data(i * vbo_chunk_byte_size, vbo_chunk_byte_size, chunk_pointers[i]);
 	vbo->release();
 }
 
-template <typename VEC3, typename FUNC>
-void update_vbo(const ChunkArray<VEC3>* attribute, VBO* vbo, const FUNC& convert)
+/**
+ * @brief update vbo from an on-the-fly converted ChunkArray<VEC>
+ * @param attribute
+ * @param vbo vbo to update
+ * @param convert the conversion function
+ */
+template <typename VEC, typename FUNC>
+void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo, const FUNC& convert)
 {
+	static_assert(is_func_parameter_same<FUNC, const VEC&>::value, "Wrong conversion function parameter type");
+	
 	vbo->set_name(attribute->name());
 
+	using OutputType = func_return_type<FUNC>;
+	static const std::size_t output_type_size = geometry::vector_traits<OutputType>::SIZE;
+	static const uint32 chunk_size = ChunkArray<VEC>::CHUNK_SIZE;
+	
 	uint32 nb_elements = attribute->maximum_index();
+	vbo->allocate(nb_elements, output_type_size);
 
-	uint32 chunk_size = ChunkArray<VEC3>::CHUNK_SIZE;
-	uint32 chunk_byte_size;
-	std::vector<const void*> chunk_pointers = attribute->chunk_pointers(chunk_byte_size);
+	std::vector<const void*> chunk_pointers = attribute->chunk_pointers();
 
-
-	// copy (after conversion)
-	using OutputConvert = func_return_type<FUNC>;
-	vbo->allocate(nb_elements + (chunk_size - nb_elements % chunk_size), sizeof(OutputConvert)/4);
-
-	OutputConvert* dst = reinterpret_cast<OutputConvert*>(vbo->lock_pointer());
-	for (uint32 i = 0; i < chunk_pointers.size(); ++i)
+	OutputType* dst = reinterpret_cast<OutputType*>(vbo->lock_pointer());
+	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
 	{
-		const VEC3* typed_chunk = static_cast<const VEC3*>(chunk_pointers[i]);
-		for (uint32 j = 0; j < chunk_size; ++j)
-			*dst++ = convert(typed_chunk[j]);
+		const VEC* chunk = static_cast<const VEC*>(chunk_pointers[i]);
+		for (uint32 j = 0; j < chunk_size && i * chunk_size + j < nb_elements; ++j)
+			*dst++ = convert(chunk[j]);
 	}
 	vbo->release_pointer();
+}
+
+template <typename VEC,
+		  typename std::enable_if<std::is_same<typename geometry::vector_traits<VEC>::Scalar, float64>::value>::type* = nullptr>
+void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo)
+{
+	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
+	switch (element_size)
+	{
+		case 1:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> float32
+			{
+				return float32(n[0]);
+			});
+			break;
+		case 2:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
+			{
+				return { float32(n[0]), float32(n[1]) };
+			});
+			break;
+		case 3:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]) };
+			});
+			break;
+		case 4:
+			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
+			{
+				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+			});
+			break;
+	}
 }
 
 } // namespace rendering_pgl

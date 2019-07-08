@@ -24,15 +24,15 @@
 #ifndef CGOGN_RENDERING_SHADERS_SHADERPROGRAM_H_
 #define CGOGN_RENDERING_SHADERS_SHADERPROGRAM_H_
 
-#include <cgogn/core/utils/unique_ptr.h>
+#include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/types.h>
 #include <cgogn/rendering_pureGL/vao.h>
-#include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
+
+#include <cgogn/core/utils/unique_ptr.h>
 
 #include <iostream>
 #include <cassert>
 #include <memory>
-
 
 #define DECLARE_SHADER_CLASS(NAME) \
 class ShaderParam##NAME;\
@@ -60,15 +60,16 @@ protected:\
 	static Self* instance_;\
 };
 
-
 namespace cgogn
 {
 
 namespace rendering_pgl
 {
 
-inline GLColor Color(uint8 R, uint8 G, uint8 B, uint8 A=255u)
-{ return GLColor(float32(R)/255.0f,float32(G)/255.0f,float32(B)/255.0f,float32(A)/255.0f);}
+inline GLColor Color(uint8 R, uint8 G, uint8 B, uint8 A = 255u)
+{
+	return GLColor(float32(R) / 255.0f, float32(G) / 255.0f, float32(B) / 255.0f, float32(A) / 255.0f);
+}
 
 // convenient conversion function
 inline void* void_ptr(uint32 x)
@@ -76,13 +77,14 @@ inline void* void_ptr(uint32 x)
 	return reinterpret_cast<void*>(uint64_t(x));
 }
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT Shader
 {
 protected:
+
 	GLuint id_;
 
 public:
+
 	Shader() = delete;
 	Shader(const Shader&) = delete;
 	Shader& operator=(const Shader&) = delete;
@@ -114,6 +116,7 @@ protected:
 	Shader* vert_shader_;
 	Shader* frag_shader_;
 	Shader* geom_shader_;
+
 	void load(const std::string& vert_src, const std::string& frag_src);
 	void load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src);
 
@@ -123,6 +126,7 @@ protected:
 	GLint unif_normal_matrix_;
 
 	std::vector<GLint> uniforms_;
+
 public:
 
 //	enum Attrib_Indices: GLuint
@@ -148,28 +152,28 @@ public:
 
 	virtual ~ShaderProgram();
 
-	inline GLuint id() const		{ return id_; }
+	inline GLuint id() const { return id_; }
 
-	inline void start_use()			{ glUseProgram(id_); }
+	inline void start_use() { glUseProgram(id_); }
 
-	inline void stop_use()			{ glUseProgram(0); }
+	inline void stop_use() { glUseProgram(0); }
 
-	inline void bind()				{ glUseProgram(id_); }
+	inline void bind() { glUseProgram(id_); }
 
-	inline void release()			{ glUseProgram(0); }
+	inline void release() { glUseProgram(0); }
 
 	inline GLint uniform_location(const GLchar* str) const
 	{
-		return glGetUniformLocation(id_,str);
+		return glGetUniformLocation(id_, str);
 	}
 
 	inline void add_uniform(const GLchar* str)
 	{
-		GLint u = glGetUniformLocation(id_,str);
-		if (u>=0)
+		GLint u = glGetUniformLocation(id_, str);
+		if (u >= 0)
 			uniforms_.push_back(u);
 		else
-			std::cerr << "Warning uniform " << str << " not exist in shader "<< std::endl;
+			std::cerr << "Warning uniform " << str << " does not exist in shader" << std::endl;
 	}
 
 	template<typename T1>
@@ -185,8 +189,6 @@ public:
 		add_uniforms(pn...);
 	}
 
-
-
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
 		glBindAttribLocation(id_, attrib, str_var);
@@ -200,40 +202,40 @@ public:
 	template<typename T1>
 	void internal_bind_attrib_locations(GLuint attrib1, T1 p1)
 	{
-		bind_attrib_location(attrib1,p1);
+		bind_attrib_location(attrib1, p1);
 	}
 
 	template<typename T1, typename... Ts>
 	void internal_bind_attrib_locations(GLuint attrib1, T1 p1, Ts... pn)
 	{
-		bind_attrib_location(attrib1,p1);
-		internal_bind_attrib_locations(attrib1+1,pn...);
+		bind_attrib_location(attrib1, p1);
+		internal_bind_attrib_locations(attrib1 + 1, pn...);
 	}
 
 	template<typename... Ts>
 	void bind_attrib_locations(Ts... pn)
 	{
-		internal_bind_attrib_locations(1u,pn...);
+		internal_bind_attrib_locations(1u, pn...);
 	}
 
-	inline void set_uniform_value(std::size_t i, const float32 v) { glUniform1f(uniforms_[i],v);}
-	inline void set_uniform_value(std::size_t i, const GLVec2& v) { glUniform2fv(uniforms_[i],1,v.data());}
-	inline void set_uniform_value(std::size_t i, const GLVec3& v) { glUniform3fv(uniforms_[i],1,v.data());}
-	inline void set_uniform_value(std::size_t i, const GLVec4& v) { glUniform4fv(uniforms_[i],1,v.data());}
-	inline void set_uniform_value(std::size_t i, const int32 v)   { glUniform1i(uniforms_[i],v);}
-	inline void set_uniform_value(std::size_t i, const uint32 v)  { glUniform1ui(uniforms_[i],v);}
-	inline void set_uniform_value(std::size_t i, const bool v)    { glUniform1i(uniforms_[i],int32(v));}
+	inline void set_uniform_value(std::size_t i, const float32 v) { glUniform1f(uniforms_[i], v); }
+	inline void set_uniform_value(std::size_t i, const GLVec2& v) { glUniform2fv(uniforms_[i], 1, v.data()); }
+	inline void set_uniform_value(std::size_t i, const GLVec3& v) { glUniform3fv(uniforms_[i], 1, v.data()); }
+	inline void set_uniform_value(std::size_t i, const GLVec4& v) { glUniform4fv(uniforms_[i], 1, v.data()); }
+	inline void set_uniform_value(std::size_t i, const int32 v)   { glUniform1i(uniforms_[i], v); }
+	inline void set_uniform_value(std::size_t i, const uint32 v)  { glUniform1ui(uniforms_[i], v); }
+	inline void set_uniform_value(std::size_t i, const bool v)    { glUniform1i(uniforms_[i], int32(v)); }
 
 	template<typename T1>
 	void set_uniforms_values(T1 p1)
 	{
-		set_uniform_value(uniforms_.size()-1,p1);
+		set_uniform_value(uniforms_.size() - 1, p1);
 	}
 
 	template<typename T1, typename... Ts>
 	void set_uniforms_values(T1 p1, Ts... pn)
 	{
-		set_uniform_value(uniforms_.size()-1-sizeof...(pn),p1);
+		set_uniform_value(uniforms_.size() - 1 - sizeof...(pn), p1);
 		set_uniforms_values(pn...);
 	}
 
@@ -284,10 +286,10 @@ public:
 		if (infologLength > 1)
 		{
 			char* infoLog = new char[infologLength];
-			int charsWritten  = 0;
+			int charsWritten = 0;
 			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-			std::cerr << "Link message :" << infoLog <<std::endl;
-			delete [] infoLog;
+			std::cerr << "Link message: " << infoLog << std::endl;
+			delete[] infoLog;
 		}
 
 		get_matrices_uniforms();
@@ -313,7 +315,7 @@ public:
 		glDetachShader(id_, frag_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
-		//Print log if needed
+		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
@@ -326,18 +328,15 @@ public:
 		if (infologLength > 1)
 		{
 			char* infoLog = new char[infologLength];
-			int charsWritten  = 0;
+			int charsWritten = 0;
 			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-			std::cerr << "Link message :" << infoLog <<std::endl;
-			delete [] infoLog;
+			std::cerr << "Link message: " << infoLog << std::endl;
+			delete[] infoLog;
 		}
 
 		get_matrices_uniforms();
 	}
-
-
 };
-
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParam
 {
@@ -345,6 +344,7 @@ protected:
 
 	ShaderProgram* shader_;
 	std::unique_ptr<VAO> vao_;
+	
 	virtual void set_uniforms() = 0;
 
 	static const GLColor color_front_default;
@@ -386,28 +386,26 @@ public:
 	 */
 	void release();
 
-
 	template<typename T1>
 	auto internal_associate_vbos(GLuint attrib1, T1* p1)
-	-> typename std::enable_if<std::is_same<T1,VBO>::value>::type
+		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
 		p1->associate(attrib1);
 	}
 
 	template<typename T1, typename... Ts>
 	auto internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
-	-> typename std::enable_if<std::is_same<T1,VBO>::value>::type
+		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
 		p1->associate(attrib1);
-		internal_associate_vbos(attrib1+1u,pn...);
+		internal_associate_vbos(attrib1 + 1u, pn...);
 	}
 
 	template<typename... Ts>
 	void associate_vbos(Ts... pn)
 	{
-		internal_associate_vbos(1u,pn...);
+		internal_associate_vbos(1u, pn...);
 	}
-
 };
 
 } // namespace rendering_pgl

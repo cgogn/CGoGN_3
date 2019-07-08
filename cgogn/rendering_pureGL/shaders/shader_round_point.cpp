@@ -23,16 +23,16 @@
 
 #define CGOGN_RENDER_SHADERS_ROUND_POINT_CPP_
 
-#include <iostream>
-
 #include <cgogn/rendering_pureGL/shaders/shader_round_point.h>
 
+#include <iostream>
 
 namespace cgogn
 {
 
 namespace rendering_pgl
 {
+
 static const char* vertex_shader_source =
 "#version 150\n"
 "in vec3 vertex_pos;\n"
@@ -92,10 +92,11 @@ ShaderRoundPoint* ShaderRoundPoint::instance_ = nullptr;
 
 ShaderRoundPoint::ShaderRoundPoint()
 {
-	load3_bind(vertex_shader_source,fragment_shader_source,geometry_shader_source,
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source,
 		 "vertex_pos");
-	add_uniforms("color","pointSizes","plane_clip","plane_clip2");
+	add_uniforms("color", "pointSizes", "plane_clip", "plane_clip2");
 }
 
-}
-}
+} // namespace rendering_pgl
+
+} // namespace cgogn

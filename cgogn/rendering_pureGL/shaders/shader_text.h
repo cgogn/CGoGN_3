@@ -24,11 +24,9 @@
 #ifndef CGOGN_RENDERING_SHADERS_TEXT_H_
 #define CGOGN_RENDERING_SHADERS_TEXT_H_
 
-
 #include <cgogn/rendering_pureGL/cgogn_rendering_puregl_export.h>
 #include <cgogn/rendering_pureGL/shaders/shader_program.h>
 #include <cgogn/rendering_pureGL/texture.h>
-
 
 namespace cgogn
 {
@@ -38,18 +36,17 @@ namespace rendering_pgl
 
 DECLARE_SHADER_CLASS(Text)
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamText : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(texture_->bind(0),italic_);
+		shader_->set_uniforms_values(texture_->bind(0), italic_);
 	}
 
 public:
+
 	Texture2D* texture_;
 	float32 italic_;
-
 
 	using LocalShader = ShaderText;
 
@@ -66,11 +63,10 @@ public:
 		associate_vbos(vbo_pos,vbo_str,vbo_colsize);
 		release_vao();
 	}
-
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
 #endif

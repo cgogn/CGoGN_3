@@ -41,6 +41,7 @@
 
 #include <cgogn/rendering_pureGL/imgui_viewer.h>
 #include <cgogn/rendering_pureGL/mesh_render.h>
+#include <cgogn/rendering_pureGL/drawer.h>
 #include <cgogn/rendering_pureGL/vbo_update.h>
 
 #include <cgogn/rendering_pureGL/shaders/shader_flat.h>
@@ -74,13 +75,10 @@ public:
 
 	Viewer();
 	virtual ~Viewer();
-
-	Viewer(const Viewer&) = delete;
-	Viewer& operator=(const Viewer&) = delete;
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Viewer);
 
 	void import(const std::string& filename);
 	void update_bb();
-
 	void draw() override;
 	void init() override;
 	void key_press_event(int k) override;
@@ -107,13 +105,16 @@ private:
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPhong::Param> param_phong_;
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPointSprite::Param> param_point_sprite_;
 
+	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer> drawer_;
+	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer::Renderer> drawer_rend_;
+
 	double mel_;
 
 	bool phong_rendering_;
-	bool flat_rendering_;
 	bool vertices_rendering_;
 	bool edge_rendering_;
 	bool normal_rendering_;
+	bool bb_rendering_;
 };
 
 class App: public cgogn::rendering_pgl::ImGUIApp
@@ -128,30 +129,9 @@ public:
 	void key_press_event(int k) override;
 };
 
-
-////////////////////
-// IMPLEMENTATION //
-////////////////////
-
-void App::key_press_event(int k)
-{
-	switch(k)
-	{
-		case int('I'):
-			if (shift_pressed())
-				interface_scaling_ += 0.1f;
-			else
-				interface_scaling_ -= 0.1f;
-			break;
-		case int(' '):
-			show_imgui_ = !show_imgui_;
-			break;
-		default:
-			break;
-	}
-	request_interface_update();
-	ImGUIApp::key_press_event(k);
-}
+/*****************************************************************************/
+/*                          App IMPLEMENTATION                               */
+/*****************************************************************************/
 
 bool App::interface()
 {
@@ -163,11 +143,11 @@ bool App::interface()
 	ImGui::Begin("Control Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
 	ImGui::SetWindowSize({0, 0});
 
-	inr |= ImGui::Checkbox("Phong/Flat", &view()->phong_rendering_);
+	inr |= ImGui::Checkbox("BB", &view()->bb_rendering_);
+	inr |= ImGui::Checkbox("Phong", &view()->phong_rendering_);
 	inr |= ImGui::Checkbox("Vertices", &view()->vertices_rendering_);
 	inr |= ImGui::Checkbox("Normals", &view()->normal_rendering_);
 	inr |= ImGui::Checkbox("Edges", &view()->edge_rendering_);
-	inr |= ImGui::Checkbox("Vertice", &view()->vertices_rendering_);
 
 	if (view()->phong_rendering_)
 	{
@@ -223,15 +203,38 @@ bool App::interface()
 	return inr;
 }
 
+void App::key_press_event(int k)
+{
+	switch(k)
+	{
+		case int('I'):
+			if (shift_pressed())
+				interface_scaling_ += 0.1f;
+			else
+				interface_scaling_ -= 0.1f;
+			break;
+		case int(' '):
+			show_imgui_ = !show_imgui_;
+			break;
+		default:
+			break;
+	}
+	request_interface_update();
+	ImGUIApp::key_press_event(k);
+}
+
+/*****************************************************************************/
+/*                       Viewer IMPLEMENTATION                               */
+/*****************************************************************************/
 
 Viewer::Viewer() :
 	mesh_(),
 	filtered_mesh_(mesh_),
 	phong_rendering_(true),
-	flat_rendering_(false),
 	vertices_rendering_(false),
 	edge_rendering_(false),
-	normal_rendering_(false)
+	normal_rendering_(false),
+	bb_rendering_(true)
 {
 	filtered_mesh_.set_filter<Vertex>([&] (Vertex v) -> bool
 	{
@@ -276,12 +279,7 @@ void Viewer::import(const std::string& filename)
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "normal");
 	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
 
-	update_bb();
-
-	Vec3 diagonal = bb_max_ - bb_min_;
-	set_scene_radius(diagonal.norm() / 2.0f);
-	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
-	set_scene_center(center);
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
 }
 
 void Viewer::update_bb()
@@ -301,49 +299,32 @@ void Viewer::update_bb()
 				bb_max_[i] = p[i];
 		}
 	}
-}
 
-void Viewer::key_press_event(cgogn::int32 k)
-{
-	switch (k)
-	{
-		case int('D') : {
-			cgogn::modeling::decimate(filtered_mesh_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_mesh_)));
-			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
-			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
-			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
-			param_point_sprite_->size_ = mel_ / 6.0f;
-			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
-			update_bb();
-			Vec3 diagonal = bb_max_ - bb_min_;
-			set_scene_radius(diagonal.norm() / 2.0f);
-			break;
-		}
-		case int('S') : {
-			cgogn::modeling::subdivide(filtered_mesh_, vertex_position_);
-			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
-			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
-			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
-			param_point_sprite_->size_ = mel_ / 6.0f;
-			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
-			update_bb();
-			Vec3 diagonal = bb_max_ - bb_min_;
-			set_scene_radius(diagonal.norm() / 2.0f);
-			break;
-		}
-		default:
-			break;
-	}
-
-	request_update();
+	drawer_->new_list();
+	drawer_->line_width_aa(2.0);
+	drawer_->begin(GL_LINE_LOOP);
+		drawer_->color3f(1.0, 1.0, 1.0);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_max_[2]);
+	drawer_->end();
+	drawer_->begin(GL_LINES);
+	drawer_->color3f(1.0, 1.0, 1.0);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_max_[2]);
+	drawer_->end();
+	drawer_->end_list();
 }
 
 void Viewer::draw()
@@ -357,19 +338,19 @@ void Viewer::draw()
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.0f, 2.0f);
 
-	if (flat_rendering_)
-	{
-		param_flat_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::TRIANGLES);
-		param_flat_->release();
-	}
-
 	if (phong_rendering_)
 	{
 		param_phong_->bind(proj, view);
 		render_->draw(cgogn::rendering_pgl::TRIANGLES);
 		param_phong_->release();
 	}
+	else
+	{
+		param_flat_->bind(proj, view);
+		render_->draw(cgogn::rendering_pgl::TRIANGLES);
+		param_flat_->release();
+	}
+
 	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	if (vertices_rendering_)
@@ -395,11 +376,26 @@ void Viewer::draw()
 		render_->draw(cgogn::rendering_pgl::POINTS);
 		param_normal_->release();
 	}
+
+	if (bb_rendering_)
+	{
+		drawer_rend_->draw(proj, view);
+	}
 }
 
 void Viewer::init()
 { 
 	glClearColor(0.1f, 0.1f, 0.3f, 0.0f);
+
+	drawer_ = cgogn::make_unique<cgogn::rendering_pgl::DisplayListDrawer>();
+	drawer_rend_= drawer_->generate_renderer();
+
+	update_bb();
+
+	Vec3 diagonal = bb_max_ - bb_min_;
+	set_scene_radius(diagonal.norm() / 2.0f);
+	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
+	set_scene_center(center);
 
 	vbo_position_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>(3);
 	vbo_normal_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>(3);
@@ -416,8 +412,7 @@ void Viewer::init()
 	param_point_sprite_ = cgogn::rendering_pgl::ShaderPointSprite::generate_param();
 	param_point_sprite_->set_vbos(vbo_position_.get());
 	param_point_sprite_->color_ = cgogn::rendering_pgl::GLColor(1, 0, 0, 1);
-	double mel = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
-	param_point_sprite_->size_ = mel / 6.0f;
+	param_point_sprite_->size_ = mel_ / 6.0f;
 
 	param_edge_ = cgogn::rendering_pgl::ShaderBoldLine::generate_param();
 	param_edge_->set_vbos(vbo_position_.get());
@@ -437,6 +432,51 @@ void Viewer::init()
 
 	param_phong_ = cgogn::rendering_pgl::ShaderPhong::generate_param();
 	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
+}
+
+void Viewer::key_press_event(cgogn::int32 k)
+{
+	switch (k)
+	{
+		case int('D') : {
+			cgogn::modeling::decimate(mesh_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(mesh_)));
+			// cgogn::modeling::decimate(filtered_mesh_, vertex_position_, cgogn::uint32(0.1 * cgogn::nb_cells<Vertex>(filtered_mesh_)));
+			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
+			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+			param_point_sprite_->size_ = mel_ / 6.0f;
+			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
+			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
+			update_bb();
+			Vec3 diagonal = bb_max_ - bb_min_;
+			set_scene_radius(diagonal.norm() / 2.0f);
+			break;
+		}
+		case int('S') : {
+			cgogn::modeling::subdivide(mesh_, vertex_position_);
+			// cgogn::modeling::subdivide(filtered_mesh_, vertex_position_);
+			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
+			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+			param_point_sprite_->size_ = mel_ / 6.0f;
+			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
+			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
+			render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
+			update_bb();
+			Vec3 diagonal = bb_max_ - bb_min_;
+			set_scene_radius(diagonal.norm() / 2.0f);
+			break;
+		}
+		default:
+			break;
+	}
+
+	request_update();
 }
 
 int main(int argc, char** argv)

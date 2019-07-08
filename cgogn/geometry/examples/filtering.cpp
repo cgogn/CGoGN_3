@@ -41,6 +41,7 @@
 
 #include <cgogn/rendering_pureGL/imgui_viewer.h>
 #include <cgogn/rendering_pureGL/mesh_render.h>
+#include <cgogn/rendering_pureGL/drawer.h>
 #include <cgogn/rendering_pureGL/vbo_update.h>
 
 #include <cgogn/rendering_pureGL/shaders/shader_flat.h>
@@ -74,13 +75,10 @@ public:
 
 	Viewer();
 	virtual ~Viewer();
-
-	Viewer(const Viewer&) = delete;
-	Viewer& operator=(const Viewer&) = delete;
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Viewer);
 
 	void import(const std::string& filename);
 	void update_bb();
-
 	void draw() override;
 	void init() override;
 	void key_press_event(int k) override;
@@ -108,16 +106,19 @@ private:
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPhong::Param> param_phong_;
 	std::unique_ptr<cgogn::rendering_pgl::ShaderPointSprite::Param> param_point_sprite_;
 
+	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer> drawer_;
+	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer::Renderer> drawer_rend_;
+
 	double mel_;
 
 	bool phong_rendering_;
-	bool flat_rendering_;
 	bool vertices_rendering_;
 	bool edge_rendering_;
 	bool normal_rendering_;
+	bool bb_rendering_;
 };
 
-class App: public cgogn::rendering_pgl::ImGUIApp
+class App : public cgogn::rendering_pgl::ImGUIApp
 {
 	int current_view_;
 
@@ -129,29 +130,9 @@ public:
 	void key_press_event(int k) override;
 };
 
-////////////////////
-// IMPLEMENTATION //
-////////////////////
-
-void App::key_press_event(int k)
-{
-	switch(k)
-	{
-		case int('I'):
-			if (shift_pressed())
-				interface_scaling_ += 0.1f;
-			else
-				interface_scaling_ -= 0.1f;
-			break;
-		case int(' '):
-			show_imgui_ = !show_imgui_;
-			break;
-		default:
-			break;
-	}
-	request_interface_update();
-	ImGUIApp::key_press_event(k);
-}
+/*****************************************************************************/
+/*                          App IMPLEMENTATION                               */
+/*****************************************************************************/
 
 bool App::interface()
 {
@@ -163,11 +144,11 @@ bool App::interface()
 	ImGui::Begin("Control Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
 	ImGui::SetWindowSize({0, 0});
 
+	inr |= ImGui::Checkbox("BB", &view()->bb_rendering_);
 	inr |= ImGui::Checkbox("Phong/Flat", &view()->phong_rendering_);
 	inr |= ImGui::Checkbox("Vertices", &view()->vertices_rendering_);
 	inr |= ImGui::Checkbox("Normals", &view()->normal_rendering_);
 	inr |= ImGui::Checkbox("Edges", &view()->edge_rendering_);
-	inr |= ImGui::Checkbox("Vertice", &view()->vertices_rendering_);
 
 	if (view()->phong_rendering_)
 	{
@@ -223,15 +204,39 @@ bool App::interface()
 	return inr;
 }
 
+void App::key_press_event(int k)
+{
+	switch(k)
+	{
+		case int('I'):
+			if (shift_pressed())
+				interface_scaling_ += 0.1f;
+			else
+				interface_scaling_ -= 0.1f;
+			break;
+		case int(' '):
+			show_imgui_ = !show_imgui_;
+			break;
+		default:
+			break;
+	}
+
+	request_interface_update();
+	ImGUIApp::key_press_event(k);
+}
+
+/*****************************************************************************/
+/*                       Viewer IMPLEMENTATION                               */
+/*****************************************************************************/
 
 Viewer::Viewer() :
 	mesh_(),
 	filtered_mesh_(mesh_),
 	phong_rendering_(true),
-	flat_rendering_(false),
 	vertices_rendering_(false),
 	edge_rendering_(false),
-	normal_rendering_(false)
+	normal_rendering_(false),
+	bb_rendering_(true)
 {
 	filtered_mesh_.set_filter<Vertex>([&] (Vertex v) -> bool
 	{
@@ -254,14 +259,6 @@ Viewer::Viewer() :
 Viewer::~Viewer()
 {}
 
-void Viewer::close_event()
-{
-	render_.reset();
-	vbo_position_.reset();
-	vbo_normal_.reset();
-	cgogn::rendering_pgl::ShaderProgram::clean_all();
-}
-
 void Viewer::import(const std::string& filename)
 {
 	cgogn::io::import_OFF(mesh_, filename);
@@ -278,12 +275,7 @@ void Viewer::import(const std::string& filename)
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "normal");
 	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
 
-	update_bb();
-
-	Vec3 diagonal = bb_max_ - bb_min_;
-	set_scene_radius(diagonal.norm() / 2.0f);
-	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
-	set_scene_center(center);
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
 }
 
 void Viewer::update_bb()
@@ -303,6 +295,139 @@ void Viewer::update_bb()
 				bb_max_[i] = p[i];
 		}
 	}
+
+	drawer_->new_list();
+	drawer_->line_width_aa(2.0);
+	drawer_->begin(GL_LINE_LOOP);
+		drawer_->color3f(1.0, 1.0, 1.0);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_max_[2]);
+	drawer_->end();
+	drawer_->begin(GL_LINES);
+	drawer_->color3f(1.0, 1.0, 1.0);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_min_[0], bb_max_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_min_[1], bb_max_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_min_[2]);
+		drawer_->vertex3f(bb_max_[0], bb_max_[1], bb_max_[2]);
+	drawer_->end();
+	drawer_->end_list();
+}
+
+void Viewer::draw()
+{
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	cgogn::rendering_pgl::GLMat4 proj = get_projection_matrix();
+	cgogn::rendering_pgl::GLMat4 view = get_modelview_matrix();
+
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.0f, 2.0f);
+
+	if (phong_rendering_)
+	{
+		param_phong_->bind(proj, view);
+		render_->draw(cgogn::rendering_pgl::TRIANGLES);
+		param_phong_->release();
+	}
+	else
+	{
+		param_flat_->bind(proj, view);
+		render_->draw(cgogn::rendering_pgl::TRIANGLES);
+		param_flat_->release();
+	}
+	
+	glDisable(GL_POLYGON_OFFSET_FILL);
+
+	if (vertices_rendering_)
+	{
+		param_point_sprite_->bind(proj, view);
+		render_->draw(cgogn::rendering_pgl::POINTS);
+		param_point_sprite_->release();
+	}
+
+	if (edge_rendering_)
+	{
+		param_edge_->bind(proj, view);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		render_->draw(cgogn::rendering_pgl::LINES);
+		glDisable(GL_BLEND);
+		param_edge_->release();
+	}
+
+	if (normal_rendering_)
+	{
+		param_normal_->bind(proj, view);
+		render_->draw(cgogn::rendering_pgl::POINTS);
+		param_normal_->release();
+	}
+
+	if (bb_rendering_)
+	{
+		drawer_rend_->draw(proj, view);
+	}
+}
+
+void Viewer::init()
+{
+	glClearColor(0.1f, 0.1f, 0.3f, 0.0f);
+
+	drawer_ = cgogn::make_unique<cgogn::rendering_pgl::DisplayListDrawer>();
+	drawer_rend_= drawer_->generate_renderer();
+
+	update_bb();
+
+	Vec3 diagonal = bb_max_ - bb_min_;
+	set_scene_radius(diagonal.norm() / 2.0f);
+	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
+	set_scene_center(center);
+
+	vbo_position_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
+	vbo_normal_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
+
+	cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
+	cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+
+	render_ = cgogn::make_unique<cgogn::rendering_pgl::MeshRender>();
+
+	render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
+	render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
+	render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
+
+	param_point_sprite_ = cgogn::rendering_pgl::ShaderPointSprite::generate_param();
+	param_point_sprite_->set_vbos(vbo_position_.get());
+	param_point_sprite_->color_ = cgogn::rendering_pgl::GLColor(1, 0, 0, 1);
+	param_point_sprite_->size_ = mel_ / 6.0f;
+
+	param_edge_ = cgogn::rendering_pgl::ShaderBoldLine::generate_param();
+	param_edge_->set_vbos(vbo_position_.get());
+	param_edge_->color_ = cgogn::rendering_pgl::GLColor(1, 1, 0, 1);
+	param_edge_->width_= 2.5f;
+
+	param_flat_ =  cgogn::rendering_pgl::ShaderFlat::generate_param();
+	param_flat_->set_vbos(vbo_position_.get());
+	param_flat_->front_color_ = cgogn::rendering_pgl::GLColor(0, 0.8f, 0, 1);
+	param_flat_->back_color_ = cgogn::rendering_pgl::GLColor(0, 0, 0.8f, 1);
+	param_flat_->ambiant_color_ = cgogn::rendering_pgl::GLColor(0.1f, 0.1f, 0.1f, 1);
+
+	param_normal_ = cgogn::rendering_pgl::ShaderVectorPerVertex::generate_param();
+	param_normal_->set_vbos(vbo_position_.get(), vbo_normal_.get());
+	param_normal_->color_ = cgogn::rendering_pgl::GLColor(0.8f, 0, 0.8f, 1);
+	param_normal_->length_ = (bb_max_ - bb_min_).norm() / 50.0f;
+
+	param_phong_ = cgogn::rendering_pgl::ShaderPhong::generate_param();
+	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
 }
 
 void Viewer::key_press_event(cgogn::int32 k)
@@ -364,97 +489,14 @@ void Viewer::key_press_event(cgogn::int32 k)
 	request_update();
 }
 
-void Viewer::draw()
+void Viewer::close_event()
 {
-	glEnable(GL_DEPTH_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	cgogn::rendering_pgl::GLMat4 proj = get_projection_matrix();
-	cgogn::rendering_pgl::GLMat4 view = get_modelview_matrix();
-
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.0f, 2.0f);
-
-	if (flat_rendering_)
-	{
-		param_flat_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::TRIANGLES);
-		param_flat_->release();
-	}
-
-	if (phong_rendering_)
-	{
-		param_phong_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::TRIANGLES);
-		param_phong_->release();
-	}
-	glDisable(GL_POLYGON_OFFSET_FILL);
-
-	if (vertices_rendering_)
-	{
-		param_point_sprite_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::POINTS);
-		param_point_sprite_->release();
-	}
-
-	if (edge_rendering_)
-	{
-		param_edge_->bind(proj, view);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		render_->draw(cgogn::rendering_pgl::LINES);
-		glDisable(GL_BLEND);
-		param_edge_->release();
-	}
-
-	if (normal_rendering_)
-	{
-		param_normal_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::POINTS);
-		param_normal_->release();
-	}
-}
-
-void Viewer::init()
-{
-	glClearColor(0.1f, 0.1f, 0.3f, 0.0f);
-
-	vbo_position_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
-	vbo_normal_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
-
-	cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-	cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-
-	render_ = cgogn::make_unique<cgogn::rendering_pgl::MeshRender>();
-
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
-
-	param_point_sprite_ = cgogn::rendering_pgl::ShaderPointSprite::generate_param();
-	param_point_sprite_->set_vbos(vbo_position_.get());
-	param_point_sprite_->color_ = cgogn::rendering_pgl::GLColor(1, 0, 0, 1);
-	double mel = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
-	param_point_sprite_->size_ = mel / 6.0f;
-
-	param_edge_ = cgogn::rendering_pgl::ShaderBoldLine::generate_param();
-	param_edge_->set_vbos(vbo_position_.get());
-	param_edge_->color_ = cgogn::rendering_pgl::GLColor(1, 1, 0, 1);
-	param_edge_->width_= 2.5f;
-
-	param_flat_ =  cgogn::rendering_pgl::ShaderFlat::generate_param();
-	param_flat_->set_vbos(vbo_position_.get());
-	param_flat_->front_color_ = cgogn::rendering_pgl::GLColor(0, 0.8f, 0, 1);
-	param_flat_->back_color_ = cgogn::rendering_pgl::GLColor(0, 0, 0.8f, 1);
-	param_flat_->ambiant_color_ = cgogn::rendering_pgl::GLColor(0.1f, 0.1f, 0.1f, 1);
-
-	param_normal_ = cgogn::rendering_pgl::ShaderVectorPerVertex::generate_param();
-	param_normal_->set_vbos(vbo_position_.get(), vbo_normal_.get());
-	param_normal_->color_ = cgogn::rendering_pgl::GLColor(0.8f, 0, 0.8f, 1);
-	param_normal_->length_ = (bb_max_ - bb_min_).norm() / 50.0f;
-
-	param_phong_ = cgogn::rendering_pgl::ShaderPhong::generate_param();
-	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
+	render_.reset();
+	vbo_position_.reset();
+	vbo_normal_.reset();
+	drawer_.reset();
+	drawer_rend_.reset();
+	cgogn::rendering_pgl::ShaderProgram::clean_all();
 }
 
 int main(int argc, char** argv)
@@ -472,7 +514,7 @@ int main(int argc, char** argv)
 	
 	Viewer view;
 	view.import(filename);
-	
+
 	app.add_view(&view);
 	
 	return app.launch();

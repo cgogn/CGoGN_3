@@ -71,8 +71,6 @@ public:
 
 	~ChunkArray() override
 	{
-		if (!is_mark_)
-			std::cout << "ChunkArray destructor: " << name_ << std::endl;
 		for (auto chunk : chunks_)
 			delete[] chunk;
 	}
@@ -100,10 +98,8 @@ public:
 		return chunks_.size();
 	}
 
-	inline std::vector<const void*> chunk_pointers(uint32& chunk_byte_size) const
+	inline std::vector<const void*> chunk_pointers() const
 	{
-		chunk_byte_size = CHUNK_SIZE * sizeof(T);
-
 		std::vector<const void*> pointers;
 		pointers.reserve(chunks_.size());
 		for (auto chunk : chunks_)

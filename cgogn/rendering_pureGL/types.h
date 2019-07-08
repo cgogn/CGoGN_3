@@ -43,19 +43,23 @@ namespace cgogn
 namespace rendering_pgl
 {
 
-using GLVec2d = Eigen::Vector2d;
-using GLVec3d = Eigen::Vector3d;
-using GLVec4d = Eigen::Vector4d;
-using GLMat3d = Eigen::Matrix3d;
-using GLMat4d = Eigen::Matrix4d;
-using Mat4f = Eigen::Matrix4f;
-using Transfo3d = Eigen::Affine3d;
-using GLMat4 = Eigen::Matrix4f;
-using GLMat3 = Eigen::Matrix3f;
-using GLColor = Eigen::Vector4f;
 using GLVec2 = Eigen::Vector2f;
 using GLVec3 = Eigen::Vector3f;
 using GLVec4 = Eigen::Vector4f;
+
+using GLVec2d = Eigen::Vector2d;
+using GLVec3d = Eigen::Vector3d;
+using GLVec4d = Eigen::Vector4d;
+
+using GLMat3 = Eigen::Matrix3f;
+using GLMat4 = Eigen::Matrix4f;
+
+using GLMat3d = Eigen::Matrix3d;
+using GLMat4d = Eigen::Matrix4d;
+
+using GLColor = Eigen::Vector4f;
+
+using Transfo3d = Eigen::Affine3d;
 
 inline GLColor col4i(uint8 R, uint8 G, uint8 B, uint8 A)
 {

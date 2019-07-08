@@ -21,7 +21,6 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering_pureGL/shaders/shader_point_sprite.h>
 
 namespace cgogn
@@ -189,10 +188,9 @@ ShaderPointSprite::ShaderPointSprite()
 	std::string gs = bs + std::string(geometry_shader_source);
 	std::string fs = bs + std::string(fragment_shader_source);
 
-	load3_bind(vs,fs,gs,"vertex_pos");
-	add_uniforms("color","ambiant","lightPos","point_size","plane_clip","plane_clip2");
+	load3_bind(vs, fs, gs, "vertex_pos");
+	add_uniforms("color", "ambiant", "lightPos", "point_size", "plane_clip", "plane_clip2");
 }
-
 
 ShaderPointSpriteColor::ShaderPointSpriteColor()
 {
@@ -202,11 +200,9 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 	std::string gs = bs + std::string(geometry_shader_source);
 	std::string fs = bs + std::string(fragment_shader_source);
 
-	load3_bind(vs,fs,gs,"vertex_pos", "vertex_col");
-	add_uniforms("ambiant","lightPos","point_size","plane_clip","plane_clip2");
+	load3_bind(vs, fs, gs, "vertex_pos", "vertex_col");
+	add_uniforms("ambiant", "lightPos", "point_size", "plane_clip", "plane_clip2");
 }
-
-
 
 ShaderPointSpriteSize::ShaderPointSpriteSize()
 {
@@ -216,10 +212,9 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 	std::string gs = bs + std::string(geometry_shader_source);
 	std::string fs = bs + std::string(fragment_shader_source);
 
-	load3_bind(vs,fs,gs,"vertex_pos", "vertex_size");
-	add_uniforms("color","ambiant","lightPos","plane_clip","plane_clip2");
+	load3_bind(vs, fs, gs, "vertex_pos", "vertex_size");
+	add_uniforms("color", "ambiant", "lightPos", "plane_clip", "plane_clip2");
 }
-
 
 ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 {
@@ -229,11 +224,10 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 	std::string gs = bs + std::string(geometry_shader_source);
 	std::string fs = bs + std::string(fragment_shader_source);
 
-	load3_bind(vs,fs,gs,"vertex_pos", "vertex_col", "vertex_size");
-	add_uniforms("ambiant","lightPos","plane_clip","plane_clip2");
+	load3_bind(vs, fs, gs, "vertex_pos", "vertex_col", "vertex_size");
+	add_uniforms("ambiant", "lightPos", "plane_clip", "plane_clip2");
 }
 
-
-} // namespace rendering
+} // namespace rendering_pgl
 
 } // namespace cgogn

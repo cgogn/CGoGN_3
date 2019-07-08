@@ -32,6 +32,7 @@ namespace cgogn
 
 namespace rendering_pgl
 {
+
 DECLARE_SHADER_CLASS(Phong)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPhong : public ShaderParam
@@ -40,13 +41,15 @@ protected:
 
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_,
-					front_color_,
-					back_color_,
-					ambiant_color_,
-					specular_color_,
-					specular_coef_,
-					double_side_);
+		shader_->set_uniforms_values(
+			light_position_,
+			front_color_,
+			back_color_,
+			ambiant_color_,
+			specular_color_,
+			specular_coef_,
+			double_side_
+		);
 	}
 
 public:
@@ -67,7 +70,7 @@ public:
 		front_color_(color_front_default),
 		back_color_(color_back_default),
 		ambiant_color_(color_ambiant_default),
-		specular_color_(1,1,1,1),
+		specular_color_(1, 1, 1, 1),
 		specular_coef_(250),
 		double_side_(true)
 	{}
@@ -77,13 +80,13 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_norm)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_norm);
+		associate_vbos(vbo_pos, vbo_norm);
 		release_vao();
 	}
-
 };
 
+} // namespace rendering_pgl
 
-} // namespace rendering
 } // namespace cgogn
+
 #endif // CGOGN_RENDERING_SHADERS_PHONG_H_

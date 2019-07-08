@@ -39,6 +39,7 @@ class ShaderParamScalarPerVertex;
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderScalarPerVertex : public ShaderProgram
 {
 public:
+
 	using  Self  = ShaderScalarPerVertex;
 	using  Param = ShaderParamScalarPerVertex;
 	friend Param;
@@ -50,11 +51,15 @@ public:
 		BCGYR,
 		BGR
 	};
+
 protected:
+
 	ShaderScalarPerVertex();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderScalarPerVertex);
 	static Self* instance_;
+
 public:
+
 	inline static std::unique_ptr<Param> generate_param()
 	{
 		if (!instance_)
@@ -66,21 +71,22 @@ public:
 	}
 };
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamScalarPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
 		shader_->set_uniforms_values(
-					color_map_,
-					expansion_,
-					min_value_,
-					max_value_,
-					show_iso_lines_,
-					nb_iso_levels_);
+			color_map_,
+			expansion_,
+			min_value_,
+			max_value_,
+			show_iso_lines_,
+			nb_iso_levels_
+		);
 	}
 
 public:
+
 	ShaderScalarPerVertex::ColorMap color_map_;
 	int32 expansion_;
 	float32 min_value_;
@@ -108,10 +114,10 @@ public:
 		associate_vbos(vbo_pos,vbo_scalar);
 		release_vao();
 	}
-
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
+
 #endif // CGOGN_RENDERING_SHADERS_SCALARPERVERTEX_H_

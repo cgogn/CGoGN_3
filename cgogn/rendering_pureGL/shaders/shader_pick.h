@@ -42,6 +42,7 @@ class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamPick : public ShaderParam
 	{}
 
 public:
+
 	using LocalShader = ShaderPick;
 
 	ShaderParamPick(LocalShader* sh) :
@@ -56,11 +57,10 @@ public:
 		associate_vbos(vbo_pos);
 		release_vao();
 	}
-
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_PICK_H_

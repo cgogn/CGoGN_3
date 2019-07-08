@@ -89,19 +89,21 @@ static const char* fragment_shader_source =
 "	frag_color=vec4(finalColor.rgb,1.0);"
 "}\n";
 
-
 ShaderPhong::ShaderPhong()
 {
 	load2_bind(vertex_shader_source,fragment_shader_source,
-			  "vertex_pos","vertex_normal");
-	add_uniforms("light_position",
-				 "front_color",
-				 "back_color",
-				 "ambiant_color",
-				 "spec_color",
-				 "spec_coef",
-				 "double_side");
+			  "vertex_pos", "vertex_normal");
+	add_uniforms(
+		"light_position",
+		"front_color",
+		"back_color",
+		"ambiant_color",
+		"spec_color",
+		"spec_coef",
+		"double_side"
+	);
 }
 
 } // namespace rendering_pgl
+
 } // namespace cgogn

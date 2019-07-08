@@ -21,9 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-
-#include <cgogn/core/utils/unique_ptr.h>
 #include <cgogn/rendering_pureGL/shaders/shader_program.h>
+#include <cgogn/core/utils/unique_ptr.h>
 
 namespace cgogn
 {
@@ -31,14 +30,12 @@ namespace cgogn
 namespace rendering_pgl
 {
 
-const GLColor ShaderParam::color_front_default    = GLColor(0,0.8f,0,1);
-const GLColor ShaderParam::color_back_default     = GLColor(0,0,0.8f,1);
-const GLColor ShaderParam::color_ambiant_default  = GLColor(0.1f,0.1f,0,1);
-const GLColor ShaderParam::color_spec_default     = GLColor(1,1,1,1);
-const GLColor ShaderParam::color_line_default     = GLColor(1,1,0,1);
-const GLColor ShaderParam::color_point_default    = GLColor(1,1,1,1);
-
-
+const GLColor ShaderParam::color_front_default    = GLColor(0, 0.8f, 0, 1);
+const GLColor ShaderParam::color_back_default     = GLColor(0, 0, 0.8f, 1);
+const GLColor ShaderParam::color_ambiant_default  = GLColor(0.1f, 0.1f, 0, 1);
+const GLColor ShaderParam::color_spec_default     = GLColor(1, 1, 1, 1);
+const GLColor ShaderParam::color_line_default     = GLColor(1, 1, 0, 1);
+const GLColor ShaderParam::color_point_default    = GLColor(1, 1, 1, 1);
 
 void Shader::compile(const std::string& src)
 {
@@ -46,19 +43,18 @@ void Shader::compile(const std::string& src)
 	glShaderSource(id_, 1, &csrc, nullptr);
 	glCompileShader(id_);
 
-
 	int infologLength = 0;
 	int charsWritten  = 0;
-	char *infoLog;
+	char* infoLog;
 
 	glGetShaderiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 
 	if(infologLength > 1)
 	{
-		infoLog = (char *)malloc(infologLength+1);
+		infoLog = (char*)malloc(infologLength+1);
 		glGetShaderInfoLog(id_, infologLength, &charsWritten, infoLog);
 
-		std::cerr << "----------------------------------------" << std::endl << "compilation de " << "msg" <<  " : "<<std::endl << infoLog <<std::endl<< "--------"<< std::endl;
+		std::cerr << "----------------------------------------" << std::endl << "compilation de " << "msg" <<  " : " << std::endl << infoLog << std::endl << "--------" << std::endl;
 
 		std::string errors(infoLog);
 		std::istringstream sserr(errors);
@@ -67,13 +63,13 @@ void Shader::compile(const std::string& src)
 		std::getline(sserr, line);
 		while (! sserr.eof())
 		{
-			std::size_t a =0;
-			while ((a<line.size()) && (line[a]>='0') && (line[a]<='9')) a++;
-			std::size_t b =a+1;
-			while ((b<line.size()) && (line[b]>='0') && (line[b]<='9')) b++;
-			if (b<line.size())
+			std::size_t a = 0;
+			while ((a < line.size()) && (line[a] >= '0') && (line[a] <= '9')) a++;
+			std::size_t b = a+1;
+			while ((b < line.size()) && (line[b] >= '0') && (line[b] <= '9')) b++;
+			if (b < line.size())
 			{
-				int ln = std::stoi(line.substr(a+1, b-a-1));
+				int ln = std::stoi(line.substr(a + 1, b - a - 1));
 				error_lines.push_back(ln);
 			}
 			std::getline(sserr, line);
@@ -81,28 +77,26 @@ void Shader::compile(const std::string& src)
 
 		free(infoLog);
 
-		char* source = new char[16*1024];
+		char* source = new char[16 * 1024];
 		GLsizei length;
-		glGetShaderSource(id_,16*1024,&length,source);
+		glGetShaderSource(id_, 16 * 1024, &length, source);
 		std::string sh_src(source);
 		std::istringstream sssrc(sh_src);
 		int l = 1;
-		while (! sssrc.eof())
+		while (!sssrc.eof())
 		{
 			std::getline(sssrc, line);
 			std::cerr.width(3);
-			auto it = std::find(error_lines.begin(),error_lines.end(),l);
+			auto it = std::find(error_lines.begin(), error_lines.end(), l);
 			if (it != error_lines.end())
-				std::cerr << "\033[41m\033[37m" << "EEEEEE" << line <<"\033[m" << std::endl;
+				std::cerr << "\033[41m\033[37m" << "EEEEEE" << line << "\033[m" << std::endl;
 			else
-				std::cerr<< l << " : " << line << std::endl;
+				std::cerr << l << " : " << line << std::endl;
 			l++;
 		}
 		std::cerr << "----------------------------------------" << std::endl;
 	}
 }
-
-
 
 ShaderProgram::ShaderProgram():
 	vert_shader_(nullptr),
@@ -132,7 +126,6 @@ ShaderProgram::ShaderProgram():
 //	load(vert_src, frag_src, geom_src);
 //}
 
-
 ShaderProgram::~ShaderProgram()
 {
 	delete vert_shader_;
@@ -140,7 +133,6 @@ ShaderProgram::~ShaderProgram()
 	delete frag_shader_;
 	glDeleteProgram(id_);
 }
-
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
@@ -165,10 +157,10 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	if (infologLength > 1)
 	{
 		char* infoLog = new char[infologLength];
-		int charsWritten  = 0;
+		int charsWritten = 0;
 		glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-		std::cerr << "Link message :" << infoLog <<std::endl;
-		delete [] infoLog;
+		std::cerr << "Link message: " << infoLog << std::endl;
+		delete[] infoLog;
 	}
 
 	get_matrices_uniforms();
@@ -209,16 +201,14 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	if (infologLength > 1)
 	{
 		char* infoLog = new char[infologLength];
-		int charsWritten  = 0;
+		int charsWritten = 0;
 		glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-		std::cerr << "Link message :" << infoLog <<std::endl;
-		delete [] infoLog;
+		std::cerr << "Link message: " << infoLog << std::endl;
+		delete[] infoLog;
 	}
 
 	get_matrices_uniforms();
 }
-
-
 
 std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
 
@@ -246,43 +236,41 @@ void ShaderProgram::clean_all()
 	}
 }
 
-
 void ShaderProgram::get_matrices_uniforms()
 {
 	unif_mvp_matrix_ = -1;
 	unif_mv_matrix_ = -1;
 	unif_projection_matrix_ = -1;
 	unif_normal_matrix_ = -1;
-	unif_mvp_matrix_ = glGetUniformLocation(id_,"mvp_matrix");
-	unif_mv_matrix_ = glGetUniformLocation(id_,"model_view_matrix");
-	unif_projection_matrix_ = glGetUniformLocation(id_,"projection_matrix");
-	unif_normal_matrix_ = glGetUniformLocation(id_,"normal_matrix");
+	unif_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
+	unif_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
+	unif_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
+	unif_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");
 }
 
 void ShaderProgram::set_matrices(const GLMat4d& proj, const GLMat4d& mv)
 {
 	if (unif_mvp_matrix_ >= 0)
 	{
-		GLMat4d mvp = (proj*mv);
+		GLMat4d mvp = proj * mv;
 		GLMat4 m = mvp.cast<float>();
-		glUniformMatrix4fv(	unif_mvp_matrix_,1,false, m.data());
+		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());
 	}
 	if (unif_projection_matrix_ >= 0)
 	{
 		GLMat4 m = proj.cast<float>();
-		glUniformMatrix4fv(	unif_projection_matrix_,1,false, m.data());
+		glUniformMatrix4fv(unif_projection_matrix_, 1, false, m.data());
 	}
 	if (unif_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(	unif_mv_matrix_,1,false, m.data());
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());
 	}
-
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(	unif_normal_matrix_,1,false, normal_matrix.data());
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
 
@@ -290,53 +278,47 @@ void ShaderProgram::set_matrices(const GLMat4& proj, const GLMat4& mv)
 {
 	if (unif_mvp_matrix_ >= 0)
 	{
-		GLMat4 m = proj*mv;
-		glUniformMatrix4fv(	unif_mvp_matrix_,1,false, m.data());
+		GLMat4 m = proj * mv;
+		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());
 	}
 	if (unif_projection_matrix_ >= 0)
-		glUniformMatrix4fv(	unif_projection_matrix_,1,false, proj.data());
+		glUniformMatrix4fv(unif_projection_matrix_, 1, false, proj.data());
 	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(	unif_mv_matrix_,1,false, mv.data());
-
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(	unif_normal_matrix_,1,false, normal_matrix.data());
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
-
 
 void ShaderProgram::set_view_matrix(const GLMat4d& mv)
 {
 	if (unif_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(	unif_mv_matrix_,1,false, m.data());
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());
 	}
-
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(	unif_normal_matrix_,1,false, normal_matrix.data());
+		glUniformMatrix3fv(unif_normal_matrix_, 1 ,false, normal_matrix.data());
 	}
 }
 
 void ShaderProgram::set_view_matrix(const GLMat4& mv)
 {
 	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(	unif_mv_matrix_,1,false, mv.data());
-
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(	unif_normal_matrix_,1,false, normal_matrix.data());
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
-
-
 
 ShaderParam::ShaderParam(ShaderProgram* prg) :
 	shader_(prg)
@@ -344,7 +326,6 @@ ShaderParam::ShaderParam(ShaderProgram* prg) :
 	vao_ = cgogn::make_unique<VAO>();
 	vao_->create();
 }
-
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
 {
@@ -366,7 +347,6 @@ void ShaderParam::release()
 	vao_->release();
 	shader_->release();
 }
-
 
 } // namespace rendering_pgl
 

@@ -32,16 +32,18 @@ namespace cgogn
 
 namespace rendering_pgl
 {
+
 DECLARE_SHADER_CLASS(VectorPerVertex)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamVectorPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(color_,length_);
+		shader_->set_uniforms_values(color_, length_);
 	}
 
 public:
+
 	GLColor color_;
 	float32 length_;
 
@@ -55,15 +57,16 @@ public:
 
 	inline ~ShaderParamVectorPerVertex() override {}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_normal)
+	inline void set_vbos(VBO* vbo_position, VBO* vbo_normal)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_normal);
+		associate_vbos(vbo_position, vbo_normal);
 		release_vao();
 	}
-
 };
 
-}
-}
+} // namespace rendering_pgl
+
+} // namespace cgogn
+
 #endif // CGOGN_RENDERING_SHADERS_VECTORPERVERTEX_H_

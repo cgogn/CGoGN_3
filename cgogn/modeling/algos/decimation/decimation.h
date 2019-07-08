@@ -75,7 +75,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template AttributePtr<geometr
 		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info);
 		Vertex v = collapse_edge(m, *it);
 		value<Vec3>(m, vertex_position, v) = newpos;
-//		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
+		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
 
 		++count;
 		if (count >= nb_vertices_to_remove)

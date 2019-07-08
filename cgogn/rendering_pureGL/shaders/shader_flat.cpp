@@ -23,7 +23,6 @@
 
 #include <cgogn/rendering_pureGL/shaders/shader_flat.h>
 
-
 namespace cgogn
 {
 
@@ -68,15 +67,18 @@ ShaderFlat::ShaderFlat()
 	"		else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);\n"
 	"}\n";
 
-	load2_bind(vertex_shader_source,fragment_shader_source,
+	load2_bind(vertex_shader_source, fragment_shader_source,
 			  "vertex_pos");
 
-	add_uniforms("front_color",
-				 "back_color",
-				 "ambiant_color",
-				 "lightPosition",
-				 "cull_back_face");
+	add_uniforms(
+		"front_color",
+		"back_color",
+		"ambiant_color",
+		"lightPosition",
+		"cull_back_face"
+	);
 }
 
-}
-}
+} // namespace rendering_pgl
+
+} // namespace cgogn

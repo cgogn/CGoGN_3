@@ -35,7 +35,6 @@ namespace rendering_pgl
 
 DECLARE_SHADER_CLASS(RoundPoint)
 
-
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamRoundPoint : public ShaderParam
 {
 	inline void set_uniforms() override
@@ -43,10 +42,11 @@ class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamRoundPoint : public ShaderParam
 		int viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
 		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_,wd,plane_clip_, plane_clip2_);
+		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
 	}
 
 public:
+
 	GLColor color_;
 	float32 size_;
 	GLVec4 plane_clip_;
@@ -58,8 +58,8 @@ public:
 		ShaderParam(sh),
 		color_(color_point_default),
 		size_(2),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamRoundPoint() override {}
@@ -72,8 +72,8 @@ public:
 	}
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_H_

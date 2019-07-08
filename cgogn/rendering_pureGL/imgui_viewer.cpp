@@ -62,6 +62,9 @@ ImGUIViewer::ImGUIViewer(ImGUIViewer* share):
 	bool err = gl3wInit();
 }
 
+ImGUIViewer::~ImGUIViewer()
+{}
+
 void ImGUIViewer::set_viewer_geometry(float64 px, float64 py, float64 pw, float64 ph, float64 frame_width, float64 frame_height)
 {
 	fr_w_ = frame_width;
@@ -91,9 +94,6 @@ void ImGUIViewer::update_viewer_geometry(float64 frame_width, float64 frame_heig
 
 	resize_event(vp_w_, vp_h_);
 }
-
-ImGUIViewer::~ImGUIViewer()
-{}
 
 void ImGUIViewer::resize_event(int32 , int32)
 {}

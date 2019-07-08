@@ -39,13 +39,11 @@
 #include <cgogn/rendering_pureGL/vbo.h>
 #include <cgogn/rendering_pureGL/ebo.h>
 
-
 namespace cgogn
 {
 
 namespace rendering_pgl
 {
-
 
 enum DrawingType : uint8
 {
@@ -60,9 +58,9 @@ class CGOGN_RENDERING_PUREGL_EXPORT MeshRender
 {
 protected:
 
-	std::array<std::unique_ptr<EBO>, SIZE_BUFFER>	indices_buffers_;
-	std::array<bool, SIZE_BUFFER>							indices_buffers_uptodate_;
-	std::array<uint32, SIZE_BUFFER>							nb_indices_;
+	std::array<std::unique_ptr<EBO>, SIZE_BUFFER> indices_buffers_;
+	std::array<bool, SIZE_BUFFER> indices_buffers_uptodate_;
+	std::array<uint32, SIZE_BUFFER> nb_indices_;
 
 public:
 
@@ -153,8 +151,9 @@ public:
 
 		if (!indices_buffers_[prim]->is_created())
 			indices_buffers_[prim]->create();
+		
 		indices_buffers_[prim]->bind();
-		indices_buffers_[prim]->allocate(&(table_indices[0]), nb_indices_[prim] * sizeof(uint32));
+		indices_buffers_[prim]->allocate(table_indices.data(), nb_indices_[prim]);
 		indices_buffers_[prim]->release();
 	}
 
@@ -166,6 +165,3 @@ public:
 } // namespace cgogn
 
 #endif // CGOGN_RENDERING_MESH_RENDER_H_
-
-
-

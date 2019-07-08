@@ -85,19 +85,19 @@ public:
 	/**
 	 * @brief allocate VBO memory
 	 * @param nb_vectors number of vectors
-	 * @param vector_dimension_ number of component of each vector
+	 * @param vector_dimension number of component of each vector
 	 */
-	inline void allocate(std::size_t nb_vectors, int32 vector_dim)
+	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
-		std::size_t total = nb_vectors * uint32(vector_dim);
-//		if (total != nb_vectors_ * uint64(vector_dim)) // only allocate when > ?
+		std::size_t total = nb_vectors * uint32(vector_dimension);
+//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, id_);
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total*4), nullptr, GL_STATIC_DRAW);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		nb_vectors_ = nb_vectors;
-		vector_dimension_ = vector_dim;
+		vector_dimension_ = vector_dimension;
 	}
 
 	/**

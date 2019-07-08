@@ -32,6 +32,7 @@ namespace cgogn
 
 namespace rendering_pgl
 {
+
 DECLARE_SHADER_CLASS(SimpleColor)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamSimpleColor : public ShaderParam

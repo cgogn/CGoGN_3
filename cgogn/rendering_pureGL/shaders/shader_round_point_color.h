@@ -32,6 +32,7 @@ namespace cgogn
 
 namespace rendering_pgl
 {
+
 DECLARE_SHADER_CLASS(RoundPointColor)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamRoundPointColor : public ShaderParam
@@ -45,6 +46,7 @@ class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamRoundPointColor : public ShaderPa
 	}
 
 public:
+
 	GLColor color_;
 	float32 size_;
 	GLVec4 plane_clip_;
@@ -55,8 +57,8 @@ public:
 	ShaderParamRoundPointColor(LocalShader* sh) :
 		ShaderParam(sh),
 		size_(2),
-		plane_clip_(0,0,0,0),
-		plane_clip2_(0,0,0,0)
+		plane_clip_(0, 0, 0, 0),
+		plane_clip2_(0, 0, 0, 0)
 	{}
 
 	inline ~ShaderParamRoundPointColor() override {}
@@ -64,13 +66,13 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_col);
+		associate_vbos(vbo_pos, vbo_col);
 		release_vao();
 	}	
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_

@@ -33,6 +33,7 @@ namespace cgogn
 
 namespace rendering_pgl
 {
+
 DECLARE_SHADER_CLASS(Texture)
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamTexture : public ShaderParam
@@ -43,6 +44,7 @@ class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamTexture : public ShaderParam
 	}
 
 public:
+
 	Texture2D* texture_;
 	GLuint unit_;
 
@@ -58,13 +60,13 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_tc)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_tc);
+		associate_vbos(vbo_pos, vbo_tc);
 		release_vao();
 	}
-
 };
 
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
 #endif

@@ -21,7 +21,6 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering_pureGL/mesh_render.h>
 
 namespace cgogn

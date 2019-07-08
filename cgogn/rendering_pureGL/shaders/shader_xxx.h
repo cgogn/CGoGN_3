@@ -39,17 +39,21 @@ class ShaderParamXXXX;
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderXXXX : public ShaderProgram
 {
 public:
+
 	using  Self  = ShaderXXXX;
 	using  Param = ShaderParamXXXX;
 	friend Param;
 
 protected:
+
 	ShaderXXXX();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
+
 	void set_locations() override;
 	static Self* instance_;
 
 public:
+
 	inline static std::unique_ptr<Param> generate_param()
 	{
 		if (!instance_)
@@ -59,18 +63,17 @@ public:
 		}
 		return cgogn::make_unique<Param>(instance_);
 	}
-
 };
-
 
 class CGOGN_RENDERING_PUREGL_EXPORT ShaderParamXXXX : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(front_color_,back_color_,ambiant_color_,light_pos_,bf_culling_);
+		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
 	}
 
 public:
+
 	GLColor front_color_;
 	GLColor back_color_;
 	GLColor ambiant_color_;
@@ -94,11 +97,10 @@ public:
 		vbo_pos->associate(ShaderProgram::ATTRIB_POS);
 		release_vao();
 	}
-
 };
 
-
 } // namespace rendering_pgl
+
 } // namespace cgogn
 
 #endif
