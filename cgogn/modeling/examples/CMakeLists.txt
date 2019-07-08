@@ -6,11 +6,11 @@ project(cgogn_modeling_examples
 
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_io REQUIRED)
-find_package(cgogn_rendering_pureGL REQUIRED)
+find_package(cgogn_rendering REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
 add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 
 add_executable(subdivision subdivision.cpp)
-target_link_libraries(subdivision cgogn::core cgogn::io cgogn::rendering_pureGL)
+target_link_libraries(subdivision cgogn::core cgogn::io cgogn::rendering)

@@ -39,16 +39,16 @@
 
 #include <cgogn/modeling/algos/subdivision.h>
 
-#include <cgogn/rendering_pureGL/imgui_viewer.h>
-#include <cgogn/rendering_pureGL/mesh_render.h>
-#include <cgogn/rendering_pureGL/drawer.h>
-#include <cgogn/rendering_pureGL/vbo_update.h>
+#include <cgogn/rendering/imgui_viewer.h>
+#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/rendering/drawer.h>
+#include <cgogn/rendering/vbo_update.h>
 
-#include <cgogn/rendering_pureGL/shaders/shader_flat.h>
-#include <cgogn/rendering_pureGL/shaders/shader_phong.h>
-#include <cgogn/rendering_pureGL/shaders/shader_vector_per_vertex.h>
-#include <cgogn/rendering_pureGL/shaders/shader_bold_line.h>
-#include <cgogn/rendering_pureGL/shaders/shader_point_sprite.h>
+#include <cgogn/rendering/shaders/shader_flat.h>
+#include <cgogn/rendering/shaders/shader_phong.h>
+#include <cgogn/rendering/shaders/shader_vector_per_vertex.h>
+#include <cgogn/rendering/shaders/shader_bold_line.h>
+#include <cgogn/rendering/shaders/shader_point_sprite.h>
 
 #include <cgogn/io/surface_import.h>
 
@@ -67,7 +67,7 @@ using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
 
 class App;
 
-class Viewer : public cgogn::rendering_pgl::ImGUIViewer
+class Viewer : public cgogn::rendering::ImGUIViewer
 {
 	friend class App;
 
@@ -95,19 +95,19 @@ private:
 
 	Vec3 bb_min_, bb_max_;
 
-	std::unique_ptr<cgogn::rendering_pgl::MeshRender> render_;
+	std::unique_ptr<cgogn::rendering::MeshRender> render_;
 
-	std::unique_ptr<cgogn::rendering_pgl::VBO> vbo_position_;
-	std::unique_ptr<cgogn::rendering_pgl::VBO> vbo_normal_;
+	std::unique_ptr<cgogn::rendering::VBO> vbo_position_;
+	std::unique_ptr<cgogn::rendering::VBO> vbo_normal_;
 
-	std::unique_ptr<cgogn::rendering_pgl::ShaderBoldLine::Param> param_edge_;
-	std::unique_ptr<cgogn::rendering_pgl::ShaderFlat::Param> param_flat_;
-	std::unique_ptr<cgogn::rendering_pgl::ShaderVectorPerVertex::Param> param_normal_;
-	std::unique_ptr<cgogn::rendering_pgl::ShaderPhong::Param> param_phong_;
-	std::unique_ptr<cgogn::rendering_pgl::ShaderPointSprite::Param> param_point_sprite_;
+	std::unique_ptr<cgogn::rendering::ShaderBoldLine::Param> param_edge_;
+	std::unique_ptr<cgogn::rendering::ShaderFlat::Param> param_flat_;
+	std::unique_ptr<cgogn::rendering::ShaderVectorPerVertex::Param> param_normal_;
+	std::unique_ptr<cgogn::rendering::ShaderPhong::Param> param_phong_;
+	std::unique_ptr<cgogn::rendering::ShaderPointSprite::Param> param_point_sprite_;
 
-	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer> drawer_;
-	std::unique_ptr<cgogn::rendering_pgl::DisplayListDrawer::Renderer> drawer_rend_;
+	std::unique_ptr<cgogn::rendering::DisplayListDrawer> drawer_;
+	std::unique_ptr<cgogn::rendering::DisplayListDrawer::Renderer> drawer_rend_;
 
 	double mel_;
 
@@ -118,7 +118,7 @@ private:
 	bool bb_rendering_;
 };
 
-class App : public cgogn::rendering_pgl::ImGUIApp
+class App : public cgogn::rendering::ImGUIApp
 {
 	int current_view_;
 
@@ -328,8 +328,8 @@ void Viewer::draw()
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	cgogn::rendering_pgl::GLMat4 proj = get_projection_matrix();
-	cgogn::rendering_pgl::GLMat4 view = get_modelview_matrix();
+	cgogn::rendering::GLMat4 proj = get_projection_matrix();
+	cgogn::rendering::GLMat4 view = get_modelview_matrix();
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.0f, 2.0f);
@@ -337,13 +337,13 @@ void Viewer::draw()
 	if (phong_rendering_)
 	{
 		param_phong_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::TRIANGLES);
+		render_->draw(cgogn::rendering::TRIANGLES);
 		param_phong_->release();
 	}
 	else
 	{
 		param_flat_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::TRIANGLES);
+		render_->draw(cgogn::rendering::TRIANGLES);
 		param_flat_->release();
 	}
 	
@@ -352,7 +352,7 @@ void Viewer::draw()
 	if (vertices_rendering_)
 	{
 		param_point_sprite_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::POINTS);
+		render_->draw(cgogn::rendering::POINTS);
 		param_point_sprite_->release();
 	}
 
@@ -361,7 +361,7 @@ void Viewer::draw()
 		param_edge_->bind(proj, view);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		render_->draw(cgogn::rendering_pgl::LINES);
+		render_->draw(cgogn::rendering::LINES);
 		glDisable(GL_BLEND);
 		param_edge_->release();
 	}
@@ -369,7 +369,7 @@ void Viewer::draw()
 	if (normal_rendering_)
 	{
 		param_normal_->bind(proj, view);
-		render_->draw(cgogn::rendering_pgl::POINTS);
+		render_->draw(cgogn::rendering::POINTS);
 		param_normal_->release();
 	}
 
@@ -383,7 +383,7 @@ void Viewer::init()
 {
 	glClearColor(0.1f, 0.1f, 0.3f, 0.0f);
 
-	drawer_ = cgogn::make_unique<cgogn::rendering_pgl::DisplayListDrawer>();
+	drawer_ = cgogn::make_unique<cgogn::rendering::DisplayListDrawer>();
 	drawer_rend_= drawer_->generate_renderer();
 
 	update_bb();
@@ -393,40 +393,40 @@ void Viewer::init()
 	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
 	set_scene_center(center);
 
-	vbo_position_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
-	vbo_normal_ = cgogn::make_unique<cgogn::rendering_pgl::VBO>();
+	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>();
+	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>();
 
-	cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-	cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
+	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
 
-	render_ = cgogn::make_unique<cgogn::rendering_pgl::MeshRender>();
+	render_ = cgogn::make_unique<cgogn::rendering::MeshRender>();
 
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
-	render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
+	render_->init_primitives(mesh_, cgogn::rendering::POINTS);
+	render_->init_primitives(mesh_, cgogn::rendering::LINES);
+	render_->init_primitives(mesh_, cgogn::rendering::TRIANGLES);
 
-	param_point_sprite_ = cgogn::rendering_pgl::ShaderPointSprite::generate_param();
+	param_point_sprite_ = cgogn::rendering::ShaderPointSprite::generate_param();
 	param_point_sprite_->set_vbos(vbo_position_.get());
-	param_point_sprite_->color_ = cgogn::rendering_pgl::GLColor(1, 0, 0, 1);
+	param_point_sprite_->color_ = cgogn::rendering::GLColor(1, 0, 0, 1);
 	param_point_sprite_->size_ = mel_ / 6.0f;
 
-	param_edge_ = cgogn::rendering_pgl::ShaderBoldLine::generate_param();
+	param_edge_ = cgogn::rendering::ShaderBoldLine::generate_param();
 	param_edge_->set_vbos(vbo_position_.get());
-	param_edge_->color_ = cgogn::rendering_pgl::GLColor(1, 1, 0, 1);
+	param_edge_->color_ = cgogn::rendering::GLColor(1, 1, 0, 1);
 	param_edge_->width_= 2.5f;
 
-	param_flat_ =  cgogn::rendering_pgl::ShaderFlat::generate_param();
+	param_flat_ =  cgogn::rendering::ShaderFlat::generate_param();
 	param_flat_->set_vbos(vbo_position_.get());
-	param_flat_->front_color_ = cgogn::rendering_pgl::GLColor(0, 0.8f, 0, 1);
-	param_flat_->back_color_ = cgogn::rendering_pgl::GLColor(0, 0, 0.8f, 1);
-	param_flat_->ambiant_color_ = cgogn::rendering_pgl::GLColor(0.1f, 0.1f, 0.1f, 1);
+	param_flat_->front_color_ = cgogn::rendering::GLColor(0, 0.8f, 0, 1);
+	param_flat_->back_color_ = cgogn::rendering::GLColor(0, 0, 0.8f, 1);
+	param_flat_->ambiant_color_ = cgogn::rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
-	param_normal_ = cgogn::rendering_pgl::ShaderVectorPerVertex::generate_param();
+	param_normal_ = cgogn::rendering::ShaderVectorPerVertex::generate_param();
 	param_normal_->set_vbos(vbo_position_.get(), vbo_normal_.get());
-	param_normal_->color_ = cgogn::rendering_pgl::GLColor(0.8f, 0, 0.8f, 1);
+	param_normal_->color_ = cgogn::rendering::GLColor(0.8f, 0, 0.8f, 1);
 	param_normal_->length_ = (bb_max_ - bb_min_).norm() / 50.0f;
 
-	param_phong_ = cgogn::rendering_pgl::ShaderPhong::generate_param();
+	param_phong_ = cgogn::rendering::ShaderPhong::generate_param();
 	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
 }
 
@@ -440,8 +440,8 @@ void Viewer::key_press_event(cgogn::int32 k)
 			cgogn::geometry::filter_average<Vec3>(filtered_mesh_, vertex_position_, vertex_position2_);
 			vertex_position_->swap(vertex_position2_.get());
 			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
-			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
+			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
 			update_bb();
 			Vec3 diagonal = bb_max_ - bb_min_;
 			set_scene_radius(diagonal.norm() / 2.0f);
@@ -472,11 +472,11 @@ void Viewer::key_press_event(cgogn::int32 k)
 			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
 			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
 			param_point_sprite_->size_ = mel_ / 6.0f;
-			cgogn::rendering_pgl::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering_pgl::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::POINTS);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::LINES);
-			render_->init_primitives(mesh_, cgogn::rendering_pgl::TRIANGLES);
+			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
+			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+			render_->init_primitives(mesh_, cgogn::rendering::POINTS);
+			render_->init_primitives(mesh_, cgogn::rendering::LINES);
+			render_->init_primitives(mesh_, cgogn::rendering::TRIANGLES);
 			update_bb();
 			Vec3 diagonal = bb_max_ - bb_min_;
 			set_scene_radius(diagonal.norm() / 2.0f);
@@ -496,7 +496,7 @@ void Viewer::close_event()
 	vbo_normal_.reset();
 	drawer_.reset();
 	drawer_rend_.reset();
-	cgogn::rendering_pgl::ShaderProgram::clean_all();
+	cgogn::rendering::ShaderProgram::clean_all();
 }
 
 int main(int argc, char** argv)
