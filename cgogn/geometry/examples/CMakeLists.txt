@@ -4,8 +4,6 @@ project(cgogn_geometry_examples
 	LANGUAGES CXX
 )
 
-if (CGOGN_USE_QT)
-
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
@@ -16,7 +14,3 @@ add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 
 add_executable(filtering filtering.cpp)
 target_link_libraries(filtering cgogn::core cgogn::io cgogn::rendering)
-
-set_target_properties(filtering PROPERTIES FOLDER examples/geometry)
-
-endif()

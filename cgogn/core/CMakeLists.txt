@@ -11,22 +11,24 @@ find_package(Eigen3 3.2)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED "")
-add_library(cgogn::core ALIAS cgogn_core)
+if (MSVC)
+	add_library(${PROJECT_NAME} STATIC "")
+else()
+	add_library(${PROJECT_NAME} SHARED "")
+endif()
+add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
+        "${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/attributes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/attributes.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell.h"
-        "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell_marker.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap0.h"
@@ -36,15 +38,27 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
 
+        "${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
+        "${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
+
         "${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/edge.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/edge.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/face.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/face.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/volume.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/volume.cpp"
 
         "${CMAKE_CURRENT_LIST_DIR}/utils/assert.h"
         "${CMAKE_CURRENT_LIST_DIR}/utils/assert.cpp"
@@ -239,7 +253,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_core_export.h to the current binary directory
-generate_export_header(cgogn_core)
+generate_export_header(${PROJECT_NAME})
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
 	target_compile_definitions(${PROJECT_NAME} PUBLIC "CGOGN_USE_EXTERNAL_TEMPLATES")

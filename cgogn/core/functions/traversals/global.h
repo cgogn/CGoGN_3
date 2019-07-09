@@ -27,8 +27,9 @@
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cell_marker.h>
+
 #include <cgogn/core/types/cmap/dart_marker.h>
-#include <cgogn/core/types/cmap/cell_marker.h>
 
 namespace cgogn
 {
@@ -55,7 +56,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 
 	if (!force_dart_marking && m.template is_embedded<CELL>())
 	{
-		CellMarker<CELL> cm(m);
+		CellMarker<MESH, CELL> cm(m);
 		m.foreach_dart([&] (Dart d) -> bool
 		{
 			const CELL c(d);

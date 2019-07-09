@@ -24,8 +24,6 @@
 #ifndef CGOGN_CORE_CMAP_CMAP_OPS_H_
 #define CGOGN_CORE_CMAP_CMAP_OPS_H_
 
-#include <cgogn/core/functions/traversals/global.h>
-
 namespace cgogn
 {
 
@@ -48,21 +46,8 @@ void
 create_embedding(CMAP& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	uint32 emb = m.attribute_containers_[CELL::ORBIT].add_line();
+	uint32 emb = m.attribute_containers_[CELL::ORBIT].new_index();
 	set_embedding(m, c, emb);
-}
-
-template <typename CELL, typename CMAP,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, CMAP>::value>::type>
-void
-create_embeddings(CMAP& m)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	foreach_cell(m, [&] (CELL c) -> bool
-	{
-		create_embedding(m, c);
-		return true;
-	}, true);
 }
 
 }

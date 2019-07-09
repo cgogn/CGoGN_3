@@ -22,17 +22,15 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_VBO_H_
-#define CGOGN_RENDERING_SHADERS_VBO_H_
+#ifndef CGOGN_RENDERING_VBO_H_
+#define CGOGN_RENDERING_VBO_H_
 
+#include <GL/gl3w.h>
+
+#include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/core/utils/numerics.h>
-#include <cgogn/core/types/mesh_traits.h>
 
-#include <QOpenGLBuffer>
-
-#include <iostream>
-#include <vector>
-#include <array>
+#include <string>
 
 namespace cgogn
 {
@@ -40,62 +38,66 @@ namespace cgogn
 namespace rendering
 {
 
-class VBO
+class CGOGN_RENDERING_EXPORT VBO
 {
 protected:
 
+	GLuint id_;
 	std::size_t nb_vectors_;
-	uint32 vector_dimension_;
-	QOpenGLBuffer buffer_;
+	int32 vector_dimension_;
 	std::string name_;
 
 public:
 
-	inline VBO(uint32 vec_dim = 3u) :
-		nb_vectors_(),
+	inline VBO(int32 vec_dim = 3) :
+		nb_vectors_(0),
 		vector_dimension_(vec_dim)
 	{
-		const bool buffer_created = buffer_.create();
-		if (!buffer_created)
-		{
-			std::cerr << "VBO::VBO(uint32): The call to QOpenGLBuffer::create() failed. Maybe there is no QOpenGLContext." << std::endl;
-			std::exit(EXIT_FAILURE);
-		}
-		buffer_.bind();
-		buffer_.setUsagePattern(QOpenGLBuffer::StreamDraw);
+		glGenBuffers(1, &id_);
 	}
 
 	inline ~VBO()
 	{
-		buffer_.destroy();
+		glDeleteBuffers(1,&id_);
+		id_ = 0;
 	}
 
-	inline void set_name(const std::string& name) { name_ = name; }
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+	}
 
-	inline const std::string& name() const { return name_; }
+	inline const std::string& name() const
+	{
+		return name_;
+	}
 
-	inline void bind() { buffer_.bind(); }
+	inline void bind()
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, id_);
+	}
 
-	inline void release() { buffer_.release(); }
+	inline void release()
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
 
 	/**
 	 * @brief allocate VBO memory
 	 * @param nb_vectors number of vectors
-	 * @param vector_dimension_ number of component of each vector
+	 * @param vector_dimension number of component of each vector
 	 */
-	inline void allocate(std::size_t nb_vectors, uint32 vector_dimension)
+	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
-		buffer_.bind();
-		std::size_t total = nb_vectors * vector_dimension;
-		if (total != nb_vectors_ * vector_dimension_) // only allocate when > ?
-			buffer_.allocate(uint32(total) * uint32(sizeof(float32)));
-		nb_vectors_ = nb_vectors;
-		if (vector_dimension != vector_dimension_)
+		std::size_t total = nb_vectors * uint32(vector_dimension);
+//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			vector_dimension_ = vector_dimension;
-			std::cerr << "VBO::allocate: Changing the VBO vector_dimension." << std::endl;
+			glBindBuffer(GL_ARRAY_BUFFER, id_);
+			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total*4), nullptr, GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-		buffer_.release();
+		nb_vectors_ = nb_vectors;
+		vector_dimension_ = vector_dimension;
 	}
 
 	/**
@@ -104,14 +106,21 @@ public:
 	 */
 	inline float32* lock_pointer()
 	{
-		buffer_.bind();
-		return reinterpret_cast<float32*>(buffer_.map(QOpenGLBuffer::ReadWrite));
+		this->bind();
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER,GL_READ_WRITE));
+		this->release();
+		return ptr;
 	}
 
 	/**
 	 * @brief release_pointer
 	 */
-	inline void release_pointer() { buffer_.unmap(); }
+	inline void release_pointer()
+	{
+		this->bind();
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+		this->release();
+	}
 
 	/**
 	 * @brief copy data
@@ -121,58 +130,40 @@ public:
 	 */
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
-		buffer_.write(int(offset), src, int(nb));
+		glBindBuffer(GL_ARRAY_BUFFER, id_);
+		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	/**
 	 * @brief dimension of vectors stored in buffer
 	 */
-	inline uint32 vector_dimension() const { return vector_dimension_; }
+	inline int32 vector_dimension() const
+	{
+		return vector_dimension_;
+	}
 
-	uint32 size() const { return uint32(nb_vectors_); }
+	inline uint32 size() const
+	{
+		return uint32(nb_vectors_);
+	}
 
-	GLuint id() const { return buffer_.bufferId(); }
+	inline GLuint id() const
+	{
+		return id_;
+	}
 
+	inline void associate(GLuint attrib, int32 stride = 0, uint32 first = 0)
+	{
+		bind();
+		glEnableVertexAttribArray(attrib);
+		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4, reinterpret_cast<GLvoid *>(first * uint64(vector_dimension()) * 4u));
+		release();
+	}
 };
-
-/**
-  * @brief update vbo from a std::vector<VEC>
-  * @param vector
-  * @param vbo vbo to update
-  */
-template <typename VEC3>
-void update_vbo(const std::vector<VEC3>& vector, VBO* vbo)
-{
-	uint32 vec_sz = uint32(vector.size());
-	vbo->allocate(vec_sz, 3);
-	const uint32 vbo_bytes =  3 * vec_sz * uint32(sizeof(float32));
-
-	// copy
-	vbo->bind();
-	vbo->copy_data(0, vbo_bytes, vector.data());
-	vbo->release();
-}
-
-/**
- * @brief update vbo from one Attribute
- * @param attribute Attribute (must contain Vec3<float>)
- * @param vbo vbo to update
- */
-template <typename ATTRIBUTE>
-void update_vbo(const ATTRIBUTE* attribute, VBO* vbo)
-{
-	// set vbo name based on attribute name
-	vbo->set_name(attribute->name());
-	vbo->allocate(attribute->size(), 3);
-
-	// copy
-	vbo->bind();
-	vbo->copy_data(0, attribute->size() * 3 * sizeof(float32), attribute->data_ptr());
-	vbo->release();
-}
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_VBO_H_
+#endif // CGOGN_RENDERING_VBO_H_

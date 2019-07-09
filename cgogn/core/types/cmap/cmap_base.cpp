@@ -28,8 +28,6 @@ namespace cgogn
 
 CMapBase::CMapBase()
 {
-	for (auto& e : embeddings_)
-		e = nullptr;
 	boundary_marker_ = topology_.add_attribute<uint8>("__boundary");
 }
 

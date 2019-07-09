@@ -25,7 +25,6 @@
 #define CGOGN_GEOMETRY_FUNCTIONS_NORMAL_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 
 namespace cgogn
 {
@@ -36,13 +35,9 @@ namespace geometry
 /**
  * normal of the plane spanned by 3 points in 3D
  */
-template <typename VEC3>
-VEC3 normal(const VEC3& p1, const VEC3& p2, const VEC3& p3)
+inline Vec3 normal(const Vec3& p1, const Vec3& p2, const Vec3& p3)
 {
-	static_assert(vector_traits<VEC3>::SIZE == 3, "The dimension of the vector must be equal to 3.");
-	VEC3 v1 = p2 - p1;
-	VEC3 v2 = p3 - p1;
-	return cross(v1, v2);
+	return (p2 - p1).cross(p3 - p1);
 }
 
 } // namespace geometry

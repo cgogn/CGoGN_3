@@ -34,6 +34,10 @@ namespace cgogn
 template <typename MESH>
 struct mesh_traits;
 
+//template <typename MESH>
+//struct mesh_traits<const MESH> : mesh_traits<MESH>
+//{};
+
 template <>
 struct mesh_traits<CMap0>
 {
@@ -42,7 +46,10 @@ struct mesh_traits<CMap0>
 	using Cells = CMap0::Cells;
 
 	template <typename T>
-	using Attribute = Attribute<T>;
+	using AttributePtr = CMapBase::AttributePtr<T>;
+	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -55,7 +62,10 @@ struct mesh_traits<CMap1>
 	using Cells = CMap1::Cells;
 
 	template <typename T>
-	using Attribute = Attribute<T>;
+	using AttributePtr = CMapBase::AttributePtr<T>;
+	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -69,7 +79,10 @@ struct mesh_traits<CMap2>
 	using Cells = CMap2::Cells;
 
 	template <typename T>
-	using Attribute = Attribute<T>;
+	using AttributePtr = CMapBase::AttributePtr<T>;
+	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -83,7 +96,10 @@ struct mesh_traits<CMap3>
 	using Cells = CMap3::Cells;
 
 	template <typename T>
-	using Attribute = Attribute<T>;
+	using AttributePtr = CMapBase::AttributePtr<T>;
+	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 } // namespace cgogn

@@ -25,12 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
-#include <cgogn/rendering/shader_program.h>
-#include <cgogn/rendering/vbo.h>
-
-#include <QOpenGLFunctions>
-#include <QColor>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -38,41 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-class ShaderParamSimpleColor;
-
-class CGOGN_RENDERING_EXPORT ShaderSimpleColor : public ShaderProgram
-{
-	friend class ShaderParamSimpleColor;
-
-protected:
-
-	static const char* vertex_shader_source_;
-	static const char* fragment_shader_source_;
-
-	// uniform ids
-	GLint unif_color_;
-
-public:
-
-	enum
-	{
-		ATTRIB_POS = 0
-	};
-
-	using Param = ShaderParamSimpleColor;
-	static std::unique_ptr<Param> generate_param();
-
-	/**
-	 * @brief set current color
-	 * @param rgb
-	 */
-	void set_color(const QColor& rgb);
-
-protected:
-
-	ShaderSimpleColor();
-	static ShaderSimpleColor* instance_;
-};
+DECLARE_SHADER_CLASS(SimpleColor)
 
 class CGOGN_RENDERING_EXPORT ShaderParamSimpleColor : public ShaderParam
 {
@@ -80,32 +41,27 @@ protected:
 
 	inline void set_uniforms() override
 	{
-		ShaderSimpleColor* sh = static_cast<ShaderSimpleColor*>(this->shader_);
-		sh->set_color(color_);
+		shader_->set_uniforms_values(color_);
 	}
 
 public:
 
+	GLColor color_;
+
 	using ShaderType = ShaderSimpleColor;
 
-	QColor color_;
-
-	ShaderParamSimpleColor(ShaderSimpleColor* sh) :
+	ShaderParamSimpleColor(ShaderType* sh) :
 		ShaderParam(sh),
-		color_(255, 255, 255)
+		color_(color_line_default)
 	{}
 
-	inline void set_position_vbo(VBO* vbo_pos, uint32 stride = 0, uint32 first = 0)
+	inline ~ShaderParamSimpleColor() override {}
+
+	inline void set_vbos(VBO* vbo_pos)
 	{
-		QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-		shader_->bind();
-		vao_->bind();
-		vbo_pos->bind();
-		ogl->glEnableVertexAttribArray(ShaderSimpleColor::ATTRIB_POS);
-		ogl->glVertexAttribPointer(ShaderSimpleColor::ATTRIB_POS, vbo_pos->vector_dimension(), GL_FLOAT, GL_FALSE, stride * vbo_pos->vector_dimension() * 4, void_ptr(first * vbo_pos->vector_dimension() * 4));
-		vbo_pos->release();
-		vao_->release();
-		shader_->release();
+		bind_vao();
+		associate_vbos(vbo_pos);
+		release_vao();
 	}
 };
 

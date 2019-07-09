@@ -22,7 +22,6 @@
 *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
-#include <cgogn/core/utils/unique_ptr.h>
 
 #include <iostream>
 
@@ -32,9 +31,7 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
-
-const char* ShaderScalarPerVertex::vertex_shader_source_ =
+static const char* vertex_shader_source =
 "#version 150\n"
 "in vec3 vertex_pos;\n"
 "in float vertex_scalar;\n"
@@ -145,7 +142,7 @@ const char* ShaderScalarPerVertex::vertex_shader_source_ =
 "   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos, 1.0);\n"
 "}\n";
 
-const char* ShaderScalarPerVertex::fragment_shader_source_ =
+static const char* fragment_shader_source =
 "#version 150\n"
 "in vec3 color_v;\n"
 "in float scalar_v;\n"
@@ -166,66 +163,16 @@ const char* ShaderScalarPerVertex::fragment_shader_source_ =
 "		fragColor = color_v;\n"
 "}\n";
 
+ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
+
 ShaderScalarPerVertex::ShaderScalarPerVertex()
 {
-	prg_.addShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader_source_);
-	prg_.addShaderFromSourceCode(QOpenGLShader::Fragment, fragment_shader_source_);
-	prg_.bindAttributeLocation("vertex_pos", ATTRIB_POS);
-	prg_.bindAttributeLocation("vertex_scalar", ATTRIB_SCALAR);
-	prg_.link();
-	get_matrices_uniforms();
-	unif_color_map_ = prg_.uniformLocation("color_map");
-	unif_expansion_ = prg_.uniformLocation("expansion");
-	unif_min_value_ = prg_.uniformLocation("min_value");
-	unif_max_value_ = prg_.uniformLocation("max_value");
-	unif_show_iso_lines_ = prg_.uniformLocation("show_iso_lines");
-	unif_nb_iso_levels_ = prg_.uniformLocation("nb_iso_levels");
-}
+	load(vertex_shader_source, fragment_shader_source,
+		 "vertex_pos");
 
-void ShaderScalarPerVertex::set_color_map(ColorMap cm)
-{
-	if (unif_color_map_ >= 0)
-		prg_.setUniformValue(unif_color_map_, cm);
-}
-
-void ShaderScalarPerVertex::set_expansion(int32 expansion)
-{
-	if (unif_expansion_ >= 0)
-		prg_.setUniformValue(unif_expansion_, expansion);
-}
-
-void ShaderScalarPerVertex::set_min_value(float32 value)
-{
-	if (unif_min_value_ >= 0)
-		prg_.setUniformValue(unif_min_value_, value);
-}
-
-void ShaderScalarPerVertex::set_max_value(float32 value)
-{
-	if (unif_max_value_ >= 0)
-		prg_.setUniformValue(unif_max_value_, value);
-}
-
-void ShaderScalarPerVertex::set_show_iso_lines(bool b)
-{
-	if (unif_show_iso_lines_ >= 0)
-		prg_.setUniformValue(unif_show_iso_lines_, b);
-}
-
-void ShaderScalarPerVertex::set_nb_iso_levels(int32 nb)
-{
-	if (unif_nb_iso_levels_ >= 0)
-		prg_.setUniformValue(unif_nb_iso_levels_, nb);
-}
-
-std::unique_ptr<ShaderScalarPerVertex::Param> ShaderScalarPerVertex::generate_param()
-{
-	if (!instance_)
-	{
-		instance_ = new ShaderScalarPerVertex();
-		ShaderProgram::register_instance(instance_);
-	}
-	return cgogn::make_unique<Param>(instance_);
+	add_uniforms("color_map", "expansion",
+				 "min_value", "max_value",
+				 "show_iso_lines", "nb_iso_levels");
 }
 
 } // namespace rendering

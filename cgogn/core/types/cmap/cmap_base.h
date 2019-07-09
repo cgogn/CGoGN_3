@@ -26,12 +26,15 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/attributes.h>
+#include <cgogn/core/types/container/attribute_container.h>
+#include <cgogn/core/types/container/vector.h>
+#include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/cmap/cell.h>
 
 #include <cgogn/core/utils/type_traits.h>
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/assert.h>
 
 #include <array>
 #include <sstream>
@@ -41,26 +44,38 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
+//	using AttributeContainerT = AttributeContainer<Vector>;
+	using AttributeContainerT = AttributeContainer<ChunkArray>;
+
+	template <typename T>
+	using Attribute = AttributeContainerT::Attribute<T>;
+	template <typename T>
+	using AttributePtr = AttributeContainerT::AttributePtr<T>;
+
+	using AttributeGenPtr = AttributeContainerT::AttributeGenPtr;
+
+	using MarkAttributePtr = AttributeContainerT::MarkAttributePtr;
+
 	// Dart container
-	mutable AttributeContainer topology_;
+	mutable AttributeContainerT topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<Attribute<Dart>*> relations_;
+	std::vector<AttributePtr<Dart>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<Attribute<uint32>*, NB_ORBITS> embeddings_;
+	std::array<AttributePtr<uint32>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	Attribute<uint8>* boundary_marker_;
+	AttributePtr<uint8> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
+	mutable std::array<AttributeContainerT, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
 
 protected:
 
-	Attribute<Dart>* add_relation(const std::string& name)
+	AttributePtr<Dart> add_relation(const std::string& name)
 	{
-		Attribute<Dart>* rel = topology_.add_attribute<Dart>(name);
+		AttributePtr<Dart> rel = topology_.add_attribute<Dart>(name);
 		relations_.push_back(rel);
 		return rel;
 	}
@@ -69,7 +84,7 @@ public:
 
 	uint32 nb_darts()
 	{
-		return topology_.size();
+		return topology_.nb_elements();
 	}
 
 	void set_boundary(Dart d, bool b)
@@ -103,7 +118,12 @@ public:
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		(*embeddings_[orbit])[d.index] = emb;
+		const uint32 old = (*embeddings_[orbit])[d.index];
+		// ref_line() is done before unref_line() to avoid deleting the indexed line if old == emb
+		attribute_containers_[orbit].ref_index(emb);		// ref the new emb
+		if (old != INVALID_INDEX)
+			attribute_containers_[orbit].unref_index(old);	// unref the old emb
+		(*embeddings_[orbit])[d.index] = emb;				// affect the embedding to the dart
 	}
 
 	template <typename CELL>
@@ -115,13 +135,14 @@ public:
 	}
 
 	template <typename CELL>
-	void create_embedding()
+	void init_embedding()
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
+		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
 		std::ostringstream oss;
-		oss << "emb_" << orbit_name(orbit);
-		Attribute<uint32>* emb = topology_.add_attribute<uint32>(oss.str());
+		oss << "__emb_" << orbit_name(orbit);
+		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());
 		embeddings_[orbit] = emb;
 		for (uint32& i : *emb)
 			i = INVALID_INDEX;
@@ -129,11 +150,28 @@ public:
 
 	Dart add_dart()
 	{
-		uint32 index = topology_.add_line();
+		uint32 index = topology_.new_index();
 		Dart d(index);
 		for (auto rel : relations_)
 			(*rel)[d.index] = d;
+		for (auto emb : embeddings_)
+			if (emb)
+				(*emb)[d.index] = INVALID_INDEX;
 		return d;
+	}
+
+	void remove_dart(Dart d)
+	{
+		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
+		{
+			if (embeddings_[orbit])
+			{
+				uint32 index = (*embeddings_[orbit])[d.index];
+				if (index != INVALID_INDEX)
+					attribute_containers_[orbit].unref_index(index);
+			}
+		}
+		topology_.release_index(d.index);
 	}
 
 	template <typename FUNC>
@@ -141,7 +179,7 @@ public:
 	{
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = 0; i < topology_.size(); ++i)
+		for (uint32 i = topology_.first_index(); i < topology_.last_index(); i = topology_.next_index(i))
 			if (!f(Dart(i)))
 				break;
 	}

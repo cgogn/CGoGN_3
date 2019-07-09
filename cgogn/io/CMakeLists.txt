@@ -2,6 +2,8 @@ project(cgogn_io
 	LANGUAGES CXX
 )
 
+find_package(cgogn_core REQUIRED)
+
 # Hide symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
@@ -9,12 +11,14 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 find_package(Eigen3 3.2)
 
 add_library(${PROJECT_NAME} SHARED "")
-add_library(cgogn::io ALIAS cgogn_io)
+add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
@@ -38,8 +42,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_io_export.h to the current binary directory
-include(GenerateExportHeader)
-generate_export_header(cgogn_io)
+generate_export_header(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
 

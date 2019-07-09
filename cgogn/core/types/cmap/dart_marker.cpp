@@ -22,7 +22,6 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/cmap/dart_marker.h>
-#include <cgogn/core/types/cmap/cmap_base.h>
 
 namespace cgogn
 {
@@ -33,9 +32,7 @@ DartMarker::DartMarker(const CMapBase& map)
 }
 
 DartMarker::~DartMarker()
-{
-	delete mark_attribute_;
-}
+{}
 
 DartMarkerStore::DartMarkerStore(const CMapBase& map) :
 	DartMarker(map)

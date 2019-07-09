@@ -2,6 +2,8 @@ project(cgogn_geometry
 	LANGUAGES CXX
 )
 
+find_package(cgogn_core REQUIRED)
+
 # Hide symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
@@ -9,19 +11,27 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 find_package(Eigen3 3.2)
 
 add_library(${PROJECT_NAME} SHARED "")
-add_library(cgogn::geometry ALIAS cgogn_geometry)
+add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/inclusion.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/normal.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/vector_ops.h"
 
+        "${CMAKE_CURRENT_LIST_DIR}/algos/angle.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/area.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/centroid.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/curvature.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})
@@ -50,8 +60,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # Write out cgogn_geometry_export.h to the current binary directory
-include(GenerateExportHeader)
-generate_export_header(cgogn_geometry)
+generate_export_header(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
 

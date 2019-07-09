@@ -46,7 +46,7 @@ class CellFilter
 {
 	using CellFilters = typename FunctionsFromTuple<typename mesh_traits<MESH>::Cells>::type;
 
-	MESH& m_;
+	const MESH& m_;
 	CellFilters filters_;
 
 	template <typename CELL>
@@ -64,10 +64,11 @@ class CellFilter
 public:
 
 	static const bool is_mesh_view = true;
+	using MeshType = MESH;
 
-	CellFilter(MESH& m) : m_(m) {}
+	CellFilter(const MESH& m) : m_(m) {}
 
-	MESH& mesh() { return m_; }
+	MESH& mesh() { return const_cast<MESH&>(m_); }
 	const MESH& mesh() const { return m_; }
 
 	template <typename CELL, typename FilterFunction>

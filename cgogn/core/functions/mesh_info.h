@@ -26,7 +26,13 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/core/functions/attributes.h>
+
 #include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/volume.h>
 
 namespace cgogn
 {
@@ -34,7 +40,7 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// uint32 nb_cells(MESH& m);
+// uint32 nb_cells(const MESH& m);
 
 /*****************************************************************************/
 
@@ -50,6 +56,17 @@ uint32 nb_cells(const MESH& m)
 	foreach_cell(m, [&] (CELL) -> bool { ++result; return true; });
 	return result;
 }
+
+/*****************************************************************************/
+
+// template <typename MESH, typename CELL>
+// uint32 degree(const MESH& m, CELL c);
+
+/*****************************************************************************/
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
 uint32 degree(const MESH& m, typename mesh_traits<MESH>::Vertex v)
@@ -75,6 +92,17 @@ uint32 degree(const MESH& m, typename mesh_traits<MESH>::Face f)
 	return result;
 }
 
+/*****************************************************************************/
+
+// template <typename MESH, typename CELL>
+// uint32 codegree(const MESH& m, CELL c);
+
+/*****************************************************************************/
+
+/////////////
+// GENERIC //
+/////////////
+
 template <typename MESH>
 uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Edge e)
 {
@@ -97,6 +125,123 @@ uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Volume v)
 	uint32 result = 0;
 	foreach_incident_face(m, v, [&] (typename mesh_traits<MESH>::Face) -> bool { ++result; return true; });
 	return result;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH, typename CELL>
+// bool is_incident_to_boundary(const MESH& m, CELL c);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename MESH, typename CELL,
+		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+bool
+is_incident_to_boundary(const MESH& m, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	bool result = false;
+	m.foreach_dart_of_orbit(c, [&m, &result] (Dart d) -> bool
+	{
+		if (m.is_boundary(d)) { result = true; return false; }
+		return true;
+	});
+	return result;
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename CELL, typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+bool
+is_incident_to_boundary(const MESH& m, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return is_incident_to_boundary(m.mesh(), c);
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// bool edge_can_collapse(const MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
+{
+	using Vertex = CMap2::Vertex;
+	using Face = CMap2::Face;
+
+	auto vertices = incident_vertices(m, e);
+
+	if (is_incident_to_boundary(m, vertices[0]) || is_incident_to_boundary(m, vertices[1]))
+		return false;
+
+	uint32 val_v1 = degree(m, vertices[0]);
+	uint32 val_v2 = degree(m, vertices[1]);
+
+	if (val_v1 + val_v2 < 8 || val_v1 + val_v2 > 14)
+		return false;
+
+	Dart e1 = e.dart;
+	Dart e2 = m.phi2(e.dart);
+
+	if (codegree(m, Face(e1)) == 3)
+	{
+		if (degree(m, Vertex(m.phi_1(e1))) < 4)
+			return false;
+	}
+
+	if (codegree(m, Face(e2)) == 3)
+	{
+		if (degree(m, Vertex(m.phi_1(e2))) < 4)
+			return false;
+	}
+
+	auto next_edge = [&m] (Dart d) { return m.phi2(m.phi_1(d)); };
+
+	// Check vertex sharing condition
+	std::vector<uint32> vn1;
+	Dart it = next_edge(next_edge(e1));
+	Dart end = m.phi1(e2);
+	do
+	{
+		vn1.push_back(index_of(m, Vertex(m.phi1(it))));
+		it = next_edge(it);
+	} while (it != end);
+	it = next_edge(next_edge(e2));
+	end = m.phi1(e1);
+	do
+	{
+		auto vn1it = std::find(vn1.begin(), vn1.end(), index_of(m, Vertex(m.phi1(it))));
+		if (vn1it != vn1.end())
+			return false;
+		it = next_edge(it);
+	} while (it != end);
+
+	return true;
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+bool
+edge_can_collapse(const MESH& m, typename mesh_traits<MESH>::Edge e)
+{
+	return edge_can_collapse(m.mesh(), e);
 }
 
 } // namespace cgogn

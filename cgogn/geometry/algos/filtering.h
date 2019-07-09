@@ -30,7 +30,6 @@
 #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 
 #include <Eigen/IterativeLinearSolvers>
 
@@ -40,27 +39,26 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC, typename MESH>
+template <typename T, typename MESH>
 void filter_average(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute_in,
-	typename mesh_traits<MESH>::template Attribute<VEC>* attribute_out
+	const typename mesh_traits<MESH>::template AttributePtr<T> attribute_in,
+	typename mesh_traits<MESH>::template AttributePtr<T> attribute_out
 )
 {
-	using Scalar = typename vector_traits<VEC>::Scalar;
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	foreach_cell(m, [&] (Vertex v) -> bool
 	{
-		VEC sum;
-		set_zero(sum);
+		T sum;
+		sum.setZero();
 		uint32 count = 0;
 		foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
 		{
-			sum += value<VEC>(m, attribute_in, av);
+			sum += value<T>(m, attribute_in, av);
 			++count;
 			return true;
 		});
-		value<VEC>(m, attribute_out, v) = sum / Scalar(count);
+		value<T>(m, attribute_out, v) = sum / count;
 		return true;
 	});
 }
