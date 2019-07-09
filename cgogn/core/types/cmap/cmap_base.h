@@ -183,6 +183,10 @@ public:
 			if (!f(Dart(i)))
 				break;
 	}
+
+	Dart begin() const { return Dart(topology_.first_index()); }
+	Dart end() const { return Dart(topology_.last_index()); }
+	Dart next(Dart d) const { return Dart(topology_.next_index(d.index)); }
 };
 
 } // namespace cgogn

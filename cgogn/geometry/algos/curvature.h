@@ -137,7 +137,7 @@ compute_curvature(
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
-	foreach_cell(m, [&] (Vertex v) -> bool
+	parallel_foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		const auto& [kmax, kmin, Kmax, Kmin, Knormal] = curvature(m, v, radius, vertex_position, vertex_normal, edge_angle);
 		value<Scalar>(m, vertex_kmax, v) = kmax;
