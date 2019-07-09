@@ -57,7 +57,7 @@ endif()
 option(CGOGN_EXTERNAL_TEMPLATES "Use external templates to reduce compile time" OFF)
 
 ### C++ 11/14/17
-set(CGOGN_CPP_STD "11" CACHE STRING "The version of the c++ standard to use.")
+set(CGOGN_CPP_STD "17" CACHE STRING "The version of the c++ standard to use.")
 if (NOT MSVC)
 	set_property(CACHE CGOGN_CPP_STD PROPERTY STRINGS "11" "14" "17") # drop down list with cmake-gui
 endif(NOT MSVC)
@@ -67,7 +67,7 @@ if (CGOGN_CPP_STD STREQUAL "11")
 	set(CMAKE_CXX_STANDARD 11)
 elseif(CGOGN_CPP_STD STREQUAL "14")
 	set(CMAKE_CXX_STANDARD 14)
-else(CGOGN_CPP_STD STREQUAL "11")
+else(CGOGN_CPP_STD STREQUAL "17")
 	set(CMAKE_CXX_STANDARD 17)
 endif(CGOGN_CPP_STD STREQUAL "11")
 

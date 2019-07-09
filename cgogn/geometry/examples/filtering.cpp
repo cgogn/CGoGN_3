@@ -35,6 +35,8 @@
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/curvature.h>
 #include <cgogn/geometry/algos/filtering.h>
 
 #include <cgogn/modeling/algos/subdivision.h>
@@ -61,6 +63,7 @@ using Edge = typename cgogn::mesh_traits<Mesh>::Edge;
 using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
 
 template <typename T>
 using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
@@ -84,6 +87,9 @@ public:
 	void key_press_event(int k) override;
 	void close_event() override;
 
+	void filter_mesh();
+	void subdivide_mesh();
+
 private:
 
 	Mesh mesh_;
@@ -93,16 +99,26 @@ private:
 	AttributePtr<Vec3> vertex_position2_;
 	AttributePtr<Vec3> vertex_normal_;
 
+	AttributePtr<double> edge_angle_;
+
+	AttributePtr<double> vertex_kmin_;
+	AttributePtr<double> vertex_kmax_;
+	AttributePtr<Vec3> vertex_Kmin_;
+	AttributePtr<Vec3> vertex_Kmax_;
+	AttributePtr<Vec3> vertex_Knormal_;
+
 	Vec3 bb_min_, bb_max_;
 
 	std::unique_ptr<cgogn::rendering::MeshRender> render_;
 
 	std::unique_ptr<cgogn::rendering::VBO> vbo_position_;
 	std::unique_ptr<cgogn::rendering::VBO> vbo_normal_;
+	std::unique_ptr<cgogn::rendering::VBO> vbo_Kmin_;
 
 	std::unique_ptr<cgogn::rendering::ShaderBoldLine::Param> param_edge_;
 	std::unique_ptr<cgogn::rendering::ShaderFlat::Param> param_flat_;
 	std::unique_ptr<cgogn::rendering::ShaderVectorPerVertex::Param> param_normal_;
+	std::unique_ptr<cgogn::rendering::ShaderVectorPerVertex::Param> param_Kmin_;
 	std::unique_ptr<cgogn::rendering::ShaderPhong::Param> param_phong_;
 	std::unique_ptr<cgogn::rendering::ShaderPointSprite::Param> param_point_sprite_;
 
@@ -183,7 +199,7 @@ bool App::interface()
 		ImGui::Separator();
 		ImGui::Text("Edge parameters");
 		inr |= ImGui::ColorEdit3("color##edge", view()->param_edge_->color_.data());
-		inr |= ImGui::SliderFloat("Width##edge", &(view()->param_edge_->width_), 1.0f, 10.0f);
+		inr |= ImGui::SliderFloat("width##edge", &(view()->param_edge_->width_), 1.0f, 10.0f);
 	}
 
 	if (view()->vertices_rendering_)
@@ -191,8 +207,14 @@ bool App::interface()
 		ImGui::Separator();
 		ImGui::Text("Vertices parameters");
 		inr |= ImGui::ColorEdit3("color##vert", view()->param_point_sprite_->color_.data());
-		inr |= ImGui::SliderFloat("Size##vert", &(view()->param_point_sprite_->size_), view()->mel_ / 12, view()->mel_ / 3);
+		inr |= ImGui::SliderFloat("size##vert", &(view()->param_point_sprite_->size_), view()->mel_ / 12, view()->mel_ / 3);
 	}
+
+	ImGui::Separator();
+	if (ImGui::Button("Subdivide"))
+		view()->subdivide_mesh();
+	if (ImGui::Button("Filter"))
+		view()->filter_mesh();
 
 //	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
@@ -276,6 +298,27 @@ void Viewer::import(const std::string& filename)
 	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
 
 	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+
+	edge_angle_ = cgogn::add_attribute<double, Edge>(mesh_, "angle");
+	cgogn::geometry::compute_angle(mesh_, vertex_position_, edge_angle_);
+
+	vertex_kmin_ = cgogn::add_attribute<double, Vertex>(mesh_, "kmin");
+	vertex_kmax_ = cgogn::add_attribute<double, Vertex>(mesh_, "kmax");
+	vertex_Kmin_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Kmin");
+	vertex_Kmax_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Kmax");
+	vertex_Knormal_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Knormal");
+	cgogn::geometry::compute_curvature(
+		mesh_,
+		mel_ * 4.0,
+		vertex_position_,
+		vertex_normal_,
+		edge_angle_,
+		vertex_kmax_,
+		vertex_kmin_,
+		vertex_Kmax_,
+		vertex_Kmin_,
+		vertex_Knormal_
+	);
 }
 
 void Viewer::update_bb()
@@ -373,6 +416,10 @@ void Viewer::draw()
 		param_normal_->release();
 	}
 
+	param_Kmin_->bind(proj, view);
+	render_->draw(cgogn::rendering::POINTS);
+	param_Kmin_->release();
+
 	if (bb_rendering_)
 	{
 		drawer_rend_->draw(proj, view);
@@ -395,9 +442,11 @@ void Viewer::init()
 
 	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>();
 	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>();
+	vbo_Kmin_ = cgogn::make_unique<cgogn::rendering::VBO>();
 
 	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+	cgogn::rendering::update_vbo(vertex_Kmin_.get(), vbo_Kmin_.get());
 
 	render_ = cgogn::make_unique<cgogn::rendering::MeshRender>();
 
@@ -426,6 +475,11 @@ void Viewer::init()
 	param_normal_->color_ = cgogn::rendering::GLColor(0.8f, 0, 0.8f, 1);
 	param_normal_->length_ = (bb_max_ - bb_min_).norm() / 50.0f;
 
+	param_Kmin_ = cgogn::rendering::ShaderVectorPerVertex::generate_param();
+	param_Kmin_->set_vbos(vbo_position_.get(), vbo_Kmin_.get());
+	param_Kmin_->color_ = cgogn::rendering::GLColor(0.8f, 0.8f, 0.8f, 1);
+	param_Kmin_->length_ = (bb_max_ - bb_min_).norm() / 50.0f;
+
 	param_phong_ = cgogn::rendering::ShaderPhong::generate_param();
 	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
 }
@@ -435,58 +489,16 @@ void Viewer::key_press_event(cgogn::int32 k)
 	switch (k)
 	{
 		case int('A') : {
-			for (auto it = vertex_position2_->begin(), end = vertex_position2_->end(); it != end; ++it)
-				*it = (*vertex_position_)[it.index()];
-			cgogn::geometry::filter_average<Vec3>(filtered_mesh_, vertex_position_, vertex_position2_);
-			vertex_position_->swap(vertex_position2_.get());
-			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
-			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-			update_bb();
-			Vec3 diagonal = bb_max_ - bb_min_;
-			set_scene_radius(diagonal.norm() / 2.0f);
+			filter_mesh();
 			break;
 		}
 		case int('S') : {
-//			cgogn::CellCache<Mesh> cached_map(mesh_);
-//			cached_map.build<Vertex>();
-//			cached_map.build<Edge>();
-//			cached_map.build<Face>();
-
-//			cgogn::CellFilter<cgogn::CellCache<Mesh>> filtered_map(cached_map);
-//			filtered_map.set_filter<Edge>([&] (Edge e) -> bool
-//			{
-//				std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, e);
-//				auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
-//				return v != vertices.end();
-//			});
-//			filtered_map.set_filter<Face>([&] (Face f) -> bool
-//			{
-//				std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, f);
-//				auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
-//				return v != vertices.end();
-//			});
-
-			cgogn::modeling::subdivide(filtered_mesh_, vertex_position_);
-			std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
-			cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
-			mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
-			param_point_sprite_->size_ = mel_ / 6.0f;
-			cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
-			cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
-			render_->init_primitives(mesh_, cgogn::rendering::POINTS);
-			render_->init_primitives(mesh_, cgogn::rendering::LINES);
-			render_->init_primitives(mesh_, cgogn::rendering::TRIANGLES);
-			update_bb();
-			Vec3 diagonal = bb_max_ - bb_min_;
-			set_scene_radius(diagonal.norm() / 2.0f);
+			subdivide_mesh();
 			break;
 		}
 		default:
 			break;
 	}
-
-	request_update();
 }
 
 void Viewer::close_event()
@@ -494,9 +506,105 @@ void Viewer::close_event()
 	render_.reset();
 	vbo_position_.reset();
 	vbo_normal_.reset();
+	vbo_Kmin_.reset();
 	drawer_.reset();
 	drawer_rend_.reset();
 	cgogn::rendering::ShaderProgram::clean_all();
+}
+
+void Viewer::filter_mesh()
+{
+	for (auto it = vertex_position2_->begin(), end = vertex_position2_->end(); it != end; ++it)
+		*it = (*vertex_position_)[it.index()];
+	cgogn::geometry::filter_average<Vec3>(filtered_mesh_, vertex_position_, vertex_position2_);
+	vertex_position_->swap(vertex_position2_.get());
+	
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+	cgogn::geometry::compute_curvature(
+		mesh_,
+		mel_ * 4.0,
+		vertex_position_,
+		vertex_normal_,
+		edge_angle_,
+		vertex_kmax_,
+		vertex_kmin_,
+		vertex_Kmax_,
+		vertex_Kmin_,
+		vertex_Knormal_
+	);
+
+	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
+	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+	cgogn::rendering::update_vbo(vertex_Kmin_.get(), vbo_Kmin_.get());
+
+	update_bb();
+	Vec3 diagonal = bb_max_ - bb_min_;
+
+	param_point_sprite_->size_ = mel_ / 6.0f;
+	param_normal_->length_ = diagonal.norm() / 50.0f;
+	param_Kmin_->length_ = diagonal.norm() / 50.0f;
+
+	set_scene_radius(diagonal.norm() / 2.0f);
+	request_update();
+}
+
+void Viewer::subdivide_mesh()
+{
+	// cgogn::CellCache<Mesh> cached_map(mesh_);
+	// cached_map.build<Vertex>();
+	// cached_map.build<Edge>();
+	// cached_map.build<Face>();
+
+	// cgogn::CellFilter<cgogn::CellCache<Mesh>> filtered_map(cached_map);
+	// filtered_map.set_filter<Edge>([&] (Edge e) -> bool
+	// {
+	// 	std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, e);
+	// 	auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
+	// 	return v != vertices.end();
+	// });
+	// filtered_map.set_filter<Face>([&] (Face f) -> bool
+	// {
+	// 	std::vector<Vertex> vertices = cgogn::incident_vertices(cached_map, f);
+	// 	auto v = std::find_if(vertices.begin(), vertices.end(), [&] (Vertex v) { return cgogn::value<Vec3>(cached_map, vertex_position_, v)[0] < 0.0f; });
+	// 	return v != vertices.end();
+	// });
+
+	cgogn::modeling::subdivide(filtered_mesh_, vertex_position_);
+	std::cout << "nbv: " << cgogn::nb_cells<Vertex>(mesh_) << std::endl;
+
+	render_->init_primitives(mesh_, cgogn::rendering::POINTS);
+	render_->init_primitives(mesh_, cgogn::rendering::LINES);
+	render_->init_primitives(mesh_, cgogn::rendering::TRIANGLES);
+
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+	cgogn::geometry::compute_curvature(
+		mesh_,
+		mel_ * 4.0,
+		vertex_position_,
+		vertex_normal_,
+		edge_angle_,
+		vertex_kmax_,
+		vertex_kmin_,
+		vertex_Kmax_,
+		vertex_Kmin_,
+		vertex_Knormal_
+	);
+
+	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
+	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
+	cgogn::rendering::update_vbo(vertex_Kmin_.get(), vbo_Kmin_.get());
+	
+	update_bb();
+	Vec3 diagonal = bb_max_ - bb_min_;
+
+	param_point_sprite_->size_ = mel_ / 6.0f;
+	param_normal_->length_ = diagonal.norm() / 50.0f;
+	param_Kmin_->length_ = diagonal.norm() / 50.0f;
+
+	set_scene_radius(diagonal.norm() / 2.0f);
+	request_update();
 }
 
 int main(int argc, char** argv)

@@ -54,6 +54,8 @@ struct CGOGN_CORE_EXPORT CMapBase
 
 	using AttributeGenPtr = AttributeContainerT::AttributeGenPtr;
 
+	using MarkAttributePtr = AttributeContainerT::MarkAttributePtr;
+
 	// Dart container
 	mutable AttributeContainerT topology_;
 	// shortcuts to relations Dart attributes
@@ -133,11 +135,11 @@ public:
 	}
 
 	template <typename CELL>
-	void create_embedding()
+	void init_embedding()
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(!is_embedded<CELL>(), "Trying to create an already created embedding");
+		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
 		std::ostringstream oss;
 		oss << "__emb_" << orbit_name(orbit);
 		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());

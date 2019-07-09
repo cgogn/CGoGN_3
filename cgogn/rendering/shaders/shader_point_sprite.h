@@ -106,7 +106,7 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_col);
+		associate_vbos(vbo_pos, vbo_col);
 		release_vao();
 	}
 };
@@ -145,7 +145,7 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_size)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_size);
+		associate_vbos(vbo_pos, vbo_size);
 		release_vao();
 	}
 };
@@ -181,7 +181,7 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col, VBO* vbo_size)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_col,vbo_size);
+		associate_vbos(vbo_pos, vbo_col, vbo_size);
 		release_vao();
 	}
 };

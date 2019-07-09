@@ -37,7 +37,7 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
-using Scalar = typename geometry::vector_traits<Vec3>::Scalar;
+using Scalar = geometry::Scalar;
 
 template <typename MESH>
 Vec3 mid_edge(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position, typename mesh_traits<MESH>::Edge e)

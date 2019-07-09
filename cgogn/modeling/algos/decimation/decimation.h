@@ -40,7 +40,7 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
-using Scalar = typename geometry::vector_traits<Vec3>::Scalar;
+using Scalar = geometry::Scalar;
 
 /////////////
 // GENERIC //

@@ -538,7 +538,7 @@ int ImGUIApp::launch()
 	interface_need_redraw_ = true;
 	adapt_viewers_geometry();
 
-	for (ImGUIViewer* v: viewers_)
+	for (ImGUIViewer* v : viewers_)
 	{
 		v->update_viewer_geometry(win_frame_width_, win_frame_height_);
 		v->fbo_->resize(v->vp_w_, v->vp_h_);

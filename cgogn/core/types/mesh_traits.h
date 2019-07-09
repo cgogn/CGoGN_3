@@ -48,6 +48,8 @@ struct mesh_traits<CMap0>
 	template <typename T>
 	using AttributePtr = CMapBase::AttributePtr<T>;
 	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -62,6 +64,8 @@ struct mesh_traits<CMap1>
 	template <typename T>
 	using AttributePtr = CMapBase::AttributePtr<T>;
 	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -77,6 +81,8 @@ struct mesh_traits<CMap2>
 	template <typename T>
 	using AttributePtr = CMapBase::AttributePtr<T>;
 	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 template <>
@@ -92,6 +98,8 @@ struct mesh_traits<CMap3>
 	template <typename T>
 	using AttributePtr = CMapBase::AttributePtr<T>;
 	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+
+	using MarkAttributePtr = CMapBase::MarkAttributePtr;
 };
 
 } // namespace cgogn

@@ -30,7 +30,6 @@
 #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 
 namespace cgogn
 {

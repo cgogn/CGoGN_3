@@ -52,10 +52,11 @@ centroid(
 	VEC result;
 	result.setZero();
 	uint32 count = 0;
-	foreach_incident_vertex(m, c, [&] (Vertex v)
+	foreach_incident_vertex(m, c, [&] (Vertex v) -> bool
 	{
 		result += value<VEC>(m, attribute, v);
 		++count;
+		return true;
 	});
 	result /= Scalar(count);
 	return result;
@@ -74,10 +75,11 @@ centroid(
 	VEC result;
 	result.setZero();
 	uint32 count = 0;
-	foreach_cell(m, [&] (Vertex v)
+	foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		result += value<VEC>(m, attribute, v);
 		++count;
+		return true;
 	});
 	result /= Scalar(count);
 	return result;
@@ -92,9 +94,10 @@ compute_centroid(
 	typename mesh_traits<MESH>::template AttributePtr<VEC> cell_centroid
 )
 {
-	foreach_cell(m, [&] (CELL c)
+	foreach_cell(m, [&] (CELL c) -> bool
 	{
 		value<VEC>(m, cell_centroid, c) = centroid<VEC>(m, c, attribute);
+		return true;
 	});
 }
 
@@ -111,7 +114,7 @@ central_vertex(
 	VEC center = centroid<VEC>(m, attribute);
 	Scalar min_dist = std::numeric_limits<Scalar>::max();
 	Vertex min_vertex;
-	foreach_cell(m, [&] (Vertex v)
+	foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		Scalar distance = square_norm(value(m, attribute, v) - center);
 		if (distance < min_dist)
@@ -119,6 +122,7 @@ central_vertex(
 			min_dist = distance;
 			min_vertex = v;
 		}
+		return true;
 	});
 	return min_vertex;
 }

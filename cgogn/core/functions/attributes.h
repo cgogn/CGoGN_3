@@ -27,6 +27,8 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
+#include <cgogn/core/functions/traversals/global.h>
+
 #include <cgogn/core/utils/tuples.h>
 
 #include <string>
@@ -53,8 +55,12 @@ add_attribute(MESH& m, const std::string& name)
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	if (!m.template is_embedded<CELL>())
 	{
-		m.template create_embedding<CELL>();
-		create_embeddings<CELL>(m);
+		m.template init_embedding<CELL>();
+		foreach_cell(m, [&] (CELL c) -> bool
+		{
+			create_embedding(m, c);
+			return true;
+		}, true);
 	}
 	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }

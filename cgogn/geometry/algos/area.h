@@ -21,17 +21,18 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_NORMAL_H_
-#define CGOGN_GEOMETRY_ALGOS_NORMAL_H_
+#ifndef CGOGN_GEOMETRY_ALGOS_AREA_H_
+#define CGOGN_GEOMETRY_ALGOS_AREA_H_
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
+
 #include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/attributes.h>
 
+#include <cgogn/geometry/functions/area.h>
+#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/normal.h>
 
 namespace cgogn
 {
@@ -40,78 +41,72 @@ namespace geometry
 {
 
 template <typename MESH>
-Vec3
-normal(
+Scalar
+convex_area(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
 	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, f);
-	if (vertices.size() == 3)
-	{
-		Vec3 n = normal(
-			value<Vec3>(m, vertex_position, vertices[0]),
-			value<Vec3>(m, vertex_position, vertices[1]),
-			value<Vec3>(m, vertex_position, vertices[2])
-		);
-		n.normalize();
-		return n;
-	}
+
+    if (codegree(m, f) == 3)
+    {
+        std::vector<Vertex> vertices = incident_vertices(m, f);
+		return area(
+            value<Vec3>(m, vertex_position, vertices[0]),
+            value<Vec3>(m, vertex_position, vertices[1]),
+            value<Vec3>(m, vertex_position, vertices[2])
+        );
+    }
 	else
 	{
-		Vec3 n{0.0, 0.0, 0.0};
-		for (uint32 i = 0; i < vertices.size() - 1; ++i)
+		Scalar face_area{0};
+		Vec3 center = centroid<Vec3>(m, f, vertex_position);
+        std::vector<Vertex> vertices = incident_vertices(m, f);
+        for (uint32 i = 0, size = vertices.size(); i < size; ++i)
 		{
-			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
-			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i+1]);
-			n[0] += (p[1] - q[1]) * (p[2] + q[2]);
-			n[1] += (p[2] - q[2]) * (p[0] + q[0]);
-			n[2] += (p[0] - q[0]) * (p[1] + q[1]);
+			face_area += area(
+                center,
+                value<Vec3>(m, vertex_position, vertices[i]),
+                value<Vec3>(m, vertex_position, vertices[(i + 1) % size])
+            );
 		}
-		n.normalize();
-		return n;
+		return face_area;
 	}
 }
 
 template <typename MESH>
-Vec3
-normal(
+Scalar
+area(
 	const MESH& m,
-	typename mesh_traits<MESH>::Vertex v,
+	typename mesh_traits<MESH>::Face f,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+)
+{
+    return convex_area(m, f, vertex_position);
+}
+
+template <typename MESH>
+Scalar
+area(
+	const MESH& m,
 	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
-	Vec3 n{0.0, 0.0, 0.0};
-	foreach_incident_face(m, v, [&] (Face f) -> bool
-	{
-		n += normal(m, f, vertex_position);
-		return true;
-	});
-	n.normalize();
-	return n;
-}
 
-template <typename MESH>
-void
-compute_normal(
-	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
-	typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_normal
-)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	foreach_cell(m, [&] (Vertex v) -> bool
-	{
-		value<Vec3>(m, vertex_normal, v) = normal(m, v, vertex_position);
-		return true;
-	});
+    Scalar result = 0;
+    foreach_cell(m, [&] (Face f) -> bool
+    {
+        result += area(m, f, vertex_position);
+        return true;
+    });
+    return result;
 }
 
 } // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_NORMAL_H_
+#endif // CGOGN_GEOMETRY_ALGOS_AREA_H_

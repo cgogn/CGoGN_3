@@ -21,73 +21,26 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
-#define CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
+#ifndef CGOGN_GEOMETRY_FUNCTIONS_INCLUSION_H_
+#define CGOGN_GEOMETRY_FUNCTIONS_INCLUSION_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/utils/tuples.h>
-
-#include <functional>
+#include <algorithm>
 
 namespace cgogn
 {
 
-template <class> struct FunctionsFromTuple;
-template <template <typename ...Args> class tuple, typename ...T>
-struct FunctionsFromTuple<tuple<T...>>
+namespace geometry
 {
-	using type = std::tuple<std::function<bool(T)>...>;
-};
 
-template <typename MESH>
-class CellFilter
+inline bool in_sphere(const Vec3& point, const Vec3& center, Scalar radius)
 {
-	using CellFilters = typename FunctionsFromTuple<typename mesh_traits<MESH>::Cells>::type;
+	return (point - center).norm() < radius;
+}
 
-	const MESH& m_;
-	CellFilters filters_;
-
-	template <typename CELL>
-	const std::function<bool(CELL)>& cell_filter() const
-	{
-		return std::get<tuple_type_index<std::function<bool(CELL)>, CellFilters>::value>(filters_);
-	}
-
-	template <typename CELL>
-	std::function<bool(CELL)>& cell_filter()
-	{
-		return std::get<tuple_type_index<std::function<bool(CELL)>, CellFilters>::value>(filters_);
-	}
-
-public:
-
-	static const bool is_mesh_view = true;
-	using MeshType = MESH;
-
-	CellFilter(const MESH& m) : m_(m) {}
-
-	MESH& mesh() { return const_cast<MESH&>(m_); }
-	const MESH& mesh() const { return m_; }
-
-	template <typename CELL, typename FilterFunction>
-	void set_filter(const FilterFunction&& filter)
-	{
-		cell_filter<CELL>() = [filter] (CELL c) -> bool { return filter(c); };
-	}
-
-	template <typename CELL>
-	bool filter(CELL c) const
-	{
-		return cell_filter<CELL>()(c);
-	}
-};
-
-template <typename MESH>
-struct mesh_traits<CellFilter<MESH>> : public mesh_traits<MESH>
-{};
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
+#endif // CGOGN_GEOMETRY_FUNCTIONS_INCLUSION_H_

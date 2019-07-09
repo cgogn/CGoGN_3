@@ -21,6 +21,7 @@ add_library(cgogn::core ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
+        "${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
@@ -28,7 +29,6 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell.h"
-        "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell_marker.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.h"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap0.h"

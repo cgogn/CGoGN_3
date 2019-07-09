@@ -179,7 +179,6 @@ void PureGLViewer::mouse_dbl_click_event(int32 buttons, float64 x, float64 y)
 		GLVec3d P;
 		if (get_pixel_scene_position(x, y, P))
 		{
-//			std::cout << P << std::endl;
 			set_scene_pivot(P);
 			need_redraw_ = true;
 		}

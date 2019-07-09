@@ -155,7 +155,10 @@ public:
 	template <typename T>
 	using Attribute = AttributeT<T>;
 	template <typename T>
-	using AttributePtr = std::shared_ptr<AttributeT<T>>;
+	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	
+	using MarkAttribute = Attribute<uint8>;
+	using MarkAttributePtr = std::unique_ptr<MarkAttribute>;
 
 protected:
 
@@ -176,7 +179,7 @@ protected:
 	{
 		for (auto mark_attribute : mark_attributes_)
 		{
-			Attribute<uint8>* m = static_cast<Attribute<uint8>*>(mark_attribute);
+			MarkAttribute* m = static_cast<MarkAttribute*>(mark_attribute);
 			(*m)[index] = 0u;
 		}
 	}
@@ -224,12 +227,12 @@ public:
 		return AttributePtr<T>();
 	}
 
-	std::unique_ptr<Attribute<uint8>> add_mark_attribute()
+	MarkAttributePtr add_mark_attribute()
 	{
-		Attribute<uint8>* ap = new Attribute<uint8>(this, true, "__mark");
+		MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
 		static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
 		mark_attributes_.push_back(ap);
-		return std::unique_ptr<Attribute<uint8>>(ap);
+		return MarkAttributePtr(ap);
 	}
 
 	uint32 nb_refs(uint32 index) const override

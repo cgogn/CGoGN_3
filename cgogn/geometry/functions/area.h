@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_FUNCTIONS_VECTOR_OPS_H_
-#define CGOGN_GEOMETRY_FUNCTIONS_VECTOR_OPS_H_
+#ifndef CGOGN_GEOMETRY_FUNCTIONS_AREA_H_
+#define CGOGN_GEOMETRY_FUNCTIONS_AREA_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -32,65 +32,13 @@ namespace cgogn
 namespace geometry
 {
 
-// template <typename VEC,
-// 		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-// void
-// normalize(VEC& v)
-// {
-// 	using Scalar = typename vector_traits<VEC>::Scalar;
-// 	const Scalar norm2 = v.squaredNorm();
-// 	if (norm2 > Scalar(0))
-// 		v /= std::sqrt(norm2);
-// }
-
-// template <typename VEC,
-// 		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-// typename vector_traits<VEC>::Scalar
-// norm(VEC& v)
-// {
-// 	return v.norm();
-// }
-
-// template <typename VEC,
-// 		  typename = typename std::enable_if<is_eigen<VEC>::value>::type>
-// typename vector_traits<VEC>::Scalar
-// squared_norm(VEC& v)
-// {
-// 	v.squaredNorm();
-// }
-
-// template <typename VEC,
-// 		  typename std::enable_if<(vector_traits<VEC>::SIZE > 1) && is_eigen<VEC>::value>::type* = nullptr>
-// void
-// set_zero(VEC& v)
-// {
-// 	v.setZero();
-// }
-
-// template <typename VEC,
-// 		  typename std::enable_if<(vector_traits<VEC>::SIZE == 1)>::type* = nullptr>
-// void
-// set_zero(VEC& v)
-// {
-// 	v = 0;
-// }
-
-// template <typename VEC3,
-// 		  typename = typename std::enable_if<is_eigen<VEC3>::value>::type>
-// VEC3
-// cross(const VEC3& v1, const VEC3& v2)
-// {
-// 	static_assert (vector_traits<VEC3>::SIZE == 3, "vec_ops: cross product is only defined for vectors of dimension 3");
-// 	return v1.cross(v2);
-// }
-
-// void transpose(const VEC3& v)
-// {
-
-// }
+inline Scalar area(const Vec3& a, const Vec3& b, const Vec3& c)
+{
+	return (Scalar(0.5) * ((b - a).cross(c - a)).norm());
+}
 
 } // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_FUNCTIONS_VECTOR_OPS_H_
+#endif // CGOGN_GEOMETRY_FUNCTIONS_AREA_H_

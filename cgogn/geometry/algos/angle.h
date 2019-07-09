@@ -21,73 +21,60 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
-#define CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_GEOMETRY_ALGOS_ANGLE_H_
+#define CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/attributes.h>
 
-#include <functional>
+#include <cgogn/geometry/functions/angle.h>
+#include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-template <class> struct FunctionsFromTuple;
-template <template <typename ...Args> class tuple, typename ...T>
-struct FunctionsFromTuple<tuple<T...>>
+namespace geometry
 {
-	using type = std::tuple<std::function<bool(T)>...>;
-};
 
 template <typename MESH>
-class CellFilter
+Scalar
+angle(
+	const MESH& m,
+	typename mesh_traits<MESH>::Edge e,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+)
 {
-	using CellFilters = typename FunctionsFromTuple<typename mesh_traits<MESH>::Cells>::type;
+	using Face = typename mesh_traits<MESH>::Face;
 
-	const MESH& m_;
-	CellFilters filters_;
-
-	template <typename CELL>
-	const std::function<bool(CELL)>& cell_filter() const
-	{
-		return std::get<tuple_type_index<std::function<bool(CELL)>, CellFilters>::value>(filters_);
-	}
-
-	template <typename CELL>
-	std::function<bool(CELL)>& cell_filter()
-	{
-		return std::get<tuple_type_index<std::function<bool(CELL)>, CellFilters>::value>(filters_);
-	}
-
-public:
-
-	static const bool is_mesh_view = true;
-	using MeshType = MESH;
-
-	CellFilter(const MESH& m) : m_(m) {}
-
-	MESH& mesh() { return const_cast<MESH&>(m_); }
-	const MESH& mesh() const { return m_; }
-
-	template <typename CELL, typename FilterFunction>
-	void set_filter(const FilterFunction&& filter)
-	{
-		cell_filter<CELL>() = [filter] (CELL c) -> bool { return filter(c); };
-	}
-
-	template <typename CELL>
-	bool filter(CELL c) const
-	{
-		return cell_filter<CELL>()(c);
-	}
-};
+	std::vector<Face> faces = incident_faces(m, e);
+	return angle(
+        normal(m, faces[0], vertex_position),
+        normal(m, faces[1], vertex_position)
+    );
+}
 
 template <typename MESH>
-struct mesh_traits<CellFilter<MESH>> : public mesh_traits<MESH>
-{};
+void
+compute_angle(
+	const MESH& m,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
+	typename mesh_traits<MESH>::template AttributePtr<Scalar> edge_angle
+)
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	foreach_cell(m, [&] (Edge e) -> bool
+	{
+		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position);
+        return true;
+	});
+}
+
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_MESH_VIEWS_CELL_FILTER_H_
+#endif // CGOGN_GEOMETRY_ALGOS_ANGLE_H_
