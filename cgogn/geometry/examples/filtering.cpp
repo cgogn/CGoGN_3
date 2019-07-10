@@ -54,6 +54,8 @@
 
 #include <cgogn/io/surface_import.h>
 
+#include <chrono>
+
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
 using Mesh = cgogn::CMap2;
@@ -140,7 +142,10 @@ class App : public cgogn::rendering::ImGUIApp
 
 public:
 
-	App() : current_view_(0) {}
+	App() : current_view_(0)
+	{
+		cgogn::thread_start(0, 0);
+	}
 	Viewer* view() { return static_cast<Viewer*>(viewers_[current_view_]); }
 	bool interface() override;
 	void key_press_event(int k) override;
@@ -295,18 +300,37 @@ void Viewer::import(const std::string& filename)
 	vertex_position2_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "position2");
 
 	vertex_normal_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "normal");
-	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
 
+	std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+	
+	t1 = std::chrono::high_resolution_clock::now();
+	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_normal: " << duration << " us" << std::endl;
+
+	t1 = std::chrono::high_resolution_clock::now();
 	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "mean_edge_length: " << duration << " us" << std::endl;
 
 	edge_angle_ = cgogn::add_attribute<double, Edge>(mesh_, "angle");
+
+	t1 = std::chrono::high_resolution_clock::now();
 	cgogn::geometry::compute_angle(mesh_, vertex_position_, edge_angle_);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_angle: " << duration << " us" << std::endl;
 
 	vertex_kmin_ = cgogn::add_attribute<double, Vertex>(mesh_, "kmin");
 	vertex_kmax_ = cgogn::add_attribute<double, Vertex>(mesh_, "kmax");
 	vertex_Kmin_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Kmin");
 	vertex_Kmax_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Kmax");
 	vertex_Knormal_ = cgogn::add_attribute<Vec3, Vertex>(mesh_, "Knormal");
+
+	t1 = std::chrono::high_resolution_clock::now();
 	cgogn::geometry::compute_curvature(
 		mesh_,
 		mel_ * 4.0,
@@ -319,6 +343,11 @@ void Viewer::import(const std::string& filename)
 		vertex_Kmin_,
 		vertex_Knormal_
 	);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_curvature: " << duration << " us" << std::endl;
+
+	std::cout << std::endl;
 }
 
 void Viewer::update_bb()
@@ -518,9 +547,29 @@ void Viewer::filter_mesh()
 		*it = (*vertex_position_)[it.index()];
 	cgogn::geometry::filter_average<Vec3>(filtered_mesh_, vertex_position_, vertex_position2_);
 	vertex_position_->swap(vertex_position2_.get());
+
+	std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
 	
-	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+	t1 = std::chrono::high_resolution_clock::now();
 	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_normal: " << duration << " us" << std::endl;
+	
+	t1 = std::chrono::high_resolution_clock::now();
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "mean_edge_length: " << duration << " us" << std::endl;
+
+	t1 = std::chrono::high_resolution_clock::now();
+	cgogn::geometry::compute_angle(mesh_, vertex_position_, edge_angle_);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_angle: " << duration << " us" << std::endl;
+
+	t1 = std::chrono::high_resolution_clock::now();
 	cgogn::geometry::compute_curvature(
 		mesh_,
 		mel_ * 4.0,
@@ -533,6 +582,11 @@ void Viewer::filter_mesh()
 		vertex_Kmin_,
 		vertex_Knormal_
 	);
+    t2 = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "compute_curvature: " << duration << " us" << std::endl;
+
+	std::cout << std::endl;
 
 	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
@@ -577,8 +631,9 @@ void Viewer::subdivide_mesh()
 	render_->init_primitives(mesh_, cgogn::rendering::LINES);
 	render_->init_primitives(mesh_, cgogn::rendering::TRIANGLES);
 
-	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
 	cgogn::geometry::compute_normal(mesh_, vertex_position_, vertex_normal_);
+	mel_ = cgogn::geometry::mean_edge_length(mesh_, vertex_position_);
+	cgogn::geometry::compute_angle(mesh_, vertex_position_, edge_angle_);
 	cgogn::geometry::compute_curvature(
 		mesh_,
 		mel_ * 4.0,

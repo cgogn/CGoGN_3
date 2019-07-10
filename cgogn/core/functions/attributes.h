@@ -157,8 +157,8 @@ remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGenPtr attribute)
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-uint32
-index_of(const MESH& m, CELL c)
+inline
+uint32 index_of(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return m.embedding(c);
@@ -170,8 +170,8 @@ index_of(const MESH& m, CELL c)
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-uint32
-index_of(const MESH& m, CELL c)
+inline
+uint32 index_of(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return index_of(m.mesh(), c);
@@ -189,16 +189,8 @@ index_of(const MESH& m, CELL c)
 /////////////
 
 template <typename T, typename CELL, typename MESH>
-const T&
-value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<const T> attribute, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return (*attribute)[index_of(m, c)];
-}
-
-template <typename T, typename CELL, typename MESH>
-T&
-value(const MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute, CELL c)
+inline
+T& value(const MESH& m, const typename mesh_traits<MESH>::template AttributePtr<T>& attribute, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];

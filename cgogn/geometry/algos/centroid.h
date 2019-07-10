@@ -43,12 +43,11 @@ VEC
 centroid(
 	const MESH& m,
 	CELL c,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> attribute
+	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
-
 	VEC result;
 	result.setZero();
 	uint32 count = 0;
@@ -66,12 +65,11 @@ template <typename VEC, typename MESH>
 void
 centroid(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> attribute
+	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
-
 	VEC result;
 	result.setZero();
 	uint32 count = 0;
@@ -90,11 +88,11 @@ template <typename VEC, typename CELL, typename MESH,
 void
 compute_centroid(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> attribute,
-	typename mesh_traits<MESH>::template AttributePtr<VEC> cell_centroid
+	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute,
+	const typename mesh_traits<MESH>::template AttributePtr<VEC>& cell_centroid
 )
 {
-	foreach_cell(m, [&] (CELL c) -> bool
+	parallel_foreach_cell(m, [&] (CELL c) -> bool
 	{
 		value<VEC>(m, cell_centroid, c) = centroid<VEC>(m, c, attribute);
 		return true;
@@ -105,12 +103,11 @@ template <typename VEC, typename MESH>
 typename mesh_traits<MESH>::Vertex
 central_vertex(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> attribute
+	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
-	
 	VEC center = centroid<VEC>(m, attribute);
 	Scalar min_dist = std::numeric_limits<Scalar>::max();
 	Vertex min_vertex;

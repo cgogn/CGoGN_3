@@ -167,7 +167,7 @@ void update_vbo(const Vector<VEC>* attribute, VBO* vbo, const FUNC& convert)
 	vbo->allocate(nb_elements, output_type_size);
 
 	OutputType* dst = reinterpret_cast<OutputType*>(vbo->lock_pointer());
-	for (const VEC& v : attribute)
+	for (const VEC& v : *attribute)
 		*dst++ = convert(v);
 	vbo->release_pointer();
 }

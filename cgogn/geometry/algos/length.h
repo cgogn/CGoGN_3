@@ -38,11 +38,11 @@ namespace geometry
 {
 
 template <typename MESH>
-double
+Scalar
 length(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -51,22 +51,31 @@ length(
 }
 
 template <typename MESH>
-double
+Scalar
 mean_edge_length(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
-	double length_sum = 0.0;
-	uint32 nbe = 0;
-	foreach_cell(m, [&] (Edge e) -> bool
+
+	std::vector<Scalar> edge_length_per_thread(thread_pool()->nb_workers(), 0);
+	std::vector<uint32> nb_edges_per_thread(thread_pool()->nb_workers(), 0);
+
+	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
-		length_sum += length(m, e, vertex_position);
-		++nbe;
+		uint32 thread_index = current_thread_index();
+		edge_length_per_thread[thread_index] += length(m, e, vertex_position);
+		++nb_edges_per_thread[thread_index];
 		return true;
 	});
-	return length_sum / double(nbe);
+
+	Scalar length_sum = 0.0;
+	uint32 nbe = 0;
+	for (Scalar l : edge_length_per_thread) length_sum += l;
+	for (uint32 n : nb_edges_per_thread) nbe += n;
+
+	return length_sum / Scalar(nbe);
 }
 
 } // namespace geometry

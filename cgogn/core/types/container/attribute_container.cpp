@@ -78,6 +78,7 @@ AttributeContainerGen::AttributeContainerGen() : nb_elements_(0), maximum_index_
 	attributes_.reserve(32);
 	attributes_shared_ptr_.reserve(32);
 	mark_attributes_.reserve(32);
+	available_mark_attributes_.reserve(32);
 	available_indices_.reserve(1024);
 }
 

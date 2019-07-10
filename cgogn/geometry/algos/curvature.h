@@ -48,8 +48,8 @@ curvature(
 	const MESH& m,
 	typename mesh_traits<MESH>::Vertex v,
 	Scalar radius,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_normal,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_normal,
 	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& edge_angle
 )
 {
@@ -125,18 +125,17 @@ void
 compute_curvature(
 	const MESH& m,
 	Scalar radius,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_normal,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_normal,
 	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& edge_angle,
-	typename mesh_traits<MESH>::template AttributePtr<Scalar>& vertex_kmax,
-	typename mesh_traits<MESH>::template AttributePtr<Scalar>& vertex_kmin,
-	typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Kmax,
-	typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Kmin,
-	typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Knormal
+	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& vertex_kmax,
+	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& vertex_kmin,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Kmax,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Kmin,
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_Knormal
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-
 	parallel_foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		const auto& [kmax, kmin, Kmax, Kmin, Knormal] = curvature(m, v, radius, vertex_position, vertex_normal, edge_angle);

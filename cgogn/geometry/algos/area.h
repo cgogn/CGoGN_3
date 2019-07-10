@@ -45,11 +45,10 @@ Scalar
 convex_area(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-
     if (codegree(m, f) == 3)
     {
         std::vector<Vertex> vertices = incident_vertices(m, f);
@@ -81,7 +80,7 @@ Scalar
 area(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
 )
 {
     return convex_area(m, f, vertex_position);
@@ -91,18 +90,40 @@ template <typename MESH>
 Scalar
 area(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
 
-    Scalar result = 0;
+	// std::vector<Scalar> area_per_thread(thread_pool()->nb_workers(), 0);
+	// std::vector<uint32> nb_faces_per_thread(thread_pool()->nb_workers(), 0);
+
+    // parallel_foreach_cell(m, [&] (Face f) -> bool
+    // {
+	// 	uint32 thread_index = current_thread_index();
+	// 	area_per_thread[thread_index] += area(m, f, vertex_position);
+	// 	++nb_faces_per_thread[thread_index];
+    //     return true;
+    // });
+
+    // Scalar area_sum = 0;
+	// uint32 nbf = 0;
+	// for (Scalar a : area_per_thread) area_sum += a;
+	// for (uint32 n : nb_faces_per_thread) nbf += n;
+
+	// return area_sum / Scalar(nbf);
+
+    Scalar area_sum = 0;
+	uint32 nbf = 0;
+
     foreach_cell(m, [&] (Face f) -> bool
     {
-        result += area(m, f, vertex_position);
+		area_sum += area(m, f, vertex_position);
+		++nbf;
         return true;
     });
-    return result;
+
+	return area_sum / Scalar(nbf);
 }
 
 } // namespace geometry

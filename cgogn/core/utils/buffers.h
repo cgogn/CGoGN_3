@@ -21,37 +21,75 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
-#define CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
+#ifndef CGOGN_CORE_UTILS_BUFFERS_H_
+#define CGOGN_CORE_UTILS_BUFFERS_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/utils/numerics.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
+#include <vector>
+#include <type_traits>
 
 namespace cgogn
 {
 
-namespace modeling
+template <typename T>
+class Buffers
 {
+	using value_type = T;
+	static const uint32 DEFAULT_SIZE = 1024u;
+	static const uint32 SHRINK_SIZE = 2048u;
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+protected:
 
-template <typename MESH>
-Vec3 mid_edge(
-	const MESH& m,
-	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
-)
-{
-	auto vertices = incident_vertices(m, e);
-	return Scalar(0.5) * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
-}
+	std::vector<std::vector<T>*> buffers_;
 
-} // namespace modeling
+public:
+
+    Buffers()
+    {
+        for (uint32 i = 0; i < 16; ++i)
+        {
+			std::vector<T>* v = new std::vector<T>;
+			v->reserve(DEFAULT_SIZE);
+            buffers_.push_back(v);
+        }
+    }
+
+	~Buffers()
+	{
+		for (auto i : buffers_)
+			delete i;
+	}
+
+	inline std::vector<T>* buffer()
+	{
+		if (buffers_.empty())
+		{
+			std::vector<T>* v = new std::vector<T>;
+			v->reserve(DEFAULT_SIZE);
+			return v;
+		}
+
+		std::vector<T>* v = buffers_.back();
+		buffers_.pop_back();
+		return v;
+	}
+
+	inline void release_buffer(std::vector<T>* b)
+	{
+		if (b->capacity() > SHRINK_SIZE)
+		{
+			b->resize(DEFAULT_SIZE);
+			b->shrink_to_fit();
+		}
+
+		b->clear();
+		buffers_.push_back(b);
+	}
+
+    uint32 nb_buffers() { return buffers_.size(); }
+};
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_DECIMATION_EDGE_APPROXIMATOR_H_
+#endif // CGOGN_CORE_UTILS_BUFFERS_H_

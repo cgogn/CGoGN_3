@@ -32,7 +32,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <iostream>
+#include <mutex>
 
 namespace cgogn
 {
@@ -86,8 +86,11 @@ protected:
 	std::vector<AttributeGen*> attributes_;
 	std::vector<AttributeGenPtr> attributes_shared_ptr_;
 
-	std::vector<AttributeGen*> mark_attributes_;
+	std::mutex mark_attributes_mutex_;
 
+	std::vector<AttributeGen*> mark_attributes_;
+	std::vector<uint32> available_mark_attributes_;
+	
 	std::vector<uint32> available_indices_;
 
 	uint32 nb_elements_;
@@ -156,26 +159,33 @@ public:
 	using Attribute = AttributeT<T>;
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
+	// template <typename T>
+	// using ConstAttributePtr = std::shared_ptr<const Attribute<T>>;
 	
 	using MarkAttribute = Attribute<uint8>;
-	using MarkAttributePtr = std::unique_ptr<MarkAttribute>;
+	using MarkAttributePtr = MarkAttribute*;
 
 protected:
 
 	std::unique_ptr<Attribute<uint32>> ref_counters_;
 
-	void init_ref_counter(uint32 index) override
+	inline void init_ref_counter(uint32 index) override
 	{
 		static_cast<AttributeGen*>(ref_counters_.get())->manage_index(index);
 		(*ref_counters_)[index] = 1u;
 	}
 
-	void reset_ref_counter(uint32 index) override
+	inline void reset_ref_counter(uint32 index) override
 	{
 		(*ref_counters_)[index] = 0u;
 	}
 
-	void init_mark_attributes(uint32 index) override
+	inline uint32 nb_refs(uint32 index) const override
+	{
+		return (*ref_counters_)[index];
+	}
+
+	inline void init_mark_attributes(uint32 index) override
 	{
 		for (auto mark_attribute : mark_attributes_)
 		{
@@ -227,26 +237,40 @@ public:
 		return AttributePtr<T>();
 	}
 
-	MarkAttributePtr add_mark_attribute()
+	MarkAttributePtr get_mark_attribute()
 	{
-		MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
-		static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
-		mark_attributes_.push_back(ap);
-		return MarkAttributePtr(ap);
+		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
+		if (available_mark_attributes_.size() > 0)
+		{
+			uint32 index = available_mark_attributes_.back();
+			available_mark_attributes_.pop_back();
+			MarkAttribute* ap = static_cast<MarkAttribute*>(mark_attributes_[index]);
+			return MarkAttributePtr(ap);
+		}
+		else
+		{
+			MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
+			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+			mark_attributes_.push_back(ap);
+			return MarkAttributePtr(ap);
+		}
 	}
 
-	uint32 nb_refs(uint32 index) const override
+	void release_mark_attribute(MarkAttributePtr attribute)
 	{
-		return (*ref_counters_)[index];
+		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
+		auto it = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
+		if (it != mark_attributes_.end())
+			available_mark_attributes_.push_back(std::distance(mark_attributes_.begin(), it));
 	}
 
-	void ref_index(uint32 index)
+	inline void ref_index(uint32 index)
 	{
 		cgogn_message_assert(nb_refs(index) > 0, "Trying to ref an unused index");
 		(*ref_counters_)[index]++;
 	}
 
-	bool unref_index(uint32 index)
+	inline bool unref_index(uint32 index)
 	{
 		cgogn_message_assert(nb_refs(index) > 0, "Trying to unref an unused index");
 		(*ref_counters_)[index]--;

@@ -23,9 +23,6 @@
 
 #include <cgogn/core/functions/traversals/vertex.h>
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/utils/type_traits.h>
-
 namespace cgogn
 {
 
