@@ -1,7 +1,6 @@
-
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+* CGoGN                                                                        *
+* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
 *                                                                              *
 * This library is free software; you can redistribute it and/or modify it      *
 * under the terms of the GNU Lesser General Public License as published by the *
@@ -22,39 +21,55 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/camera.h>
+#ifndef CGOGN_UI_MODULE_H_
+#define CGOGN_UI_MODULE_H_
+
+#include <cgogn/ui/cgogn_ui_export.h>
+
+#include <cgogn/core/utils/numerics.h>
+
+#include <vector>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-GLMat4d Camera::perspective(float64 znear, float64 zfar) const
-{
-	float64 range_inv = 1.0 / (znear - zfar);
-	float64 f = 1.0 / std::tan(field_of_view_ / 2.0);
-	auto m05 = (asp_ratio_ > 1) ? std::make_pair(f / asp_ratio_, f) : std::make_pair(f, f * asp_ratio_);
-	GLMat4d m;
-	m << m05.first, 0, 0, 0,
-		  0, m05.second, 0, 0,
-		  0, 0, (znear + zfar) * range_inv, 2 * znear * zfar * range_inv,
-		  0, 0, -1 ,0;
-	return m;
-}
+class View;
 
-GLMat4d Camera::ortho(float64 znear, float64 zfar) const
+class CGOGN_UI_EXPORT Module
 {
-	float64 range_inv = 1.0 / (znear - zfar);
-	auto m05 = (asp_ratio_ < 1) ? std::make_pair(1.0 / asp_ratio_, 1.0) : std::make_pair(1.0, 1.0 / asp_ratio_);
-	GLMat4d m;
-	m << m05.first, 0, 0, 0,
-		  0, m05.second, 0, 0,
-		  0, 0, 2 * range_inv, 0,
-		  0, 0, (znear + zfar) * range_inv, 0;
-	return m;
-}
+	friend class View;
+
+public:
+
+	Module();
+	virtual ~Module();
+
+	virtual void resize_event(int32 frame_width, int32 frame_height);
+	virtual void close_event();
+
+	virtual void mouse_press_event(View* view, int32 button, float64 x, float64 y);
+	virtual void mouse_release_event(View* view, int32 button, float64 x, float64 y);
+	virtual void mouse_dbl_click_event(View* view, int32 button, float64 x, float64 y);
+	virtual void mouse_move_event(View* view, float64 x, float64 y);
+	virtual void mouse_wheel_event(View* view, float64 x, float64 y);
+	virtual void key_press_event(View* view, int32 key_code);
+	virtual void key_release_event(View* view, int32 key_code);
+
+	virtual void init(View* view);
+	virtual void draw(View* view);
+
+	virtual void interface();
+
+protected:
+
+	std::vector<View*> linked_views_;
+};
 
 } // namespace cgogn
 
-} // namespace rendering
+} // namespace ui
+
+#endif // CGOGN_UI_MODULE_H_

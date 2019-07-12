@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering/drawer.h>
+
 #include <iostream>
 
 namespace cgogn
@@ -36,8 +36,8 @@ DisplayListDrawer::DisplayListDrawer() :
 	current_aa_(true),
 	current_ball_(true)
 {
-	vbo_pos_ = cgogn::make_unique<VBO>(3);
-	vbo_col_ = cgogn::make_unique<VBO>(3);
+	vbo_pos_ = std::make_unique<VBO>(3);
+	vbo_col_ = std::make_unique<VBO>(3);
 }
 
 DisplayListDrawer::~DisplayListDrawer()
@@ -107,19 +107,19 @@ void DisplayListDrawer::vertex3ff(float32 x, float32 y, float32 z)
 	if (data_pos_.size() == data_col_.size())
 	{
 		if (data_col_.empty())
-			data_col_.push_back(Vec3f{1.0f, 1.0f, 1.0f});
+			data_col_.push_back(GLVec3{1.0f, 1.0f, 1.0f});
 		else
 			data_col_.push_back( data_col_.back());
 	}
-	data_pos_.push_back(Vec3f{x, y, z});
+	data_pos_.push_back(GLVec3{x, y, z});
 }
 
 void DisplayListDrawer::color3ff(float32 r, float32 g, float32 b)
 {
 	if (data_pos_.size() == data_col_.size())
-		data_col_.push_back(Vec3f{r, g, b});
+		data_col_.push_back(GLVec3{r, g, b});
 	else
-		data_col_.back() = Vec3f{r, g, b};
+		data_col_.back() = GLVec3{r, g, b};
 }
 
 void DisplayListDrawer::end_list()

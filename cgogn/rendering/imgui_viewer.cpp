@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
 * Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
@@ -50,10 +49,10 @@ static void glfw_error_callback(int error, const char* description)
 /*****************************************************************************/
 
 ImGUIViewer::ImGUIViewer(ImGUIViewer* share):
-	vp_percent_x_(0),
-	vp_percent_y_(0),
-	vp_percent_width_(1),
-	vp_percent_height_(1),
+	viewport_percent_x_(0),
+	viewport_percent_y_(0),
+	viewport_percent_width_(1),
+	viewport_percent_height_(1),
 	last_click_time_(0),
 	param_fst_(nullptr),
 	fbo_(nullptr),
@@ -65,34 +64,35 @@ ImGUIViewer::ImGUIViewer(ImGUIViewer* share):
 ImGUIViewer::~ImGUIViewer()
 {}
 
-void ImGUIViewer::set_viewer_geometry(float64 px, float64 py, float64 pw, float64 ph, float64 frame_width, float64 frame_height)
+void ImGUIViewer::set_view_geometry(float64 px, float64 py, float64 pw, float64 ph, float64 frame_width, float64 frame_height)
 {
-	fr_w_ = frame_width;
-	fr_h_ = frame_height;
-	vp_percent_x_ = px;
-	vp_percent_y_ = py;
-	vp_percent_width_ = pw;
-	vp_percent_height_ = ph;
+	frame_w_ = frame_width;
+	frame_h_ = frame_height;
 
-	vp_x_ = int32(vp_percent_x_ * frame_width);
-	vp_y_ = int32(vp_percent_y_ * frame_height);
-	vp_w_ = int32(vp_percent_width_ * frame_width);
-	vp_h_ = int32(vp_percent_height_ * frame_height);
+	viewport_percent_x_ = px;
+	viewport_percent_y_ = py;
+	viewport_percent_width_ = pw;
+	viewport_percent_height_ = ph;
 
-	resize_event(vp_w_, vp_h_);
+	viewport_x_ = int32(viewport_percent_x_ * frame_width);
+	viewport_y_ = int32(viewport_percent_y_ * frame_height);
+	viewport_w_ = int32(viewport_percent_width_ * frame_width);
+	viewport_h_ = int32(viewport_percent_height_ * frame_height);
+
+	resize_event(viewport_w_, viewport_h_);
 }
 
-void ImGUIViewer::update_viewer_geometry(float64 frame_width, float64 frame_height)
+void ImGUIViewer::update_view_geometry(float64 frame_width, float64 frame_height)
 {
-	fr_w_ = frame_width;
-	fr_h_ = frame_height;
+	frame_w_ = frame_width;
+	frame_h_ = frame_height;
 
-	vp_x_ = int32(vp_percent_x_ * frame_width);
-	vp_y_ = int32(vp_percent_y_ * frame_height);
-	vp_w_ = int32(vp_percent_width_ * frame_width);
-	vp_h_ = int32(vp_percent_height_ * frame_height);
+	viewport_x_ = int32(viewport_percent_x_ * frame_width);
+	viewport_y_ = int32(viewport_percent_y_ * frame_height);
+	viewport_w_ = int32(viewport_percent_width_ * frame_width);
+	viewport_h_ = int32(viewport_percent_height_ * frame_height);
 
-	resize_event(vp_w_, vp_h_);
+	resize_event(viewport_w_, viewport_h_);
 }
 
 void ImGUIViewer::resize_event(int32 , int32)
@@ -107,43 +107,44 @@ void ImGUIViewer::key_release_event(int32)
 void ImGUIViewer::close_event()
 {}
 
-bool ImGUIViewer::get_pixel_scene_position(int32 x, int32 y, GLVec3d& P)
+bool ImGUIViewer::pixel_scene_position(int32 x, int32 y, GLVec3d& P)
 {
 	float z[4];
 	GLint xs, ys;
 	float64 xogl;
 	float64 yogl;
 	float64 zogl;
+
 	if (fbo_ != nullptr)
 	{
-		xs = GLint(double(x - vp_x_) / double(vp_w_) * fbo_->width());
-		ys = GLint(double((fr_h_ - y) - vp_y_) / double(vp_h_) * fbo_->height());
+		xs = GLint(double(x - viewport_x_) / double(viewport_w_) * fbo_->width());
+		ys = GLint(double((frame_h_ - y) - viewport_y_) / double(viewport_h_) * fbo_->height());
 		fbo_->bind();
 		glReadBuffer(GL_DEPTH_ATTACHMENT);
 		glReadPixels(xs, ys, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, z);
 		fbo_->release();
 		if (*z >= 1.0f)
 			return false;
-		xogl = (float64(xs) / vp_w_) * 2.0 - 1.0;
-		yogl = (float64(ys) / vp_h_) * 2.0 - 1.0;
+		xogl = (float64(xs) / viewport_w_) * 2.0 - 1.0;
+		yogl = (float64(ys) / viewport_h_) * 2.0 - 1.0;
 		zogl = float64(*z) * 2.0 - 1.0;
 	}
 	else
 	{
 		xs = x;
-		ys = fr_h_ - y;
+		ys = frame_h_ - y;
 		glEnable(GL_DEPTH_TEST);
 		glReadBuffer(GL_FRONT);
 		glReadPixels(xs, ys, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, z);
 		if (*z >= 1.0f)
 			return false;
-		xogl = (float64(xs - vp_x_) / vp_w_) * 2.0 - 1.0;
-		yogl = (float64(ys - vp_y_) / vp_h_) * 2.0 - 1.0;
+		xogl = (float64(xs - viewport_x_) / viewport_w_) * 2.0 - 1.0;
+		yogl = (float64(ys - viewport_y_) / viewport_h_) * 2.0 - 1.0;
 		zogl = float64(*z) * 2.0 - 1.0;
 	}
 
 	GLVec4d Q(xogl, yogl, zogl, 1.0);
-	GLMat4d m = camera().get_projection_matrix_d() * camera().get_modelview_matrix_d();
+	GLMat4d m = camera().projection_matrix_d() * camera().modelview_matrix_d();
 	GLMat4d im = m.inverse();
 
 	GLVec4d P4 = im * Q;
@@ -154,15 +155,16 @@ bool ImGUIViewer::get_pixel_scene_position(int32 x, int32 y, GLVec3d& P)
 		P.z() = P4.z() / P4.w();
 		return true;
 	}
+
 	return false;
 }
 
 void ImGUIViewer::internal_init()
 {
-	tex_ = cgogn::make_unique<Texture2D>();
+	tex_ = std::make_unique<Texture2D>();
 	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
 	std::vector<Texture2D*> vt{tex_.get()};
-	fbo_ = cgogn::make_unique<FBO>(vt, true, nullptr);
+	fbo_ = std::make_unique<FBO>(vt, true, nullptr);
 	fbo_->resize(width(), height());
 	param_fst_ = ShaderFSTexture::generate_param();
 	param_fst_->texture_ = fbo_->texture(0);
@@ -232,11 +234,11 @@ ImGUIApp::ImGUIApp():
 
 		for (ImGUIViewer* v: that->viewers_)
 		{
-			v->update_viewer_geometry(that->win_frame_width_, that->win_frame_height_);
-			v->cam_.set_aspect_ratio(double(v->vp_w_) / v->vp_h_);
+			v->update_view_geometry(that->win_frame_width_, that->win_frame_height_);
+			v->camera_.set_aspect_ratio(double(v->viewport_w_) / v->viewport_h_);
 			v->need_redraw_ = true;
-			v->fbo_->resize(v->vp_w_, v->vp_h_);
-			v->resize_event(v->vp_w_, v->vp_h_);
+			v->fbo_->resize(v->viewport_w_, v->viewport_h_);
+			v->resize_event(v->viewport_w_, v->viewport_h_);
 		}
 
 		that->interface_need_redraw_ = true;
@@ -249,7 +251,7 @@ ImGUIApp::ImGUIApp():
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
 
@@ -263,36 +265,36 @@ ImGUIApp::ImGUIApp():
 			{
 				if (v != that->focused_)
 				{
-					that->view_inputs_.mouse_buttons_ = 0;
+					that->inputs_.mouse_buttons_ = 0;
 					that->focused_ = v;
 				}
 
-				that->view_inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
-				that->view_inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
-				that->view_inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-				that->view_inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);;
-				that->view_inputs_.last_mouse_x_ = cx;
-				that->view_inputs_.last_mouse_y_ = cy;
+				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
+				that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
+				that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
+				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);;
+				that->inputs_.last_mouse_x_ = cx;
+				that->inputs_.last_mouse_y_ = cy;
 				double now = glfwGetTime();
 				switch(a)
 				{
 				case GLFW_PRESS:
-					that->view_inputs_.mouse_buttons_ |= 1 << b;
-					v->mouse_press_event(b, that->view_inputs_.last_mouse_x_, that->view_inputs_.last_mouse_y_);
-					if (now - v->last_click_time_ < that->view_inputs_.double_click_timeout_)
-						v->mouse_dbl_click_event(b, that->view_inputs_.last_mouse_x_, that->view_inputs_.last_mouse_y_);
+					that->inputs_.mouse_buttons_ |= 1 << b;
+					v->mouse_press_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
+					if (now - v->last_click_time_ < that->inputs_.double_click_timeout_)
+						v->mouse_dbl_click_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
 					v->last_click_time_ = now;
 					break;
 				case GLFW_RELEASE:
-					that->view_inputs_.mouse_buttons_ &= ~(1 << b);
-					v->mouse_release_event(b, that->view_inputs_.last_mouse_x_, that->view_inputs_.last_mouse_y_);
+					that->inputs_.mouse_buttons_ &= ~(1 << b);
+					v->mouse_release_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
 					break;
 				}
 			}
 		}
 
 		if (!that->over_frame(cx, cy))
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 	});
 
 	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
@@ -302,7 +304,7 @@ ImGUIApp::ImGUIApp():
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyWindowFocused())
 		{
 			that->interface_need_redraw_ = true;
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
 
@@ -315,7 +317,7 @@ ImGUIApp::ImGUIApp():
 			{
 				if (v != that->focused_)
 				{
-					that->view_inputs_.mouse_buttons_ = 0;
+					that->inputs_.mouse_buttons_ = 0;
 					that->focused_ = v;
 				}
 				v->mouse_wheel_event(dx, 100 * dy);
@@ -330,7 +332,7 @@ ImGUIApp::ImGUIApp():
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
 
@@ -340,11 +342,11 @@ ImGUIApp::ImGUIApp():
 
 		for (ImGUIViewer* v: that->viewers_)
 		{
-			if (that->view_inputs_.mouse_buttons_ && v->over_viewport(cx,cy))
+			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx,cy))
 			{
 				if (v != that->focused_)
 				{
-					that->view_inputs_.mouse_buttons_ = 0;
+					that->inputs_.mouse_buttons_ = 0;
 					that->focused_ = v;
 				}
 				v->mouse_move_event(x, y);
@@ -353,7 +355,7 @@ ImGUIApp::ImGUIApp():
 
 		if (!that->over_frame(cx, cy))
 		{
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			that->focused_ = nullptr;
 		}
 	});
@@ -365,7 +367,7 @@ ImGUIApp::ImGUIApp():
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->interface_need_redraw_ = true;
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
 		
@@ -381,16 +383,16 @@ ImGUIApp::ImGUIApp():
 				{
 					if (v != that->focused_)
 					{
-						that->view_inputs_.mouse_buttons_ = 0;
+						that->inputs_.mouse_buttons_ = 0;
 						that->focused_ = v;
 					}
 				}
 			}
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 		}
 		else
 		{
-			that->view_inputs_.mouse_buttons_ = 0;
+			that->inputs_.mouse_buttons_ = 0;
 			that->focused_ = nullptr;
 		}
 	});
@@ -409,15 +411,15 @@ ImGUIApp::ImGUIApp():
 			if (v->over_viewport(cx, cy))
 			{
 				that->focused_ = v;
-				that->view_inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
-				that->view_inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
-				that->view_inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-				that->view_inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
+				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
+				that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
+				that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
+				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
 
 				switch(a)
 				{
 				case GLFW_PRESS:
-					if ((k == GLFW_KEY_F) && that->view_inputs_.control_pressed_  && !that->view_inputs_.shift_pressed_)
+					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
 					{
 						GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 						const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -425,7 +427,7 @@ ImGUIApp::ImGUIApp():
 						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 						return;
 					}
-					if ((k == GLFW_KEY_F) && that->view_inputs_.control_pressed_ && that->view_inputs_.shift_pressed_)
+					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && that->inputs_.shift_pressed_)
 					{
 						int count;
 						GLFWmonitor** monitors = glfwGetMonitors(&count);
@@ -439,7 +441,7 @@ ImGUIApp::ImGUIApp():
 							std::cerr << "Only one monitor" << std::endl;
 						return;
 					}
-					if ((k == GLFW_KEY_W) && that->view_inputs_.control_pressed_)
+					if ((k == GLFW_KEY_W) && that->inputs_.control_pressed_)
 					{
 						glfwSetWindowMonitor(wi, nullptr, 100, 100, 1024, 1024, 0);
 						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -503,32 +505,32 @@ void ImGUIApp::add_view(ImGUIViewer* view)
 	glfwMakeContextCurrent(window_);
 	view->internal_init();
 	view->init();
-	view->set_inputs(&view_inputs_);
+	view->set_inputs(&inputs_);
 	viewers_.push_back(view);
 	focused_ = view;
 }
 
-void ImGUIApp::adapt_viewers_geometry()
+void ImGUIApp::adapt_views_geometry()
 {
 	switch(viewers_.size())
 	{
 	case 1:
-		viewers_[0]->set_viewer_geometry(0, 0, 1, 1, win_frame_width_, win_frame_height_);
+		viewers_[0]->set_view_geometry(0, 0, 1, 1, win_frame_width_, win_frame_height_);
 		break;
 	case 2:
-		viewers_[0]->set_viewer_geometry(0, 0, 0.5, 1, win_frame_width_, win_frame_height_);
-		viewers_[1]->set_viewer_geometry(0.5, 0, 0.5, 1, win_frame_width_, win_frame_height_);
+		viewers_[0]->set_view_geometry(0, 0, 0.5, 1, win_frame_width_, win_frame_height_);
+		viewers_[1]->set_view_geometry(0.5, 0, 0.5, 1, win_frame_width_, win_frame_height_);
 		break;
 	case 3:
-		viewers_[0]->set_viewer_geometry(0, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
-		viewers_[1]->set_viewer_geometry(0.5, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
-		viewers_[2]->set_viewer_geometry(0, 0, 1, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[0]->set_view_geometry(0, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[1]->set_view_geometry(0.5, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[2]->set_view_geometry(0, 0, 1, 0.5, win_frame_width_, win_frame_height_);
 		break;
 	case 4:
-		viewers_[0]->set_viewer_geometry(0, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
-		viewers_[1]->set_viewer_geometry(0.5, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
-		viewers_[2]->set_viewer_geometry(0, 0.5, 0.5, 0.5, win_frame_width_, win_frame_height_);
-		viewers_[3]->set_viewer_geometry(0.5, 0.5, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[0]->set_view_geometry(0, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[1]->set_view_geometry(0.5, 0, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[2]->set_view_geometry(0, 0.5, 0.5, 0.5, win_frame_width_, win_frame_height_);
+		viewers_[3]->set_view_geometry(0.5, 0.5, 0.5, 0.5, win_frame_width_, win_frame_height_);
 		break;
 	}
 }
@@ -536,15 +538,15 @@ void ImGUIApp::adapt_viewers_geometry()
 int ImGUIApp::launch()
 {
 	interface_need_redraw_ = true;
-	adapt_viewers_geometry();
+	adapt_views_geometry();
 
 	for (ImGUIViewer* v : viewers_)
 	{
-		v->update_viewer_geometry(win_frame_width_, win_frame_height_);
-		v->fbo_->resize(v->vp_w_, v->vp_h_);
+		v->update_view_geometry(win_frame_width_, win_frame_height_);
+		v->fbo_->resize(v->viewport_w_, v->viewport_h_);
 		v->need_redraw_ = true;
-		v->cam_.set_aspect_ratio(double(v->vp_w_) / v->vp_h_);
-		v->resize_event(v->vp_w_, v->vp_h_);
+		v->camera_.set_aspect_ratio(double(v->viewport_w_) / v->viewport_h_);
+		v->resize_event(v->viewport_w_, v->viewport_h_);
 	}
 
 	param_frame_ = ShaderFrame2d::generate_param();
@@ -567,7 +569,7 @@ int ImGUIApp::launch()
 			for (ImGUIViewer* v : viewers_)
 			{
 				v->spin();
-				v->set_vp();
+				v->set_viewport();
 				if (v->need_redraw_)
 				{
 					v->fbo_->bind();

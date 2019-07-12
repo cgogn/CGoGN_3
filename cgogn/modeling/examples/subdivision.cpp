@@ -123,7 +123,10 @@ class App: public cgogn::rendering::ImGUIApp
 
 public:
 
-	App() : current_view_(0) {}
+	App() : current_view_(0)
+	{
+		cgogn::thread_start(0, 0);
+	}
 	Viewer* view() { return static_cast<Viewer*>(viewers_[current_view_]); }
 	bool interface() override;
 	void key_press_event(int k) override;
@@ -332,8 +335,8 @@ void Viewer::draw()
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	cgogn::rendering::GLMat4 proj = get_projection_matrix();
-	cgogn::rendering::GLMat4 view = get_modelview_matrix();
+	const cgogn::rendering::GLMat4& proj = projection_matrix();
+	const cgogn::rendering::GLMat4& view = modelview_matrix();
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.0f, 2.0f);
@@ -387,7 +390,7 @@ void Viewer::init()
 { 
 	glClearColor(0.1f, 0.1f, 0.3f, 0.0f);
 
-	drawer_ = cgogn::make_unique<cgogn::rendering::DisplayListDrawer>();
+	drawer_ = std::make_unique<cgogn::rendering::DisplayListDrawer>();
 	drawer_rend_= drawer_->generate_renderer();
 
 	update_bb();
@@ -397,13 +400,13 @@ void Viewer::init()
 	Vec3 center = (bb_max_ + bb_min_) / 2.0f;
 	set_scene_center(center);
 
-	vbo_position_ = cgogn::make_unique<cgogn::rendering::VBO>(3);
-	vbo_normal_ = cgogn::make_unique<cgogn::rendering::VBO>(3);
+	vbo_position_ = std::make_unique<cgogn::rendering::VBO>(3);
+	vbo_normal_ = std::make_unique<cgogn::rendering::VBO>(3);
 
 	cgogn::rendering::update_vbo(vertex_position_.get(), vbo_position_.get());
 	cgogn::rendering::update_vbo(vertex_normal_.get(), vbo_normal_.get());
 
-	render_ = cgogn::make_unique<cgogn::rendering::MeshRender>();
+	render_ = std::make_unique<cgogn::rendering::MeshRender>();
 
 	render_->init_primitives(mesh_, cgogn::rendering::POINTS);
 	render_->init_primitives(mesh_, cgogn::rendering::LINES);

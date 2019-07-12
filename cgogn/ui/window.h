@@ -1,7 +1,6 @@
-
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+* CGoGN                                                                        *
+* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
 *                                                                              *
 * This library is free software; you can redistribute it and/or modify it      *
 * under the terms of the GNU Lesser General Public License as published by the *
@@ -22,35 +21,82 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_MFRAME_H_
-#define CGOGN_RENDERING_MFRAME_H_
+#ifndef CGOGN_UI_WINDOW_H_
+#define CGOGN_UI_WINDOW_H_
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/types.h>
+#include <cgogn/ui/cgogn_ui_export.h>
+
+#include <cgogn/core/utils/numerics.h>
+#include <cgogn/ui/inputs.h>
+#include <cgogn/rendering/shaders/shader_frame2d.h>
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-struct CGOGN_RENDERING_EXPORT MovingFrame
+class View;
+class Module;
+
+class CGOGN_UI_EXPORT Window
 {
-	Transfo3d frame_;
-	Transfo3d spin_;
-	bool is_moving_;
+public:
 
-	MovingFrame():
-		frame_(Transfo3d::Identity()),
-		spin_(Transfo3d::Identity()),
-		is_moving_(false)
-	{}
+	Window();
+	~Window();
 
-	//GLVec3d local_coordinates(GLVec3d glob);
+	void set_window_size(int32 w, int32 h);
+	void set_window_title(const std::string& name);
+	
+	inline float32 device_pixel_ratio() const { return 1.0f; }
+
+	View* add_view();
+	inline View* current_view() const { return focused_; }
+
+    void link_module(Module* m) { modules_.push_back(m); }
+
+	int launch();
+
+private:
+
+	void close_event();
+	bool interface();
+    void adapt_views_geometry();
+	inline bool over_frame(int32 x, int32 y) const
+	{
+		return (x < window_frame_width_) && (y < window_frame_width_);
+	}
+
+	GLFWwindow* window_;
+	ImGuiContext* context_;
+
+	std::string window_name_;
+
+	int32 window_frame_width_;
+	int32 window_frame_height_;
+
+	float64 interface_scaling_;
+	bool show_imgui_;
+	
+	std::unique_ptr<rendering::ShaderFrame2d::Param> param_frame_;
+
+	Inputs inputs_;
+
+	std::vector<View*> views_;
+	View* focused_;
+
+    std::vector<Module*> modules_;
+
+	bool IsItemActiveLastFrame();
 };
 
 } // namespace cgogn
 
-} // namespace rendering
+} // namespace ui
 
-#endif // CGOGN_RENDERING_MFRAME_H_
+#endif // CGOGN_UI_WINDOW_H_

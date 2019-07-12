@@ -9,6 +9,7 @@ find_package(cgogn_geometry REQUIRED)
 find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_modeling REQUIRED)
+find_package(cgogn_ui REQUIRED)
 
 if(APPLE)
   find_library(CORE_FOUNDATION NAMES CoreFoundation)
@@ -20,7 +21,7 @@ set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
 add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 
 add_executable(simple_viewer simple_viewer.cpp)
-target_link_libraries(simple_viewer cgogn::core cgogn::io cgogn::rendering)
+target_link_libraries(simple_viewer cgogn::core cgogn::io cgogn::rendering cgogn::ui)
 
 #add_executable(viewer_topo viewer_topo.cpp)
 #target_link_libraries(viewer_topo cgogn::core cgogn::io cgogn::rendering cgogn::modeling)

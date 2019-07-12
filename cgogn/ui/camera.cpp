@@ -21,51 +21,39 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/ui/camera.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-MeshRender::MeshRender()
+rendering::GLMat4d Camera::perspective(float64 znear, float64 zfar) const
 {
-	for (uint32 i = 0u; i < SIZE_BUFFER; ++i)
-	{
-		indices_buffers_[i] = std::make_unique<EBO>();
-		indices_buffers_uptodate_[i] = false;
-		nb_indices_[i] = 0;
-	}
+	float64 range_inv = 1.0 / (znear - zfar);
+	float64 f = 1.0 / std::tan(field_of_view_ / 2.0);
+	auto m05 = (asp_ratio_ > 1) ? std::make_pair(f / asp_ratio_, f) : std::make_pair(f, f * asp_ratio_);
+	rendering::GLMat4d m;
+	m << m05.first, 0, 0, 0,
+		  0, m05.second, 0, 0,
+		  0, 0, (znear + zfar) * range_inv, 2 * znear * zfar * range_inv,
+		  0, 0, -1 ,0;
+	return m;
 }
 
-MeshRender::~MeshRender()
-{}
-
-void MeshRender::draw(DrawingType prim)
+rendering::GLMat4d Camera::ortho(float64 znear, float64 zfar) const
 {
-	if (nb_indices_[prim] == 0)
-		return;
-
-	indices_buffers_[prim]->bind();
-	switch (prim)
-	{
-		case POINTS:
-			glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, 0);
-			break;
-		case LINES:
-			glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, 0);
-			break;
-		case TRIANGLES:
-			glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, 0);
-			break;
-		case BOUNDARY:
-			default:
-			break;
-	}
-	indices_buffers_[prim]->release();
+	float64 range_inv = 1.0 / (znear - zfar);
+	auto m05 = (asp_ratio_ < 1) ? std::make_pair(1.0 / asp_ratio_, 1.0) : std::make_pair(1.0, 1.0 / asp_ratio_);
+	rendering::GLMat4d m;
+	m << m05.first, 0, 0, 0,
+		  0, m05.second, 0, 0,
+		  0, 0, 2 * range_inv, 0,
+		  0, 0, (znear + zfar) * range_inv, 0;
+	return m;
 }
-
-} // namespace rendering
 
 } // namespace cgogn
+
+} // namespace ui

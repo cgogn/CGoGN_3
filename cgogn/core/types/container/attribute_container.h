@@ -27,7 +27,6 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/utils/numerics.h>
-#include <cgogn/core/utils/unique_ptr.h>
 
 #include <vector>
 #include <string>
@@ -198,7 +197,7 @@ public:
 
 	AttributeContainer() : AttributeContainerGen()
 	{
-		ref_counters_ = cgogn::make_unique<Attribute<uint32>>(this, true, "__refs");
+		ref_counters_ = std::make_unique<Attribute<uint32>>(this, true, "__refs");
 	}
 
 	~AttributeContainer()

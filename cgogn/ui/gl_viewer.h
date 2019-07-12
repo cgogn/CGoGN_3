@@ -1,0 +1,113 @@
+/*******************************************************************************
+* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+*                                                                              *
+* This library is free software; you can redistribute it and/or modify it      *
+* under the terms of the GNU Lesser General Public License as published by the *
+* Free Software Foundation; either version 2.1 of the License, or (at your     *
+* option) any later version.                                                   *
+*                                                                              *
+* This library is distributed in the hope that it will be useful, but WITHOUT  *
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+* for more details.                                                            *
+*                                                                              *
+* You should have received a copy of the GNU Lesser General Public License     *
+* along with this library; if not, write to the Free Software Foundation,      *
+* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+*                                                                              *
+* Web site: http://cgogn.unistra.fr/                                           *
+* Contact information: cgogn@unistra.fr                                        *
+*                                                                              *
+*******************************************************************************/
+
+#ifndef CGOGN_UI_GL_VIEWER_H_
+#define CGOGN_UI_GL_VIEWER_H_
+
+#include <GL/gl3w.h>
+
+#include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/ui/inputs.h>
+#include <cgogn/ui/camera.h>
+
+namespace cgogn
+{
+
+namespace ui
+{
+
+class CGOGN_UI_EXPORT GLViewer
+{
+public:
+
+	GLViewer(Inputs* inputs);
+	virtual ~GLViewer();
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(GLViewer);
+
+	inline bool need_redraw() const { return need_redraw_; }
+	inline void request_update() { need_redraw_ = true; }
+	
+	inline const Camera& camera() const { return camera_; }
+	inline rendering::GLMat4 projection_matrix() const { return camera_.projection_matrix(); }
+	inline rendering::GLMat4 modelview_matrix() const { return camera_.modelview_matrix(); }
+
+	void set_manipulated_frame(MovingFrame* frame);
+
+	inline void set_scene_radius(float64 radius) { camera_.set_scene_radius(radius); }
+	inline void set_scene_center(const rendering::GLVec3d& center) { scene_center_ = center; camera_.set_pivot_point(scene_center_); }
+	inline void set_scene_center(const rendering::GLVec3& center) { scene_center_ = center.cast<float64>(); camera_.set_pivot_point(scene_center_); }
+	inline void set_scene_pivot(const rendering::GLVec3d& piv) { camera_.change_pivot_point(piv); }
+	inline void set_scene_pivot(const rendering::GLVec3& piv) { camera_.change_pivot_point(piv.cast<float64>()); }
+	inline void center_scene() { camera_.center_scene(); }
+	inline void show_entire_scene() { camera_.show_entire_scene(); }
+
+	inline int32 width() const { return viewport_w_; }
+	inline int32 height() const { return viewport_h_; }
+
+	inline bool shift_pressed() const { return inputs_->shift_pressed_; }
+	inline bool control_pressed() const { return inputs_->control_pressed_; }
+	inline bool alt_pressed() const { return inputs_->alt_pressed_; }
+	inline bool meta_pressed() const { return inputs_->meta_pressed_; }
+
+	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
+
+	inline void set_wheel_sensitivity(float64 s) { inputs_->wheel_sensitivity_ = s * 0.005; }
+	inline void set_mouse_sensitivity(float64 s) { inputs_->mouse_sensitivity_ = s * 0.005; }
+	inline void set_spin_sensitivity(float64 s) { inputs_->spin_sensitivity_ = s * 0.025; }
+
+protected:
+
+	virtual void resize_event(int32 frame_width, int32 frame_height);
+	virtual void close_event();
+
+	virtual void mouse_press_event(int32 button, float64 x, float64 y);
+	virtual void mouse_release_event(int32 button, float64 x, float64 y);
+	virtual void mouse_dbl_click_event(int32 button, float64 x, float64 y);
+	virtual void mouse_move_event(float64 x, float64 y);
+	virtual void mouse_wheel_event(float64 x, float64 y);
+	virtual void key_press_event(int32 key_code);
+	virtual void key_release_event(int32 key_code);
+
+	inline bool obj_mode() const { return current_frame_ != &camera_; }
+	void spin();
+
+	Camera camera_;
+	MovingFrame* current_frame_;
+	rendering::Transfo3d inv_camera_;
+	rendering::GLVec3d scene_center_;
+	int32 viewport_x_;
+	int32 viewport_y_;
+	int32 viewport_w_;
+	int32 viewport_h_;
+	float64 spinning_speed_;
+
+	Inputs* inputs_;
+
+	bool need_redraw_;
+};
+
+} // namespace cgogn
+
+} // namespace ui
+
+#endif // CGOGN_UI_GL_VIEWER_H_

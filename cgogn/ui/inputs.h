@@ -21,51 +21,50 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/mesh_render.h>
+#ifndef CGOGN_UI_INPUTS_H_
+#define CGOGN_UI_INPUTS_H_
+
+#include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/core/utils/numerics.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-MeshRender::MeshRender()
+struct CGOGN_UI_EXPORT Inputs
 {
-	for (uint32 i = 0u; i < SIZE_BUFFER; ++i)
-	{
-		indices_buffers_[i] = std::make_unique<EBO>();
-		indices_buffers_uptodate_[i] = false;
-		nb_indices_[i] = 0;
-	}
-}
+    Inputs() :
+        wheel_sensitivity_(0.0025),
+        mouse_sensitivity_(0.005),
+        spin_sensitivity_(0.025),
+        double_click_timeout_(0.3),
+        need_redraw_(true),
+        shift_pressed_(false),
+        control_pressed_(false),
+        alt_pressed_(false),
+        meta_pressed_(false)
+    {}
 
-MeshRender::~MeshRender()
-{}
+	float64 wheel_sensitivity_;
+	float64 mouse_sensitivity_;
+	float64 spin_sensitivity_;
+	float64 double_click_timeout_;
 
-void MeshRender::draw(DrawingType prim)
-{
-	if (nb_indices_[prim] == 0)
-		return;
+	float64 last_mouse_x_;
+	float64 last_mouse_y_;
+	uint32 mouse_buttons_;
 
-	indices_buffers_[prim]->bind();
-	switch (prim)
-	{
-		case POINTS:
-			glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, 0);
-			break;
-		case LINES:
-			glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, 0);
-			break;
-		case TRIANGLES:
-			glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, 0);
-			break;
-		case BOUNDARY:
-			default:
-			break;
-	}
-	indices_buffers_[prim]->release();
-}
-
-} // namespace rendering
+	bool need_redraw_;
+	bool shift_pressed_;
+	bool control_pressed_;
+	bool alt_pressed_;
+	bool meta_pressed_;
+};
 
 } // namespace cgogn
+
+} // namespace ui
+
+#endif // CGOGN_UI_INPUTS_H_

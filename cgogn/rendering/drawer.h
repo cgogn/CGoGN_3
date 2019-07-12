@@ -31,7 +31,8 @@
 #include <cgogn/rendering/shaders/shader_bold_line_color.h>
 #include <cgogn/rendering/shaders/shader_round_point_color.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
-#include <array>
+
+#include <cgogn/rendering/types.h>
 
 namespace cgogn
 {
@@ -76,16 +77,14 @@ class CGOGN_RENDERING_EXPORT DisplayListDrawer
 		{}
 	};
 
-	using Vec3f = std::array<float32, 3>;
-
 protected:
 
 	std::unique_ptr<VBO> vbo_pos_;
 	std::unique_ptr<VBO> vbo_col_;
 
 	// temporary (between begin()/end()) data storage
-	std::vector<Vec3f> data_pos_;
-	std::vector<Vec3f> data_col_;
+	std::vector<GLVec3> data_pos_;
+	std::vector<GLVec3> data_col_;
 
 	// list of primitive call (of each kind)
 	std::vector<PrimParam> begins_point_;
@@ -126,14 +125,11 @@ public:
 		void draw(const GLMat4& projection, const GLMat4& modelview);
 	};
 
-	using Self = DisplayListDrawer;
-
 	/**
 	 * constructor, init all buffers (data and OpenGL) and shader
 	 * @Warning need OpenGL context
 	 */
 	DisplayListDrawer();
-
 
 	/**
 	 * release buffers and shader
@@ -196,7 +192,6 @@ public:
 		static_assert(std::is_arithmetic<SCALAR>::value, "scalar value only allowed for vertex3");
 		color3ff(float32(x), float32(y), float32(z));
 	}
-
 
 	inline void vertex3fv(const std::array<float32, 3>& xyz)
 	{

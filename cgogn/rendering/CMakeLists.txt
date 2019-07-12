@@ -40,13 +40,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.h"
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo_update.h"
-		"${CMAKE_CURRENT_LIST_DIR}/mframe.h"
-		"${CMAKE_CURRENT_LIST_DIR}/camera.h"
-		"${CMAKE_CURRENT_LIST_DIR}/camera.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/gl_viewer.h"
-		"${CMAKE_CURRENT_LIST_DIR}/gl_viewer.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.h"
-		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.cpp"
+
+#		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.cpp"

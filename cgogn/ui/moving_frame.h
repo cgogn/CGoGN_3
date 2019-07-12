@@ -21,51 +21,36 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/mesh_render.h>
+#ifndef CGOGN_UI_MOVING_FRAME_H_
+#define CGOGN_UI_MOVING_FRAME_H_
+
+#include <cgogn/ui/cgogn_ui_export.h>
+
+#include <cgogn/rendering/types.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-MeshRender::MeshRender()
+struct CGOGN_UI_EXPORT MovingFrame
 {
-	for (uint32 i = 0u; i < SIZE_BUFFER; ++i)
-	{
-		indices_buffers_[i] = std::make_unique<EBO>();
-		indices_buffers_uptodate_[i] = false;
-		nb_indices_[i] = 0;
-	}
-}
+	rendering::Transfo3d frame_;
+	rendering::Transfo3d spin_;
+	bool is_moving_;
 
-MeshRender::~MeshRender()
-{}
+	MovingFrame():
+		frame_(rendering::Transfo3d::Identity()),
+		spin_(rendering::Transfo3d::Identity()),
+		is_moving_(false)
+	{}
 
-void MeshRender::draw(DrawingType prim)
-{
-	if (nb_indices_[prim] == 0)
-		return;
-
-	indices_buffers_[prim]->bind();
-	switch (prim)
-	{
-		case POINTS:
-			glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, 0);
-			break;
-		case LINES:
-			glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, 0);
-			break;
-		case TRIANGLES:
-			glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, 0);
-			break;
-		case BOUNDARY:
-			default:
-			break;
-	}
-	indices_buffers_[prim]->release();
-}
-
-} // namespace rendering
+	//GLVec3d local_coordinates(GLVec3d glob);
+};
 
 } // namespace cgogn
+
+} // namespace ui
+
+#endif // CGOGN_UI_MOVING_FRAME_H_

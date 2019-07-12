@@ -1,6 +1,6 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+* CGoGN                                                                        *
+* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
 *                                                                              *
 * This library is free software; you can redistribute it and/or modify it      *
 * under the terms of the GNU Lesser General Public License as published by the *
@@ -21,51 +21,47 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/ui/module.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace ui
 {
 
-MeshRender::MeshRender()
-{
-	for (uint32 i = 0u; i < SIZE_BUFFER; ++i)
-	{
-		indices_buffers_[i] = std::make_unique<EBO>();
-		indices_buffers_uptodate_[i] = false;
-		nb_indices_[i] = 0;
-	}
-}
-
-MeshRender::~MeshRender()
+Module::Module()
+{}
+Module::~Module()
 {}
 
-void MeshRender::draw(DrawingType prim)
-{
-	if (nb_indices_[prim] == 0)
-		return;
+void Module::resize_event(int32 frame_width, int32 frame_height)
+{}
+void Module::close_event()
+{}
 
-	indices_buffers_[prim]->bind();
-	switch (prim)
-	{
-		case POINTS:
-			glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, 0);
-			break;
-		case LINES:
-			glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, 0);
-			break;
-		case TRIANGLES:
-			glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, 0);
-			break;
-		case BOUNDARY:
-			default:
-			break;
-	}
-	indices_buffers_[prim]->release();
-}
+void Module::mouse_press_event(View* view, int32 button, float64 x, float64 y)
+{}
+void Module::mouse_release_event(View* view, int32 button, float64 x, float64 y)
+{}
+void Module::mouse_dbl_click_event(View* view, int32 button, float64 x, float64 y)
+{}
+void Module::mouse_move_event(View* view, float64 x, float64 y)
+{}
+void Module::mouse_wheel_event(View* view, float64 x, float64 y)
+{}
+void Module::key_press_event(View* view, int32 key_code)
+{}
+void Module::key_release_event(View* view, int32 key_code)
+{}
 
-} // namespace rendering
+void Module::init(View* view)
+{}
+void Module::draw(View* view)
+{}
+
+void Module::interface()
+{}
 
 } // namespace cgogn
+
+} // namespace ui

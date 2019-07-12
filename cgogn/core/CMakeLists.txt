@@ -73,7 +73,6 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/utils/thread.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/tuples.h"
         "${CMAKE_CURRENT_LIST_DIR}/utils/type_traits.h"
-		"${CMAKE_CURRENT_LIST_DIR}/utils/unique_ptr.h"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})

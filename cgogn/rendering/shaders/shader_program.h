@@ -28,8 +28,6 @@
 #include <cgogn/rendering/types.h>
 #include <cgogn/rendering/vao.h>
 
-#include <cgogn/core/utils/unique_ptr.h>
-
 #include <iostream>
 #include <cassert>
 #include <memory>
@@ -49,7 +47,7 @@ public:\
 			instance_ = new Self();\
 			ShaderProgram::register_instance(instance_);\
 		}\
-		return cgogn::make_unique<Param>(instance_);\
+		return std::make_unique<Param>(instance_);\
 	}\
 protected:\
 	Shader##NAME();\
