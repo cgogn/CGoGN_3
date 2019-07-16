@@ -94,6 +94,7 @@ App::App():
 	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int, int)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
+
 		glfwGetFramebufferSize(wi, &(that->window_frame_width_), &(that->window_frame_height_));
 
 		for (const auto& v : that->views_)
@@ -256,9 +257,10 @@ App::App():
 
 	glfwSetKeyCallback(window_, [] (GLFWwindow* wi, int k, int s, int a, int m)
 	{
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
+
 		double cx, cy;
 		glfwGetCursorPos(wi, &cx, &cy);
-		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
         that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
         that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
@@ -268,7 +270,8 @@ App::App():
 		if (k == GLFW_KEY_ESCAPE)
         {
             that->close_event();
-			exit(0);
+			glfwSetWindowShouldClose(that->window_, GLFW_TRUE);
+			return;
         }
 
         switch(a)
@@ -372,6 +375,8 @@ void App::close_event()
 {
 	for (const auto& v : views_)
 		v->close_event();
+	
+	cgogn::rendering::ShaderProgram::clean_all();
 }
 
 bool App::interface()

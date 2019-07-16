@@ -72,19 +72,7 @@ public:
 
 	void init();
 
-	virtual void resize_event(int32 frame_width, int32 frame_height) override;
-	virtual void close_event() override;
-
-	virtual void mouse_press_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_release_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_dbl_click_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_move_event(cgogn::ui::View* view, float64 x, float64 y) override;
-	virtual void mouse_wheel_event(cgogn::ui::View* view, float64 x, float64 y) override;
-	virtual void key_press_event(cgogn::ui::View* view, int32 key_code) override;
-	virtual void key_release_event(cgogn::ui::View* view, int32 key_code) override;
-
 	virtual void draw(cgogn::ui::View* view) override;
-
 	virtual void interface() override;
 
 	void import(const std::string& filename);
@@ -112,11 +100,8 @@ private:
 	std::unique_ptr<cgogn::rendering::ShaderPhong::Param> param_phong_;
 	std::unique_ptr<cgogn::rendering::ShaderPointSpriteColorSize::Param> param_point_sprite_;
 
-	std::unique_ptr<cgogn::rendering::ShaderFrame2d::Param> param_frame_;
 	std::unique_ptr<cgogn::rendering::DisplayListDrawer> drawer_;
 	std::unique_ptr<cgogn::rendering::DisplayListDrawer::Renderer> drawer_rend_;
-
-	std::unique_ptr<cgogn::rendering::ShaderFSTexture::Param> param_fst_;
 
 	bool phong_rendering_;
 	bool vertices_rendering_;
@@ -124,10 +109,6 @@ private:
 	bool normal_rendering_;
 	bool bb_rendering_;
 };
-
-
-
-
 
 SimpleViewer::SimpleViewer() :
 	mesh_(),
@@ -212,46 +193,7 @@ void SimpleViewer::init()
 	param_phong_->back_color_ =  cgogn::rendering::GLColor(0,0,0.8f,1);
 	param_phong_->ambiant_color_ =  cgogn::rendering::GLColor(0.1f,0.1f,0.1f,1);
 	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());//, vbo_color_.get());
-
-	param_frame_ = cgogn::rendering::ShaderFrame2d::generate_param();
-	param_frame_->sz_ = 9.0f;
 }
-
-void SimpleViewer::resize_event(int32 frame_width, int32 frame_height)
-{}
-
-void SimpleViewer::close_event()
-{
-	render_.reset();
-	vbo_position_.reset();
-	vbo_normal_.reset();
-	vbo_color_.reset();
-	vbo_sphere_size_.reset();
-	drawer_.reset();
-	drawer_rend_.reset();
-	cgogn::rendering::ShaderProgram::clean_all();
-}
-
-void SimpleViewer::mouse_press_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void SimpleViewer::mouse_release_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void SimpleViewer::mouse_dbl_click_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void SimpleViewer::mouse_move_event(cgogn::ui::View* view, float64 x, float64 y)
-{}
-
-void SimpleViewer::mouse_wheel_event(cgogn::ui::View* view, float64 x, float64 y)
-{}
-
-void SimpleViewer::key_press_event(cgogn::ui::View* view, int k)
-{}
-
-void SimpleViewer::key_release_event(cgogn::ui::View* view, int32 key_code)
-{}
 
 void SimpleViewer::draw(cgogn::ui::View* view)
 {

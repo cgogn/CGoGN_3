@@ -54,7 +54,7 @@ set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_rendering ImGUI")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_ui.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-	COMPONENT ccgogn_ui_libraries
+	COMPONENT cgogn_ui_libraries
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
@@ -72,3 +72,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui_export.h
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
+
+
+
+
+
+add_subdirectory(modules/import)

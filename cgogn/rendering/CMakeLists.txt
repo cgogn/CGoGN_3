@@ -115,7 +115,7 @@ set(PKG_CONFIG_REQUIRES "cgogn_core ImGUI")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_rendering.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-	COMPONENT ccgogn_rendering_libraries
+	COMPONENT cgogn_rendering_libraries
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/

@@ -33,6 +33,7 @@ namespace cgogn
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(FSTexture)
 
 class CGOGN_RENDERING_EXPORT ShaderParamFSTexture : public ShaderParam
@@ -43,6 +44,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamFSTexture : public ShaderParam
 	}
 
 public:
+
 	Texture2D* texture_;
 	GLuint unit_;
 	GLfloat alpha_;
@@ -66,6 +68,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
 #endif

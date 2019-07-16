@@ -86,19 +86,8 @@ public:
 
 	void init();
 
-	virtual void resize_event(int32 frame_width, int32 frame_height) override;
-	virtual void close_event() override;
-
-	virtual void mouse_press_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_release_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_dbl_click_event(cgogn::ui::View* view, int32 button, float64 x, float64 y) override;
-	virtual void mouse_move_event(cgogn::ui::View* view, float64 x, float64 y) override;
-	virtual void mouse_wheel_event(cgogn::ui::View* view, float64 x, float64 y) override;
 	virtual void key_press_event(cgogn::ui::View* view, int32 key_code) override;
-	virtual void key_release_event(cgogn::ui::View* view, int32 key_code) override;
-
 	virtual void draw(cgogn::ui::View* view) override;
-
 	virtual void interface() override;
 
 	void import(const std::string& filename);
@@ -150,10 +139,6 @@ private:
 	bool normal_rendering_;
 	bool bb_rendering_;
 };
-
-
-
-
 
 Filtering::Filtering() :
 	mesh_(),
@@ -238,35 +223,6 @@ void Filtering::init()
 	param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
 }
 
-void Filtering::resize_event(int32 frame_width, int32 frame_height)
-{}
-
-void Filtering::close_event()
-{
-	render_.reset();
-	vbo_position_.reset();
-	vbo_normal_.reset();
-	vbo_Kmin_.reset();
-	drawer_.reset();
-	drawer_rend_.reset();
-	cgogn::rendering::ShaderProgram::clean_all();
-}
-
-void Filtering::mouse_press_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void Filtering::mouse_release_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void Filtering::mouse_dbl_click_event(cgogn::ui::View* view, int32 button, float64 x, float64 y)
-{}
-
-void Filtering::mouse_move_event(cgogn::ui::View* view, float64 x, float64 y)
-{}
-
-void Filtering::mouse_wheel_event(cgogn::ui::View* view, float64 x, float64 y)
-{}
-
 void Filtering::key_press_event(cgogn::ui::View* view, cgogn::int32 k)
 {
 	switch (k)
@@ -283,9 +239,6 @@ void Filtering::key_press_event(cgogn::ui::View* view, cgogn::int32 k)
 			break;
 	}
 }
-
-void Filtering::key_release_event(cgogn::ui::View* view, int32 key_code)
-{}
 
 void Filtering::draw(cgogn::ui::View* view)
 {
