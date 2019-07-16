@@ -17,6 +17,8 @@ add_library(cgogn::ui ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
+		"${CMAKE_CURRENT_LIST_DIR}/app.h"
+		"${CMAKE_CURRENT_LIST_DIR}/app.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/camera.h"
 		"${CMAKE_CURRENT_LIST_DIR}/camera.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/gl_viewer.h"
@@ -27,8 +29,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/moving_frame.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/window.h"
-		"${CMAKE_CURRENT_LIST_DIR}/window.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

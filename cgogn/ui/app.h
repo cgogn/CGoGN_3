@@ -43,12 +43,12 @@ namespace ui
 class View;
 class Module;
 
-class CGOGN_UI_EXPORT Window
+class CGOGN_UI_EXPORT App
 {
 public:
 
-	Window();
-	~Window();
+	App();
+	~App();
 
 	void set_window_size(int32 w, int32 h);
 	void set_window_title(const std::string& name);
@@ -87,7 +87,7 @@ private:
 
 	Inputs inputs_;
 
-	std::vector<View*> views_;
+	std::vector<std::unique_ptr<View>> views_;
 	View* focused_;
 
     std::vector<Module*> modules_;

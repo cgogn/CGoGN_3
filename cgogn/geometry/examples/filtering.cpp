@@ -41,7 +41,7 @@
 
 #include <cgogn/modeling/algos/subdivision.h>
 
-#include <cgogn/ui/window.h>
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 #include <cgogn/ui/module.h>
 
@@ -352,57 +352,59 @@ void Filtering::draw(cgogn::ui::View* view)
 
 void Filtering::interface()
 {
+	bool need_update = false;
+
 	ImGui::Begin("Control Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
 	ImGui::SetWindowSize({0, 0});
 
-	ImGui::Checkbox("BB", &bb_rendering_);
-	ImGui::Checkbox("Phong/Flat", &phong_rendering_);
-	ImGui::Checkbox("Vertices", &vertices_rendering_);
-	ImGui::Checkbox("Normals", &normal_rendering_);
-	ImGui::Checkbox("Edges", &edge_rendering_);
+	need_update |= ImGui::Checkbox("BB", &bb_rendering_);
+	need_update |= ImGui::Checkbox("Phong/Flat", &phong_rendering_);
+	need_update |= ImGui::Checkbox("Vertices", &vertices_rendering_);
+	need_update |= ImGui::Checkbox("Normals", &normal_rendering_);
+	need_update |= ImGui::Checkbox("Edges", &edge_rendering_);
 
 	if (phong_rendering_)
 	{
 		ImGui::Separator();
 		ImGui::Text("Phong parameters");
-		ImGui::ColorEdit3("front color##phong", param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
+		need_update |= ImGui::ColorEdit3("front color##phong", param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
 		ImGui::SameLine();
-		ImGui::ColorEdit3("back color##phong", param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
-		ImGui::SliderFloat("spec##phong", &(param_phong_->specular_coef_), 10.0f, 1000.0f);
-		ImGui::Checkbox("double side##phong", &(param_phong_->double_side_));
+		need_update |= ImGui::ColorEdit3("back color##phong", param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+		need_update |= ImGui::SliderFloat("spec##phong", &(param_phong_->specular_coef_), 10.0f, 1000.0f);
+		need_update |= ImGui::Checkbox("double side##phong", &(param_phong_->double_side_));
 	}
 	else
 	{
 		ImGui::Separator();
 		ImGui::Text("Flat parameters");
-		ImGui::ColorEdit3("front color##flat", param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
+		need_update |= ImGui::ColorEdit3("front color##flat", param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
 		ImGui::SameLine();
-		ImGui::ColorEdit3("back color##flat", param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
-		ImGui::Checkbox("single side##flat", &(param_flat_->bf_culling_));
+		need_update |= ImGui::ColorEdit3("back color##flat", param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+		need_update |= ImGui::Checkbox("single side##flat", &(param_flat_->bf_culling_));
 	}
 
 	if (normal_rendering_)
 	{
 		ImGui::Separator();
 		ImGui::Text("Normal parameters");
-		ImGui::ColorEdit3("color##norm", param_normal_->color_.data(), ImGuiColorEditFlags_NoInputs);
-		ImGui::SliderFloat("length##norm", &(param_normal_->length_), 0.01f, 0.5f);
+		need_update |= ImGui::ColorEdit3("color##norm", param_normal_->color_.data(), ImGuiColorEditFlags_NoInputs);
+		need_update |= ImGui::SliderFloat("length##norm", &(param_normal_->length_), 0.01f, 0.5f);
 	}
 
 	if (edge_rendering_)
 	{
 		ImGui::Separator();
 		ImGui::Text("Edge parameters");
-		ImGui::ColorEdit3("color##edge", param_edge_->color_.data());
-		ImGui::SliderFloat("width##edge", &(param_edge_->width_), 1.0f, 10.0f);
+		need_update |= ImGui::ColorEdit3("color##edge", param_edge_->color_.data());
+		need_update |= ImGui::SliderFloat("width##edge", &(param_edge_->width_), 1.0f, 10.0f);
 	}
 
 	if (vertices_rendering_)
 	{
 		ImGui::Separator();
 		ImGui::Text("Vertices parameters");
-		ImGui::ColorEdit3("color##vert", param_point_sprite_->color_.data());
-		ImGui::SliderFloat("size##vert", &(param_point_sprite_->size_), mel_ / 12, mel_ / 3);
+		need_update |= ImGui::ColorEdit3("color##vert", param_point_sprite_->color_.data());
+		need_update |= ImGui::SliderFloat("size##vert", &(param_point_sprite_->size_), mel_ / 12, mel_ / 3);
 	}
 
 	ImGui::Separator();
@@ -414,6 +416,10 @@ void Filtering::interface()
 //	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 	ImGui::End();
+
+	if (need_update)
+		for (cgogn::ui::View* v : linked_views_)
+			v->request_update();
 }
 
 void Filtering::import(const std::string& filename)
@@ -659,26 +665,26 @@ int main(int argc, char** argv)
 
 	cgogn::thread_start(0, 0);
 
-	cgogn::ui::Window w;
-	w.set_window_title("Filtering");
+	cgogn::ui::App app;
+	app.set_window_title("Filtering");
 
 	Filtering f;
 	f.import(filename);
 	f.init();
 
-	w.link_module(&f);
+	app.link_module(&f);
 
-	cgogn::ui::View* v1 = w.current_view();
+	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&f);
 
-	cgogn::ui::View* v2 = w.add_view();
+	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&f);
 
-	// cgogn::ui::View* v3 = w.add_view();
+	// cgogn::ui::View* v3 = app.add_view();
 	// v3->link_module(&f);
 
-	// cgogn::ui::View* v4 = w.add_view();
+	// cgogn::ui::View* v4 = app.add_view();
 	// v4->link_module(&f);
 
-	return w.launch();
+	return app.launch();
 }

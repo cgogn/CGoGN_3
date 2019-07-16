@@ -21,7 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/ui/window.h>
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
 #include <GL/gl3w.h>
@@ -40,7 +40,7 @@ static void glfw_error_callback(int error, const char* description)
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
 }
 
-Window::Window():
+App::App():
 	window_(nullptr),
     context_(nullptr),
 	window_name_("CGoGN"),
@@ -93,16 +93,16 @@ Window::Window():
 
 	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int, int)
 	{
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 		glfwGetFramebufferSize(wi, &(that->window_frame_width_), &(that->window_frame_height_));
 
-		for (View* v: that->views_)
+		for (const auto& v : that->views_)
 			v->resize_event(that->window_frame_width_, that->window_frame_height_);
 	});
 
 	glfwSetMouseButtonCallback(window_, [] (GLFWwindow* wi, int b, int a, int m)
 	{
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 		
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
@@ -114,14 +114,14 @@ Window::Window():
 		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
-		for (View* v: that->views_)
+		for (const auto& v : that->views_)
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v != that->focused_)
+				if (v.get() != that->focused_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v;
+					that->focused_ = v.get();
 				}
 
 				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
@@ -156,7 +156,7 @@ Window::Window():
 
 	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double x, double y)
 	{
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 		
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
@@ -168,14 +168,14 @@ Window::Window():
 		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
-		for (View* v: that->views_)
+		for (const auto& v : that->views_)
 		{
 			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx, cy))
 			{
-				if (v != that->focused_)
+				if (v.get() != that->focused_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v;
+					that->focused_ = v.get();
 				}
 				v->mouse_move_event(x, y);
 			}
@@ -193,7 +193,7 @@ Window::Window():
 
 	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
 	{
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyWindowFocused())
 		{
@@ -204,14 +204,14 @@ Window::Window():
 		double cx, cy;
 		glfwGetCursorPos(wi, &cx, &cy);
 
-		for (View* v: that->views_)
+		for (const auto& v : that->views_)
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v != that->focused_)
+				if (v.get() != that->focused_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v;
+					that->focused_ = v.get();
 				}
 				v->mouse_wheel_event(dx, 100 * dy);
 			}
@@ -220,7 +220,7 @@ Window::Window():
 
 	glfwSetCursorEnterCallback(window_, [] (GLFWwindow* wi, int enter)
 	{
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 		
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
@@ -234,14 +234,14 @@ Window::Window():
 
 		if (enter)
 		{
-			for (View* v: that->views_)
+			for (const auto& v : that->views_)
 			{
 				if (v->over_viewport(cx, cy))
 				{
-					if (v != that->focused_)
+					if (v.get() != that->focused_)
 					{
 						that->inputs_.mouse_buttons_ = 0;
-						that->focused_ = v;
+						that->focused_ = v.get();
 					}
 				}
 			}
@@ -258,7 +258,7 @@ Window::Window():
 	{
 		double cx, cy;
 		glfwGetCursorPos(wi, &cx, &cy);
-		Window* that = static_cast<Window*>(glfwGetWindowUserPointer(wi));
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
         that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
         that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
@@ -291,11 +291,11 @@ Window::Window():
                 break;
         }
 
-		for (View* v: that->views_)
+		for (const auto& v : that->views_)
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				that->focused_ = v;
+				that->focused_ = v.get();
 
 				switch(a)
 				{
@@ -341,49 +341,45 @@ Window::Window():
     focused_ = add_view();
 }
 
-Window::~Window()
-{
-	for (View* v: views_)
-		delete v;
-}
+App::~App()
+{}
 
-void Window::set_window_size(int32 w, int32 h)
+void App::set_window_size(int32 w, int32 h)
 {
 	glfwSetWindowSize(window_, w, h);
 }
 
-void Window::set_window_title(const std::string& name)
+void App::set_window_title(const std::string& name)
 {
 	window_name_ = name;
 	if (window_)
 		glfwSetWindowTitle(window_, window_name_.c_str());
 }
 
-View* Window::add_view()
+View* App::add_view()
 {
     if (views_.size() < 4)
     {
         glfwMakeContextCurrent(window_);
-        View* view = new View(&inputs_);
-        views_.push_back(view);
+        views_.push_back(std::make_unique<View>(&inputs_));
         adapt_views_geometry();
-        return view;
+        return views_.back().get();
     }
     return nullptr;
 }
 
-void Window::close_event()
+void App::close_event()
 {
-	for (View* v: views_)
+	for (const auto& v : views_)
 		v->close_event();
 }
 
-bool Window::interface()
+bool App::interface()
 {
 	return false;
 }
 
-void Window::adapt_views_geometry()
+void App::adapt_views_geometry()
 {
 	switch(views_.size())
 	{
@@ -408,9 +404,9 @@ void Window::adapt_views_geometry()
 	}
 }
 
-int Window::launch()
+int App::launch()
 {
-	for (View* v : views_)
+	for (const auto& v : views_)
 		v->resize_event(window_frame_width_, window_frame_height_);
 
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
@@ -424,7 +420,7 @@ int Window::launch()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (View* v : views_)
+        for (const auto& v : views_)
         {
             v->draw();
             param_frame_->draw(v->width(), v->height());
@@ -454,7 +450,7 @@ int Window::launch()
 	return EXIT_SUCCESS;
 }
 
-bool Window::IsItemActiveLastFrame()
+bool App::IsItemActiveLastFrame()
 {
 	if (context_->ActiveIdPreviousFrame)
 		return context_->ActiveIdPreviousFrame == context_->CurrentWindow->DC.LastItemId;
