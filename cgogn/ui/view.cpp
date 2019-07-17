@@ -77,7 +77,7 @@ void View::resize_event(int32 frame_width, int32 frame_height)
 	fbo_->resize(viewport_w_, viewport_h_);
 
 	for (Module* m : linked_modules_)
-		m->resize_event(frame_width, frame_height);
+		m->resize_event(this, viewport_w_, viewport_h_);
 
 	GLViewer::resize_event(viewport_w_, viewport_h_);
 }

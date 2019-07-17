@@ -371,6 +371,18 @@ View* App::add_view()
     return nullptr;
 }
 
+Module* App::module(const std::string& name) const
+{
+	auto it = std::find_if(
+		modules_.begin(),
+		modules_.end(),
+		[&] (Module* m) { return m->name().compare(name) == 0; }
+	);
+	if (it != modules_.end())
+		return *it;
+	return nullptr;
+}
+
 void App::close_event()
 {
 	for (const auto& v : views_)
@@ -453,13 +465,6 @@ int App::launch()
 	
 	glfwDestroyWindow(window_);
 	return EXIT_SUCCESS;
-}
-
-bool App::IsItemActiveLastFrame()
-{
-	if (context_->ActiveIdPreviousFrame)
-		return context_->ActiveIdPreviousFrame == context_->CurrentWindow->DC.LastItemId;
-	return false;
 }
 
 } // namespace cgogn

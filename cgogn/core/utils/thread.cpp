@@ -27,13 +27,13 @@ namespace cgogn
 {
 
 CGOGN_TLS uint32 thread_index_;
-CGOGN_TLS uint32 thread_marker_index_;
+// CGOGN_TLS uint32 thread_marker_index_;
 CGOGN_TLS Buffers<uint32>* uint32_buffers_thread_ = nullptr;
 
-CGOGN_CORE_EXPORT void thread_start(uint32 ind, uint32 shift_marker_index)
+CGOGN_CORE_EXPORT void thread_start(uint32 ind/*, uint32 shift_marker_index*/)
 {
 	thread_index_ = ind;
-	thread_marker_index_ = ind + shift_marker_index;
+	// thread_marker_index_ = ind + shift_marker_index;
 	if (uint32_buffers_thread_ == nullptr)
 		uint32_buffers_thread_ = new Buffers<uint32>();
 }
@@ -49,10 +49,10 @@ CGOGN_CORE_EXPORT uint32 current_thread_index()
 	return thread_index_;
 }
 
-CGOGN_CORE_EXPORT uint32 current_thread_marker_index()
-{
-	return thread_marker_index_;
-}
+// CGOGN_CORE_EXPORT uint32 current_thread_marker_index()
+// {
+// 	return thread_marker_index_;
+// }
 
 CGOGN_CORE_EXPORT Buffers<uint32>* uint32_buffers()
 {

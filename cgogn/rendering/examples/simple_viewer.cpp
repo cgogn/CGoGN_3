@@ -70,12 +70,13 @@ public:
 	virtual ~SimpleViewer();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(SimpleViewer);
 
+	void import(const std::string& filename);
 	void init();
 
-	virtual void draw(cgogn::ui::View* view) override;
-	virtual void interface() override;
+protected:
 
-	void import(const std::string& filename);
+	void draw(cgogn::ui::View* view) override;
+	void interface() override;
 
 private:
 

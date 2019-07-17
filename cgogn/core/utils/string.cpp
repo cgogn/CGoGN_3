@@ -30,8 +30,8 @@ namespace cgogn
 
 CGOGN_CORE_EXPORT std::string trim_left(const std::string& str)
 {
-  const std::string pattern = " \f\n\r\t\v";
-  return str.substr(str.find_first_not_of(pattern));
+	const std::string pattern = " \f\n\r\t\v";
+	return str.substr(str.find_first_not_of(pattern));
 }
 
 //
@@ -39,8 +39,8 @@ CGOGN_CORE_EXPORT std::string trim_left(const std::string& str)
 //
 CGOGN_CORE_EXPORT std::string trim_right(const std::string& str)
 {
-  const std::string pattern = " \f\n\r\t\v";
-  return str.substr(0,str.find_last_not_of(pattern) + 1);
+	const std::string pattern = " \f\n\r\t\v";
+	return str.substr(0,str.find_last_not_of(pattern) + 1);
 }
 
 //
@@ -48,7 +48,7 @@ CGOGN_CORE_EXPORT std::string trim_right(const std::string& str)
 //
 CGOGN_CORE_EXPORT std::string trim(const std::string& str)
 {
-  return trim_left(trim_right(str));
+	return trim_left(trim_right(str));
 }
 
 CGOGN_CORE_EXPORT std::string to_upper(const std::string& str)
@@ -69,10 +69,26 @@ CGOGN_CORE_EXPORT std::string to_lower(const std::string& str)
 	return res;
 }
 
+std::string filename_from_path(const std::string& s)
+{
+	using char_t = std::string::value_type;
+	char_t sep = '/';
+
+#ifdef _WIN32
+	sep = '\\';
+#endif
+
+	const std::size_t i = s.rfind(sep, s.length());
+	if (i != std::string::npos)
+		return(s.substr(i+1, s.length() - i));
+
+	return("");
+}
+
 CGOGN_CORE_EXPORT std::string extension(const std::string& str)
 {
 	const std::size_t dot = str.rfind('.');
-	if (dot == std::string::npos || dot == str.size() -1u)
+	if (dot == std::string::npos || dot == str.size() - 1u)
 		return std::string();
 	return str.substr(dot + 1u);
 }
@@ -80,10 +96,10 @@ CGOGN_CORE_EXPORT std::string extension(const std::string& str)
 CGOGN_CORE_EXPORT std::string remove_extension(const std::string& str)
 {
 	const std::size_t dot = str.rfind('.');
-	if (dot == std::string::npos || dot == str.size() -1u)
+	if (dot == std::string::npos || dot == str.size() - 1u)
 		return str;
 	else
-		return str.substr(0,dot);
+		return str.substr(0, dot);
 }
 
 CGOGN_CORE_EXPORT bool i_equals(const std::string& str1, const std::string& str2)

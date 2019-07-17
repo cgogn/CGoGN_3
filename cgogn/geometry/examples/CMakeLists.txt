@@ -5,13 +5,25 @@ project(cgogn_geometry_examples
 )
 
 find_package(cgogn_core REQUIRED)
-find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_ui REQUIRED)
+
+find_package(cgogn_module_cmap_provider REQUIRED)
+find_package(cgogn_module_surface_differential_properties REQUIRED)
+find_package(cgogn_module_surface_filtering REQUIRED)
+find_package(cgogn_module_surface_render REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
 add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 
 add_executable(filtering filtering.cpp)
-target_link_libraries(filtering cgogn::core cgogn::io cgogn::rendering cgogn::ui)
+target_link_libraries(filtering
+	cgogn::core
+	cgogn::rendering
+	cgogn::ui
+	cgogn::module::cmap_provider
+	cgogn::module::surface_differential_properties
+	cgogn::module::surface_filtering
+	cgogn::module::surface_render
+)

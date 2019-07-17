@@ -27,10 +27,10 @@
 namespace cgogn
 {
 
-ThreadPool::ThreadPool(const std::string& name, uint32 shift_index) :
+ThreadPool::ThreadPool(const std::string& name/*, uint32 shift_index*/) :
     name_(name),
-    stop_(false),
-    shift_index_(shift_index)
+    stop_(false)
+    // shift_index_(shift_index)
 {
 	uint32 nb_ww = std::thread::hardware_concurrency();
 	nb_working_workers_ = nb_ww;
@@ -39,7 +39,7 @@ ThreadPool::ThreadPool(const std::string& name, uint32 shift_index) :
 	{
 		workers_.emplace_back([this, i] () -> void
 		{
-			thread_start(i, shift_index_);
+			thread_start(i/*, shift_index_*/);
 			for(;;)
 			{
 				while (i >= nb_working_workers_)
@@ -114,16 +114,16 @@ void ThreadPool::set_nb_workers(uint32 nb)
 
 ThreadPool* thread_pool()
 {
-	// thread safe accoring to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-	static ThreadPool pool("internal", 1);
+	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
+	static ThreadPool pool("internal"/*, 1*/);
 	return &pool;
 }
 
-ThreadPool* external_thread_pool()
-{
-	// thread safe accoring to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-	static ThreadPool u_pool("external", 1 + std::thread::hardware_concurrency());
-	return &u_pool;
-}
+// ThreadPool* external_thread_pool()
+// {
+// 	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
+// 	static ThreadPool u_pool("external"/*, 1 + std::thread::hardware_concurrency()*/);
+// 	return &u_pool;
+// }
 
 } // namespace cgogn

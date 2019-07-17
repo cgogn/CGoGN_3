@@ -78,7 +78,7 @@ class CGOGN_CORE_EXPORT ThreadPool final
 {
 public:
 
-	ThreadPool(const std::string& name, uint32 shift_index);
+	ThreadPool(const std::string& name/*, uint32 shift_index*/);
 	~ThreadPool();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ThreadPool);
 
@@ -167,14 +167,14 @@ private:
 	std::mutex running_mutex_;
 	std::condition_variable condition_running_;
 
-	uint32 shift_index_;
+	// uint32 shift_index_;
 
 #pragma warning(pop)
 };
 
 CGOGN_CORE_EXPORT ThreadPool* thread_pool();
 
-CGOGN_CORE_EXPORT ThreadPool* external_thread_pool();
+// CGOGN_CORE_EXPORT ThreadPool* external_thread_pool();
 
 // /**
 //  * launch an external thread

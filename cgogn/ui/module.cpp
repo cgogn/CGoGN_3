@@ -22,6 +22,7 @@
 *******************************************************************************/
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/app.h>
 
 namespace cgogn
 {
@@ -29,12 +30,17 @@ namespace cgogn
 namespace ui
 {
 
-Module::Module()
-{}
+Module::Module(const App& app, const std::string& name) :
+    app_(app),
+    name_(name)
+{
+    app.modules_.push_back(this);
+}
+
 Module::~Module()
 {}
 
-void Module::resize_event(int32 frame_width, int32 frame_height)
+void Module::resize_event(View* view, int32 viewport_width, int32 viewport_height)
 {}
 void Module::close_event()
 {}
@@ -54,8 +60,6 @@ void Module::key_press_event(View* view, int32 key_code)
 void Module::key_release_event(View* view, int32 key_code)
 {}
 
-void Module::init(View* view)
-{}
 void Module::draw(View* view)
 {}
 

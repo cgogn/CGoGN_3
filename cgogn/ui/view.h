@@ -41,12 +41,18 @@ namespace cgogn
 namespace ui
 {
 
+class App;
+
 class CGOGN_UI_EXPORT View : public GLViewer
 {
+	friend class App;
+
 public:
 
 	View(Inputs* inputs, View* share = nullptr);
 	virtual ~View() override;
+
+protected:
 
 	virtual void resize_event(int32 frame_width, int32 frame_height) override;
 	virtual void close_event() override;
@@ -60,6 +66,8 @@ public:
 	virtual void key_release_event(int32 key_code) override;
 
 	void draw();
+
+public:
 
     void link_module(Module* m);
 

@@ -30,9 +30,11 @@
 #include <cgogn/ui/inputs.h>
 #include <cgogn/rendering/shaders/shader_frame2d.h>
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
+
+#include <boost/synapse/emit.hpp>
 
 namespace cgogn
 {
@@ -43,8 +45,13 @@ namespace ui
 class View;
 class Module;
 
+typedef struct attribute_changed_(*attribute_changed)(const std::string&);
+typedef struct connectivity_changed_(*connectivity_changed)(const std::string&);
+
 class CGOGN_UI_EXPORT App
 {
+	friend class Module;
+
 public:
 
 	App();
@@ -58,7 +65,7 @@ public:
 	View* add_view();
 	inline View* current_view() const { return focused_; }
 
-    void link_module(Module* m) { modules_.push_back(m); }
+	Module* module(const std::string& name) const;
 
 	int launch();
 
@@ -90,9 +97,7 @@ private:
 	std::vector<std::unique_ptr<View>> views_;
 	View* focused_;
 
-    std::vector<Module*> modules_;
-
-	bool IsItemActiveLastFrame();
+    mutable std::vector<Module*> modules_;
 };
 
 } // namespace cgogn

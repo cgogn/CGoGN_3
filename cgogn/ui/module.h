@@ -36,18 +36,24 @@ namespace cgogn
 namespace ui
 {
 
+class App;
 class View;
 
 class CGOGN_UI_EXPORT Module
 {
+	friend class App;
 	friend class View;
 
 public:
 
-	Module();
+	Module(const App& app, const std::string& name);
 	virtual ~Module();
 
-	virtual void resize_event(int32 frame_width, int32 frame_height);
+	const std::string& name() const { return name_; }
+
+protected:
+
+	virtual void resize_event(View* view, int32 viewport_width, int32 viewport_height);
 	virtual void close_event();
 
 	virtual void mouse_press_event(View* view, int32 button, float64 x, float64 y);
@@ -58,13 +64,12 @@ public:
 	virtual void key_press_event(View* view, int32 key_code);
 	virtual void key_release_event(View* view, int32 key_code);
 
-	virtual void init(View* view);
 	virtual void draw(View* view);
 
 	virtual void interface();
 
-protected:
-
+	const App& app_;
+	std::string name_;
 	std::vector<View*> linked_views_;
 };
 

@@ -46,12 +46,6 @@ class AttributeContainer;
 
 class CGOGN_CORE_EXPORT AttributeGen
 {
-protected:
-
-	AttributeContainerGen* container_;
-	bool is_mark_;
-	std::string name_;
-
 public:
 
 	AttributeGen(AttributeContainerGen* container, bool is_mark, const std::string& name);
@@ -61,6 +55,12 @@ public:
 	inline bool is_mark() const { return is_mark_; }
 
 	uint32 maximum_index() const;
+
+protected:
+
+	AttributeContainerGen* container_;
+	bool is_mark_;
+	std::string name_;
 
 private:
 
@@ -79,6 +79,46 @@ class CGOGN_CORE_EXPORT AttributeContainerGen
 public:
 
 	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
+
+public:
+
+	AttributeContainerGen();
+	virtual ~AttributeContainerGen();
+
+	inline uint32 nb_elements() const { return nb_elements_; }
+	inline uint32 maximum_index() const { return maximum_index_; }
+
+	uint32 new_index();
+	void release_index(uint32 index);
+
+	void remove_attribute(AttributeGenPtr attribute);
+
+	using const_iterator = std::vector<AttributeGenPtr>::const_iterator;
+	inline const_iterator begin() const { return attributes_shared_ptr_.begin(); }
+	inline const_iterator end() const { return attributes_shared_ptr_.end(); }
+
+	inline uint32 first_index() const
+	{
+		uint32 index = 0u;
+		while (index < maximum_index_ && nb_refs(index) == 0)
+			++index;
+		return index;
+	}
+
+	inline uint32 last_index() const
+	{
+		return maximum_index_;
+	}
+
+	inline uint32 next_index(uint32 index) const
+	{
+		do { ++index; }
+		while (
+			index < maximum_index_ &&
+			nb_refs(index) == 0
+		);
+		return index;
+	}
 
 protected:
 
@@ -103,46 +143,6 @@ protected:
 	virtual void reset_ref_counter(uint32 index) = 0;
 	virtual uint32 nb_refs(uint32 index) const = 0;
 	virtual void init_mark_attributes(uint32 index) = 0;
-
-public:
-
-	AttributeContainerGen();
-	virtual ~AttributeContainerGen();
-
-	inline uint32 nb_elements() const { return nb_elements_; }
-	inline uint32 maximum_index() const { return maximum_index_; }
-
-	uint32 new_index();
-	void release_index(uint32 index);
-
-	void remove_attribute(AttributeGenPtr attribute);
-
-	using const_iterator = std::vector<AttributeGen*>::const_iterator;
-	inline const_iterator begin() const { return attributes_.begin(); }
-	inline const_iterator end() const { return attributes_.end(); }
-
-	inline uint32 first_index() const
-	{
-		uint32 index = 0u;
-		while (index < maximum_index_ && nb_refs(index) == 0)
-			++index;
-		return index;
-	}
-
-	inline uint32 last_index() const
-	{
-		return maximum_index_;
-	}
-
-	inline uint32 next_index(uint32 index) const
-	{
-		do { ++index; }
-		while (
-			index < maximum_index_ &&
-			nb_refs(index) == 0
-		);
-		return index;
-	}
 };
 
 //////////////////////////////
@@ -158,8 +158,6 @@ public:
 	using Attribute = AttributeT<T>;
 	template <typename T>
 	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	// template <typename T>
-	// using ConstAttributePtr = std::shared_ptr<const Attribute<T>>;
 	
 	using MarkAttribute = Attribute<uint8>;
 	using MarkAttributePtr = MarkAttribute*;

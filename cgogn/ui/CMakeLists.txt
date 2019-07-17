@@ -5,6 +5,7 @@ project(cgogn_ui
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 find_package(ImGUI REQUIRED)
+find_package(synapse REQUIRED)
 
 if(APPLE)
   find_library(CORE_FOUNDATION NAMES CoreFoundation)
@@ -39,18 +40,18 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}/thirdparty>
-	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}/thirdparty/imgui>
+	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}/thirdparty/synapse/include>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
-target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::rendering ImGUI)
+target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::rendering ImGUI synapse)
 
 # Write out cgogn_ui_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 
-set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_rendering ImGUI")
+set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_rendering ImGUI synapse")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_ui.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
@@ -77,4 +78,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
 
 
 
-add_subdirectory(modules/import)
+add_subdirectory(modules/cmap_provider)
+add_subdirectory(modules/surface_differential_properties)
+add_subdirectory(modules/surface_filtering)
+add_subdirectory(modules/surface_render)

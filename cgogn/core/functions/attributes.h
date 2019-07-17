@@ -146,6 +146,48 @@ remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGenPtr attribute)
 
 /*****************************************************************************/
 
+// template <typename T, typename CELL, typename MESH, typename FUNC>
+// void foreach_attribute(const MESH& m, const FUNC& f);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename T, typename CELL, typename MESH, typename FUNC,
+		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+void
+foreach_attribute(const MESH& m, const FUNC& f)
+{
+	using AttributeGenPtr = typename mesh_traits<MESH>::AttributeGenPtr;
+	using AttributeT = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributePtrT = typename mesh_traits<MESH>::template AttributePtr<T>;
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, const AttributePtrT&>::value, "Wrong function attribute parameter type");
+	for (const AttributeGenPtr& a : m.attribute_containers_[CELL::ORBIT])
+	{
+		AttributePtrT at = std::dynamic_pointer_cast<AttributeT>(a);
+		if (at)
+			f(at);
+	}
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename T, typename CELL, typename MESH, typename FUNC,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+void
+foreach_attribute(const MESH& m, const FUNC& f)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	foreach_attribute<T, CELL>(m.mesh(), f);
+}
+
+/*****************************************************************************/
+
 // template <typename CELL, typename MESH>
 // uint32 index_of(MESH& m, CELL c);
 

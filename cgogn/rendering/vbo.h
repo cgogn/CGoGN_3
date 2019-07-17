@@ -107,7 +107,7 @@ public:
 	inline float32* lock_pointer()
 	{
 		this->bind();
-		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER,GL_READ_WRITE));
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
 		this->release();
 		return ptr;
 	}

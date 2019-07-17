@@ -44,7 +44,7 @@ extern CGOGN_TLS Buffers<uint32>* uint32_buffers_thread_;
  * @param ind index of the thread in the pool: 0,1,2,3,....
  * @param shift_marker_index 0 for main thread / 1 for internal thread pool / 1 + max_nb_workers for external thread pool
  */
-CGOGN_CORE_EXPORT void thread_start(uint32 ind, uint32 shift_marker_index);
+CGOGN_CORE_EXPORT void thread_start(uint32 ind = -1/*, uint32 shift_marker_index*/);
 
 /**
  * @brief function to call at end of each thread which use a map

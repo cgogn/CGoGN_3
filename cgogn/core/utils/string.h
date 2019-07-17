@@ -43,6 +43,8 @@ CGOGN_CORE_EXPORT std::string to_upper(const std::string& str);
 
 CGOGN_CORE_EXPORT std::string to_lower(const std::string& str);
 
+CGOGN_CORE_EXPORT std::string filename_from_path(const std::string& s);
+
 CGOGN_CORE_EXPORT std::string extension(const std::string& str);
 
 CGOGN_CORE_EXPORT std::string remove_extension(const std::string& str);

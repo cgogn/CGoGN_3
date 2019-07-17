@@ -29,7 +29,6 @@
 #include <cgogn/rendering/vao.h>
 
 #include <iostream>
-#include <cassert>
 #include <memory>
 
 #define DECLARE_SHADER_CLASS(NAME) \
