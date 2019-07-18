@@ -34,7 +34,7 @@ namespace cgogn
 class CGOGN_CORE_EXPORT DartMarker
 {
 	const CMapBase& map_;
-	CMapBase::MarkAttributePtr mark_attribute_;
+	CMapBase::MarkAttribute* mark_attribute_;
 
 public:
 

@@ -38,7 +38,7 @@ namespace cgogn
 
 class AttributeContainerGen;
 template <template <typename> class AttributeT>
-class AttributeContainer;
+class AttributeContainerT;
 
 ////////////////////////
 // AttributeGen class //
@@ -65,7 +65,7 @@ protected:
 private:
 
 	friend AttributeContainerGen;
-	template <template <typename> class AttributeT> friend class AttributeContainer;
+	template <template <typename> class AttributeT> friend class AttributeContainerT;
 
 	virtual void manage_index(uint32 index) = 0;
 };
@@ -78,10 +78,6 @@ class CGOGN_CORE_EXPORT AttributeContainerGen
 {
 public:
 
-	using AttributeGenPtr = std::shared_ptr<AttributeGen>;
-
-public:
-
 	AttributeContainerGen();
 	virtual ~AttributeContainerGen();
 
@@ -91,9 +87,10 @@ public:
 	uint32 new_index();
 	void release_index(uint32 index);
 
-	void remove_attribute(AttributeGenPtr attribute);
+	void remove_attribute(const std::shared_ptr<AttributeGen>& attribute);
+	void remove_attribute(AttributeGen* attribute);
 
-	using const_iterator = std::vector<AttributeGenPtr>::const_iterator;
+	using const_iterator = std::vector<std::shared_ptr<AttributeGen>>::const_iterator;
 	inline const_iterator begin() const { return attributes_shared_ptr_.begin(); }
 	inline const_iterator end() const { return attributes_shared_ptr_.end(); }
 
@@ -123,7 +120,7 @@ public:
 protected:
 
 	std::vector<AttributeGen*> attributes_;
-	std::vector<AttributeGenPtr> attributes_shared_ptr_;
+	std::vector<std::shared_ptr<AttributeGen>> attributes_shared_ptr_;
 
 	std::mutex mark_attributes_mutex_;
 
@@ -150,17 +147,13 @@ protected:
 //////////////////////////////
 
 template <template <typename> class AttributeT>
-class CGOGN_CORE_EXPORT AttributeContainer : public AttributeContainerGen
+class CGOGN_CORE_EXPORT AttributeContainerT : public AttributeContainerGen
 {
 public:
 
 	template <typename T>
 	using Attribute = AttributeT<T>;
-	template <typename T>
-	using AttributePtr = std::shared_ptr<Attribute<T>>;
-	
 	using MarkAttribute = Attribute<uint8>;
-	using MarkAttributePtr = MarkAttribute*;
 
 protected:
 
@@ -193,16 +186,16 @@ protected:
 
 public:
 
-	AttributeContainer() : AttributeContainerGen()
+	AttributeContainerT() : AttributeContainerGen()
 	{
 		ref_counters_ = std::make_unique<Attribute<uint32>>(this, true, "__refs");
 	}
 
-	~AttributeContainer()
+	~AttributeContainerT()
 	{}
 
 	template <typename T>
-	AttributePtr<T> add_attribute(const std::string& name)
+	std::shared_ptr<Attribute<T>> add_attribute(const std::string& name)
 	{
 		auto it = std::find_if(
 			attributes_.begin(),
@@ -211,49 +204,48 @@ public:
 		);
 		if (it == attributes_.end())
 		{
-			AttributePtr<T> asp = std::make_shared<Attribute<T>>(this, false, name);
+			std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, false, name);
 			Attribute<T>* ap = asp.get();
 			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
 			attributes_.push_back(ap);
 			attributes_shared_ptr_.push_back(asp);
 			return asp;
 		}
-		return AttributePtr<T>();
+		return std::shared_ptr<Attribute<T>>();
 	}
 
 	template <typename T>
-	AttributePtr<T> get_attribute(const std::string& name) const
+	std::shared_ptr<Attribute<T>> get_attribute(const std::string& name) const
 	{
 		auto it = std::find_if(
 			attributes_shared_ptr_.begin(),
 			attributes_shared_ptr_.end(),
-			[&] (const AttributeGenPtr& att) { return att->name().compare(name) == 0; }
+			[&] (const auto& att) { return att->name().compare(name) == 0; }
 		);
 		if (it != attributes_shared_ptr_.end())
 			return std::dynamic_pointer_cast<Attribute<T>>(*it);
-		return AttributePtr<T>();
+		return std::shared_ptr<Attribute<T>>();
 	}
 
-	MarkAttributePtr get_mark_attribute()
+	MarkAttribute* get_mark_attribute()
 	{
 		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
 		if (available_mark_attributes_.size() > 0)
 		{
 			uint32 index = available_mark_attributes_.back();
 			available_mark_attributes_.pop_back();
-			MarkAttribute* ap = static_cast<MarkAttribute*>(mark_attributes_[index]);
-			return MarkAttributePtr(ap);
+			return static_cast<MarkAttribute*>(mark_attributes_[index]);
 		}
 		else
 		{
 			MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
 			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
 			mark_attributes_.push_back(ap);
-			return MarkAttributePtr(ap);
+			return ap;
 		}
 	}
 
-	void release_mark_attribute(MarkAttributePtr attribute)
+	void release_mark_attribute(MarkAttribute* attribute)
 	{
 		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
 		auto it = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);

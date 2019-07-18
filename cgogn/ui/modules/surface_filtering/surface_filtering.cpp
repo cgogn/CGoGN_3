@@ -40,7 +40,8 @@ namespace ui
 
 SurfaceFiltering::SurfaceFiltering(const App& app) :
 	Module(app, "SurfaceFiltering"),
-	selected_mesh_(nullptr)
+	selected_mesh_(nullptr),
+	selected_vertex_position_(nullptr)
 {}
 
 SurfaceFiltering::~SurfaceFiltering()
@@ -51,13 +52,13 @@ void SurfaceFiltering::init()
 	cmap_provider_ = static_cast<cgogn::ui::CMapProvider*>(app_.module("CMapProvider"));
 }
 
-void SurfaceFiltering::filter_mesh(Mesh& m, const AttributePtr<Vec3>& vertex_position)
+void SurfaceFiltering::filter_mesh(Mesh& m, Attribute<Vec3>* vertex_position)
 {
-	AttributePtr<Vec3> filtered_vertex_position = cgogn::add_attribute<Vec3, Vertex>(m, "__filtered_position");
+	std::shared_ptr<Attribute<Vec3>> filtered_vertex_position = cgogn::add_attribute<Vec3, Vertex>(m, "__filtered_position");
 	for (auto it = filtered_vertex_position->begin(), end = filtered_vertex_position->end(); it != end; ++it)
 		*it = (*vertex_position)[it.index()];
 	
-	cgogn::geometry::filter_average<Vec3>(m, vertex_position, filtered_vertex_position);
+	cgogn::geometry::filter_average<Vec3>(m, vertex_position, filtered_vertex_position.get());
 	
 	vertex_position->swap(filtered_vertex_position.get());
 	cgogn::remove_attribute<Vertex>(m, filtered_vertex_position);
@@ -75,7 +76,7 @@ void SurfaceFiltering::interface()
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 			{
 				selected_mesh_ = m;
-				selected_vertex_position_.reset();
+				selected_vertex_position_ = nullptr;
 			}
 		});
 		ImGui::ListBoxFooter();
@@ -86,7 +87,7 @@ void SurfaceFiltering::interface()
 		std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 		if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const AttributePtr<Vec3>& attribute)
+			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_position_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))

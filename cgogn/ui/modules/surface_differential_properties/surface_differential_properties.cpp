@@ -40,7 +40,9 @@ namespace ui
 
 SurfaceDifferentialProperties::SurfaceDifferentialProperties(const App& app) :
 	Module(app, "SurfaceDifferentialProperties"),
-	selected_mesh_(nullptr)
+	selected_mesh_(nullptr),
+	selected_vertex_position_(nullptr),
+	selected_vertex_normal_(nullptr)
 {}
 
 SurfaceDifferentialProperties::~SurfaceDifferentialProperties()
@@ -51,10 +53,8 @@ void SurfaceDifferentialProperties::init()
 	cmap_provider_ = static_cast<CMapProvider*>(app_.module("CMapProvider"));
 }
 
-void SurfaceDifferentialProperties::compute_normal(CMap2& m, const AttributePtr<Vec3>& vertex_position, AttributePtr<Vec3>& vertex_normal)
+void SurfaceDifferentialProperties::compute_normal(Mesh& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
 {
-	if (!vertex_normal)
-		vertex_normal = cgogn::add_attribute<Vec3, Vertex>(m, "normal");
 	cgogn::geometry::compute_normal(m, vertex_position, vertex_normal);
 }
 
@@ -70,8 +70,8 @@ void SurfaceDifferentialProperties::interface()
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 			{
 				selected_mesh_ = m;
-				selected_vertex_position_.reset();
-				selected_vertex_normal_.reset();
+				selected_vertex_position_ = nullptr;
+				selected_vertex_normal_ = nullptr;
 			}
 		});
 		ImGui::ListBoxFooter();
@@ -82,7 +82,7 @@ void SurfaceDifferentialProperties::interface()
 		std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 		if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const AttributePtr<Vec3>& attribute)
+			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_position_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
@@ -95,7 +95,7 @@ void SurfaceDifferentialProperties::interface()
 		std::string selected_vertex_normal_name_ = selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
 		if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const AttributePtr<Vec3>& attribute)
+			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_normal_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
@@ -109,7 +109,16 @@ void SurfaceDifferentialProperties::interface()
 		if (selected_vertex_position_)
 		{
 			if (ImGui::Button("Compute normal"))
-				compute_normal(*selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
+			{
+				if (!selected_vertex_normal_)
+				{
+					std::shared_ptr<Attribute<Vec3>> vertex_normal = add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
+					compute_normal(*selected_mesh_, selected_vertex_position_, vertex_normal.get());
+					selected_vertex_normal_ = vertex_normal.get();
+				}
+				else
+					compute_normal(*selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
+			}
 		}
 	}
 

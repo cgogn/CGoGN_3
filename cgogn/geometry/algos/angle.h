@@ -44,7 +44,7 @@ Scalar
 angle(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
@@ -62,8 +62,8 @@ Scalar
 angle(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& face_normal
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* face_normal
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
@@ -78,8 +78,8 @@ template <typename MESH>
 void
 compute_angle(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position,
-	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& edge_angle
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -94,9 +94,9 @@ template <typename MESH>
 void
 compute_angle(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& face_normal,
-	const typename mesh_traits<MESH>::template AttributePtr<Scalar>& edge_angle
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* face_normal,
+	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;

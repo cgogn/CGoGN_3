@@ -46,7 +46,7 @@ within_sphere(
     const CMap2& m,
 	typename CMap2::Vertex center,
     geometry::Scalar radius,
-	const typename CMap2::template AttributePtr<Vec3>& vertex_position
+	const typename CMap2::template Attribute<Vec3>* vertex_position
 )
 {
     using Vertex = typename CMap2::Vertex;

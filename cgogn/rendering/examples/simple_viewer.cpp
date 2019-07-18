@@ -38,7 +38,7 @@
 using Mesh = cgogn::CMap2;
 
 template <typename T>
-using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
 
 using Vec3 = cgogn::geometry::Vec3;
@@ -67,10 +67,10 @@ int main(int argc, char** argv)
 	sr.init();
 	sdp.init();
 
-	AttributePtr<Vec3> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	AttributePtr<Vec3> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
-	sdp.compute_normal(*m, vertex_position, vertex_normal);
-	sr.update(m, vertex_position, vertex_normal);
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	sr.update(*m, vertex_position.get(), vertex_normal.get());
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);

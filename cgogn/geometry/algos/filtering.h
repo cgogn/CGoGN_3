@@ -42,8 +42,8 @@ namespace geometry
 template <typename T, typename MESH>
 void filter_average(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<T>& attribute_in,
-	const typename mesh_traits<MESH>::template AttributePtr<T>& attribute_out
+	const typename mesh_traits<MESH>::template Attribute<T>* attribute_in,
+	typename mesh_traits<MESH>::template Attribute<T>* attribute_out
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;

@@ -45,7 +45,8 @@ class CGOGN_MODULE_SURFACE_DIFFERENTIAL_PROPERTIES_EXPORT SurfaceDifferentialPro
     using Mesh = CMap2;
 
     template <typename T>
-    using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
+    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+
     using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
 
     using Vec3 = cgogn::geometry::Vec3;
@@ -58,7 +59,7 @@ public:
     
 	void init();
 
-	void compute_normal(Mesh& m, const AttributePtr<Vec3>& vertex_position, AttributePtr<Vec3>& vertex_normal);
+	void compute_normal(Mesh& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal);
 
 protected:
 
@@ -67,8 +68,8 @@ protected:
 private:
 
 	Mesh* selected_mesh_;
-	AttributePtr<Vec3> selected_vertex_position_;
-	AttributePtr<Vec3> selected_vertex_normal_;
+	const Attribute<Vec3>* selected_vertex_position_;
+	Attribute<Vec3>* selected_vertex_normal_;
 	CMapProvider* cmap_provider_;
 };
 

@@ -45,7 +45,7 @@ Scalar
 convex_area(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -80,7 +80,7 @@ Scalar
 area(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
     return convex_area(m, f, vertex_position);
@@ -90,7 +90,7 @@ template <typename MESH>
 Scalar
 area(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;

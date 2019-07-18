@@ -43,7 +43,7 @@ VEC
 centroid(
 	const MESH& m,
 	CELL c,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
+	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -62,10 +62,10 @@ centroid(
 }
 
 template <typename VEC, typename MESH>
-void
+VEC
 centroid(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
+	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -88,8 +88,8 @@ template <typename VEC, typename CELL, typename MESH,
 void
 compute_centroid(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC>& cell_centroid
+	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute,
+	typename mesh_traits<MESH>::template Attribute<VEC>* cell_centroid
 )
 {
 	parallel_foreach_cell(m, [&] (CELL c) -> bool
@@ -103,7 +103,7 @@ template <typename VEC, typename MESH>
 typename mesh_traits<MESH>::Vertex
 central_vertex(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC>& attribute
+	const typename mesh_traits<MESH>::template Attribute<VEC>* attribute
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;

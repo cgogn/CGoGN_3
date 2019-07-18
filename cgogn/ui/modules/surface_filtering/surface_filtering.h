@@ -45,7 +45,8 @@ class CGOGN_MODULE_SURFACE_FILTERING_EXPORT SurfaceFiltering : public Module
     using Mesh = CMap2;
 
     template <typename T>
-    using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
+    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+
     using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
 
     using Vec3 = cgogn::geometry::Vec3;
@@ -58,7 +59,7 @@ public:
 
 	void init();
 
-	void filter_mesh(Mesh& m, const AttributePtr<Vec3>& vertex_position);
+	void filter_mesh(Mesh& m, Attribute<Vec3>* vertex_position);
 
 protected:
 
@@ -67,7 +68,7 @@ protected:
 private:
 
 	Mesh* selected_mesh_;
-	AttributePtr<Vec3> selected_vertex_position_;
+	Attribute<Vec3>* selected_vertex_position_;
 	CMapProvider* cmap_provider_;
 };
 

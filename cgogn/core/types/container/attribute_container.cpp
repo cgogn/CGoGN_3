@@ -51,29 +51,9 @@ uint32 AttributeGen::maximum_index() const
 // AttributeContainerGen class //
 /////////////////////////////////
 
-void AttributeContainerGen::delete_attribute(AttributeGen* attribute)
-{
-	if (attribute->is_mark())
-	{
-		auto iter = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
-		if (iter != mark_attributes_.end())
-		{
-			*iter = mark_attributes_.back();
-			mark_attributes_.pop_back();
-		}
-	}
-	else
-	{
-		auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);
-		if (iter != attributes_.end())
-		{
-			*iter = attributes_.back();
-			attributes_.pop_back();
-		}
-	}
-}
-
-AttributeContainerGen::AttributeContainerGen() : nb_elements_(0), maximum_index_(0)
+AttributeContainerGen::AttributeContainerGen() :
+	nb_elements_(0),
+	maximum_index_(0)
 {
 	attributes_.reserve(32);
 	attributes_shared_ptr_.reserve(32);
@@ -116,18 +96,49 @@ void AttributeContainerGen::release_index(uint32 index)
 	--nb_elements_;
 }
 
-void AttributeContainerGen::remove_attribute(AttributeGenPtr attribute)
+void AttributeContainerGen::remove_attribute(const std::shared_ptr<AttributeGen>& attribute)
 {
-	const std::string& name = attribute->name();
+	auto it = std::find(attributes_shared_ptr_.begin(), attributes_shared_ptr_.end(), attribute);
+	if (it != attributes_shared_ptr_.end())
+	{
+		*it = attributes_shared_ptr_.back();
+		attributes_shared_ptr_.pop_back();
+	}
+}
+
+void AttributeContainerGen::remove_attribute(AttributeGen* attribute)
+{
 	auto it = std::find_if(
 		attributes_shared_ptr_.begin(),
 		attributes_shared_ptr_.end(),
-		[&] (const AttributeGenPtr& att) { return att->name().compare(name) == 0; }
+		[&] (const auto& att) { return att.get() == attribute; }
 	);
 	if (it != attributes_shared_ptr_.end())
 	{
 		*it = attributes_shared_ptr_.back();
 		attributes_shared_ptr_.pop_back();
+	}
+}
+
+void AttributeContainerGen::delete_attribute(AttributeGen* attribute)
+{
+	if (attribute->is_mark())
+	{
+		auto iter = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
+		if (iter != mark_attributes_.end())
+		{
+			*iter = mark_attributes_.back();
+			mark_attributes_.pop_back();
+		}
+	}
+	else
+	{
+		auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);
+		if (iter != attributes_.end())
+		{
+			*iter = attributes_.back();
+			attributes_.pop_back();
+		}
 	}
 }
 

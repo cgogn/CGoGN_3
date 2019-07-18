@@ -55,7 +55,8 @@ class CGOGN_MODULE_SURFACE_RENDER_EXPORT SurfaceRender : public Module
     using Mesh = CMap2;
 
     template <typename T>
-    using AttributePtr = typename cgogn::mesh_traits<Mesh>::AttributePtr<T>;
+    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+
     using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
 
     using Vec3 = cgogn::geometry::Vec3;
@@ -68,7 +69,7 @@ public:
 
 	void init();
 
-	void update(Mesh* m, const AttributePtr<Vec3>& vertex_position,  const AttributePtr<Vec3>& vertex_normal);
+	void update(const Mesh& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* vertex_normal);
 
 protected:
 
@@ -82,7 +83,7 @@ private:
 		Parameters() : mesh_(nullptr)
 		{}
 
-		Parameters(Mesh* m) :
+		Parameters(const Mesh* m) :
 			mesh_(m),
 			initialized_(false),
 			render_vertices_(false),
@@ -119,7 +120,7 @@ private:
 			param_phong_->specular_coef_ = 250.0f;
 		}
 
-		Mesh* mesh_;
+		const Mesh* mesh_;
 		bool initialized_;
 
 		std::unique_ptr<cgogn::rendering::MeshRender> render_;
@@ -142,10 +143,10 @@ private:
 		float32 vertex_base_size_;
 	};
 
-	Mesh* selected_mesh_;
-	AttributePtr<Vec3> selected_vertex_position_;
-	AttributePtr<Vec3> selected_vertex_normal_;
-	std::unordered_map<Mesh*, Parameters> parameters_;
+	const Mesh* selected_mesh_;
+	const Attribute<Vec3>* selected_vertex_position_;
+	const Attribute<Vec3>* selected_vertex_normal_;
+	std::unordered_map<const Mesh*, Parameters> parameters_;
 	cgogn::ui::CMapProvider* cmap_provider_;
 };
 

@@ -37,7 +37,7 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// typename mesh_traits<MESH>::MarkAttributePtr get_mark_attribute(MESH& m);
+// typename mesh_traits<MESH>::MarkAttribute* get_mark_attribute(MESH& m);
 
 /*****************************************************************************/
 
@@ -47,7 +47,7 @@ namespace cgogn
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttributePtr
+typename mesh_traits<MESH>::MarkAttribute*
 get_mark_attribute(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -70,7 +70,7 @@ get_mark_attribute(const MESH& m)
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttributePtr
+typename mesh_traits<MESH>::MarkAttribute*
 get_mark_attribute(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -80,7 +80,7 @@ get_mark_attribute(const MESH& m)
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// void release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttributePtr attribute);
+// void release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute);
 
 /*****************************************************************************/
 
@@ -91,7 +91,7 @@ get_mark_attribute(const MESH& m)
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
 void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttributePtr attribute)
+release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
@@ -104,7 +104,7 @@ release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttributeP
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttributePtr attribute)
+release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return release_mark_attribute<CELL>(m.mesh(), attribute);
@@ -120,7 +120,7 @@ class CellMarker
 protected:
 
 	const MESH& mesh_;
-	typename mesh_traits<MESH>::MarkAttributePtr mark_attribute_;
+	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
 
 public:
 

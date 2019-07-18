@@ -42,7 +42,7 @@ Scalar
 length(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -54,7 +54,7 @@ template <typename MESH>
 Scalar
 mean_edge_length(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;

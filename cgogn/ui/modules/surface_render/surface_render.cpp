@@ -39,7 +39,9 @@ namespace ui
 
 SurfaceRender::SurfaceRender(const App& app) :
 	cgogn::ui::Module(app, "SurfaceRender"),
-	selected_mesh_(nullptr)
+	selected_mesh_(nullptr),
+	selected_vertex_position_(nullptr),
+	selected_vertex_normal_(nullptr)
 {}
 
 SurfaceRender::~SurfaceRender()
@@ -54,9 +56,9 @@ void SurfaceRender::init()
 	});
 }
 
-void SurfaceRender::update(Mesh* m, const AttributePtr<Vec3>& vertex_position,  const AttributePtr<Vec3>& vertex_normal)
+void SurfaceRender::update(const Mesh& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* vertex_normal)
 {
-	Parameters& p = parameters_[m];
+	Parameters& p = parameters_[&m];
 
 	for (cgogn::uint32 i = 0; i < 3; ++i)
 	{
@@ -74,15 +76,15 @@ void SurfaceRender::update(Mesh* m, const AttributePtr<Vec3>& vertex_position,  
 		}
 	}
 
-	p.render_->init_primitives(*m, cgogn::rendering::POINTS);
-	p.render_->init_primitives(*m, cgogn::rendering::LINES);
-	p.render_->init_primitives(*m, cgogn::rendering::TRIANGLES);
+	p.render_->init_primitives(m, cgogn::rendering::POINTS);
+	p.render_->init_primitives(m, cgogn::rendering::LINES);
+	p.render_->init_primitives(m, cgogn::rendering::TRIANGLES);
 
-	cgogn::rendering::update_vbo(vertex_position.get(), p.vbo_position_.get());
+	cgogn::rendering::update_vbo(vertex_position, p.vbo_position_.get());
 	if (vertex_normal)
-		cgogn::rendering::update_vbo(vertex_normal.get(), p.vbo_normal_.get());
+		cgogn::rendering::update_vbo(vertex_normal, p.vbo_normal_.get());
 
-	p.vertex_base_size_ = cgogn::geometry::mean_edge_length(*m, vertex_position) / 7.0;
+	p.vertex_base_size_ = cgogn::geometry::mean_edge_length(m, vertex_position) / 7.0;
 
 	p.initialized_ = true;
 }
@@ -160,8 +162,8 @@ void SurfaceRender::interface()
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 			{
 				selected_mesh_ = m;
-				selected_vertex_position_.reset();
-				selected_vertex_normal_.reset();
+				selected_vertex_position_ = nullptr;
+				selected_vertex_normal_ = nullptr;
 			}
 		});
 		ImGui::ListBoxFooter();
@@ -174,7 +176,7 @@ void SurfaceRender::interface()
 		std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 		if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const AttributePtr<Vec3>& attribute)
+			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_position_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
@@ -187,7 +189,7 @@ void SurfaceRender::interface()
 		std::string selected_vertex_normal_name_ = selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
 		if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const AttributePtr<Vec3>& attribute)
+			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_normal_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
@@ -201,7 +203,7 @@ void SurfaceRender::interface()
 		if (selected_vertex_position_)
 		{
 			if (ImGui::Button("Update data"))
-				update(selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
+				update(*selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
 		}
 
 		ImGui::Separator();

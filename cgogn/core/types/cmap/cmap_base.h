@@ -44,40 +44,33 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
-	// using AttributeContainerT = AttributeContainer<Vector>;
-	using AttributeContainerT = AttributeContainer<ChunkArray>;
+	// using AttributeContainer = AttributeContainerT<Vector>;
+	using AttributeContainer = AttributeContainerT<ChunkArray>;
 
 	template <typename T>
-	using Attribute = AttributeContainerT::Attribute<T>;
-	template <typename T>
-	using AttributePtr = AttributeContainerT::AttributePtr<T>;
-
-	using AttributeGenPtr = AttributeContainerT::AttributeGenPtr;
-
-	using MarkAttributePtr = AttributeContainerT::MarkAttributePtr;
+	using Attribute = AttributeContainer::Attribute<T>;
+	using MarkAttribute = AttributeContainer::MarkAttribute;
 
 	// Dart container
-	mutable AttributeContainerT topology_;
+	mutable AttributeContainer topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<AttributePtr<Dart>> relations_;
+	std::vector<std::shared_ptr<Attribute<Dart>>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<AttributePtr<uint32>, NB_ORBITS> embeddings_;
+	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	AttributePtr<uint8> boundary_marker_;
+	std::shared_ptr<Attribute<uint8>> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<AttributeContainerT, NB_ORBITS> attribute_containers_;
+	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
 
 protected:
 
-	AttributePtr<Dart> add_relation(const std::string& name)
+	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
-		AttributePtr<Dart> rel = topology_.add_attribute<Dart>(name);
-		relations_.push_back(rel);
-		return rel;
+		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
 
 public:
@@ -142,9 +135,8 @@ public:
 		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
 		std::ostringstream oss;
 		oss << "__emb_" << orbit_name(orbit);
-		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());
-		embeddings_[orbit] = emb;
-		for (uint32& i : *emb)
+		embeddings_[orbit] = topology_.add_attribute<uint32>(oss.str());
+		for (uint32& i : *embeddings_[orbit])
 			i = INVALID_INDEX;
 	}
 
