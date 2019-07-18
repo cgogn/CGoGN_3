@@ -71,6 +71,8 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 	
+	sr.set_vertex_position(*m, "position");
+	sr.set_vertex_normal(*m, "normal");
 	sr.update_data(*m);
 
 	cgogn::ui::View* v1 = app.current_view();

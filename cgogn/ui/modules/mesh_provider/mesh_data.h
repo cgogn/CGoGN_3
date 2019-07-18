@@ -32,6 +32,8 @@
 #include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/vbo_update.h>
 
+#include <unordered_map>
+
 namespace cgogn
 {
 
@@ -171,10 +173,10 @@ struct MeshData
 	}
 
 	Vec3 bb_min_, bb_max_;
+	const Mesh* mesh_;
 
 private:
 
-	const Mesh* mesh_;
 	rendering::MeshRender render_;
 	std::unordered_map<std::string, std::unique_ptr<rendering::VBO>> vbos_;
 };

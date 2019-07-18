@@ -72,6 +72,8 @@ public:
 	void init();
 
 	void update_data(const Mesh& m);
+	void set_vertex_position(const Mesh& m, const std::string& vertex_position_name);
+	void set_vertex_normal(const Mesh& m, const std::string& vertex_normal_name);
 
 protected:
 
@@ -82,12 +84,7 @@ private:
 
 	struct Parameters
 	{
-		Parameters() : mesh_(nullptr)
-		{}
-
-		Parameters(const Mesh* m, MeshData* m_data) :
-			mesh_(m),
-			mesh_data_(m_data),
+		Parameters() :
 			initialized_(false),
 			render_vertices_(false),
 			render_edges_(false),
@@ -96,30 +93,24 @@ private:
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			// param_point_sprite_->set_vbos(vbo_position_.get());
 			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 1);
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			// param_edge_->set_vbos(vbo_position_.get());
 			param_edge_->color_ = rendering::GLColor(1, 1, 0, 1);
 			param_edge_->width_= 2.5f;
 
 			param_flat_ =  rendering::ShaderFlat::generate_param();
-			// param_flat_->set_vbos(vbo_position_.get());
 			param_flat_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
 			param_flat_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_phong_ = rendering::ShaderPhong::generate_param();
-			// param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
 			param_phong_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
 			param_phong_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
 			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 		}
 
-		const Mesh* mesh_;
-		MeshData* mesh_data_;
 		bool initialized_;
 
 		std::string vertex_position_name_;

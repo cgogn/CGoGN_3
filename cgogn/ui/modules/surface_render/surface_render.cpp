@@ -49,24 +49,42 @@ void SurfaceRender::init()
 	mesh_provider_ = static_cast<ui::MeshProvider*>(app_.module("MeshProvider"));
 	mesh_provider_->foreach_mesh([this] (Mesh* m, const std::string& name)
 	{
-		parameters_.emplace(m, Parameters(m, mesh_provider_->mesh_data(m)));
+		parameters_.emplace(m, Parameters());
 	});
 }
 
 void SurfaceRender::update_data(const Mesh& m)
 {
 	Parameters& p = parameters_[&m];
-
 	MeshData* md = mesh_provider_->mesh_data(&m);
 
 	md->update_vbo(p.vertex_position_name_);
-	if (!p.vertex_position_name_.empty())
-		md->update_vbo(p.vertex_position_name_);
+	if (!p.vertex_normal_name_.empty())
+		md->update_vbo(p.vertex_normal_name_);
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(m, p.vertex_position_name_);
 	p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 
+	md->update_bb(vertex_position.get());
+
+	p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_name_));
+	p.param_edge_->set_vbos(md->vbo(p.vertex_position_name_));
+	p.param_flat_->set_vbos(md->vbo(p.vertex_position_name_));
+	p.param_phong_->set_vbos(md->vbo(p.vertex_position_name_), md->vbo(p.vertex_normal_name_));
+
 	p.initialized_ = true;
+}
+
+void SurfaceRender::set_vertex_position(const Mesh& m, const std::string& vertex_position_name)
+{
+	Parameters& p = parameters_[&m];
+	p.vertex_position_name_ = vertex_position_name;
+}
+
+void SurfaceRender::set_vertex_normal(const Mesh& m, const std::string& vertex_normal_name)
+{
+	Parameters& p = parameters_[&m];
+	p.vertex_normal_name_ = vertex_normal_name;
 }
 
 void SurfaceRender::draw(ui::View* view)
@@ -75,7 +93,7 @@ void SurfaceRender::draw(ui::View* view)
 	{
 		if (!p.initialized_)
 			continue;
-
+		
 		MeshData* md = mesh_provider_->mesh_data(m);
 
 		Vec3 diagonal = md->bb_max_ - md->bb_min_;
