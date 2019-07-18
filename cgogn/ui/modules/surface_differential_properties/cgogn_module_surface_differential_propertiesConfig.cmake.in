@@ -3,7 +3,7 @@ include(CMakeFindDependencyMacro)
 find_dependency(cgogn_core REQUIRED)
 find_dependency(cgogn_ui REQUIRED)
 find_dependency(cgogn_geometry REQUIRED)
-find_dependency(cgogn_module_cmap_provider REQUIRED)
+find_dependency(cgogn_module_mesh_provider REQUIRED)
 find_dependency(ImGUI REQUIRED)
 
 if(NOT TARGET cgogn::module::surface_differential_properties)

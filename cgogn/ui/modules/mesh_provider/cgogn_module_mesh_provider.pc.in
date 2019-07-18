@@ -4,7 +4,7 @@ libdir=@CMAKE_INSTALL_LIBDIR@
 includedir=@CMAKE_INSTALL_INCLUDEDIR@
 
 Name: @PROJECT_NAME@
-Description: CMap provider module of the cgogn geometric modeling kernel
+Description: Mesh provider module of the cgogn geometric modeling kernel
 Version: @CGoGN_VERSION@
 Requires: @PKG_CONFIG_REQUIRES@
 

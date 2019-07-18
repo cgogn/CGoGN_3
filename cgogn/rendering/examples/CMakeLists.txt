@@ -7,7 +7,7 @@ project(cgogn_rendering_examples
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_ui REQUIRED)
 
-find_package(cgogn_module_cmap_provider REQUIRED)
+find_package(cgogn_module_mesh_provider REQUIRED)
 find_package(cgogn_module_surface_differential_properties REQUIRED)
 find_package(cgogn_module_surface_render REQUIRED)
 
@@ -24,7 +24,7 @@ add_executable(simple_viewer simple_viewer.cpp)
 target_link_libraries(simple_viewer
 	cgogn::core
 	cgogn::ui
-	cgogn::module::cmap_provider
+	cgogn::module::mesh_provider
 	cgogn::module::surface_differential_properties
 	cgogn::module::surface_render
 )

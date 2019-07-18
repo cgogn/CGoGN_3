@@ -78,7 +78,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
 
 
 
-add_subdirectory(modules/cmap_provider)
+add_subdirectory(modules/mesh_provider)
 add_subdirectory(modules/surface_differential_properties)
 add_subdirectory(modules/surface_filtering)
 add_subdirectory(modules/surface_render)

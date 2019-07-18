@@ -27,7 +27,7 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/ui/modules/cmap_provider/cmap_provider.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_filtering/surface_filtering.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
@@ -48,9 +48,10 @@ int main(int argc, char** argv)
 
 	cgogn::ui::App app;
 	app.set_window_title("Filtering");
+	app.set_window_size(1000, 800);
 
-	cgogn::ui::CMapProvider cmap_provider(app);
-	cmap_provider.import_surface_from_file(filename);
+	cgogn::ui::MeshProvider mesh_provider(app);
+	mesh_provider.import_surface_from_file(filename);
 
 	cgogn::ui::SurfaceRender sr(app);
 	cgogn::ui::SurfaceFiltering sf(app);

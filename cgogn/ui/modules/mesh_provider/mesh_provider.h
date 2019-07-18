@@ -21,14 +21,19 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODULE_CMAP_PROVIDER_H_
-#define CGOGN_MODULE_CMAP_PROVIDER_H_
+#ifndef CGOGN_MODULE_MESH_PROVIDER_H_
+#define CGOGN_MODULE_MESH_PROVIDER_H_
 
-#include <cgogn/ui/modules/cmap_provider/cgogn_module_cmap_provider_export.h>
+#include <cgogn/ui/modules/mesh_provider/cgogn_module_mesh_provider_export.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 
 #include <cgogn/ui/module.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
+
+#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/rendering/vbo_update.h>
 
 #include <string>
 #include <unordered_map>
@@ -41,21 +46,25 @@ namespace ui
 
 class App;
 
-class CGOGN_MODULE_CMAP_PROVIDER_EXPORT CMapProvider : public Module
+class CGOGN_MODULE_MESH_PROVIDER_EXPORT MeshProvider : public Module
 {
+    using Mesh = CMap2;
+
 public:
 
-	CMapProvider(const App& app);
-	~CMapProvider();
+	MeshProvider(const App& app);
+	~MeshProvider();
 
-    CMap2* import_surface_from_file(const std::string& filename);
+    Mesh* import_surface_from_file(const std::string& filename);
 
     template <typename FUNC>
-    void foreach_cmap2(const FUNC& f)
+    void foreach_mesh(const FUNC& f)
     {
-        for (auto& [name, m] : cmap2_)
+        for (auto& [name, m] : meshes_)
             f(m.get(), name);
     }
+
+    MeshData* mesh_data(const Mesh* m);
 
 protected:
 
@@ -63,11 +72,12 @@ protected:
 
 private:
 
-    std::unordered_map<std::string, std::unique_ptr<CMap2>> cmap2_;
+    std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes_;
+    std::unordered_map<const Mesh*, MeshData> mesh_data_;
 };
 
 } // namespace ui
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_CMAP_PROVIDER_H_
+#endif // CGOGN_MODULE_MESH_PROVIDER_H_

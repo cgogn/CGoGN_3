@@ -93,32 +93,33 @@ template <typename VEC,
 void update_vbo(const std::vector<VEC>* vector, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
-	switch (element_size)
+	if constexpr (element_size == 1)
 	{
-		case 1:
-			update_vbo(vector, vbo, [] (const VEC& n) -> float32
-			{
-				return float32(n[0]);
-			});
-			break;
-		case 2:
-			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec2f
-			{
-				return { float32(n[0]), float32(n[1]) };
-			});
-			break;
-		case 3:
-			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec3f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]) };
-			});
-			break;
-		case 4:
-			update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec4f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
-			});
-			break;
+		update_vbo(vector, vbo, [] (const VEC& n) -> float32
+		{
+			return float32(n);
+		});
+	}
+	if constexpr (element_size == 2)
+	{
+		update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec2f
+		{
+			return { float32(n[0]), float32(n[1]) };
+		});
+	}
+	if constexpr (element_size == 3)
+	{
+		update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec3f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]) };
+		});
+	}
+	if constexpr (element_size == 4)
+	{
+		update_vbo(vector, vbo, [] (const VEC& n) -> geometry::Vec4f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+		});
 	}
 }
 
@@ -177,32 +178,33 @@ template <typename VEC,
 void update_vbo(const Vector<VEC>* attribute, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
-	switch (element_size)
+	if constexpr (element_size == 1)
 	{
-		case 1:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> float32
-			{
-				return float32(n[0]);
-			});
-			break;
-		case 2:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
-			{
-				return { float32(n[0]), float32(n[1]) };
-			});
-			break;
-		case 3:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]) };
-			});
-			break;
-		case 4:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
-			});
-			break;
+		update_vbo(attribute, vbo, [] (const VEC& n) -> float32
+		{
+			return float32(n);
+		});
+	}
+	if constexpr (element_size == 2)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
+		{
+			return { float32(n[0]), float32(n[1]) };
+		});
+	}
+	if constexpr (element_size == 3)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]) };
+		});
+	}
+	if constexpr (element_size == 4)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+		});
 	}
 }
 
@@ -268,32 +270,33 @@ template <typename VEC,
 void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
-	switch (element_size)
+	if constexpr (element_size == 1)
 	{
-		case 1:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> float32
-			{
-				return float32(n[0]);
-			});
-			break;
-		case 2:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
-			{
-				return { float32(n[0]), float32(n[1]) };
-			});
-			break;
-		case 3:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]) };
-			});
-			break;
-		case 4:
-			update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
-			{
-				return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
-			});
-			break;
+		update_vbo(attribute, vbo, [] (const VEC& n) -> float32
+		{
+			return float32(n);
+		});
+	}
+	if constexpr (element_size == 2)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec2f
+		{
+			return { float32(n[0]), float32(n[1]) };
+		});
+	}
+	if constexpr (element_size == 3)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec3f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]) };
+		});
+	}
+	if constexpr (element_size == 4)
+	{
+		update_vbo(attribute, vbo, [] (const VEC& n) -> geometry::Vec4f
+		{
+			return { float32(n[0]), float32(n[1]), float32(n[2]), float32(n[3]) };
+		});
 	}
 }
 

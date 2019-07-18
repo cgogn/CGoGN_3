@@ -38,19 +38,19 @@ namespace ui
 {
 
 class App;
-class CMapProvider;
+class MeshProvider;
 
 class CGOGN_MODULE_SURFACE_FILTERING_EXPORT SurfaceFiltering : public Module
 {
     using Mesh = CMap2;
 
     template <typename T>
-    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+    using Attribute = typename mesh_traits<Mesh>::Attribute<T>;
 
-    using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+    using Vertex = typename mesh_traits<Mesh>::Vertex;
 
-    using Vec3 = cgogn::geometry::Vec3;
-    using Scalar = cgogn::geometry::Scalar;
+    using Vec3 = geometry::Vec3;
+    using Scalar = geometry::Scalar;
 
 public:
 
@@ -69,7 +69,7 @@ private:
 
 	Mesh* selected_mesh_;
 	Attribute<Vec3>* selected_vertex_position_;
-	CMapProvider* cmap_provider_;
+	MeshProvider* mesh_provider_;
 };
 
 } // namespace ui

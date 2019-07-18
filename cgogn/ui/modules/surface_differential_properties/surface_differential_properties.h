@@ -38,19 +38,20 @@ namespace ui
 {
 
 class App;
-class CMapProvider;
+class MeshProvider;
 
 class CGOGN_MODULE_SURFACE_DIFFERENTIAL_PROPERTIES_EXPORT SurfaceDifferentialProperties : public Module
 {
     using Mesh = CMap2;
 
     template <typename T>
-    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+    using Attribute = typename mesh_traits<Mesh>::Attribute<T>;
 
-    using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+    using Vertex = typename mesh_traits<Mesh>::Vertex;
+    using Edge = typename mesh_traits<Mesh>::Edge;
 
-    using Vec3 = cgogn::geometry::Vec3;
-    using Scalar = cgogn::geometry::Scalar;
+    using Vec3 = geometry::Vec3;
+    using Scalar = geometry::Scalar;
 
 public:
 
@@ -59,7 +60,24 @@ public:
     
 	void init();
 
-	void compute_normal(Mesh& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal);
+	void compute_normal(
+		const Mesh& m,
+		const Attribute<Vec3>* vertex_position,
+		Attribute<Vec3>* vertex_normal
+	);
+
+	void compute_curvature(
+		const Mesh& m,
+		Scalar radius,
+		const Attribute<Vec3>* vertex_position,
+		const Attribute<Vec3>* vertex_normal,
+		const Attribute<Scalar>* edge_angle,
+		Attribute<Scalar>* vertex_kmax,
+		Attribute<Scalar>* vertex_kmin,
+		Attribute<Vec3>* vertex_Kmax,
+		Attribute<Vec3>* vertex_Kmin,
+		Attribute<Vec3>* vertex_Knormal
+	);
 
 protected:
 
@@ -70,7 +88,12 @@ private:
 	Mesh* selected_mesh_;
 	const Attribute<Vec3>* selected_vertex_position_;
 	Attribute<Vec3>* selected_vertex_normal_;
-	CMapProvider* cmap_provider_;
+	Attribute<Scalar>* selected_vertex_kmax_;
+	Attribute<Scalar>* selected_vertex_kmin_;
+	Attribute<Vec3>* selected_vertex_Kmax_;
+	Attribute<Vec3>* selected_vertex_Kmin_;
+	Attribute<Vec3>* selected_vertex_Knormal_;
+	MeshProvider* mesh_provider_;
 };
 
 } // namespace ui

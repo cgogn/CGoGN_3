@@ -25,7 +25,6 @@
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
-#include <cgogn/ui/modules/cmap_provider/cmap_provider.h>
 
 #include <cgogn/geometry/algos/length.h>
 
@@ -38,10 +37,8 @@ namespace ui
 {
 
 SurfaceRender::SurfaceRender(const App& app) :
-	cgogn::ui::Module(app, "SurfaceRender"),
-	selected_mesh_(nullptr),
-	selected_vertex_position_(nullptr),
-	selected_vertex_normal_(nullptr)
+	ui::Module(app, "SurfaceRender"),
+	selected_mesh_(nullptr)
 {}
 
 SurfaceRender::~SurfaceRender()
@@ -49,63 +46,48 @@ SurfaceRender::~SurfaceRender()
 
 void SurfaceRender::init()
 {
-	cmap_provider_ = static_cast<cgogn::ui::CMapProvider*>(app_.module("CMapProvider"));
-	cmap_provider_->foreach_cmap2([this] (Mesh* m, const std::string& name)
+	mesh_provider_ = static_cast<ui::MeshProvider*>(app_.module("MeshProvider"));
+	mesh_provider_->foreach_mesh([this] (Mesh* m, const std::string& name)
 	{
-		parameters_.emplace(m, Parameters(m));
+		parameters_.emplace(m, Parameters(m, mesh_provider_->mesh_data(m)));
 	});
 }
 
-void SurfaceRender::update(const Mesh& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* vertex_normal)
+void SurfaceRender::update_data(const Mesh& m)
 {
 	Parameters& p = parameters_[&m];
 
-	for (cgogn::uint32 i = 0; i < 3; ++i)
-	{
-		p.bb_min_[i] = std::numeric_limits<cgogn::float64>::max();
-		p.bb_max_[i] = std::numeric_limits<cgogn::float64>::lowest();
-	}
-	for (const Vec3& v : *vertex_position)
-	{
-		for (cgogn::uint32 i = 0; i < 3; ++i)
-		{
-			if (v[i] < p.bb_min_[i])
-				p.bb_min_[i] = v[i];
-			if (v[i] > p.bb_max_[i])
-				p.bb_max_[i] = v[i];
-		}
-	}
+	MeshData* md = mesh_provider_->mesh_data(&m);
 
-	p.render_->init_primitives(m, cgogn::rendering::POINTS);
-	p.render_->init_primitives(m, cgogn::rendering::LINES);
-	p.render_->init_primitives(m, cgogn::rendering::TRIANGLES);
+	md->update_vbo(p.vertex_position_name_);
+	if (!p.vertex_position_name_.empty())
+		md->update_vbo(p.vertex_position_name_);
 
-	cgogn::rendering::update_vbo(vertex_position, p.vbo_position_.get());
-	if (vertex_normal)
-		cgogn::rendering::update_vbo(vertex_normal, p.vbo_normal_.get());
-
-	p.vertex_base_size_ = cgogn::geometry::mean_edge_length(m, vertex_position) / 7.0;
+	std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(m, p.vertex_position_name_);
+	p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 
 	p.initialized_ = true;
 }
 
-void SurfaceRender::draw(cgogn::ui::View* view)
+void SurfaceRender::draw(ui::View* view)
 {
 	for (auto& [m, p] : parameters_)
 	{
 		if (!p.initialized_)
 			continue;
 
-		Vec3 diagonal = p.bb_max_ - p.bb_min_;
+		MeshData* md = mesh_provider_->mesh_data(m);
+
+		Vec3 diagonal = md->bb_max_ - md->bb_min_;
 		view->set_scene_radius(diagonal.norm() / 2.0f);
-		Vec3 center = (p.bb_max_ + p.bb_min_) / 2.0f;
+		Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 		view->set_scene_center(center);
 
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		const cgogn::rendering::GLMat4& proj_matrix = view->projection_matrix();
-		const cgogn::rendering::GLMat4& view_matrix = view->modelview_matrix();
+		const rendering::GLMat4& proj_matrix = view->projection_matrix();
+		const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(1.0f, 2.0f);
@@ -115,13 +97,13 @@ void SurfaceRender::draw(cgogn::ui::View* view)
 			if (p.phong_shading_)
 			{
 				p.param_phong_->bind(proj_matrix, view_matrix);
-				p.render_->draw(cgogn::rendering::TRIANGLES);
+				md->draw(rendering::TRIANGLES);
 				p.param_phong_->release();
 			}
 			else
 			{
 				p.param_flat_->bind(proj_matrix, view_matrix);
-				p.render_->draw(cgogn::rendering::TRIANGLES);
+				md->draw(rendering::TRIANGLES);
 				p.param_flat_->release();
 			}
 		}
@@ -132,7 +114,7 @@ void SurfaceRender::draw(cgogn::ui::View* view)
 		{
 			p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 			p.param_point_sprite_->bind(proj_matrix, view_matrix);
-			p.render_->draw(cgogn::rendering::POINTS);
+			md->draw(rendering::POINTS);
 			p.param_point_sprite_->release();
 		}
 
@@ -141,7 +123,7 @@ void SurfaceRender::draw(cgogn::ui::View* view)
 			p.param_edge_->bind(proj_matrix, view_matrix);
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			p.render_->draw(cgogn::rendering::LINES);
+			md->draw(rendering::LINES);
 			glDisable(GL_BLEND);
 			p.param_edge_->release();
 		}
@@ -157,14 +139,10 @@ void SurfaceRender::interface()
 
 	if (ImGui::ListBoxHeader("Select mesh"))
 	{
-		cmap_provider_->foreach_cmap2([this] (Mesh* m, const std::string& name)
+		mesh_provider_->foreach_mesh([this] (Mesh* m, const std::string& name)
 		{
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-			{
 				selected_mesh_ = m;
-				selected_vertex_position_ = nullptr;
-				selected_vertex_normal_ = nullptr;
-			}
 		});
 		ImGui::ListBoxFooter();
 	}
@@ -173,37 +151,43 @@ void SurfaceRender::interface()
 	{
 		Parameters& p = parameters_[selected_mesh_];
 
-		std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
+		std::vector<Attribute<Vec3>*> vec3_attributes;
+		foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (Attribute<Vec3>* attribute)
+		{
+			vec3_attributes.push_back(attribute);
+		});
+
+		std::string selected_vertex_position_name_ = p.vertex_position_name_.empty() ? "-- select --" : p.vertex_position_name_;
 		if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
+			for (Attribute<Vec3>* attribute : vec3_attributes)
 			{
-				bool is_selected = attribute == selected_vertex_position_;
+				bool is_selected = attribute->name() == p.vertex_position_name_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-					selected_vertex_position_ = attribute;
+					p.vertex_position_name_ = attribute->name();
 				if (is_selected)
 					ImGui::SetItemDefaultFocus();
-			});
+			}
 			ImGui::EndCombo();
 		}
-		std::string selected_vertex_normal_name_ = selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
+		std::string selected_vertex_normal_name_ = p.vertex_normal_name_.empty() ? "-- select --" : p.vertex_normal_name_;
 		if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
+			for (Attribute<Vec3>* attribute : vec3_attributes)
 			{
-				bool is_selected = attribute == selected_vertex_normal_;
+				bool is_selected = attribute->name() == p.vertex_normal_name_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-					selected_vertex_normal_ = attribute;
+					p.vertex_normal_name_ = attribute->name();
 				if (is_selected)
 					ImGui::SetItemDefaultFocus();
-			});
+			}
 			ImGui::EndCombo();
 		}
 
-		if (selected_vertex_position_)
+		if (!p.vertex_position_name_.empty())
 		{
 			if (ImGui::Button("Update data"))
-				update(*selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
+				update_data(*selected_mesh_);
 		}
 
 		ImGui::Separator();
@@ -256,7 +240,7 @@ void SurfaceRender::interface()
 	ImGui::End();
 
 	if (need_update)
-		for (cgogn::ui::View* v : linked_views_)
+		for (ui::View* v : linked_views_)
 			v->request_update();
 }
 

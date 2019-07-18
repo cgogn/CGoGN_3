@@ -68,9 +68,11 @@ angle(
 {
 	using Face = typename mesh_traits<MESH>::Face;
 	std::vector<Face> faces = incident_faces(m, e);
+	if (faces.size() < 2)
+		return 0;
 	return angle(
-        value<Vec3>(m, faces[0], face_normal),
-        value<Vec3>(m, faces[1], face_normal)
+        value<Vec3>(m, face_normal, faces[0]),
+        value<Vec3>(m, face_normal, faces[1])
     );
 }
 
@@ -100,7 +102,7 @@ compute_angle(
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
-	parallel_foreach_cell(m, [&] (Edge e) -> bool
+	foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
         return true;

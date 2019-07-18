@@ -29,7 +29,7 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/ui/modules/cmap_provider/cmap_provider.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 
@@ -58,8 +58,8 @@ int main(int argc, char** argv)
 	app.set_window_title("Simple viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::CMapProvider cmap_provider(app);
-	Mesh* m = cmap_provider.import_surface_from_file(filename);
+	cgogn::ui::MeshProvider mesh_provider(app);
+	Mesh* m = mesh_provider.import_surface_from_file(filename);
 
 	cgogn::ui::SurfaceRender sr(app);
 	cgogn::ui::SurfaceDifferentialProperties sdp(app);
@@ -70,7 +70,8 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-	sr.update(*m, vertex_position.get(), vertex_normal.get());
+	
+	sr.update_data(*m);
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);

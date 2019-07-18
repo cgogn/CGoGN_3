@@ -24,7 +24,7 @@
 #include <cgogn/ui/modules/surface_filtering/surface_filtering.h>
 
 #include <cgogn/ui/app.h>
-#include <cgogn/ui/modules/cmap_provider/cmap_provider.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/functions/attributes.h>
 
@@ -49,19 +49,19 @@ SurfaceFiltering::~SurfaceFiltering()
 
 void SurfaceFiltering::init()
 {
-	cmap_provider_ = static_cast<cgogn::ui::CMapProvider*>(app_.module("CMapProvider"));
+	mesh_provider_ = static_cast<ui::MeshProvider*>(app_.module("MeshProvider"));
 }
 
 void SurfaceFiltering::filter_mesh(Mesh& m, Attribute<Vec3>* vertex_position)
 {
-	std::shared_ptr<Attribute<Vec3>> filtered_vertex_position = cgogn::add_attribute<Vec3, Vertex>(m, "__filtered_position");
+	std::shared_ptr<Attribute<Vec3>> filtered_vertex_position = add_attribute<Vec3, Vertex>(m, "__filtered_position");
 	for (auto it = filtered_vertex_position->begin(), end = filtered_vertex_position->end(); it != end; ++it)
 		*it = (*vertex_position)[it.index()];
 	
-	cgogn::geometry::filter_average<Vec3>(m, vertex_position, filtered_vertex_position.get());
+	geometry::filter_average<Vec3>(m, vertex_position, filtered_vertex_position.get());
 	
 	vertex_position->swap(filtered_vertex_position.get());
-	cgogn::remove_attribute<Vertex>(m, filtered_vertex_position);
+	remove_attribute<Vertex>(m, filtered_vertex_position);
 }
 
 void SurfaceFiltering::interface()
@@ -71,7 +71,7 @@ void SurfaceFiltering::interface()
 
 	if (ImGui::ListBoxHeader("Select mesh"))
 	{
-		cmap_provider_->foreach_cmap2([this] (Mesh* m, const std::string& name)
+		mesh_provider_->foreach_mesh([this] (Mesh* m, const std::string& name)
 		{
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 			{
@@ -87,7 +87,7 @@ void SurfaceFiltering::interface()
 		std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 		if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 		{
-			cgogn::foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
+			foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
 			{
 				bool is_selected = attribute == selected_vertex_position_;
 				if (ImGui::Selectable(attribute->name().c_str(), is_selected))

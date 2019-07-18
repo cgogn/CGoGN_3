@@ -27,6 +27,7 @@
 #include <cgogn/ui/modules/surface_render/cgogn_module_surface_render_export.h>
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -48,19 +49,18 @@ namespace ui
 
 class App;
 class View;
-class CMapProvider;
 
 class CGOGN_MODULE_SURFACE_RENDER_EXPORT SurfaceRender : public Module
 {
     using Mesh = CMap2;
 
     template <typename T>
-    using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+    using Attribute = typename mesh_traits<Mesh>::Attribute<T>;
 
-    using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+    using Vertex = typename mesh_traits<Mesh>::Vertex;
 
-    using Vec3 = cgogn::geometry::Vec3;
-    using Scalar = cgogn::geometry::Scalar;
+    using Vec3 = geometry::Vec3;
+    using Scalar = geometry::Scalar;
 
 public:
 
@@ -69,7 +69,7 @@ public:
 
 	void init();
 
-	void update(const Mesh& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* vertex_normal);
+	void update_data(const Mesh& m);
 
 protected:
 
@@ -83,8 +83,9 @@ private:
 		Parameters() : mesh_(nullptr)
 		{}
 
-		Parameters(const Mesh* m) :
+		Parameters(const Mesh* m, MeshData* m_data) :
 			mesh_(m),
+			mesh_data_(m_data),
 			initialized_(false),
 			render_vertices_(false),
 			render_edges_(false),
@@ -92,47 +93,40 @@ private:
 			phong_shading_(false),
 			vertex_scale_factor_(1.0)
 		{
-			render_ = std::make_unique<cgogn::rendering::MeshRender>();
+			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
+			// param_point_sprite_->set_vbos(vbo_position_.get());
+			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 1);
 
-			vbo_position_ = std::make_unique<cgogn::rendering::VBO>();
-			vbo_normal_ = std::make_unique<cgogn::rendering::VBO>();
-
-			param_point_sprite_ = cgogn::rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->set_vbos(vbo_position_.get());
-			param_point_sprite_->color_ = cgogn::rendering::GLColor(1, 0, 0, 1);
-
-			param_edge_ = cgogn::rendering::ShaderBoldLine::generate_param();
-			param_edge_->set_vbos(vbo_position_.get());
-			param_edge_->color_ = cgogn::rendering::GLColor(1, 1, 0, 1);
+			param_edge_ = rendering::ShaderBoldLine::generate_param();
+			// param_edge_->set_vbos(vbo_position_.get());
+			param_edge_->color_ = rendering::GLColor(1, 1, 0, 1);
 			param_edge_->width_= 2.5f;
 
-			param_flat_ =  cgogn::rendering::ShaderFlat::generate_param();
-			param_flat_->set_vbos(vbo_position_.get());
-			param_flat_->front_color_ = cgogn::rendering::GLColor(0, 0.8f, 0, 1);
-			param_flat_->back_color_ = cgogn::rendering::GLColor(0, 0, 0.8f, 1);
-			param_flat_->ambiant_color_ = cgogn::rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+			param_flat_ =  rendering::ShaderFlat::generate_param();
+			// param_flat_->set_vbos(vbo_position_.get());
+			param_flat_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
+			param_flat_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
-			param_phong_ = cgogn::rendering::ShaderPhong::generate_param();
-			param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
-			param_phong_->front_color_ = cgogn::rendering::GLColor(0, 0.8f, 0, 1);
-			param_phong_->back_color_ = cgogn::rendering::GLColor(0, 0, 0.8f, 1);
-			param_phong_->ambiant_color_ = cgogn::rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+			param_phong_ = rendering::ShaderPhong::generate_param();
+			// param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
+			param_phong_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
+			param_phong_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 		}
 
 		const Mesh* mesh_;
+		MeshData* mesh_data_;
 		bool initialized_;
 
-		std::unique_ptr<cgogn::rendering::MeshRender> render_;
-		Vec3 bb_min_, bb_max_;
+		std::string vertex_position_name_;
+		std::string vertex_normal_name_;
 
-		std::unique_ptr<cgogn::rendering::VBO> vbo_position_;
-		std::unique_ptr<cgogn::rendering::VBO> vbo_normal_;
-
-		std::unique_ptr<cgogn::rendering::ShaderPointSprite::Param> param_point_sprite_;
-		std::unique_ptr<cgogn::rendering::ShaderBoldLine::Param> param_edge_;
-		std::unique_ptr<cgogn::rendering::ShaderFlat::Param> param_flat_;
-		std::unique_ptr<cgogn::rendering::ShaderPhong::Param> param_phong_;
+		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
+		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
+		std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -144,10 +138,8 @@ private:
 	};
 
 	const Mesh* selected_mesh_;
-	const Attribute<Vec3>* selected_vertex_position_;
-	const Attribute<Vec3>* selected_vertex_normal_;
 	std::unordered_map<const Mesh*, Parameters> parameters_;
-	cgogn::ui::CMapProvider* cmap_provider_;
+	ui::MeshProvider* mesh_provider_;
 };
 
 } // namespace ui

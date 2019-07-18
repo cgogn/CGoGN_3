@@ -21,7 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/ui/modules/cmap_provider/cmap_provider.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/io/surface_import.h>
 #include <cgogn/core/utils/string.h>
@@ -34,21 +34,31 @@ namespace cgogn
 namespace ui
 {
 
-CMapProvider::CMapProvider(const App& app) : Module(app, "CMapProvider")
+MeshProvider::MeshProvider(const App& app) : Module(app, "MeshProvider")
 {}
 
-CMapProvider::~CMapProvider()
+MeshProvider::~MeshProvider()
 {}
 
-CMap2* CMapProvider::import_surface_from_file(const std::string& filename)
+MeshProvider::Mesh* MeshProvider::import_surface_from_file(const std::string& filename)
 {
-	const auto [it, inserted] = cmap2_.emplace(filename_from_path(filename), std::make_unique<CMap2>());
-	CMap2* mesh = (*it).second.get();
-	cgogn::io::import_OFF(*mesh, filename);
-	return mesh;
+	const auto [it, inserted] = meshes_.emplace(filename_from_path(filename), std::make_unique<Mesh>());
+	Mesh* m = it->second.get();
+	cgogn::io::import_OFF(*m, filename);
+	mesh_data_.emplace(m, MeshData(m));
+	return m;
 }
 
-void CMapProvider::interface()
+MeshData* MeshProvider::mesh_data(const Mesh* m)
+{
+	return &mesh_data_[m];
+	// if (auto it = mesh_data_.find(m); it != mesh_data_.end())
+	// 	return &(it->second);
+	// else
+	// 	return nullptr;
+}
+
+void MeshProvider::interface()
 {}
 
 } // namespace ui
