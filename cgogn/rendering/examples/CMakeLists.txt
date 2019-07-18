@@ -11,11 +11,6 @@ find_package(cgogn_module_mesh_provider REQUIRED)
 find_package(cgogn_module_surface_differential_properties REQUIRED)
 find_package(cgogn_module_surface_render REQUIRED)
 
-if(APPLE)
-  find_library(CORE_FOUNDATION NAMES CoreFoundation)
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation")
-endif()
-
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
 add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
@@ -28,3 +23,12 @@ target_link_libraries(simple_viewer
 	cgogn::module::surface_differential_properties
 	cgogn::module::surface_render
 )
+
+if(APPLE)
+	find_library(CORE_FOUNDATION CoreFoundation)
+	find_library(CARBON Carbon)
+	target_link_libraries(simple_viewer 
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+endif()

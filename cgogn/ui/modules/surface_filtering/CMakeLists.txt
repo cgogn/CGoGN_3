@@ -8,7 +8,7 @@ find_package(cgogn_geometry REQUIRED)
 find_package(cgogn_module_mesh_provider REQUIRED)
 find_package(ImGUI REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::module::surface_filtering ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}

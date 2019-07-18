@@ -23,8 +23,6 @@
 
 #include <cgogn/rendering/drawer.h>
 
-#include <iostream>
-
 namespace cgogn
 {
 
@@ -131,12 +129,12 @@ void DisplayListDrawer::end_list()
 
 	vbo_pos_->allocate(nb_elts, 3);
 	float32* ptr = vbo_pos_->lock_pointer();
-	std::memcpy(ptr, data_pos_[0].data(), nb_elts*12);
+	std::memcpy(ptr, data_pos_[0].data(), nb_elts * 12);
 	vbo_pos_->release_pointer();
 
-	vbo_col_->allocate(nb_elts ,3);
+	vbo_col_->allocate(nb_elts, 3);
 	ptr = vbo_col_->lock_pointer();
-	std::memcpy(ptr, data_col_[0].data(), nb_elts*12);
+	std::memcpy(ptr, data_col_[0].data(), nb_elts * 12);
 	vbo_col_->release_pointer();
 
 	// free memory
@@ -287,7 +285,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			// get direct access to the shader to modify parameters while keeping the original param binded
 			ShaderPointSpriteColor* shader_ps_ = static_cast<ShaderPointSpriteColor*>(param_ps_->get_shader());
 //			shader_ps_->set_size(pp.width);
-			shader_ps_->set_uniform_value(2,pp.width);
+			shader_ps_->set_uniform_value(2, pp.width);
 
 			glDrawArrays(pp.mode, pp.begin, pp.nb);
 		}
@@ -308,7 +306,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			ShaderRoundPointColor* shader_rp_ = static_cast<ShaderRoundPointColor*>(param_rp_->get_shader());
 			//shader_rp_->set_size(pp.width);
 			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_rp_->set_uniform_value(0,wd);
+			shader_rp_->set_uniform_value(0, wd);
 
 			if (pp.aa)
 			{
@@ -335,7 +333,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			// get direct access to the shader to modify parameters while keeping the original param binded
 			ShaderBoldLineColor* shader_bl_ = static_cast<ShaderBoldLineColor*>(param_bl_->get_shader());
 			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_bl_->set_uniform_value(0,wd);
+			shader_bl_->set_uniform_value(0, wd);
 
 			if (pp.aa)
 			{
