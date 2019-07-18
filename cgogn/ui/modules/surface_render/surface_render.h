@@ -40,6 +40,8 @@
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
+#include <unordered_map>
+
 namespace cgogn
 {
 

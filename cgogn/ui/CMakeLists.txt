@@ -7,13 +7,7 @@ find_package(cgogn_rendering REQUIRED)
 find_package(ImGUI REQUIRED)
 find_package(synapse REQUIRED)
 
-if(APPLE)
-  find_library(CORE_FOUNDATION NAMES CoreFoundation)
-  find_library(CARBON Carbon)
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation -framework Carbon")
-endif()
-
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::ui ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}

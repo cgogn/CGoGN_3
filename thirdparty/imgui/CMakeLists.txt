@@ -3,6 +3,8 @@ project(ImGUI LANGUAGES C CXX)
 find_package(glfw3 REQUIRED)
 
 set(HEADER_FILES
+	GL/gl3w.h
+	GL/glcorearb.h
 	imconfig.h
 	imgui.h
 	imgui_impl_glfw.h

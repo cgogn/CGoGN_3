@@ -25,3 +25,12 @@ target_link_libraries(filtering
 	cgogn::module::surface_filtering
 	cgogn::module::surface_render
 )
+
+if(APPLE)
+	find_library(CORE_FOUNDATION CoreFoundation)
+	find_library(CARBON Carbon)
+	target_link_libraries(filtering 
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+endif()

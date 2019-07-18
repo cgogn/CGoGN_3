@@ -34,6 +34,8 @@
 
 #include <cgogn/rendering/types.h>
 
+#include <array>
+
 namespace cgogn
 {
 

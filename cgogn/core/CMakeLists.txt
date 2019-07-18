@@ -11,11 +11,7 @@ find_package(Eigen3 3.2)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-if (MSVC)
-	add_library(${PROJECT_NAME} STATIC "")
-else()
-	add_library(${PROJECT_NAME} SHARED "")
-endif()
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
@@ -158,7 +154,7 @@ if(${CGOGN_USE_CXX11_ABI})
 endif()
 
 # see https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_macros.html
-if (${CGOGN_USE_GLIBCXX_DEBUG})
+if(${CGOGN_USE_GLIBCXX_DEBUG})
 	target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<CXX_COMPILER_ID:GNU>:_GLIBCXX_DEBUG>)
 	if(${CGOGN_USE_GLIBCXX_DEBUG_PEDANTIC})
 		target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<CXX_COMPILER_ID:GNU>:_GLIBCXX_DEBUG_PEDANTIC>)
@@ -181,7 +177,7 @@ set(WIN_VERSION "")
 string(REPLACE "." "" WIN_VERSION ${CMAKE_SYSTEM_VERSION})
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>
-	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_CPP_STD=11>
+	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_CPP_STD=17>
 	$<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>
 	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_WIN_VER=${WIN_VERSION}>)
 
@@ -191,7 +187,6 @@ endif(CGOGN_USE_SIMD)
 
 if(${CGOGN_USE_OPENMP})
 	if(OpenMP_FOUND OR OPENMP_FOUND OR OpenMP_CXX_FOUND)
-
 		if(TARGET OpenMP::OpenMP_CXX)
 			target_link_libraries(${PROJECT_NAME} INTERFACE OpenMP::OpenMP_CXX)
 		else()
@@ -235,7 +230,6 @@ if(CGOGN_WITH_TSAN)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC  $<$<CONFIG:Debug>:-fsanitize=thread>)
 endif(CGOGN_WITH_TSAN)
 
-
 if(CGOGN_ENABLE_LTO)
 	target_compile_options(${PROJECT_NAME} PUBLIC
 		$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:GNU>:-flto>>
@@ -243,8 +237,9 @@ if(CGOGN_ENABLE_LTO)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-        DEBUG_POSTFIX "_d"
-        EXPORT_NAME core)
+	DEBUG_POSTFIX "_d"
+	EXPORT_NAME core
+)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads Eigen3::Eigen)
 

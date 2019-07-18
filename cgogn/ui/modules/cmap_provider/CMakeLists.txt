@@ -6,7 +6,7 @@ find_package(cgogn_core REQUIRED)
 find_package(cgogn_io REQUIRED)
 find_package(ImGUI REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::module::cmap_provider ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}

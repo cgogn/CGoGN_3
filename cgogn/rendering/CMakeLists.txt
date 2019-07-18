@@ -5,18 +5,12 @@ project(cgogn_rendering
 find_package(cgogn_core REQUIRED)
 find_package(ImGUI REQUIRED)
 
-if(APPLE)
-  find_library(CORE_FOUNDATION NAMES CoreFoundation)
-  find_library(CARBON Carbon)
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework CoreFoundation -framework Carbon")
-endif()
-
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::rendering ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.cpp"
@@ -40,9 +34,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.h"
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo_update.h"
-
-#		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/imgui_viewer.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.cpp"
