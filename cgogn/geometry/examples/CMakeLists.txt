@@ -5,7 +5,6 @@ project(cgogn_geometry_examples
 )
 
 find_package(cgogn_core REQUIRED)
-find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_ui REQUIRED)
 
 find_package(cgogn_module_cmap_provider REQUIRED)
@@ -20,7 +19,6 @@ add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 add_executable(filtering filtering.cpp)
 target_link_libraries(filtering
 	cgogn::core
-	cgogn::rendering
 	cgogn::ui
 	cgogn::module::cmap_provider
 	cgogn::module::surface_differential_properties

@@ -82,7 +82,7 @@ void SurfaceRender::update(Mesh* m, const AttributePtr<Vec3>& vertex_position,  
 	if (vertex_normal)
 		cgogn::rendering::update_vbo(vertex_normal.get(), p.vbo_normal_.get());
 
-	p.mel_ = cgogn::geometry::mean_edge_length(*m, vertex_position);
+	p.vertex_base_size_ = cgogn::geometry::mean_edge_length(*m, vertex_position) / 7.0;
 
 	p.initialized_ = true;
 }
@@ -128,6 +128,7 @@ void SurfaceRender::draw(cgogn::ui::View* view)
 
 		if (p.render_vertices_)
 		{
+			p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 			p.param_point_sprite_->bind(proj_matrix, view_matrix);
 			p.render_->draw(cgogn::rendering::POINTS);
 			p.param_point_sprite_->release();
@@ -229,7 +230,7 @@ void SurfaceRender::interface()
 				need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
 				ImGui::SameLine();
 				need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::Checkbox("single side##flat", &(p.param_flat_->bf_culling_));
+				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
 			}
 		}
 
@@ -237,16 +238,16 @@ void SurfaceRender::interface()
 		{
 			ImGui::Separator();
 			ImGui::Text("Edges parameters");
-			need_update |= ImGui::ColorEdit3("color##edge", p.param_edge_->color_.data());
-			need_update |= ImGui::SliderFloat("width##edge", &(p.param_edge_->width_), 1.0f, 10.0f);
+			need_update |= ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
+			need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
 		}
 
 		if (p.render_vertices_)
 		{
 			ImGui::Separator();
 			ImGui::Text("Vertices parameters");
-			need_update |= ImGui::ColorEdit3("color##vert", p.param_point_sprite_->color_.data());
-			need_update |= ImGui::SliderFloat("size##vert", &(p.param_point_sprite_->size_), p.mel_ / 12, p.mel_ / 3);
+			need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
+			need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 		}
 	}
 

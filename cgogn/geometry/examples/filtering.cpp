@@ -53,9 +53,7 @@ int main(int argc, char** argv)
 	cmap_provider.import_surface_from_file(filename);
 
 	cgogn::ui::SurfaceRender sr(app);
-
 	cgogn::ui::SurfaceFiltering sf(app);
-
 	cgogn::ui::SurfaceDifferentialProperties sdp(app);
 
 	sr.init();

@@ -88,7 +88,8 @@ private:
 			render_vertices_(false),
 			render_edges_(false),
 			render_faces_(true),
-			phong_shading_(false)
+			phong_shading_(false),
+			vertex_scale_factor_(1.0)
 		{
 			render_ = std::make_unique<cgogn::rendering::MeshRender>();
 
@@ -112,6 +113,10 @@ private:
 
 			param_phong_ = cgogn::rendering::ShaderPhong::generate_param();
 			param_phong_->set_vbos(vbo_position_.get(), vbo_normal_.get());
+			param_phong_->front_color_ = cgogn::rendering::GLColor(0, 0.8f, 0, 1);
+			param_phong_->back_color_ = cgogn::rendering::GLColor(0, 0, 0.8f, 1);
+			param_phong_->ambiant_color_ = cgogn::rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+			param_phong_->specular_coef_ = 250.0f;
 		}
 
 		Mesh* mesh_;
@@ -133,10 +138,8 @@ private:
 		bool render_faces_;
 		bool phong_shading_;
 		
-		Scalar vertex_scale_factor_;
-		Scalar vertex_base_size_;
-
-		Scalar mel_;
+		float32 vertex_scale_factor_;
+		float32 vertex_base_size_;
 	};
 
 	Mesh* selected_mesh_;
