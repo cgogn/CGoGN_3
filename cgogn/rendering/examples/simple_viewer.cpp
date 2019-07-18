@@ -58,11 +58,11 @@ int main(int argc, char** argv)
 	app.set_window_title("Simple viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider mesh_provider(app);
+	cgogn::ui::MeshProvider<Mesh> mesh_provider(app);
 	Mesh* m = mesh_provider.import_surface_from_file(filename);
 
-	cgogn::ui::SurfaceRender sr(app);
-	cgogn::ui::SurfaceDifferentialProperties sdp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	sr.init();
 	sdp.init();

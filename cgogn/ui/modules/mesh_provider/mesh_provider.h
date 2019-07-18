@@ -24,16 +24,15 @@
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 
-#include <cgogn/ui/modules/mesh_provider/cgogn_module_mesh_provider_export.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 
 #include <cgogn/ui/module.h>
 
+#include <cgogn/core/utils/string.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo_update.h>
+#include <cgogn/io/surface_import.h>
 
 #include <string>
 #include <unordered_map>
@@ -46,34 +45,46 @@ namespace ui
 
 class App;
 
-class CGOGN_MODULE_MESH_PROVIDER_EXPORT MeshProvider : public Module
+template <typename MESH>
+class MeshProvider : public Module
 {
-    using Mesh = CMap2;
-
 public:
 
-	MeshProvider(const App& app);
-	~MeshProvider();
+	MeshProvider(const App& app) : Module(app, "MeshProvider")
+	{}
+	~MeshProvider()
+	{}
 
-    Mesh* import_surface_from_file(const std::string& filename);
+	MESH* import_surface_from_file(const std::string& filename)
+	{
+		const auto [it, inserted] = meshes_.emplace(filename_from_path(filename), std::make_unique<MESH>());
+		MESH* m = it->second.get();
+		cgogn::io::import_OFF(*m, filename);
+		mesh_data_.emplace(m, MeshData(m));
+		return m;
+	}
 
-    template <typename FUNC>
-    void foreach_mesh(const FUNC& f)
-    {
-        for (auto& [name, m] : meshes_)
-            f(m.get(), name);
-    }
+	template <typename FUNC>
+	void foreach_mesh(const FUNC& f)
+	{
+		for (auto& [name, m] : meshes_)
+			f(m.get(), name);
+	}
 
-    MeshData* mesh_data(const Mesh* m);
+	MeshData<MESH>* mesh_data(const MESH* m)
+	{
+		return &mesh_data_[m];
+	}
 
 protected:
 
-    void interface() override;
+	void interface() override
+	{}
 
 private:
 
-    std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes_;
-    std::unordered_map<const Mesh*, MeshData> mesh_data_;
+	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
+	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 };
 
 } // namespace ui

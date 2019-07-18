@@ -67,12 +67,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_ui_export.h
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
-
-
-
-
-
-add_subdirectory(modules/mesh_provider)
-add_subdirectory(modules/surface_differential_properties)
-add_subdirectory(modules/surface_filtering)
-add_subdirectory(modules/surface_render)

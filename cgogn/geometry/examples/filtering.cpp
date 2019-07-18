@@ -36,6 +36,8 @@
 
 using namespace cgogn::numerics;
 
+using Mesh = cgogn::CMap2;
+
 int main(int argc, char** argv)
 {
 	std::string filename;
@@ -50,12 +52,12 @@ int main(int argc, char** argv)
 	app.set_window_title("Filtering");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider mesh_provider(app);
+	cgogn::ui::MeshProvider<Mesh> mesh_provider(app);
 	mesh_provider.import_surface_from_file(filename);
 
-	cgogn::ui::SurfaceRender sr(app);
-	cgogn::ui::SurfaceFiltering sf(app);
-	cgogn::ui::SurfaceDifferentialProperties sdp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceFiltering<Mesh> sf(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	sr.init();
 	sf.init();

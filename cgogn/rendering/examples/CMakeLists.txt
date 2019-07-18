@@ -6,10 +6,7 @@ project(cgogn_rendering_examples
 
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_ui REQUIRED)
-
-find_package(cgogn_module_mesh_provider REQUIRED)
-find_package(cgogn_module_surface_differential_properties REQUIRED)
-find_package(cgogn_module_surface_render REQUIRED)
+find_package(cgogn_io REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
@@ -19,9 +16,7 @@ add_executable(simple_viewer simple_viewer.cpp)
 target_link_libraries(simple_viewer
 	cgogn::core
 	cgogn::ui
-	cgogn::module::mesh_provider
-	cgogn::module::surface_differential_properties
-	cgogn::module::surface_render
+	cgogn::io
 )
 
 if(APPLE)

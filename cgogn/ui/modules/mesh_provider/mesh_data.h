@@ -24,8 +24,6 @@
 #ifndef CGOGN_MODULE_MESH_PROVIDER_MESH_DATA_H_
 #define CGOGN_MODULE_MESH_PROVIDER_MESH_DATA_H_
 
-#include <cgogn/ui/modules/mesh_provider/cgogn_module_mesh_provider_export.h>
-
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -40,14 +38,13 @@ namespace cgogn
 namespace ui
 {
 
+template <typename MESH>
 struct MeshData
 {
-    using Mesh = CMap2;
-
     template <typename T>
-    using Attribute = typename mesh_traits<Mesh>::Attribute<T>;
+    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
-    using Vertex = typename mesh_traits<Mesh>::Vertex;
+    using Vertex = typename mesh_traits<MESH>::Vertex;
 
     using Vec3 = geometry::Vec3;
     using Vec2 = geometry::Vec2;
@@ -58,7 +55,7 @@ struct MeshData
 	MeshData(const MeshData& m) : mesh_(m.mesh_)
 	{}
 
-	MeshData(const Mesh* mesh) : mesh_(mesh)
+	MeshData(const MESH* mesh) : mesh_(mesh)
 	{}
 	
 	void draw(rendering::DrawingType primitive)
@@ -173,7 +170,7 @@ struct MeshData
 	}
 
 	Vec3 bb_min_, bb_max_;
-	const Mesh* mesh_;
+	const MESH* mesh_;
 
 private:
 
