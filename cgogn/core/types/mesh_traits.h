@@ -45,6 +45,7 @@ struct mesh_traits<CMap0>
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
@@ -61,6 +62,7 @@ struct mesh_traits<CMap1>
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
@@ -78,6 +80,7 @@ struct mesh_traits<CMap2>
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
@@ -95,6 +98,7 @@ struct mesh_traits<CMap3>
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 

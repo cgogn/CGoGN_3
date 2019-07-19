@@ -121,7 +121,7 @@ public:
 	void init()
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
+		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&)
 		{
 			parameters_.emplace(m, Parameters());
 		});

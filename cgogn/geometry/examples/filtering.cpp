@@ -69,11 +69,5 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&sr);
 
-	// cgogn::ui::View* v3 = app.add_view();
-	// v3->link_module(&f);
-
-	// cgogn::ui::View* v4 = app.add_view();
-	// v4->link_module(&f);
-
 	return app.launch();
 }

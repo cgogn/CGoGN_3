@@ -40,27 +40,27 @@ Module::Module(const App& app, const std::string& name) :
 Module::~Module()
 {}
 
-void Module::resize_event(View* view, int32 viewport_width, int32 viewport_height)
+void Module::resize_event(View*, int32, int32)
 {}
 void Module::close_event()
 {}
 
-void Module::mouse_press_event(View* view, int32 button, float64 x, float64 y)
+void Module::mouse_press_event(View*, int32, float64, float64)
 {}
-void Module::mouse_release_event(View* view, int32 button, float64 x, float64 y)
+void Module::mouse_release_event(View*, int32, float64, float64)
 {}
-void Module::mouse_dbl_click_event(View* view, int32 button, float64 x, float64 y)
+void Module::mouse_dbl_click_event(View*, int32, float64, float64)
 {}
-void Module::mouse_move_event(View* view, float64 x, float64 y)
+void Module::mouse_move_event(View*, float64, float64)
 {}
-void Module::mouse_wheel_event(View* view, float64 x, float64 y)
+void Module::mouse_wheel_event(View*, float64, float64)
 {}
-void Module::key_press_event(View* view, int32 key_code)
+void Module::key_press_event(View*, int32)
 {}
-void Module::key_release_event(View* view, int32 key_code)
+void Module::key_release_event(View*, int32)
 {}
 
-void Module::draw(View* view)
+void Module::draw(View*)
 {}
 
 void Module::interface()

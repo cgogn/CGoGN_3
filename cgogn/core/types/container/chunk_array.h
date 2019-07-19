@@ -42,7 +42,7 @@ namespace cgogn
 //////////////////////
 
 template <typename T>
-class CGOGN_CORE_EXPORT ChunkArray : public AttributeGen
+class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
 public:
 
@@ -64,7 +64,7 @@ private:
 
 public:
 
-	ChunkArray(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGen(container, is_mark, name)
+	ChunkArray(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGenT(container, is_mark, name)
 	{
 		chunks_.reserve(512u);
 	}

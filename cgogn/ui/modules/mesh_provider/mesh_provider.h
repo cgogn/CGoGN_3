@@ -34,6 +34,8 @@
 
 #include <cgogn/io/surface_import.h>
 
+#include <boost/synapse/emit.hpp>
+
 #include <string>
 #include <unordered_map>
 
@@ -48,6 +50,10 @@ class App;
 template <typename MESH>
 class MeshProvider : public Module
 {
+    template <typename T>
+    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+    using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
+
 public:
 
 	MeshProvider(const App& app) :
@@ -91,6 +97,21 @@ public:
 			return &(it->second);
 		else
 			return nullptr;
+	}
+
+	/////////////
+	// SIGNALS //
+	/////////////
+
+	template <typename T>
+	using attribute_changed_t = struct attribute_changed_(*)(Attribute<T>* attribute);
+	using attribute_changed = struct attribute_changed_(*)(AttributeGen* attribute);
+	using connectivity_changed = struct connectivity_changed_ (*) ();
+
+	template <typename T>
+	void emit_attribute_changed(const MESH* m, Attribute<T>* attribute)
+	{
+		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
 	}
 
 protected:

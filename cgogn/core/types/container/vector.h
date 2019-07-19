@@ -42,7 +42,7 @@ namespace cgogn
 //////////////////
 
 template <typename T>
-class CGOGN_CORE_EXPORT Vector : public AttributeGen
+class CGOGN_CORE_EXPORT Vector : public AttributeGenT
 {
 private:
 
@@ -56,7 +56,7 @@ private:
 
 public:
 
-	Vector(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGen(container, is_mark, name)
+	Vector(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGenT(container, is_mark, name)
 	{
 		data_.reserve(512u);
 	}

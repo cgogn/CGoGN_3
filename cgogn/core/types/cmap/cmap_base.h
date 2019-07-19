@@ -49,6 +49,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 
 	template <typename T>
 	using Attribute = AttributeContainer::Attribute<T>;
+	using AttributeGen = AttributeContainer::AttributeGen;
 	using MarkAttribute = AttributeContainer::MarkAttribute;
 
 	// Dart container
