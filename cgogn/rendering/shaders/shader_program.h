@@ -387,14 +387,16 @@ public:
 	auto internal_associate_vbos(GLuint attrib1, T1* p1)
 		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
-		p1->associate(attrib1);
+		if (p1)
+			p1->associate(attrib1);
 	}
 
 	template<typename T1, typename... Ts>
 	auto internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
 		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
-		p1->associate(attrib1);
+		if (p1)
+			p1->associate(attrib1);
 		internal_associate_vbos(attrib1 + 1u, pn...);
 	}
 

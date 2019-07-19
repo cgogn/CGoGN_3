@@ -32,6 +32,7 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
@@ -58,13 +59,15 @@ int main(int argc, char** argv)
 	app.set_window_title("Simple viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh> mesh_provider(app);
-	Mesh* m = mesh_provider.import_surface_from_file(filename);
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	Mesh* m = mp.import_surface_from_file(filename);
 
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	sr.init();
+	srv.init();
 	sdp.init();
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
@@ -77,6 +80,13 @@ int main(int argc, char** argv)
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);
+	v1->link_module(&srv);
+
+	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
+	Vec3 diagonal = md->bb_max_ - md->bb_min_;
+	v1->set_scene_radius(diagonal.norm() / 2.0f);
+	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
+	v1->set_scene_center(center);
 
 	return app.launch();
 }

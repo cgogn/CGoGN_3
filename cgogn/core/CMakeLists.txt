@@ -86,7 +86,6 @@ else()
 	target_compile_definitions(${PROJECT_NAME} PUBLIC "EIGEN_DONT_VECTORIZE")
 endif()
 
-
 target_compile_options(${PROJECT_NAME} PUBLIC
 	# g++
 	$<$<CXX_COMPILER_ID:GNU>:$<BUILD_INTERFACE:-Wall>>

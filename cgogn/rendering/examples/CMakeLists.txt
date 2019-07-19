@@ -17,6 +17,7 @@ target_link_libraries(simple_viewer
 	cgogn::core
 	cgogn::ui
 	cgogn::io
+	${CMAKE_DL_LIBS}
 )
 
 if(APPLE)

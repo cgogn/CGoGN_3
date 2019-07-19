@@ -71,9 +71,25 @@ public:
 			f(m.get(), name);
 	}
 
+	std::string mesh_name(const MESH* m)
+	{
+		auto it = std::find_if(
+			meshes_.begin(), meshes_.end(),
+			[&] (const auto& pair) { return pair.second.get() == m; }
+		);
+		if (it != meshes_.end())
+			return it->first;
+		else
+			return "";
+	}
+
 	MeshData<MESH>* mesh_data(const MESH* m)
 	{
-		return &mesh_data_[m];
+		auto it = mesh_data_.find(m);
+		if (it != mesh_data_.end())
+			return &(it->second);
+		else
+			return nullptr;
 	}
 
 protected:

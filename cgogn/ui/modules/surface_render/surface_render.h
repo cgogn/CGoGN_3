@@ -34,7 +34,6 @@
 
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
-#include <cgogn/rendering/shaders/shader_vector_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
@@ -168,25 +167,20 @@ protected:
 		{
 			if (!p.initialized_)
 				continue;
-			
+						
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-
-			Vec3 diagonal = md->bb_max_ - md->bb_min_;
-			view->set_scene_radius(diagonal.norm() / 2.0f);
-			Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
-			view->set_scene_center(center);
-
-			glEnable(GL_DEPTH_TEST);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			glEnable(GL_POLYGON_OFFSET_FILL);
-			glPolygonOffset(1.0f, 1.0f);
-
 			if (p.render_faces_)
 			{
+				if (p.render_edges_)
+				{
+					glEnable(GL_POLYGON_OFFSET_FILL);
+					glPolygonOffset(1.0f, 2.0f);
+				}
+
 				if (p.phong_shading_)
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
@@ -199,9 +193,10 @@ protected:
 					md->draw(rendering::TRIANGLES);
 					p.param_flat_->release();
 				}
-			}
 			
-			glDisable(GL_POLYGON_OFFSET_FILL);
+				if (p.render_edges_)
+					glDisable(GL_POLYGON_OFFSET_FILL);
+			}
 
 			if (p.render_vertices_)
 			{
