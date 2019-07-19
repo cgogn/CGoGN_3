@@ -31,12 +31,20 @@
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_filtering/surface_filtering.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
 using namespace cgogn::numerics;
 
 using Mesh = cgogn::CMap2;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
@@ -52,22 +60,43 @@ int main(int argc, char** argv)
 	app.set_window_title("Filtering");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh> mesh_provider(app);
-	mesh_provider.import_surface_from_file(filename);
-
+	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceFiltering<Mesh> sf(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	sr.init();
+	srv.init();
 	sf.init();
 	sdp.init();
 
+	Mesh* m = mp.import_surface_from_file(filename);
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	
+	sr.set_vertex_position(*m, vertex_position);
+	sr.set_vertex_normal(*m, vertex_normal);
+
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);
+	v1->link_module(&srv);
 
-	cgogn::ui::View* v2 = app.add_view();
-	v2->link_module(&sr);
+	// cgogn::ui::View* v2 = app.add_view();
+	// v2->link_module(&sr);
+	// v2->link_module(&srv);
+
+	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
+	md->update_bb(vertex_position.get());
+	Vec3 diagonal = md->bb_max_ - md->bb_min_;
+	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
+	
+	v1->set_scene_radius(diagonal.norm() / 2.0f);
+	v1->set_scene_center(center);
+	// v2->set_scene_radius(diagonal.norm() / 2.0f);
+	// v2->set_scene_center(center);
 
 	return app.launch();
 }

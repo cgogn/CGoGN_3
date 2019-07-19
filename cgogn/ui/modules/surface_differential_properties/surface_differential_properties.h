@@ -29,6 +29,9 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
@@ -39,10 +42,6 @@ namespace cgogn
 
 namespace ui
 {
-
-class App;
-template <typename MESH>
-class MeshProvider;
 
 template <typename MESH>
 class SurfaceDifferentialProperties : public Module
@@ -84,6 +83,7 @@ public:
 	)
 	{
 		geometry::compute_normal(m, vertex_position, vertex_normal);
+		mesh_provider_->emit_attribute_changed(&m, vertex_normal);
 	}
 
 	void compute_curvature(
@@ -136,106 +136,95 @@ protected:
 
 		if (selected_mesh_)
 		{
-			std::vector<Attribute<Vec3>*> vec3_attributes;
-			foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (Attribute<Vec3>* attribute)
-			{
-				vec3_attributes.push_back(attribute);
-			});
-			std::vector<Attribute<Scalar>*> scalar_attributes;
-			foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (Attribute<Scalar>* attribute)
-			{
-				scalar_attributes.push_back(attribute);
-			});
-
 			std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_position_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_position_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_normal_name_ = selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
 			if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_normal_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_normal_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_kmax_name_ = selected_vertex_kmax_ ? selected_vertex_kmax_->name() : "-- select --";
 			if (ImGui::BeginCombo("kmax", selected_vertex_kmax_name_.c_str()))
 			{
-				for (Attribute<Scalar>* attribute : scalar_attributes)
+				foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Scalar>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_kmax_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_kmax_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_kmin_name_ = selected_vertex_kmin_ ? selected_vertex_kmin_->name() : "-- select --";
 			if (ImGui::BeginCombo("kmin", selected_vertex_kmin_name_.c_str()))
 			{
-				for (Attribute<Scalar>* attribute : scalar_attributes)
+				foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Scalar>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_kmin_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_kmin_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_Kmax_name_ = selected_vertex_Kmax_ ? selected_vertex_Kmax_->name() : "-- select --";
 			if (ImGui::BeginCombo("Kmax", selected_vertex_Kmax_name_.c_str()))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_Kmax_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_Kmax_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_Kmin_name_ = selected_vertex_Kmin_ ? selected_vertex_Kmin_->name() : "-- select --";
 			if (ImGui::BeginCombo("Kmin", selected_vertex_Kmin_name_.c_str()))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_Kmin_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_Kmin_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 			std::string selected_vertex_Knormal_name_ = selected_vertex_Knormal_ ? selected_vertex_Knormal_->name() : "-- select --";
 			if (ImGui::BeginCombo("Knormal", selected_vertex_Knormal_name_.c_str()))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
 					bool is_selected = attribute == selected_vertex_Knormal_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 						selected_vertex_Knormal_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
 
@@ -244,11 +233,8 @@ protected:
 				if (ImGui::Button("Compute normal"))
 				{
 					if (!selected_vertex_normal_)
-					{
-						std::shared_ptr<Attribute<Vec3>> vertex_normal = add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
-						selected_vertex_normal_ = vertex_normal.get();
-					}
-					compute_normal(*selected_mesh_, selected_vertex_position_, selected_vertex_normal_);
+						selected_vertex_normal_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
+					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
 			}
 
@@ -257,47 +243,32 @@ protected:
 				if (ImGui::Button("Compute curvature"))
 				{
 					if (!selected_vertex_kmax_)
-					{
-						std::shared_ptr<Attribute<Scalar>> vertex_kmax = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmax");
-						selected_vertex_kmax_ = vertex_kmax.get();
-					}
+						selected_vertex_kmax_ = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmax");
 					if (!selected_vertex_kmin_)
-					{
-						std::shared_ptr<Attribute<Scalar>> vertex_kmin = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmin");
-						selected_vertex_kmin_ = vertex_kmin.get();
-					}
+						selected_vertex_kmin_ = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmin");
 					if (!selected_vertex_Kmax_)
-					{
-						std::shared_ptr<Attribute<Vec3>> vertex_Kmax = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmax");
-						selected_vertex_Kmax_ = vertex_Kmax.get();
-					}
+						selected_vertex_Kmax_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmax");
 					if (!selected_vertex_Kmin_)
-					{
-						std::shared_ptr<Attribute<Vec3>> vertex_Kmin = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmin");
-						selected_vertex_Kmin_ = vertex_Kmin.get();
-					}
+						selected_vertex_Kmin_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmin");
 					if (!selected_vertex_Knormal_)
-					{
-						std::shared_ptr<Attribute<Vec3>> vertex_Knormal = add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
-						selected_vertex_Knormal_ = vertex_Knormal.get();
-					}
+						selected_vertex_Knormal_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
 
 					std::shared_ptr<Attribute<Scalar>> edge_angle = add_attribute<Scalar, Edge>(*selected_mesh_, "__edge_angle");
-					geometry::compute_angle(*selected_mesh_, selected_vertex_position_, edge_angle.get());
+					geometry::compute_angle(*selected_mesh_, selected_vertex_position_.get(), edge_angle.get());
 
-					Scalar mean_edge_length = geometry::mean_edge_length(*selected_mesh_, selected_vertex_position_);
+					Scalar mean_edge_length = geometry::mean_edge_length(*selected_mesh_, selected_vertex_position_.get());
 
 					compute_curvature(
 						*selected_mesh_,
 						mean_edge_length * 4.0,
-						selected_vertex_position_,
-						selected_vertex_normal_,
+						selected_vertex_position_.get(),
+						selected_vertex_normal_.get(),
 						edge_angle.get(),
-						selected_vertex_kmax_,
-						selected_vertex_kmin_,
-						selected_vertex_Kmax_,
-						selected_vertex_Kmin_,
-						selected_vertex_Knormal_
+						selected_vertex_kmax_.get(),
+						selected_vertex_kmin_.get(),
+						selected_vertex_Kmax_.get(),
+						selected_vertex_Kmin_.get(),
+						selected_vertex_Knormal_.get()
 					);
 
 					remove_attribute<Edge>(*selected_mesh_, edge_angle);
@@ -311,13 +282,13 @@ protected:
 private:
 
 	MESH* selected_mesh_;
-	const Attribute<Vec3>* selected_vertex_position_;
-	Attribute<Vec3>* selected_vertex_normal_;
-	Attribute<Scalar>* selected_vertex_kmax_;
-	Attribute<Scalar>* selected_vertex_kmin_;
-	Attribute<Vec3>* selected_vertex_Kmax_;
-	Attribute<Vec3>* selected_vertex_Kmin_;
-	Attribute<Vec3>* selected_vertex_Knormal_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
+	std::shared_ptr<Attribute<Scalar>> selected_vertex_kmax_;
+	std::shared_ptr<Attribute<Scalar>> selected_vertex_kmin_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmax_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmin_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_Knormal_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

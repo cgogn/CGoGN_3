@@ -60,8 +60,6 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-	Mesh* m = mp.import_surface_from_file(filename);
-
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
@@ -70,22 +68,25 @@ int main(int argc, char** argv)
 	srv.init();
 	sdp.init();
 
+	Mesh* m = mp.import_surface_from_file(filename);
+
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 	
-	sr.set_vertex_position(*m, "position");
-	sr.set_vertex_normal(*m, "normal");
-	sr.update_data(*m);
+	sr.set_vertex_position(*m, vertex_position);
+	sr.set_vertex_normal(*m, vertex_normal);
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);
 	v1->link_module(&srv);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
+	md->update_bb(vertex_position.get());
 	Vec3 diagonal = md->bb_max_ - md->bb_min_;
-	v1->set_scene_radius(diagonal.norm() / 2.0f);
 	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
+
+	v1->set_scene_radius(diagonal.norm() / 2.0f);
 	v1->set_scene_center(center);
 
 	return app.launch();

@@ -184,12 +184,12 @@ foreach_attribute(const MESH& m, const FUNC& f)
 	using AttributeT = typename mesh_traits<MESH>::template Attribute<T>;
 	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, AttributeT*>::value, "Wrong function attribute parameter type");
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value, "Wrong function attribute parameter type");
 	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
 	{
 		std::shared_ptr<AttributeT> at = std::dynamic_pointer_cast<AttributeT>(a);
 		if (at)
-			f(at.get());
+			f(at);
 	}
 }
 

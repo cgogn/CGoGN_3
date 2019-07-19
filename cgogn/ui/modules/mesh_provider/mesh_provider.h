@@ -68,6 +68,9 @@ public:
 		MESH* m = it->second.get();
 		cgogn::io::import_OFF(*m, filename);
 		mesh_data_.emplace(m, MeshData(m));
+
+		boost::synapse::emit<mesh_added>(this, m);
+
 		return m;
 	}
 
@@ -103,6 +106,7 @@ public:
 	// SIGNALS //
 	/////////////
 
+	using mesh_added = struct mesh_added_ (*) (MESH* m);
 	template <typename T>
 	using attribute_changed_t = struct attribute_changed_(*)(Attribute<T>* attribute);
 	using attribute_changed = struct attribute_changed_(*)(AttributeGen* attribute);
@@ -111,6 +115,7 @@ public:
 	template <typename T>
 	void emit_attribute_changed(const MESH* m, Attribute<T>* attribute)
 	{
+		boost::synapse::emit<attribute_changed>(m, attribute);
 		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
 	}
 

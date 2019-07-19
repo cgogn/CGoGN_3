@@ -29,13 +29,16 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo_update.h>
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
+
+#include <boost/synapse/connect.hpp>
 
 #include <unordered_map>
 
@@ -44,11 +47,6 @@ namespace cgogn
 
 namespace ui
 {
-
-class App;
-class View;
-template <typename MESH>
-class MeshProvider;
 
 template <typename MESH>
 class SurfaceRender : public Module
@@ -65,6 +63,8 @@ class SurfaceRender : public Module
 	{
 		Parameters() :
 			initialized_(false),
+			vertex_position_(nullptr),
+			vertex_normal_(nullptr),
 			render_vertices_(false),
 			render_edges_(false),
 			render_faces_(true),
@@ -92,8 +92,8 @@ class SurfaceRender : public Module
 
 		bool initialized_;
 
-		std::string vertex_position_name_;
-		std::string vertex_normal_name_;
+		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
@@ -115,48 +115,66 @@ public:
 		ui::Module(app, "SurfaceRender (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr)
 	{}
+
 	~SurfaceRender()
 	{}
+
+private:
+
+	void init_mesh(MESH* m)
+	{
+		parameters_.emplace(m, Parameters());
+		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
+		{
+			Parameters& p = parameters_[m];
+			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			if (p.vertex_position_.get() == attribute || p.vertex_normal_.get() == attribute)
+				md->update_vbo(attribute);
+
+			for (ui::View* v : linked_views_)
+				v->request_update();
+		}));
+	}
+
+public:
 
 	void init()
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&)
-		{
-			parameters_.emplace(m, Parameters());
-		});
+		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
+		connections_.push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(mesh_provider_, this, &SurfaceRender<MESH>::init_mesh)
+		);
 	}
 
-	void update_data(const MESH& m)
+	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-
-		md->update_vbo(p.vertex_position_name_);
-		if (!p.vertex_normal_name_.empty())
-			md->update_vbo(p.vertex_normal_name_);
-
-		std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(m, p.vertex_position_name_);
+		p.vertex_position_ = vertex_position;
 		p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 
-		md->update_bb(vertex_position.get());
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		md->update_vbo(vertex_position.get());
+		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_name_));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_name_));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_name_));
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_name_), md->vbo(p.vertex_normal_name_));
-
-		p.initialized_ = true;
+		for (ui::View* v : linked_views_)
+			v->request_update();
 	}
 
-	void set_vertex_position(const MESH& m, const std::string& vertex_position_name)
+	void set_vertex_normal(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
-		parameters_[&m].vertex_position_name_ = vertex_position_name;
-	}
+		Parameters& p = parameters_[&m];
+		p.vertex_normal_ = vertex_normal;
 
-	void set_vertex_normal(const MESH& m, const std::string& vertex_normal_name)
-	{
-		parameters_[&m].vertex_normal_name_ = vertex_normal_name;
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		md->update_vbo(vertex_normal.get());
+		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
+
+		for (ui::View* v : linked_views_)
+			v->request_update();
 	}
 
 protected:
@@ -165,9 +183,6 @@ protected:
 	{
 		for (auto& [m, p] : parameters_)
 		{
-			if (!p.initialized_)
-				continue;
-						
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
@@ -175,11 +190,8 @@ protected:
 
 			if (p.render_faces_)
 			{
-				if (p.render_edges_)
-				{
-					glEnable(GL_POLYGON_OFFSET_FILL);
-					glPolygonOffset(1.0f, 2.0f);
-				}
+				glEnable(GL_POLYGON_OFFSET_FILL);
+				glPolygonOffset(1.0f, 2.0f);
 
 				if (p.phong_shading_)
 				{
@@ -194,8 +206,7 @@ protected:
 					p.param_flat_->release();
 				}
 			
-				if (p.render_edges_)
-					glDisable(GL_POLYGON_OFFSET_FILL);
+				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
 			if (p.render_vertices_)
@@ -239,43 +250,29 @@ protected:
 		{
 			Parameters& p = parameters_[selected_mesh_];
 
-			std::vector<Attribute<Vec3>*> vec3_attributes;
-			foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (Attribute<Vec3>* attribute)
+			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
 			{
-				vec3_attributes.push_back(attribute);
-			});
-
-			std::string selected_vertex_position_name_ = p.vertex_position_name_.empty() ? "-- select --" : p.vertex_position_name_;
-			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
-			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
-					bool is_selected = attribute->name() == p.vertex_position_name_;
+					bool is_selected = attribute == p.vertex_position_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						p.vertex_position_name_ = attribute->name();
+						set_vertex_position(*selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
-			std::string selected_vertex_normal_name_ = p.vertex_normal_name_.empty() ? "-- select --" : p.vertex_normal_name_;
-			if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
+			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
-					bool is_selected = attribute->name() == p.vertex_normal_name_;
+					bool is_selected = attribute == p.vertex_normal_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						p.vertex_normal_name_ = attribute->name();
+						set_vertex_normal(*selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
-			}
-
-			if (!p.vertex_position_name_.empty())
-			{
-				if (ImGui::Button("Update data"))
-					update_data(*selected_mesh_);
 			}
 
 			ImGui::Separator();
@@ -336,6 +333,8 @@ private:
 
 	const MESH* selected_mesh_;
 	std::unordered_map<const MESH*, Parameters> parameters_;
+	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
+	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 
