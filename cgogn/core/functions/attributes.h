@@ -114,10 +114,10 @@ get_attribute(const MESH& m, const std::string& name)
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// void remove_attribute(MESH& m, std::shared_ptr<AttributeGen> attribute)
+// void remove_attribute(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::AttributeGen> attribute)
 
 // template <typename CELL, typename MESH>
-// void remove_attribute(MESH& m, AttributeGen* attribute)
+// void remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
 
 /*****************************************************************************/
 
@@ -128,7 +128,7 @@ get_attribute(const MESH& m, const std::string& name)
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
 void
-remove_attribute(MESH& m, std::shared_ptr<AttributeGen> attribute)
+remove_attribute(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::AttributeGen> attribute)
 {
 	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
@@ -137,7 +137,7 @@ remove_attribute(MESH& m, std::shared_ptr<AttributeGen> attribute)
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
 void
-remove_attribute(MESH& m, AttributeGen* attribute)
+remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
 {
 	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
@@ -150,7 +150,7 @@ remove_attribute(MESH& m, AttributeGen* attribute)
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
-remove_attribute(MESH& m, std::shared_ptr<AttributeGen> attribute)
+remove_attribute(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::AttributeGen> attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	remove_attribute<CELL>(m.mesh(), attribute);
@@ -159,7 +159,7 @@ remove_attribute(MESH& m, std::shared_ptr<AttributeGen> attribute)
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
-remove_attribute(MESH& m, AttributeGen* attribute)
+remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	remove_attribute<CELL>(m.mesh(), attribute);
@@ -182,13 +182,14 @@ void
 foreach_attribute(const MESH& m, const FUNC& f)
 {
 	using AttributeT = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, AttributeT*>::value, "Wrong function attribute parameter type");
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value, "Wrong function attribute parameter type");
 	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
 	{
 		std::shared_ptr<AttributeT> at = std::dynamic_pointer_cast<AttributeT>(a);
 		if (at)
-			f(at.get());
+			f(at);
 	}
 }
 

@@ -29,6 +29,9 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
 #include <cgogn/geometry/algos/filtering.h>
 
 namespace cgogn
@@ -36,10 +39,6 @@ namespace cgogn
 
 namespace ui
 {
-
-class App;
-template <typename MESH>
-class MeshProvider;
 
 template <typename MESH>
 class SurfaceFiltering : public Module
@@ -57,7 +56,7 @@ public:
 	SurfaceFiltering(const App& app) :
 		Module(app, "SurfaceFiltering (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr),
-		selected_vertex_position_(nullptr)
+		selected_vertex_attribute_(nullptr)
 	{}
 	~SurfaceFiltering()
 	{}
@@ -67,16 +66,18 @@ public:
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 	}
 
-	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_attribute)
 	{
-		std::shared_ptr<Attribute<Vec3>> filtered_vertex_position = add_attribute<Vec3, Vertex>(m, "__filtered_position");
-		for (auto it = filtered_vertex_position->begin(), end = filtered_vertex_position->end(); it != end; ++it)
-			*it = (*vertex_position)[it.index()];
+		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute = add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
+		for (auto it = filtered_vertex_attribute->begin(), end = filtered_vertex_attribute->end(); it != end; ++it)
+			*it = (*vertex_attribute)[it.index()];
 		
-		geometry::filter_average<Vec3>(m, vertex_position, filtered_vertex_position.get());
+		geometry::filter_average<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
 		
-		vertex_position->swap(filtered_vertex_position.get());
-		remove_attribute<Vertex>(m, filtered_vertex_position);
+		vertex_attribute->swap(filtered_vertex_attribute.get());
+		remove_attribute<Vertex>(m, filtered_vertex_attribute);
+
+		mesh_provider_->emit_attribute_changed(&m, vertex_attribute);
 	}
 
 protected:
@@ -93,7 +94,7 @@ protected:
 				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 				{
 					selected_mesh_ = m;
-					selected_vertex_position_ = nullptr;
+					selected_vertex_attribute_.reset();
 				}
 			});
 			ImGui::ListBoxFooter();
@@ -101,24 +102,24 @@ protected:
 
 		if (selected_mesh_)
 		{
-			std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
-			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
+			std::string selected_vertex_attribute_name_ = selected_vertex_attribute_ ? selected_vertex_attribute_->name() : "-- select --";
+			if (ImGui::BeginCombo("Attribute", selected_vertex_attribute_name_.c_str()))
 			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (Attribute<Vec3>* attribute)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [this] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
-					bool is_selected = attribute == selected_vertex_position_;
+					bool is_selected = attribute == selected_vertex_attribute_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						selected_vertex_position_ = attribute;
+						selected_vertex_attribute_ = attribute;
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
 			}
 
-			if (selected_vertex_position_)
+			if (selected_vertex_attribute_)
 			{
 				if (ImGui::Button("Filter"))
-					filter_mesh(*selected_mesh_, selected_vertex_position_);
+					filter_mesh(*selected_mesh_, selected_vertex_attribute_.get());
 			}
 		}
 		
@@ -128,7 +129,7 @@ protected:
 private:
 
 	MESH* selected_mesh_;
-	Attribute<Vec3>* selected_vertex_position_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_attribute_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

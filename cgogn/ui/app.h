@@ -34,8 +34,6 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
-#include <boost/synapse/emit.hpp>
-
 namespace cgogn
 {
 
@@ -44,9 +42,6 @@ namespace ui
 
 class View;
 class Module;
-
-typedef struct attribute_changed_(*attribute_changed)(const std::string&);
-typedef struct connectivity_changed_(*connectivity_changed)(const std::string&);
 
 class CGOGN_UI_EXPORT App
 {

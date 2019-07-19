@@ -43,6 +43,7 @@ struct MeshData
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+    using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
     using Vertex = typename mesh_traits<MESH>::Vertex;
 
@@ -89,84 +90,24 @@ struct MeshData
 		}
 	}
 
-	rendering::VBO* vbo(const std::string& name)
+	rendering::VBO* vbo(AttributeGen* attribute)
 	{
-		if (auto it = vbos_.find(name); it != vbos_.end())
+		if (auto it = vbos_.find(attribute); it != vbos_.end())
 			return it->second.get();
 		else
 			return nullptr;
 	}
 
-	// rendering::VBO* create_vbo(const std::string& name)
-	// {
-	// 	rendering::VBO* v = vbo(name);
-	// 	if (!v)
-	// 	{
-	// 		std::shared_ptr<Attribute<Vec3>> attribute3 = get_attribute<Vec3, Vertex>(*mesh_, name);
-	// 		if (attribute3)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(3));
-	// 			v = it->second.get();
-	// 			rendering::update_vbo<Vec3>(attribute3.get(), v);
-	// 			return v;
-	// 		}
-	// 		std::shared_ptr<Attribute<Vec2>> attribute2 = get_attribute<Vec2, Vertex>(*mesh_, name);
-	// 		if (attribute2)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(2));
-	// 			v = it->second.get();
-	// 			rendering::update_vbo<Vec2>(attribute2.get(), v);
-	// 			return v;
-	// 		}
-	// 		std::shared_ptr<Attribute<Scalar>> attribute1 = get_attribute<Scalar, Vertex>(*mesh_, name);
-	// 		if (attribute1)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(1));
-	// 			v = it->second.get();
-	// 			rendering::update_vbo<Scalar>(attribute1.get(), v);
-	// 			return v;
-	// 		}
-	// 	}
-	// 	return v;
-	// }
-
-	void update_vbo(const std::string& name)
+	template <typename T>
+	void update_vbo(Attribute<T>* attribute)
 	{
-		rendering::VBO* v = vbo(name);
-
-		std::shared_ptr<Attribute<Vec3>> attribute3 = get_attribute<Vec3, Vertex>(*mesh_, name);
-		if (attribute3)
+		rendering::VBO* v = vbo(attribute);
+		if (!v)
 		{
-			if (!v)
-			{
-				const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(3));
-				v = it->second.get();
-			}
-			rendering::update_vbo<Vec3>(attribute3.get(), v);
-			return;
+			const auto [it, inserted] = vbos_.emplace(attribute, std::make_unique<rendering::VBO>());
+			v = it->second.get();
 		}
-		std::shared_ptr<Attribute<Vec2>> attribute2 = get_attribute<Vec2, Vertex>(*mesh_, name);
-		if (attribute2)
-		{
-			if (!v)
-			{
-				const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(2));
-				v = it->second.get();
-			}
-			rendering::update_vbo<Vec2>(attribute2.get(), v);
-			return;
-		}
-		std::shared_ptr<Attribute<Scalar>> attribute1 = get_attribute<Scalar, Vertex>(*mesh_, name);
-		if (attribute1)
-		{
-			if (!v)
-			{
-				const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(1));
-				v = it->second.get();
-			}
-			rendering::update_vbo<Scalar>(attribute1.get(), v);
-			return;
-		}
+		rendering::update_vbo<T>(attribute, v);
 	}
 
 	Vec3 bb_min_, bb_max_;
@@ -175,7 +116,7 @@ struct MeshData
 private:
 
 	rendering::MeshRender render_;
-	std::unordered_map<std::string, std::unique_ptr<rendering::VBO>> vbos_;
+	std::unordered_map<AttributeGen*, std::unique_ptr<rendering::VBO>> vbos_;
 };
 
 } // namespace ui

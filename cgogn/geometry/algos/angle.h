@@ -102,7 +102,7 @@ compute_angle(
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
-	foreach_cell(m, [&] (Edge e) -> bool
+	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
         return true;
