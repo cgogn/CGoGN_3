@@ -82,7 +82,7 @@ class SurfaceRenderVector : public Module
 public:
 
 	SurfaceRenderVector(const App& app) :
-		ui::Module(app, "SurfaceRenderVector"),
+		ui::Module(app, "SurfaceRenderVector (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr)
 	{}
 	~SurfaceRenderVector()
@@ -90,7 +90,7 @@ public:
 
 	void init()
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider"));
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
 		{
 			parameters_.emplace(m, Parameters());
@@ -148,7 +148,7 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin("Surface render vector", nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
 		if (ImGui::ListBoxHeader("Select mesh"))

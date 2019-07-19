@@ -50,7 +50,8 @@ class MeshProvider : public Module
 {
 public:
 
-	MeshProvider(const App& app) : Module(app, "MeshProvider")
+	MeshProvider(const App& app) :
+		Module(app, "MeshProvider (" + mesh_traits<MESH>::name + ")")
 	{}
 	~MeshProvider()
 	{}

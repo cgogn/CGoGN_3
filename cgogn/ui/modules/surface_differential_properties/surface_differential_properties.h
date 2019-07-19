@@ -59,7 +59,7 @@ class SurfaceDifferentialProperties : public Module
 public:
 
 	SurfaceDifferentialProperties(const App& app) :
-		Module(app, "SurfaceDifferentialProperties"),
+		Module(app, "SurfaceDifferentialProperties (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_position_(nullptr),
 		selected_vertex_normal_(nullptr),
@@ -74,7 +74,7 @@ public:
     
 	void init()
 	{
-		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider"));
+		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 	}
 
 	void compute_normal(
@@ -117,7 +117,7 @@ protected:
 
     void interface() override
 	{
-		ImGui::Begin("SurfaceDifferentialProperties", nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
 		if (ImGui::ListBoxHeader("Select mesh"))

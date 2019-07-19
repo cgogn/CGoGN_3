@@ -55,7 +55,7 @@ class SurfaceFiltering : public Module
 public:
 
 	SurfaceFiltering(const App& app) :
-		Module(app, "SurfaceFiltering"),
+		Module(app, "SurfaceFiltering (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_position_(nullptr)
 	{}
@@ -64,7 +64,7 @@ public:
 
 	void init()
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider"));
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 	}
 
 	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_position)
@@ -83,7 +83,7 @@ protected:
 
     void interface() override
 	{
-		ImGui::Begin("Filtering", nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
 		if (ImGui::ListBoxHeader("Select mesh"))
