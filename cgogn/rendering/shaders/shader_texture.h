@@ -25,15 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_TEXTURE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
-#include <cgogn/rendering/shader_program.h>
-#include <cgogn/rendering/vbo.h>
-
-#include <cgogn/core/utils/unique_ptr.h>
-
-#include <QOpenGLTexture>
-
-class QOpenGLTexture;
+#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
 
 namespace cgogn
 {
@@ -41,62 +34,39 @@ namespace cgogn
 namespace rendering
 {
 
-class ShaderTexture;
+DECLARE_SHADER_CLASS(Texture)
 
 class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
 {
-protected:
-
-	void set_uniforms();
-
-public:
-
-	using ShaderType = ShaderTexture;
-
-	QOpenGLTexture* texture_;
-
-	ShaderParamTexture(ShaderTexture* sh);
-
-	void set_vbo(VBO* vbo_pos, VBO* vbo_tc);
-};
-
-class CGOGN_RENDERING_EXPORT ShaderTexture : public ShaderProgram
-{
-	static const char* vertex_shader_source_;
-	static const char* fragment_shader_source_;
-
-public:
-
-	enum
+	inline void set_uniforms() override
 	{
-		ATTRIB_POS = 0,
-		ATTRIB_TC
-	};
-
-	using Param = ShaderParamTexture;
-
-	/**
-	 * @brief generate shader parameter object
-	 * @return pointer
-	 */
-	inline static std::unique_ptr<Param> generate_param()
-	{
-		if (!instance_)
-		{
-			instance_ = new ShaderTexture();
-			ShaderProgram::register_instance(instance_);
-		}
-		return cgogn::make_unique<Param>(instance_);
+		shader_->set_uniforms_values(texture_->bind(unit_));
 	}
 
-protected:
+public:
 
-	ShaderTexture();
-	static ShaderTexture* instance_;
+	Texture2D* texture_;
+	GLuint unit_;
+
+	using LocalShader = ShaderTexture;
+
+	ShaderParamTexture(LocalShader* sh) :
+		ShaderParam(sh),
+		unit_(0)
+	{}
+
+	inline ~ShaderParamTexture() override {}
+
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_tc)
+	{
+		bind_vao();
+		associate_vbos(vbo_pos, vbo_tc);
+		release_vao();
+	}
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_TEXTURE_H_
+#endif

@@ -21,10 +21,11 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/rendering/shaders/shader_color_per_vertex.h>
-#include <cgogn/core/utils/unique_ptr.h>
 
 #include <iostream>
+
+#include <cgogn/rendering/shaders/shader_color_per_vertex.h>
+
 
 namespace cgogn
 {
@@ -34,46 +35,32 @@ namespace rendering
 
 ShaderColorPerVertex* ShaderColorPerVertex::instance_ = nullptr;
 
-const char* ShaderColorPerVertex::vertex_shader_source_ =
-"#version 150\n"
-"in vec3 vertex_pos;\n"
-"in vec3 vertex_color;\n"
-"uniform mat4 projection_matrix;\n"
-"uniform mat4 model_view_matrix;\n"
-"out vec3 color_v;\n"
-"void main()\n"
-"{\n"
-"   color_v = vertex_color;"
-"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-"}\n";
-
-const char* ShaderColorPerVertex::fragment_shader_source_ =
-"#version 150\n"
-"in vec3 color_v;\n"
-"out vec3 fragColor;\n"
-"void main()\n"
-"{\n"
-"   fragColor = color_v;\n"
-"}\n";
-
 ShaderColorPerVertex::ShaderColorPerVertex()
 {
-	prg_.addShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader_source_);
-	prg_.addShaderFromSourceCode(QOpenGLShader::Fragment, fragment_shader_source_);
-	prg_.bindAttributeLocation("vertex_pos", ATTRIB_POS);
-	prg_.bindAttributeLocation("vertex_color", ATTRIB_COLOR);
-	prg_.link();
-	get_matrices_uniforms();
-}
+	const char* vertex_shader_source =
+		"#version 150\n"
+		"in vec3 vertex_pos;\n"
+		"in vec3 vertex_color;\n"
+		"uniform mat4 projection_matrix;\n"
+		"uniform mat4 model_view_matrix;\n"
+		"out vec3 color_v;\n"
+		"void main()\n"
+		"{\n"
+		"   color_v = vertex_color;"
+		"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
+		"}\n";
 
-std::unique_ptr<ShaderColorPerVertex::Param> ShaderColorPerVertex::generate_param()
-{
-	if (!instance_)
-	{
-		instance_ = new ShaderColorPerVertex;
-		ShaderProgram::register_instance(instance_);
-	}
-	return cgogn::make_unique<Param>(instance_);
+	const char* fragment_shader_source =
+		"#version 150\n"
+		"in vec3 color_v;\n"
+		"out vec3 fragColor;\n"
+		"void main()\n"
+		"{\n"
+		"   fragColor = color_v;\n"
+		"}\n";
+
+	load2_bind(vertex_shader_source,fragment_shader_source,
+			  "vertex_pos","vertex_color");
 }
 
 } // namespace rendering

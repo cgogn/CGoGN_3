@@ -26,13 +26,16 @@
 namespace cgogn
 {
 
-DartMarker::DartMarker(const CMapBase& map)
+DartMarker::DartMarker(const CMapBase& map) : map_(map)
 {
-	mark_attribute_ = map.topology_.add_mark_attribute();
+	mark_attribute_ = map_.topology_.get_mark_attribute();
 }
 
 DartMarker::~DartMarker()
-{}
+{
+	unmark_all();
+	map_.topology_.release_mark_attribute(mark_attribute_);
+}
 
 DartMarkerStore::DartMarkerStore(const CMapBase& map) :
 	DartMarker(map)

@@ -30,7 +30,6 @@
 #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 
 namespace cgogn
 {
@@ -38,36 +37,44 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC, typename MESH>
-typename vector_traits<VEC>::Scalar
+template <typename MESH>
+Scalar
 length(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return norm(value<VEC>(m, vertex_position, vertices[0]) - value<VEC>(m, vertex_position, vertices[1]));
+	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
 }
 
-template <typename VEC, typename MESH>
-typename vector_traits<VEC>::Scalar
+template <typename MESH>
+Scalar
 mean_edge_length(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
-	using Scalar = typename vector_traits<VEC>::Scalar;
 	using Edge = typename mesh_traits<MESH>::Edge;
-	Scalar length_sum = 0;
-	uint32 nbe = 0;
-	foreach_cell(m, [&] (Edge e) -> bool
+
+	std::vector<Scalar> edge_length_per_thread(thread_pool()->nb_workers(), 0);
+	std::vector<uint32> nb_edges_per_thread(thread_pool()->nb_workers(), 0);
+
+	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
-		length_sum += length<VEC>(m, e, vertex_position);
-		++nbe;
+		uint32 thread_index = current_thread_index();
+		edge_length_per_thread[thread_index] += length(m, e, vertex_position);
+		++nb_edges_per_thread[thread_index];
 		return true;
 	});
+
+	Scalar length_sum = 0.0;
+	uint32 nbe = 0;
+	for (Scalar l : edge_length_per_thread) length_sum += l;
+	for (uint32 n : nb_edges_per_thread) nbe += n;
+
 	return length_sum / Scalar(nbe);
 }
 

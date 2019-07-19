@@ -23,8 +23,6 @@
 
 
 #include <cgogn/rendering/shaders/shader_texture.h>
-#include <QOpenGLFunctions>
-#include <iostream>
 
 namespace cgogn
 {
@@ -32,77 +30,36 @@ namespace cgogn
 namespace rendering
 {
 
+
 ShaderTexture* ShaderTexture::instance_ = nullptr;
-
-const char* ShaderTexture::vertex_shader_source_ =
-"#version 150\n"
-"in vec3 vertex_pos;\n"
-"in vec2 vertex_tc;\n"
-"uniform mat4 projection_matrix;\n"
-"uniform mat4 model_view_matrix;\n"
-"out vec2 tc;\n"
-"void main()\n"
-"{\n"
-"	tc = vertex_tc;\n"
-"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-"}\n";
-
-const char* ShaderTexture::fragment_shader_source_ =
-"#version 150\n"
-"out vec4 frag_color;\n"
-"uniform sampler2D texture_unit;\n"
-"in vec2 tc;\n"
-"void main()\n"
-"{\n"
-"	frag_color = texture(texture_unit,tc);\n"
-"}\n";
 
 ShaderTexture::ShaderTexture()
 {
-	prg_.addShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader_source_);
-	prg_.addShaderFromSourceCode(QOpenGLShader::Fragment, fragment_shader_source_);
-	prg_.bindAttributeLocation("vertex_pos", ATTRIB_POS);
-	prg_.bindAttributeLocation("vertex_tc", ATTRIB_TC);
-	prg_.link();
-	get_matrices_uniforms();
-	prg_.setUniformValue("texture_unit", 0);
-}
+	const char* vertex_shader_source =
+			"#version 150\n"
+			"in vec3 vertex_pos;\n"
+			"in vec2 vertex_tc;\n"
+			"uniform mat4 projection_matrix;\n"
+			"uniform mat4 model_view_matrix;\n"
+			"out vec2 tc;\n"
+			"void main()\n"
+			"{\n"
+			"	tc = vertex_tc;\n"
+			"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
+			"}\n";
+	const char* fragment_shader_source =
+			"#version 150\n"
+			"out vec4 frag_color;\n"
+			"uniform sampler2D texture_unit;\n"
+			"in vec2 tc;\n"
+			"void main()\n"
+			"{\n"
+			"	frag_color = texture(texture_unit,tc);\n"
+			"}\n";
 
-ShaderParamTexture::ShaderParamTexture(ShaderTexture* sh) :
-	ShaderParam(sh),
-	texture_(nullptr)
-{}
-
-void ShaderParamTexture::set_uniforms()
-{
-	if (texture_)
-	{
-		QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0);
-		texture_->bind();
-	}
-}
-
-void ShaderParamTexture::set_vbo(VBO* vbo_pos, VBO* vbo_tc)
-{
-	QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-
-	shader_->bind();
-	vao_->bind();
-
-	// position vbo
-	vbo_pos->bind();
-	ogl->glEnableVertexAttribArray(ShaderTexture::ATTRIB_POS);
-	ogl->glVertexAttribPointer(ShaderTexture::ATTRIB_POS, vbo_pos->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-	vbo_pos->release();
-
-	// color  vbo
-	vbo_tc->bind();
-	ogl->glEnableVertexAttribArray(ShaderTexture::ATTRIB_TC);
-	ogl->glVertexAttribPointer(ShaderTexture::ATTRIB_TC, vbo_tc->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-	vbo_tc->release();
-
-	vao_->release();
-	shader_->release();
+	load2_bind(vertex_shader_source, fragment_shader_source,
+			  "vertex_pos", "vertex_tc");
+	add_uniforms("texture_unit");
 }
 
 } // namespace rendering

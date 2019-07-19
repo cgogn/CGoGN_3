@@ -31,7 +31,6 @@
 #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/vector_ops.h>
 #include <cgogn/geometry/functions/normal.h>
 
 namespace cgogn
@@ -40,76 +39,73 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC3, typename MESH>
-VEC3
+template <typename MESH>
+Vec3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
-	using Scalar = typename vector_traits<VEC3>::Scalar;
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	std::vector<Vertex> vertices = incident_vertices(m, f);
 	if (vertices.size() == 3)
 	{
-		VEC3 n = normal(
-			value<VEC3>(m, vertex_position, vertices[0]),
-			value<VEC3>(m, vertex_position, vertices[1]),
-			value<VEC3>(m, vertex_position, vertices[2])
+		Vec3 n = normal(
+			value<Vec3>(m, vertex_position, vertices[0]),
+			value<Vec3>(m, vertex_position, vertices[1]),
+			value<Vec3>(m, vertex_position, vertices[2])
 		);
-		normalize(n);
+		n.normalize();
 		return n;
 	}
 	else
 	{
-		VEC3 n{Scalar(0), Scalar(0), Scalar(0)};
+		Vec3 n{0.0, 0.0, 0.0};
 		for (uint32 i = 0; i < vertices.size() - 1; ++i)
 		{
-			const VEC3& p = value<VEC3>(m, vertex_position, vertices[i]);
-			const VEC3& q = value<VEC3>(m, vertex_position, vertices[i+1]);
+			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
+			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i+1]);
 			n[0] += (p[1] - q[1]) * (p[2] + q[2]);
 			n[1] += (p[2] - q[2]) * (p[0] + q[0]);
 			n[2] += (p[0] - q[0]) * (p[1] + q[1]);
 		}
-		normalize(n);
+		n.normalize();
 		return n;
 	}
 }
 
-template <typename VEC3, typename MESH>
-VEC3
+template <typename MESH>
+Vec3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Vertex v,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
-	using Scalar = typename vector_traits<VEC3>::Scalar;
 	using Face = typename mesh_traits<MESH>::Face;
-	VEC3 n{Scalar{0}, Scalar{0}, Scalar{0}};
-	const VEC3& p = value<VEC3>(m, vertex_position, v);
+	Vec3 n{0.0, 0.0, 0.0};
 	foreach_incident_face(m, v, [&] (Face f) -> bool
 	{
-		n += normal<VEC3>(m, f, vertex_position);
+		n += normal(m, f, vertex_position);
 		return true;
 	});
-	normalize(n);
+	n.normalize();
 	return n;
 }
 
-template <typename VEC3, typename MESH>
+template <typename MESH>
 void
 compute_normal(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_position,
-	typename mesh_traits<MESH>::template AttributePtr<VEC3> vertex_normal
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	foreach_cell(m, [&] (Vertex v) -> bool
+	parallel_foreach_cell(m, [&] (Vertex v) -> bool
 	{
-		value<VEC3>(m, vertex_normal, v) = normal<VEC3>(m, v, vertex_position);
+		value<Vec3>(m, vertex_normal, v) = normal(m, v, vertex_position);
 		return true;
 	});
 }

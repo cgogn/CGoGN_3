@@ -25,11 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_SCALARPERVERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
-#include <cgogn/rendering/shader_program.h>
-#include <cgogn/rendering/vbo.h>
-
-#include <QOpenGLFunctions>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -42,31 +38,11 @@ class ShaderParamScalarPerVertex;
 
 class CGOGN_RENDERING_EXPORT ShaderScalarPerVertex : public ShaderProgram
 {
-	friend class ShaderParamScalarPerVertex;
-
-protected:
-
-	static const char* vertex_shader_source_;
-	static const char* fragment_shader_source_;
-
-	// uniform ids
-	GLint unif_color_map_;
-	GLint unif_expansion_;
-	GLint unif_min_value_;
-	GLint unif_max_value_;
-	GLint unif_show_iso_lines_;
-	GLint unif_nb_iso_levels_;
-
 public:
 
-	using Self = ShaderScalarPerVertex;
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderScalarPerVertex);
-
-	enum
-	{
-		ATTRIB_POS = 0,
-		ATTRIB_SCALAR
-	};
+	using  Self  = ShaderScalarPerVertex;
+	using  Param = ShaderParamScalarPerVertex;
+	friend Param;
 
 	enum ColorMap
 	{
@@ -76,69 +52,40 @@ public:
 		BGR
 	};
 
-	using Param = ShaderParamScalarPerVertex;
-	static std::unique_ptr<Param> generate_param();
-
-	/**
-	 * @brief set current color map
-	 * @param cm
-	 */
-	void set_color_map(ColorMap cm);
-
-	/**
-	 * @brief set current expansion factor
-	 * @param expansion
-	 */
-	void set_expansion(int32 expansion);
-
-	/**
-	 * @brief set current scalar attribute minimum value
-	 * @param value
-	 */
-	void set_min_value(float32 value);
-
-	/**
-	 * @brief set current scalar attribute maximum value
-	 * @param value
-	 */
-	void set_max_value(float32 value);
-
-	/**
-	 * @brief set current show_iso_lines value
-	 * @param b
-	 */
-	void set_show_iso_lines(bool b);
-
-	/**
-	 * @brief set current nb iso levels
-	 * @param nb
-	 */
-	void set_nb_iso_levels(int32 nb);
-
 protected:
 
 	ShaderScalarPerVertex();
-	static ShaderScalarPerVertex* instance_;
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderScalarPerVertex);
+	static Self* instance_;
+
+public:
+
+	inline static std::unique_ptr<Param> generate_param()
+	{
+		if (!instance_)
+		{
+			instance_ = new Self();
+			ShaderProgram::register_instance(instance_);
+		}
+		return std::make_unique<Param>(instance_);
+	}
 };
 
 class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertex : public ShaderParam
 {
-protected:
-
 	inline void set_uniforms() override
 	{
-		ShaderScalarPerVertex* sh = static_cast<ShaderScalarPerVertex*>(this->shader_);
-		sh->set_color_map(color_map_);
-		sh->set_expansion(expansion_);
-		sh->set_min_value(min_value_);
-		sh->set_max_value(max_value_);
-		sh->set_show_iso_lines(show_iso_lines_);
-		sh->set_nb_iso_levels(nb_iso_levels_);
+		shader_->set_uniforms_values(
+			color_map_,
+			expansion_,
+			min_value_,
+			max_value_,
+			show_iso_lines_,
+			nb_iso_levels_
+		);
 	}
 
 public:
-
-	using ShaderType = ShaderScalarPerVertex;
 
 	ShaderScalarPerVertex::ColorMap color_map_;
 	int32 expansion_;
@@ -147,8 +94,10 @@ public:
 	bool show_iso_lines_;
 	int32 nb_iso_levels_;
 
-	ShaderParamScalarPerVertex(ShaderScalarPerVertex* prg) :
-		ShaderParam(prg),
+	using LocalShader = ShaderScalarPerVertex;
+
+	ShaderParamScalarPerVertex(LocalShader* sh) :
+		ShaderParam(sh),
 		color_map_(ShaderScalarPerVertex::BWR),
 		expansion_(0),
 		min_value_(.0f),
@@ -157,54 +106,13 @@ public:
 		nb_iso_levels_(10)
 	{}
 
-	/**
-	 * @brief set a vbo configuration
-	 * @param vbo_pos pointer on position vbo (XYZ)
-	 * @param vbo_col pointer on color vbo (RGB)
-	 */
-	void set_all_vbos(VBO* vbo_pos, VBO* vbo_scalar)
-	{
-		QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-		shader_->bind();
-		vao_->bind();
-		// position vbo
-		vbo_pos->bind();
-		ogl->glEnableVertexAttribArray(ShaderScalarPerVertex::ATTRIB_POS);
-		ogl->glVertexAttribPointer(ShaderScalarPerVertex::ATTRIB_POS, vbo_pos->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-		vbo_pos->release();
-		// scalar vbo
-		vbo_scalar->bind();
-		ogl->glEnableVertexAttribArray(ShaderScalarPerVertex::ATTRIB_SCALAR);
-		ogl->glVertexAttribPointer(ShaderScalarPerVertex::ATTRIB_SCALAR, vbo_scalar->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-		vbo_scalar->release();
-		vao_->release();
-		shader_->release();
-	}
+	inline ~ShaderParamScalarPerVertex() override {}
 
-	void set_position_vbo(VBO* vbo_pos)
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_scalar)
 	{
-		QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-		shader_->bind();
-		vao_->bind();
-		vbo_pos->bind();
-		ogl->glEnableVertexAttribArray(ShaderScalarPerVertex::ATTRIB_POS);
-		ogl->glVertexAttribPointer(ShaderScalarPerVertex::ATTRIB_POS, vbo_pos->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-		vbo_pos->release();
-		vao_->release();
-		shader_->release();
-	}
-
-	void set_scalar_vbo(VBO* vbo_scalar)
-	{
-		QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-		shader_->bind();
-		vao_->bind();
-		vbo_scalar->bind();
-		ogl->glEnableVertexAttribArray(ShaderScalarPerVertex::ATTRIB_SCALAR);
-		ogl->glVertexAttribPointer(ShaderScalarPerVertex::ATTRIB_SCALAR, vbo_scalar->vector_dimension(), GL_FLOAT, GL_FALSE, 0, 0);
-		vbo_scalar->release();
-		vao_->release();
-		shader_->release();
+		bind_vao();
+		associate_vbos(vbo_pos,vbo_scalar);
+		release_vao();
 	}
 };
 

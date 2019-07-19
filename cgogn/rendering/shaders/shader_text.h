@@ -25,11 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_TEXT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
-#include <cgogn/rendering/shader_program.h>
-#include <cgogn/rendering/vbo.h>
-
-#include <QOpenGLTexture>
+#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
 
 namespace cgogn
 {
@@ -37,63 +34,39 @@ namespace cgogn
 namespace rendering
 {
 
-class ShaderText;
+DECLARE_SHADER_CLASS(Text)
 
 class CGOGN_RENDERING_EXPORT ShaderParamText : public ShaderParam
 {
-protected:
-
-	void set_uniforms();
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(texture_->bind(0), italic_);
+	}
 
 public:
-	using ShaderType = ShaderText;
 
-	QOpenGLTexture* texture_;
-
+	Texture2D* texture_;
 	float32 italic_;
 
-	ShaderParamText(ShaderText* sh);
+	using LocalShader = ShaderText;
 
-	void set_vbo(VBO* vbo_pos, VBO* vbo_str, VBO* vbo_colsize);
-};
+	ShaderParamText(LocalShader* sh) :
+		ShaderParam(sh),
+		italic_(0)
+	{}
 
-class CGOGN_RENDERING_EXPORT ShaderText : public ShaderProgram
-{
-	static const char* vertex_shader_source_;
-	static const char* fragment_shader_source_;
-	GLint unif_italic_;
+	inline ~ShaderParamText() override {}
 
-public:
-
-	enum
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_str, VBO* vbo_colsize)
 	{
-		ATTRIB_POS = 0,
-		ATTRIB_CHAR,
-		ATTRIB_COLSZ
-	};
-
-	using Param = ShaderParamText;
-
-	/**
-	 * @brief generate shader parameter object
-	 * @return pointer
-	 */
-	static std::unique_ptr<Param> generate_param();
-
-	/**
-	 * @brief set_italic
-	 * @param i %
-	 */
-	void set_italic(float32 i);
-
-protected:
-
-	ShaderText();
-	static ShaderText* instance_;
+		bind_vao();
+		associate_vbos(vbo_pos,vbo_str,vbo_colsize);
+		release_vao();
+	}
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_TEXTURE_H_
+#endif

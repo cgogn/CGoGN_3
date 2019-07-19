@@ -1,4 +1,3 @@
-
 /*******************************************************************************
 * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
 * Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
@@ -32,12 +31,13 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-//#include <cgogn/geometry/algos/ear_triangulation.h>
-
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
+// #include <cgogn/geometry/algos/ear_triangulation.h>
 
 #include <memory>
+
+#include <cgogn/rendering/drawer.h>
+#include <cgogn/rendering/vbo.h>
+#include <cgogn/rendering/ebo.h>
 
 namespace cgogn
 {
@@ -58,9 +58,9 @@ class CGOGN_RENDERING_EXPORT MeshRender
 {
 protected:
 
-	std::array<std::unique_ptr<QOpenGLBuffer>, SIZE_BUFFER>	indices_buffers_;
-	std::array<bool, SIZE_BUFFER>							indices_buffers_uptodate_;
-	std::array<uint32, SIZE_BUFFER>							nb_indices_;
+	std::array<std::unique_ptr<EBO>, SIZE_BUFFER> indices_buffers_;
+	std::array<bool, SIZE_BUFFER> indices_buffers_uptodate_;
+	std::array<uint32, SIZE_BUFFER> nb_indices_;
 
 public:
 
@@ -149,10 +149,11 @@ public:
 		if (table_indices.empty())
 			return;
 
-		if (!indices_buffers_[prim]->isCreated())
+		if (!indices_buffers_[prim]->is_created())
 			indices_buffers_[prim]->create();
+		
 		indices_buffers_[prim]->bind();
-		indices_buffers_[prim]->allocate(&(table_indices[0]), nb_indices_[prim] * sizeof(uint32));
+		indices_buffers_[prim]->allocate(table_indices.data(), nb_indices_[prim]);
 		indices_buffers_[prim]->release();
 	}
 

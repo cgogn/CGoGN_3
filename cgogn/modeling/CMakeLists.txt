@@ -8,7 +8,7 @@ find_package(cgogn_core REQUIRED)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
@@ -40,10 +40,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry)
+
 # Write out cgogn_modeling_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
-
-target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry)
 
 set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_modeling.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling.pc @ONLY)
@@ -63,7 +63,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling_export.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/modeling
 	COMPONENT cgogn_modeling_headers
 )
-
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 

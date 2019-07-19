@@ -34,25 +34,25 @@ namespace cgogn
 template <typename MESH>
 struct mesh_traits;
 
-//template <typename MESH>
-//struct mesh_traits<const MESH> : mesh_traits<MESH>
-//{};
-
 template <>
 struct mesh_traits<CMap0>
 {
+	inline static const std::string name = "CMap0";
+
 	using Vertex = typename CMap0::Vertex;
 
 	using Cells = CMap0::Cells;
 
 	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+	using Attribute = CMapBase::Attribute<T>;
+	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
 template <>
 struct mesh_traits<CMap1>
 {
+	inline static const std::string name = "CMap1";
+
 	using Vertex = CMap1::Vertex;
 	using Edge = CMap1::Edge;
 	using Face = CMap1::Face;
@@ -60,13 +60,15 @@ struct mesh_traits<CMap1>
 	using Cells = CMap1::Cells;
 
 	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+	using Attribute = CMapBase::Attribute<T>;
+	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
 template <>
 struct mesh_traits<CMap2>
 {
+	inline static const std::string name = "CMap2";
+
 	using Vertex = CMap2::Vertex;
 	using Edge = CMap2::Edge;
 	using Face = CMap2::Face;
@@ -75,13 +77,15 @@ struct mesh_traits<CMap2>
 	using Cells = CMap2::Cells;
 
 	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+	using Attribute = CMapBase::Attribute<T>;
+	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
 template <>
 struct mesh_traits<CMap3>
 {
+	inline static const std::string name = "CMap3";
+
 	using Vertex = CMap3::Vertex;
 	using Edge = CMap3::Edge;
 	using Face = CMap3::Face;
@@ -90,8 +94,8 @@ struct mesh_traits<CMap3>
 	using Cells = CMap3::Cells;
 
 	template <typename T>
-	using AttributePtr = CMapBase::AttributePtr<T>;
-	using AttributeGenPtr = CMapBase::AttributeGenPtr;
+	using Attribute = CMapBase::Attribute<T>;
+	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
 } // namespace cgogn

@@ -52,7 +52,7 @@ private:
 
 	std::vector<T*> chunks_;
 
-	void manage_index(uint32 index) override
+	inline void manage_index(uint32 index) override
 	{
 		uint32 capacity = chunks_.size() * CHUNK_SIZE;
 		while (index >= capacity)
@@ -87,16 +87,25 @@ public:
 		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
 	}
 
+	inline void fill(const T& value)
+	{
+		for (auto chunk : chunks_)
+			std::fill(chunk, chunk + CHUNK_SIZE, value);
+	}
+
 	inline void swap(ChunkArray<T>* ca)
 	{
 		if (ca->container_ == this->container_)
 			chunks_.swap(ca->chunks_);
 	}
 
-	inline std::vector<const void*> chunk_pointers(uint32& chunk_byte_size) const
+	inline uint32 nb_chunks() const
 	{
-		chunk_byte_size = CHUNK_SIZE * sizeof(T);
+		return chunks_.size();
+	}
 
+	inline std::vector<const void*> chunk_pointers() const
+	{
 		std::vector<const void*> pointers;
 		pointers.reserve(chunks_.size());
 		for (auto chunk : chunks_)
