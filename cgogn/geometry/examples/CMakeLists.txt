@@ -20,8 +20,6 @@ target_link_libraries(filtering
 	${CMAKE_DL_LIBS}
 )
 
-target_link_options(filtering PRIVATE "LINKER:-z,defs")
-
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
