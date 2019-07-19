@@ -27,22 +27,22 @@
 namespace cgogn
 {
 
-////////////////////////
-// AttributeGen class //
-////////////////////////
+/////////////////////////
+// AttributeGenT class //
+/////////////////////////
 
-AttributeGen::AttributeGen(AttributeContainerGen* container, bool is_mark, const std::string& name) :
+AttributeGenT::AttributeGenT(AttributeContainerGen* container, bool is_mark, const std::string& name) :
 	container_(container),
 	is_mark_(is_mark),
 	name_(name)
 {}
 
-AttributeGen::~AttributeGen()
+AttributeGenT::~AttributeGenT()
 {
 	container_->delete_attribute(this);
 }
 
-uint32 AttributeGen::maximum_index() const
+uint32 AttributeGenT::maximum_index() const
 {
 	return container_->maximum_index();
 }
@@ -76,9 +76,9 @@ uint32 AttributeContainerGen::new_index()
 	else
 		index = maximum_index_++;
 
-	for (AttributeGen* ag : attributes_)
+	for (AttributeGenT* ag : attributes_)
 		ag->manage_index(index);
-	for (AttributeGen* ag : mark_attributes_)
+	for (AttributeGenT* ag : mark_attributes_)
 		ag->manage_index(index);
 
 	init_ref_counter(index);
@@ -96,7 +96,7 @@ void AttributeContainerGen::release_index(uint32 index)
 	--nb_elements_;
 }
 
-void AttributeContainerGen::remove_attribute(const std::shared_ptr<AttributeGen>& attribute)
+void AttributeContainerGen::remove_attribute(const std::shared_ptr<AttributeGenT>& attribute)
 {
 	auto it = std::find(attributes_shared_ptr_.begin(), attributes_shared_ptr_.end(), attribute);
 	if (it != attributes_shared_ptr_.end())
@@ -106,7 +106,7 @@ void AttributeContainerGen::remove_attribute(const std::shared_ptr<AttributeGen>
 	}
 }
 
-void AttributeContainerGen::remove_attribute(AttributeGen* attribute)
+void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 {
 	auto it = std::find_if(
 		attributes_shared_ptr_.begin(),
@@ -120,7 +120,7 @@ void AttributeContainerGen::remove_attribute(AttributeGen* attribute)
 	}
 }
 
-void AttributeContainerGen::delete_attribute(AttributeGen* attribute)
+void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
 	if (attribute->is_mark())
 	{

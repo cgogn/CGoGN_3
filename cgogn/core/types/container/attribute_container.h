@@ -40,16 +40,16 @@ class AttributeContainerGen;
 template <template <typename> class AttributeT>
 class AttributeContainerT;
 
-////////////////////////
-// AttributeGen class //
-////////////////////////
+/////////////////////////
+// AttributeGenT class //
+/////////////////////////
 
-class CGOGN_CORE_EXPORT AttributeGen
+class CGOGN_CORE_EXPORT AttributeGenT
 {
 public:
 
-	AttributeGen(AttributeContainerGen* container, bool is_mark, const std::string& name);
-	virtual ~AttributeGen();
+	AttributeGenT(AttributeContainerGen* container, bool is_mark, const std::string& name);
+	virtual ~AttributeGenT();
 
 	inline const std::string& name() const { return name_; }
 	inline bool is_mark() const { return is_mark_; }
@@ -87,10 +87,10 @@ public:
 	uint32 new_index();
 	void release_index(uint32 index);
 
-	void remove_attribute(const std::shared_ptr<AttributeGen>& attribute);
-	void remove_attribute(AttributeGen* attribute);
+	void remove_attribute(const std::shared_ptr<AttributeGenT>& attribute);
+	void remove_attribute(AttributeGenT* attribute);
 
-	using const_iterator = std::vector<std::shared_ptr<AttributeGen>>::const_iterator;
+	using const_iterator = std::vector<std::shared_ptr<AttributeGenT>>::const_iterator;
 	inline const_iterator begin() const { return attributes_shared_ptr_.begin(); }
 	inline const_iterator end() const { return attributes_shared_ptr_.end(); }
 
@@ -119,12 +119,12 @@ public:
 
 protected:
 
-	std::vector<AttributeGen*> attributes_;
-	std::vector<std::shared_ptr<AttributeGen>> attributes_shared_ptr_;
+	std::vector<AttributeGenT*> attributes_;
+	std::vector<std::shared_ptr<AttributeGenT>> attributes_shared_ptr_;
 
 	std::mutex mark_attributes_mutex_;
 
-	std::vector<AttributeGen*> mark_attributes_;
+	std::vector<AttributeGenT*> mark_attributes_;
 	std::vector<uint32> available_mark_attributes_;
 	
 	std::vector<uint32> available_indices_;
@@ -132,9 +132,9 @@ protected:
 	uint32 nb_elements_;
 	uint32 maximum_index_;
 
-	friend AttributeGen;
+	friend AttributeGenT;
 
-	void delete_attribute(AttributeGen* attribute);
+	void delete_attribute(AttributeGenT* attribute);
 
 	virtual void init_ref_counter(uint32 index) = 0;
 	virtual void reset_ref_counter(uint32 index) = 0;
@@ -142,9 +142,9 @@ protected:
 	virtual void init_mark_attributes(uint32 index) = 0;
 };
 
-//////////////////////////////
-// AttributeContainer class //
-//////////////////////////////
+///////////////////////////////
+// AttributeContainerT class //
+///////////////////////////////
 
 template <template <typename> class AttributeT>
 class CGOGN_CORE_EXPORT AttributeContainerT : public AttributeContainerGen
@@ -153,6 +153,7 @@ public:
 
 	template <typename T>
 	using Attribute = AttributeT<T>;
+	using AttributeGen = AttributeGenT;
 	using MarkAttribute = Attribute<uint8>;
 
 protected:
@@ -161,7 +162,7 @@ protected:
 
 	inline void init_ref_counter(uint32 index) override
 	{
-		static_cast<AttributeGen*>(ref_counters_.get())->manage_index(index);
+		static_cast<AttributeGenT*>(ref_counters_.get())->manage_index(index);
 		(*ref_counters_)[index] = 1u;
 	}
 
@@ -200,13 +201,13 @@ public:
 		auto it = std::find_if(
 			attributes_.begin(),
 			attributes_.end(),
-			[&] (AttributeGen* att) { return att->name().compare(name) == 0; }
+			[&] (AttributeGenT* att) { return att->name().compare(name) == 0; }
 		);
 		if (it == attributes_.end())
 		{
 			std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, false, name);
 			Attribute<T>* ap = asp.get();
-			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
 			attributes_.push_back(ap);
 			attributes_shared_ptr_.push_back(asp);
 			return asp;
@@ -239,7 +240,7 @@ public:
 		else
 		{
 			MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
-			static_cast<AttributeGen*>(ap)->manage_index(maximum_index_);
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
 			mark_attributes_.push_back(ap);
 			return ap;
 		}

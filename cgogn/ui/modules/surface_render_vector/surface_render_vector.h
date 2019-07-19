@@ -29,10 +29,13 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo_update.h>
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/rendering/shaders/shader_vector_per_vertex.h>
+
+#include <boost/synapse/connect.hpp>
 
 #include <unordered_map>
 
@@ -41,11 +44,6 @@ namespace cgogn
 
 namespace ui
 {
-
-class App;
-class View;
-template <typename MESH>
-class MeshProvider;
 
 template <typename MESH>
 class SurfaceRenderVector : public Module
@@ -70,8 +68,8 @@ class SurfaceRenderVector : public Module
 
 		bool initialized_;
 
-		std::string vertex_position_name_;
-		std::string vertex_vector_name_;
+		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Vec3>> vertex_vector_;
 
 		std::unique_ptr<rendering::ShaderVectorPerVertex::Param> param_vector_per_vertex_;
 		
@@ -85,42 +83,63 @@ public:
 		ui::Module(app, "SurfaceRenderVector (" + mesh_traits<MESH>::name + ")"),
 		selected_mesh_(nullptr)
 	{}
+
 	~SurfaceRenderVector()
 	{}
+
+private:
+
+	void init_mesh(MESH* m)
+	{
+		parameters_.emplace(m, Parameters());
+		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
+		{
+			Parameters& p = parameters_[m];
+			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			if (p.vertex_position_.get() == attribute || p.vertex_vector_.get() == attribute)
+				md->update_vbo(attribute);
+
+			for (ui::View* v : linked_views_)
+				v->request_update();
+		}));
+	}
+
+public:
 
 	void init()
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
-		{
-			parameters_.emplace(m, Parameters());
-		});
+		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
+		connections_.push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh)
+		);
 	}
 
-	void update_data(const MESH& m)
+	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
+		p.vertex_position_ = vertex_position;
+		p.vector_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 2.0;
+		
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		md->update_vbo(vertex_position.get());
+		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
 
-		md->update_vbo(p.vertex_position_name_);
-		md->update_vbo(p.vertex_vector_name_);
-
-		std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(m, p.vertex_position_name_);
-		p.vector_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 3.5;
-
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_name_), md->vbo(p.vertex_vector_name_));
-
-		p.initialized_ = true;
+		for (ui::View* v : linked_views_)
+			v->request_update();
 	}
 
-	void set_vertex_position(const MESH& m, const std::string& vertex_position_name)
+	void set_vertex_vector(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_vector)
 	{
-		parameters_[&m].vertex_position_name_ = vertex_position_name;
-	}
+		Parameters& p = parameters_[&m];
+		p.vertex_vector_ = vertex_vector;
+		
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		md->update_vbo(vertex_vector.get());
+		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
 
-	void set_vertex_vector(const MESH& m, const std::string& vertex_vector_name)
-	{
-		parameters_[&m].vertex_vector_name_ = vertex_vector_name;
+		for (ui::View* v : linked_views_)
+			v->request_update();
 	}
 
 protected:
@@ -129,9 +148,6 @@ protected:
 	{
 		for (auto& [m, p] : parameters_)
 		{
-			if (!p.initialized_)
-				continue;
-			
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
@@ -165,43 +181,29 @@ protected:
 		{
 			Parameters& p = parameters_[selected_mesh_];
 
-			std::vector<Attribute<Vec3>*> vec3_attributes;
-			foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (Attribute<Vec3>* attribute)
+			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
 			{
-				vec3_attributes.push_back(attribute);
-			});
-
-			std::string selected_vertex_position_name_ = p.vertex_position_name_.empty() ? "-- select --" : p.vertex_position_name_;
-			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
-			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
-					bool is_selected = attribute->name() == p.vertex_position_name_;
+					bool is_selected = attribute == p.vertex_position_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						p.vertex_position_name_ = attribute->name();
+						set_vertex_position(*selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
 			}
-			std::string selected_vertex_vector_name_ = p.vertex_vector_name_.empty() ? "-- select --" : p.vertex_vector_name_;
-			if (ImGui::BeginCombo("Vector", selected_vertex_vector_name_.c_str()))
+			if (ImGui::BeginCombo("Vector", p.vertex_vector_ ? p.vertex_vector_->name().c_str() : "-- select --"))
 			{
-				for (Attribute<Vec3>* attribute : vec3_attributes)
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
 				{
-					bool is_selected = attribute->name() == p.vertex_vector_name_;
+					bool is_selected = attribute == p.vertex_vector_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						p.vertex_vector_name_ = attribute->name();
+						set_vertex_vector(*selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
-				}
+				});
 				ImGui::EndCombo();
-			}
-
-			if (!p.vertex_position_name_.empty() && !p.vertex_vector_name_.empty())
-			{
-				if (ImGui::Button("Update data"))
-					update_data(*selected_mesh_);
 			}
 
 			ImGui::Separator();
@@ -221,6 +223,8 @@ private:
 
 	const MESH* selected_mesh_;
 	std::unordered_map<const MESH*, Parameters> parameters_;
+	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
+	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 
