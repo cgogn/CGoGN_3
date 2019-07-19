@@ -8,7 +8,7 @@ find_package(cgogn_core REQUIRED)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}

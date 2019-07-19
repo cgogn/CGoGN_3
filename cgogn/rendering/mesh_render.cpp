@@ -33,7 +33,7 @@ MeshRender::MeshRender()
 {
 	for (uint32 i = 0u; i < SIZE_BUFFER; ++i)
 	{
-		indices_buffers_[i] = make_unique<EBO>();
+		indices_buffers_[i] = std::make_unique<EBO>();
 		indices_buffers_uptodate_[i] = false;
 		nb_indices_[i] = 0;
 	}

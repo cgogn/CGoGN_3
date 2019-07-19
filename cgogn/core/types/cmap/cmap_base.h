@@ -44,61 +44,54 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMapBase
 {
-//	using AttributeContainerT = AttributeContainer<Vector>;
-	using AttributeContainerT = AttributeContainer<ChunkArray>;
+	// using AttributeContainer = AttributeContainerT<Vector>;
+	using AttributeContainer = AttributeContainerT<ChunkArray>;
 
 	template <typename T>
-	using Attribute = AttributeContainerT::Attribute<T>;
-	template <typename T>
-	using AttributePtr = AttributeContainerT::AttributePtr<T>;
-
-	using AttributeGenPtr = AttributeContainerT::AttributeGenPtr;
-
-	using MarkAttributePtr = AttributeContainerT::MarkAttributePtr;
+	using Attribute = AttributeContainer::Attribute<T>;
+	using MarkAttribute = AttributeContainer::MarkAttribute;
 
 	// Dart container
-	mutable AttributeContainerT topology_;
+	mutable AttributeContainer topology_;
 	// shortcuts to relations Dart attributes
-	std::vector<AttributePtr<Dart>> relations_;
+	std::vector<std::shared_ptr<Attribute<Dart>>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<AttributePtr<uint32>, NB_ORBITS> embeddings_;
+	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	AttributePtr<uint8> boundary_marker_;
+	std::shared_ptr<Attribute<uint8>> boundary_marker_;
 
 	// Cells attributes containers
-	mutable std::array<AttributeContainerT, NB_ORBITS> attribute_containers_;
+	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
 
 	CMapBase();
 	virtual ~CMapBase();
 
 protected:
 
-	AttributePtr<Dart> add_relation(const std::string& name)
+	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
-		AttributePtr<Dart> rel = topology_.add_attribute<Dart>(name);
-		relations_.push_back(rel);
-		return rel;
+		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
 
 public:
 
-	uint32 nb_darts()
+	inline uint32 nb_darts()
 	{
 		return topology_.nb_elements();
 	}
 
-	void set_boundary(Dart d, bool b)
+	inline void set_boundary(Dart d, bool b)
 	{
 		(*boundary_marker_)[d.index] = b ? 1u : 0u;
 	}
 
-	bool is_boundary(Dart d) const
+	inline bool is_boundary(Dart d) const
 	{
 		return (*boundary_marker_)[d.index] != 0u;
 	}
 
 	template <typename CELL>
-	bool is_embedded() const
+	inline bool is_embedded() const
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -106,7 +99,7 @@ public:
 	}
 
 	template <typename CELL>
-	uint32 embedding(CELL c) const
+	inline uint32 embedding(CELL c) const
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -114,7 +107,7 @@ public:
 	}
 
 	template <typename CELL>
-	void set_embedding(Dart d, uint32 emb)
+	inline void set_embedding(Dart d, uint32 emb)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -127,7 +120,7 @@ public:
 	}
 
 	template <typename CELL>
-	void copy_embedding(Dart dest, Dart src)
+	inline void copy_embedding(Dart dest, Dart src)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -135,20 +128,19 @@ public:
 	}
 
 	template <typename CELL>
-	void init_embedding()
+	inline void init_embedding()
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
 		std::ostringstream oss;
 		oss << "__emb_" << orbit_name(orbit);
-		AttributePtr<uint32> emb = topology_.add_attribute<uint32>(oss.str());
-		embeddings_[orbit] = emb;
-		for (uint32& i : *emb)
+		embeddings_[orbit] = topology_.add_attribute<uint32>(oss.str());
+		for (uint32& i : *embeddings_[orbit])
 			i = INVALID_INDEX;
 	}
 
-	Dart add_dart()
+	inline Dart add_dart()
 	{
 		uint32 index = topology_.new_index();
 		Dart d(index);
@@ -160,7 +152,7 @@ public:
 		return d;
 	}
 
-	void remove_dart(Dart d)
+	inline void remove_dart(Dart d)
 	{
 		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
 		{
@@ -179,10 +171,14 @@ public:
 	{
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = topology_.first_index(); i < topology_.last_index(); i = topology_.next_index(i))
+		for (uint32 i = topology_.first_index(), last_index = topology_.last_index(); i < last_index; i = topology_.next_index(i))
 			if (!f(Dart(i)))
 				break;
 	}
+
+	inline Dart begin() const { return Dart(topology_.first_index()); }
+	inline Dart end() const { return Dart(topology_.last_index()); }
+	inline Dart next(Dart d) const { return Dart(topology_.next_index(d.index)); }
 };
 
 } // namespace cgogn

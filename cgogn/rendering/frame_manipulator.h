@@ -26,10 +26,7 @@
 
 #include <cgogn/rendering/shaders/shader_simple_color.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
-#include <cgogn/geometry/functions/distance.h>
-#include <cgogn/geometry/functions/intersection.h>
-#include <cgogn/geometry/types/vec.h>
-
+#include <cgogn/rendering/types.h>
 
 namespace cgogn
 {
@@ -69,12 +66,21 @@ class CGOGN_RENDERING_EXPORT FrameManipulator
 	std::unique_ptr<ShaderSimpleColor::Param> param_grid_;
 
 	static const uint32 nb_grid_ = 10;
-	static const uint32 nb_grid_ind_ = 4*(nb_grid_+1);
-
+	static const uint32 nb_grid_ind_ = 4 * (nb_grid_ + 1);
 
 public:
-	enum AXIS {NONE=0, CENTER, Xt, Yt, Zt, Xr, Yr, Zr, Xs, Ys, Zs, Translations, Rotations, Scales};
-	using Vec3 = cgogn::geometry::Vec_T<std::array<float,3>>;//Eigen::Vector3f;
+
+	enum AXIS
+	{
+		NONE = 0,
+		CENTER,
+		Xt, Yt, Zt,
+		Xr, Yr, Zr,
+		Xs, Ys, Zs,
+		Translations,
+		Rotations,
+		Scales
+	};
 
 protected:
 
@@ -110,21 +116,13 @@ protected:
 	 * the selectd axis, highlighted
 	 */
 	uint32 highlighted_;
-
 	bool axis_orientation_;
-
 	GLMat4 rotations_;
-
 	float32 scale_rendering_;
-
 	GLVec3 trans_;
-
 	GLVec3 scale_;
-
 	GLVec3 length_axes_;
-
 	GLVec3 projected_selected_axis_;
-
 	GLVec3 projected_origin_;
 
 	GLMat4 proj_mat_;
@@ -135,35 +133,26 @@ protected:
 	int beg_X_;
 	int beg_Y_;
 
+	inline bool axis_pickable(uint32 a) { return (!locked_axis_[a]) && (!locked_picking_axis_[a]); }
+
 	GLMat4 transfo_render_frame();
-
-	inline bool axis_pickable(uint32 a) { return (!locked_axis_[a]) && (!locked_picking_axis_[a]);}
-
 	void set_length_axes();
-
 	uint32 pick_frame(const GLVec4& PP, const GLVec4& QQ);
-
 	void store_projection(uint32 ax);
-
 	float32 angle_from_mouse(int x, int y, int dx, int dy);
-
 	float32 distance_from_mouse(int dx, int dy);
-
 	float32 scale_from_mouse(int dx, int dy);
-
 	void translate_in_screen(int dx, int dy);
-
 	void rotate_in_screen(int dx, int dy);
 
-
 public:
+
 	FrameManipulator();
 
 	/**
 	 * set size of frame (for rendering)
 	 */
 	void set_size(float32 radius);
-
 
 	/**
 	 * @brief set z_plane parameter drawing
@@ -286,6 +275,10 @@ public:
 
 	inline GLVec3 get_position() { return trans_; }
 
+	// get position in a non-QVector3 vector
+	template <typename VEC3>
+	void get_position(VEC3& pos);
+
 	/**
 	 * @brief get an axis
 	 * @param ax (Xr,Yr,Zr)
@@ -293,14 +286,9 @@ public:
 	 */
 	GLVec3 get_axis(uint32 ax);
 
-	/// get position in a non-QVector3 vector
+	// get axis in a non-QVector3 vector
 	template <typename VEC3>
-	void get_position(VEC3& pos);
-
-	/// get axis in a non-QVector3 vector
-	template <typename VEC3>
-	void get_axis(uint32 ax,VEC3& pos);
-
+	void get_axis(uint32 ax, VEC3& pos);
 
 	/**
 	 * set the scale of frame
@@ -321,13 +309,20 @@ public:
 	 */
 	void set_transformation( const GLMat4& transfo);
 
+	inline static bool rotation_axis(uint32 axis)
+	{
+		return (axis >= Xr) && (axis <= Zr);
+	}
 
-	inline static bool rotation_axis(uint32 axis) { return (axis >= Xr) && (axis <= Zr); }
-	inline static bool translation_axis(uint32 axis) { return (axis >= Xt) && (axis <= Zt); }
-	inline static bool scale_axis(uint32 axis) { return ((axis >= Xs) && (axis <= Zs)) || (axis == CENTER); }
+	inline static bool translation_axis(uint32 axis)
+	{
+		return (axis >= Xt) && (axis <= Zt);
+	}
 
-
-protected:
+	inline static bool scale_axis(uint32 axis)
+	{
+		return ((axis >= Xs) && (axis <= Zs)) || (axis == CENTER);
+	}
 };
 
 // template implementation
@@ -338,14 +333,12 @@ void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 	beg_X_ = x;
 	beg_Y_ = y;
 
-	GLVec4 P(PP[0],PP[1],PP[2],1.0);
-	GLVec4 Q(QQ[0],QQ[1],QQ[2],1.0);
-	highlighted_ = pick_frame(P,Q);
+	GLVec4 P(PP[0], PP[1], PP[2], 1.0);
+	GLVec4 Q(QQ[0], QQ[1], QQ[2], 1.0);
+	highlighted_ = pick_frame(P, Q);
 
 	if (highlighted_ != NONE)
-	{
 		store_projection(highlighted_);
-	}
 }
 
 template <typename VEC3>
@@ -356,7 +349,6 @@ void FrameManipulator::set_position(const VEC3& pos)
 	trans_[2] = pos[2];
 }
 
-
 template <typename VEC3>
 void FrameManipulator::get_position(VEC3& pos)
 {
@@ -366,7 +358,7 @@ void FrameManipulator::get_position(VEC3& pos)
 }
 
 template <typename VEC3>
-void FrameManipulator::get_axis(uint32 ax,VEC3& axis)
+void FrameManipulator::get_axis(uint32 ax, VEC3& axis)
 {
 	GLVec3 A = get_axis(ax);
 	axis[0] = A[0];
@@ -374,6 +366,8 @@ void FrameManipulator::get_axis(uint32 ax,VEC3& axis)
 	axis[2] = A[2];
 }
 
-}
-}
-#endif
+} // namespace rendering
+
+} // namespace cgogn
+
+#endif // CGOGN_RENDERING_FRAMEMANIPULATOR_H_

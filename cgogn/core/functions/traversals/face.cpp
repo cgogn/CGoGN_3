@@ -23,9 +23,6 @@
 
 #include <cgogn/core/functions/traversals/face.h>
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/utils/type_traits.h>
-
 namespace cgogn
 {
 
@@ -44,12 +41,6 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> faces;
 	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
-	// m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
-	// {
-	// 	if (!m.is_boundary(d))
-	// 		faces.push_back(CMap2::Face(d));
-	// 	return true;
-	// });
 	return faces;
 }
 
@@ -57,12 +48,6 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Face> faces;
 	foreach_incident_face(m, e, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
-	// m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
-	// {
-	// 	if (!m.is_boundary(d))
-	// 		faces.push_back(CMap2::Face(d));
-	// 	return true;
-	// });
 	return faces;
 }
 

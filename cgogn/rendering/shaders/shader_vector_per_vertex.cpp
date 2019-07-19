@@ -38,11 +38,11 @@ ShaderVectorPerVertex::ShaderVectorPerVertex()
 	const char* vertex_shader_source =
 		"#version 150\n"
 		"in vec3 vertex_pos;\n"
-		"in vec3 vertex_normal;\n"
-		"out vec3 normal;\n"
+		"in vec3 vertex_vector;\n"
+		"out vec3 vector;\n"
 		"void main()\n"
 		"{\n"
-		"	normal = vertex_normal;\n"
+		"	vector = vertex_vector;\n"
 		"	gl_Position = vec4(vertex_pos,1.0);\n"
 		"}\n";
 
@@ -59,7 +59,7 @@ ShaderVectorPerVertex::ShaderVectorPerVertex()
 		"#version 150\n"
 		"layout(points) in;\n"
 		"layout(line_strip,max_vertices=2) out;\n"
-		"in vec3 normal[];\n"
+		"in vec3 vector[];\n"
 		"uniform mat4 projection_matrix;\n"
 		"uniform mat4 model_view_matrix;\n"
 		"uniform float length;\n"
@@ -67,17 +67,22 @@ ShaderVectorPerVertex::ShaderVectorPerVertex()
 		"{\n"
 		"	gl_Position = projection_matrix * model_view_matrix * gl_in[0].gl_Position;\n"
 		"	EmitVertex();\n"
-		"	vec4 end_point = gl_in[0].gl_Position + vec4(length * normal[0], 0.0);\n"
+		"	vec4 end_point = gl_in[0].gl_Position + vec4(length * vector[0], 0.0);\n"
 		"	gl_Position = projection_matrix * model_view_matrix * end_point;\n"
 		"	EmitVertex();\n"
 		"	EndPrimitive();\n"
 		"}\n";
 
-	load3_bind(vertex_shader_source,fragment_shader_source,geometry_shader_source,
-		 "vertex_pos","vertex_normal");
-	add_uniforms("color","length");
+	load3_bind(
+		vertex_shader_source,
+		fragment_shader_source,
+		geometry_shader_source,
+		"vertex_pos",
+		"vertex_vector"
+	);
+	
+	add_uniforms("color", "length");
 }
-
 
 } // namespace rendering
 

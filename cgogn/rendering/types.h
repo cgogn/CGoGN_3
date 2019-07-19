@@ -24,8 +24,6 @@
 #ifndef CGOGN_RENDERING_TYPES_H_
 #define CGOGN_RENDERING_TYPES_H_
 
-#include <GL/gl3w.h>
-
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/core/utils/numerics.h>
 
@@ -98,9 +96,9 @@ public:
 	inline const uint8* data() const { return data_; }
 	inline void set_pixel(int32 x, int32 y, const GLColor& col)
 	{
-		uint8* ptr = data_+ (bpp_*(y*width_+x));
-		for (int32 i=0; i<bpp_; ++i)
-			*ptr++ = uint8(255*col[i]);
+		uint8* ptr = data_+ (bpp_ * (y * width_ + x));
+		for (int32 i = 0; i < bpp_; ++i)
+			*ptr++ = uint8(255 * col[i]);
 	}
 };
 

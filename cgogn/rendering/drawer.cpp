@@ -21,9 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering/drawer.h>
-#include <iostream>
 
 namespace cgogn
 {
@@ -36,8 +34,8 @@ DisplayListDrawer::DisplayListDrawer() :
 	current_aa_(true),
 	current_ball_(true)
 {
-	vbo_pos_ = cgogn::make_unique<VBO>(3);
-	vbo_col_ = cgogn::make_unique<VBO>(3);
+	vbo_pos_ = std::make_unique<VBO>(3);
+	vbo_col_ = std::make_unique<VBO>(3);
 }
 
 DisplayListDrawer::~DisplayListDrawer()
@@ -107,19 +105,19 @@ void DisplayListDrawer::vertex3ff(float32 x, float32 y, float32 z)
 	if (data_pos_.size() == data_col_.size())
 	{
 		if (data_col_.empty())
-			data_col_.push_back(Vec3f{1.0f, 1.0f, 1.0f});
+			data_col_.push_back(GLVec3{1.0f, 1.0f, 1.0f});
 		else
 			data_col_.push_back( data_col_.back());
 	}
-	data_pos_.push_back(Vec3f{x, y, z});
+	data_pos_.push_back(GLVec3{x, y, z});
 }
 
 void DisplayListDrawer::color3ff(float32 r, float32 g, float32 b)
 {
 	if (data_pos_.size() == data_col_.size())
-		data_col_.push_back(Vec3f{r, g, b});
+		data_col_.push_back(GLVec3{r, g, b});
 	else
-		data_col_.back() = Vec3f{r, g, b};
+		data_col_.back() = GLVec3{r, g, b};
 }
 
 void DisplayListDrawer::end_list()
@@ -131,12 +129,12 @@ void DisplayListDrawer::end_list()
 
 	vbo_pos_->allocate(nb_elts, 3);
 	float32* ptr = vbo_pos_->lock_pointer();
-	std::memcpy(ptr, data_pos_[0].data(), nb_elts*12);
+	std::memcpy(ptr, data_pos_[0].data(), nb_elts * 12);
 	vbo_pos_->release_pointer();
 
-	vbo_col_->allocate(nb_elts ,3);
+	vbo_col_->allocate(nb_elts, 3);
 	ptr = vbo_col_->lock_pointer();
-	std::memcpy(ptr, data_col_[0].data(), nb_elts*12);
+	std::memcpy(ptr, data_col_[0].data(), nb_elts * 12);
 	vbo_col_->release_pointer();
 
 	// free memory
@@ -287,7 +285,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			// get direct access to the shader to modify parameters while keeping the original param binded
 			ShaderPointSpriteColor* shader_ps_ = static_cast<ShaderPointSpriteColor*>(param_ps_->get_shader());
 //			shader_ps_->set_size(pp.width);
-			shader_ps_->set_uniform_value(2,pp.width);
+			shader_ps_->set_uniform_value(2, pp.width);
 
 			glDrawArrays(pp.mode, pp.begin, pp.nb);
 		}
@@ -308,7 +306,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			ShaderRoundPointColor* shader_rp_ = static_cast<ShaderRoundPointColor*>(param_rp_->get_shader());
 			//shader_rp_->set_size(pp.width);
 			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_rp_->set_uniform_value(0,wd);
+			shader_rp_->set_uniform_value(0, wd);
 
 			if (pp.aa)
 			{
@@ -335,7 +333,7 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 			// get direct access to the shader to modify parameters while keeping the original param binded
 			ShaderBoldLineColor* shader_bl_ = static_cast<ShaderBoldLineColor*>(param_bl_->get_shader());
 			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_bl_->set_uniform_value(0,wd);
+			shader_bl_->set_uniform_value(0, wd);
 
 			if (pp.aa)
 			{

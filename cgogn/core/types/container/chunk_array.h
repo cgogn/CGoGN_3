@@ -52,7 +52,7 @@ private:
 
 	std::vector<T*> chunks_;
 
-	void manage_index(uint32 index) override
+	inline void manage_index(uint32 index) override
 	{
 		uint32 capacity = chunks_.size() * CHUNK_SIZE;
 		while (index >= capacity)
@@ -85,6 +85,12 @@ public:
 	{
 		cgogn_message_assert(index / CHUNK_SIZE < chunks_.size(), "index out of bounds");
 		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
+	}
+
+	inline void fill(const T& value)
+	{
+		for (auto chunk : chunks_)
+			std::fill(chunk, chunk + CHUNK_SIZE, value);
 	}
 
 	inline void swap(ChunkArray<T>* ca)

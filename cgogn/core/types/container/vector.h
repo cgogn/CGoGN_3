@@ -48,7 +48,7 @@ private:
 
 	std::vector<T> data_;
 
-	void manage_index(uint32 index) override
+	inline void manage_index(uint32 index) override
 	{
 		while (index >= data_.size())
 			data_.push_back(T());
@@ -74,6 +74,11 @@ public:
 	{
 		cgogn_message_assert(index < data_.size(), "index out of bounds");
 		return data_[index];
+	}
+
+	inline void fill(const T& value)
+	{
+		std::fill(data_.begin(), data_.end(), value);
 	}
 
 	inline void swap(Vector<T>* ca)

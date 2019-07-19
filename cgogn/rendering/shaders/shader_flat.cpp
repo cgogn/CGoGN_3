@@ -52,18 +52,18 @@ ShaderFlat::ShaderFlat()
 	"uniform vec4 front_color;\n"
 	"uniform vec4 back_color;\n"
 	"uniform vec4 ambiant_color;\n"
-	"uniform vec3 lightPosition;\n"
-	"uniform bool cull_back_face;\n"
+	"uniform vec3 light_position;\n"
+	"uniform bool double_side;\n"
 	"in vec3 pos;\n"
 	"void main()\n"
 	"{\n"
 	"	vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));\n"
-	"	vec3 L = normalize(lightPosition-pos);\n"
+	"	vec3 L = normalize(light_position-pos);\n"
 	"	float lambert = dot(N,L);\n"
 	"	if (gl_FrontFacing)\n"
 	"		fragColor = vec4(ambiant_color.rgb+lambert*front_color.rgb, front_color.a);\n"
 	"	else\n"
-	"		if (cull_back_face) discard;\n"
+	"		if (!double_side) discard;\n"
 	"		else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);\n"
 	"}\n";
 
@@ -74,8 +74,8 @@ ShaderFlat::ShaderFlat()
 		"front_color",
 		"back_color",
 		"ambiant_color",
-		"lightPosition",
-		"cull_back_face"
+		"light_position",
+		"double_side"
 	);
 }
 

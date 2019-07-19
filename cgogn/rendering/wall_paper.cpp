@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering/wall_paper.h>
+
 #include <iostream>
 
 namespace cgogn
@@ -35,12 +35,12 @@ void WallPaper::init(const GLImage& img)
 {
 	if (vbo_pos_ == nullptr)
 	{
-		vbo_pos_ = cgogn::make_unique<VBO>(3);
+		vbo_pos_ = std::make_unique<VBO>(3);
 		vbo_pos_->allocate(4, 3);
 	}
 	if (vbo_tc_ == nullptr)
 	{
-		vbo_tc_ = cgogn::make_unique<VBO>(2);
+		vbo_tc_ = std::make_unique<VBO>(2);
 		vbo_tc_->allocate(4, 2);
 		float32* ptr_tc = vbo_tc_->lock_pointer();
 		*ptr_tc++ = 0.0f;
@@ -53,7 +53,7 @@ void WallPaper::init(const GLImage& img)
 		*ptr_tc++ = 1.0f;
 		vbo_tc_->release_pointer();
 	}
-	texture_ = cgogn::make_unique<Texture2D>();
+	texture_ = std::make_unique<Texture2D>();
 	texture_->load(img);
 	set_full_screen(false);
 }
@@ -89,12 +89,8 @@ WallPaper::WallPaper(const GLColor& col_tl, const GLColor& col_tr, const GLColor
 	init(img);
 }
 
-
 WallPaper::~WallPaper()
-{
-}
-
-
+{}
 
 void WallPaper::set_full_screen(bool front)
 {
@@ -124,11 +120,11 @@ void WallPaper::set_local_position(uint32 win_w, uint32 win_h, uint32 x, uint32 
 	if (!front)
 		depth = 0.9999999f;
 
-	float32 xmin = -1.0f + float32(2*x)/float32(win_w);
-	float32 xmax = xmin + float32(2*w)/float32(win_w);
+	float32 xmin = -1.0f + float32(2 * x) / float32(win_w);
+	float32 xmax = xmin + float32(2 * w) / float32(win_w);
 
-	float32 ymin = 1.0f - float32(2*y)/float32(win_h);
-	float32 ymax = ymin - float32(2*h)/float32(win_h);
+	float32 ymin = 1.0f - float32(2 * y) / float32(win_h);
+	float32 ymax = ymin - float32(2 * h) / float32(win_h);
 
 	float32* ptr_pos = vbo_pos_->lock_pointer();
 	*ptr_pos++ = xmin;
@@ -152,11 +148,11 @@ void WallPaper::set_local_position(float x, float y, float w, float h, bool fron
 	if (!front)
 		depth = 0.9999999f;
 
-	float32 xmin = -1.0f + 2*x;
-	float32 xmax = xmin + 2*w;
+	float32 xmin = -1.0f + 2 * x;
+	float32 xmax = xmin + 2 * w;
 
-	float32 ymin = 1.0f - 2*y;
-	float32 ymax = ymin - 2*h;
+	float32 ymin = 1.0f - 2 * y;
+	float32 ymax = ymin - 2 * h;
 
 	float32* ptr_pos = vbo_pos_->lock_pointer();
 	*ptr_pos++ = xmin;
@@ -187,7 +183,7 @@ WallPaper::Renderer::~Renderer()
 
 void WallPaper::Renderer::draw()
 {
-	param_texture_->bind(GLMat4::Identity(),GLMat4::Identity());
+	param_texture_->bind(GLMat4::Identity(), GLMat4::Identity());
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	param_texture_->release();
 }

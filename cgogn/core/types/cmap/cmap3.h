@@ -33,7 +33,7 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 {
-	AttributePtr<Dart> phi3_;
+	std::shared_ptr<Attribute<Dart>> phi3_;
 
 	using Vertex = Cell<PHI21_PHI31>;
 	using Edge = Cell<PHI2_PHI3>;
@@ -154,7 +154,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	}
 
 	template <typename FUNC>
-	void foreach_dart_of_PHI1_PHI2_PHI3(Dart d, const FUNC& f) const
+	inline void foreach_dart_of_PHI1_PHI2_PHI3(Dart d, const FUNC& f) const
 	{
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");

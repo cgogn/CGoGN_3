@@ -44,12 +44,13 @@ Scalar
 angle(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
-
 	std::vector<Face> faces = incident_faces(m, e);
+	if (faces.size() < 2)
+		return 0;
 	return angle(
         normal(m, faces[0], vertex_position),
         normal(m, faces[1], vertex_position)
@@ -57,18 +58,53 @@ angle(
 }
 
 template <typename MESH>
+Scalar
+angle(
+	const MESH& m,
+	typename mesh_traits<MESH>::Edge e,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* face_normal
+)
+{
+	using Face = typename mesh_traits<MESH>::Face;
+	std::vector<Face> faces = incident_faces(m, e);
+	if (faces.size() < 2)
+		return 0;
+	return angle(
+        value<Vec3>(m, face_normal, faces[0]),
+        value<Vec3>(m, face_normal, faces[1])
+    );
+}
+
+template <typename MESH>
 void
 compute_angle(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
-	typename mesh_traits<MESH>::template AttributePtr<Scalar> edge_angle
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
-
-	foreach_cell(m, [&] (Edge e) -> bool
+	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position);
+        return true;
+	});
+}
+
+template <typename MESH>
+void
+compute_angle(
+	const MESH& m,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* face_normal,
+	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
+)
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	foreach_cell(m, [&] (Edge e) -> bool
+	{
+		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
         return true;
 	});
 }

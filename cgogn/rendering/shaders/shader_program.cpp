@@ -22,7 +22,6 @@
 *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/core/utils/unique_ptr.h>
 
 namespace cgogn
 {
@@ -128,9 +127,13 @@ ShaderProgram::ShaderProgram():
 
 ShaderProgram::~ShaderProgram()
 {
-	delete vert_shader_;
-	delete frag_shader_;
-	delete frag_shader_;
+	if (vert_shader_)
+		delete vert_shader_;
+	if (geom_shader_)
+		delete geom_shader_;
+	if (frag_shader_)
+		delete frag_shader_;
+	
 	glDeleteProgram(id_);
 }
 
@@ -323,7 +326,7 @@ void ShaderProgram::set_view_matrix(const GLMat4& mv)
 ShaderParam::ShaderParam(ShaderProgram* prg) :
 	shader_(prg)
 {
-	vao_ = cgogn::make_unique<VAO>();
+	vao_ = std::make_unique<VAO>();
 	vao_->create();
 }
 

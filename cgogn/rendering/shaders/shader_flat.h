@@ -39,7 +39,13 @@ class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
+		shader_->set_uniforms_values(
+			front_color_,
+			back_color_,
+			ambiant_color_,
+			light_position_,
+			double_side_
+		);
 	}
 
 public:
@@ -47,8 +53,8 @@ public:
 	GLColor front_color_;
 	GLColor back_color_;
 	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
+	GLVec3 light_position_;
+	bool double_side_;
 
 	using LocalShader = ShaderFlat;
 
@@ -57,8 +63,8 @@ public:
 		front_color_(0.9f, 0, 0, 1),
 		back_color_(0, 0, 0.9f, 1),
 		ambiant_color_(0.05f, 0.05f, 0.05f, 1),
-		light_pos_(10, 100, 1000),
-		bf_culling_(false)
+		light_position_(10, 100, 1000),
+		double_side_(true)
 	{}
 
 	inline ~ShaderParamFlat() override {}

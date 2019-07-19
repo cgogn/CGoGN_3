@@ -21,7 +21,6 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering/shaders/shader_fullscreen_texture.h>
 
 namespace cgogn
@@ -29,7 +28,6 @@ namespace cgogn
 
 namespace rendering
 {
-
 
 ShaderFSTexture* ShaderFSTexture::instance_ = nullptr;
 
@@ -60,5 +58,6 @@ ShaderFSTexture::ShaderFSTexture()
 	add_uniforms("texture_unit","alpha");
 }
 
-}
+} // namespace rendering
+
 } // namespace cgogn

@@ -28,10 +28,7 @@
 #include <cgogn/rendering/types.h>
 #include <cgogn/rendering/vao.h>
 
-#include <cgogn/core/utils/unique_ptr.h>
-
 #include <iostream>
-#include <cassert>
 #include <memory>
 
 #define DECLARE_SHADER_CLASS(NAME) \
@@ -49,7 +46,7 @@ public:\
 			instance_ = new Self();\
 			ShaderProgram::register_instance(instance_);\
 		}\
-		return cgogn::make_unique<Param>(instance_);\
+		return std::make_unique<Param>(instance_);\
 	}\
 protected:\
 	Shader##NAME();\
@@ -390,14 +387,16 @@ public:
 	auto internal_associate_vbos(GLuint attrib1, T1* p1)
 		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
-		p1->associate(attrib1);
+		if (p1)
+			p1->associate(attrib1);
 	}
 
 	template<typename T1, typename... Ts>
 	auto internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
 		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
 	{
-		p1->associate(attrib1);
+		if (p1)
+			p1->associate(attrib1);
 		internal_associate_vbos(attrib1 + 1u, pn...);
 	}
 

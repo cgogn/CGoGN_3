@@ -44,7 +44,7 @@ Vec3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Face f,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -80,7 +80,7 @@ Vec3
 normal(
 	const MESH& m,
 	typename mesh_traits<MESH>::Vertex v,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	using Face = typename mesh_traits<MESH>::Face;
@@ -98,12 +98,12 @@ template <typename MESH>
 void
 compute_normal(
 	const MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_position,
-	typename mesh_traits<MESH>::template AttributePtr<Vec3> vertex_normal
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	foreach_cell(m, [&] (Vertex v) -> bool
+	parallel_foreach_cell(m, [&] (Vertex v) -> bool
 	{
 		value<Vec3>(m, vertex_normal, v) = normal(m, v, vertex_position);
 		return true;

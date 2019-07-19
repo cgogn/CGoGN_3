@@ -10,7 +10,7 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 find_package(Eigen3 3.2)
 
-add_library(${PROJECT_NAME} SHARED "")
+add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
