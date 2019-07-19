@@ -94,7 +94,7 @@ protected:
 				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 				{
 					selected_mesh_ = m;
-					selected_vertex_attribute_ = nullptr;
+					selected_vertex_attribute_.reset();
 				}
 			});
 			ImGui::ListBoxFooter();

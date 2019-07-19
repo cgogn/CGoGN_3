@@ -110,45 +110,6 @@ struct MeshData
 		rendering::update_vbo<T>(attribute, v);
 	}
 
-	// void update_vbo(const std::string& name)
-	// {
-	// 	rendering::VBO* v = vbo(name);
-
-	// 	std::shared_ptr<Attribute<Vec3>> attribute3 = get_attribute<Vec3, Vertex>(*mesh_, name);
-	// 	if (attribute3)
-	// 	{
-	// 		if (!v)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(3));
-	// 			v = it->second.get();
-	// 		}
-	// 		rendering::update_vbo<Vec3>(attribute3.get(), v);
-	// 		return;
-	// 	}
-	// 	std::shared_ptr<Attribute<Vec2>> attribute2 = get_attribute<Vec2, Vertex>(*mesh_, name);
-	// 	if (attribute2)
-	// 	{
-	// 		if (!v)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(2));
-	// 			v = it->second.get();
-	// 		}
-	// 		rendering::update_vbo<Vec2>(attribute2.get(), v);
-	// 		return;
-	// 	}
-	// 	std::shared_ptr<Attribute<Scalar>> attribute1 = get_attribute<Scalar, Vertex>(*mesh_, name);
-	// 	if (attribute1)
-	// 	{
-	// 		if (!v)
-	// 		{
-	// 			const auto [it, inserted] = vbos_.emplace(name, std::make_unique<rendering::VBO>(1));
-	// 			v = it->second.get();
-	// 		}
-	// 		rendering::update_vbo<Scalar>(attribute1.get(), v);
-	// 		return;
-	// 	}
-	// }
-
 	Vec3 bb_min_, bb_max_;
 	const MESH* mesh_;
 

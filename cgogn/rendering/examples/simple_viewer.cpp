@@ -69,6 +69,7 @@ int main(int argc, char** argv)
 	sdp.init();
 
 	Mesh* m = mp.import_surface_from_file(filename);
+	// Mesh* m2 = mp.import_surface_from_file(std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off"));
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
@@ -76,6 +77,9 @@ int main(int argc, char** argv)
 	
 	sr.set_vertex_position(*m, vertex_position);
 	sr.set_vertex_normal(*m, vertex_normal);
+
+	srv.set_vertex_position(*m, vertex_position);
+	srv.set_vertex_vector(*m, vertex_normal);
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&sr);

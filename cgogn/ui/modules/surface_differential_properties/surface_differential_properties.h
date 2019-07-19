@@ -100,17 +100,16 @@ public:
 	)
 	{
 		geometry::compute_curvature(
-			m,
-			radius,
-			vertex_position,
-			vertex_normal,
-			edge_angle,
-			vertex_kmax,
-			vertex_kmin,
-			vertex_Kmax,
-			vertex_Kmin,
-			vertex_Knormal
+			m, radius,
+			vertex_position, vertex_normal,	edge_angle,
+			vertex_kmax, vertex_kmin,
+			vertex_Kmax, vertex_Kmin, vertex_Knormal
 		);
+		mesh_provider_->emit_attribute_changed(&m, vertex_kmax);
+		mesh_provider_->emit_attribute_changed(&m, vertex_kmin);
+		mesh_provider_->emit_attribute_changed(&m, vertex_Kmax);
+		mesh_provider_->emit_attribute_changed(&m, vertex_Kmin);
+		mesh_provider_->emit_attribute_changed(&m, vertex_Knormal);
 	}
 
 protected:
@@ -127,8 +126,13 @@ protected:
 				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 				{
 					selected_mesh_ = m;
-					selected_vertex_position_ = nullptr;
-					selected_vertex_normal_ = nullptr;
+					selected_vertex_position_.reset();
+					selected_vertex_normal_.reset();
+					selected_vertex_kmax_.reset();
+					selected_vertex_kmin_.reset();
+					selected_vertex_Kmax_.reset();
+					selected_vertex_Kmin_.reset();
+					selected_vertex_Knormal_.reset();
 				}
 			});
 			ImGui::ListBoxFooter();
