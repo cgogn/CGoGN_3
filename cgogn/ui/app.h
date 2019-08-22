@@ -31,6 +31,7 @@
 #include <cgogn/rendering/shaders/shader_frame2d.h>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
@@ -58,16 +59,16 @@ public:
 	inline float32 device_pixel_ratio() const { return 1.0f; }
 
 	View* add_view();
-	inline View* current_view() const { return focused_; }
+	inline View* current_view() const { return current_view_; }
 
 	Module* module(const std::string& name) const;
 
 	int launch();
+	void stop();
 
 private:
 
 	void close_event();
-	bool interface();
     void adapt_views_geometry();
 	inline bool over_frame(int32 x, int32 y) const
 	{
@@ -90,7 +91,7 @@ private:
 	Inputs inputs_;
 
 	std::vector<std::unique_ptr<View>> views_;
-	View* focused_;
+	View* current_view_;
 
     mutable std::vector<Module*> modules_;
 };

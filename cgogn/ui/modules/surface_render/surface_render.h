@@ -62,7 +62,6 @@ class SurfaceRender : public Module
 	struct Parameters
 	{
 		Parameters() :
-			initialized_(false),
 			vertex_position_(nullptr),
 			vertex_normal_(nullptr),
 			render_vertices_(false),
@@ -89,8 +88,6 @@ class SurfaceRender : public Module
 			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 		}
-
-		bool initialized_;
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
@@ -126,10 +123,10 @@ private:
 		parameters_.emplace(m, Parameters());
 		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
 		{
-			Parameters& p = parameters_[m];
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-			if (p.vertex_position_.get() == attribute || p.vertex_normal_.get() == attribute)
-				md->update_vbo(attribute);
+			// Parameters& p = parameters_[m];
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			// if (p.vertex_position_.get() == attribute || p.vertex_normal_.get() == attribute)
+			// 	md->update_vbo(attribute);
 
 			for (ui::View* v : linked_views_)
 				v->request_update();
@@ -150,11 +147,15 @@ public:
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
-		p.vertex_position_ = vertex_position;
-		p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
-
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-		md->update_vbo(vertex_position.get());
+
+		p.vertex_position_ = vertex_position;
+		if (p.vertex_position_)
+		{
+			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			md->update_vbo(vertex_position.get(), true);
+		}
+
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
@@ -167,10 +168,12 @@ public:
 	void set_vertex_normal(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
 		Parameters& p = parameters_[&m];
-		p.vertex_normal_ = vertex_normal;
-
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-		md->update_vbo(vertex_normal.get());
+
+		p.vertex_normal_ = vertex_normal;
+		if (p.vertex_normal_)
+			md->update_vbo(vertex_normal.get(), true);
+		
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
 		for (ui::View* v : linked_views_)
@@ -193,13 +196,13 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 
-				if (p.phong_shading_)
+				if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES);
 					p.param_phong_->release();
 				}
-				else
+				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES);
@@ -209,7 +212,7 @@ protected:
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
-			if (p.render_vertices_)
+			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -217,7 +220,7 @@ protected:
 				p.param_point_sprite_->release();
 			}
 
-			if (p.render_edges_)
+			if (p.render_edges_ && p.param_edge_->vao_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
@@ -248,6 +251,8 @@ protected:
 
 		if (selected_mesh_)
 		{
+			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
@@ -262,6 +267,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (p.vertex_position_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##position"))
+					set_vertex_position(*selected_mesh_, nullptr);
+			}
+
 			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
 			{
 				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
@@ -273,6 +285,12 @@ protected:
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
+			}
+			if (p.vertex_normal_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##normal"))
+					set_vertex_normal(*selected_mesh_, nullptr);
 			}
 
 			ImGui::Separator();

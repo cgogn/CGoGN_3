@@ -48,7 +48,7 @@ App::App():
 	window_frame_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
-	focused_(nullptr)
+	current_view_(nullptr)
 {
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
@@ -66,20 +66,21 @@ App::App():
 		std::cerr << "Failed to create Window!" << std::endl;
 
 	glfwMakeContextCurrent(window_);
+	glfwSwapInterval(1); // Enable vsync
 
 	bool err = gl3wInit() != 0;
 	if (err)
 		std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
-	
-	glfwSwapInterval(1); // Enable vsync
 
 	IMGUI_CHECKVERSION();
 	context_ = ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 	ImGui::StyleColorsDark(); //ImGui::StyleColorsClassic();
+
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
+
 	glfwSetWindowUserPointer(window_, this);
 
 	std::cout << glGetString(GL_VENDOR) << std::endl;
@@ -120,10 +121,10 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 
 				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
@@ -174,10 +175,10 @@ App::App():
 		{
 			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 				v->mouse_move_event(x, y);
 			}
@@ -186,7 +187,7 @@ App::App():
 		if (!that->over_frame(cx, cy))
 		{
 			that->inputs_.mouse_buttons_ = 0;
-			that->focused_ = nullptr;
+			that->current_view_ = nullptr;
 		}
 
         that->inputs_.last_mouse_x_ = x;
@@ -210,10 +211,10 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 				v->mouse_wheel_event(dx, 100 * dy);
 			}
@@ -240,10 +241,10 @@ App::App():
 			{
 				if (v->over_viewport(cx, cy))
 				{
-					if (v.get() != that->focused_)
+					if (v.get() != that->current_view_)
 					{
 						that->inputs_.mouse_buttons_ = 0;
-						that->focused_ = v.get();
+						that->current_view_ = v.get();
 					}
 				}
 			}
@@ -252,7 +253,7 @@ App::App():
 		else
 		{
 			that->inputs_.mouse_buttons_ = 0;
-			that->focused_ = nullptr;
+			that->current_view_ = nullptr;
 		}
 	});
 
@@ -270,8 +271,7 @@ App::App():
 
 		if (k == GLFW_KEY_ESCAPE)
         {
-            that->close_event();
-			glfwSetWindowShouldClose(that->window_, GLFW_TRUE);
+            that->stop();
 			return;
         }
 
@@ -299,7 +299,7 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				that->focused_ = v.get();
+				that->current_view_ = v.get();
 
 				switch(a)
 				{
@@ -342,7 +342,7 @@ App::App():
 		}
 	});
 
-    focused_ = add_view();
+    current_view_ = add_view();
 }
 
 App::~App()
@@ -390,11 +390,6 @@ void App::close_event()
 		v->close_event();
 	
 	cgogn::rendering::ShaderProgram::clean_all();
-}
-
-bool App::interface()
-{
-	return false;
 }
 
 void App::adapt_views_geometry()
@@ -450,10 +445,23 @@ int App::launch()
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
-            interface();
+
+			if (ImGui::BeginMainMenuBar())
+			{
+				if(ImGui::BeginMenu("File")) {
+					if(ImGui::MenuItem("Quit", "[ESC]"))
+                    	this->stop();
+                	ImGui::EndMenu();
+				}
+				for (Module* m : modules_)
+					m->main_menu();
+				ImGui::EndMainMenuBar();
+			}
+
             for (Module* m : modules_)
                 m->interface();
-            ImGui::Render();
+            
+			ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         }
 
@@ -466,6 +474,12 @@ int App::launch()
 	
 	glfwDestroyWindow(window_);
 	return EXIT_SUCCESS;
+}
+
+void App::stop()
+{
+	close_event();
+	glfwSetWindowShouldClose(window_, GLFW_TRUE);
 }
 
 } // namespace cgogn

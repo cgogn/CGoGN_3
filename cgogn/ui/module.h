@@ -66,6 +66,7 @@ protected:
 
 	virtual void draw(View* view);
 
+	virtual void main_menu();
 	virtual void interface();
 
 	const App& app_;

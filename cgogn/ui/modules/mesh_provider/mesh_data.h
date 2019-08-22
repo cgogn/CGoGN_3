@@ -99,15 +99,16 @@ struct MeshData
 	}
 
 	template <typename T>
-	void update_vbo(Attribute<T>* attribute)
+	void update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
 	{
 		rendering::VBO* v = vbo(attribute);
-		if (!v)
+		if (!v && create_if_needed)
 		{
 			const auto [it, inserted] = vbos_.emplace(attribute, std::make_unique<rendering::VBO>());
 			v = it->second.get();
 		}
-		rendering::update_vbo<T>(attribute, v);
+		if (v)
+			rendering::update_vbo<T>(attribute, v);
 	}
 
 	Vec3 bb_min_, bb_max_;

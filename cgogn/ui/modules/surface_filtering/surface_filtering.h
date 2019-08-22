@@ -102,6 +102,8 @@ protected:
 
 		if (selected_mesh_)
 		{
+			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			std::string selected_vertex_attribute_name_ = selected_vertex_attribute_ ? selected_vertex_attribute_->name() : "-- select --";
 			if (ImGui::BeginCombo("Attribute", selected_vertex_attribute_name_.c_str()))
 			{
@@ -114,6 +116,12 @@ protected:
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
+			}
+			if (selected_vertex_attribute_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##attribute"))
+					selected_vertex_attribute_.reset();
 			}
 
 			if (selected_vertex_attribute_)

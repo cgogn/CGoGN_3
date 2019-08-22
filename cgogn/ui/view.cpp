@@ -180,7 +180,7 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	float64 yogl;
 	float64 zogl;
 
-	if (fbo_ != nullptr)
+	if (fbo_)
 	{
 		xs = GLint(double(x - viewport_x_) / double(viewport_w_) * fbo_->width());
 		ys = GLint(double((frame_h_ - y) - viewport_y_) / double(viewport_h_) * fbo_->height());

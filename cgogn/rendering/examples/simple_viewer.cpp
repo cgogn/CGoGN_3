@@ -68,8 +68,8 @@ int main(int argc, char** argv)
 	srv.init();
 	sdp.init();
 
-	Mesh* m = mp.import_surface_from_file(filename);
-	// Mesh* m2 = mp.import_surface_from_file(std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off"));
+	Mesh* m = mp.load_surface_from_file(filename);
+	// Mesh* m2 = mp.load_surface_from_file(std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off"));
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
