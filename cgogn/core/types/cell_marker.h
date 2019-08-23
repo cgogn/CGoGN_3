@@ -152,6 +152,8 @@ public:
 template <typename MESH, typename CELL>
 class CellMarkerStore : public CellMarker<MESH, CELL>
 {
+private:
+
 	std::vector<uint32> marked_cells_;
 
 public:

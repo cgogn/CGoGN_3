@@ -95,6 +95,7 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 			case PHI2: foreach_dart_of_PHI2(c.dart, f); break;
 			case PHI21: foreach_dart_of_PHI21(c.dart, f); break;
 			case PHI1_PHI2: foreach_dart_of_PHI1_PHI2(c.dart, f); break;
+			default: break;
 		}
 	}
 

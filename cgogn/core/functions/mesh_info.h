@@ -57,6 +57,13 @@ uint32 nb_cells(const MESH& m)
 	return result;
 }
 
+// template <typename CELL, typename MESH>
+// std::string cell_name(const MESH& m)
+// {
+// 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+// 	return mesh_traits<MESH>::CellNames[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
+// }
+
 /*****************************************************************************/
 
 // template <typename MESH, typename CELL>

@@ -46,7 +46,7 @@ class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
 public:
 
-	static const uint32 CHUNK_SIZE = 512;
+	static const uint32 CHUNK_SIZE = 1024;
 
 private:
 
@@ -97,6 +97,13 @@ public:
 	{
 		if (ca->container_ == this->container_)
 			chunks_.swap(ca->chunks_);
+	}
+
+	inline void copy(ChunkArray<T>* ca)
+	{
+		if (ca->container_ == this->container_)
+			for (uint32 i = 0; i < chunks_.size(); ++i)
+				std::copy(ca->chunks_[i], ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
 	}
 
 	inline uint32 nb_chunks() const

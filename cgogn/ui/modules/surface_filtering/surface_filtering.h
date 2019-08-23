@@ -69,8 +69,7 @@ public:
 	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_attribute)
 	{
 		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute = add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
-		for (auto it = filtered_vertex_attribute->begin(), end = filtered_vertex_attribute->end(); it != end; ++it)
-			*it = (*vertex_attribute)[it.index()];
+		filtered_vertex_attribute->copy(vertex_attribute);
 		
 		geometry::filter_average<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
 		

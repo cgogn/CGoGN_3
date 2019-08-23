@@ -69,7 +69,11 @@ int main(int argc, char** argv)
 	sdp.init();
 
 	Mesh* m = mp.load_surface_from_file(filename);
-	// Mesh* m2 = mp.load_surface_from_file(std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off"));
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
@@ -86,7 +90,7 @@ int main(int argc, char** argv)
 	v1->link_module(&srv);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->update_bb(vertex_position.get());
+	md->set_bb_attribute(vertex_position);
 	Vec3 diagonal = md->bb_max_ - md->bb_min_;
 	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 

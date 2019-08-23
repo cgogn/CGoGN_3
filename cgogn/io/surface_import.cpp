@@ -40,7 +40,7 @@ namespace cgogn
 namespace io
 {
 
-void import_OFF(CMap2& m, const std::string& filename)
+bool import_OFF(CMap2& m, const std::string& filename)
 {
 	Scoped_C_Locale loc;
 
@@ -57,7 +57,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 	if (line.rfind("OFF") == std::string::npos)
 	{
 		std::cerr << "File \"" << filename << "\" is not a valid off file." << std::endl;
-		return;
+		return false;
 	}
 
 	// read number of vertices, edges, faces
@@ -98,7 +98,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 	}
 
 	if (faces_nb_edges.size() == 0u)
-		return;
+		return false;
 
 	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m, "darts_per_vertex");
 
@@ -180,25 +180,20 @@ void import_OFF(CMap2& m, const std::string& filename)
 
 	if (nb_boundary_edges > 0)
 	{
-//		uint32 nb_holes = mbuild_.close_map();
-//		std::cout << nb_holes << " hole(s) have been closed" << std::endl;;
+		// uint32 nb_holes = mbuild_.close_map();
+		// std::cout << nb_holes << " hole(s) have been closed" << std::endl;;
 		std::cout << nb_boundary_edges << " boundary edges" << std::endl;
 	}
 
-//		if (need_vertex_unicity_check)
-//		{
-//			map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
-//			cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
-//		}
+	// if (need_vertex_unicity_check)
+	// {
+	// 	map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
+	// 	cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
+	// }
 
 	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 
-//		cgogn_assert(map_.template is_well_embedded<Vertex>());
-//		if (map_.template is_embedded<Face::ORBIT>())
-//		{
-//			cgogn_assert(map_.template is_well_embedded<Face>());
-//		}
-//	}
+	return true;
 }
 
 } // namespace io

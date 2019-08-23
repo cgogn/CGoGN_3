@@ -55,24 +55,37 @@ class MeshProvider : public Module
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
     using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
 public:
 
 	MeshProvider(const App& app) :
-		Module(app, "MeshProvider (" + mesh_traits<MESH>::name + ")")
+		Module(app, "MeshProvider (" + mesh_traits<MESH>::name + ")"),
+		show_mesh_inspector_(false),
+		selected_mesh_(nullptr)
 	{}
 	~MeshProvider()
 	{}
 
 	MESH* load_surface_from_file(const std::string& filename)
 	{
-		const auto [it, inserted] = meshes_.emplace(filename_from_path(filename), std::make_unique<MESH>());
+		std::string name = filename_from_path(filename);
+		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 		MESH* m = it->second.get();
-		cgogn::io::import_OFF(*m, filename);
-		mesh_data_.emplace(m, MeshData(m));
-
-		boost::synapse::emit<mesh_added>(this, m);
-
-		return m;
+		bool imported = cgogn::io::import_OFF(*m, filename);
+		if (imported)
+		{
+			mesh_data_.emplace(m, MeshData(m));
+			boost::synapse::emit<mesh_added>(this, m);
+			return m;
+		}
+		else
+		{
+			meshes_.erase(name);
+			return nullptr;
+		}
 	}
 
 	template <typename FUNC>
@@ -109,14 +122,17 @@ public:
 
 	using mesh_added = struct mesh_added_ (*) (MESH* m);
 	template <typename T>
-	using attribute_changed_t = struct attribute_changed_(*)(Attribute<T>* attribute);
+	using attribute_changed_t = struct attribute_changed_t_(*)(Attribute<T>* attribute);
 	using attribute_changed = struct attribute_changed_(*)(AttributeGen* attribute);
 	using connectivity_changed = struct connectivity_changed_ (*) ();
 
 	template <typename T>
 	void emit_attribute_changed(const MESH* m, Attribute<T>* attribute)
 	{
-		mesh_data(m)->update_vbo(attribute);
+		MeshData<MESH>* md = mesh_data(m);
+		md->update_vbo(attribute);
+		if (static_cast<AttributeGen*>(md->bb_attribute_.get()) == static_cast<AttributeGen*>(attribute))
+			md->update_bb();
 
 		boost::synapse::emit<attribute_changed>(m, attribute);
 		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
@@ -124,6 +140,9 @@ public:
 
 	void emit_connectivity_changed(const MESH* m)
 	{
+		MeshData<MESH>* md = mesh_data(m);
+		md->update_nb_cells();
+
 		boost::synapse::emit<connectivity_changed>(m);
 	}
 
@@ -131,33 +150,69 @@ protected:
 
 	void main_menu() override
 	{
+		static std::shared_ptr<pfd::open_file> open_file_dialog;
+		if (open_file_dialog && open_file_dialog->ready())
+		{
+			auto result = open_file_dialog->result();
+			if (result.size())
+				load_surface_from_file(result[0]);
+			open_file_dialog = nullptr;
+		}
+
 		if (ImGui::BeginMenu(name_.c_str()))
         {
-			static std::shared_ptr<pfd::open_file> open_file;
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file);
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
-				open_file = std::make_shared<pfd::open_file>("Choose file");
-			if (open_file && open_file->ready())
-			{
-				auto result = open_file->result();
-				if (result.size())
-				{
-					std::cout << "Opened file " << result[0] << "\n";
-					load_surface_from_file(result[0]);
-				}
-				open_file = nullptr;
-			}
+				open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_files);
+			ImGui::MenuItem("Show inspector", "", &show_mesh_inspector_);
 			ImGui::PopItemFlag();
             ImGui::EndMenu();
         }
 	}
 
 	void interface() override
-	{}
+	{
+		if (show_mesh_inspector_)
+		{
+			std::string name = mesh_traits<MESH>::name + " inspector";
+			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::SetWindowSize({0, 0});
+
+			if (ImGui::ListBoxHeader("Select mesh"))
+			{
+				foreach_mesh([this] (MESH* m, const std::string& name)
+				{
+					if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
+						selected_mesh_ = m;
+				});
+				ImGui::ListBoxFooter();
+			}
+
+			if (selected_mesh_)
+			{
+				ImGui::Text("Cells");
+				ImGui::Columns(2);
+				ImGui::Separator();
+				ImGui::Text("Type"); ImGui::NextColumn();
+				ImGui::Text("Number"); ImGui::NextColumn();
+				ImGui::Separator();
+
+				MeshData<MESH>* md = mesh_data(selected_mesh_);
+				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
+				{
+					ImGui::Text(mesh_traits<MESH>::CellNames[i].c_str()); ImGui::NextColumn();
+					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
+				}
+			}
+		}
+	}
 
 private:
 
-	char filename_[FILENAME_MAX];
+	std::vector<std::string> supported_files = { "Surface meshes", "*.off" };
+	bool show_mesh_inspector_;
+	const MESH* selected_mesh_;
+
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 };

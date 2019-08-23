@@ -87,6 +87,12 @@ public:
 			data_.swap(ca->data_);
 	}
 
+	inline void copy(Vector<T>* ca)
+	{
+		if (ca->container_ == this->container_)
+			data_ = ca->data_;
+	}
+
 	inline const void* data_pointer() const
 	{
 		return &data_[0];

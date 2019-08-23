@@ -92,16 +92,19 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_.emplace(m, Parameters());
-		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
-		{
-			// Parameters& p = parameters_[m];
-			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-			// if (p.vertex_position_.get() == attribute || p.vertex_vector_.get() == attribute)
-			// 	md->update_vbo(attribute);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+				m, [this, m] (Attribute<Vec3>* attribute)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_.get() == attribute)
+						p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
 
-			for (ui::View* v : linked_views_)
-				v->request_update();
-		}));
+					for (ui::View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
 	}
 
 public:
@@ -111,7 +114,9 @@ public:
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh)
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
+				mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh
+			)
 		);
 	}
 

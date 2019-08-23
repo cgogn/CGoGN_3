@@ -71,20 +71,20 @@ class SurfaceRender : public Module
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 1);
+			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 1, 0, 1);
+			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
 			param_edge_->width_= 2.5f;
 
 			param_flat_ =  rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
-			param_flat_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
+			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_phong_ = rendering::ShaderPhong::generate_param();
-			param_phong_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
-			param_phong_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_phong_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
+			param_phong_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 		}
@@ -121,16 +121,19 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_.emplace(m, Parameters());
-		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
-		{
-			// Parameters& p = parameters_[m];
-			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-			// if (p.vertex_position_.get() == attribute || p.vertex_normal_.get() == attribute)
-			// 	md->update_vbo(attribute);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+				m, [this, m] (Attribute<Vec3>* attribute)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_.get() == attribute)
+						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 
-			for (ui::View* v : linked_views_)
-				v->request_update();
-		}));
+					for (ui::View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
 	}
 
 public:
@@ -140,7 +143,9 @@ public:
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(mesh_provider_, this, &SurfaceRender<MESH>::init_mesh)
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
+				mesh_provider_, this, &SurfaceRender<MESH>::init_mesh
+			)
 		);
 	}
 
