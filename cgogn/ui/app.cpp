@@ -56,9 +56,9 @@ App::App():
 
 	// GL 3.3 + GLSL 150 + Core Profile
 	const char* glsl_version = "#version 150";
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	window_ = glfwCreateWindow(window_frame_width_, window_frame_height_, window_name_.c_str(), nullptr, nullptr);
@@ -75,8 +75,21 @@ App::App():
 	IMGUI_CHECKVERSION();
 	context_ = ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+	// io.ConfigDockingWithShift = false;
+	// io.ConfigWindowsResizeFromEdges = true;
 
-	ImGui::StyleColorsDark(); //ImGui::StyleColorsClassic();
+	ImGui::StyleColorsDark();
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
 
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
@@ -446,6 +459,23 @@ int App::launch()
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+			ImGui::SetNextWindowViewport(viewport->ID);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			window_flags |= ImGuiWindowFlags_NoBackground;
+			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
+
+			ImGui::PopStyleVar(3);
+
 			if (ImGui::BeginMainMenuBar())
 			{
 				if(ImGui::BeginMenu("File")) {
@@ -458,11 +488,41 @@ int App::launch()
 				ImGui::EndMainMenuBar();
 			}
 
+			ImGuiID dockspace_id = ImGui::GetID("DockSpaceWindow");
+			ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_DockSpace;
+			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+
+			ImGuiID dockIdLeft, dockIdBottom;
+			static bool first_render = true;
+			
+			if (first_render)
+			{
+				ImGui::DockBuilderRemoveNode(dockspace_id);
+				ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags);
+				ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
+
+				dockIdLeft = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.22f, nullptr, &dockspace_id);
+				dockIdBottom = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.15f, nullptr, &dockspace_id);
+
+				ImGui::DockBuilderFinish(dockspace_id);
+			}
+
             for (Module* m : modules_)
+			{
                 m->interface();
+				if (first_render)
+					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
+			}
+
+			first_render = false;
             
 			ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    	
+			// Update and Render additional Platform Windows
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(window_);
         }
 
         glfwSwapBuffers(window_);
@@ -473,6 +533,7 @@ int App::launch()
     ImGui::DestroyContext();
 	
 	glfwDestroyWindow(window_);
+    glfwTerminate();
 	return EXIT_SUCCESS;
 }
 
