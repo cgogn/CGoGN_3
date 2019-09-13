@@ -444,20 +444,20 @@ int App::launch()
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (const auto& v : views_)
-        {
-            v->draw();
-            param_frame_->draw(v->width(), v->height());
-        }
+		for (const auto& v : views_)
+		{
+			v->draw();
+			param_frame_->draw(v->width(), v->height());
+		}
 
-        if (show_imgui_)
-        {
-            ImGui::SetCurrentContext(context_);
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
+		if (show_imgui_)
+		{
+			ImGui::SetCurrentContext(context_);
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
 
 			ImGuiViewport* viewport = ImGui::GetMainViewport();
 			ImGui::SetNextWindowPos(viewport->Pos);
@@ -507,33 +507,33 @@ int App::launch()
 				ImGui::DockBuilderFinish(dockspace_id);
 			}
 
-            for (Module* m : modules_)
+			for (Module* m : modules_)
 			{
-                m->interface();
+				m->interface();
 				if (first_render)
 					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
 			}
 
 			first_render = false;
-            
+
 			ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    	
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 			// Update and Render additional Platform Windows
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 			glfwMakeContextCurrent(window_);
-        }
+		}
 
-        glfwSwapBuffers(window_);
+		glfwSwapBuffers(window_);
 	}
-    
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 	
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
 	glfwDestroyWindow(window_);
-    glfwTerminate();
+	glfwTerminate();
 	return EXIT_SUCCESS;
 }
 
