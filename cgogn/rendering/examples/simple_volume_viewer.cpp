@@ -21,92 +21,64 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_UTILS_H_
-#define CGOGN_IO_UTILS_H_
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/functions/attributes.h>
 
-#include <iostream>
-#include <clocale>
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-namespace cgogn
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
+
+using Mesh = cgogn::CMap3;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
-
-namespace io
-{
-
-struct Scoped_C_Locale
-{
-	// set numeric locale to C after saving current locale
-	inline Scoped_C_Locale()
+	std::string filename;
+	if (argc < 2)
 	{
-		current_locale_ = std::string(std::setlocale(LC_NUMERIC, nullptr));
-		setlocale(LC_NUMERIC, "C");
+		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
+		return 1;
 	}
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Scoped_C_Locale);
+	else
+		filename = std::string(argv[1]);
 
-	// restore locale
-	inline ~Scoped_C_Locale()
+	cgogn::thread_start();
+
+	cgogn::ui::App app;
+	app.set_window_title("Simple viewer");
+	app.set_window_size(1000, 800);
+
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+
+	Mesh* m = mp.load_volume_from_file(filename);
+	if (!m)
 	{
-		std::setlocale(LC_NUMERIC, current_locale_.c_str());
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
 	}
 
-private:
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	
+	cgogn::ui::View* v1 = app.current_view();
 
-	std::string current_locale_;
-};
+	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
+	md->set_bb_attribute(vertex_position);
+	Vec3 diagonal = md->bb_max_ - md->bb_min_;
+	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 
-inline std::istream& getline_safe(std::istream& is, std::string& str)
-{
-	str.clear();
-	std::istream::sentry se(is, true); // http://en.cppreference.com/w/cpp/io/basic_istream/sentry
-	std::streambuf* sb = is.rdbuf();
+	v1->set_scene_radius(diagonal.norm() / 2.0f);
+	v1->set_scene_center(center);
 
-	while (true)
-	{
-		const auto c = sb->sbumpc();
-		switch (c)
-		{
-		case '\n':
-			return is;
-		case '\r':
-			if (sb->sgetc() == '\n')
-				sb->sbumpc();
-			return is;
-		case EOF: // Also handle the case when the last line has no line ending
-			if (str.empty())
-				is.setstate(std::ios::eofbit);
-			return is;
-		default:
-			str.push_back(static_cast<char>(c));
-		}
-	}
+	return app.launch();
 }
-
-inline float64 read_double(std::istream& fp, std::string& line)
-{
-	fp >> line;
-	while (line[0] == '#')
-	{
-		fp.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		fp >> line;
-	}
-	return std::stod(line);
-}
-
-inline uint32 read_uint(std::istream& fp, std::string& line)
-{
-	fp >> line;
-	while (line[0] == '#')
-	{
-		fp.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		fp >> line;
-	}
-	return uint32((std::stoul(line)));
-}
-
-} // namespace io
-
-} // namespace cgogn
-
-#endif // CGOGN_IO_UTILS_H_

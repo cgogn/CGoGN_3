@@ -21,92 +21,57 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_UTILS_H_
-#define CGOGN_IO_UTILS_H_
-
-#include <cgogn/core/utils/numerics.h>
-
-#include <iostream>
-#include <clocale>
+#include <cgogn/core/functions/mesh_ops/volume.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/face.h>
 
 namespace cgogn
 {
 
-namespace io
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// add_pyramid(MESH& m, uint32 size, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+CMap2::Volume
+add_pyramid(CMap2& m, uint32 size, bool set_indices)
 {
-
-struct Scoped_C_Locale
-{
-	// set numeric locale to C after saving current locale
-	inline Scoped_C_Locale()
+	CMap1::Face first = add_face(static_cast<CMap1&>(m), 3u, false); // First triangle
+	Dart current = first.dart;
+	for (uint32 i = 1u; i < size; ++i) // Next triangles
 	{
-		current_locale_ = std::string(std::setlocale(LC_NUMERIC, nullptr));
-		setlocale(LC_NUMERIC, "C");
+		CMap1::Face next = add_face(static_cast<CMap1&>(m), 3u, false);
+		m.phi2_sew(m.phi_1(current), m.phi1(next.dart));
+		current = next.dart;
 	}
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(Scoped_C_Locale);
+	m.phi2_sew(m.phi_1(current), m.phi1(first.dart)); // Finish the umbrella
+	Dart base = m.close_hole(first.dart); // Add the base face
+	
+	CMap2::Volume vol(base);
 
-	// restore locale
-	inline ~Scoped_C_Locale()
+	if (set_indices)
 	{
-		std::setlocale(LC_NUMERIC, current_locale_.c_str());
+		if (m.is_embedded<CMap2::Vertex>())
+			foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool { create_embedding(m, v); return true; });
+		if (m.is_embedded<CMap2::Edge>())
+			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool { create_embedding(m, e); return true; });
+		if (m.is_embedded<CMap2::Face>())
+			foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool { create_embedding(m, f); return true; });
+		if (m.is_embedded<CMap2::Volume>())
+			create_embedding(m, vol);
 	}
 
-private:
-
-	std::string current_locale_;
-};
-
-inline std::istream& getline_safe(std::istream& is, std::string& str)
-{
-	str.clear();
-	std::istream::sentry se(is, true); // http://en.cppreference.com/w/cpp/io/basic_istream/sentry
-	std::streambuf* sb = is.rdbuf();
-
-	while (true)
-	{
-		const auto c = sb->sbumpc();
-		switch (c)
-		{
-		case '\n':
-			return is;
-		case '\r':
-			if (sb->sgetc() == '\n')
-				sb->sbumpc();
-			return is;
-		case EOF: // Also handle the case when the last line has no line ending
-			if (str.empty())
-				is.setstate(std::ios::eofbit);
-			return is;
-		default:
-			str.push_back(static_cast<char>(c));
-		}
-	}
+	return vol;
 }
-
-inline float64 read_double(std::istream& fp, std::string& line)
-{
-	fp >> line;
-	while (line[0] == '#')
-	{
-		fp.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		fp >> line;
-	}
-	return std::stod(line);
-}
-
-inline uint32 read_uint(std::istream& fp, std::string& line)
-{
-	fp >> line;
-	while (line[0] == '#')
-	{
-		fp.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		fp >> line;
-	}
-	return uint32((std::stoul(line)));
-}
-
-} // namespace io
 
 } // namespace cgogn
-
-#endif // CGOGN_IO_UTILS_H_

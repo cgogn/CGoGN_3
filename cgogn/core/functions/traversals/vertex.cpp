@@ -62,4 +62,46 @@ std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Face f)
 	return vertices;
 }
 
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Volume v)
+{
+	std::vector<CMap2::Vertex> vertices;
+	foreach_incident_vertex(m, v, [&] (CMap2::Vertex v) -> bool { vertices.push_back(v); return true; });
+	return vertices;
+}
+
+///////////
+// CMap3 //
+///////////
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Edge e)
+{
+	std::vector<CMap3::Vertex> vertices;
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Edge(e.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Face f)
+{
+	std::vector<CMap3::Vertex> vertices;
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Volume v)
+{
+	std::vector<CMap3::Vertex> vertices;
+	DartMarkerStore marker(m);
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	{
+		if (!marker.is_marked(d))
+		{
+			// TODO: could mark only the darts of CMap2::Vertex(d)
+			m.foreach_dart_of_orbit(CMap3::Vertex(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			vertices.push_back(CMap3::Vertex(d));
+		}
+		return true;
+	});
+	return vertices;
+}
+
 } // namespace cgogn

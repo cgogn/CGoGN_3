@@ -84,7 +84,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	template <typename CELL, typename FUNC>
 	inline void foreach_dart_of_orbit(CELL c, const FUNC& f) const
 	{
-		static_assert(is_in_tuple<CELL, Cells>::value, "Cell not supported in a CMap2");
+		static_assert(is_in_tuple<CELL, Cells>::value, "Cell not supported in a CMap3");
 		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 		static const Orbit orbit = CELL::ORBIT;

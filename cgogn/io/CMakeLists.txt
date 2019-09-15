@@ -15,10 +15,11 @@ add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
-	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.h"
-	    "${CMAKE_CURRENT_LIST_DIR}/surface_import.cpp"
+	    "${CMAKE_CURRENT_LIST_DIR}/surface/off.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/surface/off.cpp"
+	    "${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/volume/tet.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
-		"${CMAKE_CURRENT_LIST_DIR}/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})

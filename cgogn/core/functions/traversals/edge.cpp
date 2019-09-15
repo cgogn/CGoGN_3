@@ -62,4 +62,36 @@ std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Face f)
 	return edges;
 }
 
+std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Volume v)
+{
+	std::vector<CMap2::Edge> edges;
+	foreach_incident_edge(m, v, [&] (CMap2::Edge e) -> bool { edges.push_back(e); return true; });
+	return edges;
+}
+
+///////////
+// CMap3 //
+///////////
+
+std::vector<CMap3::Edge> incident_edges(const CMap3& m, CMap3::Vertex v)
+{
+	std::vector<CMap3::Edge> edges;
+	foreach_incident_edge(m, v, [&] (CMap3::Edge e) -> bool { edges.push_back(e); return true; });
+	return edges;
+}
+
+std::vector<CMap3::Edge> incident_edges(const CMap3& m, CMap3::Face f)
+{
+	std::vector<CMap3::Edge> edges;
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { edges.push_back(CMap3::Edge(d)); return true; });
+	return edges;
+}
+
+std::vector<CMap3::Edge> incident_edges(const CMap3& m, CMap3::Volume v)
+{
+	std::vector<CMap3::Edge> edges;
+	foreach_incident_edge(m, v, [&] (CMap3::Edge e) -> bool { edges.push_back(e); return true; });
+	return edges;
+}
+
 } // namespace cgogn

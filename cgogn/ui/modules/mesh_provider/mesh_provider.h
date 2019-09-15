@@ -33,7 +33,8 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/io/surface_import.h>
+#include <cgogn/io/surface/off.h>
+#include <cgogn/io/volume/tet.h>
 
 #include <boost/synapse/emit.hpp>
 
@@ -75,6 +76,25 @@ public:
 		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 		MESH* m = it->second.get();
 		bool imported = cgogn::io::import_OFF(*m, filename);
+		if (imported)
+		{
+			mesh_data_.emplace(m, MeshData(m));
+			boost::synapse::emit<mesh_added>(this, m);
+			return m;
+		}
+		else
+		{
+			meshes_.erase(name);
+			return nullptr;
+		}
+	}
+
+	MESH* load_volume_from_file(const std::string& filename)
+	{
+		std::string name = filename_from_path(filename);
+		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+		MESH* m = it->second.get();
+		bool imported = cgogn::io::import_TET(*m, filename);
 		if (imported)
 		{
 			mesh_data_.emplace(m, MeshData(m));

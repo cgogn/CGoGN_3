@@ -121,4 +121,4 @@ cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<ME
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_H_
+#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_

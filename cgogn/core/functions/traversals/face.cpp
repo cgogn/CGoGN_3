@@ -51,4 +51,37 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 	return faces;
 }
 
+std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Volume v)
+{
+	std::vector<CMap2::Face> faces;
+	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
+	return faces;
+}
+
+///////////
+// CMap3 //
+///////////
+
+std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Vertex v)
+{
+	std::vector<CMap3::Face> faces;
+	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
+	return faces;
+}
+
+std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Edge e)
+{
+	std::vector<CMap3::Face> faces;
+	foreach_incident_face(m, e, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
+	
+	return faces;
+}
+
+std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Volume v)
+{
+	std::vector<CMap3::Face> faces;
+	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
+	return faces;
+}
+
 } // namespace cgogn

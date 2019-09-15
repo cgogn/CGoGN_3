@@ -45,6 +45,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.h"
         "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/volume.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/volume.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.h"
         "${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.h"

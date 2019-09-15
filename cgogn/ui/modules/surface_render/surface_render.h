@@ -312,8 +312,8 @@ protected:
 					ImGui::Separator();
 					ImGui::Text("Phong parameters");
 					need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					ImGui::SameLine();
-					need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+					if (p.param_phong_->double_side_)
+						need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
 					need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
 				}
@@ -322,8 +322,8 @@ protected:
 					ImGui::Separator();
 					ImGui::Text("Flat parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					ImGui::SameLine();
-					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+					if (p.param_flat_->double_side_)
+						need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
 				}
 			}

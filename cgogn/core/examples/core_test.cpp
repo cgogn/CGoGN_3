@@ -3,7 +3,7 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 
-#include <cgogn/io/surface_import.h>
+#include <cgogn/io/surface/off.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 

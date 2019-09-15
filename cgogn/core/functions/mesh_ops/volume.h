@@ -21,23 +21,70 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_
+#define CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_
 
-#include <cgogn/io/cgogn_io_export.h>
+#include <cgogn/core/cgogn_core_export.h>
+
 #include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
 
-namespace io
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// add_pyramid(MESH& m, uint32 size, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+CMap2::Volume
+CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indices = true);
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+typename mesh_traits<MESH>::Volume
+add_pyramid(MESH& m, uint32 size, bool set_incides = true)
 {
+	return add_pyramid(m.mesh(), size, set_incides);
+}
 
-bool
-CGOGN_IO_EXPORT import_OFF(CMap2& m, const std::string& filename);
+/*****************************************************************************/
 
-} // namespace io
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// add_prism(MESH& m, uint32 size, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+CMap2::Volume
+CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+typename mesh_traits<MESH>::Volume
+add_prism(MESH& m, uint32 size, bool set_incides = true)
+{
+	return add_prism(m.mesh(), size, set_incides);
+}
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_

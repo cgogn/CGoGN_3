@@ -26,8 +26,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <algorithm>
-
 namespace cgogn
 {
 

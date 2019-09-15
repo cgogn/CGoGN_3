@@ -20,7 +20,12 @@
 * Contact information: cgogn@unistra.fr                                        *
 *                                                                              *
 *******************************************************************************/
+
+#ifndef CGOGN_IO_SURFACE_OFF_H_
+#define CGOGN_IO_SURFACE_OFF_H_
+
 #include <cgogn/io/cgogn_io_export.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
@@ -28,11 +33,11 @@ namespace cgogn
 namespace io
 {
 
-int CGOGN_IO_EXPORT pipo()
-{
-	return 0;
-}
+bool
+CGOGN_IO_EXPORT import_OFF(CMap2& m, const std::string& filename);
 
-} // namespace geometry
+} // namespace io
 
 } // namespace cgogn
+
+#endif // CGOGN_IO_SURFACE_OFF_H_
