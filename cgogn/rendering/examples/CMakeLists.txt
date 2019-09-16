@@ -7,6 +7,7 @@ project(cgogn_rendering_examples
 find_package(cgogn_core REQUIRED)
 find_package(cgogn_ui REQUIRED)
 find_package(cgogn_io REQUIRED)
+find_package(cgogn_rendering REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
@@ -17,6 +18,7 @@ target_link_libraries(simple_surface_viewer
 	cgogn::core
 	cgogn::ui
 	cgogn::io
+	cgogn::rendering
 	${CMAKE_DL_LIBS}
 )
 
@@ -25,6 +27,7 @@ target_link_libraries(simple_volume_viewer
 	cgogn::core
 	cgogn::ui
 	cgogn::io
+	cgogn::rendering
 	${CMAKE_DL_LIBS}
 )
 

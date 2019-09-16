@@ -162,6 +162,9 @@ public:
 	{
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_nb_cells();
+		md->set_primitives_dirty(rendering::POINTS);
+		md->set_primitives_dirty(rendering::LINES);
+		md->set_primitives_dirty(rendering::TRIANGLES);
 
 		boost::synapse::emit<connectivity_changed>(m);
 	}

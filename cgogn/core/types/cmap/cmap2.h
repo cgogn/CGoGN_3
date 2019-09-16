@@ -155,15 +155,15 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 		}
 	}
 
-	Dart close_hole(Dart d)
+	Dart close_hole(Dart d, bool set_indices = true)
 	{
 		cgogn_message_assert(phi2(d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
 
 		Dart first = add_dart();	// First edge of the face that will fill the hole
-		phi2_sew(d, first);				// 2-sew the new edge to the hole
+		phi2_sew(d, first);			// 2-sew the new edge to the hole
 
-		Dart d_next = d;				// Turn around the hole
-		Dart d_phi1;					// to complete the face
+		Dart d_next = d;			// Turn around the hole
+		Dart d_phi1;				// to complete the face
 		do
 		{
 			do
@@ -174,17 +174,32 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 
 			if (d_phi1 != d)
 			{
-
 				Dart next = add_dart();	// Add a vertex into the built face
 				phi1_sew(first, next);
 				phi2_sew(d_next, next);	// and 2-sew the face to the hole
 			}
 		} while (d_phi1 != d);
 
+		if (set_indices)
+		{
+			Dart it = first;
+			do
+			{
+				Dart it2 = phi2(it);
+				if (is_embedded<Vertex>())
+					copy_embedding<Vertex>(it, phi1(it2));
+				if (is_embedded<Edge>())
+					copy_embedding<Edge>(it, it2);
+				if (is_embedded<Volume>())
+					copy_embedding<Volume>(it, it2);
+				it = phi1(it);
+			} while (it != first);
+		}
+
 		return first;
 	}
 
-	uint32 close()
+	uint32 close(bool set_indices = true)
 	{
 		uint32 nb_holes = 0u;
 
@@ -200,7 +215,7 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 		{
 			if (phi2(d) == d)
 			{
-				Dart h = close_hole(d);
+				Dart h = close_hole(d, set_indices);
 				foreach_dart_of_orbit(CMap2::Face(h), [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
 				++nb_holes;
 			}

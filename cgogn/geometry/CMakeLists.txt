@@ -47,9 +47,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	LINKER_LANGUAGE CXX
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE "-DCGOGN_GEOMETRY_DLL_EXPORT")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-	#$<BUILD_INTERFACE:${CGOGN_THIRDPARTY_EIGEN3_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
@@ -59,10 +57,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
+
 # Write out cgogn_geometry_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
-
-target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
 
 set(PKG_CONFIG_REQUIRES "cgogn_core")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_geometry.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_geometry.pc @ONLY)

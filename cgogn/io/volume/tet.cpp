@@ -150,7 +150,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 	if (volumes_vertex_indices.size() == 0)
 		return false;
 	
-	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap3::Vertex>(m, "darts_per_vertex__");
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap3::Vertex>(m, "__darts_per_vertex");
 	
 	uint32 index = 0u;
 	DartMarker dart_marker(m);

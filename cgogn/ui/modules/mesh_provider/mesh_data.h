@@ -72,6 +72,11 @@ struct MeshData
 		render_.init_primitives(*mesh_, primitive);
 	}
 
+	void set_primitives_dirty(rendering::DrawingType primitive)
+	{
+		render_.set_primitive_dirty(primitive);
+	}
+
 private:
 
 	template <class ...T>

@@ -97,7 +97,7 @@ bool import_OFF(CMap2& m, const std::string& filename)
 	if (faces_nb_edges.size() == 0u)
 		return false;
 
-	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m, "darts_per_vertex__");
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m, "__darts_per_vertex");
 
 	uint32 faces_vertex_index = 0u;
 	std::vector<uint32> vertices_buffer;
@@ -178,7 +178,7 @@ bool import_OFF(CMap2& m, const std::string& filename)
 	if (nb_boundary_edges > 0u)
 	{
 		uint32 nb_holes = m.close();
-		std::cout << nb_holes << " hole(s) have been closed" << std::endl;;
+		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
 		std::cout << nb_boundary_edges << " boundary edges" << std::endl;
 	}
 
@@ -187,6 +187,12 @@ bool import_OFF(CMap2& m, const std::string& filename)
 	// 	map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
 	// 	cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
 	// }
+
+	m.foreach_dart([&] (Dart d) -> bool {
+		if (m.embedding(CMap2::Vertex(d)) == INVALID_INDEX)
+			std::cout << "Dart not indexed for Vertex.." << d << std::endl;
+		return true;
+	});
 
 	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 

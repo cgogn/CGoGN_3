@@ -43,7 +43,7 @@ template <typename MESH>
 Vec3 mid_edge(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
-	const typename mesh_traits<MESH>::template AttributePtr<Vec3>& vertex_position
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
 	auto vertices = incident_vertices(m, e);
