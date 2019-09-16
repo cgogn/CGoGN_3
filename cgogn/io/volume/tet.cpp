@@ -62,9 +62,15 @@ bool import_TET(CMap3& m, const std::string& filename)
 	std::string line;
 	line.reserve(512u);
 
-	// read number of vertices, volumes
-	const uint32 nb_vertices = read_uint(fp, line);
-	const uint32 nb_volumes = read_uint(fp, line);
+	// read number of vertices
+	uint32 nb_vertices = read_uint(fp, line);
+	getline_safe(fp, line);
+
+	uint32 nb_volumes = read_uint(fp, line);
+	getline_safe(fp, line);
+
+	std::cout << "nb_vertices: " << nb_vertices << std::endl;
+	std::cout << "nb_volumes: " << nb_volumes << std::endl;
 
 	volumes_types.reserve(nb_volumes);
 	volumes_vertex_indices.reserve(8u * nb_volumes);
@@ -170,7 +176,10 @@ bool import_TET(CMap3& m, const std::string& filename)
 			for (const Dart& dv : vertices_of_tetra)
 			{
 				const uint32 vertex_index = volumes_vertex_indices[index++];
-				set_embedding(static_cast<CMap2&>(m), CMap2::Vertex(dv), vertex_index);
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool {
+					m.set_embedding<CMap3::Vertex>(d, vertex_index);
+					return true;
+				});
 
 				Dart dd = dv;
 				do
@@ -196,7 +205,10 @@ bool import_TET(CMap3& m, const std::string& filename)
 			for (Dart dv : vertices_of_pyramid)
 			{
 				const uint32 vertex_index = volumes_vertex_indices[index++];
-				set_embedding(static_cast<CMap2&>(m), CMap2::Vertex(dv), vertex_index);
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool {
+					m.set_embedding<CMap3::Vertex>(d, vertex_index);
+					return true;
+				});
 
 				Dart dd = dv;
 				do
@@ -281,6 +293,8 @@ bool import_TET(CMap3& m, const std::string& filename)
 		if (m.is_embedded<CMap3::Volume>())
 			set_embedding(m, vol, vol_emb++);
 	}
+	
+	remove_attribute<CMap3::Vertex>(m, darts_per_vertex);
 
 	return true;
 }
