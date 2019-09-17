@@ -478,10 +478,11 @@ int App::launch()
 
 			if (ImGui::BeginMainMenuBar())
 			{
-				if(ImGui::BeginMenu("File")) {
-					if(ImGui::MenuItem("Quit", "[ESC]"))
-                    	this->stop();
-                	ImGui::EndMenu();
+				if (ImGui::BeginMenu("File"))
+				{
+					if (ImGui::MenuItem("Quit", "[ESC]"))
+						this->stop();
+					ImGui::EndMenu();
 				}
 				for (Module* m : modules_)
 					m->main_menu();
