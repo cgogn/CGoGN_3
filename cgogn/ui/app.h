@@ -63,6 +63,7 @@ public:
 
 	Module* module(const std::string& name) const;
 
+	void init_modules();
 	int launch();
 	void stop();
 

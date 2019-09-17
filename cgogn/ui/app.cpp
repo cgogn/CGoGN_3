@@ -430,6 +430,12 @@ void App::adapt_views_geometry()
 	}
 }
 
+void App::init_modules()
+{
+	for (Module* m : modules_)
+		m->init();
+}
+
 int App::launch()
 {
 	for (const auto& v : views_)

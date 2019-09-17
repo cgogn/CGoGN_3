@@ -62,11 +62,6 @@ public:
 	~SurfaceModeling()
 	{}
 
-	void init()
-	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-	}
-
 	void subdivide_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		modeling::subdivide(m, vertex_position);
@@ -82,6 +77,11 @@ public:
 	}
 
 protected:
+
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+	}
 
     void interface() override
 	{

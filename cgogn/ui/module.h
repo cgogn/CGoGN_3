@@ -66,6 +66,7 @@ protected:
 
 	virtual void draw(View* view);
 
+	virtual void init();
 	virtual void main_menu();
 	virtual void interface();
 

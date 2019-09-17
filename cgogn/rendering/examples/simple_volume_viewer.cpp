@@ -61,6 +61,8 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 
+	app.init_modules();
+
 	Mesh* m = mp.load_volume_from_file(filename);
 	if (!m)
 	{

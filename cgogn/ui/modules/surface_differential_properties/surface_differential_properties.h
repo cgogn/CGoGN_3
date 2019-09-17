@@ -70,11 +70,6 @@ public:
 	{}
 	~SurfaceDifferentialProperties()
 	{}
-    
-	void init()
-	{
-		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-	}
 
 	void compute_normal(
 		const MESH& m,
@@ -113,6 +108,11 @@ public:
 	}
 
 protected:
+    
+	void init() override
+	{
+		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+	}
 
     void interface() override
 	{

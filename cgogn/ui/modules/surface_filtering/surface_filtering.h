@@ -61,11 +61,6 @@ public:
 	~SurfaceFiltering()
 	{}
 
-	void init()
-	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-	}
-
 	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_attribute)
 	{
 		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute = add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
@@ -77,6 +72,11 @@ public:
 	}
 
 protected:
+
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+	}
 
     void interface() override
 	{

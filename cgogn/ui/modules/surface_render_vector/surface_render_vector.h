@@ -109,17 +109,6 @@ private:
 
 public:
 
-	void init()
-	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
-		connections_.push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-				mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh
-			)
-		);
-	}
-
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
@@ -154,6 +143,17 @@ public:
 	}
 
 protected:
+
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
+		connections_.push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
+				mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh
+			)
+		);
+	}
 
 	void draw(View* view) override
 	{

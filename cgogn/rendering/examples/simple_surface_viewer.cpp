@@ -64,9 +64,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
-	sr.init();
-	srv.init();
-	sdp.init();
+	app.init_modules();
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
