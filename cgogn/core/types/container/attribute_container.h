@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/utils/thread.h>
 
 #include <vector>
 #include <string>
@@ -123,9 +124,8 @@ protected:
 	std::vector<std::shared_ptr<AttributeGenT>> attributes_shared_ptr_;
 
 	std::mutex mark_attributes_mutex_;
-
-	std::vector<AttributeGenT*> mark_attributes_;
-	std::vector<uint32> available_mark_attributes_;
+	std::vector<std::vector<AttributeGenT*>> mark_attributes_;
+	std::vector<std::vector<uint32>> available_mark_attributes_;
 	
 	std::vector<uint32> available_indices_;
 
@@ -178,10 +178,13 @@ protected:
 
 	inline void init_mark_attributes(uint32 index) override
 	{
-		for (auto mark_attribute : mark_attributes_)
+		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
 		{
-			MarkAttribute* m = static_cast<MarkAttribute*>(mark_attribute);
-			(*m)[index] = 0u;
+			for (AttributeGenT* mark_attribute : mark_attributes_[i])
+			{
+				MarkAttribute* m = static_cast<MarkAttribute*>(mark_attribute);
+				(*m)[index] = 0u;
+			}
 		}
 	}
 
@@ -230,28 +233,28 @@ public:
 
 	MarkAttribute* get_mark_attribute()
 	{
-		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-		if (available_mark_attributes_.size() > 0)
+		uint32 thread_index = current_thread_index();
+		if (available_mark_attributes_[thread_index].size() > 0)
 		{
-			uint32 index = available_mark_attributes_.back();
-			available_mark_attributes_.pop_back();
-			return static_cast<MarkAttribute*>(mark_attributes_[index]);
+			uint32 index = available_mark_attributes_[thread_index].back();
+			available_mark_attributes_[thread_index].pop_back();
+			return static_cast<MarkAttribute*>(mark_attributes_[thread_index][index]);
 		}
 		else
 		{
 			MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
 			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
-			mark_attributes_.push_back(ap);
+			mark_attributes_[thread_index].push_back(ap);
 			return ap;
 		}
 	}
 
 	void release_mark_attribute(MarkAttribute* attribute)
 	{
-		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-		auto it = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
-		if (it != mark_attributes_.end())
-			available_mark_attributes_.push_back(std::distance(mark_attributes_.begin(), it));
+		uint32 thread_index = current_thread_index();
+		auto it = std::find(mark_attributes_[thread_index].begin(), mark_attributes_[thread_index].end(), attribute);
+		if (it != mark_attributes_[thread_index].end())
+			available_mark_attributes_[thread_index].push_back(std::distance(mark_attributes_[thread_index].begin(), it));
 	}
 
 	inline void ref_index(uint32 index)

@@ -22,6 +22,8 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/container/attribute_container.h>
+
+#include <cgogn/core/utils/thread_pool.h>
 #include <cgogn/core/utils/assert.h>
 
 namespace cgogn
@@ -57,8 +59,16 @@ AttributeContainerGen::AttributeContainerGen() :
 {
 	attributes_.reserve(32);
 	attributes_shared_ptr_.reserve(32);
-	mark_attributes_.reserve(32);
-	available_mark_attributes_.reserve(32);
+
+	uint32 max_nb_threads = thread_pool()->max_nb_threads();
+	mark_attributes_.resize(max_nb_threads);
+	available_mark_attributes_.resize(max_nb_threads);
+	for (uint32 i = 0; i < max_nb_threads; ++i)
+	{
+		mark_attributes_[i].reserve(32);
+		available_mark_attributes_[i].reserve(32);
+	}
+	
 	available_indices_.reserve(1024);
 }
 
@@ -78,8 +88,13 @@ uint32 AttributeContainerGen::new_index()
 
 	for (AttributeGenT* ag : attributes_)
 		ag->manage_index(index);
-	for (AttributeGenT* ag : mark_attributes_)
-		ag->manage_index(index);
+	
+	std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
+	for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+	{
+		for (AttributeGenT* ag : mark_attributes_[i])
+			ag->manage_index(index);
+	}
 
 	init_ref_counter(index);
 	init_mark_attributes(index);
@@ -123,14 +138,7 @@ void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
 	if (attribute->is_mark())
-	{
-		auto iter = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
-		if (iter != mark_attributes_.end())
-		{
-			*iter = mark_attributes_.back();
-			mark_attributes_.pop_back();
-		}
-	}
+		cgogn_assert_not_reached("Deleting a mark attribute..");
 	else
 	{
 		auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);

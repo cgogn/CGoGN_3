@@ -64,9 +64,9 @@ mean_edge_length(
 
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
-		uint32 thread_index = current_thread_index();
-		edge_length_per_thread[thread_index] += length(m, e, vertex_position);
-		++nb_edges_per_thread[thread_index];
+		uint32 worker_index = current_worker_index();
+		edge_length_per_thread[worker_index] += length(m, e, vertex_position);
+		++nb_edges_per_thread[worker_index];
 		return true;
 	});
 
