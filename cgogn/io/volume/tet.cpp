@@ -359,6 +359,13 @@ bool import_TET(CMap3& m, const std::string& filename)
 	
 	remove_attribute<CMap3::Vertex>(m, darts_per_vertex);
 
+	m.foreach_dart([&] (Dart d) -> bool
+	{
+		if (m.phi3(d) == d)
+			std::cout << "phi3 fix point Dart: " << d << std::endl;
+		return true;
+	});
+
 	return true;
 }
 

@@ -87,7 +87,7 @@ App::App():
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = 0.0f;
-	style.Colors[ImGuiCol_WindowBg].w = 0.15f;
+	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
 
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
