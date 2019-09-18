@@ -56,7 +56,7 @@ private:
 
 public:
 
-	Vector(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGenT(container, is_mark, name)
+	Vector(AttributeContainerGen* container, const std::string& name) : AttributeGenT(container, name)
 	{
 		data_.reserve(512u);
 	}

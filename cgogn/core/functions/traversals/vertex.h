@@ -146,7 +146,7 @@ void foreach_incident_vertex(const CMap2& m, CMap2::Volume v, const FUNC& func)
 ///////////
 
 template <typename FUNC>
-void foreach_incident_vertices(const CMap3& m, CMap3::Edge e, const FUNC& func)
+void foreach_incident_vertex(const CMap3& m, CMap3::Edge e, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -154,7 +154,7 @@ void foreach_incident_vertices(const CMap3& m, CMap3::Edge e, const FUNC& func)
 }
 
 template <typename FUNC>
-void foreach_incident_vertices(const CMap3& m, CMap3::Face f, const FUNC& func)
+void foreach_incident_vertex(const CMap3& m, CMap3::Face f, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -162,7 +162,7 @@ void foreach_incident_vertices(const CMap3& m, CMap3::Face f, const FUNC& func)
 }
 
 template <typename FUNC>
-void foreach_incident_vertices(const CMap3& m, CMap3::Volume v, const FUNC& func)
+void foreach_incident_vertex(const CMap3& m, CMap3::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -171,8 +171,7 @@ void foreach_incident_vertices(const CMap3& m, CMap3::Volume v, const FUNC& func
 	{
 		if (!marker.is_marked(d))
 		{
-			// TODO: could mark only the darts of CMap2::Vertex(d)
-			m.foreach_dart_of_orbit(CMap3::Vertex(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
 			return func(CMap3::Vertex(d));
 		}
 		return true;

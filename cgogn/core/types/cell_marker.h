@@ -117,7 +117,7 @@ release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute*
 template <typename MESH, typename CELL>
 class CellMarker
 {
-protected:
+private:
 
 	const MESH& mesh_;
 	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
@@ -129,7 +129,7 @@ public:
 		mark_attribute_ = get_mark_attribute<CELL>(mesh_);
 	}
 
-	virtual ~CellMarker()
+	~CellMarker()
 	{
 		unmark_all();
 		release_mark_attribute<CELL>(mesh_, mark_attribute_);
@@ -143,51 +143,63 @@ public:
 		return (*mark_attribute_)[index_of(mesh_, c)] != 0u;
 	}
 
-	virtual inline void unmark_all()
+	inline void unmark_all()
 	{
 		mark_attribute_->fill(0u);
 	}
 };
 
 template <typename MESH, typename CELL>
-class CellMarkerStore : public CellMarker<MESH, CELL>
+class CellMarkerStore
 {
 private:
 
+	const MESH& mesh_;
+	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
 	std::vector<uint32> marked_cells_;
 
 public:
 
-	inline CellMarkerStore(const MESH& mesh) : CellMarker<MESH, CELL>(mesh)
-	{}
+	inline CellMarkerStore(const MESH& mesh) : mesh_(mesh)
+	{
+		mark_attribute_ = get_mark_attribute<CELL>(mesh_);
+		marked_cells_.reserve(512u);
+	}
 
-	~CellMarkerStore() override
+	~CellMarkerStore()
 	{}
 
 	inline void mark(CELL c)
 	{
 		if (!is_marked(c))
 		{
-			CellMarker<MESH, CELL>::mark(c);
-			marked_cells_.push_back(index_of(this->mesh_, c));
+			uint32 index = index_of(mesh_, c);
+			(*mark_attribute_)[index] = 1u;
+			marked_cells_.push_back(index);
 		}
 	}
 
 	inline void unmark(CELL c)
 	{
-		auto it = std::find(marked_cells_.begin(), marked_cells_.end(), index_of(this->mesh_, c));
-		if (it !=  marked_cells_.end())
+		uint32 index = index_of(mesh_, c);
+		auto it = std::find(marked_cells_.begin(), marked_cells_.end(), index);
+		if (it != marked_cells_.end())
 		{
-			CellMarker<MESH, CELL>::unmark(c);
+			(*mark_attribute_)[index] = 0u;
 			std::swap(*it, marked_cells_.back());
 			marked_cells_.pop_back();
 		}
 	}
 
-	inline void unmark_all() override
+	inline bool is_marked(CELL c) const
+	{
+		return (*mark_attribute_)[index_of(mesh_, c)] != 0u;
+	}
+
+	inline void unmark_all()
 	{
 		for (uint32 i : marked_cells_)
-            (*this->mark_attribute_)[i] = 0u;
+            (*mark_attribute_)[i] = 0u;
 		marked_cells_.clear();
 	}
 

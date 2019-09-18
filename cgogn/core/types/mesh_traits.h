@@ -42,7 +42,7 @@ struct mesh_traits<CMap0>
 	using Vertex = typename CMap0::Vertex;
 
 	using Cells = std::tuple<Vertex>;
-	inline static const std::string CellNames[] = { "Vertex" };
+	inline static const std::string cell_names[] = { "Vertex" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -60,7 +60,7 @@ struct mesh_traits<CMap1>
 	using Face = CMap1::Face;
 
 	using Cells = std::tuple<Vertex, Edge, Face>;
-	inline static const std::string CellNames[] = { "Vertex", "Edge", "Face" };
+	inline static const std::string cell_names[] = { "Vertex", "Edge", "Face" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -79,7 +79,7 @@ struct mesh_traits<CMap2>
 	using Volume = CMap2::Volume;
 
 	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
-	inline static const std::string CellNames[] = { "Vertex", "Edge", "Face", "Volume" };
+	inline static const std::string cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -98,7 +98,7 @@ struct mesh_traits<CMap3>
 	using Volume = CMap3::Volume;
 
 	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
-	inline static const std::string CellNames[] = { "Vertex", "Edge", "Face", "Volume" };
+	inline static const std::string cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;

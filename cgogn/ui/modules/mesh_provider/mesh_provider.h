@@ -223,7 +223,7 @@ protected:
 				MeshData<MESH>* md = mesh_data(selected_mesh_);
 				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 				{
-					ImGui::Text(mesh_traits<MESH>::CellNames[i].c_str()); ImGui::NextColumn();
+					ImGui::Text(mesh_traits<MESH>::cell_names[i].c_str()); ImGui::NextColumn();
 					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
 				}
 			}

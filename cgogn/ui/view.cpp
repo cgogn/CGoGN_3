@@ -163,7 +163,6 @@ void View::draw()
 	}
 
 	param_fst_->draw();
-	need_redraw_ = camera_.is_moving_;
 }
 
 void View::link_module(Module* m)

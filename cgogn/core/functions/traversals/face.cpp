@@ -40,6 +40,7 @@ namespace cgogn
 std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> faces;
+	faces.reserve(8u);
 	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }
@@ -47,6 +48,7 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
 std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Face> faces;
+	faces.reserve(8u);
 	foreach_incident_face(m, e, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }
@@ -54,6 +56,7 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Volume v)
 {
 	std::vector<CMap2::Face> faces;
+	faces.reserve(32u);
 	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }
@@ -65,6 +68,7 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Volume v)
 std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Vertex v)
 {
 	std::vector<CMap3::Face> faces;
+	faces.reserve(16u);
 	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }
@@ -72,6 +76,7 @@ std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Vertex v)
 std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Edge e)
 {
 	std::vector<CMap3::Face> faces;
+	faces.reserve(16u);
 	foreach_incident_face(m, e, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
 	
 	return faces;
@@ -80,6 +85,7 @@ std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Edge e)
 std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Volume v)
 {
 	std::vector<CMap3::Face> faces;
+	faces.reserve(32u);
 	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }

@@ -29,6 +29,8 @@
 
 #include <imgui/imgui_internal.h>
 
+#include <thread>
+
 namespace cgogn
 {
 
@@ -496,8 +498,9 @@ int App::launch()
 			}
 
 			ImGuiID dockspace_id = ImGui::GetID("DockSpaceWindow");
-			ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_DockSpace;
+			ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
 
 			ImGuiID dockIdLeft, dockIdBottom;
 			static bool first_render = true;
@@ -521,6 +524,8 @@ int App::launch()
 					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
 			}
 
+			ImGui::End();
+
 			first_render = false;
 
 			ImGui::Render();
@@ -533,6 +538,8 @@ int App::launch()
 		}
 
 		glfwSwapBuffers(window_);
+		
+		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	
 	ImGui_ImplOpenGL3_Shutdown();

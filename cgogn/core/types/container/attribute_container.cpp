@@ -33,20 +33,22 @@ namespace cgogn
 // AttributeGenT class //
 /////////////////////////
 
-AttributeGenT::AttributeGenT(AttributeContainerGen* container, bool is_mark, const std::string& name) :
+AttributeGenT::AttributeGenT(AttributeContainerGen* container, const std::string& name) :
 	container_(container),
-	is_mark_(is_mark),
 	name_(name)
 {}
 
 AttributeGenT::~AttributeGenT()
 {
-	container_->delete_attribute(this);
+	if (container_)
+		container_->delete_attribute(this);
 }
 
 uint32 AttributeGenT::maximum_index() const
 {
-	return container_->maximum_index();
+	if (container_)
+		return container_->maximum_index();
+	return 0;
 }
 
 /////////////////////////////////
@@ -73,7 +75,13 @@ AttributeContainerGen::AttributeContainerGen() :
 }
 
 AttributeContainerGen::~AttributeContainerGen()
-{}
+{
+	for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+	{
+		for (AttributeGenT* mark_attribute : mark_attributes_[i])
+			delete mark_attribute;
+	}
+}
 
 uint32 AttributeContainerGen::new_index()
 {
@@ -89,17 +97,19 @@ uint32 AttributeContainerGen::new_index()
 	for (AttributeGenT* ag : attributes_)
 		ag->manage_index(index);
 	
-	std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-	for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
 	{
-		for (AttributeGenT* ag : mark_attributes_[i])
-			ag->manage_index(index);
+		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
+		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+		{
+			for (AttributeGenT* ag : mark_attributes_[i])
+				ag->manage_index(index);
+		}
+		// init_mark_attributes(index);
 	}
 
 	init_ref_counter(index);
-	init_mark_attributes(index);
-	++nb_elements_;
 
+	++nb_elements_;
 	return index;
 }
 
@@ -137,16 +147,11 @@ void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 
 void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
-	if (attribute->is_mark())
-		cgogn_assert_not_reached("Deleting a mark attribute..");
-	else
+	auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);
+	if (iter != attributes_.end())
 	{
-		auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);
-		if (iter != attributes_.end())
-		{
-			*iter = attributes_.back();
-			attributes_.pop_back();
-		}
+		*iter = attributes_.back();
+		attributes_.pop_back();
 	}
 }
 

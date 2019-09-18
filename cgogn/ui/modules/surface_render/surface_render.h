@@ -75,7 +75,7 @@ class SurfaceRender : public Module
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_= 2.5f;
+			param_edge_->width_= 1.0f;
 
 			param_flat_ =  rendering::ShaderFlat::generate_param();
 			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
