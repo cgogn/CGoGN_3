@@ -27,6 +27,7 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
@@ -187,7 +188,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
 					dd = m.phi1(m.phi2(dd));
-				} while(dd != dv);
+				} while (dd != dv);
 			}
 		}
 		else if (vol_type == VolumeType::Pyramid) // pyramidal case
@@ -216,7 +217,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
 					dd = m.phi1(m.phi2(dd));
-				} while(dd != dv);
+				} while (dd != dv);
 			}
 		}
 		// else if (vol_type == VolumeType::TriangularPrism) // prism case
@@ -246,7 +247,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 		// 			dart_marker.mark(dd);
 		// 			(*darts_per_vertex)[vertex_index].push_back(dd);
 		// 			dd = m.phi1(m.phi2(dd));
-		// 		} while(dd != dv);
+		// 		} while (dd != dv);
 		// 	}
 		// }
 		// else if (vol_type == VolumeType::Hexa) // hexahedral case
@@ -278,7 +279,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 		// 			dart_marker.mark(dd);
 		// 			(*darts_per_vertex)[vertex_index].push_back(dd);
 		// 			dd = m.phi1(m.phi2(dd));
-		// 		} while(dd != dv);
+		// 		} while (dd != dv);
 		// 	}
 		// }
 		// else //end of hexa
@@ -292,6 +293,68 @@ bool import_TET(CMap3& m, const std::string& filename)
 
 		if (m.is_embedded<CMap3::Volume>())
 			set_embedding(m, vol, vol_emb++);
+	}
+
+	// reconstruct neighbourhood
+	uint32 nb_boundary_faces = 0u;
+	DartMarkerStore marker(m);
+
+	m.foreach_dart([&] (Dart d) -> bool
+	{
+		if (m.phi3(d) == d && !marker.is_marked(d))
+		{
+			static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(d), [&] (Dart fd) -> bool { marker.mark(fd); return true; });
+
+			Dart good_dart;
+
+			// 1st step : for every dart of the face we try to find a valid phi3 candidate. If we can't it's a boundary face.
+			Dart d_it = d;
+			do
+			{
+				uint32 vindex1 = m.embedding(CMap3::Vertex(d_it));
+				uint32 vindex2 = m.embedding(CMap3::Vertex(m.phi1(m.phi1(d_it))));
+				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, CMap3::Vertex(m.phi1(d_it)));
+				for (auto it = vec.begin(); it != vec.end() && good_dart.is_nil(); ++it)
+					if (m.embedding(CMap3::Vertex(m.phi1(*it))) == vindex1 && m.embedding(CMap3::Vertex(m.phi_1(*it))) == vindex2)
+						good_dart = *it;
+				d_it = m.phi1(d_it);
+			} while (good_dart.is_nil() && (d_it != d));
+			d = m.phi_1(d_it);
+
+			if (!good_dart.is_nil())
+			{
+				const uint32 degD = codegree(m, CMap3::Face(d));
+				const uint32 degGD = codegree(m, CMap3::Face(good_dart));
+
+				if (degD == degGD) // normal case : the two opposite faces have the same degree
+				{
+					Dart it1 = d;
+					Dart it2 = good_dart;
+					do
+					{
+						m.phi3_sew(it1, it2);
+						it1 = m.phi1(it1);
+						it2 = m.phi_1(it2);
+					} while (it1 != d);
+				}
+				else
+				{
+					// there is one face of degree 4 and one face of degree 3
+					// -> stamp volume
+				}
+			}
+			else
+				++nb_boundary_faces;
+		}
+
+		return true;
+	});
+
+	if (nb_boundary_faces > 0u)
+	{
+		uint32 nb_holes = m.close();
+		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
+		std::cout << nb_boundary_faces << " boundary faces" << std::endl;
 	}
 	
 	remove_attribute<CMap3::Vertex>(m, darts_per_vertex);

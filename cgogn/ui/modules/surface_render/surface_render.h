@@ -38,6 +38,8 @@
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
+#include <cgogn/geometry/algos/length.h>
+
 #include <boost/synapse/connect.hpp>
 
 #include <unordered_map>

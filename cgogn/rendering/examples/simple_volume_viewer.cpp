@@ -30,6 +30,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
@@ -60,6 +61,7 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
 
 	app.init_modules();
 
@@ -71,8 +73,10 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	sr.set_vertex_position(*m, vertex_position);
 	
 	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&sr);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
 	md->set_bb_attribute(vertex_position);

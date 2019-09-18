@@ -146,7 +146,7 @@ bool import_OFF(CMap2& m, const std::string& filename)
 		{
 			uint32 vertex_index = m.embedding(CMap2::Vertex(d));
 
-			std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, CMap2::Vertex(m.phi1(d)));
+			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, CMap2::Vertex(m.phi1(d)));
 			bool phi2_found = false;
 			bool first_OK = true;
 
@@ -187,12 +187,6 @@ bool import_OFF(CMap2& m, const std::string& filename)
 	// 	map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
 	// 	cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
 	// }
-
-	m.foreach_dart([&] (Dart d) -> bool {
-		if (m.embedding(CMap2::Vertex(d)) == INVALID_INDEX)
-			std::cout << "Dart not indexed for Vertex.." << d << std::endl;
-		return true;
-	});
 
 	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 
