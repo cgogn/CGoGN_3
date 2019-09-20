@@ -34,12 +34,31 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Vertex> incident_vertices(const Graph& g, Graph::Edge e)
+{
+	std::vector<Graph::Vertex> vertices;
+	vertices.reserve(2u);
+	Dart d = e.dart;
+	Dart dd = g.alpha0(d);
+	vertices.push_back(Graph::Vertex(d));
+	if (g.is_boundary(dd))
+		vertices.push_back(Graph::Vertex(d));
+	else
+		vertices.push_back(Graph::Vertex(dd));
+	return vertices;
+}
+
+///////////
 // CMap1 //
 ///////////
 
 std::vector<CMap1::Vertex> incident_vertices(const CMap1& m, CMap1::Face f)
 {
 	std::vector<CMap1::Vertex> vertices;
+	vertices.reserve(8u);
 	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap1::Vertex(d)); return true; });
 	return vertices;
 }
@@ -51,6 +70,7 @@ std::vector<CMap1::Vertex> incident_vertices(const CMap1& m, CMap1::Face f)
 std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Vertex> vertices;
+	vertices.reserve(2u);
 	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
 	return vertices;
 }
@@ -58,7 +78,44 @@ std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Face f)
 {
 	std::vector<CMap2::Vertex> vertices;
+	vertices.reserve(16u);
 	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Volume v)
+{
+	std::vector<CMap2::Vertex> vertices;
+	vertices.reserve(32u);
+	foreach_incident_vertex(m, v, [&] (CMap2::Vertex vert) -> bool { vertices.push_back(vert); return true; });
+	return vertices;
+}
+
+///////////
+// CMap3 //
+///////////
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Edge e)
+{
+	std::vector<CMap3::Vertex> vertices;
+	vertices.reserve(2u);
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Edge(e.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Face f)
+{
+	std::vector<CMap3::Vertex> vertices;
+	vertices.reserve(16u);
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Volume v)
+{
+	std::vector<CMap3::Vertex> vertices;
+	vertices.reserve(32u);
+	foreach_incident_vertex(m, v, [&] (CMap3::Vertex vert) -> bool { vertices.push_back(vert); return true; });
 	return vertices;
 }
 

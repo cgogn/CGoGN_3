@@ -87,31 +87,37 @@ protected:
 	template <typename MESH>
 	inline void init_lines(const MESH& m, std::vector<uint32>& table_indices)
 	{
-		using Vertex = typename mesh_traits<MESH>::Vertex;
-		using Edge = typename mesh_traits<MESH>::Edge;
-		foreach_cell(m, [&] (Edge e) -> bool
+		if constexpr (mesh_traits<MESH>::dimension > 0)
 		{
-			foreach_incident_vertex(m, e, [&] (Vertex v) -> bool { table_indices.push_back(index_of(m, v)); return true; });
-			return true;
-		});
+			using Vertex = typename mesh_traits<MESH>::Vertex;
+			using Edge = typename mesh_traits<MESH>::Edge;
+			foreach_cell(m, [&] (Edge e) -> bool
+			{
+				foreach_incident_vertex(m, e, [&] (Vertex v) -> bool { table_indices.push_back(index_of(m, v)); return true; });
+				return true;
+			});
+		}
 	}
 
 	template <typename MESH>
 	inline void init_triangles(const MESH& m, std::vector<uint32>& table_indices)
 	{
-		using Vertex = typename mesh_traits<MESH>::Vertex;
-		using Face = typename mesh_traits<MESH>::Face;
-		foreach_cell(m, [&] (Face f) -> bool
+		if constexpr (mesh_traits<MESH>::dimension > 1)
 		{
-			std::vector<Vertex> vertices = incident_vertices(m, f);
-			for (uint32 i = 1; i < vertices.size() - 1; ++i)
+			using Vertex = typename mesh_traits<MESH>::Vertex;
+			using Face = typename mesh_traits<MESH>::Face;
+			foreach_cell(m, [&] (Face f) -> bool
 			{
-				table_indices.push_back(index_of(m, vertices[0]));
-				table_indices.push_back(index_of(m, vertices[i]));
-				table_indices.push_back(index_of(m, vertices[i+1]));
-			}
-			return true;
-		});
+				std::vector<Vertex> vertices = incident_vertices(m, f);
+				for (uint32 i = 1; i < vertices.size() - 1; ++i)
+				{
+					table_indices.push_back(index_of(m, vertices[0]));
+					table_indices.push_back(index_of(m, vertices[i]));
+					table_indices.push_back(index_of(m, vertices[i+1]));
+				}
+				return true;
+			});
+		}
 	}
 
 public:

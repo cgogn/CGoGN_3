@@ -60,9 +60,9 @@ CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 typename mesh_traits<MESH>::Face
-add_face(MESH& m, uint32 size, bool set_incides = true)
+add_face(MESH& m, uint32 size, bool set_indices = true)
 {
-	return add_face(m.mesh(), size, set_incides);
+	return add_face(m.mesh(), size, set_indices);
 }
 
 /*****************************************************************************/
@@ -87,9 +87,9 @@ CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
-remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_incides = true)
+remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true)
 {
-	return remove_face(m.mesh(), f, set_incides);
+	return remove_face(m.mesh(), f, set_indices);
 }
 
 /*****************************************************************************/
@@ -114,11 +114,11 @@ CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool se
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 typename mesh_traits<MESH>::Edge
-cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_incides = true)
+cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true)
 {
-	return cut_face(m.mesh(), v1, v2, set_incides);
+	return cut_face(m.mesh(), v1, v2, set_indices);
 }
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_H_
+#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_

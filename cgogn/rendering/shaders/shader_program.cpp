@@ -324,7 +324,8 @@ void ShaderProgram::set_view_matrix(const GLMat4& mv)
 }
 
 ShaderParam::ShaderParam(ShaderProgram* prg) :
-	shader_(prg)
+	shader_(prg),
+	vao_initialized_(false)
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();

@@ -27,7 +27,6 @@
 #include <cgogn/core/utils/numerics.h>
 
 #include <vector>
-#include <type_traits>
 
 namespace cgogn
 {
@@ -47,7 +46,7 @@ public:
 
     Buffers()
     {
-        for (uint32 i = 0; i < 16; ++i)
+        for (uint32 i = 0u; i < 8u; ++i)
         {
 			std::vector<T>* v = new std::vector<T>;
 			v->reserve(DEFAULT_SIZE);

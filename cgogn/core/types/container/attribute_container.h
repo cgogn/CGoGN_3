@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/utils/thread.h>
 
 #include <vector>
 #include <string>
@@ -48,18 +49,16 @@ class CGOGN_CORE_EXPORT AttributeGenT
 {
 public:
 
-	AttributeGenT(AttributeContainerGen* container, bool is_mark, const std::string& name);
+	AttributeGenT(AttributeContainerGen* container, const std::string& name);
 	virtual ~AttributeGenT();
 
 	inline const std::string& name() const { return name_; }
-	inline bool is_mark() const { return is_mark_; }
 
 	uint32 maximum_index() const;
 
 protected:
 
 	AttributeContainerGen* container_;
-	bool is_mark_;
 	std::string name_;
 
 private:
@@ -123,9 +122,8 @@ protected:
 	std::vector<std::shared_ptr<AttributeGenT>> attributes_shared_ptr_;
 
 	std::mutex mark_attributes_mutex_;
-
-	std::vector<AttributeGenT*> mark_attributes_;
-	std::vector<uint32> available_mark_attributes_;
+	std::vector<std::vector<AttributeGenT*>> mark_attributes_;
+	std::vector<std::vector<uint32>> available_mark_attributes_;
 	
 	std::vector<uint32> available_indices_;
 
@@ -158,30 +156,33 @@ public:
 
 protected:
 
-	std::unique_ptr<Attribute<uint32>> ref_counters_;
+	std::unique_ptr<Attribute<uint32>> ref_counter_;
 
 	inline void init_ref_counter(uint32 index) override
 	{
-		static_cast<AttributeGenT*>(ref_counters_.get())->manage_index(index);
-		(*ref_counters_)[index] = 1u;
+		static_cast<AttributeGenT*>(ref_counter_.get())->manage_index(index); // AttributeContainerT is friend of AttributeGenT
+		(*ref_counter_)[index] = 1u;
 	}
 
 	inline void reset_ref_counter(uint32 index) override
 	{
-		(*ref_counters_)[index] = 0u;
+		(*ref_counter_)[index] = 0u;
 	}
 
 	inline uint32 nb_refs(uint32 index) const override
 	{
-		return (*ref_counters_)[index];
+		return (*ref_counter_)[index];
 	}
 
 	inline void init_mark_attributes(uint32 index) override
 	{
-		for (auto mark_attribute : mark_attributes_)
+		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
 		{
-			MarkAttribute* m = static_cast<MarkAttribute*>(mark_attribute);
-			(*m)[index] = 0u;
+			for (AttributeGenT* mark_attribute : mark_attributes_[i])
+			{
+				MarkAttribute* m = static_cast<MarkAttribute*>(mark_attribute);
+				(*m)[index] = 0u;
+			}
 		}
 	}
 
@@ -189,7 +190,7 @@ public:
 
 	AttributeContainerT() : AttributeContainerGen()
 	{
-		ref_counters_ = std::make_unique<Attribute<uint32>>(this, true, "__refs");
+		ref_counter_ = std::make_unique<Attribute<uint32>>(nullptr, "__refs");
 	}
 
 	~AttributeContainerT()
@@ -205,9 +206,9 @@ public:
 		);
 		if (it == attributes_.end())
 		{
-			std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, false, name);
+			std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, name);
 			Attribute<T>* ap = asp.get();
-			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_); // AttributeContainerT is friend of AttributeGenT
 			attributes_.push_back(ap);
 			attributes_shared_ptr_.push_back(asp);
 			return asp;
@@ -230,41 +231,41 @@ public:
 
 	MarkAttribute* get_mark_attribute()
 	{
-		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-		if (available_mark_attributes_.size() > 0)
+		uint32 thread_index = current_thread_index();
+		if (available_mark_attributes_[thread_index].size() > 0)
 		{
-			uint32 index = available_mark_attributes_.back();
-			available_mark_attributes_.pop_back();
-			return static_cast<MarkAttribute*>(mark_attributes_[index]);
+			uint32 index = available_mark_attributes_[thread_index].back();
+			available_mark_attributes_[thread_index].pop_back();
+			return static_cast<MarkAttribute*>(mark_attributes_[thread_index][index]);
 		}
 		else
 		{
-			MarkAttribute* ap = new MarkAttribute(this, true, "__mark");
-			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
-			mark_attributes_.push_back(ap);
+			MarkAttribute* ap = new MarkAttribute(nullptr, "__mark");
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_); // AttributeContainerT is friend of AttributeGenT
+			mark_attributes_[thread_index].push_back(ap);
 			return ap;
 		}
 	}
 
 	void release_mark_attribute(MarkAttribute* attribute)
 	{
-		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-		auto it = std::find(mark_attributes_.begin(), mark_attributes_.end(), attribute);
-		if (it != mark_attributes_.end())
-			available_mark_attributes_.push_back(std::distance(mark_attributes_.begin(), it));
+		uint32 thread_index = current_thread_index();
+		auto it = std::find(mark_attributes_[thread_index].begin(), mark_attributes_[thread_index].end(), attribute);
+		cgogn_message_assert(it != mark_attributes_[thread_index].end(), "Mark Attribute not found on release");
+		available_mark_attributes_[thread_index].push_back(std::distance(mark_attributes_[thread_index].begin(), it));
 	}
 
 	inline void ref_index(uint32 index)
 	{
 		cgogn_message_assert(nb_refs(index) > 0, "Trying to ref an unused index");
-		(*ref_counters_)[index]++;
+		(*ref_counter_)[index]++;
 	}
 
 	inline bool unref_index(uint32 index)
 	{
 		cgogn_message_assert(nb_refs(index) > 0, "Trying to unref an unused index");
-		(*ref_counters_)[index]--;
-		if ((*ref_counters_)[index] == 1u)
+		(*ref_counter_)[index]--;
+		if ((*ref_counter_)[index] == 1u)
 		{
 			release_index(index);
 			return true;

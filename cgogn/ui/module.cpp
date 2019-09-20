@@ -63,6 +63,12 @@ void Module::key_release_event(View*, int32)
 void Module::draw(View*)
 {}
 
+void Module::init()
+{}
+
+void Module::main_menu()
+{}
+
 void Module::interface()
 {}
 

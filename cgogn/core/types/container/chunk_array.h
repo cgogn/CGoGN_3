@@ -46,27 +46,28 @@ class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
 public:
 
-	static const uint32 CHUNK_SIZE = 512;
+	static const uint32 CHUNK_SIZE = 1024;
 
 private:
 
 	std::vector<T*> chunks_;
+	uint32 capacity_;
 
 	inline void manage_index(uint32 index) override
 	{
-		uint32 capacity = chunks_.size() * CHUNK_SIZE;
-		while (index >= capacity)
+		while (index >= capacity_)
 		{
 			chunks_.push_back(new T[CHUNK_SIZE]());
-			capacity = chunks_.size() * CHUNK_SIZE;
+			capacity_ = chunks_.size() * CHUNK_SIZE;
 		}
 	}
 
 public:
 
-	ChunkArray(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGenT(container, is_mark, name)
+	ChunkArray(AttributeContainerGen* container, const std::string& name) : AttributeGenT(container, name)
 	{
 		chunks_.reserve(512u);
+		capacity_ = 0u;
 	}
 
 	~ChunkArray() override
@@ -77,13 +78,13 @@ public:
 
 	inline T& operator[](uint32 index)
 	{
-		cgogn_message_assert(index / CHUNK_SIZE < chunks_.size(), "index out of bounds");
+		cgogn_message_assert(index < capacity_, "index out of bounds");
 		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
 	}
 
 	inline const T& operator[](uint32 index) const
 	{
-		cgogn_message_assert(index / CHUNK_SIZE < chunks_.size(), "index out of bounds");
+		cgogn_message_assert(index < capacity_, "index out of bounds");
 		return chunks_[index / CHUNK_SIZE][index % CHUNK_SIZE];
 	}
 
@@ -97,6 +98,13 @@ public:
 	{
 		if (ca->container_ == this->container_)
 			chunks_.swap(ca->chunks_);
+	}
+
+	inline void copy(ChunkArray<T>* ca)
+	{
+		if (ca->container_ == this->container_)
+			for (uint32 i = 0; i < chunks_.size(); ++i)
+				std::copy(ca->chunks_[i], ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
 	}
 
 	inline uint32 nb_chunks() const

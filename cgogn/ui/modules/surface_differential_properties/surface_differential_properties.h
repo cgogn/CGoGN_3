@@ -58,7 +58,7 @@ class SurfaceDifferentialProperties : public Module
 public:
 
 	SurfaceDifferentialProperties(const App& app) :
-		Module(app, "SurfaceDifferentialProperties (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "SurfaceDifferentialProperties (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_position_(nullptr),
 		selected_vertex_normal_(nullptr),
@@ -70,11 +70,6 @@ public:
 	{}
 	~SurfaceDifferentialProperties()
 	{}
-    
-	void init()
-	{
-		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-	}
 
 	void compute_normal(
 		const MESH& m,
@@ -113,6 +108,11 @@ public:
 	}
 
 protected:
+    
+	void init() override
+	{
+		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
+	}
 
     void interface() override
 	{
@@ -140,6 +140,8 @@ protected:
 
 		if (selected_mesh_)
 		{
+			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			std::string selected_vertex_position_name_ = selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
 			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
 			{
@@ -153,6 +155,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_position_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##position"))
+					selected_vertex_position_.reset();
+			}
+
 			std::string selected_vertex_normal_name_ = selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
 			if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
 			{
@@ -166,6 +175,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_normal_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##normal"))
+					selected_vertex_normal_.reset();
+			}
+
 			std::string selected_vertex_kmax_name_ = selected_vertex_kmax_ ? selected_vertex_kmax_->name() : "-- select --";
 			if (ImGui::BeginCombo("kmax", selected_vertex_kmax_name_.c_str()))
 			{
@@ -179,6 +195,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_kmax_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##kmax"))
+					selected_vertex_kmax_.reset();
+			}
+
 			std::string selected_vertex_kmin_name_ = selected_vertex_kmin_ ? selected_vertex_kmin_->name() : "-- select --";
 			if (ImGui::BeginCombo("kmin", selected_vertex_kmin_name_.c_str()))
 			{
@@ -192,6 +215,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_kmin_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##kmin"))
+					selected_vertex_kmin_.reset();
+			}
+
 			std::string selected_vertex_Kmax_name_ = selected_vertex_Kmax_ ? selected_vertex_Kmax_->name() : "-- select --";
 			if (ImGui::BeginCombo("Kmax", selected_vertex_Kmax_name_.c_str()))
 			{
@@ -205,6 +235,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_Kmax_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##Kmax"))
+					selected_vertex_Kmax_.reset();
+			}
+
 			std::string selected_vertex_Kmin_name_ = selected_vertex_Kmin_ ? selected_vertex_Kmin_->name() : "-- select --";
 			if (ImGui::BeginCombo("Kmin", selected_vertex_Kmin_name_.c_str()))
 			{
@@ -218,6 +255,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (selected_vertex_Kmin_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##Kmin"))
+					selected_vertex_Kmin_.reset();
+			}
+
 			std::string selected_vertex_Knormal_name_ = selected_vertex_Knormal_ ? selected_vertex_Knormal_->name() : "-- select --";
 			if (ImGui::BeginCombo("Knormal", selected_vertex_Knormal_name_.c_str()))
 			{
@@ -230,6 +274,12 @@ protected:
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
+			}
+			if (selected_vertex_Knormal_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##Knormal"))
+					selected_vertex_Knormal_.reset();
 			}
 
 			if (selected_vertex_position_)

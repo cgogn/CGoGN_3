@@ -38,6 +38,8 @@
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
+#include <cgogn/geometry/algos/length.h>
+
 #include <boost/synapse/connect.hpp>
 
 #include <unordered_map>
@@ -62,7 +64,6 @@ class SurfaceRender : public Module
 	struct Parameters
 	{
 		Parameters() :
-			initialized_(false),
 			vertex_position_(nullptr),
 			vertex_normal_(nullptr),
 			render_vertices_(false),
@@ -72,25 +73,23 @@ class SurfaceRender : public Module
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 1);
+			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 1, 0, 1);
-			param_edge_->width_= 2.5f;
+			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
+			param_edge_->width_= 1.0f;
 
 			param_flat_ =  rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
-			param_flat_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
+			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_phong_ = rendering::ShaderPhong::generate_param();
-			param_phong_->front_color_ = rendering::GLColor(0, 0.8f, 0, 1);
-			param_phong_->back_color_ = rendering::GLColor(0, 0, 0.8f, 1);
+			param_phong_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
+			param_phong_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 		}
-
-		bool initialized_;
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
@@ -112,7 +111,7 @@ class SurfaceRender : public Module
 public:
 
 	SurfaceRender(const App& app) :
-		ui::Module(app, "SurfaceRender (" + mesh_traits<MESH>::name + ")"),
+		ui::Module(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -124,37 +123,35 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_.emplace(m, Parameters());
-		mesh_connections_[m].push_back(boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(m, [this, m] (Attribute<Vec3>* attribute)
-		{
-			Parameters& p = parameters_[m];
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-			if (p.vertex_position_.get() == attribute || p.vertex_normal_.get() == attribute)
-				md->update_vbo(attribute);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+				m, [this, m] (Attribute<Vec3>* attribute)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_.get() == attribute)
+						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 
-			for (ui::View* v : linked_views_)
-				v->request_update();
-		}));
+					for (ui::View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
 	}
 
 public:
 
-	void init()
-	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
-		connections_.push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(mesh_provider_, this, &SurfaceRender<MESH>::init_mesh)
-		);
-	}
-
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
-		p.vertex_position_ = vertex_position;
-		p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
-
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-		md->update_vbo(vertex_position.get());
+
+		p.vertex_position_ = vertex_position;
+		if (p.vertex_position_)
+		{
+			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			md->update_vbo(vertex_position.get(), true);
+		}
+
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
@@ -167,10 +164,12 @@ public:
 	void set_vertex_normal(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
 		Parameters& p = parameters_[&m];
-		p.vertex_normal_ = vertex_normal;
-
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-		md->update_vbo(vertex_normal.get());
+
+		p.vertex_normal_ = vertex_normal;
+		if (p.vertex_normal_)
+			md->update_vbo(vertex_normal.get(), true);
+		
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
 		for (ui::View* v : linked_views_)
@@ -178,6 +177,17 @@ public:
 	}
 
 protected:
+
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
+		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
+		connections_.push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
+				mesh_provider_, this, &SurfaceRender<MESH>::init_mesh
+			)
+		);
+	}
 
 	void draw(View* view) override
 	{
@@ -193,13 +203,13 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 
-				if (p.phong_shading_)
+				if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES);
 					p.param_phong_->release();
 				}
-				else
+				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES);
@@ -209,7 +219,7 @@ protected:
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
-			if (p.render_vertices_)
+			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -217,7 +227,7 @@ protected:
 				p.param_point_sprite_->release();
 			}
 
-			if (p.render_edges_)
+			if (p.render_edges_ && p.param_edge_->vao_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
@@ -248,6 +258,8 @@ protected:
 
 		if (selected_mesh_)
 		{
+			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
@@ -262,6 +274,13 @@ protected:
 				});
 				ImGui::EndCombo();
 			}
+			if (p.vertex_position_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##position"))
+					set_vertex_position(*selected_mesh_, nullptr);
+			}
+
 			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
 			{
 				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
@@ -273,6 +292,12 @@ protected:
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
+			}
+			if (p.vertex_normal_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##normal"))
+					set_vertex_normal(*selected_mesh_, nullptr);
 			}
 
 			ImGui::Separator();
@@ -289,8 +314,8 @@ protected:
 					ImGui::Separator();
 					ImGui::Text("Phong parameters");
 					need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					ImGui::SameLine();
-					need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+					if (p.param_phong_->double_side_)
+						need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
 					need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
 				}
@@ -299,8 +324,8 @@ protected:
 					ImGui::Separator();
 					ImGui::Text("Flat parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					ImGui::SameLine();
-					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
+					if (p.param_flat_->double_side_)
+						need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
 				}
 			}

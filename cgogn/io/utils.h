@@ -56,7 +56,7 @@ private:
 	std::string current_locale_;
 };
 
-std::istream& getline_safe(std::istream& is, std::string& str)
+inline std::istream& getline_safe(std::istream& is, std::string& str)
 {
 	str.clear();
 	std::istream::sentry se(is, true); // http://en.cppreference.com/w/cpp/io/basic_istream/sentry
@@ -83,7 +83,7 @@ std::istream& getline_safe(std::istream& is, std::string& str)
 	}
 }
 
-float64 read_double(std::istream& fp, std::string& line)
+inline float64 read_double(std::istream& fp, std::string& line)
 {
 	fp >> line;
 	while (line[0] == '#')
@@ -94,7 +94,7 @@ float64 read_double(std::istream& fp, std::string& line)
 	return std::stod(line);
 }
 
-uint32 read_uint(std::istream& fp, std::string& line)
+inline uint32 read_uint(std::istream& fp, std::string& line)
 {
 	fp >> line;
 	while (line[0] == '#')

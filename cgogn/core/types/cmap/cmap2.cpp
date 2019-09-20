@@ -20,19 +20,80 @@
 * Contact information: cgogn@unistra.fr                                        *
 *                                                                              *
 *******************************************************************************/
-#include <cgogn/io/cgogn_io_export.h>
+
+#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
 
 namespace cgogn
 {
 
-namespace io
+Dart CMap2::close_hole(Dart d, bool set_indices)
 {
+	cgogn_message_assert(phi2(d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
 
-int CGOGN_IO_EXPORT pipo()
-{
-	return 0;
+	Dart first = add_dart();	// First edge of the face that will fill the hole
+	phi2_sew(d, first);			// 2-sew the new edge to the hole
+
+	Dart d_next = d;			// Turn around the hole
+	Dart d_phi1;				// to complete the face
+	do
+	{
+		do
+		{
+			d_phi1 = phi1(d_next); // Search and put in d_next
+			d_next = phi2(d_phi1); // the next dart of the hole
+		} while (d_next != d_phi1 && d_phi1 != d);
+
+		if (d_phi1 != d)
+		{
+			Dart next = add_dart();	// Add a vertex into the built face
+			phi1_sew(first, next);
+			phi2_sew(d_next, next);	// and 2-sew the face to the hole
+		}
+	} while (d_phi1 != d);
+
+	if (set_indices)
+	{
+		Dart it = first;
+		do
+		{
+			Dart it2 = phi2(it);
+			if (is_embedded<Vertex>())
+				copy_embedding<Vertex>(it, phi1(it2));
+			if (is_embedded<Edge>())
+				copy_embedding<Edge>(it, it2);
+			if (is_embedded<Volume>())
+				copy_embedding<Volume>(it, it2);
+			it = phi1(it);
+		} while (it != first);
+	}
+
+	return first;
 }
 
-} // namespace geometry
+uint32 CMap2::close(bool set_indices)
+{
+	uint32 nb_holes = 0u;
+
+	std::vector<Dart> fix_point_darts;
+	foreach_dart([&] (Dart d) -> bool
+	{
+		if (phi2(d) == d)
+			fix_point_darts.push_back(d);
+		return true;
+	});
+
+	for (Dart d : fix_point_darts)
+	{
+		if (phi2(d) == d)
+		{
+			Dart h = close_hole(d, set_indices);
+			foreach_dart_of_orbit(CMap2::Face(h), [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
+			++nb_holes;
+		}
+	}
+
+	return nb_holes;
+}
 
 } // namespace cgogn

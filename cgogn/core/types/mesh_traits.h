@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/graph.h>
 
 namespace cgogn
 {
@@ -37,11 +38,13 @@ struct mesh_traits;
 template <>
 struct mesh_traits<CMap0>
 {
-	inline static const std::string name = "CMap0";
+	static constexpr const char* name = "CMap0";
+	static constexpr const uint8 dimension = 0;
 
 	using Vertex = typename CMap0::Vertex;
 
-	using Cells = CMap0::Cells;
+	using Cells = std::tuple<Vertex>;
+	static constexpr const char* cell_names[] = { "Vertex" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -52,13 +55,15 @@ struct mesh_traits<CMap0>
 template <>
 struct mesh_traits<CMap1>
 {
-	inline static const std::string name = "CMap1";
+	static constexpr const char* name = "CMap1";
+	static constexpr const uint8 dimension = 1;
 
 	using Vertex = CMap1::Vertex;
 	using Edge = CMap1::Edge;
 	using Face = CMap1::Face;
 
-	using Cells = CMap1::Cells;
+	using Cells = std::tuple<Vertex, Edge, Face>;
+	static constexpr const char* cell_names[] = { "Vertex", "Edge", "Face" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -69,14 +74,16 @@ struct mesh_traits<CMap1>
 template <>
 struct mesh_traits<CMap2>
 {
-	inline static const std::string name = "CMap2";
+	static constexpr const char* name = "CMap2";
+	static constexpr const uint8 dimension = 2;
 
 	using Vertex = CMap2::Vertex;
 	using Edge = CMap2::Edge;
 	using Face = CMap2::Face;
 	using Volume = CMap2::Volume;
 
-	using Cells = CMap2::Cells;
+	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
+	static constexpr const char* cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -87,14 +94,34 @@ struct mesh_traits<CMap2>
 template <>
 struct mesh_traits<CMap3>
 {
-	inline static const std::string name = "CMap3";
+	static constexpr const char* name = "CMap3";
+	static constexpr const uint8 dimension = 3;
 
 	using Vertex = CMap3::Vertex;
 	using Edge = CMap3::Edge;
 	using Face = CMap3::Face;
 	using Volume = CMap3::Volume;
 
-	using Cells = CMap3::Cells;
+	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
+	static constexpr const char* cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
+
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+};
+
+template <>
+struct mesh_traits<Graph>
+{
+	static constexpr const char* name = "Graph";
+	static constexpr const uint8 dimension = 1;
+
+	using Vertex = Graph::Vertex;
+	using Edge = Graph::Edge;
+
+	using Cells = std::tuple<Vertex, Edge>;
+	static constexpr const char* cell_names[] = { "Vertex", "Edge" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;

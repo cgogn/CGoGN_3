@@ -66,12 +66,14 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceFiltering<Mesh> sf(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
-	sr.init();
-	srv.init();
-	sf.init();
-	sdp.init();
+	app.init_modules();
 
-	Mesh* m = mp.import_surface_from_file(filename);
+	Mesh* m = mp.load_surface_from_file(filename);
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
@@ -89,7 +91,7 @@ int main(int argc, char** argv)
 	// v2->link_module(&srv);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->update_bb(vertex_position.get());
+	md->set_bb_attribute(vertex_position);
 	Vec3 diagonal = md->bb_max_ - md->bb_min_;
 	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 	

@@ -51,7 +51,7 @@ update_edge_queue(
 	const MESH& m,
 	typename mesh_traits<MESH>::Edge e,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info,
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info,
 	const FUNC& edge_cost
 )
 {
@@ -98,7 +98,7 @@ pre_collapse_edge_length(
 	typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info
 )
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -134,7 +134,7 @@ post_collapse_edge_length(
 	typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info,
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info,
 	const FUNC& edge_cost
 )
 {
@@ -178,7 +178,7 @@ pre_collapse_edge_length(
 	typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info
 )
 {
 	return pre_collapse_edge_length(m.mesh(), e, e1, e2, edge_queue, edge_queue_info);
@@ -192,7 +192,7 @@ post_collapse_edge_length(
 	typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info,
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info,
 	const FUNC& edge_cost
 )
 {
@@ -211,7 +211,7 @@ post_collapse_edge_length(
 	typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	const typename mesh_traits<MESH>::template AttributePtr<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>& edge_queue_info,
+	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info,
 	const FUNC& edge_cost
 )
 {

@@ -73,18 +73,18 @@ inline std::string orbit_name(Orbit orbit)
 #endif
 }
 
-static const uint32 ALL_CELLS_MASK = 0xffffffff;
+// static const uint32 ALL_CELLS_MASK = 0xffffffff;
 
-template <typename CELL>
-inline uint32 cell_mask()
-{
-	return 1 << CELL::CELLTYPE;
-}
+// template <typename CELL>
+// inline uint32 cell_mask()
+// {
+// 	return 1 << CELL::CELLTYPE;
+// }
 
-inline uint32 cell_mask(Orbit celltype)
-{
-	return 1 << celltype;
-}
+// inline uint32 cell_mask(Orbit celltype)
+// {
+// 	return 1 << celltype;
+// }
 
 /**
  * \brief Cellular typing

@@ -27,6 +27,8 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/core/functions/mesh_info.h>
+
 #include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/vbo_update.h>
 
@@ -45,19 +47,18 @@ struct MeshData
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
     using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
-    using Vertex = typename mesh_traits<MESH>::Vertex;
-
     using Vec3 = geometry::Vec3;
-    using Vec2 = geometry::Vec2;
-    using Scalar = geometry::Scalar;
 
 	MeshData() : mesh_(nullptr)
 	{}
-	MeshData(const MeshData& m) : mesh_(m.mesh_)
+	MeshData(const MeshData& m) :
+		mesh_(m.mesh_),
+		nb_cells_(m.nb_cells_)
 	{}
-
 	MeshData(const MESH* mesh) : mesh_(mesh)
-	{}
+	{
+		update_nb_cells();
+	}
 	
 	void draw(rendering::DrawingType primitive)
 	{
@@ -71,14 +72,53 @@ struct MeshData
 		render_.init_primitives(*mesh_, primitive);
 	}
 
-	void update_bb(const Attribute<Vec3>* vertex_position)
+	void set_primitives_dirty(rendering::DrawingType primitive)
 	{
+		render_.set_primitive_dirty(primitive);
+	}
+
+private:
+
+	template <class ...T>
+	void internal_update_nb_cells(const std::tuple<T...>&)
+	{
+		nb_cells_ = { cgogn::nb_cells<T>(*mesh_)... };
+	}
+
+public:
+
+	void update_nb_cells()
+	{
+		internal_update_nb_cells(typename mesh_traits<MESH>::Cells{});
+	}
+
+	template <typename CELL>
+	uint32 nb_cells()
+	{
+		return nb_cells_[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
+	}
+
+	void set_bb_attribute(const std::shared_ptr<Attribute<Vec3>>& vertex_attribute)
+	{
+		bb_attribute_ = vertex_attribute;
+		update_bb();
+	}
+
+	void update_bb()
+	{
+		if (!bb_attribute_)
+		{
+			bb_min_ = { 0, 0, 0 };
+			bb_max_ = { 0, 0, 0 };
+			return;
+		}
+
 		for (uint32 i = 0; i < 3; ++i)
 		{
 			bb_min_[i] = std::numeric_limits<float64>::max();
 			bb_max_[i] = std::numeric_limits<float64>::lowest();
 		}
-		for (const Vec3& v : *vertex_position)
+		for (const Vec3& v : *bb_attribute_)
 		{
 			for (uint32 i = 0; i < 3; ++i)
 			{
@@ -99,19 +139,22 @@ struct MeshData
 	}
 
 	template <typename T>
-	void update_vbo(Attribute<T>* attribute)
+	void update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
 	{
 		rendering::VBO* v = vbo(attribute);
-		if (!v)
+		if (!v && create_if_needed)
 		{
 			const auto [it, inserted] = vbos_.emplace(attribute, std::make_unique<rendering::VBO>());
 			v = it->second.get();
 		}
-		rendering::update_vbo<T>(attribute, v);
+		if (v)
+			rendering::update_vbo<T>(attribute, v);
 	}
 
-	Vec3 bb_min_, bb_max_;
 	const MESH* mesh_;
+	std::shared_ptr<Attribute<Vec3>> bb_attribute_;
+	Vec3 bb_min_, bb_max_;
+	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
 
 private:
 

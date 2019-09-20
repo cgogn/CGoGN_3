@@ -27,19 +27,18 @@
 namespace cgogn
 {
 
-ThreadPool::ThreadPool(const std::string& name/*, uint32 shift_index*/) :
+ThreadPool::ThreadPool(const std::string& name) :
     name_(name),
     stop_(false)
-    // shift_index_(shift_index)
 {
-	uint32 nb_ww = std::thread::hardware_concurrency();
+	uint32 nb_ww = std::thread::hardware_concurrency() - 1;
 	nb_working_workers_ = nb_ww;
 
 	for(uint32 i = 0u; i < nb_ww; ++i)
 	{
 		workers_.emplace_back([this, i] () -> void
 		{
-			thread_start(i/*, shift_index_*/);
+			thread_start(i + 1);
 			for(;;)
 			{
 				while (i >= nb_working_workers_)
@@ -115,7 +114,7 @@ void ThreadPool::set_nb_workers(uint32 nb)
 ThreadPool* thread_pool()
 {
 	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-	static ThreadPool pool("internal"/*, 1*/);
+	static ThreadPool pool("internal");
 	return &pool;
 }
 

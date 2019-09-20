@@ -29,6 +29,8 @@
 
 #include <imgui/imgui_internal.h>
 
+#include <thread>
+
 namespace cgogn
 {
 
@@ -48,7 +50,7 @@ App::App():
 	window_frame_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
-	focused_(nullptr)
+	current_view_(nullptr)
 {
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
@@ -56,9 +58,9 @@ App::App():
 
 	// GL 3.3 + GLSL 150 + Core Profile
 	const char* glsl_version = "#version 150";
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	window_ = glfwCreateWindow(window_frame_width_, window_frame_height_, window_name_.c_str(), nullptr, nullptr);
@@ -66,20 +68,30 @@ App::App():
 		std::cerr << "Failed to create Window!" << std::endl;
 
 	glfwMakeContextCurrent(window_);
+	glfwSwapInterval(1); // Enable vsync
 
 	bool err = gl3wInit() != 0;
 	if (err)
 		std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
-	
-	glfwSwapInterval(1); // Enable vsync
 
 	IMGUI_CHECKVERSION();
 	context_ = ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+	// io.ConfigDockingWithShift = false;
+	// io.ConfigWindowsResizeFromEdges = true;
 
-	ImGui::StyleColorsDark(); //ImGui::StyleColorsClassic();
+	ImGui::StyleColorsDark();
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.WindowRounding = 0.0f;
+	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
+
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
+
 	glfwSetWindowUserPointer(window_, this);
 
 	std::cout << glGetString(GL_VENDOR) << std::endl;
@@ -120,10 +132,10 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 
 				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
@@ -174,10 +186,10 @@ App::App():
 		{
 			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 				v->mouse_move_event(x, y);
 			}
@@ -186,7 +198,7 @@ App::App():
 		if (!that->over_frame(cx, cy))
 		{
 			that->inputs_.mouse_buttons_ = 0;
-			that->focused_ = nullptr;
+			that->current_view_ = nullptr;
 		}
 
         that->inputs_.last_mouse_x_ = x;
@@ -210,10 +222,10 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				if (v.get() != that->focused_)
+				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
-					that->focused_ = v.get();
+					that->current_view_ = v.get();
 				}
 				v->mouse_wheel_event(dx, 100 * dy);
 			}
@@ -240,10 +252,10 @@ App::App():
 			{
 				if (v->over_viewport(cx, cy))
 				{
-					if (v.get() != that->focused_)
+					if (v.get() != that->current_view_)
 					{
 						that->inputs_.mouse_buttons_ = 0;
-						that->focused_ = v.get();
+						that->current_view_ = v.get();
 					}
 				}
 			}
@@ -252,7 +264,7 @@ App::App():
 		else
 		{
 			that->inputs_.mouse_buttons_ = 0;
-			that->focused_ = nullptr;
+			that->current_view_ = nullptr;
 		}
 	});
 
@@ -270,8 +282,7 @@ App::App():
 
 		if (k == GLFW_KEY_ESCAPE)
         {
-            that->close_event();
-			glfwSetWindowShouldClose(that->window_, GLFW_TRUE);
+            that->stop();
 			return;
         }
 
@@ -299,7 +310,7 @@ App::App():
 		{
 			if (v->over_viewport(cx, cy))
 			{
-				that->focused_ = v.get();
+				that->current_view_ = v.get();
 
 				switch(a)
 				{
@@ -342,7 +353,7 @@ App::App():
 		}
 	});
 
-    focused_ = add_view();
+    current_view_ = add_view();
 }
 
 App::~App()
@@ -392,11 +403,6 @@ void App::close_event()
 	cgogn::rendering::ShaderProgram::clean_all();
 }
 
-bool App::interface()
-{
-	return false;
-}
-
 void App::adapt_views_geometry()
 {
 	switch(views_.size())
@@ -422,6 +428,12 @@ void App::adapt_views_geometry()
 	}
 }
 
+void App::init_modules()
+{
+	for (Module* m : modules_)
+		m->init();
+}
+
 int App::launch()
 {
 	for (const auto& v : views_)
@@ -436,36 +448,109 @@ int App::launch()
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (const auto& v : views_)
-        {
-            v->draw();
-            param_frame_->draw(v->width(), v->height());
-        }
+		for (const auto& v : views_)
+		{
+			v->draw();
+			param_frame_->draw(v->width(), v->height());
+		}
 
-        if (show_imgui_)
-        {
-            ImGui::SetCurrentContext(context_);
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-            interface();
-            for (Module* m : modules_)
-                m->interface();
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        }
+		if (show_imgui_)
+		{
+			ImGui::SetCurrentContext(context_);
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
 
-        glfwSwapBuffers(window_);
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+			ImGui::SetNextWindowViewport(viewport->ID);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			window_flags |= ImGuiWindowFlags_NoBackground;
+			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
+
+			ImGui::PopStyleVar(3);
+
+			if (ImGui::BeginMainMenuBar())
+			{
+				if (ImGui::BeginMenu("File"))
+				{
+					if (ImGui::MenuItem("Quit", "[ESC]"))
+						this->stop();
+					ImGui::EndMenu();
+				}
+				for (Module* m : modules_)
+					m->main_menu();
+				ImGui::EndMainMenuBar();
+			}
+
+			ImGuiID dockspace_id = ImGui::GetID("DockSpaceWindow");
+			ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
+			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
+
+			ImGuiID dockIdLeft, dockIdBottom;
+			static bool first_render = true;
+			
+			if (first_render)
+			{
+				ImGui::DockBuilderRemoveNode(dockspace_id);
+				ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags);
+				ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
+
+				dockIdLeft = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.22f, nullptr, &dockspace_id);
+				dockIdBottom = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.15f, nullptr, &dockspace_id);
+
+				ImGui::DockBuilderFinish(dockspace_id);
+			}
+
+			for (Module* m : modules_)
+			{
+				m->interface();
+				if (first_render)
+					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
+			}
+
+			ImGui::End();
+
+			first_render = false;
+
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+			// Update and Render additional Platform Windows
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(window_);
+		}
+
+		glfwSwapBuffers(window_);
+		
+		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
-    
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 	
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
 	glfwDestroyWindow(window_);
+	glfwTerminate();
 	return EXIT_SUCCESS;
+}
+
+void App::stop()
+{
+	close_event();
+	glfwSetWindowShouldClose(window_, GLFW_TRUE);
 }
 
 } // namespace cgogn

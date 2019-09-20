@@ -54,26 +54,17 @@ class SurfaceFiltering : public Module
 public:
 
 	SurfaceFiltering(const App& app) :
-		Module(app, "SurfaceFiltering (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "SurfaceFiltering (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_attribute_(nullptr)
 	{}
 	~SurfaceFiltering()
 	{}
 
-	void init()
-	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
-	}
-
 	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_attribute)
 	{
 		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute = add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
-		for (auto it = filtered_vertex_attribute->begin(), end = filtered_vertex_attribute->end(); it != end; ++it)
-			*it = (*vertex_attribute)[it.index()];
-		
 		geometry::filter_average<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
-		
 		vertex_attribute->swap(filtered_vertex_attribute.get());
 		remove_attribute<Vertex>(m, filtered_vertex_attribute);
 
@@ -81,6 +72,11 @@ public:
 	}
 
 protected:
+
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
+	}
 
     void interface() override
 	{
@@ -102,6 +98,8 @@ protected:
 
 		if (selected_mesh_)
 		{
+			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			std::string selected_vertex_attribute_name_ = selected_vertex_attribute_ ? selected_vertex_attribute_->name() : "-- select --";
 			if (ImGui::BeginCombo("Attribute", selected_vertex_attribute_name_.c_str()))
 			{
@@ -114,6 +112,12 @@ protected:
 						ImGui::SetItemDefaultFocus();
 				});
 				ImGui::EndCombo();
+			}
+			if (selected_vertex_attribute_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##attribute"))
+					selected_vertex_attribute_.reset();
 			}
 
 			if (selected_vertex_attribute_)

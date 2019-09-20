@@ -3,6 +3,7 @@
 )
 
 find_package(cgogn_core REQUIRED)
+find_package(cgogn_geometry REQUIRED)
 
 # Hide symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
@@ -18,6 +19,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/pipo.cpp"
 )
 
@@ -66,4 +68,5 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling_export.h
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
+# VisualStudio nice source organisation
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
