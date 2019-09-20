@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_IO_GRAPH_CG_H_
+#define CGOGN_IO_GRAPH_CG_H_
 
 #include <cgogn/io/cgogn_io_export.h>
 #include <cgogn/core/types/mesh_traits.h>
@@ -33,11 +33,11 @@ namespace cgogn
 namespace io
 {
 
-void
-CGOGN_IO_EXPORT import_OFF(CMap2& m, const std::string& filename);
+bool
+CGOGN_IO_EXPORT import_CG(Graph& m, const std::string& filename);
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_IO_GRAPH_CG_H_

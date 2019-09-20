@@ -21,7 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/io/surface_import.h>
+#include <cgogn/io/surface/off.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/utils/numerics.h>
@@ -40,7 +40,7 @@ namespace cgogn
 namespace io
 {
 
-void import_OFF(CMap2& m, const std::string& filename)
+bool import_OFF(CMap2& m, const std::string& filename)
 {
 	Scoped_C_Locale loc;
 
@@ -50,20 +50,23 @@ void import_OFF(CMap2& m, const std::string& filename)
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
 	std::string line;
-	line.reserve(512);
+	line.reserve(512u);
 
 	// read OFF header
 	getline_safe(fp, line);
 	if (line.rfind("OFF") == std::string::npos)
 	{
 		std::cerr << "File \"" << filename << "\" is not a valid off file." << std::endl;
-		return;
+		return false;
 	}
 
 	// read number of vertices, edges, faces
 	const uint32 nb_vertices = read_uint(fp, line);
 	const uint32 nb_faces = read_uint(fp, line);
 	/*const uint32 nb_edges_ =*/ read_uint(fp, line);
+	
+	faces_nb_edges.reserve(nb_faces);
+	faces_vertex_indices.reserve(nb_faces * 4u);
 
 	auto position = add_attribute<geometry::Vec3, CMap2::Vertex>(m, "position");
 
@@ -71,7 +74,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 	std::vector<uint32> vertices_id;
 	vertices_id.reserve(nb_vertices);
 
-	for (uint32 i = 0; i < nb_vertices; ++i)
+	for (uint32 i = 0u; i < nb_vertices; ++i)
 	{
 		float64 x = read_double(fp, line);
 		float64 y = read_double(fp, line);
@@ -90,30 +93,27 @@ void import_OFF(CMap2& m, const std::string& filename)
 	{
 		uint32 n = read_uint(fp, line);
 		faces_nb_edges.push_back(n);
-		for (uint32 j = 0; j < n; ++j)
-		{
-			uint32 index = read_uint(fp, line);
-			faces_vertex_indices.push_back(vertices_id[index]);
-		}
+		for (uint32 j = 0u; j < n; ++j)
+			faces_vertex_indices.push_back(vertices_id[read_uint(fp, line)]);
 	}
 
 	if (faces_nb_edges.size() == 0u)
-		return;
+		return false;
 
-	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m, "darts_per_vertex");
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m, "__darts_per_vertex");
 
-	uint32 faces_vertex_index = 0;
+	uint32 faces_vertex_index = 0u;
 	std::vector<uint32> vertices_buffer;
-	vertices_buffer.reserve(16);
+	vertices_buffer.reserve(16u);
 
-	for (uint32 i = 0, end = faces_nb_edges.size(); i < end; ++i)
+	for (uint32 i = 0u, end = faces_nb_edges.size(); i < end; ++i)
 	{
 		uint32 nbe = faces_nb_edges[i];
 
 		vertices_buffer.clear();
 		uint32 prev = std::numeric_limits<uint32>::max();
 
-		for (uint32 j = 0; j < nbe; ++j)
+		for (uint32 j = 0u; j < nbe; ++j)
 		{
 			uint32 idx = faces_vertex_indices[faces_vertex_index++];
 			if (idx != prev)
@@ -126,7 +126,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 			vertices_buffer.pop_back();
 
 		nbe = vertices_buffer.size();
-		if (nbe > 2)
+		if (nbe > 2u)
 		{
 			CMap1::Face f = add_face(static_cast<CMap1&>(m), nbe, false);
 			Dart d = f.dart;
@@ -141,7 +141,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 	}
 
 	bool need_vertex_unicity_check = false;
-	uint32 nb_boundary_edges = 0;
+	uint32 nb_boundary_edges = 0u;
 
 	m.foreach_dart([&] (Dart d) -> bool
 	{
@@ -149,7 +149,7 @@ void import_OFF(CMap2& m, const std::string& filename)
 		{
 			uint32 vertex_index = m.embedding(CMap2::Vertex(d));
 
-			std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, CMap2::Vertex(m.phi1(d)));
+			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, CMap2::Vertex(m.phi1(d)));
 			bool phi2_found = false;
 			bool first_OK = true;
 
@@ -178,27 +178,22 @@ void import_OFF(CMap2& m, const std::string& filename)
 		return true;
 	});
 
-	if (nb_boundary_edges > 0)
+	if (nb_boundary_edges > 0u)
 	{
-//		uint32 nb_holes = mbuild_.close_map();
-//		std::cout << nb_holes << " hole(s) have been closed" << std::endl;;
+		uint32 nb_holes = m.close();
+		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
 		std::cout << nb_boundary_edges << " boundary edges" << std::endl;
 	}
 
-//		if (need_vertex_unicity_check)
-//		{
-//			map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
-//			cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
-//		}
+	// if (need_vertex_unicity_check)
+	// {
+	// 	map_.template enforce_unique_orbit_embedding<Vertex::ORBIT>();
+	// 	cgogn_log_warning("create_map") << "Import Surface: non manifold vertices detected and corrected";
+	// }
 
 	remove_attribute<CMap2::Vertex>(m, darts_per_vertex);
 
-//		cgogn_assert(map_.template is_well_embedded<Vertex>());
-//		if (map_.template is_embedded<Face::ORBIT>())
-//		{
-//			cgogn_assert(map_.template is_well_embedded<Face>());
-//		}
-//	}
+	return true;
 }
 
 } // namespace io

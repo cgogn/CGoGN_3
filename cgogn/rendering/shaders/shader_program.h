@@ -341,6 +341,7 @@ protected:
 
 	ShaderProgram* shader_;
 	std::unique_ptr<VAO> vao_;
+	bool vao_initialized_;
 	
 	virtual void set_uniforms() = 0;
 
@@ -358,17 +359,14 @@ public:
 	ShaderParam& operator=(const ShaderParam&) = delete;
 	inline virtual ~ShaderParam() {}
 
-	inline void bind_vao()
-	{
-		vao_->bind();
-	}
+	inline bool vao_initialized() const { return vao_initialized_; }
 
-	inline void release_vao()
-	{
-		vao_->release();
-	}
+	inline void bind_vao() { vao_->bind(); }
+
+	inline void release_vao() { vao_->release(); }
 
 	inline ShaderProgram* get_shader() { return shader_; }
+
 	/**
 	 * @brief bind the shader set uniforms & matrices, bind vao
 	 * @param proj projectiob matrix
@@ -383,27 +381,37 @@ public:
 	 */
 	void release();
 
-	template<typename T1>
-	auto internal_associate_vbos(GLuint attrib1, T1* p1)
-		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
+	template <typename T1>
+	bool internal_associate_vbos(GLuint attrib1, T1* p1)
 	{
 		if (p1)
+		{
 			p1->associate(attrib1);
+			return true;
+		}
+		else
+			return false;
 	}
 
-	template<typename T1, typename... Ts>
-	auto internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
-		-> typename std::enable_if<std::is_same<T1, VBO>::value>::type
+	template <typename T1, typename... Ts>
+	bool internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
 	{
 		if (p1)
+		{
 			p1->associate(attrib1);
-		internal_associate_vbos(attrib1 + 1u, pn...);
+			return internal_associate_vbos(attrib1 + 1u, pn...);
+		}
+		else
+			return false;
 	}
 
-	template<typename... Ts>
-	void associate_vbos(Ts... pn)
+	template <typename... Ts>
+	auto associate_vbos(Ts... pn)
+		-> std::enable_if_t<std::conjunction_v<std::is_same<VBO*, Ts>...>>
 	{
-		internal_associate_vbos(1u, pn...);
+		vao_initialized_ = internal_associate_vbos(1u, pn...);
+		if (!vao_initialized_)
+			vao_->create();
 	}
 };
 

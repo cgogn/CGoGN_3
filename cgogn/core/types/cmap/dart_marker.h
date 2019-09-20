@@ -33,13 +33,15 @@ namespace cgogn
 
 class CGOGN_CORE_EXPORT DartMarker
 {
+private:
+
 	const CMapBase& map_;
 	CMapBase::MarkAttribute* mark_attribute_;
 
 public:
 
 	DartMarker(const CMapBase& map);
-	virtual ~DartMarker();
+	~DartMarker();
 
 	inline void mark(Dart d) { (*mark_attribute_)[d.index] = 1u; }
 	inline void unmark(Dart d) { (*mark_attribute_)[d.index] = 0u; }
@@ -49,26 +51,30 @@ public:
 		return (*mark_attribute_)[d.index] != 0u;
 	}
 
-	virtual inline void unmark_all()
+	inline void unmark_all()
 	{
 		mark_attribute_->fill(0u);
 	}
 };
 
-class CGOGN_CORE_EXPORT DartMarkerStore : public DartMarker
+class CGOGN_CORE_EXPORT DartMarkerStore
 {
+private:
+
+	const CMapBase& map_;
+	CMapBase::MarkAttribute* mark_attribute_;
 	std::vector<Dart> marked_darts_;
 
 public:
 
 	DartMarkerStore(const CMapBase& map);
-	~DartMarkerStore() override;
+	~DartMarkerStore();
 
 	inline void mark(Dart d)
 	{
 		if (!is_marked(d))
 		{
-			DartMarker::mark(d);
+			(*mark_attribute_)[d.index] = 1u;
 			marked_darts_.push_back(d);
 		}
 	}
@@ -78,16 +84,21 @@ public:
 		auto it = std::find(marked_darts_.begin(), marked_darts_.end(), d);
 		if (it != marked_darts_.end())
 		{
-			DartMarker::unmark(d);
+			(*mark_attribute_)[d.index] = 0u;
 			std::swap(*it, marked_darts_.back());
 			marked_darts_.pop_back();
 		}
 	}
 
-	inline void unmark_all() override
+	inline bool is_marked(Dart d) const
+	{
+		return (*mark_attribute_)[d.index] != 0u;
+	}
+
+	inline void unmark_all()
 	{
 		for (Dart d : marked_darts_)
-			DartMarker::unmark(d);
+			(*mark_attribute_)[d.index] = 0u;
 		marked_darts_.clear();
 	}
 

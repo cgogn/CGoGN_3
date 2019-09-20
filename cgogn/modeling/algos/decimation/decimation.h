@@ -49,7 +49,7 @@ using Scalar = geometry::Scalar;
 template <typename MESH>
 void decimate(
 	MESH& m,
-	const typename mesh_traits<MESH>::template AttributePtr<geometry::Vec3>& vertex_position,
+	typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 	uint32 nb_vertices_to_remove
 )
 {
@@ -66,7 +66,7 @@ void decimate(
 
 	foreach_cell(m, [&] (Edge e) -> bool
 	{
-		update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
+		update_edge_queue(m, e, edge_queue, edge_queue_info.get(), edge_cost);
 		return true;
 	});
 
@@ -76,10 +76,10 @@ void decimate(
 		Vec3 newpos = mid_edge(m, *it, vertex_position);
 
 		Edge e1, e2;
-		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info);
+		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info.get());
 		Vertex v = collapse_edge(m, *it);
 		value<Vec3>(m, vertex_position, v) = newpos;
-		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info, edge_cost);
+		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info.get(), edge_cost);
 
 		++count;
 		if (count >= nb_vertices_to_remove)

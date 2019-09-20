@@ -62,6 +62,8 @@ public:
 	inline void create()
 	{
 		nb_ = 0;
+		if (is_created())
+			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
 	}
 

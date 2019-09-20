@@ -30,13 +30,11 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
-#include <cgogn/ui/modules/surface_render/surface_render.h>
-#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/graph_render/graph_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
-using Mesh = cgogn::CMap2;
+using Mesh = cgogn::Graph;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -49,7 +47,10 @@ int main(int argc, char** argv)
 {
 	std::string filename;
 	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
+	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
+	}
 	else
 		filename = std::string(argv[1]);
 
@@ -60,33 +61,26 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
-	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::GraphRender<Mesh> gr(app);
 
-	sr.init();
-	srv.init();
-	sdp.init();
+	app.init_modules();
 
-	Mesh* m = mp.import_surface_from_file(filename);
-	// Mesh* m2 = mp.import_surface_from_file(std::string(DEFAULT_MESH_PATH) + std::string("off/horse.off"));
+	Mesh* m = mp.load_graph_from_file(filename);
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
-	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 	
-	sr.set_vertex_position(*m, vertex_position);
-	sr.set_vertex_normal(*m, vertex_normal);
-
-	srv.set_vertex_position(*m, vertex_position);
-	srv.set_vertex_vector(*m, vertex_normal);
+	gr.set_vertex_position(*m, vertex_position);
 
 	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&sr);
-	v1->link_module(&srv);
+	v1->link_module(&gr);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->update_bb(vertex_position.get());
+	md->set_bb_attribute(vertex_position);
 	Vec3 diagonal = md->bb_max_ - md->bb_min_;
 	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 

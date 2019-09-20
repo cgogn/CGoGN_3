@@ -56,7 +56,7 @@ private:
 
 public:
 
-	Vector(AttributeContainerGen* container, bool is_mark, const std::string& name) : AttributeGenT(container, is_mark, name)
+	Vector(AttributeContainerGen* container, const std::string& name) : AttributeGenT(container, name)
 	{
 		data_.reserve(512u);
 	}
@@ -85,6 +85,12 @@ public:
 	{
 		if (ca->container_ == this->container_)
 			data_.swap(ca->data_);
+	}
+
+	inline void copy(Vector<T>* ca)
+	{
+		if (ca->container_ == this->container_)
+			data_ = ca->data_;
 	}
 
 	inline const void* data_pointer() const

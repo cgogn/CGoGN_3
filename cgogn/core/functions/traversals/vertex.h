@@ -40,6 +40,13 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const Graph& g, Graph::Edge e);
+
+///////////
 // CMap1 //
 ///////////
 
@@ -55,6 +62,22 @@ CGOGN_CORE_EXPORT incident_vertices(const CMap2& m, CMap2::Edge e);
 
 std::vector<CMap2::Vertex>
 CGOGN_CORE_EXPORT incident_vertices(const CMap2& m, CMap2::Face f);
+
+std::vector<CMap2::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const CMap2& m, CMap2::Volume v);
+
+///////////
+// CMap3 //
+///////////
+
+std::vector<CMap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Edge e);
+
+std::vector<CMap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Face f);
+
+std::vector<CMap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Volume v);
 
 //////////////
 // MESHVIEW //
@@ -75,6 +98,23 @@ incident_vertices(const MESH& m, CELL c)
 // void foreach_incident_vertex(const MESH& m, CELL c, const FUNC& f);
 
 /*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+template <typename FUNC>
+void foreach_incident_vertex(const Graph& g, Graph::Edge e, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	g.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
+	{
+		if (!g.is_boundary(d))
+			return func(Graph::Vertex(d));
+		return true;
+	});
+}
 
 ///////////
 // CMap1 //
@@ -106,6 +146,60 @@ void foreach_incident_vertex(const CMap2& m, CMap2::Face f, const FUNC& func)
 	static_assert(is_func_parameter_same<FUNC, CMap2::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { return func(CMap2::Vertex(d)); });
+}
+
+template <typename FUNC>
+void foreach_incident_vertex(const CMap2& m, CMap2::Volume v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, CMap2::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	DartMarkerStore marker(m);
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	{
+		if (!marker.is_marked(d))
+		{
+			m.foreach_dart_of_orbit(CMap2::Vertex(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			return func(CMap2::Vertex(d));
+		}
+		return true;
+	});
+}
+
+///////////
+// CMap3 //
+///////////
+
+template <typename FUNC>
+void foreach_incident_vertex(const CMap3& m, CMap3::Edge e, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Edge(e.dart), [&] (Dart d) -> bool { return func(CMap3::Vertex(d)); });
+}
+
+template <typename FUNC>
+void foreach_incident_vertex(const CMap3& m, CMap3::Face f, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { return func(CMap3::Vertex(d)); });
+}
+
+template <typename FUNC>
+void foreach_incident_vertex(const CMap3& m, CMap3::Volume v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	DartMarkerStore marker(m);
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	{
+		if (!marker.is_marked(d))
+		{
+			static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			return func(CMap3::Vertex(d));
+		}
+		return true;
+	});
 }
 
 //////////////

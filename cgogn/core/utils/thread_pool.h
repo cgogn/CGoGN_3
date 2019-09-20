@@ -131,11 +131,16 @@ public:
 	}
 
 	/**
-	* @brief get the number of threads that could be used for parallel algos
+	* @brief get the number of workers that could be used for parallel algos
 	*/
 	inline uint32 max_nb_workers() const
 	{
 		return uint32(workers_.size());
+	}
+
+	inline uint32 max_nb_threads() const
+	{
+		return uint32(workers_.size()) + 1; // account for the main thread
 	}
 
 	/**

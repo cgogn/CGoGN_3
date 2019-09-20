@@ -37,11 +37,16 @@ DartMarker::~DartMarker()
 	map_.topology_.release_mark_attribute(mark_attribute_);
 }
 
-DartMarkerStore::DartMarkerStore(const CMapBase& map) :
-	DartMarker(map)
-{}
+DartMarkerStore::DartMarkerStore(const CMapBase& map) : map_(map)
+{
+	mark_attribute_ = map_.topology_.get_mark_attribute();
+	marked_darts_.reserve(512u);
+}
 
 DartMarkerStore::~DartMarkerStore()
-{}
+{
+	unmark_all();
+	map_.topology_.release_mark_attribute(mark_attribute_);
+}
 
 } // namespace cgogn
