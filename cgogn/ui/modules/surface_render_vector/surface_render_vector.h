@@ -80,7 +80,7 @@ class SurfaceRenderVector : public Module
 public:
 
 	SurfaceRenderVector(const App& app) :
-		ui::Module(app, "SurfaceRenderVector (" + mesh_traits<MESH>::name + ")"),
+		ui::Module(app, "SurfaceRenderVector (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -146,7 +146,7 @@ protected:
 
 	void init() override
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(

@@ -74,7 +74,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 	std::cout << "nb_volumes: " << nb_volumes << std::endl;
 
 	volumes_types.reserve(nb_volumes);
-	volumes_vertex_indices.reserve(8u * nb_volumes);
+	volumes_vertex_indices.reserve(nb_volumes * 8u);
 
 	auto position = add_attribute<geometry::Vec3, CMap3::Vertex>(m, "position");
 

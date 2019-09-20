@@ -21,9 +21,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.cpp"
@@ -35,6 +32,10 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap3.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
@@ -43,6 +44,8 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.h"

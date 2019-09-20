@@ -40,6 +40,13 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const Graph& g, Graph::Edge e);
+
+///////////
 // CMap1 //
 ///////////
 
@@ -91,6 +98,23 @@ incident_vertices(const MESH& m, CELL c)
 // void foreach_incident_vertex(const MESH& m, CELL c, const FUNC& f);
 
 /*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+template <typename FUNC>
+void foreach_incident_vertex(const Graph& g, Graph::Edge e, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	g.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
+	{
+		if (!g.is_boundary(d))
+			return func(Graph::Vertex(d));
+		return true;
+	});
+}
 
 ///////////
 // CMap1 //

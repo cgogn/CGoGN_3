@@ -55,7 +55,7 @@ class SurfaceModeling : public Module
 public:
 
 	SurfaceModeling(const App& app) :
-		Module(app, "SurfaceModeling (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "SurfaceModeling (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_position_(nullptr)
 	{}
@@ -80,7 +80,7 @@ protected:
 
 	void init() override
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 	}
 
     void interface() override

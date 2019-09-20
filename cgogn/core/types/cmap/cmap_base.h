@@ -121,6 +121,17 @@ public:
 	}
 
 	template <typename CELL>
+	inline void unset_embedding(Dart d)
+	{
+		static const Orbit orbit = CELL::ORBIT;
+		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+		const uint32 old = (*embeddings_[orbit])[d.index];
+		if (old != INVALID_INDEX)
+			attribute_containers_[orbit].unref_index(old);	// unref the old emb
+		(*embeddings_[orbit])[d.index] = INVALID_INDEX;		// affect the embedding to the dart
+	}
+
+	template <typename CELL>
 	inline void copy_embedding(Dart dest, Dart src)
 	{
 		static const Orbit orbit = CELL::ORBIT;

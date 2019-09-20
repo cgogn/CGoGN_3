@@ -21,70 +21,71 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_
-
-#include <cgogn/core/cgogn_core_export.h>
-
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-namespace cgogn
+#include <cgogn/core/functions/attributes.h>
+
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
+
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/graph_render/graph_render.h>
+
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
+
+using Mesh = cgogn::Graph;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
+	std::string filename;
+	if (argc < 2)
+	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
+	}
+	else
+		filename = std::string(argv[1]);
 
-/*****************************************************************************/
+	cgogn::thread_start();
 
-// template <typename MESH>
-// typename mesh_traits<MESH>::Volume
-// add_pyramid(MESH& m, uint32 size, bool set_indices = true);
+	cgogn::ui::App app;
+	app.set_window_title("Simple viewer");
+	app.set_window_size(1000, 800);
 
-/*****************************************************************************/
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::GraphRender<Mesh> gr(app);
 
-///////////
-// CMap2 //
-///////////
+	app.init_modules();
 
-CMap2::Volume
-CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indices = true);
+	Mesh* m = mp.load_graph_from_file(filename);
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
 
-//////////////
-// MESHVIEW //
-//////////////
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	
+	gr.set_vertex_position(*m, vertex_position);
 
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Volume
-add_pyramid(MESH& m, uint32 size, bool set_indices = true)
-{
-	return add_pyramid(m.mesh(), size, set_indices);
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&gr);
+
+	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
+	md->set_bb_attribute(vertex_position);
+	Vec3 diagonal = md->bb_max_ - md->bb_min_;
+	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
+
+	v1->set_scene_radius(diagonal.norm() / 2.0f);
+	v1->set_scene_center(center);
+
+	return app.launch();
 }
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Volume
-// add_prism(MESH& m, uint32 size, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Volume
-CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Volume
-add_prism(MESH& m, uint32 size, bool set_indices = true)
-{
-	return add_prism(m.mesh(), size, set_indices);
-}
-
-} // namespace cgogn
-
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_

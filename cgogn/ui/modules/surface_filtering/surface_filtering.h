@@ -54,7 +54,7 @@ class SurfaceFiltering : public Module
 public:
 
 	SurfaceFiltering(const App& app) :
-		Module(app, "SurfaceFiltering (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "SurfaceFiltering (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_attribute_(nullptr)
 	{}
@@ -75,7 +75,7 @@ protected:
 
 	void init() override
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 	}
 
     void interface() override

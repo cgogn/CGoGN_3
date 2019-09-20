@@ -33,6 +33,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/io/graph/cg.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
 
@@ -56,56 +57,87 @@ class MeshProvider : public Module
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
     using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge = typename mesh_traits<MESH>::Edge;
-	using Face = typename mesh_traits<MESH>::Face;
-
 public:
 
 	MeshProvider(const App& app) :
-		Module(app, "MeshProvider (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"),
 		show_mesh_inspector_(false),
 		selected_mesh_(nullptr)
 	{}
+	
 	~MeshProvider()
 	{}
 
-	MESH* load_surface_from_file(const std::string& filename)
+	MESH* load_graph_from_file(const std::string& filename)
 	{
-		std::string name = filename_from_path(filename);
-		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
-		MESH* m = it->second.get();
-		bool imported = cgogn::io::import_OFF(*m, filename);
-		if (imported)
+		if constexpr (mesh_traits<MESH>::dimension == 1)
 		{
-			mesh_data_.emplace(m, MeshData(m));
-			boost::synapse::emit<mesh_added>(this, m);
-			return m;
+			std::string name = filename_from_path(filename);
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m = it->second.get();
+			bool imported = cgogn::io::import_CG(*m, filename);
+			if (imported)
+			{
+				mesh_data_.emplace(m, MeshData(m));
+				boost::synapse::emit<mesh_added>(this, m);
+				return m;
+			}
+			else
+			{
+				meshes_.erase(name);
+				return nullptr;
+			}
 		}
 		else
-		{
-			meshes_.erase(name);
 			return nullptr;
+	}
+
+	MESH* load_surface_from_file(const std::string& filename)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 2)
+		{
+			std::string name = filename_from_path(filename);
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m = it->second.get();
+			bool imported = cgogn::io::import_OFF(*m, filename);
+			if (imported)
+			{
+				mesh_data_.emplace(m, MeshData(m));
+				boost::synapse::emit<mesh_added>(this, m);
+				return m;
+			}
+			else
+			{
+				meshes_.erase(name);
+				return nullptr;
+			}
 		}
+		else
+			return nullptr;
 	}
 
 	MESH* load_volume_from_file(const std::string& filename)
 	{
-		std::string name = filename_from_path(filename);
-		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
-		MESH* m = it->second.get();
-		bool imported = cgogn::io::import_TET(*m, filename);
-		if (imported)
+		if constexpr (mesh_traits<MESH>::dimension == 3)
 		{
-			mesh_data_.emplace(m, MeshData(m));
-			boost::synapse::emit<mesh_added>(this, m);
-			return m;
+			std::string name = filename_from_path(filename);
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m = it->second.get();
+			bool imported = cgogn::io::import_TET(*m, filename);
+			if (imported)
+			{
+				mesh_data_.emplace(m, MeshData(m));
+				boost::synapse::emit<mesh_added>(this, m);
+				return m;
+			}
+			else
+			{
+				meshes_.erase(name);
+				return nullptr;
+			}
 		}
 		else
-		{
-			meshes_.erase(name);
 			return nullptr;
-		}
 	}
 
 	template <typename FUNC>
@@ -197,7 +229,7 @@ protected:
 	{
 		if (show_mesh_inspector_)
 		{
-			std::string name = mesh_traits<MESH>::name + " inspector";
+			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
 			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
 
@@ -223,7 +255,7 @@ protected:
 				MeshData<MESH>* md = mesh_data(selected_mesh_);
 				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 				{
-					ImGui::Text(mesh_traits<MESH>::cell_names[i].c_str()); ImGui::NextColumn();
+					ImGui::Text(mesh_traits<MESH>::cell_names[i]); ImGui::NextColumn();
 					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
 				}
 			}

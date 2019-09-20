@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODULE_SURFACE_RENDER_H_
-#define CGOGN_MODULE_SURFACE_RENDER_H_
+#ifndef CGOGN_MODULE_GRAPH_RENDER_H_
+#define CGOGN_MODULE_GRAPH_RENDER_H_
 
 #include <cgogn/ui/module.h>
 
@@ -33,8 +33,6 @@
 #include <cgogn/ui/view.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
-#include <cgogn/rendering/shaders/shader_flat.h>
-#include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
@@ -51,7 +49,7 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceRender : public Module
+class GraphRender : public Module
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -65,11 +63,8 @@ class SurfaceRender : public Module
 	{
 		Parameters() :
 			vertex_position_(nullptr),
-			vertex_normal_(nullptr),
-			render_vertices_(false),
-			render_edges_(false),
-			render_faces_(true),
-			phong_shading_(false),
+			render_vertices_(true),
+			render_edges_(true),
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
@@ -77,32 +72,16 @@ class SurfaceRender : public Module
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_= 1.0f;
-
-			param_flat_ =  rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
-			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
-			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
-
-			param_phong_ = rendering::ShaderPhong::generate_param();
-			param_phong_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
-			param_phong_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
-			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
-			param_phong_->specular_coef_ = 250.0f;
+			param_edge_->width_= 3.0f;
 		}
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
-		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
-		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
-		std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
 
 		bool render_vertices_;
 		bool render_edges_;
-		bool render_faces_;
-		bool phong_shading_;
 		
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -110,12 +89,12 @@ class SurfaceRender : public Module
 
 public:
 
-	SurfaceRender(const App& app) :
-		ui::Module(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+	GraphRender(const App& app) :
+		ui::Module(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
-	~SurfaceRender()
+	~GraphRender()
 	{}
 
 private:
@@ -154,23 +133,6 @@ public:
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-
-		for (ui::View* v : linked_views_)
-			v->request_update();
-	}
-
-	void set_vertex_normal(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
-	{
-		Parameters& p = parameters_[&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-
-		p.vertex_normal_ = vertex_normal;
-		if (p.vertex_normal_)
-			md->update_vbo(vertex_normal.get(), true);
-		
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
 		for (ui::View* v : linked_views_)
 			v->request_update();
@@ -184,7 +146,7 @@ protected:
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-				mesh_provider_, this, &SurfaceRender<MESH>::init_mesh
+				mesh_provider_, this, &GraphRender<MESH>::init_mesh
 			)
 		);
 	}
@@ -197,27 +159,6 @@ protected:
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
-
-			if (p.render_faces_)
-			{
-				glEnable(GL_POLYGON_OFFSET_FILL);
-				glPolygonOffset(1.0f, 2.0f);
-
-				if (p.phong_shading_ && p.param_phong_->vao_initialized())
-				{
-					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
-					p.param_phong_->release();
-				}
-				else if (p.param_flat_->vao_initialized())
-				{
-					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
-					p.param_flat_->release();
-				}
-			
-				glDisable(GL_POLYGON_OFFSET_FILL);
-			}
 
 			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
@@ -281,54 +222,9 @@ protected:
 					set_vertex_position(*selected_mesh_, nullptr);
 			}
 
-			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
-				{
-					bool is_selected = attribute == p.vertex_normal_;
-					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_normal(*selected_mesh_, attribute);
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_normal_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##normal"))
-					set_vertex_normal(*selected_mesh_, nullptr);
-			}
-
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
-			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
-			if (p.render_faces_)
-				need_update |= ImGui::Checkbox("Phong shading", &p.phong_shading_);
-
-			if (p.render_faces_)
-			{
-				if (p.phong_shading_)
-				{
-					ImGui::Separator();
-					ImGui::Text("Phong parameters");
-					need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					if (p.param_phong_->double_side_)
-						need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
-					need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
-				}
-				else
-				{
-					ImGui::Separator();
-					ImGui::Text("Flat parameters");
-					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
-					if (p.param_flat_->double_side_)
-						need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
-				}
-			}
 
 			if (p.render_edges_)
 			{
@@ -367,4 +263,4 @@ private:
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_SURFACE_RENDER_H_
+#endif // CGOGN_MODULE_GRAPH_RENDER_H_

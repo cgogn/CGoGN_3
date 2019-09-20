@@ -34,6 +34,24 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Vertex> incident_vertices(const Graph& g, Graph::Edge e)
+{
+	std::vector<Graph::Vertex> vertices;
+	vertices.reserve(2u);
+	Dart d = e.dart;
+	Dart dd = g.alpha0(d);
+	vertices.push_back(Graph::Vertex(d));
+	if (g.is_boundary(dd))
+		vertices.push_back(Graph::Vertex(d));
+	else
+		vertices.push_back(Graph::Vertex(dd));
+	return vertices;
+}
+
+///////////
 // CMap1 //
 ///////////
 

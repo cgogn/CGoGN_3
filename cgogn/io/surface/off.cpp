@@ -64,6 +64,9 @@ bool import_OFF(CMap2& m, const std::string& filename)
 	const uint32 nb_vertices = read_uint(fp, line);
 	const uint32 nb_faces = read_uint(fp, line);
 	/*const uint32 nb_edges_ =*/ read_uint(fp, line);
+	
+	faces_nb_edges.reserve(nb_faces);
+	faces_vertex_indices.reserve(nb_faces * 4u);
 
 	auto position = add_attribute<geometry::Vec3, CMap2::Vertex>(m, "position");
 

@@ -58,7 +58,7 @@ class SurfaceDifferentialProperties : public Module
 public:
 
 	SurfaceDifferentialProperties(const App& app) :
-		Module(app, "SurfaceDifferentialProperties (" + mesh_traits<MESH>::name + ")"),
+		Module(app, "SurfaceDifferentialProperties (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr),
 		selected_vertex_position_(nullptr),
 		selected_vertex_normal_(nullptr),
@@ -111,7 +111,7 @@ protected:
     
 	void init() override
 	{
-		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + mesh_traits<MESH>::name + ")"));
+		mesh_provider_ = static_cast<MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 	}
 
     void interface() override

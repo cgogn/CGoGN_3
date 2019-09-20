@@ -15,6 +15,8 @@ add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
+	    "${CMAKE_CURRENT_LIST_DIR}/graph/cg.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/graph/cg.cpp"
 	    "${CMAKE_CURRENT_LIST_DIR}/surface/off.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/surface/off.cpp"
 	    "${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"

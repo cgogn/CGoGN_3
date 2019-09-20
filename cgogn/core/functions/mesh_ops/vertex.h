@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
+#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_
+#define CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
@@ -34,24 +34,17 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename MESH>
-// typename mesh_traits<MESH>::Face
-// add_face(MESH& m, uint32 size, bool set_indices = true);
+// typename mesh_traits<MESH>::Vertex
+// add_vertex(MESH& m, bool set_indices = true);
 
 /*****************************************************************************/
 
 ///////////
-// CMap1 //
+// Graph //
 ///////////
 
-CMap1::Face
-CGOGN_CORE_EXPORT add_face(CMap1& m, uint32 size, bool set_indices = true);
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Face
-CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
+Graph::Vertex
+CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
 
 //////////////
 // MESHVIEW //
@@ -59,26 +52,26 @@ CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
 
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Face
-add_face(MESH& m, uint32 size, bool set_indices = true)
+typename mesh_traits<MESH>::Vertex
+add_face(MESH& m, bool set_indices = true)
 {
-	return add_face(m.mesh(), size, set_indices);
+	return add_vertex(m.mesh(), set_indices);
 }
 
 /*****************************************************************************/
 
 // template <typename MESH>
 // void
-// remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true);
+// remove_vertex(MESH& m, typename mesh_traits<MESH>::Vertex v, bool set_indices = true);
 
 /*****************************************************************************/
 
 ///////////
-// CMap1 //
+// Graph //
 ///////////
 
 void
-CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
+CGOGN_CORE_EXPORT remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
 
 //////////////
 // MESHVIEW //
@@ -87,25 +80,25 @@ CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
-remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true)
+remove_vertex(MESH& m, typename mesh_traits<MESH>::Vertex v, bool set_indices = true)
 {
-	return remove_face(m.mesh(), f, set_indices);
+	return remove_vertex(m.mesh(), v, set_indices);
 }
 
 /*****************************************************************************/
 
 // template <typename MESH>
 // typename mesh_traits<MESH>::Edge
-// cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true);
+// connect_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true);
 
 /*****************************************************************************/
 
 ///////////
-// CMap2 //
+// Graph //
 ///////////
 
-CMap2::Edge
-CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
+Graph::Edge
+CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
 
 //////////////
 // MESHVIEW //
@@ -114,11 +107,38 @@ CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool se
 template <typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 typename mesh_traits<MESH>::Edge
-cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true)
+connect_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true)
 {
-	return cut_face(m.mesh(), v1, v2, set_indices);
+	return connect_vertices(m.mesh(), v1, v2, set_indices);
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// disconnect_vertices(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+void
+CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+void
+disconnect_vertices(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+{
+	return disconnect_vertices(m.mesh(), e, set_indices);
 }
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
+#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_
