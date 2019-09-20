@@ -107,7 +107,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 		switch (n)
 		{
 			case 4: {
-				if (geometry::test_orientation_3D((*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]], (*position)[ids[3]]) == geometry::Orientation3D::OVER)
+				if (geometry::test_orientation_3D((*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]], (*position)[ids[3]]) == geometry::Orientation3D::UNDER)
 					std::swap(ids[1], ids[2]);
 				volumes_types.push_back(VolumeType::Tetra);
 				volumes_vertex_indices.insert(volumes_vertex_indices.end(), ids.begin(), ids.end());
