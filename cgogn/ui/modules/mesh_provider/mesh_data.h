@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_MESH_PROVIDER_MESH_DATA_H_
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cells_set.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/mesh_info.h>
@@ -151,6 +152,14 @@ public:
 			rendering::update_vbo<T>(attribute, v);
 	}
 
+	template <typename CELL, typename FUNC>
+	void foreach_cells_set(const FUNC& f)
+	{
+		static_assert(is_func_parameter_same<FUNC, CellsSet<MESH, CELL>&>::value, "Wrong function parameter type");
+		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
+			f(cs);
+	}
+
 	const MESH* mesh_;
 	std::shared_ptr<Attribute<Vec3>> bb_attribute_;
 	Vec3 bb_min_, bb_max_;
@@ -158,8 +167,24 @@ public:
 
 private:
 
+	template <class> struct tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T;
+	template <template <typename ...Args> class tuple, typename ...T>
+	struct tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T<tuple<T...>>
+	{
+		using type = std::tuple<std::vector<CellsSet<MESH, T>>...>;
+	};
+
+	using CellsSets = typename tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T<typename mesh_traits<MESH>::Cells>::type;
+
+	template <typename CELL>
+	std::vector<CellsSet<MESH, CELL>>& cells_sets()
+	{
+		return std::get<tuple_type_index<std::vector<CellsSet<MESH, CELL>>, CellsSets>::value>(cells_sets_);
+	}
+
 	rendering::MeshRender render_;
 	std::unordered_map<AttributeGen*, std::unique_ptr<rendering::VBO>> vbos_;
+	CellsSets cells_sets_;
 };
 
 } // namespace ui

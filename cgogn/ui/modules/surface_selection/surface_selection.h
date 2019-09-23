@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODULE_GRAPH_RENDER_H_
-#define CGOGN_MODULE_GRAPH_RENDER_H_
+#ifndef CGOGN_MODULE_SURFACE_SELECTION_H_
+#define CGOGN_MODULE_SURFACE_SELECTION_H_
 
 #include <cgogn/ui/module.h>
 
@@ -33,10 +33,7 @@
 #include <cgogn/ui/view.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
-#include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
-
-#include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
 
@@ -49,7 +46,7 @@ namespace ui
 {
 
 template <typename MESH>
-class GraphRender : public Module
+class SurfaceSelection : public Module
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -63,25 +60,27 @@ class GraphRender : public Module
 	{
 		Parameters() :
 			vertex_position_(nullptr),
+			selected_vertices_set_(nullptr),
 			render_vertices_(true),
-			render_edges_(true),
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
+			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_point_sprite_->set_vbos(&selected_vertices_vbo_);
+		}
 
-			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_= 3.0f;
+		void update_selected_vertices_vbo()
+		{
+
 		}
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
-		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
+		cgogn::rendering::VBO selected_vertices_vbo_;
+		CellsSet<MESH, Vertex>* selected_vertices_set_;
 
 		bool render_vertices_;
-		bool render_edges_;
 		
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -89,12 +88,12 @@ class GraphRender : public Module
 
 public:
 
-	GraphRender(const App& app) :
-		ui::Module(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+	SurfaceSelection(const App& app) :
+		ui::Module(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
-	~GraphRender()
+	~SurfaceSelection()
 	{}
 
 private:
@@ -108,7 +107,10 @@ private:
 				{
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
+					{
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						p.update_selected_vertices_vbo();
+					}
 
 					for (ui::View* v : linked_views_)
 						v->request_update();
@@ -128,11 +130,8 @@ public:
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
-			md->update_vbo(vertex_position.get(), true);
+			p.update_selected_vertices_vbo();
 		}
-
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
 		for (ui::View* v : linked_views_)
 			v->request_update();
@@ -146,7 +145,7 @@ protected:
 		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-				mesh_provider_, this, &GraphRender<MESH>::init_mesh
+				mesh_provider_, this, &SurfaceSelection<MESH>::init_mesh
 			)
 		);
 	}
@@ -160,22 +159,13 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized() &&
+				p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0)
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
+				glDrawArrays(GL_POINTS, 0, p.selected_vertices_set_->size());
 				p.param_point_sprite_->release();
-			}
-
-			if (p.render_edges_ && p.param_edge_->vao_initialized())
-			{
-				p.param_edge_->bind(proj_matrix, view_matrix);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::LINES);
-				glDisable(GL_BLEND);
-				p.param_edge_->release();
 			}
 		}
 	}
@@ -201,6 +191,7 @@ protected:
 		{
 			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
+			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
@@ -224,20 +215,28 @@ protected:
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
-
-			if (p.render_edges_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Edges parameters");
-				need_update |= ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
-			}
 
 			if (p.render_vertices_)
 			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Vertices parameters");
+				if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str() : "-- select --"))
+				{
+					md->template foreach_cells_set<Vertex>([&] (CellsSet<MESH, Vertex>& cs)
+					{
+						bool is_selected = &cs == p.selected_vertices_set_;
+						if (ImGui::Selectable(cs.name().c_str(), is_selected))
+							p.selected_vertices_set_ = &cs;
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					});
+					ImGui::EndCombo();
+				}
+				if (p.selected_vertices_set_)
+				{
+					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+					if (ImGui::Button("X##selected_vertices"))
+						p.selected_vertices_set_ = nullptr;
+				}
+				ImGui::TextUnformatted("Drawing parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 			}
@@ -263,4 +262,4 @@ private:
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_GRAPH_RENDER_H_
+#endif // CGOGN_MODULE_SURFACE_SELECTION_H_

@@ -29,8 +29,6 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
-#include <cgogn/core/functions/traversals/global.h>
-
 namespace cgogn
 {
 
@@ -110,8 +108,6 @@ release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute*
 	return release_mark_attribute<CELL>(m.mesh(), attribute);
 }
 
-/*****************************************************************************/
-/*                                   CellMarker                              */
 /*****************************************************************************/
 
 template <typename MESH, typename CELL>
