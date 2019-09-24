@@ -181,7 +181,7 @@ protected:
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::ListBoxHeader("Select mesh"))
+		if (ImGui::ListBoxHeader("Mesh"))
 		{
 			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
 			{

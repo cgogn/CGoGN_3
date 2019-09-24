@@ -27,12 +27,15 @@
 #include <cgogn/ui/module.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/algos/picking.h>
 
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
+#include <cgogn/rendering/vbo_update.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
 #include <boost/synapse/connect.hpp>
@@ -61,7 +64,7 @@ class SurfaceSelection : public Module
 		Parameters() :
 			vertex_position_(nullptr),
 			selected_vertices_set_(nullptr),
-			render_vertices_(true),
+			select_vertices_(true),
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
@@ -71,16 +74,26 @@ class SurfaceSelection : public Module
 
 		void update_selected_vertices_vbo()
 		{
-
+			if (selected_vertices_set_)
+			{
+				std::vector<Vec3> selected_vertices_position;
+				selected_vertices_position.reserve(selected_vertices_set_->size());
+				selected_vertices_set_->foreach_cell_index([&] (uint32 index)
+				{
+					selected_vertices_position.push_back((*vertex_position_)[index]);
+				});
+				// param_point_sprite_->set_vbos(&selected_vertices_vbo_);
+				rendering::update_vbo(selected_vertices_position, &selected_vertices_vbo_);
+			}
 		}
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
-		cgogn::rendering::VBO selected_vertices_vbo_;
+		rendering::VBO selected_vertices_vbo_;
 		CellsSet<MESH, Vertex>* selected_vertices_set_;
 
-		bool render_vertices_;
+		bool select_vertices_;
 		
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -124,7 +137,6 @@ public:
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
@@ -149,6 +161,26 @@ protected:
 			)
 		);
 	}
+	
+	void mouse_press_event(View* view, int32 button, float64 x, float64 y) override
+	{
+		if (selected_mesh_)
+		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			Parameters& p = parameters_[selected_mesh_];
+
+			if (p.vertex_position_ && p.select_vertices_ && p.selected_vertices_set_)
+			{
+				Vec3 P = view->unproject(Vec3(x, y, 0.0));
+				Vec3 Q = view->unproject(Vec3(x, y, 1.0));
+				std::vector<Vertex> picked = cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), P, Q);
+				for (Vertex v : picked)
+					p.selected_vertices_set_->select(v);
+				if (!picked.empty())
+					p.update_selected_vertices_vbo();
+			}
+		}
+	}
 
 	void draw(View* view) override
 	{
@@ -159,8 +191,8 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized() &&
-				p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0)
+			if (p.select_vertices_ && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
+				p.param_point_sprite_->vao_initialized())
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -177,7 +209,7 @@ protected:
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::ListBoxHeader("Select mesh"))
+		if (ImGui::ListBoxHeader("Mesh"))
 		{
 			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
 			{
@@ -211,34 +243,36 @@ protected:
 				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 				if (ImGui::Button("X##position"))
 					set_vertex_position(*selected_mesh_, nullptr);
-			}
+				
+				ImGui::Separator();
+				need_update |= ImGui::Checkbox("Vertices", &p.select_vertices_);
 
-			ImGui::Separator();
-			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-
-			if (p.render_vertices_)
-			{
-				if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str() : "-- select --"))
+				if (p.select_vertices_)
 				{
-					md->template foreach_cells_set<Vertex>([&] (CellsSet<MESH, Vertex>& cs)
+					if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str() : "-- select --"))
 					{
-						bool is_selected = &cs == p.selected_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							p.selected_vertices_set_ = &cs;
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
+						md->template foreach_cells_set<Vertex>([&] (CellsSet<MESH, Vertex>& cs)
+						{
+							bool is_selected = &cs == p.selected_vertices_set_;
+							if (ImGui::Selectable(cs.name().c_str(), is_selected))
+								p.selected_vertices_set_ = &cs;
+							if (is_selected)
+								ImGui::SetItemDefaultFocus();
+						});
+						ImGui::EndCombo();
+					}
+					if (p.selected_vertices_set_)
+					{
+						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+						if (ImGui::Button("X##selected_vertices_set"))
+							p.selected_vertices_set_ = nullptr;
+					}
+					if (ImGui::Button("Add##vertices_set"))
+						md->template add_cells_set<Vertex>();
+					ImGui::TextUnformatted("Drawing parameters");
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 				}
-				if (p.selected_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_vertices"))
-						p.selected_vertices_set_ = nullptr;
-				}
-				ImGui::TextUnformatted("Drawing parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 			}
 		}
 

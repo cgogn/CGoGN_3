@@ -44,9 +44,10 @@ struct CellsSet
 
 public:
 
-	CellsSet(const MESH& m) :
+	CellsSet(const MESH& m, const std::string& name) :
 		m_(m),
-		marker_(m)
+		marker_(m),
+		name_(name)
 	{}
 
 	const std::string& name() const { return name_; }
@@ -73,6 +74,22 @@ public:
 				cells_.erase(it);
 			}
 		}
+	}
+	
+	template <typename FUNC>
+	void foreach_cell(const FUNC& f)
+	{
+		static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function parameter type");
+		for (auto& [index, cell] : cells_)
+			f(cell);
+	}
+	
+	template <typename FUNC>
+	void foreach_cell_index(const FUNC& f)
+	{
+		static_assert(is_func_parameter_same<FUNC, uint32>::value, "Wrong function parameter type");
+		for (auto& [index, cell] : cells_)
+			f(index);
 	}
 
 private:

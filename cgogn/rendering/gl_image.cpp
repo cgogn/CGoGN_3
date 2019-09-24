@@ -21,7 +21,6 @@
 *                                                                              *
 *******************************************************************************/
 
-
 #include <cgogn/rendering/types.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <cgogn/rendering/stb_image.h>
@@ -29,6 +28,7 @@
 
 namespace cgogn
 {
+
 namespace rendering
 {
 
@@ -108,12 +108,6 @@ namespace rendering
 //// 64 : 543210 543210 543210 543210
 //// BIN: 765432 107654 321076 543210
 
-
-
-
-
-
-
 GLImage::GLImage(int32 w, int32 h, int32 d):
 	width_(w), height_(h),bpp_(d),stb_(false)
 {
@@ -126,14 +120,6 @@ GLImage::GLImage(const std::string& filename):
 	data_ = stbi_load(filename.c_str(), &width_, &height_, &bpp_, 0);
 }
 
-//GLImage::GLImage(const Resource& res):
-//	stb_(true)
-//{
-//	FILE* f = fmemopen(res.buffer(), res.size(),"r");
-//	data_ = stbi_load_from_file(f, &width_, &height_, &bpp_, 0);
-//}
-
-
 GLImage::~GLImage()
 {
 	if (stb_)
@@ -142,13 +128,6 @@ GLImage::~GLImage()
 		delete [] data_;
 }
 
-
-
-
-
-
-
 } // namespace rendering
+
 } // namespace cgogn
-
-
