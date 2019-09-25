@@ -165,22 +165,28 @@ protected:
 	
 	void mouse_press_event(View* view, int32 button, float64 x, float64 y) override
 	{
-		if (selected_mesh_)
+		if (selected_mesh_ && view->shift_pressed())
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
-
+			
 			if (p.vertex_position_ && p.select_vertices_ && p.selected_vertices_set_)
 			{
 				rendering::GLVec3d near = view->unproject(rendering::GLVec3d(x, y, 0.0));
 				rendering::GLVec3d far = view->unproject(rendering::GLVec3d(x, y, 1.0));
 				Vec3 A{ near.x(), near.y(), near.z() };
 				Vec3 B{ far.x(), far.y(), far.z() };
+				
 				std::vector<Vertex> picked = cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B);
-				for (Vertex v : picked)
-					p.selected_vertices_set_->select(v);
+								
 				if (!picked.empty())
+				{
+					if (button == 0)
+						p.selected_vertices_set_->select(picked[0]);
+					else if (button == 1)
+						p.selected_vertices_set_->unselect(picked[0]);
 					p.update_selected_vertices_vbo();
+				}
 			}
 		}
 	}
