@@ -174,7 +174,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 				m.phi_1(m.phi2(m.phi_1(vol.dart)))
 			};
 
-			for (const Dart& dv : vertices_of_tetra)
+			for (Dart dv : vertices_of_tetra)
 			{
 				const uint32 vertex_index = volumes_vertex_indices[index++];
 				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool {

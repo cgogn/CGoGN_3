@@ -75,6 +75,8 @@ class GraphRender : public Module
 			param_edge_->width_= 3.0f;
 		}
 
+		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
@@ -101,7 +103,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_.emplace(m, Parameters());
+		parameters_[m];
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)

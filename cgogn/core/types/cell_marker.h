@@ -131,6 +131,8 @@ public:
 		release_mark_attribute<CELL>(mesh_, mark_attribute_);
 	}
 
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarker);
+
 	inline void mark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 1u; }
 	inline void unmark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 0u; }
 
@@ -163,7 +165,12 @@ public:
 	}
 
 	~CellMarkerStore()
-	{}
+	{
+		unmark_all();
+		release_mark_attribute<CELL>(mesh_, mark_attribute_);
+	}
+
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarkerStore);
 
 	inline void mark(CELL c)
 	{

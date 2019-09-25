@@ -224,7 +224,7 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 rendering::GLVec3d View::unproject(const rendering::GLVec3d& P) const
 {
 	float64 xogl = ((P.x() - viewport_x_) / viewport_w_) * 2.0 - 1.0;
-	float64 yogl = ((P.y() - viewport_y_) / viewport_h_) * 2.0 - 1.0;
+	float64 yogl = (((frame_h_ - P.y()) - viewport_y_) / viewport_h_) * 2.0 - 1.0;
 	float64 zogl = P.z() * 2.0 - 1.0;
 	rendering::GLVec4d Q(xogl, yogl, zogl, 1.0);
 	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();

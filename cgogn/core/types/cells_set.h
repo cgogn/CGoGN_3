@@ -50,6 +50,8 @@ public:
 		name_(name)
 	{}
 
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellsSet);
+
 	const std::string& name() const { return name_; }
 
 	uint32 size() const { return cells_.size(); }

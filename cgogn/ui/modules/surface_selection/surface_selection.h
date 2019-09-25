@@ -72,6 +72,8 @@ class SurfaceSelection : public Module
 			param_point_sprite_->set_vbos(&selected_vertices_vbo_);
 		}
 
+		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
 		void update_selected_vertices_vbo()
 		{
 			if (selected_vertices_set_)
@@ -82,7 +84,6 @@ class SurfaceSelection : public Module
 				{
 					selected_vertices_position.push_back((*vertex_position_)[index]);
 				});
-				// param_point_sprite_->set_vbos(&selected_vertices_vbo_);
 				rendering::update_vbo(selected_vertices_position, &selected_vertices_vbo_);
 			}
 		}
@@ -113,7 +114,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_.emplace(m, Parameters());
+		parameters_[m];
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)
@@ -121,7 +122,7 @@ private:
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
 					{
-						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 6.5;
 						p.update_selected_vertices_vbo();
 					}
 
@@ -141,7 +142,7 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 6.5;
 			p.update_selected_vertices_vbo();
 		}
 
@@ -171,9 +172,11 @@ protected:
 
 			if (p.vertex_position_ && p.select_vertices_ && p.selected_vertices_set_)
 			{
-				Vec3 P = view->unproject(Vec3(x, y, 0.0));
-				Vec3 Q = view->unproject(Vec3(x, y, 1.0));
-				std::vector<Vertex> picked = cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), P, Q);
+				rendering::GLVec3d near = view->unproject(rendering::GLVec3d(x, y, 0.0));
+				rendering::GLVec3d far = view->unproject(rendering::GLVec3d(x, y, 1.0));
+				Vec3 A{ near.x(), near.y(), near.z() };
+				Vec3 B{ far.x(), far.y(), far.z() };
+				std::vector<Vertex> picked = cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B);
 				for (Vertex v : picked)
 					p.selected_vertices_set_->select(v);
 				if (!picked.empty())
@@ -255,7 +258,10 @@ protected:
 						{
 							bool is_selected = &cs == p.selected_vertices_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
+							{
 								p.selected_vertices_set_ = &cs;
+								p.update_selected_vertices_vbo();
+							}
 							if (is_selected)
 								ImGui::SetItemDefaultFocus();
 						});

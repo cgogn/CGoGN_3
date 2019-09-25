@@ -66,6 +66,8 @@ class SurfaceRenderVector : public Module
 			param_vector_per_vertex_->color_ = rendering::GLColor(1, 0, 0, 1);
 		}
 
+		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_vector_;
 
@@ -91,7 +93,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_.emplace(m, Parameters());
+		parameters_[m];
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)

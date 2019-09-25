@@ -34,6 +34,7 @@
 #include <cgogn/rendering/vbo_update.h>
 
 #include <unordered_map>
+#include <list>
 
 namespace cgogn
 {
@@ -178,19 +179,18 @@ public:
 
 private:
 
-	template <class> struct tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T;
+	template <class> struct tuple_of_lists_of_cells_set_of_T_from_tuple_of_T;
 	template <template <typename ...Args> class tuple, typename ...T>
-	struct tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T<tuple<T...>>
+	struct tuple_of_lists_of_cells_set_of_T_from_tuple_of_T<tuple<T...>>
 	{
-		using type = std::tuple<std::vector<CellsSet<MESH, T>>...>;
+		using type = std::tuple<std::list<CellsSet<MESH, T>>...>;
 	};
-
-	using CellsSets = typename tuple_of_vectors_of_cells_set_of_T_from_tuple_of_T<typename mesh_traits<MESH>::Cells>::type;
+	using CellsSets = typename tuple_of_lists_of_cells_set_of_T_from_tuple_of_T<typename mesh_traits<MESH>::Cells>::type;
 
 	template <typename CELL>
-	std::vector<CellsSet<MESH, CELL>>& cells_sets()
+	std::list<CellsSet<MESH, CELL>>& cells_sets()
 	{
-		return std::get<tuple_type_index<std::vector<CellsSet<MESH, CELL>>, CellsSets>::value>(cells_sets_);
+		return std::get<tuple_type_index<std::list<CellsSet<MESH, CELL>>, CellsSets>::value>(cells_sets_);
 	}
 
 	rendering::MeshRender render_;

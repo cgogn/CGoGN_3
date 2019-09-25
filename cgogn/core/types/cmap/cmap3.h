@@ -189,7 +189,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 		}
 	}
 
-	Dart close_hole(Dart d, bool set_indices = true);
+	Volume close_hole(Dart d, bool set_indices = true);
 
 	uint32 close(bool set_indices = true);
 };

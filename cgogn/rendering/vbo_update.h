@@ -58,6 +58,10 @@ void update_vbo(const std::vector<VEC>& vector, VBO* vbo)
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
 	uint32 nb_elements = uint32(vector.size());
 
+	std::cout << "update VBO from std::vector" << std::endl;
+	std::cout << "  element_size: " << element_size << std::endl;
+	std::cout << "  nb_elements: " << nb_elements << std::endl;
+
 	vbo->bind();
 	vbo->allocate(nb_elements, element_size);
 	vbo->copy_data(0, nb_elements * element_size * uint32(sizeof(float32)), vector.data());
