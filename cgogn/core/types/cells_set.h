@@ -27,6 +27,8 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/cell_marker.h>
 
+#include <cgogn/core/functions/traversals/global.h>
+
 #include <cgogn/core/utils/tuples.h>
 
 #include <unordered_map>
@@ -61,7 +63,7 @@ public:
 		if (!marker_.is_marked(c))
 		{
 			marker_.mark(c);
-			/* const auto [it, inserted] = */cells_.emplace(index_of(m_, c), c);
+			cells_.emplace(index_of(m_, c), c);
 		}
 	}
 
@@ -77,7 +79,18 @@ public:
 			}
 		}
 	}
-	
+
+	inline void rebuild()
+	{
+		cells_.clear();
+		cgogn::foreach_cell(m_, [&] (CELL c) -> bool
+		{
+			if (marker_.is_marked(c))
+				cells_.emplace(index_of(m_, c), c);
+			return true;
+		});
+	}
+
 	template <typename FUNC>
 	void foreach_cell(const FUNC& f)
 	{

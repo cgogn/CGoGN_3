@@ -37,7 +37,7 @@
 namespace cgogn
 {
 
-enum Orbit: uint32
+enum Orbit : uint32
 {
 	DART = 0,
 	PHI1,

@@ -172,6 +172,29 @@ public:
 		cells_sets<CELL>().emplace_back(*mesh_, mesh_traits<MESH>::cell_names[cell_index] + std::to_string(cells_sets<CELL>().size()));
 	}
 
+private:
+
+	template <typename CELL>
+	bool rebuild_cells_sets_of_type()
+	{
+		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
+			cs.rebuild();
+		return true;
+	}
+
+	template <class ...T>
+	void internal_rebuild_cells_sets(const std::tuple<T...>&)
+	{
+		auto a = { rebuild_cells_sets_of_type<T>()... };
+	}
+
+public:
+
+	void rebuild_cells_sets()
+	{
+		internal_rebuild_cells_sets(typename mesh_traits<MESH>::Cells{});
+	}
+
 	const MESH* mesh_;
 	std::shared_ptr<Attribute<Vec3>> bb_attribute_;
 	Vec3 bb_min_, bb_max_;

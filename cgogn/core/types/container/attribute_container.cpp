@@ -104,7 +104,7 @@ uint32 AttributeContainerGen::new_index()
 			for (AttributeGenT* ag : mark_attributes_[i])
 				ag->manage_index(index);
 		}
-		// init_mark_attributes(index);
+		init_mark_attributes(index);
 	}
 
 	init_ref_counter(index);

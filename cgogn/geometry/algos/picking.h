@@ -27,11 +27,10 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/face.h>
-// #include <cgogn/core/functions/mesh_info.h>
-// #include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/intersection.h>
+#include <cgogn/geometry/functions/distance.h>
 
 namespace cgogn
 {
@@ -115,12 +114,12 @@ picking(
 } // namespace internal
 
 template <typename MESH>
-std::vector<typename mesh_traits<MESH>::Vertex>
-picking(
+void picking(
 	const MESH& m,
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 	const Vec3& A,
-	const Vec3& B
+	const Vec3& B,
+	std::vector<typename mesh_traits<MESH>::Vertex>& result
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -130,7 +129,8 @@ picking(
 	std::vector<SelectedFace> selected_faces = internal::picking(m, vertex_position, A, B);
 
 	CellMarkerStore<MESH, Vertex> cm(m);
-	std::vector<Vertex> result;
+	result.clear();
+	result.reserve(selected_faces.size());
 	for (const auto& sf : selected_faces)
 	{
 		Scalar min_d2 = std::numeric_limits<Scalar>::max();
@@ -156,8 +156,77 @@ picking(
 			result.push_back(closest_vertex);
 		}
 	}
+}
 
-	return result;
+template <typename MESH>
+void picking(
+	const MESH& m,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const Vec3& A,
+	const Vec3& B,
+	std::vector<typename mesh_traits<MESH>::Edge>& result
+)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	using SelectedFace = std::tuple<Face, Vec3, Scalar>;
+
+	std::vector<SelectedFace> selected_faces = internal::picking(m, vertex_position, A, B);
+
+	CellMarkerStore<MESH, Edge> cm(m);
+	result.clear();
+	result.reserve(selected_faces.size());
+	for (const auto& sf : selected_faces)
+	{
+		Scalar min_d2 = std::numeric_limits<Scalar>::max();
+		Edge closest_edge;
+
+		Face f = std::get<0>(sf);
+		const Vec3& I = std::get<1>(sf);
+
+		foreach_incident_edge(m, f, [&] (Edge e) -> bool
+		{
+			std::vector<Vertex> vertices = incident_vertices(m, e);
+			Scalar d2 = squared_distance_line_point(
+				value<Vec3>(m, vertex_position, vertices[0]),
+				value<Vec3>(m, vertex_position, vertices[1]),
+				I
+			);
+			if (d2 < min_d2)
+			{
+				min_d2 = d2;
+				closest_edge = e;
+			}
+			return true;
+		});
+
+		if (!cm.is_marked(closest_edge))
+		{
+			cm.mark(closest_edge);
+			result.push_back(closest_edge);
+		}
+	}
+}
+
+template <typename MESH>
+void picking(
+	const MESH& m,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const Vec3& A,
+	const Vec3& B,
+	std::vector<typename mesh_traits<MESH>::Face>& result
+)
+{
+	using Face = typename mesh_traits<MESH>::Face;
+	using SelectedFace = std::tuple<Face, Vec3, Scalar>;
+
+	std::vector<SelectedFace> selected_faces = internal::picking(m, vertex_position, A, B);
+
+	result.clear();
+	result.reserve(selected_faces.size());
+	for (const auto& sf : selected_faces)
+		result.push_back(std::get<0>(sf));
 }
 
 } // namespace geometry
