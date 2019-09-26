@@ -29,8 +29,6 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
-#include <cgogn/core/functions/traversals/global.h>
-
 namespace cgogn
 {
 
@@ -111,8 +109,6 @@ release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute*
 }
 
 /*****************************************************************************/
-/*                                   CellMarker                              */
-/*****************************************************************************/
 
 template <typename MESH, typename CELL>
 class CellMarker
@@ -134,6 +130,8 @@ public:
 		unmark_all();
 		release_mark_attribute<CELL>(mesh_, mark_attribute_);
 	}
+
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarker);
 
 	inline void mark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 1u; }
 	inline void unmark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 0u; }
@@ -167,7 +165,12 @@ public:
 	}
 
 	~CellMarkerStore()
-	{}
+	{
+		unmark_all();
+		release_mark_attribute<CELL>(mesh_, mark_attribute_);
+	}
+
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarkerStore);
 
 	inline void mark(CELL c)
 	{

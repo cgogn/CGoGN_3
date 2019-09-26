@@ -58,7 +58,7 @@ public:
 
 	inline ~VBO()
 	{
-		glDeleteBuffers(1,&id_);
+		glDeleteBuffers(1, &id_);
 		id_ = 0;
 	}
 
@@ -92,9 +92,9 @@ public:
 		std::size_t total = nb_vectors * uint32(vector_dimension);
 //		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, id_);
-			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total*4), nullptr, GL_STATIC_DRAW);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			// glBindBuffer(GL_ARRAY_BUFFER, id_);
+			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
+			// glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		nb_vectors_ = nb_vectors;
 		vector_dimension_ = vector_dimension;
@@ -102,13 +102,13 @@ public:
 
 	/**
 	 * @brief get and lock pointer on buffer memory
-	 * @return  the pointer
+	 * @return the pointer
 	 */
 	inline float32* lock_pointer()
 	{
-		this->bind();
+		// this->bind();
 		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
-		this->release();
+		// this->release();
 		return ptr;
 	}
 
@@ -117,9 +117,9 @@ public:
 	 */
 	inline void release_pointer()
 	{
-		this->bind();
+		// this->bind();
 		glUnmapBuffer(GL_ARRAY_BUFFER);
-		this->release();
+		// this->release();
 	}
 
 	/**
@@ -130,9 +130,9 @@ public:
 	 */
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, id_);
+		// glBindBuffer(GL_ARRAY_BUFFER, id_);
 		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	/**

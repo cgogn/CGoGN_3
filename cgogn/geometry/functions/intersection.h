@@ -131,8 +131,8 @@ Intersection intersection_segment_segment(
 	Vec3 vq1q2 = QB - QA;
 	Vec3 vp1q1 = QA - PA;
 	
-    Scalar delta = vp1p2[0] * vq1q2[1] - vp1p2[1] * vq1q2[0] ;
-	Scalar coeff = vp1q1[0] * vq1q2[1] - vp1q1[1] * vq1q2[0] ;
+    Scalar delta = vp1p2[0] * vq1q2[1] - vp1p2[1] * vq1q2[0];
+	Scalar coeff = vp1q1[0] * vq1q2[1] - vp1q1[1] * vq1q2[0];
 
 	if (delta == 0) // parallel
 	{
@@ -148,7 +148,7 @@ Intersection intersection_segment_segment(
 			return NO_INTERSECTION;
 	}
 	else
-		Inter = /*Vec3*/((PA[0] * delta + vp1p2[0] * coeff) / delta, (PA[1] * delta + vp1p2[1] * coeff) / delta, (PA[2] * delta + vp1p2[2] * coeff) / delta) ;
+		Inter = Vec3((PA[0] * delta + vp1p2[0] * coeff) / delta, (PA[1] * delta + vp1p2[1] * coeff) / delta, (PA[2] * delta + vp1p2[2] * coeff) / delta);
 
 	// test if inter point is outside the edges
 	if (

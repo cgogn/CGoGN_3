@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_MESH_PROVIDER_MESH_DATA_H_
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cells_set.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/mesh_info.h>
@@ -33,6 +34,7 @@
 #include <cgogn/rendering/vbo_update.h>
 
 #include <unordered_map>
+#include <list>
 
 namespace cgogn
 {
@@ -95,7 +97,9 @@ public:
 	template <typename CELL>
 	uint32 nb_cells()
 	{
-		return nb_cells_[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
+		return nb_cells_[cell_index];
 	}
 
 	void set_bb_attribute(const std::shared_ptr<Attribute<Vec3>>& vertex_attribute)
@@ -151,6 +155,46 @@ public:
 			rendering::update_vbo<T>(attribute, v);
 	}
 
+	template <typename CELL, typename FUNC>
+	void foreach_cells_set(const FUNC& f)
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(is_func_parameter_same<FUNC, CellsSet<MESH, CELL>&>::value, "Wrong function parameter type");
+		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
+			f(cs);
+	}
+
+	template <typename CELL>
+	void add_cells_set()
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
+		cells_sets<CELL>().emplace_back(*mesh_, mesh_traits<MESH>::cell_names[cell_index] + std::to_string(cells_sets<CELL>().size()));
+	}
+
+private:
+
+	template <typename CELL>
+	bool rebuild_cells_sets_of_type()
+	{
+		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
+			cs.rebuild();
+		return true;
+	}
+
+	template <class ...T>
+	void internal_rebuild_cells_sets(const std::tuple<T...>&)
+	{
+		auto a = { rebuild_cells_sets_of_type<T>()... };
+	}
+
+public:
+
+	void rebuild_cells_sets()
+	{
+		internal_rebuild_cells_sets(typename mesh_traits<MESH>::Cells{});
+	}
+
 	const MESH* mesh_;
 	std::shared_ptr<Attribute<Vec3>> bb_attribute_;
 	Vec3 bb_min_, bb_max_;
@@ -158,8 +202,23 @@ public:
 
 private:
 
+	template <class> struct tuple_of_lists_of_cells_set_of_T_from_tuple_of_T;
+	template <template <typename ...Args> class tuple, typename ...T>
+	struct tuple_of_lists_of_cells_set_of_T_from_tuple_of_T<tuple<T...>>
+	{
+		using type = std::tuple<std::list<CellsSet<MESH, T>>...>;
+	};
+	using CellsSets = typename tuple_of_lists_of_cells_set_of_T_from_tuple_of_T<typename mesh_traits<MESH>::Cells>::type;
+
+	template <typename CELL>
+	std::list<CellsSet<MESH, CELL>>& cells_sets()
+	{
+		return std::get<tuple_type_index<std::list<CellsSet<MESH, CELL>>, CellsSets>::value>(cells_sets_);
+	}
+
 	rendering::MeshRender render_;
 	std::unordered_map<AttributeGen*, std::unique_ptr<rendering::VBO>> vbos_;
+	CellsSets cells_sets_;
 };
 
 } // namespace ui

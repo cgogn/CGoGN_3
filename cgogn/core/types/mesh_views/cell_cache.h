@@ -33,9 +33,9 @@
 namespace cgogn
 {
 
-template <class> struct VectorsFromTuple;
+template <class> struct tuple_of_vectors_of_T_from_tuple_of_T;
 template <template <typename ...Args> class tuple, typename ...T>
-struct VectorsFromTuple<tuple<T...>>
+struct tuple_of_vectors_of_T_from_tuple_of_T<tuple<T...>>
 {
 	using type = std::tuple<std::vector<T>...>;
 };
@@ -43,7 +43,7 @@ struct VectorsFromTuple<tuple<T...>>
 template <typename MESH>
 class CellCache
 {
-	using CellVectors = typename VectorsFromTuple<typename mesh_traits<MESH>::Cells>::type;
+	using CellVectors = typename tuple_of_vectors_of_T_from_tuple_of_T<typename mesh_traits<MESH>::Cells>::type;
 
 	const MESH& m_;
 	CellVectors cells_;

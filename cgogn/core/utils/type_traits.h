@@ -38,12 +38,6 @@ template <typename T>
 struct is_mesh_view<T, typename void_<T::is_mesh_view>::type> { static bool const value = true; };
 
 
-//template <typename T, typename = void>
-//struct inner_mesh_type { using type = T; };
-
-//template <typename T>
-//struct inner_mesh_type<T, typename void_<typename T::MeshType>::type> { using type = typename inner_mesh_type<typename T::MeshType>::type; };
-
 namespace internal
 {
 

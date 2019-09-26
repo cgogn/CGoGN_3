@@ -52,7 +52,7 @@ static const char* vertex_shader_source =
 "	#if WITH_SIZE == 1\n"
 "	size_v = vertex_size;\n"
 "	#endif\n"
-"   gl_Position =  vec4(vertex_pos,1.0);\n"
+"   gl_Position = vec4(vertex_pos,1.0);\n"
 "}\n";
 
 static const char* geometry_shader_source =
@@ -125,10 +125,10 @@ static const char* geometry_shader_source =
 "	{\n"
 "		vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;\n"
 "		sphereCenter = posCenter.xyz;\n"
-"		corner(posCenter, -1.4, 1.4);\n"
-"		corner(posCenter, -1.4,-1.4);\n"
-"		corner(posCenter,  1.4, 1.4);\n"
-"		corner(posCenter,  1.4,-1.4);\n"
+"		corner(posCenter, -1.4,  1.4);\n"
+"		corner(posCenter, -1.4, -1.4);\n"
+"		corner(posCenter,  1.4,  1.4);\n"
+"		corner(posCenter,  1.4, -1.4);\n"
 "		EndPrimitive();\n"
 "	}\n"
 "}\n";

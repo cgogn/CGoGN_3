@@ -405,7 +405,7 @@ void App::close_event()
 
 void App::adapt_views_geometry()
 {
-	switch(views_.size())
+	switch (views_.size())
 	{
 	case 1:
 		views_[0]->set_view_ratio(0, 0, 1, 1);

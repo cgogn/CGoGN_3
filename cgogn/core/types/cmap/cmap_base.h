@@ -76,7 +76,7 @@ protected:
 
 public:
 
-	inline uint32 nb_darts()
+	inline uint32 nb_darts() const
 	{
 		return topology_.nb_elements();
 	}
@@ -135,7 +135,7 @@ public:
 	inline void copy_embedding(Dart dest, Dart src)
 	{
 		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
+		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 		set_embedding<CELL>(dest, embedding(CELL(src)));
 	}
 
@@ -143,7 +143,7 @@ public:
 	inline void init_embedding()
 	{
 		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
+		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
 		std::ostringstream oss;
 		oss << "__emb_" << orbit_name(orbit);
