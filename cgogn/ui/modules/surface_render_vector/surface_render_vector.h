@@ -66,6 +66,8 @@ class SurfaceRenderVector : public Module
 			param_vector_per_vertex_->color_ = rendering::GLColor(1, 0, 0, 1);
 		}
 
+		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_vector_;
 
@@ -91,7 +93,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_.emplace(m, Parameters());
+		parameters_[m];
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)
@@ -181,7 +183,7 @@ protected:
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::ListBoxHeader("Select mesh"))
+		if (ImGui::ListBoxHeader("Mesh"))
 		{
 			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
 			{
@@ -239,7 +241,7 @@ protected:
 			need_update |= ImGui::Checkbox("Render vectors", &p.render_vectors_);
 
 			ImGui::Separator();
-			ImGui::Text("Vector parameters");
+			ImGui::TextUnformatted("Vector parameters");
 			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(), ImGuiColorEditFlags_NoInputs);
 			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1, 2.0);
 		}

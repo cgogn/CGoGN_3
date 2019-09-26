@@ -334,7 +334,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) :
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
 {
 	shader_->bind();
-	shader_->set_matrices(proj,mv);
+	shader_->set_matrices(proj, mv);
 	set_uniforms();
 	vao_->bind();
 }

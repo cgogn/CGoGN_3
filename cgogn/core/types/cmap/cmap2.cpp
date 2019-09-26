@@ -27,7 +27,7 @@
 namespace cgogn
 {
 
-Dart CMap2::close_hole(Dart d, bool set_indices)
+CMap2::Face CMap2::close_hole(Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi2(d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
 
@@ -51,24 +51,25 @@ Dart CMap2::close_hole(Dart d, bool set_indices)
 			phi2_sew(d_next, next);	// and 2-sew the face to the hole
 		}
 	} while (d_phi1 != d);
+	
+	Face hole(first);
 
 	if (set_indices)
 	{
-		Dart it = first;
-		do
+		foreach_dart_of_orbit(hole, [&] (Dart hd) -> bool
 		{
-			Dart it2 = phi2(it);
+			Dart hd2 = phi2(hd);
 			if (is_embedded<Vertex>())
-				copy_embedding<Vertex>(it, phi1(it2));
+				copy_embedding<Vertex>(hd, phi1(hd2));
 			if (is_embedded<Edge>())
-				copy_embedding<Edge>(it, it2);
+				copy_embedding<Edge>(hd, hd2);
 			if (is_embedded<Volume>())
-				copy_embedding<Volume>(it, it2);
-			it = phi1(it);
-		} while (it != first);
+				copy_embedding<Volume>(hd, hd2);
+			return true;
+		});
 	}
 
-	return first;
+	return hole;
 }
 
 uint32 CMap2::close(bool set_indices)
@@ -87,8 +88,8 @@ uint32 CMap2::close(bool set_indices)
 	{
 		if (phi2(d) == d)
 		{
-			Dart h = close_hole(d, set_indices);
-			foreach_dart_of_orbit(CMap2::Face(h), [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
+			Face h = close_hole(d, set_indices);
+			foreach_dart_of_orbit(h, [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
 			++nb_holes;
 		}
 	}

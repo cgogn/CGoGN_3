@@ -83,6 +83,7 @@ public:
     inline void set_last_click_time(float64 t) { last_click_time_ = t; }
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
+	rendering::GLVec3d unproject(const rendering::GLVec3d& P) const;
 
 protected:
 

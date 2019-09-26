@@ -155,7 +155,7 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 		}
 	}
 
-	Dart close_hole(Dart d, bool set_indices = true);
+	Face close_hole(Dart d, bool set_indices = true);
 
 	uint32 close(bool set_indices = true);
 };

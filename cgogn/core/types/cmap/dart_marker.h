@@ -43,6 +43,8 @@ public:
 	DartMarker(const CMapBase& map);
 	~DartMarker();
 
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(DartMarker);
+
 	inline void mark(Dart d) { (*mark_attribute_)[d.index] = 1u; }
 	inline void unmark(Dart d) { (*mark_attribute_)[d.index] = 0u; }
 
@@ -69,6 +71,8 @@ public:
 
 	DartMarkerStore(const CMapBase& map);
 	~DartMarkerStore();
+
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(DartMarkerStore);
 
 	inline void mark(Dart d)
 	{

@@ -27,11 +27,11 @@
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/core/utils/numerics.h>
 
-#include <Eigen/Core>
+// #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <Eigen/Eigen>
-#include <Eigen/Geometry>
-#include <Eigen/SVD>
+// #include <Eigen/Eigen>
+// #include <Eigen/Geometry>
+// #include <Eigen/SVD>
 
 #include <string>
 
@@ -59,20 +59,20 @@ using GLColor = Eigen::Vector4f;
 
 using Transfo3d = Eigen::Affine3d;
 
-inline GLColor col4i(uint8 R, uint8 G, uint8 B, uint8 A)
-{
-	return GLColor(R/255.0f, G/255.0f, B/255.0f, A/255.0f);
-}
+// inline GLColor col4i(uint8 R, uint8 G, uint8 B, uint8 A)
+// {
+// 	return GLColor(R/255.0f, G/255.0f, B/255.0f, A/255.0f);
+// }
 
-inline GLColor col3i(uint8 R, uint8 G, uint8 B)
-{
-	return GLColor(R/255.0f, G/255.0f, B/255.0f, 1.0f);
-}
+// inline GLColor col3i(uint8 R, uint8 G, uint8 B)
+// {
+// 	return GLColor(R/255.0f, G/255.0f, B/255.0f, 1.0f);
+// }
 
-inline GLColor col1i(uint8 R)
-{
-	return GLColor(R/255.0f, R/255.0f, R/255.0f, 1.0f);
-}
+// inline GLColor col1i(uint8 R)
+// {
+// 	return GLColor(R/255.0f, R/255.0f, R/255.0f, 1.0f);
+// }
 
 class CGOGN_RENDERING_EXPORT GLImage
 {

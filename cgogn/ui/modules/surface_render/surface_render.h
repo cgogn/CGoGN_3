@@ -91,6 +91,8 @@ class SurfaceRender : public Module
 			param_phong_->specular_coef_ = 250.0f;
 		}
 
+		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 
@@ -122,7 +124,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_.emplace(m, Parameters());
+		parameters_[m];
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)
@@ -246,7 +248,7 @@ protected:
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::ListBoxHeader("Select mesh"))
+		if (ImGui::ListBoxHeader("Mesh"))
 		{
 			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
 			{
@@ -312,7 +314,7 @@ protected:
 				if (p.phong_shading_)
 				{
 					ImGui::Separator();
-					ImGui::Text("Phong parameters");
+					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
 					if (p.param_phong_->double_side_)
 						need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
@@ -322,7 +324,7 @@ protected:
 				else
 				{
 					ImGui::Separator();
-					ImGui::Text("Flat parameters");
+					ImGui::TextUnformatted("Flat parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(), ImGuiColorEditFlags_NoInputs);
 					if (p.param_flat_->double_side_)
 						need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(), ImGuiColorEditFlags_NoInputs);
@@ -333,7 +335,7 @@ protected:
 			if (p.render_edges_)
 			{
 				ImGui::Separator();
-				ImGui::Text("Edges parameters");
+				ImGui::TextUnformatted("Edges parameters");
 				need_update |= ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
 			}
@@ -341,7 +343,7 @@ protected:
 			if (p.render_vertices_)
 			{
 				ImGui::Separator();
-				ImGui::Text("Vertices parameters");
+				ImGui::TextUnformatted("Vertices parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 			}

@@ -28,18 +28,18 @@
 namespace cgogn
 {
 
-Dart CMap3::close_hole(Dart d, bool set_indices)
+CMap3::Volume CMap3::close_hole(Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi3(d) == d, "CMap3: close hole called on a dart that is not a phi3 fix point");
 
-	DartMarkerStore dmarker(*this);
-	DartMarkerStore boundary_marker(*this);
+	DartMarkerStore marker(*this);
+	DartMarkerStore hole_volume_marker(*this);
 
 	std::vector<Dart> visited_faces;
 	visited_faces.reserve(1024u);
 
 	visited_faces.push_back(d);
-	CMap2::foreach_dart_of_orbit(CMap2::Face(d), [&] (Dart fd) -> bool { dmarker.mark(fd); return true; });
+	CMap2::foreach_dart_of_orbit(CMap2::Face(d), [&] (Dart fd) -> bool { marker.mark(fd); return true; });
 	
 	uint32 count = 0u;
 
@@ -48,11 +48,11 @@ Dart CMap3::close_hole(Dart d, bool set_indices)
 		const Dart it = visited_faces[i];
 		Dart f = it;
 
-		CMap1::Face bf = add_face(static_cast<CMap1&>(*this), codegree(*this, CMap3::Face(f)));
-		CMap1::foreach_dart_of_orbit(bf, [&] (Dart fd) -> bool { boundary_marker.mark(fd); return true; });
+		CMap1::Face hf = add_face(static_cast<CMap1&>(*this), codegree(*this, CMap3::Face(f)));
+		CMap1::foreach_dart_of_orbit(hf, [&] (Dart fd) -> bool { hole_volume_marker.mark(fd); return true; });
 		++count;
 
-		Dart bit = bf.dart;
+		Dart bit = hf.dart;
 		do
 		{
 			Dart e = phi3(phi2(f));
@@ -62,15 +62,15 @@ Dart CMap3::close_hole(Dart d, bool set_indices)
 				if (phi3(e) == e)
 				{
 					found = true;
-					if (!dmarker.is_marked(e))
+					if (!marker.is_marked(e))
 					{
 						visited_faces.push_back(e);
-						CMap2::foreach_dart_of_orbit(CMap2::Face(e), [&] (Dart fd) -> bool { dmarker.mark(fd); return true; });
+						CMap2::foreach_dart_of_orbit(CMap2::Face(e), [&] (Dart fd) -> bool { marker.mark(fd); return true; });
 					}
 				}
 				else
 				{
-					if (boundary_marker.is_marked(e))
+					if (hole_volume_marker.is_marked(e))
 					{
 						found = true;
 						phi2_sew(e, bit);
@@ -86,7 +86,24 @@ Dart CMap3::close_hole(Dart d, bool set_indices)
 		} while (f != it);
 	}
 
-	return phi3(d);
+	Volume hole(phi3(d));
+
+	if (set_indices)
+	{
+		foreach_dart_of_orbit(hole, [&] (Dart hd) -> bool
+		{
+			Dart hd3 = phi3(hd);
+			if (is_embedded<Vertex>())
+				copy_embedding<Vertex>(hd, phi1(hd3));
+			if (is_embedded<Edge>())
+				copy_embedding<Edge>(hd, hd3);
+			if (is_embedded<Face>())
+				copy_embedding<Face>(hd, hd3);
+			return true;
+		});
+	}
+
+	return hole;
 }
 
 uint32 CMap3::close(bool set_indices)
@@ -105,8 +122,8 @@ uint32 CMap3::close(bool set_indices)
 	{
 		if (phi3(d) == d)
 		{
-			Dart h = close_hole(d, set_indices);
-			foreach_dart_of_orbit(CMap3::Volume(h), [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
+			Volume h = close_hole(d, set_indices);
+			foreach_dart_of_orbit(h, [&] (Dart hd) -> bool { set_boundary(hd, true); return true; });
 			++nb_holes;
 		}
 	}

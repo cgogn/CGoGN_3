@@ -55,9 +55,9 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 		current = next.dart;
 	}
 	m.phi2_sew(m.phi_1(current), m.phi1(first.dart)); // Finish the umbrella
-	Dart base = m.close_hole(first.dart, false); // Add the base face
+	CMap2::Face base = m.close_hole(first.dart, false); // Add the base face
 	
-	CMap2::Volume vol(base);
+	CMap2::Volume vol(base.dart);
 
 	if (set_indices)
 	{

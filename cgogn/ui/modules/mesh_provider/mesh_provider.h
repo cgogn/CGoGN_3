@@ -143,6 +143,8 @@ public:
 	template <typename FUNC>
 	void foreach_mesh(const FUNC& f)
 	{
+		static_assert(is_ith_func_parameter_same<FUNC, 0, MESH*>::value, "Wrong function parameter type");
+		static_assert(is_ith_func_parameter_same<FUNC, 1, const std::string&>::value, "Wrong function parameter type");
 		for (auto& [name, m] : meshes_)
 			f(m.get(), name);
 	}
@@ -194,6 +196,7 @@ public:
 	{
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_nb_cells();
+		md->rebuild_cells_sets();
 		md->set_primitives_dirty(rendering::POINTS);
 		md->set_primitives_dirty(rendering::LINES);
 		md->set_primitives_dirty(rendering::TRIANGLES);
@@ -218,7 +221,14 @@ protected:
         {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
-				open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_files);
+			{
+				if constexpr (mesh_traits<MESH>::dimension == 1)
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files);
+				if constexpr (mesh_traits<MESH>::dimension == 2)
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files);
+				if constexpr (mesh_traits<MESH>::dimension == 3)
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files);
+			}
 			ImGui::MenuItem("Show inspector", "", &show_mesh_inspector_);
 			ImGui::PopItemFlag();
             ImGui::EndMenu();
@@ -233,7 +243,7 @@ protected:
 			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
 
-			if (ImGui::ListBoxHeader("Select mesh"))
+			if (ImGui::ListBoxHeader("Mesh"))
 			{
 				foreach_mesh([this] (MESH* m, const std::string& name)
 				{
@@ -245,17 +255,17 @@ protected:
 
 			if (selected_mesh_)
 			{
-				ImGui::Text("Cells");
+				MeshData<MESH>* md = mesh_data(selected_mesh_);
+				
+				ImGui::TextUnformatted("Cells");
 				ImGui::Columns(2);
 				ImGui::Separator();
-				ImGui::Text("Type"); ImGui::NextColumn();
-				ImGui::Text("Number"); ImGui::NextColumn();
+				ImGui::TextUnformatted("Type"); ImGui::NextColumn();
+				ImGui::TextUnformatted("Number"); ImGui::NextColumn();
 				ImGui::Separator();
-
-				MeshData<MESH>* md = mesh_data(selected_mesh_);
 				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 				{
-					ImGui::Text(mesh_traits<MESH>::cell_names[i]); ImGui::NextColumn();
+					ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]); ImGui::NextColumn();
 					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
 				}
 			}
@@ -264,7 +274,10 @@ protected:
 
 private:
 
-	std::vector<std::string> supported_files = { "Surface meshes", "*.off" };
+	std::vector<std::string> supported_graph_files = { "Graph", "*.cg" };
+	std::vector<std::string> supported_surface_files = { "Surface", "*.off" };
+	std::vector<std::string> supported_volume_files = { "Volume", "*.tet" };
+
 	bool show_mesh_inspector_;
 	const MESH* selected_mesh_;
 

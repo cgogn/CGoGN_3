@@ -208,11 +208,9 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	}
 
 	rendering::GLVec4d Q(xogl, yogl, zogl, 1.0);
-	rendering::GLMat4d m = camera().projection_matrix_d() * camera().modelview_matrix_d();
-	rendering::GLMat4d im = m.inverse();
-
+	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();
 	rendering::GLVec4d P4 = im * Q;
-	if (Q.w() != 0.0)
+	if (P4.w() != 0.0)
 	{
 		P.x() = P4.x() / P4.w();
 		P.y() = P4.y() / P4.w();
@@ -221,6 +219,18 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	}
 
 	return false;
+}
+
+rendering::GLVec3d View::unproject(const rendering::GLVec3d& P) const
+{
+	float64 xogl = ((P.x() - viewport_x_) / viewport_w_) * 2.0 - 1.0;
+	float64 yogl = (((frame_h_ - P.y()) - viewport_y_) / viewport_h_) * 2.0 - 1.0;
+	float64 zogl = P.z() * 2.0 - 1.0;
+	rendering::GLVec4d Q(xogl, yogl, zogl, 1.0);
+	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();
+	rendering::GLVec4d res = im * Q;
+	res /= res.w();
+	return res.head(3);
 }
 
 } // namespace cgogn

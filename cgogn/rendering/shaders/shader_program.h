@@ -63,7 +63,7 @@ namespace cgogn
 namespace rendering
 {
 
-inline GLColor Color(uint8 R, uint8 G, uint8 B, uint8 A = 255u)
+inline GLColor color(uint8 R, uint8 G, uint8 B, uint8 A = 255u)
 {
 	return GLColor(float32(R) / 255.0f, float32(G) / 255.0f, float32(B) / 255.0f, float32(A) / 255.0f);
 }
@@ -101,7 +101,7 @@ public:
 		return id_;
 	}
 
-	inline void compile(const std::string& src);
+	void compile(const std::string& src);
 };
 
 class CGOGN_RENDERING_EXPORT ShaderProgram
