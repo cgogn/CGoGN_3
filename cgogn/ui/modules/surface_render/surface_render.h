@@ -125,6 +125,9 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_[m];
+		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+		if (vertex_position)
+			set_vertex_position(*m, vertex_position);
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)

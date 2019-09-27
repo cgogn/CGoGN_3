@@ -59,7 +59,7 @@ struct MeshData
 		mesh_ = m;
 		update_nb_cells();
 	}
-	
+
 	// MeshData(const MeshData& m) :
 	// 	mesh_(m.mesh_),
 	// 	nb_cells_(m.nb_cells_)
