@@ -53,14 +53,21 @@ struct MeshData
 
 	MeshData() : mesh_(nullptr)
 	{}
-	MeshData(const MeshData& m) :
-		mesh_(m.mesh_),
-		nb_cells_(m.nb_cells_)
-	{}
-	MeshData(const MESH* mesh) : mesh_(mesh)
+
+	void init(const MESH* m)
 	{
+		mesh_ = m;
 		update_nb_cells();
 	}
+	
+	// MeshData(const MeshData& m) :
+	// 	mesh_(m.mesh_),
+	// 	nb_cells_(m.nb_cells_)
+	// {}
+	// MeshData(const MESH* mesh) : mesh_(mesh)
+	// {
+	// 	update_nb_cells();
+	// }
 	
 	void draw(rendering::DrawingType primitive)
 	{
@@ -100,12 +107,6 @@ public:
 		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
 		return nb_cells_[cell_index];
-	}
-
-	void set_bb_vertex_position(const std::shared_ptr<Attribute<Vec3>>& vertex_position)
-	{
-		bb_vertex_position_ = vertex_position;
-		update_bb();
 	}
 
 	void update_bb()

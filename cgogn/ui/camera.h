@@ -91,13 +91,13 @@ public:
 	inline void set_scene_radius(float64 radius)
 	{
 		scene_radius_ = radius;
-		focal_dist_ = scene_radius_/std::tan(field_of_view_ / 2.0);
+		focal_dist_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
 		need_computing_ = 3;
 	}
 	
 	inline void change_pivot_point(const rendering::GLVec3d& piv)
 	{
-		pivot_shift_ = piv-pivot_point_;
+		pivot_shift_ = piv - pivot_point_;
 		frame_ *= Eigen::Translation3d(pivot_shift_);
 		pivot_point_ = piv;
 		need_computing_ = 3;
@@ -110,20 +110,20 @@ public:
 
 	inline void center_scene()
 	{
-		this->frame_.matrix().block<3, 1>(0, 3).setZero();
+		frame_.matrix().block<3, 1>(0, 3).setZero();
 		need_computing_ = 3;
 	}
 	
 	inline void show_entire_scene() 
 	{
-		this->frame_.matrix().block<3, 1>(0, 3).setZero();
+		frame_.matrix().block<3, 1>(0, 3).setZero();
 		need_computing_ = 3;
 	}
 
 	inline void reset()
 	{
-		this->frame_ = rendering::Transfo3d::Identity();
-		this->spin_ = rendering::Transfo3d::Identity();
+		frame_ = rendering::Transfo3d::Identity();
+		spin_ = rendering::Transfo3d::Identity();
 		need_computing_ = 3;
 	}
 
@@ -133,9 +133,9 @@ public:
 
 	inline rendering::GLMat4d projection_matrix_d() const
 	{
-//		Transfo3d tr = this->frame_ * Eigen::Translation3d(-pivot_shift_);
-//		float64 d = focal_dist_ - (tr.translation()/*this->frame_.translation()-pivot_shift_*/).z();
-		float64 d = focal_dist_ - this->frame_.translation().z();
+//		Transfo3d tr = frame_ * Eigen::Translation3d(-pivot_shift_);
+//		float64 d = focal_dist_ - (tr.translation()/*frame_.translation()-pivot_shift_*/).z();
+		float64 d = focal_dist_ - frame_.translation().z();
 		float64 znear = std::max(0.001, d - 2.0 * scene_radius_);
 		float64 zfar = d + 2.0 * scene_radius_;
 		proj_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : ortho(znear, zfar));
@@ -144,7 +144,7 @@ public:
 
 	inline rendering::GLMat4d modelview_matrix_d() const
 	{
-		rendering::Transfo3d m = Eigen::Translation3d(rendering::GLVec3d(0.0, 0.0, -focal_dist_)) * this->frame_ * Eigen::Translation3d(-pivot_point_);
+		rendering::Transfo3d m = Eigen::Translation3d(rendering::GLVec3d(0.0, 0.0, -focal_dist_)) * frame_ * Eigen::Translation3d(-pivot_point_);
 		mv_ = m.matrix();
 		return mv_;
 	}

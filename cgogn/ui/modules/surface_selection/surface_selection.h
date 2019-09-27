@@ -51,7 +51,7 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceSelection : public Module
+class SurfaceSelection : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -173,7 +173,7 @@ public:
 public:
 
 	SurfaceSelection(const App& app) :
-		ui::Module(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -199,7 +199,7 @@ private:
 						p.update_selected_faces_vbo();
 					}
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
@@ -221,7 +221,7 @@ public:
 			p.update_selected_faces_vbo();
 		}
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -477,7 +477,7 @@ protected:
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 

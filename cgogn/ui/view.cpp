@@ -76,7 +76,7 @@ void View::resize_event(int32 frame_width, int32 frame_height)
 
 	fbo_->resize(viewport_w_, viewport_h_);
 
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->resize_event(this, viewport_w_, viewport_h_);
 
 	GLViewer::resize_event(viewport_w_, viewport_h_);
@@ -84,13 +84,13 @@ void View::resize_event(int32 frame_width, int32 frame_height)
 
 void View::close_event()
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->close_event();
 }
 
 void View::mouse_press_event(int32 button, float64 x, float64 y)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->mouse_press_event(this, button, x, y);
 
 	GLViewer::mouse_press_event(button, x, y);
@@ -98,7 +98,7 @@ void View::mouse_press_event(int32 button, float64 x, float64 y)
 
 void View::mouse_release_event(int32 button, float64 x, float64 y)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->mouse_release_event(this, button, x, y);
 
 	GLViewer::mouse_release_event(button, x, y);
@@ -106,7 +106,7 @@ void View::mouse_release_event(int32 button, float64 x, float64 y)
 
 void View::mouse_dbl_click_event(int32 button, float64 x, float64 y)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->mouse_dbl_click_event(this, button, x, y);
 	
 	GLViewer::mouse_dbl_click_event(button, x, y);
@@ -114,7 +114,7 @@ void View::mouse_dbl_click_event(int32 button, float64 x, float64 y)
 
 void View::mouse_move_event(float64 x, float64 y)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->mouse_move_event(this, x, y);
 	
 	GLViewer::mouse_move_event(x, y);
@@ -122,7 +122,7 @@ void View::mouse_move_event(float64 x, float64 y)
 
 void View::mouse_wheel_event(float64 x, float64 y)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->mouse_wheel_event(this, x, y);
 	
 	GLViewer::mouse_wheel_event(x, y);
@@ -130,7 +130,7 @@ void View::mouse_wheel_event(float64 x, float64 y)
 
 void View::key_press_event(int32 key_code)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->key_press_event(this, key_code);
 	
 	GLViewer::key_press_event(key_code);
@@ -138,7 +138,7 @@ void View::key_press_event(int32 key_code)
 
 void View::key_release_event(int32 key_code)
 {
-	for (Module* m : linked_modules_)
+	for (ViewModule* m : linked_view_modules_)
 		m->key_release_event(this, key_code);
 	
 	GLViewer::key_release_event(key_code);
@@ -156,7 +156,7 @@ void View::draw()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		GLenum idbuf = GL_COLOR_ATTACHMENT0;
 		glDrawBuffers(1, &idbuf);
-		for (Module* m : linked_modules_)
+		for (ViewModule* m : linked_view_modules_)
 			m->draw(this);
 		fbo_->release();
 		glDisable(GL_DEPTH_TEST);
@@ -165,9 +165,15 @@ void View::draw()
 	param_fst_->draw();
 }
 
-void View::link_module(Module* m)
+void View::link_module(ViewModule* m)
 {
-	linked_modules_.push_back(m);
+	linked_view_modules_.push_back(m);
+	m->linked_views_.push_back(this);
+}
+
+void View::link_module(ProviderModule* m)
+{
+	linked_provider_modules_.push_back(m);
 	m->linked_views_.push_back(this);
 }
 

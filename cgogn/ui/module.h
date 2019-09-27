@@ -27,6 +27,7 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
@@ -42,7 +43,6 @@ class View;
 class CGOGN_UI_EXPORT Module
 {
 	friend class App;
-	friend class View;
 
 public:
 
@@ -53,8 +53,28 @@ public:
 
 protected:
 
-	virtual void resize_event(View* view, int32 viewport_width, int32 viewport_height);
+	virtual void init();
+	virtual void main_menu();
+	virtual void interface();
+	
 	virtual void close_event();
+
+	const App& app_;
+	std::string name_;
+};
+
+class CGOGN_UI_EXPORT ViewModule : public Module
+{
+	friend class View;
+
+public:
+
+	ViewModule(const App& app, const std::string& name);
+	virtual ~ViewModule();
+
+protected:
+
+	virtual void resize_event(View* view, int32 viewport_width, int32 viewport_height);
 
 	virtual void mouse_press_event(View* view, int32 button, float64 x, float64 y);
 	virtual void mouse_release_event(View* view, int32 button, float64 x, float64 y);
@@ -66,12 +86,20 @@ protected:
 
 	virtual void draw(View* view);
 
-	virtual void init();
-	virtual void main_menu();
-	virtual void interface();
+	std::vector<View*> linked_views_;
+};
 
-	const App& app_;
-	std::string name_;
+class CGOGN_UI_EXPORT ProviderModule : public Module
+{
+	friend class View;
+
+public:
+
+	ProviderModule(const App& app, const std::string& name);
+	virtual ~ProviderModule();
+
+protected:
+	
 	std::vector<View*> linked_views_;
 };
 

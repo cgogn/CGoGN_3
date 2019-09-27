@@ -49,7 +49,7 @@ namespace ui
 {
 
 template <typename MESH>
-class GraphRender : public Module
+class GraphRender : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -92,7 +92,7 @@ class GraphRender : public Module
 public:
 
 	GraphRender(const App& app) :
-		ui::Module(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -112,7 +112,7 @@ private:
 					if (p.vertex_position_.get() == attribute)
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
@@ -136,7 +136,7 @@ public:
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -248,7 +248,7 @@ protected:
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 

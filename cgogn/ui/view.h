@@ -69,9 +69,8 @@ protected:
 
 public:
 
-    void link_module(Module* m);
-
-	void update_scene_bb();
+    void link_module(ViewModule* m);
+    void link_module(ProviderModule* m);
 
 	inline bool over_viewport(int32 x, int32 y) const
 	{
@@ -103,7 +102,8 @@ protected:
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
 
-    std::vector<Module*> linked_modules_;
+    std::vector<ViewModule*> linked_view_modules_;
+    std::vector<ProviderModule*> linked_provider_modules_;
 };
 
 } // namespace cgogn

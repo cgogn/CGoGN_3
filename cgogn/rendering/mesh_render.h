@@ -31,7 +31,7 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-#include <cgogn/geometry/algos/triangulation.h>
+// #include <cgogn/geometry/algos/triangulation.h>
 
 #include <memory>
 
