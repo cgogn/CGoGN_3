@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 	v1->link_module(&srv);
 
 	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->set_bb_attribute(vertex_position);
+	md->set_bb_vertex_position(vertex_position);
 	Vec3 diagonal = md->bb_max_ - md->bb_min_;
 	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
 

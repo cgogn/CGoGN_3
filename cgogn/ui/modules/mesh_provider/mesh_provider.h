@@ -57,6 +57,10 @@ class MeshProvider : public Module
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
     using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
+    using Vertex = typename mesh_traits<MESH>::Vertex;
+
+    using Vec3 = geometry::Vec3;
+
 public:
 
 	MeshProvider(const App& app) :
@@ -185,7 +189,7 @@ public:
 	{
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_vbo(attribute);
-		if (static_cast<AttributeGen*>(md->bb_attribute_.get()) == static_cast<AttributeGen*>(attribute))
+		if (static_cast<AttributeGen*>(md->bb_vertex_position_.get()) == static_cast<AttributeGen*>(attribute))
 			md->update_bb();
 
 		boost::synapse::emit<attribute_changed>(m, attribute);
@@ -256,7 +260,21 @@ protected:
 			if (selected_mesh_)
 			{
 				MeshData<MESH>* md = mesh_data(selected_mesh_);
+
+				if (ImGui::BeginCombo("Position", md->bb_vertex_position_ ? md->bb_vertex_position_->name().c_str() : "-- select --"))
+				{
+					foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
+					{
+						bool is_selected = attribute == md->bb_vertex_position_;
+						if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+							md->set_bb_vertex_position(attribute);
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					});
+					ImGui::EndCombo();
+				}
 				
+				ImGui::Separator();
 				ImGui::TextUnformatted("Cells");
 				ImGui::Columns(2);
 				ImGui::Separator();

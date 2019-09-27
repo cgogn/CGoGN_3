@@ -71,6 +71,8 @@ public:
 
     void link_module(Module* m);
 
+	void update_scene_bb();
+
 	inline bool over_viewport(int32 x, int32 y) const
 	{
 		y = frame_h_ - y;

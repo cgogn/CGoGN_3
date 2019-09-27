@@ -31,7 +31,7 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-// #include <cgogn/geometry/algos/ear_triangulation.h>
+#include <cgogn/geometry/algos/triangulation.h>
 
 #include <memory>
 
@@ -131,6 +131,7 @@ public:
 	inline void init_primitives(const MESH& m, DrawingType prim)
 	{
 		std::vector<uint32> table_indices;
+		table_indices.reserve(1024u);
 
 		switch (prim)
 		{

@@ -118,8 +118,8 @@ bool import_CG(Graph& g, const std::string& filename)
 			iss >> a;
 			iss >> b;
 
-			edges_vertex_indices.push_back(vertices_id[a-1]);
-			edges_vertex_indices.push_back(vertices_id[b-1]);
+			edges_vertex_indices.push_back(vertices_id[a]);
+			edges_vertex_indices.push_back(vertices_id[b]);
 		}
 	}
 

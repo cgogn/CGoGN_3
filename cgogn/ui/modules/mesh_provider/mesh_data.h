@@ -102,15 +102,15 @@ public:
 		return nb_cells_[cell_index];
 	}
 
-	void set_bb_attribute(const std::shared_ptr<Attribute<Vec3>>& vertex_attribute)
+	void set_bb_vertex_position(const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		bb_attribute_ = vertex_attribute;
+		bb_vertex_position_ = vertex_position;
 		update_bb();
 	}
 
 	void update_bb()
 	{
-		if (!bb_attribute_)
+		if (!bb_vertex_position_)
 		{
 			bb_min_ = { 0, 0, 0 };
 			bb_max_ = { 0, 0, 0 };
@@ -122,7 +122,7 @@ public:
 			bb_min_[i] = std::numeric_limits<float64>::max();
 			bb_max_[i] = std::numeric_limits<float64>::lowest();
 		}
-		for (const Vec3& v : *bb_attribute_)
+		for (const Vec3& v : *bb_vertex_position_)
 		{
 			for (uint32 i = 0; i < 3; ++i)
 			{
@@ -175,17 +175,16 @@ public:
 private:
 
 	template <typename CELL>
-	bool rebuild_cells_sets_of_type()
+	void internal_rebuild_cells_sets_of_type()
 	{
 		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
 			cs.rebuild();
-		return true;
 	}
 
 	template <class ...T>
 	void internal_rebuild_cells_sets(const std::tuple<T...>&)
 	{
-		auto a = { rebuild_cells_sets_of_type<T>()... };
+		auto a = { (internal_rebuild_cells_sets_of_type<T>(), 0)... };
 	}
 
 public:
@@ -196,7 +195,7 @@ public:
 	}
 
 	const MESH* mesh_;
-	std::shared_ptr<Attribute<Vec3>> bb_attribute_;
+	std::shared_ptr<Attribute<Vec3>> bb_vertex_position_;
 	Vec3 bb_min_, bb_max_;
 	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
 
