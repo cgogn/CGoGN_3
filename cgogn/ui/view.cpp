@@ -179,6 +179,11 @@ void View::link_module(ProviderModule* m)
 void View::update_scene_bb()
 {
 	geometry::Vec3 min, max;
+	for (uint32 i = 0; i < 3; ++i)
+	{
+		min[i] = std::numeric_limits<float64>::max();
+		max[i] = std::numeric_limits<float64>::lowest();
+	}
 	for (ProviderModule* m : linked_provider_modules_)
 	{
 		auto [pmin, pmax] = m->meshes_bb();
