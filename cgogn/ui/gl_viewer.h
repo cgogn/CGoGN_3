@@ -80,11 +80,11 @@ protected:
 	virtual void resize_event(int32 viewport_width, int32 viewport_height);
 	virtual void close_event();
 
-	virtual void mouse_press_event(int32 button, float64 x, float64 y);
-	virtual void mouse_release_event(int32 button, float64 x, float64 y);
-	virtual void mouse_dbl_click_event(int32 button, float64 x, float64 y);
-	virtual void mouse_move_event(float64 x, float64 y);
-	virtual void mouse_wheel_event(float64 x, float64 y);
+	virtual void mouse_press_event(int32 button, int32 x, int32 y);
+	virtual void mouse_release_event(int32 button, int32 x, int32 y);
+	virtual void mouse_dbl_click_event(int32 button, int32 x, int32 y);
+	virtual void mouse_move_event(int32 x, int32 y);
+	virtual void mouse_wheel_event(int32 x, int32 y);
 	virtual void key_press_event(int32 key_code);
 	virtual void key_release_event(int32 key_code);
 

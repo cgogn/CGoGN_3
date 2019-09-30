@@ -57,11 +57,11 @@ protected:
 	void resize_event(int32 window_width, int32 window_height, int32 frame_buffer_width, int32 frame_buffer_height);
 	virtual void close_event() override;
 
-	virtual void mouse_press_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_release_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_dbl_click_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_move_event(float64 x, float64 y) override;
-	virtual void mouse_wheel_event(float64 x, float64 y) override;
+	virtual void mouse_press_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_release_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_dbl_click_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_move_event(int32 x, int32 y) override;
+	virtual void mouse_wheel_event(int32 x, int32 y) override;
 	virtual void key_press_event(int32 key_code) override;
 	virtual void key_release_event(int32 key_code) override;
 
@@ -85,20 +85,21 @@ public:
     inline void set_last_click_time(float64 t) { last_click_time_ = t; }
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
-	rendering::GLVec3d unproject(const rendering::GLVec3d& P) const;
+	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
 
 protected:
 
-	float64 percent_x_offset_;
-	float64 percent_y_offset_;
-	float64 percent_width_;
-	float64 percent_height_;
+	float64 ratio_x_offset_;
+	float64 ratio_y_offset_;
+	float64 ratio_width_;
+	float64 ratio_height_;
 
 	int32 x_offset_;
 	int32 y_offset_;
 	int32 width_;
 	int32 height_;
 
+	// viewport_width_ & viewport_heght_ are in GLViewer
 	int32 viewport_x_offset_;
 	int32 viewport_y_offset_;
 

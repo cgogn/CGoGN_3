@@ -67,15 +67,15 @@ ViewModule::ViewModule(const App& app, const std::string& name) :
 ViewModule::~ViewModule()
 {}
 
-void ViewModule::mouse_press_event(View*, int32, float64, float64)
+void ViewModule::mouse_press_event(View*, int32, int32, int32)
 {}
-void ViewModule::mouse_release_event(View*, int32, float64, float64)
+void ViewModule::mouse_release_event(View*, int32, int32, int32)
 {}
-void ViewModule::mouse_dbl_click_event(View*, int32, float64, float64)
+void ViewModule::mouse_dbl_click_event(View*, int32, int32, int32)
 {}
-void ViewModule::mouse_move_event(View*, float64, float64)
+void ViewModule::mouse_move_event(View*, int32, int32)
 {}
-void ViewModule::mouse_wheel_event(View*, float64, float64)
+void ViewModule::mouse_wheel_event(View*, int32, int32)
 {}
 void ViewModule::key_press_event(View*, int32)
 {}

@@ -63,7 +63,7 @@ void GLViewer::resize_event(int32 viewport_width, int32 viewport_height)
 void GLViewer::close_event()
 {}
 
-void GLViewer::mouse_press_event(int32 button, float64 x, float64 y)
+void GLViewer::mouse_press_event(int32 button, int32 x, int32 y)
 {
 	if (button == 0)
 	{
@@ -74,7 +74,7 @@ void GLViewer::mouse_press_event(int32 button, float64 x, float64 y)
 	}
 }
 
-void GLViewer::mouse_release_event(int32 button, float64 x, float64 y)
+void GLViewer::mouse_release_event(int32 button, int32 x, int32 y)
 {
 	if (button == 0)
 	{
@@ -88,7 +88,7 @@ void GLViewer::mouse_release_event(int32 button, float64 x, float64 y)
 	}
 }
 
-void GLViewer::mouse_dbl_click_event(int32 buttons, float64 x, float64 y)
+void GLViewer::mouse_dbl_click_event(int32 buttons, int32 x, int32 y)
 {
 	if (inputs_->shift_pressed_)
 	{
@@ -101,10 +101,10 @@ void GLViewer::mouse_dbl_click_event(int32 buttons, float64 x, float64 y)
 	}
 }
 
-void GLViewer::mouse_move_event(float64 x, float64 y)
+void GLViewer::mouse_move_event(int32 x, int32 y)
 {
-	float64 dx = x - inputs_->last_mouse_x_;
-	float64 dy = y - inputs_->last_mouse_y_;
+	float64 dx = float64(x - inputs_->last_mouse_x_);
+	float64 dy = float64(y - inputs_->last_mouse_y_);
 
 	if ((inputs_->mouse_buttons_ & 1) && ((std::abs(dx) + std::abs(dy)) > 0.0))
 	{
@@ -154,22 +154,22 @@ void GLViewer::mouse_move_event(float64 x, float64 y)
 	}
 }
 
-void GLViewer::mouse_wheel_event(float64 dx, float64 dy)
+void GLViewer::mouse_wheel_event(int32 dx, int32 dy)
 {
-	if (dy != 0.0)
+	if (dy != 0)
 	{
 		if (obj_mode())
 		{
-			auto ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(0, 0, -0.0025 * dy)) * camera_.frame_;
+			auto ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(0, 0, -0.0025 * double(dy))) * camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
 		{
 			float64 zcam = 1.0 / std::tan(camera_.field_of_view() / 2.0);
 			float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam / camera_.scene_radius();
-			camera_.frame_.translation().z() -= inputs_->wheel_sensitivity_ * dy * std::max(0.1, a);
+			camera_.frame_.translation().z() -= inputs_->wheel_sensitivity_ * double(dy) * std::max(0.1, a);
 		}
-		need_redraw_=true;
+		need_redraw_ = true;
 	}
 }
 

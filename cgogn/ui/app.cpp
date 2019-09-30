@@ -124,9 +124,12 @@ App::App():
 		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
+		int32 px = std::floor(cx);
+		int32 py = std::floor(cy);
+
 		for (const auto& v : that->views_)
 		{
-			if (v->contains(cx, cy))
+			if (v->contains(px, py))
 			{
 				if (v.get() != that->current_view_)
 				{
@@ -137,13 +140,13 @@ App::App():
 				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
 				that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
 				that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);;
-				that->inputs_.last_mouse_x_ = cx;
-				that->inputs_.last_mouse_y_ = cy;
+				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
+				that->inputs_.last_mouse_x_ = px;
+				that->inputs_.last_mouse_y_ = py;
 
 				double now = glfwGetTime();
 
-				switch(a)
+				switch (a)
 				{
 				case GLFW_PRESS:
 					that->inputs_.mouse_buttons_ |= 1 << b;
@@ -158,11 +161,9 @@ App::App():
 					break;
 				}
 			}
-
-			std::cout << std::endl;
 		}
 
-		if (!that->over_window(cx, cy))
+		if (!that->over_window(px, py))
 			that->inputs_.mouse_buttons_ = 0;
 	});
 
@@ -180,27 +181,31 @@ App::App():
 		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
+		int32 px = std::floor(cx);
+		int32 py = std::floor(cy);
+
 		for (const auto& v : that->views_)
 		{
-			if (that->inputs_.mouse_buttons_ && v->contains(cx, cy))
+			if (that->inputs_.mouse_buttons_ && v->contains(px, py))
 			{
 				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
 					that->current_view_ = v.get();
 				}
-				v->mouse_move_event(x, y);
+
+				v->mouse_move_event(px, py);
 			}
 		}
 
-		if (!that->over_window(cx, cy))
+		if (!that->over_window(px, py))
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			that->current_view_ = nullptr;
 		}
 
-        that->inputs_.last_mouse_x_ = x;
-        that->inputs_.last_mouse_y_ = y;
+        that->inputs_.last_mouse_x_ = px;
+        that->inputs_.last_mouse_y_ = py;
 	});
 
 	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
@@ -215,17 +220,25 @@ App::App():
 
 		double cx, cy;
 		glfwGetCursorPos(wi, &cx, &cy);
+		ImGui::GetIO().MousePos = ImVec2(cx, cy);
+
+		int32 px = std::floor(cx);
+		int32 py = std::floor(cy);
 
 		for (const auto& v : that->views_)
 		{
-			if (v->contains(cx, cy))
+			if (v->contains(px, py))
 			{
 				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
 					that->current_view_ = v.get();
 				}
-				v->mouse_wheel_event(dx, 100 * dy);
+
+				that->inputs_.last_mouse_x_ = px;
+				that->inputs_.last_mouse_y_ = py;
+
+				v->mouse_wheel_event(std::floor(dx), 100 * std::floor(dy));
 			}
 		}
 	});
@@ -244,11 +257,14 @@ App::App():
 		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
+		int32 px = std::floor(cx);
+		int32 py = std::floor(cy);
+
 		if (enter)
 		{
 			for (const auto& v : that->views_)
 			{
-				if (v->contains(cx, cy))
+				if (v->contains(px, py))
 				{
 					if (v.get() != that->current_view_)
 					{
@@ -434,9 +450,6 @@ void App::init_modules()
 
 int App::launch()
 {
-	// for (const auto& v : views_)
-	// 	v->resize_event(window_width_, window_height_, frame_buffer_width_, frame_buffer_height_);
-
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
 	param_frame_->sz_ = 5.0f;
 
@@ -450,11 +463,14 @@ int App::launch()
 		for (const auto& v : views_)
 		{
 			v->draw();
-			if (v.get() == current_view_)
-				param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
-			else
-				param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
-			param_frame_->draw(v->viewport_width(), v->viewport_height());
+			if (views_.size() > 1)
+			{
+				if (v.get() == current_view_)
+					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
+				else
+					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
+				param_frame_->draw(v->viewport_width(), v->viewport_height());
+			}
 		}
 
 		if (show_imgui_)

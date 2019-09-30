@@ -31,10 +31,10 @@ namespace ui
 
 View::View(Inputs* inputs, View* share) :
 	GLViewer(inputs),
-	percent_x_offset_(0),
-	percent_y_offset_(0),
-	percent_width_(1),
-	percent_height_(1),
+	ratio_x_offset_(0),
+	ratio_y_offset_(0),
+	ratio_width_(1),
+	ratio_height_(1),
 	last_click_time_(0),
 	param_fst_(nullptr),
 	fbo_(nullptr),
@@ -57,23 +57,23 @@ View::~View()
 
 void View::set_view_ratio(float64 px, float64 py, float64 pw, float64 ph)
 {
-	percent_x_offset_ = px;
-	percent_y_offset_ = py;
-	percent_width_ = pw;
-	percent_height_ = ph;
+	ratio_x_offset_ = px;
+	ratio_y_offset_ = py;
+	ratio_width_ = pw;
+	ratio_height_ = ph;
 }
 
 void View::resize_event(int32 window_width, int32 window_height, int32 frame_buffer_width, int32 frame_buffer_height)
 {
-	x_offset_ = int32(percent_x_offset_ * window_width);
-	y_offset_ = int32(percent_y_offset_ * window_height);
-	width_ = int32(percent_width_ * window_width);
-	height_ = int32(percent_height_ * window_height);
+	x_offset_ = int32(ratio_x_offset_ * window_width);
+	y_offset_ = int32(ratio_y_offset_ * window_height);
+	width_ = int32(ratio_width_ * window_width);
+	height_ = int32(ratio_height_ * window_height);
 
-	viewport_x_offset_ = int32(percent_x_offset_ * frame_buffer_width);
-	viewport_y_offset_ = int32(percent_y_offset_ * frame_buffer_height);
+	viewport_x_offset_ = int32(ratio_x_offset_ * frame_buffer_width);
+	viewport_y_offset_ = int32(ratio_y_offset_ * frame_buffer_height);
 
-	GLViewer::resize_event(int32(percent_width_ * frame_buffer_width), int32(percent_height_ * frame_buffer_height));
+	GLViewer::resize_event(int32(ratio_width_ * frame_buffer_width), int32(ratio_height_ * frame_buffer_height));
 
 	fbo_->resize(viewport_width_, viewport_height_);
 }
@@ -84,7 +84,7 @@ void View::close_event()
 		m->close_event();
 }
 
-void View::mouse_press_event(int32 button, float64 x, float64 y)
+void View::mouse_press_event(int32 button, int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_press_event(this, button, x, y);
@@ -92,7 +92,7 @@ void View::mouse_press_event(int32 button, float64 x, float64 y)
 	GLViewer::mouse_press_event(button, x, y);
 }
 
-void View::mouse_release_event(int32 button, float64 x, float64 y)
+void View::mouse_release_event(int32 button, int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_release_event(this, button, x, y);
@@ -100,7 +100,7 @@ void View::mouse_release_event(int32 button, float64 x, float64 y)
 	GLViewer::mouse_release_event(button, x, y);
 }
 
-void View::mouse_dbl_click_event(int32 button, float64 x, float64 y)
+void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_dbl_click_event(this, button, x, y);
@@ -108,7 +108,7 @@ void View::mouse_dbl_click_event(int32 button, float64 x, float64 y)
 	GLViewer::mouse_dbl_click_event(button, x, y);
 }
 
-void View::mouse_move_event(float64 x, float64 y)
+void View::mouse_move_event(int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_move_event(this, x, y);
@@ -116,12 +116,12 @@ void View::mouse_move_event(float64 x, float64 y)
 	GLViewer::mouse_move_event(x, y);
 }
 
-void View::mouse_wheel_event(float64 x, float64 y)
+void View::mouse_wheel_event(int32 dx, int32 dy)
 {
 	for (ViewModule* m : linked_view_modules_)
-		m->mouse_wheel_event(this, x, y);
+		m->mouse_wheel_event(this, dx, dy);
 	
-	GLViewer::mouse_wheel_event(x, y);
+	GLViewer::mouse_wheel_event(dx, dy);
 }
 
 void View::key_press_event(int32 key_code)
@@ -182,13 +182,16 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	float64 zogl;
 
 	xs = GLint(double(x - x_offset_) / double(width_) * viewport_width_);
-	ys = GLint(double(height_ - (y - y_offset_)) / double(width_) * viewport_height_);
+	ys = GLint(double(height_ - (y - y_offset_)) / double(height_) * viewport_height_);
+
 	fbo_->bind();
 	glReadBuffer(GL_DEPTH_ATTACHMENT);
 	glReadPixels(xs, ys, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, z);
 	fbo_->release();
+
 	if (*z >= 1.0f)
 		return false;
+
 	xogl = (float64(xs) / viewport_width_) * 2.0 - 1.0;
 	yogl = (float64(ys) / viewport_height_) * 2.0 - 1.0;
 	zogl = float64(*z) * 2.0 - 1.0;
@@ -207,11 +210,12 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	return false;
 }
 
-rendering::GLVec3d View::unproject(const rendering::GLVec3d& P) const
+rendering::GLVec3d View::unproject(int32 x, int32 y, float64 z) const
 {
-	float64 xogl = ((P.x() - viewport_x_) / viewport_w_) * 2.0 - 1.0;
-	float64 yogl = (((frame_h_ - P.y()) - viewport_y_) / viewport_h_) * 2.0 - 1.0;
-	float64 zogl = P.z() * 2.0 - 1.0;
+	float64 xogl = (double(x - x_offset_) / double(width_)) * 2.0 - 1.0;
+	float64 yogl = (double(height_ - (y - y_offset_)) / double(height_)) * 2.0 - 1.0;
+	float64 zogl = z * 2.0 - 1.0;
+	
 	rendering::GLVec4d Q(xogl, yogl, zogl, 1.0);
 	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();
 	rendering::GLVec4d res = im * Q;

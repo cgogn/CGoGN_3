@@ -52,8 +52,8 @@ struct CGOGN_UI_EXPORT Inputs
 	float64 spin_sensitivity_;
 	float64 double_click_timeout_;
 
-	float64 last_mouse_x_;
-	float64 last_mouse_y_;
+	int32 last_mouse_x_;
+	int32 last_mouse_y_;
 	uint32 mouse_buttons_;
 
 	bool need_redraw_;
