@@ -54,20 +54,13 @@ struct MeshData
 	MeshData() : mesh_(nullptr)
 	{}
 
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshData);
+
 	void init(const MESH* m)
 	{
 		mesh_ = m;
 		update_nb_cells();
 	}
-
-	// MeshData(const MeshData& m) :
-	// 	mesh_(m.mesh_),
-	// 	nb_cells_(m.nb_cells_)
-	// {}
-	// MeshData(const MESH* mesh) : mesh_(mesh)
-	// {
-	// 	update_nb_cells();
-	// }
 	
 	void draw(rendering::DrawingType primitive)
 	{

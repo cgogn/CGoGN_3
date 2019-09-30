@@ -30,10 +30,8 @@ namespace ui
 {
 
 GLViewer::GLViewer(Inputs* inputs) :
-	viewport_x_(0),
-	viewport_y_(0),
-	viewport_w_(0),
-	viewport_h_(0),
+	viewport_width_(0),
+	viewport_height_(0),
 	inputs_(inputs),
 	need_redraw_(true)
 {
@@ -51,12 +49,14 @@ void GLViewer::set_manipulated_frame(MovingFrame* frame)
 		inv_camera_ = camera_.frame_.inverse();
 	}
 	else
-		current_frame_ = &(camera_);
+		current_frame_ = &camera_;
 }
 
-void GLViewer::resize_event(int32 frame_width, int32 frame_height)
+void GLViewer::resize_event(int32 viewport_width, int32 viewport_height)
 {
-	camera_.set_aspect_ratio(double(viewport_w_) / viewport_h_);
+	viewport_width_ = viewport_width;
+	viewport_height_ = viewport_height;
+	camera_.set_aspect_ratio(double(viewport_width_) / viewport_height_);
 	need_redraw_ = true;
 }
 
@@ -138,16 +138,15 @@ void GLViewer::mouse_move_event(float64 x, float64 y)
 		float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam;
 		if (obj_mode())
 		{
-			
-			float64 tx = dx / viewport_w_ * camera_.width() * a;
-			float64 ty = - dy / viewport_h_ * camera_.height() * a;
+			float64 tx = dx / viewport_width_ * camera_.width() * a;
+			float64 ty = - dy / viewport_height_ * camera_.height() * a;
 			rendering::Transfo3d ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(tx, ty, 0.0)) * camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
 		{
-			float64 nx = float64(dx) / viewport_w_ * camera_.width() * a;
-			float64 ny = - 1.0 * float64(dy) / viewport_h_ * camera_.height() * a;
+			float64 nx = float64(dx) / viewport_width_ * camera_.width() * a;
+			float64 ny = - 1.0 * float64(dy) / viewport_height_ * camera_.height() * a;
 			camera_.frame_.translation().x() += 2 * nx;
 			camera_.frame_.translation().y() += 2 * ny;
 		}

@@ -46,8 +46,8 @@ App::App():
 	window_(nullptr),
     context_(nullptr),
 	window_name_("CGoGN"),
-	window_frame_width_(512),
-	window_frame_height_(512),
+	window_width_(512),
+	window_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
 	current_view_(nullptr)
@@ -63,7 +63,7 @@ App::App():
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	window_ = glfwCreateWindow(window_frame_width_, window_frame_height_, window_name_.c_str(), nullptr, nullptr);
+	window_ = glfwCreateWindow(window_width_, window_height_, window_name_.c_str(), nullptr, nullptr);
 	if (window_ == nullptr)
 		std::cerr << "Failed to create Window!" << std::endl;
 
@@ -98,20 +98,16 @@ App::App():
 	std::cout << glGetString(GL_RENDERER) << std::endl;
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	int x, y;
-	glfwGetWindowSize(window_, &x, &y);
-	std::cout << "Window size: " << x << ", " << y << std::endl;
-	glfwGetFramebufferSize(window_, &x, &y);
-	std::cout << "Framebuffer size: " << x << ", " << y << std::endl;
-
-	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int, int)
+	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int width, int height)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
-		glfwGetFramebufferSize(wi, &(that->window_frame_width_), &(that->window_frame_height_));
+		that->window_width_ = width;
+		that->window_height_ = height;
+		glfwGetFramebufferSize(wi, &(that->framebuffer_width_), &(that->framebuffer_height_));
 
 		for (const auto& v : that->views_)
-			v->resize_event(that->window_frame_width_, that->window_frame_height_);
+			v->resize_event(that->window_width_, that->window_height_, that->framebuffer_width_, that->framebuffer_height_);
 	});
 
 	glfwSetMouseButtonCallback(window_, [] (GLFWwindow* wi, int b, int a, int m)
@@ -130,7 +126,7 @@ App::App():
 
 		for (const auto& v : that->views_)
 		{
-			if (v->over_viewport(cx, cy))
+			if (v->contains(cx, cy))
 			{
 				if (v.get() != that->current_view_)
 				{
@@ -162,9 +158,11 @@ App::App():
 					break;
 				}
 			}
+
+			std::cout << std::endl;
 		}
 
-		if (!that->over_frame(cx, cy))
+		if (!that->over_window(cx, cy))
 			that->inputs_.mouse_buttons_ = 0;
 	});
 
@@ -184,7 +182,7 @@ App::App():
 
 		for (const auto& v : that->views_)
 		{
-			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx, cy))
+			if (that->inputs_.mouse_buttons_ && v->contains(cx, cy))
 			{
 				if (v.get() != that->current_view_)
 				{
@@ -195,7 +193,7 @@ App::App():
 			}
 		}
 
-		if (!that->over_frame(cx, cy))
+		if (!that->over_window(cx, cy))
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			that->current_view_ = nullptr;
@@ -220,7 +218,7 @@ App::App():
 
 		for (const auto& v : that->views_)
 		{
-			if (v->over_viewport(cx, cy))
+			if (v->contains(cx, cy))
 			{
 				if (v.get() != that->current_view_)
 				{
@@ -250,7 +248,7 @@ App::App():
 		{
 			for (const auto& v : that->views_)
 			{
-				if (v->over_viewport(cx, cy))
+				if (v->contains(cx, cy))
 				{
 					if (v.get() != that->current_view_)
 					{
@@ -308,7 +306,7 @@ App::App():
 
 		for (const auto& v : that->views_)
 		{
-			if (v->over_viewport(cx, cy))
+			if (v->contains(cx, cy))
 			{
 				that->current_view_ = v.get();
 
@@ -436,12 +434,11 @@ void App::init_modules()
 
 int App::launch()
 {
-	for (const auto& v : views_)
-		v->resize_event(window_frame_width_, window_frame_height_);
+	// for (const auto& v : views_)
+	// 	v->resize_event(window_width_, window_height_, frame_buffer_width_, frame_buffer_height_);
 
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
 	param_frame_->sz_ = 5.0f;
-	param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
 
 	while (!glfwWindowShouldClose(window_))
 	{
@@ -453,7 +450,11 @@ int App::launch()
 		for (const auto& v : views_)
 		{
 			v->draw();
-			param_frame_->draw(v->width(), v->height());
+			if (v.get() == current_view_)
+				param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
+			else
+				param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
+			param_frame_->draw(v->viewport_width(), v->viewport_height());
 		}
 
 		if (show_imgui_)

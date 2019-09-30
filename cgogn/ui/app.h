@@ -55,8 +55,6 @@ public:
 
 	void set_window_size(int32 w, int32 h);
 	void set_window_title(const std::string& name);
-	
-	inline float32 device_pixel_ratio() const { return 1.0f; }
 
 	View* add_view();
 	inline View* current_view() const { return current_view_; }
@@ -71,9 +69,10 @@ private:
 
 	void close_event();
     void adapt_views_geometry();
-	inline bool over_frame(int32 x, int32 y) const
+	
+	inline bool over_window(int32 x, int32 y) const
 	{
-		return (x < window_frame_width_) && (y < window_frame_width_);
+		return x >= 0 && x < window_width_ && y >= 0 && y < window_height_;
 	}
 
 	GLFWwindow* window_;
@@ -81,8 +80,10 @@ private:
 
 	std::string window_name_;
 
-	int32 window_frame_width_;
-	int32 window_frame_height_;
+	int32 window_width_;
+	int32 window_height_;
+	int32 framebuffer_width_;
+	int32 framebuffer_height_;
 
 	float64 interface_scaling_;
 	bool show_imgui_;

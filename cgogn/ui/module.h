@@ -74,8 +74,6 @@ public:
 
 protected:
 
-	virtual void resize_event(View* view, int32 viewport_width, int32 viewport_height);
-
 	virtual void mouse_press_event(View* view, int32 button, float64 x, float64 y);
 	virtual void mouse_release_event(View* view, int32 button, float64 x, float64 y);
 	virtual void mouse_dbl_click_event(View* view, int32 button, float64 x, float64 y);

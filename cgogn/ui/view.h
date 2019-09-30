@@ -54,7 +54,7 @@ public:
 
 protected:
 
-	virtual void resize_event(int32 frame_width, int32 frame_height) override;
+	void resize_event(int32 window_width, int32 window_height, int32 frame_buffer_width, int32 frame_buffer_height);
 	virtual void close_event() override;
 
 	virtual void mouse_press_event(int32 button, float64 x, float64 y) override;
@@ -72,10 +72,11 @@ public:
     void link_module(ViewModule* m);
     void link_module(ProviderModule* m);
 
-	inline bool over_viewport(int32 x, int32 y) const
+	inline bool contains(int32 x, int32 y) const
 	{
-		y = frame_h_ - y;
-		return (x >= viewport_x_) && (x < viewport_x_ + viewport_w_) && (y >= viewport_y_) && (y < viewport_y_ + viewport_h_);
+		return
+			x >= x_offset_ && x < x_offset_ + width_ &&
+			y >= y_offset_ && y < y_offset_ + height_;
 	}
 
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
@@ -88,13 +89,18 @@ public:
 
 protected:
 
-	float64 frame_w_;
-	float64 frame_h_;
+	float64 percent_x_offset_;
+	float64 percent_y_offset_;
+	float64 percent_width_;
+	float64 percent_height_;
 
-	float64 viewport_percent_x_;
-	float64 viewport_percent_y_;
-	float64 viewport_percent_width_;
-	float64 viewport_percent_height_;
+	int32 x_offset_;
+	int32 y_offset_;
+	int32 width_;
+	int32 height_;
+
+	int32 viewport_x_offset_;
+	int32 viewport_y_offset_;
 
 	float64 last_click_time_;
 
