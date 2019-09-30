@@ -63,6 +63,10 @@ protected:
 	std::string name_;
 };
 
+/*****************************************************************************/
+// ViewModule
+/*****************************************************************************/
+
 class CGOGN_UI_EXPORT ViewModule : public Module
 {
 	friend class View;
@@ -87,6 +91,10 @@ protected:
 	std::vector<View*> linked_views_;
 };
 
+/*****************************************************************************/
+// ProviderModule
+/*****************************************************************************/
+
 class CGOGN_UI_EXPORT ProviderModule : public Module
 {
 	friend class View;
@@ -95,6 +103,8 @@ public:
 
 	ProviderModule(const App& app, const std::string& name);
 	virtual ~ProviderModule();
+
+	virtual std::pair<geometry::Vec3, geometry::Vec3> meshes_bb() const = 0;
 
 protected:
 	

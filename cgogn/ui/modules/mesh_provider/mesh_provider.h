@@ -67,7 +67,9 @@ public:
 	MeshProvider(const App& app) :
 		ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"),
 		show_mesh_inspector_(false),
-		selected_mesh_(nullptr)
+		selected_mesh_(nullptr),
+		bb_min_(0, 0, 0),
+		bb_max_(0, 0, 0)
 	{}
 	
 	~MeshProvider()
@@ -166,7 +168,7 @@ public:
 			f(m.get(), name);
 	}
 
-	std::string mesh_name(const MESH* m)
+	std::string mesh_name(const MESH* m) const
 	{
 		auto it = std::find_if(
 			meshes_.begin(), meshes_.end(),
@@ -187,42 +189,42 @@ public:
 			return nullptr;
 	}
 
-	std::pair<Vec3, Vec3> meshes_bb()
+	std::pair<Vec3, Vec3> meshes_bb() const override
 	{
-		Vec3 min, max;
+		return std::make_pair(bb_min_, bb_max_);
+	}
+
+private:
+
+	void update_meshes_bb()
+	{
 		for (uint32 i = 0; i < 3; ++i)
 		{
-			min[i] = std::numeric_limits<float64>::max();
-			max[i] = std::numeric_limits<float64>::lowest();
+			bb_min_[i] = std::numeric_limits<float64>::max();
+			bb_max_[i] = std::numeric_limits<float64>::lowest();
 		}
-		for (auto& [name, m] : meshes_)
+		for (auto& [m, md] : mesh_data_)
 		{
-			MeshData<MESH>& md = mesh_data_[m.get()];
 			for (uint32 i = 0; i < 3; ++i)
 			{
-				if (md.bb_min_[i] < min[i])
-					min[i] = md.bb_min_[i];
-				if (md.bb_max_[i] > max[i])
-					max[i] = md.bb_max_[i];
+				if (md.bb_min_[i] < bb_min_[i])
+					bb_min_[i] = md.bb_min_[i];
+				if (md.bb_max_[i] > bb_max_[i])
+					bb_max_[i] = md.bb_max_[i];
 			}
 		}
-		return std::make_pair(min, max);
 	}
+
+public:
 
 	void set_mesh_bb_vertex_position(const MESH* m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		MeshData<MESH>& md = mesh_data_[m];
 		md.bb_vertex_position_ = vertex_position;
 		md.update_bb();
-		auto [min, max] = meshes_bb();
+		update_meshes_bb();
 		for (View* v : linked_views_)
-		{
-			Scalar radius = (max - min).norm() / 2.0;
-			Vec3 center = (max + min) / 2.0;
-			v->set_scene_radius(radius);
-			v->set_scene_center(center);
-			v->request_update();
-		}
+			v->update_scene_bb();
 	}
 
 	/////////////
@@ -243,15 +245,9 @@ public:
 		if (static_cast<AttributeGen*>(md.bb_vertex_position_.get()) == static_cast<AttributeGen*>(attribute))
 		{
 			md.update_bb();
-			auto [min, max] = meshes_bb();
+			update_meshes_bb();
 			for (View* v : linked_views_)
-			{
-				Scalar radius = (max - min).norm() / 2.0;
-				Vec3 center = (max + min) / 2.0;
-				v->set_scene_radius(radius);
-				v->set_scene_center(center);
-				v->request_update();
-			}
+				v->update_scene_bb();
 		}
 
 		boost::synapse::emit<attribute_changed>(m, attribute);
@@ -363,6 +359,7 @@ private:
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
+	Vec3 bb_min_, bb_max_;
 };
 
 } // namespace ui

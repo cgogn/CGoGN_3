@@ -70,11 +70,6 @@ private:
 	void close_event();
     void adapt_views_geometry();
 	
-	inline bool over_window(int32 x, int32 y) const
-	{
-		return x >= 0 && x < window_width_ && y >= 0 && y < window_height_;
-	}
-
 	GLFWwindow* window_;
 	ImGuiContext* context_;
 

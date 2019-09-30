@@ -35,13 +35,11 @@ View::View(Inputs* inputs, View* share) :
 	ratio_y_offset_(0),
 	ratio_width_(1),
 	ratio_height_(1),
-	last_click_time_(0),
 	param_fst_(nullptr),
 	fbo_(nullptr),
-	tex_(nullptr)
+	tex_(nullptr),
+	closing_(false)
 {
-	// bool err = gl3wInit();
-
 	tex_ = std::make_unique<rendering::Texture2D>();
 	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
 	std::vector<rendering::Texture2D*> vt{tex_.get()};
@@ -82,6 +80,8 @@ void View::close_event()
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->close_event();
+	
+	closing_ = true;
 }
 
 void View::mouse_press_event(int32 button, int32 x, int32 y)
@@ -116,7 +116,7 @@ void View::mouse_move_event(int32 x, int32 y)
 	GLViewer::mouse_move_event(x, y);
 }
 
-void View::mouse_wheel_event(int32 dx, int32 dy)
+void View::mouse_wheel_event(float64 dx, float64 dy)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_wheel_event(this, dx, dy);
@@ -142,6 +142,9 @@ void View::key_release_event(int32 key_code)
 
 void View::draw()
 {
+	if (closing_)
+		return;
+	
 	spin();
 	glViewport(viewport_x_offset_, viewport_y_offset_, viewport_width_, viewport_height_);
 	
@@ -171,6 +174,28 @@ void View::link_module(ProviderModule* m)
 {
 	linked_provider_modules_.push_back(m);
 	m->linked_views_.push_back(this);
+}
+
+void View::update_scene_bb()
+{
+	geometry::Vec3 min, max;
+	for (ProviderModule* m : linked_provider_modules_)
+	{
+		auto [pmin, pmax] = m->meshes_bb();
+		for (uint32 i = 0; i < 3; ++i)
+		{
+			if (pmin[i] < min[i])
+				min[i] = pmin[i];
+			if (pmax[i] > max[i])
+				max[i] = pmax[i];
+		}
+	}
+	geometry::Scalar radius = (max - min).norm() / 2.0;
+	geometry::Vec3 center = (max + min) / 2.0;
+	set_scene_radius(radius);
+	set_scene_center(center);
+	show_entire_scene();
+	request_update();
 }
 
 bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const

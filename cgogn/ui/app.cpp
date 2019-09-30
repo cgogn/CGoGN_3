@@ -120,8 +120,42 @@ App::App():
 			return;
 		}
 
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
+		if (that->current_view_)
+		{
+			that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
+			that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
+			that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
+			that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
+			
+			double now = glfwGetTime();
+
+			switch (a)
+			{
+			case GLFW_PRESS:
+				that->inputs_.mouse_buttons_ |= 1 << b;
+				that->current_view_->mouse_press_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				if (now - that->inputs_.previous_click_time_ < that->inputs_.double_click_timeout_)
+					that->current_view_->mouse_dbl_click_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				that->inputs_.previous_click_time_ = now;
+				break;
+			case GLFW_RELEASE:
+				that->inputs_.mouse_buttons_ &= ~(1 << b);
+				that->current_view_->mouse_release_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				break;
+			}
+		}
+	});
+
+	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double cx, double cy)
+	{
+		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
+		
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+		{
+			that->inputs_.mouse_buttons_ = 0;
+			return;
+		}
+
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
 
 		int32 px = std::floor(cx);
@@ -137,75 +171,12 @@ App::App():
 					that->current_view_ = v.get();
 				}
 
-				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
-				that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
-				that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
-				that->inputs_.last_mouse_x_ = px;
-				that->inputs_.last_mouse_y_ = py;
-
-				double now = glfwGetTime();
-
-				switch (a)
-				{
-				case GLFW_PRESS:
-					that->inputs_.mouse_buttons_ |= 1 << b;
-					v->mouse_press_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					if (now - v->last_click_time() < that->inputs_.double_click_timeout_)
-						v->mouse_dbl_click_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					v->set_last_click_time(now);
-					break;
-				case GLFW_RELEASE:
-					that->inputs_.mouse_buttons_ &= ~(1 << b);
-					v->mouse_release_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					break;
-				}
-			}
-		}
-
-		if (!that->over_window(px, py))
-			that->inputs_.mouse_buttons_ = 0;
-	});
-
-	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double x, double y)
-	{
-		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-		
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
-		{
-			that->inputs_.mouse_buttons_ = 0;
-			return;
-		}
-
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
-
-		int32 px = std::floor(cx);
-		int32 py = std::floor(cy);
-
-		for (const auto& v : that->views_)
-		{
-			if (that->inputs_.mouse_buttons_ && v->contains(px, py))
-			{
-				if (v.get() != that->current_view_)
-				{
-					that->inputs_.mouse_buttons_ = 0;
-					that->current_view_ = v.get();
-				}
-
 				v->mouse_move_event(px, py);
 			}
 		}
 
-		if (!that->over_window(px, py))
-		{
-			that->inputs_.mouse_buttons_ = 0;
-			that->current_view_ = nullptr;
-		}
-
-        that->inputs_.last_mouse_x_ = px;
-        that->inputs_.last_mouse_y_ = py;
+        that->inputs_.previous_mouse_x_ = px;
+        that->inputs_.previous_mouse_y_ = py;
 	});
 
 	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
@@ -218,29 +189,8 @@ App::App():
 			return;
 		}
 
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
-
-		int32 px = std::floor(cx);
-		int32 py = std::floor(cy);
-
-		for (const auto& v : that->views_)
-		{
-			if (v->contains(px, py))
-			{
-				if (v.get() != that->current_view_)
-				{
-					that->inputs_.mouse_buttons_ = 0;
-					that->current_view_ = v.get();
-				}
-
-				that->inputs_.last_mouse_x_ = px;
-				that->inputs_.last_mouse_y_ = py;
-
-				v->mouse_wheel_event(std::floor(dx), 100 * std::floor(dy));
-			}
-		}
+		if (that->current_view_)
+			that->current_view_->mouse_wheel_event(dx, 100 * dy);
 	});
 
 	glfwSetCursorEnterCallback(window_, [] (GLFWwindow* wi, int enter)
@@ -253,29 +203,7 @@ App::App():
 			return;
 		}
 		
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
-
-		int32 px = std::floor(cx);
-		int32 py = std::floor(cy);
-
-		if (enter)
-		{
-			for (const auto& v : that->views_)
-			{
-				if (v->contains(px, py))
-				{
-					if (v.get() != that->current_view_)
-					{
-						that->inputs_.mouse_buttons_ = 0;
-						that->current_view_ = v.get();
-					}
-				}
-			}
-			that->inputs_.mouse_buttons_ = 0;
-		}
-		else
+		if (!enter)
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			that->current_view_ = nullptr;
@@ -285,9 +213,6 @@ App::App():
 	glfwSetKeyCallback(window_, [] (GLFWwindow* wi, int k, int s, int a, int m)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
 
         that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
         that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
@@ -320,49 +245,44 @@ App::App():
                 break;
         }
 
-		for (const auto& v : that->views_)
+		if (that->current_view_)
 		{
-			if (v->contains(cx, cy))
+			switch(a)
 			{
-				that->current_view_ = v.get();
-
-				switch(a)
+			case GLFW_PRESS:
+				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
 				{
-				case GLFW_PRESS:
-					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
-					{
-						GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-						const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-						glfwSetWindowMonitor(wi, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						return;
-					}
-					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && that->inputs_.shift_pressed_)
-					{
-						int count;
-						GLFWmonitor** monitors = glfwGetMonitors(&count);
-						if (count > 1)
-						{
-							const GLFWvidmode* mode = glfwGetVideoMode(monitors[1]);
-							glfwSetWindowMonitor(wi, monitors[1], 0, 0, mode->width, mode->height, mode->refreshRate);
-							glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						}
-						else
-							std::cerr << "Only one monitor" << std::endl;
-						return;
-					}
-					if ((k == GLFW_KEY_W) && that->inputs_.control_pressed_)
-					{
-						glfwSetWindowMonitor(wi, nullptr, 100, 100, 1024, 1024, 0);
-						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						return;
-					}
-					v->key_press_event(k);
-					break;
-				case GLFW_RELEASE:
-					v->key_release_event(k);
-					break;
+					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+					const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+					glfwSetWindowMonitor(wi, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+					glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					return;
 				}
+				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && that->inputs_.shift_pressed_)
+				{
+					int count;
+					GLFWmonitor** monitors = glfwGetMonitors(&count);
+					if (count > 1)
+					{
+						const GLFWvidmode* mode = glfwGetVideoMode(monitors[1]);
+						glfwSetWindowMonitor(wi, monitors[1], 0, 0, mode->width, mode->height, mode->refreshRate);
+						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					}
+					else
+						std::cerr << "Only one monitor" << std::endl;
+					return;
+				}
+				if ((k == GLFW_KEY_W) && that->inputs_.control_pressed_)
+				{
+					glfwSetWindowMonitor(wi, nullptr, 100, 100, 1024, 1024, 0);
+					glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					return;
+				}
+				that->current_view_->key_press_event(k);
+				break;
+			case GLFW_RELEASE:
+				that->current_view_->key_release_event(k);
+				break;
 			}
 		}
 	});
@@ -440,6 +360,9 @@ void App::adapt_views_geometry()
 		views_[3]->set_view_ratio(0.5, 0.5, 0.5, 0.5);
 		break;
 	}
+
+	for (const auto& v : views_)
+		v->resize_event(window_width_, window_height_, framebuffer_width_, framebuffer_height_);
 }
 
 void App::init_modules()

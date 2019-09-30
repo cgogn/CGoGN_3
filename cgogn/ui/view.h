@@ -61,7 +61,7 @@ protected:
 	virtual void mouse_release_event(int32 button, int32 x, int32 y) override;
 	virtual void mouse_dbl_click_event(int32 button, int32 x, int32 y) override;
 	virtual void mouse_move_event(int32 x, int32 y) override;
-	virtual void mouse_wheel_event(int32 x, int32 y) override;
+	virtual void mouse_wheel_event(float64 dx, float64 dy) override;
 	virtual void key_press_event(int32 key_code) override;
 	virtual void key_release_event(int32 key_code) override;
 
@@ -81,8 +81,7 @@ public:
 
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
 
-    inline float64 last_click_time() const { return last_click_time_; }
-    inline void set_last_click_time(float64 t) { last_click_time_ = t; }
+	void update_scene_bb();
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
 	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
@@ -103,14 +102,14 @@ protected:
 	int32 viewport_x_offset_;
 	int32 viewport_y_offset_;
 
-	float64 last_click_time_;
-
 	std::unique_ptr<rendering::ShaderFSTexture::Param> param_fst_;
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
 
-    std::vector<ViewModule*> linked_view_modules_;
-    std::vector<ProviderModule*> linked_provider_modules_;
+	std::vector<ViewModule*> linked_view_modules_;
+	std::vector<ProviderModule*> linked_provider_modules_;
+
+	bool closing_;
 };
 
 } // namespace cgogn

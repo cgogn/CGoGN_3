@@ -86,7 +86,9 @@ int main(int argc, char** argv)
 	v1->link_module(&srv);
 
 	cgogn::ui::View* v2 = app.add_view();
+	v2->link_module(&mps);
 	v2->link_module(&mpv);
+	v2->link_module(&sr);
 	v2->link_module(&sr_vol);
 
 	SurfaceMesh* sm = mps.load_surface_from_file(surface_filename);
