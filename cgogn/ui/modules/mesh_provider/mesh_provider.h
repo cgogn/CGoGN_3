@@ -82,7 +82,7 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
- 			bool imported = cgogn::io::import_CG(*m, filename);
+			bool imported = cgogn::io::import_CG(*m, filename);
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
