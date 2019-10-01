@@ -29,6 +29,12 @@ namespace cgogn
 CGOGN_TLS uint32 thread_index_;
 CGOGN_TLS Buffers<uint32>* uint32_buffers_thread_ = nullptr;
 
+CGOGN_TLS uint32 uint32_value_ = 0;
+CGOGN_TLS float64 float64_value_ = 0.0;
+
+CGOGN_CORE_EXPORT uint32& uint32_value() { return uint32_value_; }
+CGOGN_CORE_EXPORT float64& float64_value() { return float64_value_; }
+
 CGOGN_CORE_EXPORT void thread_start(uint32 ind)
 {
 	thread_index_ = ind;
