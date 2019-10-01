@@ -36,12 +36,13 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	std::shared_ptr<Attribute<Dart>> phi3_;
 
 	using Vertex = Cell<PHI21_PHI31>;
+	using Vertex2 = Cell<PHI21>;
 	using Edge = Cell<PHI2_PHI3>;
 	using Face = Cell<PHI1_PHI3>;
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Cell<PHI1_PHI2_PHI3>;
 
-	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
+	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Volume>;
 
 	CMap3() : CMap2()
 	{
@@ -91,6 +92,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 		switch (orbit)
 		{
 			case DART: f(c.dart); break;
+			case PHI21: foreach_dart_of_PHI21(c.dart, f); break;
 			case PHI1_PHI2: foreach_dart_of_PHI1_PHI2(c.dart, f); break;
 			case PHI1_PHI3: foreach_dart_of_PHI1_PHI3(c.dart, f); break;
 			case PHI2_PHI3: foreach_dart_of_PHI2_PHI3(c.dart, f); break;

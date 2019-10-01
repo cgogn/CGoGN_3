@@ -75,6 +75,16 @@ public:
 	~MeshProvider()
 	{}
 
+	MESH* add_mesh(const std::string& name)
+	{
+		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+		MESH* m = it->second.get();
+		MeshData<MESH>& md = mesh_data_[m];
+		md.init(m);
+		boost::synapse::emit<mesh_added>(this, m);
+		return m;
+	}
+
 	MESH* load_graph_from_file(const std::string& filename)
 	{
 		if constexpr (mesh_traits<MESH>::dimension == 1)

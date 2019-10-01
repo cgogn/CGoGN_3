@@ -37,10 +37,11 @@ struct CGOGN_CORE_EXPORT Graph : public CMapBase
 	std::shared_ptr<Attribute<Dart>> alpha1_;
 	std::shared_ptr<Attribute<Dart>> alpha_1_;
 
+	using Vertex1 = Cell<DART>;
 	using Vertex = Cell<PHI21>;
 	using Edge = Cell<PHI2>;
 
-	using Cells = std::tuple<Vertex, Edge>;
+	using Cells = std::tuple<Vertex1, Vertex, Edge>;
 
 	Graph() : CMapBase()
 	{

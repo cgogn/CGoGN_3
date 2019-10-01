@@ -124,7 +124,10 @@ bool import_CG(Graph& g, const std::string& filename)
 	}
 
 	if (edges_vertex_indices.size() == 0u)
+	{
+		std::cerr << "File \"" << filename << " has no edges." << std::endl;
 		return false;
+	}
 	
 	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
 

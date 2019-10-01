@@ -98,12 +98,13 @@ struct mesh_traits<CMap3>
 	static constexpr const uint8 dimension = 3;
 
 	using Vertex = CMap3::Vertex;
+	using Vertex2 = CMap3::Vertex2;
 	using Edge = CMap3::Edge;
 	using Face = CMap3::Face;
 	using Volume = CMap3::Volume;
 
-	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
-	static constexpr const char* cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
+	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Volume>;
+	static constexpr const char* cell_names[] = { "Vertex", "Vertex2", "Edge", "Face", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -117,11 +118,12 @@ struct mesh_traits<Graph>
 	static constexpr const char* name = "Graph";
 	static constexpr const uint8 dimension = 1;
 
+	using Vertex1 = Graph::Vertex1;
 	using Vertex = Graph::Vertex;
 	using Edge = Graph::Edge;
 
-	using Cells = std::tuple<Vertex, Edge>;
-	static constexpr const char* cell_names[] = { "Vertex", "Edge" };
+	using Cells = std::tuple<Vertex1, Vertex, Edge>;
+	static constexpr const char* cell_names[] = { "Vertex1", "Vertex", "Edge" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
