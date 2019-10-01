@@ -285,7 +285,14 @@ protected:
 		{
 			auto result = open_file_dialog->result();
 			if (result.size())
-				load_surface_from_file(result[0]);
+			{
+				if constexpr (mesh_traits<MESH>::dimension == 1)
+					load_graph_from_file(result[0]);
+				if constexpr (mesh_traits<MESH>::dimension == 2)
+					load_surface_from_file(result[0]);
+				if constexpr (mesh_traits<MESH>::dimension == 3)
+					load_volume_from_file(result[0]);
+			}
 			open_file_dialog = nullptr;
 		}
 
