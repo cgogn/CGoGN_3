@@ -82,7 +82,7 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_CG(*m, filename);
+ 			bool imported = cgogn::io::import_CG(*m, filename);
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
@@ -275,7 +275,14 @@ protected:
 		{
 			auto result = open_file_dialog->result();
 			if (result.size())
-				load_surface_from_file(result[0]);
+			{
+				if constexpr (mesh_traits<MESH>::dimension == 1)
+					load_graph_from_file(result[0]);
+				if constexpr (mesh_traits<MESH>::dimension == 2)
+					load_surface_from_file(result[0]);
+				if constexpr (mesh_traits<MESH>::dimension == 3)
+					load_volume_from_file(result[0]);
+			}
 			open_file_dialog = nullptr;
 		}
 
