@@ -30,6 +30,10 @@ namespace cgogn
 namespace ui
 {
 
+/*****************************************************************************/
+// Module
+/*****************************************************************************/
+
 Module::Module(const App& app, const std::string& name) :
     app_(app),
     name_(name)
@@ -40,29 +44,6 @@ Module::Module(const App& app, const std::string& name) :
 Module::~Module()
 {}
 
-void Module::resize_event(View*, int32, int32)
-{}
-void Module::close_event()
-{}
-
-void Module::mouse_press_event(View*, int32, float64, float64)
-{}
-void Module::mouse_release_event(View*, int32, float64, float64)
-{}
-void Module::mouse_dbl_click_event(View*, int32, float64, float64)
-{}
-void Module::mouse_move_event(View*, float64, float64)
-{}
-void Module::mouse_wheel_event(View*, float64, float64)
-{}
-void Module::key_press_event(View*, int32)
-{}
-void Module::key_release_event(View*, int32)
-{}
-
-void Module::draw(View*)
-{}
-
 void Module::init()
 {}
 
@@ -71,6 +52,50 @@ void Module::main_menu()
 
 void Module::interface()
 {}
+
+void Module::close_event()
+{}
+
+/*****************************************************************************/
+// ViewModule
+/*****************************************************************************/
+
+ViewModule::ViewModule(const App& app, const std::string& name) :
+    Module(app, name)
+{}
+
+ViewModule::~ViewModule()
+{}
+
+void ViewModule::mouse_press_event(View*, int32, int32, int32)
+{}
+void ViewModule::mouse_release_event(View*, int32, int32, int32)
+{}
+void ViewModule::mouse_dbl_click_event(View*, int32, int32, int32)
+{}
+void ViewModule::mouse_move_event(View*, int32, int32)
+{}
+void ViewModule::mouse_wheel_event(View*, int32, int32)
+{}
+void ViewModule::key_press_event(View*, int32)
+{}
+void ViewModule::key_release_event(View*, int32)
+{}
+
+void ViewModule::draw(View*)
+{}
+
+/*****************************************************************************/
+// ProviderModule
+/*****************************************************************************/
+
+ProviderModule::ProviderModule(const App& app, const std::string& name) :
+    Module(app, name)
+{}
+
+ProviderModule::~ProviderModule()
+{}
+
 
 } // namespace cgogn
 

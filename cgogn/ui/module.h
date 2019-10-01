@@ -27,6 +27,7 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
@@ -42,7 +43,6 @@ class View;
 class CGOGN_UI_EXPORT Module
 {
 	friend class App;
-	friend class View;
 
 public:
 
@@ -53,25 +53,61 @@ public:
 
 protected:
 
-	virtual void resize_event(View* view, int32 viewport_width, int32 viewport_height);
+	virtual void init();
+	virtual void main_menu();
+	virtual void interface();
+	
 	virtual void close_event();
 
-	virtual void mouse_press_event(View* view, int32 button, float64 x, float64 y);
-	virtual void mouse_release_event(View* view, int32 button, float64 x, float64 y);
-	virtual void mouse_dbl_click_event(View* view, int32 button, float64 x, float64 y);
-	virtual void mouse_move_event(View* view, float64 x, float64 y);
-	virtual void mouse_wheel_event(View* view, float64 x, float64 y);
+	const App& app_;
+	std::string name_;
+};
+
+/*****************************************************************************/
+// ViewModule
+/*****************************************************************************/
+
+class CGOGN_UI_EXPORT ViewModule : public Module
+{
+	friend class View;
+
+public:
+
+	ViewModule(const App& app, const std::string& name);
+	virtual ~ViewModule();
+
+protected:
+
+	virtual void mouse_press_event(View* view, int32 button, int32 x, int32 y);
+	virtual void mouse_release_event(View* view, int32 button, int32 x, int32 y);
+	virtual void mouse_dbl_click_event(View* view, int32 button, int32 x, int32 y);
+	virtual void mouse_move_event(View* view, int32 x, int32 y);
+	virtual void mouse_wheel_event(View* view, int32 dx, int32 dy);
 	virtual void key_press_event(View* view, int32 key_code);
 	virtual void key_release_event(View* view, int32 key_code);
 
 	virtual void draw(View* view);
 
-	virtual void init();
-	virtual void main_menu();
-	virtual void interface();
+	std::vector<View*> linked_views_;
+};
 
-	const App& app_;
-	std::string name_;
+/*****************************************************************************/
+// ProviderModule
+/*****************************************************************************/
+
+class CGOGN_UI_EXPORT ProviderModule : public Module
+{
+	friend class View;
+
+public:
+
+	ProviderModule(const App& app, const std::string& name);
+	virtual ~ProviderModule();
+
+	virtual std::pair<geometry::Vec3, geometry::Vec3> meshes_bb() const = 0;
+
+protected:
+	
 	std::vector<View*> linked_views_;
 };
 

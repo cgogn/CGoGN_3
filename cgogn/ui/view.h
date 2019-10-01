@@ -54,14 +54,14 @@ public:
 
 protected:
 
-	virtual void resize_event(int32 frame_width, int32 frame_height) override;
+	void resize_event(int32 window_width, int32 window_height, int32 frame_buffer_width, int32 frame_buffer_height);
 	virtual void close_event() override;
 
-	virtual void mouse_press_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_release_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_dbl_click_event(int32 button, float64 x, float64 y) override;
-	virtual void mouse_move_event(float64 x, float64 y) override;
-	virtual void mouse_wheel_event(float64 x, float64 y) override;
+	virtual void mouse_press_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_release_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_dbl_click_event(int32 button, int32 x, int32 y) override;
+	virtual void mouse_move_event(int32 x, int32 y) override;
+	virtual void mouse_wheel_event(float64 dx, float64 dy) override;
 	virtual void key_press_event(int32 key_code) override;
 	virtual void key_release_event(int32 key_code) override;
 
@@ -69,39 +69,47 @@ protected:
 
 public:
 
-    void link_module(Module* m);
+    void link_module(ViewModule* m);
+    void link_module(ProviderModule* m);
 
-	inline bool over_viewport(int32 x, int32 y) const
+	inline bool contains(int32 x, int32 y) const
 	{
-		y = frame_h_ - y;
-		return (x >= viewport_x_) && (x < viewport_x_ + viewport_w_) && (y >= viewport_y_) && (y < viewport_y_ + viewport_h_);
+		return
+			x >= x_offset_ && x < x_offset_ + width_ &&
+			y >= y_offset_ && y < y_offset_ + height_;
 	}
 
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
 
-    inline float64 last_click_time() const { return last_click_time_; }
-    inline void set_last_click_time(float64 t) { last_click_time_ = t; }
+	void update_scene_bb();
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
-	rendering::GLVec3d unproject(const rendering::GLVec3d& P) const;
+	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
 
 protected:
 
-	float64 frame_w_;
-	float64 frame_h_;
+	float64 ratio_x_offset_;
+	float64 ratio_y_offset_;
+	float64 ratio_width_;
+	float64 ratio_height_;
 
-	float64 viewport_percent_x_;
-	float64 viewport_percent_y_;
-	float64 viewport_percent_width_;
-	float64 viewport_percent_height_;
+	int32 x_offset_;
+	int32 y_offset_;
+	int32 width_;
+	int32 height_;
 
-	float64 last_click_time_;
+	// viewport_width_ & viewport_heght_ are in GLViewer
+	int32 viewport_x_offset_;
+	int32 viewport_y_offset_;
 
 	std::unique_ptr<rendering::ShaderFSTexture::Param> param_fst_;
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
 
-    std::vector<Module*> linked_modules_;
+	std::vector<ViewModule*> linked_view_modules_;
+	std::vector<ProviderModule*> linked_provider_modules_;
+
+	bool closing_;
 };
 
 } // namespace cgogn

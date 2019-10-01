@@ -51,7 +51,7 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceSelection : public Module
+class SurfaceSelection : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -173,7 +173,7 @@ public:
 public:
 
 	SurfaceSelection(const App& app) :
-		ui::Module(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -199,7 +199,7 @@ private:
 						p.update_selected_faces_vbo();
 					}
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
@@ -221,7 +221,7 @@ public:
 			p.update_selected_faces_vbo();
 		}
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -238,7 +238,7 @@ protected:
 		);
 	}
 	
-	void mouse_press_event(View* view, int32 button, float64 x, float64 y) override
+	void mouse_press_event(View* view, int32 button, int32 x, int32 y) override
 	{
 		if (selected_mesh_ && view->shift_pressed())
 		{
@@ -247,8 +247,8 @@ protected:
 			
 			if (p.vertex_position_)
 			{
-				rendering::GLVec3d near = view->unproject(rendering::GLVec3d(x, y, 0.0));
-				rendering::GLVec3d far = view->unproject(rendering::GLVec3d(x, y, 1.0));
+				rendering::GLVec3d near = view->unproject(x, y, 0.0);
+				rendering::GLVec3d far = view->unproject(x, y, 1.0);
 				Vec3 A{ near.x(), near.y(), near.z() };
 				Vec3 B{ far.x(), far.y(), far.z() };
 				
@@ -477,7 +477,7 @@ protected:
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 

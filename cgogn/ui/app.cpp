@@ -46,8 +46,8 @@ App::App():
 	window_(nullptr),
     context_(nullptr),
 	window_name_("CGoGN"),
-	window_frame_width_(512),
-	window_frame_height_(512),
+	window_width_(512),
+	window_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
 	current_view_(nullptr)
@@ -63,7 +63,7 @@ App::App():
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	window_ = glfwCreateWindow(window_frame_width_, window_frame_height_, window_name_.c_str(), nullptr, nullptr);
+	window_ = glfwCreateWindow(window_width_, window_height_, window_name_.c_str(), nullptr, nullptr);
 	if (window_ == nullptr)
 		std::cerr << "Failed to create Window!" << std::endl;
 
@@ -98,20 +98,16 @@ App::App():
 	std::cout << glGetString(GL_RENDERER) << std::endl;
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	int x, y;
-	glfwGetWindowSize(window_, &x, &y);
-	std::cout << "Window size: " << x << ", " << y << std::endl;
-	glfwGetFramebufferSize(window_, &x, &y);
-	std::cout << "Framebuffer size: " << x << ", " << y << std::endl;
-
-	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int, int)
+	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int width, int height)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
-		glfwGetFramebufferSize(wi, &(that->window_frame_width_), &(that->window_frame_height_));
+		that->window_width_ = width;
+		that->window_height_ = height;
+		glfwGetFramebufferSize(wi, &(that->framebuffer_width_), &(that->framebuffer_height_));
 
 		for (const auto& v : that->views_)
-			v->resize_event(that->window_frame_width_, that->window_frame_height_);
+			v->resize_event(that->window_width_, that->window_height_, that->framebuffer_width_, that->framebuffer_height_);
 	});
 
 	glfwSetMouseButtonCallback(window_, [] (GLFWwindow* wi, int b, int a, int m)
@@ -124,51 +120,33 @@ App::App():
 			return;
 		}
 
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
-
-		for (const auto& v : that->views_)
+		if (that->current_view_)
 		{
-			if (v->over_viewport(cx, cy))
+			that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
+			that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
+			that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
+			that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
+			
+			double now = glfwGetTime();
+
+			switch (a)
 			{
-				if (v.get() != that->current_view_)
-				{
-					that->inputs_.mouse_buttons_ = 0;
-					that->current_view_ = v.get();
-				}
-
-				that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
-				that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
-				that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-				that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);;
-				that->inputs_.last_mouse_x_ = cx;
-				that->inputs_.last_mouse_y_ = cy;
-
-				double now = glfwGetTime();
-
-				switch(a)
-				{
-				case GLFW_PRESS:
-					that->inputs_.mouse_buttons_ |= 1 << b;
-					v->mouse_press_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					if (now - v->last_click_time() < that->inputs_.double_click_timeout_)
-						v->mouse_dbl_click_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					v->set_last_click_time(now);
-					break;
-				case GLFW_RELEASE:
-					that->inputs_.mouse_buttons_ &= ~(1 << b);
-					v->mouse_release_event(b, that->inputs_.last_mouse_x_, that->inputs_.last_mouse_y_);
-					break;
-				}
+			case GLFW_PRESS:
+				that->inputs_.mouse_buttons_ |= 1 << b;
+				that->current_view_->mouse_press_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				if (now - that->inputs_.previous_click_time_ < that->inputs_.double_click_timeout_)
+					that->current_view_->mouse_dbl_click_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				that->inputs_.previous_click_time_ = now;
+				break;
+			case GLFW_RELEASE:
+				that->inputs_.mouse_buttons_ &= ~(1 << b);
+				that->current_view_->mouse_release_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				break;
 			}
 		}
-
-		if (!that->over_frame(cx, cy))
-			that->inputs_.mouse_buttons_ = 0;
 	});
 
-	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double x, double y)
+	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double cx, double cy)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 		
@@ -178,31 +156,27 @@ App::App():
 			return;
 		}
 
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
 		ImGui::GetIO().MousePos = ImVec2(cx, cy);
+
+		int32 px = std::floor(cx);
+		int32 py = std::floor(cy);
 
 		for (const auto& v : that->views_)
 		{
-			if (that->inputs_.mouse_buttons_ && v->over_viewport(cx, cy))
+			if (v->contains(px, py))
 			{
 				if (v.get() != that->current_view_)
 				{
 					that->inputs_.mouse_buttons_ = 0;
 					that->current_view_ = v.get();
 				}
-				v->mouse_move_event(x, y);
+
+				v->mouse_move_event(px, py);
 			}
 		}
 
-		if (!that->over_frame(cx, cy))
-		{
-			that->inputs_.mouse_buttons_ = 0;
-			that->current_view_ = nullptr;
-		}
-
-        that->inputs_.last_mouse_x_ = x;
-        that->inputs_.last_mouse_y_ = y;
+        that->inputs_.previous_mouse_x_ = px;
+        that->inputs_.previous_mouse_y_ = py;
 	});
 
 	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
@@ -215,21 +189,8 @@ App::App():
 			return;
 		}
 
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-
-		for (const auto& v : that->views_)
-		{
-			if (v->over_viewport(cx, cy))
-			{
-				if (v.get() != that->current_view_)
-				{
-					that->inputs_.mouse_buttons_ = 0;
-					that->current_view_ = v.get();
-				}
-				v->mouse_wheel_event(dx, 100 * dy);
-			}
-		}
+		if (that->current_view_)
+			that->current_view_->mouse_wheel_event(dx, 100 * dy);
 	});
 
 	glfwSetCursorEnterCallback(window_, [] (GLFWwindow* wi, int enter)
@@ -242,26 +203,7 @@ App::App():
 			return;
 		}
 		
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
-
-		if (enter)
-		{
-			for (const auto& v : that->views_)
-			{
-				if (v->over_viewport(cx, cy))
-				{
-					if (v.get() != that->current_view_)
-					{
-						that->inputs_.mouse_buttons_ = 0;
-						that->current_view_ = v.get();
-					}
-				}
-			}
-			that->inputs_.mouse_buttons_ = 0;
-		}
-		else
+		if (!enter)
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			that->current_view_ = nullptr;
@@ -271,9 +213,6 @@ App::App():
 	glfwSetKeyCallback(window_, [] (GLFWwindow* wi, int k, int s, int a, int m)
 	{
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-
-		double cx, cy;
-		glfwGetCursorPos(wi, &cx, &cy);
 
         that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
         that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
@@ -306,49 +245,44 @@ App::App():
                 break;
         }
 
-		for (const auto& v : that->views_)
+		if (that->current_view_)
 		{
-			if (v->over_viewport(cx, cy))
+			switch(a)
 			{
-				that->current_view_ = v.get();
-
-				switch(a)
+			case GLFW_PRESS:
+				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
 				{
-				case GLFW_PRESS:
-					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
-					{
-						GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-						const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-						glfwSetWindowMonitor(wi, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						return;
-					}
-					if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && that->inputs_.shift_pressed_)
-					{
-						int count;
-						GLFWmonitor** monitors = glfwGetMonitors(&count);
-						if (count > 1)
-						{
-							const GLFWvidmode* mode = glfwGetVideoMode(monitors[1]);
-							glfwSetWindowMonitor(wi, monitors[1], 0, 0, mode->width, mode->height, mode->refreshRate);
-							glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						}
-						else
-							std::cerr << "Only one monitor" << std::endl;
-						return;
-					}
-					if ((k == GLFW_KEY_W) && that->inputs_.control_pressed_)
-					{
-						glfwSetWindowMonitor(wi, nullptr, 100, 100, 1024, 1024, 0);
-						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						return;
-					}
-					v->key_press_event(k);
-					break;
-				case GLFW_RELEASE:
-					v->key_release_event(k);
-					break;
+					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+					const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+					glfwSetWindowMonitor(wi, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+					glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					return;
 				}
+				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && that->inputs_.shift_pressed_)
+				{
+					int count;
+					GLFWmonitor** monitors = glfwGetMonitors(&count);
+					if (count > 1)
+					{
+						const GLFWvidmode* mode = glfwGetVideoMode(monitors[1]);
+						glfwSetWindowMonitor(wi, monitors[1], 0, 0, mode->width, mode->height, mode->refreshRate);
+						glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					}
+					else
+						std::cerr << "Only one monitor" << std::endl;
+					return;
+				}
+				if ((k == GLFW_KEY_W) && that->inputs_.control_pressed_)
+				{
+					glfwSetWindowMonitor(wi, nullptr, 100, 100, 1024, 1024, 0);
+					glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					return;
+				}
+				that->current_view_->key_press_event(k);
+				break;
+			case GLFW_RELEASE:
+				that->current_view_->key_release_event(k);
+				break;
 			}
 		}
 	});
@@ -426,6 +360,9 @@ void App::adapt_views_geometry()
 		views_[3]->set_view_ratio(0.5, 0.5, 0.5, 0.5);
 		break;
 	}
+
+	for (const auto& v : views_)
+		v->resize_event(window_width_, window_height_, framebuffer_width_, framebuffer_height_);
 }
 
 void App::init_modules()
@@ -436,12 +373,8 @@ void App::init_modules()
 
 int App::launch()
 {
-	for (const auto& v : views_)
-		v->resize_event(window_frame_width_, window_frame_height_);
-
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
 	param_frame_->sz_ = 5.0f;
-	param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
 
 	while (!glfwWindowShouldClose(window_))
 	{
@@ -453,7 +386,14 @@ int App::launch()
 		for (const auto& v : views_)
 		{
 			v->draw();
-			param_frame_->draw(v->width(), v->height());
+			if (views_.size() > 1)
+			{
+				if (v.get() == current_view_)
+					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
+				else
+					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
+				param_frame_->draw(v->viewport_width(), v->viewport_height());
+			}
 		}
 
 		if (show_imgui_)

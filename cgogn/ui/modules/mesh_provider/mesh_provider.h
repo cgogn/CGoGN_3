@@ -51,18 +51,25 @@ namespace ui
 class App;
 
 template <typename MESH>
-class MeshProvider : public Module
+class MeshProvider : public ProviderModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
     using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
+    using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	using Scalar = geometry::Scalar;
+    using Vec3 = geometry::Vec3;
+
 public:
 
 	MeshProvider(const App& app) :
-		Module(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"),
 		show_mesh_inspector_(false),
-		selected_mesh_(nullptr)
+		selected_mesh_(nullptr),
+		bb_min_(0, 0, 0),
+		bb_max_(0, 0, 0)
 	{}
 	
 	~MeshProvider()
@@ -78,7 +85,11 @@ public:
 			bool imported = cgogn::io::import_CG(*m, filename);
 			if (imported)
 			{
-				mesh_data_.emplace(m, MeshData(m));
+				MeshData<MESH>& md = mesh_data_[m];
+				md.init(m);
+				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				if (vertex_position)
+					set_mesh_bb_vertex_position(m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -102,7 +113,11 @@ public:
 			bool imported = cgogn::io::import_OFF(*m, filename);
 			if (imported)
 			{
-				mesh_data_.emplace(m, MeshData(m));
+				MeshData<MESH>& md = mesh_data_[m];
+				md.init(m);
+				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				if (vertex_position)
+					set_mesh_bb_vertex_position(m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -126,7 +141,11 @@ public:
 			bool imported = cgogn::io::import_TET(*m, filename);
 			if (imported)
 			{
-				mesh_data_.emplace(m, MeshData(m));
+				MeshData<MESH>& md = mesh_data_[m];
+				md.init(m);
+				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				if (vertex_position)
+					set_mesh_bb_vertex_position(m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -149,7 +168,7 @@ public:
 			f(m.get(), name);
 	}
 
-	std::string mesh_name(const MESH* m)
+	std::string mesh_name(const MESH* m) const
 	{
 		auto it = std::find_if(
 			meshes_.begin(), meshes_.end(),
@@ -170,23 +189,66 @@ public:
 			return nullptr;
 	}
 
+	std::pair<Vec3, Vec3> meshes_bb() const override
+	{
+		return std::make_pair(bb_min_, bb_max_);
+	}
+
+private:
+
+	void update_meshes_bb()
+	{
+		for (uint32 i = 0; i < 3; ++i)
+		{
+			bb_min_[i] = std::numeric_limits<float64>::max();
+			bb_max_[i] = std::numeric_limits<float64>::lowest();
+		}
+		for (auto& [m, md] : mesh_data_)
+		{
+			for (uint32 i = 0; i < 3; ++i)
+			{
+				if (md.bb_min_[i] < bb_min_[i])
+					bb_min_[i] = md.bb_min_[i];
+				if (md.bb_max_[i] > bb_max_[i])
+					bb_max_[i] = md.bb_max_[i];
+			}
+		}
+	}
+
+public:
+
+	void set_mesh_bb_vertex_position(const MESH* m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	{
+		MeshData<MESH>& md = mesh_data_[m];
+		md.bb_vertex_position_ = vertex_position;
+		md.update_bb();
+		update_meshes_bb();
+		for (View* v : linked_views_)
+			v->update_scene_bb();
+	}
+
 	/////////////
 	// SIGNALS //
 	/////////////
 
-	using mesh_added = struct mesh_added_ (*) (MESH* m);
+	using mesh_added = struct mesh_added_(*)(MESH* m);
 	template <typename T>
 	using attribute_changed_t = struct attribute_changed_t_(*)(Attribute<T>* attribute);
 	using attribute_changed = struct attribute_changed_(*)(AttributeGen* attribute);
-	using connectivity_changed = struct connectivity_changed_ (*) ();
+	using connectivity_changed = struct connectivity_changed_(*)();
 
 	template <typename T>
 	void emit_attribute_changed(const MESH* m, Attribute<T>* attribute)
 	{
-		MeshData<MESH>* md = mesh_data(m);
-		md->update_vbo(attribute);
-		if (static_cast<AttributeGen*>(md->bb_attribute_.get()) == static_cast<AttributeGen*>(attribute))
-			md->update_bb();
+		MeshData<MESH>& md = mesh_data_[m];
+		md.update_vbo(attribute);
+		if (static_cast<AttributeGen*>(md.bb_vertex_position_.get()) == static_cast<AttributeGen*>(attribute))
+		{
+			md.update_bb();
+			update_meshes_bb();
+			for (View* v : linked_views_)
+				v->update_scene_bb();
+		}
 
 		boost::synapse::emit<attribute_changed>(m, attribute);
 		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
@@ -256,7 +318,21 @@ protected:
 			if (selected_mesh_)
 			{
 				MeshData<MESH>* md = mesh_data(selected_mesh_);
+
+				if (ImGui::BeginCombo("Position", md->bb_vertex_position_ ? md->bb_vertex_position_->name().c_str() : "-- select --"))
+				{
+					foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
+					{
+						bool is_selected = attribute == md->bb_vertex_position_;
+						if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+							set_mesh_bb_vertex_position(selected_mesh_, attribute);
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					});
+					ImGui::EndCombo();
+				}
 				
+				ImGui::Separator();
 				ImGui::TextUnformatted("Cells");
 				ImGui::Columns(2);
 				ImGui::Separator();
@@ -283,6 +359,7 @@ private:
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
+	Vec3 bb_min_, bb_max_;
 };
 
 } // namespace ui

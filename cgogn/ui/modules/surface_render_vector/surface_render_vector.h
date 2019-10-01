@@ -46,7 +46,7 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceRenderVector : public Module
+class SurfaceRenderVector : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -82,7 +82,7 @@ class SurfaceRenderVector : public Module
 public:
 
 	SurfaceRenderVector(const App& app) :
-		ui::Module(app, "SurfaceRenderVector (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "SurfaceRenderVector (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -102,7 +102,7 @@ private:
 					if (p.vertex_position_.get() == attribute)
 						p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
@@ -125,7 +125,7 @@ public:
 
 		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -140,7 +140,7 @@ public:
 		
 		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -249,7 +249,7 @@ protected:
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 

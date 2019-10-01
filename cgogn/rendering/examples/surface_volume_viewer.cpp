@@ -30,29 +30,39 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
 
-using Mesh = cgogn::CMap3;
+using SurfaceMesh = cgogn::CMap2;
+using VolumeMesh = cgogn::CMap3;
 
 template <typename T>
-using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using SurfaceAttribute = typename cgogn::mesh_traits<SurfaceMesh>::Attribute<T>;
+using SurfaceVertex = typename cgogn::mesh_traits<SurfaceMesh>::Vertex;
+
+template <typename T>
+using VolumeAttribute = typename cgogn::mesh_traits<VolumeMesh>::Attribute<T>;
+using VolumeVertex = typename cgogn::mesh_traits<VolumeMesh>::Vertex;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
-	std::string filename;
-	if (argc < 2)
+	std::string surface_filename, volume_filename;
+	if (argc < 3)
 	{
-		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
+		std::cout << "Usage: " << argv[0] << " surface_filename volume_filename" << std::endl;
 		return 1;
 	}
 	else
-		filename = std::string(argv[1]);
+	{
+		surface_filename = std::string(argv[1]);
+		volume_filename = std::string(argv[2]);
+	}
 
 	cgogn::thread_start();
 
@@ -60,27 +70,53 @@ int main(int argc, char** argv)
 	app.set_window_title("Simple viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::MeshProvider<SurfaceMesh> mps(app);
+	cgogn::ui::SurfaceRender<SurfaceMesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<SurfaceMesh> srv(app);
+	cgogn::ui::SurfaceDifferentialProperties<SurfaceMesh> sdp(app);
+
+	cgogn::ui::MeshProvider<VolumeMesh> mpv(app);
+	cgogn::ui::SurfaceRender<VolumeMesh> sr_vol(app);
 
 	app.init_modules();
-	
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
-	v1->link_module(&sr);
 
-	Mesh* m = mp.load_volume_from_file(filename);
-	if (!m)
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mps);
+	v1->link_module(&sr);
+	v1->link_module(&srv);
+
+	cgogn::ui::View* v2 = app.add_view();
+	v2->link_module(&mpv);
+	v2->link_module(&sr_vol);
+
+	SurfaceMesh* sm = mps.load_surface_from_file(surface_filename);
+	if (!sm)
 	{
 		std::cout << "File could not be loaded" << std::endl;
 		return 1;
 	}
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s = cgogn::get_attribute<Vec3, SurfaceVertex>(*sm, "position");
+	std::shared_ptr<SurfaceAttribute<Vec3>> vertex_normal_s = cgogn::add_attribute<Vec3, SurfaceVertex>(*sm, "normal");
+	
+	sdp.compute_normal(*sm, vertex_position_s.get(), vertex_normal_s.get());
+	
+	sr.set_vertex_position(*sm, vertex_position_s);
+	sr.set_vertex_normal(*sm, vertex_normal_s);
 
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
+	srv.set_vertex_position(*sm, vertex_position_s);
+	srv.set_vertex_vector(*sm, vertex_normal_s);
 
-	sr.set_vertex_position(*m, vertex_position);
+	VolumeMesh* vm = mpv.load_volume_from_file(volume_filename);
+	if (!vm)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
+
+	std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v = cgogn::get_attribute<Vec3, VolumeVertex>(*vm, "position");
+	
+	sr_vol.set_vertex_position(*vm, vertex_position_v);
 
 	return app.launch();
 }

@@ -78,7 +78,7 @@ class CGOGN_CORE_EXPORT ThreadPool final
 {
 public:
 
-	ThreadPool(const std::string& name/*, uint32 shift_index*/);
+	ThreadPool();
 	~ThreadPool();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ThreadPool);
 
@@ -110,7 +110,7 @@ public:
 			if (stop_)
 			{
 				std::cout << "ThreadPool::enqueue : Enqueue on stopped ThreadPool." << std::endl;
-				cgogn_assert_not_reached("enqueue on stopped ThreadPool");
+				cgogn_assert_not_reached("Enqueue on stopped ThreadPool");
 			}
 			// Push work back on the queue
 			tasks_.push(std::move(task));
@@ -154,9 +154,6 @@ private:
 #pragma warning(push)
 #pragma warning(disable:4251)
 
-	// just info log
-	std::string name_;
-
 	// need to keep track of threads so we can join them
 	std::vector<std::thread> workers_;
 	// the task queue
@@ -172,23 +169,10 @@ private:
 	std::mutex running_mutex_;
 	std::condition_variable condition_running_;
 
-	// uint32 shift_index_;
-
 #pragma warning(pop)
 };
 
 CGOGN_CORE_EXPORT ThreadPool* thread_pool();
-
-// CGOGN_CORE_EXPORT ThreadPool* external_thread_pool();
-
-// /**
-//  * launch an external thread
-//  */
-// template <class F, class... Args>
-// std::future<void> launch_thread(const F& f, Args&&... args)
-// {
-// 	return external_thread_pool()->enqueue(f, args...);
-// }
 
 } // namespace cgogn
 
