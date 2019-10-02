@@ -146,7 +146,7 @@ bool import_CG(Graph& g, const std::string& filename)
 		connect_vertices(g, Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]), Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]]));
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
-    dump_map(g);
+
 	return true;
 }
 
