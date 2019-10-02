@@ -152,12 +152,12 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			if (set_indices)
 			{
 				if (g.is_embedded<Graph::Vertex>())
-				{
-					g.copy_embedding<Graph::Vertex>(g.alpha1(d), d);
-					g.copy_embedding<Graph::Vertex>(g.alpha1(e), e);
+                {
+                    g.copy_embedding<Graph::Vertex>(dd, d);
+                    g.copy_embedding<Graph::Vertex>(ee, e);
 				}
 				if (g.is_embedded<Graph::Edge>())
-					create_embedding(g, Graph::Edge(dd));
+                    create_embedding(g, Graph::Edge(dd));
 			}
 			return Graph::Edge(dd);
 		}

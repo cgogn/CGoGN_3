@@ -26,6 +26,9 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <iostream>
+#include <iomanip>
+
 namespace cgogn
 {
 
@@ -42,6 +45,20 @@ nb_darts_of_orbit(const CMAP& m, CELL c)
 		return true;
 	});
 	return result;
+}
+
+void dump_map(const CMapBase& m)
+{
+    m.foreach_dart([&] (Dart d) -> bool
+    {
+        std::cout << "index: " << std::setw(5) << d.index << " / ";
+        for (auto& r : m.relations_)
+        {
+            std::cout << r->name() << ": " << (*r)[d.index] << " / ";
+        }
+        std::cout << " boundary: " << std::boolalpha << m.is_boundary(d) << std::endl;
+        return true;
+    });
 }
 
 }

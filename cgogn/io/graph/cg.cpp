@@ -34,6 +34,9 @@
 #include <vector>
 #include <fstream>
 
+
+#include <cgogn/core/types/cmap/cmap_info.h>
+
 namespace cgogn
 {
 
@@ -124,7 +127,10 @@ bool import_CG(Graph& g, const std::string& filename)
 	}
 
 	if (edges_vertex_indices.size() == 0u)
+	{
+		std::cerr << "File \"" << filename << " has no edges." << std::endl;
 		return false;
+	}
 	
 	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
 
@@ -140,7 +146,7 @@ bool import_CG(Graph& g, const std::string& filename)
 		connect_vertices(g, Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]), Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]]));
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
-
+    dump_map(g);
 	return true;
 }
 
