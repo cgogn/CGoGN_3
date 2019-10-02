@@ -34,6 +34,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/io/graph/cg.h>
+#include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
 
@@ -92,7 +93,16 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_CG(*m, filename);
+			
+			std::string ext = extension(filename);
+			bool imported;
+			if(ext.compare("cg") == 0)
+				imported = cgogn::io::import_CG(*m, filename);
+			else if(ext.compare("skel") == 0)
+				imported = cgogn::io::import_SKEL(*m, filename);
+			else
+				imported = false;
+
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
@@ -367,7 +377,7 @@ protected:
 
 private:
 
-	std::vector<std::string> supported_graph_files = { "Graph", "*.cg" };
+	std::vector<std::string> supported_graph_files = { "Graph", "*.cg *.skel" };
 	std::vector<std::string> supported_surface_files = { "Surface", "*.off" };
 	std::vector<std::string> supported_volume_files = { "Volume", "*.tet" };
 
