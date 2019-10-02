@@ -59,7 +59,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 	// shortcuts to embedding indices Dart attributes
 	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
 	// shortcut to boundary marker Dart attribute
-	std::shared_ptr<Attribute<uint8>> boundary_marker_;
+    MarkAttribute* boundary_marker_;
 
 	// Cells attributes containers
 	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
