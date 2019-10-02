@@ -22,6 +22,8 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap_info.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -103,6 +105,9 @@ int main(int argc, char** argv)
 	
 	// gr.set_vertex_position(*g, vertex_position);
 	// sr.set_vertex_normal(*m, vertex_normal);
+
+	dump_map(*g);
+	
 
 	return app.launch();
 }

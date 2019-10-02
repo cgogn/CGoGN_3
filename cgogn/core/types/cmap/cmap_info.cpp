@@ -21,31 +21,26 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_INFO_H_
-#define CGOGN_CORE_CMAP_CMAP_INFO_H_
+#include <cgogn/core/types/cmap/cmap_info.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <iostream>
+#include <iomanip>
 
 namespace cgogn
 {
 
-template <typename CELL, typename CMAP,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, CMAP>::value>::type>
-uint32
-nb_darts_of_orbit(const CMAP& m, CELL c)
+void dump_map(const CMapBase& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	uint32 result = 0;
-	m.foreach_dart_of_orbit(c, [&] (Dart) -> bool
-	{
-		++result;
-		return true;
-	});
-	return result;
+    m.foreach_dart([&] (Dart d) -> bool
+    {
+        std::cout << "index: " << std::setw(5) << d.index << " / ";
+        for (auto& r : m.relations_)
+        {
+            std::cout << r->name() << ": " << (*r)[d.index] << " / ";
+        }
+        std::cout << " boundary: " << std::boolalpha << m.is_boundary(d) << std::endl;
+        return true;
+    });
 }
 
-void dump_map(const CMapBase& m);
-
 }
-
-#endif // CGOGN_CORE_CMAP_CMAP_INFO_H_
