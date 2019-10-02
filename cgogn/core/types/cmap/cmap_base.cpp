@@ -28,7 +28,7 @@ namespace cgogn
 
 CMapBase::CMapBase()
 {
-    boundary_marker_ = topology_.get_mark_attribute();
+	boundary_marker_ = topology_.get_mark_attribute();
 }
 
 CMapBase::~CMapBase()

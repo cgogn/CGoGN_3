@@ -182,7 +182,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells_buffers[i].push_back(buffers->buffer());
 			VecCell& cells = *cells_buffers[i].back();
 			cells.reserve(PARALLEL_BUFFER_SIZE);
-			for (unsigned k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
+			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
 				CELL c(it);
 				if (!m.is_boundary(it) && !cm.is_marked(c))
@@ -202,7 +202,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();
@@ -242,7 +242,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();

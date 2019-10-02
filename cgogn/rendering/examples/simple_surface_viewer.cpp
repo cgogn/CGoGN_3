@@ -34,7 +34,7 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
 using Mesh = cgogn::CMap2;
 

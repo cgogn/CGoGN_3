@@ -68,7 +68,7 @@ mean_edge_length(
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		float64_value() += length(m, e, vertex_position);
-		uint32_value() += 1;
+		++uint32_value();
 		return true;
 	});
 

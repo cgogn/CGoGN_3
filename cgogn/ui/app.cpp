@@ -89,6 +89,9 @@ App::App():
 	style.WindowRounding = 0.0f;
 	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
 
+	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
+	ImFont* font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
+
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 

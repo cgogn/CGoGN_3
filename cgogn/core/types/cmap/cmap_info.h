@@ -49,16 +49,14 @@ nb_darts_of_orbit(const CMAP& m, CELL c)
 
 void dump_map(const CMapBase& m)
 {
-    m.foreach_dart([&] (Dart d) -> bool
-    {
-        std::cout << "index: " << std::setw(5) << d.index << " / ";
-        for (auto& r : m.relations_)
-        {
-            std::cout << r->name() << ": " << (*r)[d.index] << " / ";
-        }
-        std::cout << " boundary: " << std::boolalpha << m.is_boundary(d) << std::endl;
-        return true;
-    });
+	m.foreach_dart([&] (Dart d) -> bool
+	{
+		std::cout << "index: " << std::setw(5) << d.index << " / ";
+		for (auto& r : m.relations_)
+			std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index] << " / ";
+		std::cout << " boundary: " << std::boolalpha << m.is_boundary(d) << std::endl;
+		return true;
+	});
 }
 
 }
