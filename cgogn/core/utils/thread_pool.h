@@ -204,8 +204,6 @@ private:
 	std::mutex running_mutex_;
 	std::condition_variable condition_running_;
 
-	//
-
 #pragma warning(pop)
 };
 

@@ -78,7 +78,7 @@ ThreadPool::ThreadPool() :
 		});
 	}
 
-	std::cout << "ThreadPool launched. Using " << nb_working_workers_ << " workers." << std::endl;
+	std::cout << "ThreadPool launched with " << nb_working_workers_ << " workers" << std::endl;
 }
 
 ThreadPool::~ThreadPool()
@@ -109,7 +109,7 @@ void ThreadPool::set_nb_workers(uint32 nb)
 
 	condition_running_.notify_all();
 
-	std::cout << "ThreadPool now using " << nb_working_workers_ << " workers." << std::endl;
+	std::cout << "ThreadPool now using " << nb_working_workers_ << " workers" << std::endl;
 }
 
 ThreadPool* thread_pool()
