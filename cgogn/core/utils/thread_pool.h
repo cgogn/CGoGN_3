@@ -74,11 +74,34 @@
 namespace cgogn
 {
 
+struct counting_barrier
+{
+	explicit counting_barrier(std::ptrdiff_t c) : count_(c)
+	{}
+
+	void operator--(int)& { this->operator--(); }
+	void operator--()&
+	{
+		auto l = lock();
+		--count_;
+		cv_.wait(l, [&] () { return count_ <= 0; });
+		cv_.notify_all();
+	}
+
+private:
+
+	std::unique_lock<std::mutex> lock()& { return std::unique_lock<std::mutex>(m_); }
+	
+	std::condition_variable cv_;
+	std::mutex m_;
+	std::ptrdiff_t count_ = 0;
+};
+
 class CGOGN_CORE_EXPORT ThreadPool final
 {
 public:
 
-	ThreadPool(const std::string& name/*, uint32 shift_index*/);
+	ThreadPool();
 	~ThreadPool();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ThreadPool);
 
@@ -91,16 +114,13 @@ public:
 	template <class F, class... Args>
 	std::future<void> enqueue(const F& f, Args&&... args)
 	{
-		static_assert(std::is_same<typename std::result_of<F(Args...)>::type, void>::value, "The thread pool only accept non-returning functions.");
+		static_assert(std::is_same<typename std::result_of<F(Args...)>::type, void>::value, "The thread pool only accepts non-returning functions.");
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
 		PackagedTask task = std::make_shared<std::packaged_task<void()>>(std::bind(f, std::forward<Args>(args)...));
 		std::future<void> res = task->get_future();
 #else
-		PackagedTask task([&, f] () -> void
-		{
-			f(std::forward<Args>(args)...);
-		});
+		PackagedTask task([&, f] () -> void { f(std::forward<Args>(args)...); });
 		std::future<void> res = task.get_future();
 #endif
 
@@ -110,16 +130,31 @@ public:
 			if (stop_)
 			{
 				std::cout << "ThreadPool::enqueue : Enqueue on stopped ThreadPool." << std::endl;
-				cgogn_assert_not_reached("enqueue on stopped ThreadPool");
+				cgogn_assert_not_reached("Enqueue on stopped ThreadPool");
 			}
 			// Push work back on the queue
 			tasks_.push(std::move(task));
 		}
 		
 		// Notify a thread that there is new work to perform
-		condition_.notify_one();
+		condition_task_.notify_one();
 		
 		return res;
+	}
+
+	template <class FUNC>
+	void execute_all(const FUNC&& f)
+	{
+		// nb_working_workers_ = uint32(workers_.size());
+		// condition_running_.notify_all();
+
+		std::vector<std::future<void>> futures;
+		futures.reserve(nb_working_workers_);
+		counting_barrier barrier(nb_working_workers_);
+		for (std::size_t i = 0; i < nb_working_workers_; ++i)
+			futures.push_back(enqueue([&] () { f(); --barrier; }));
+		for (auto& future : futures)
+			future.wait();
 	}
 
 	/**
@@ -154,9 +189,6 @@ private:
 #pragma warning(push)
 #pragma warning(disable:4251)
 
-	// just info log
-	std::string name_;
-
 	// need to keep track of threads so we can join them
 	std::vector<std::thread> workers_;
 	// the task queue
@@ -164,7 +196,7 @@ private:
 
 	// synchronization
 	std::mutex queue_mutex_;
-	std::condition_variable condition_;
+	std::condition_variable condition_task_;
 	bool stop_;
 
 	// limit usage to the n-th first workers
@@ -172,23 +204,12 @@ private:
 	std::mutex running_mutex_;
 	std::condition_variable condition_running_;
 
-	// uint32 shift_index_;
+	//
 
 #pragma warning(pop)
 };
 
 CGOGN_CORE_EXPORT ThreadPool* thread_pool();
-
-// CGOGN_CORE_EXPORT ThreadPool* external_thread_pool();
-
-// /**
-//  * launch an external thread
-//  */
-// template <class F, class... Args>
-// std::future<void> launch_thread(const F& f, Args&&... args)
-// {
-// 	return external_thread_pool()->enqueue(f, args...);
-// }
 
 } // namespace cgogn
 

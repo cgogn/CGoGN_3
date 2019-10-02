@@ -27,14 +27,13 @@
 namespace cgogn
 {
 
-ThreadPool::ThreadPool(const std::string& name) :
-    name_(name),
+ThreadPool::ThreadPool() :
     stop_(false)
 {
 	uint32 nb_ww = std::thread::hardware_concurrency() - 1;
 	nb_working_workers_ = nb_ww;
 
-	for(uint32 i = 0u; i < nb_ww; ++i)
+	for (uint32 i = 0u; i < nb_ww; ++i)
 	{
 		workers_.emplace_back([this, i] () -> void
 		{
@@ -48,9 +47,9 @@ ThreadPool::ThreadPool(const std::string& name) :
 				}
 
 				std::unique_lock<std::mutex> lock(queue_mutex_);
-				condition_.wait(
+				condition_task_.wait(
 					lock,
-					[this] { return stop_ || !tasks_.empty(); }
+					[this] () { return stop_ || !tasks_.empty(); }
 				);
 
 				if (stop_ && tasks_.empty())
@@ -58,7 +57,7 @@ ThreadPool::ThreadPool(const std::string& name) :
 					thread_stop();
 					return;
 				}
-
+				
 				if (i < nb_working_workers_)
 				{
 					PackagedTask task = std::move(tasks_.front());
@@ -73,13 +72,13 @@ ThreadPool::ThreadPool(const std::string& name) :
 				else
 				{
 					lock.unlock();
-					condition_.notify_one();
+					condition_task_.notify_one();
 				}
 			}
 		});
 	}
 
-	std::cout << "ThreadPool " << name_ << " using " << nb_working_workers_ << " workers" << std::endl;
+	std::cout << "ThreadPool launched. Using " << nb_working_workers_ << " workers." << std::endl;
 }
 
 ThreadPool::~ThreadPool()
@@ -91,10 +90,12 @@ ThreadPool::~ThreadPool()
 		std::unique_lock<std::mutex> lock(queue_mutex_);
 		stop_ = true;
 	}
+
 #if !(defined(CGOGN_WIN_VER) && (CGOGN_WIN_VER <= 61))
 	condition_running_.notify_all();
-	condition_.notify_all();
+	condition_task_.notify_all();
 #endif
+
 	for (std::thread& worker : workers_)
 		worker.join();
 }
@@ -108,21 +109,14 @@ void ThreadPool::set_nb_workers(uint32 nb)
 
 	condition_running_.notify_all();
 
-	std::cout << "ThreadPool " << name_ << " using " << nb_working_workers_ << " workers" << std::endl;
+	std::cout << "ThreadPool now using " << nb_working_workers_ << " workers." << std::endl;
 }
 
 ThreadPool* thread_pool()
 {
 	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-	static ThreadPool pool("internal");
+	static ThreadPool pool;
 	return &pool;
 }
-
-// ThreadPool* external_thread_pool()
-// {
-// 	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
-// 	static ThreadPool u_pool("external"/*, 1 + std::thread::hardware_concurrency()*/);
-// 	return &u_pool;
-// }
 
 } // namespace cgogn
