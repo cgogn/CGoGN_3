@@ -33,7 +33,7 @@
 
 #include <vector>
 #include <fstream>
-
+#include <set>
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 
@@ -43,86 +43,55 @@ namespace cgogn
 namespace io
 {
 
-bool import_CG(Graph& g, const std::string& filename)
+bool import_SKEL(Graph& g, const std::string& filename)
 {
+	// GENERIC
 	Scoped_C_Locale loc;
-
-	std::vector<uint32> edges_vertex_indices;
-
+	
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
 	std::string line;
 	line.reserve(512);
+	getline_safe(fp, line); // Discard first line, it's useless
+	getline_safe(fp, line); // Number of vertices
 
-	getline_safe(fp, line);
-	if (line.rfind("# D") == std::string::npos)
-	{
-		std::cerr << "File \"" << filename << "\" is not a valid cg file." << std::endl;
-		return false;
-	}
-	
-	// read header
-	std::replace(line.begin(), line.end(), ':', ' ');
 	std::stringstream issl(line);
-	std::string tagl;
 	uint32 value;
-	issl >> tagl;
-	issl >> tagl;
-	issl >> value; // dimension unused for now
-	issl >> tagl;
 	issl >> value;
 	const uint32 nb_vertices = value;
-	issl >> tagl;
-	issl >> value;
-	const uint32 nb_edges = value;
-
-	edges_vertex_indices.reserve(nb_edges * 2);
-
-	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
-
-	// read vertices
-	std::vector<uint32> vertices_id;
-	vertices_id.reserve(nb_vertices);
-
-	for (uint32 i = 0; i < nb_vertices; ++i)
+	
+	if (nb_vertices == 0u)
 	{
-		getline_safe(fp, line);
+		std::cerr << "File \"" << filename << " has no vertices." << std::endl;
+		return false;
+	}	
+
+	std::vector<uint32> vertices_indices(nb_vertices);
+	std::vector<geometry::Scalar> vertices_radii(nb_vertices);
+	std::vector<geometry::Vec3> vertices_pos(nb_vertices);
+	std::vector<uint32> edges_vertex_indices;
+
+	for(uint32 i = 0; i < nb_vertices; ++i){
+		uint32 vertex_id;
+		float64 x, y, z, radius;
+		uint32 nb_neighbors;
+
+		getline_safe(fp, line); 
 		std::stringstream iss(line);
+		iss >> vertex_id;
+		iss >> x >> y >> z;
+		vertices_pos[vertex_id] = {x, y, z};
+		iss >> radius;
+		vertices_radii[vertex_id] = radius;
+		iss >> nb_neighbors;
 
-		std::string tag;
-		iss >> tag;
-
-		if (tag == std::string("v"))
-		{
-			float64 x, y, z;
-			iss >> x;
-			iss >> y;
-			iss >> z;
-
-			uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
-			(*position)[vertex_id] = { x, y, z };
-
-			vertices_id.push_back(vertex_id);
-		}
-	}
-
-	// read edges
-	for (uint32 i = 0; i < nb_edges; ++i)
-	{
-		getline_safe(fp, line);
-		std::stringstream iss(line);
-
-		std::string tag;
-		iss >> tag;
-
-		if (tag == std::string("e"))
-		{
-			uint32 a, b;
-			iss >> a;
-			iss >> b;
-
-			edges_vertex_indices.push_back(vertices_id[a]);
-			edges_vertex_indices.push_back(vertices_id[b]);
+		for(uint32 j = 0; j < nb_neighbors; ++j){
+			uint32 neighbor_id;
+			iss >> neighbor_id;
+			if(neighbor_id > vertex_id){
+				edges_vertex_indices.push_back(vertex_id);
+				edges_vertex_indices.push_back(neighbor_id);
+			}
 		}
 	}
 
@@ -132,6 +101,17 @@ bool import_CG(Graph& g, const std::string& filename)
 		return false;
 	}
 	
+
+	// SPECIALIZED
+	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
+	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
+	for(uint32 i = 0; i < nb_vertices; ++i){
+		uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
+		(*position)[vertex_id] = vertices_pos[i];
+		(*radius)[vertex_id] = vertices_radii[i];
+		vertices_indices[i] = vertex_id;
+	}
+
 	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
 
 	CMapBase::AttributeContainer& vc = g.attribute_containers_[Graph::Vertex::ORBIT];
@@ -143,7 +123,7 @@ bool import_CG(Graph& g, const std::string& filename)
 	}
 
 	for (uint32 i = 0; i < edges_vertex_indices.size(); i += 2)
-		connect_vertices(g, Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]), Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]]));
+		connect_vertices(g, Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i]]]), Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i+1]]]));
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
 

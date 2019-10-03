@@ -63,6 +63,7 @@ class GraphRender : public ViewModule
 	{
 		Parameters() :
 			vertex_position_(nullptr),
+			vertex_radius_(nullptr),
 			render_vertices_(true),
 			render_edges_(true),
 			vertex_scale_factor_(1.0)
@@ -72,7 +73,6 @@ class GraphRender : public ViewModule
 			
 			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
 			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
 			param_edge_->width_= 3.0f;
@@ -97,7 +97,7 @@ class GraphRender : public ViewModule
 public:
 
 	GraphRender(const App& app) :
-		ViewModule(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -125,6 +125,8 @@ private:
 				}
 			)
 		);
+
+		std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
 	}
 
 public:

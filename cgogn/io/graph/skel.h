@@ -21,31 +21,23 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_INFO_H_
-#define CGOGN_CORE_CMAP_CMAP_INFO_H_
+#ifndef CGOGN_IO_GRAPH_SKEL_H_
+#define CGOGN_IO_GRAPH_SKEL_H_
 
+#include <cgogn/io/cgogn_io_export.h>
 #include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
 
-template <typename CELL, typename CMAP,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, CMAP>::value>::type>
-uint32
-nb_darts_of_orbit(const CMAP& m, CELL c)
+namespace io
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	uint32 result = 0;
-	m.foreach_dart_of_orbit(c, [&] (Dart) -> bool
-	{
-		++result;
-		return true;
-	});
-	return result;
-}
 
-void dump_map(const CMapBase& m);
+bool
+CGOGN_IO_EXPORT import_SKEL(Graph& m, const std::string& filename);
 
-}
+} // namespace io
 
-#endif // CGOGN_CORE_CMAP_CMAP_INFO_H_
+} // namespace cgogn
+
+#endif // CGOGN_IO_GRAPH_SKEL_H_
