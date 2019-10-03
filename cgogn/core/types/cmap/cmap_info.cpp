@@ -35,9 +35,7 @@ void dump_map(const CMapBase& m)
     {
         std::cout << "index: " << std::setw(5) << d.index << " / ";
         for (auto& r : m.relations_)
-        {
-            std::cout << r->name() << ": " << (*r)[d.index] << " / ";
-        }
+            std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index] << " / ";
         std::cout << " boundary: " << std::boolalpha << m.is_boundary(d) << std::endl;
         return true;
     });

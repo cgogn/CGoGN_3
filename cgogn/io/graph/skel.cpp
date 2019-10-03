@@ -21,7 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/io/graph/cg.h>
+#include <cgogn/io/graph/skel.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/utils/numerics.h>
@@ -69,9 +69,12 @@ bool import_SKEL(Graph& g, const std::string& filename)
 	std::vector<uint32> vertices_indices(nb_vertices);
 	std::vector<geometry::Scalar> vertices_radii(nb_vertices);
 	std::vector<geometry::Vec3> vertices_pos(nb_vertices);
+	
 	std::vector<uint32> edges_vertex_indices;
+	edges_vertex_indices.reserve(nb_vertices * 3);
 
-	for(uint32 i = 0; i < nb_vertices; ++i){
+	for (uint32 i = 0; i < nb_vertices; ++i)
+	{
 		uint32 vertex_id;
 		float64 x, y, z, radius;
 		uint32 nb_neighbors;
@@ -85,10 +88,12 @@ bool import_SKEL(Graph& g, const std::string& filename)
 		vertices_radii[vertex_id] = radius;
 		iss >> nb_neighbors;
 
-		for(uint32 j = 0; j < nb_neighbors; ++j){
+		for (uint32 j = 0; j < nb_neighbors; ++j)
+		{
 			uint32 neighbor_id;
 			iss >> neighbor_id;
-			if(neighbor_id > vertex_id){
+			if (neighbor_id > vertex_id)
+			{
 				edges_vertex_indices.push_back(vertex_id);
 				edges_vertex_indices.push_back(neighbor_id);
 			}
@@ -100,12 +105,12 @@ bool import_SKEL(Graph& g, const std::string& filename)
 		std::cerr << "File \"" << filename << " has no edges." << std::endl;
 		return false;
 	}
-	
 
 	// SPECIALIZED
 	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
 	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
-	for(uint32 i = 0; i < nb_vertices; ++i){
+	for (uint32 i = 0; i < nb_vertices; ++i)
+	{
 		uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
 		(*position)[vertex_id] = vertices_pos[i];
 		(*radius)[vertex_id] = vertices_radii[i];
@@ -123,7 +128,11 @@ bool import_SKEL(Graph& g, const std::string& filename)
 	}
 
 	for (uint32 i = 0; i < edges_vertex_indices.size(); i += 2)
-		connect_vertices(g, Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i]]]), Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i+1]]]));
+		connect_vertices(
+			g,
+			Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i]]]),
+			Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i+1]]])
+		);
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
 
