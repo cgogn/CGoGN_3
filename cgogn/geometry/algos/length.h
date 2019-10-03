@@ -59,21 +59,29 @@ mean_edge_length(
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	std::vector<Scalar> edge_length_per_thread(thread_pool()->nb_workers(), 0);
-	std::vector<uint32> nb_edges_per_thread(thread_pool()->nb_workers(), 0);
+	thread_pool()->execute_all([] ()
+	{
+		float64_value() = 0.0;
+		uint32_value() = 0;
+	});
 
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
-		uint32 worker_index = current_worker_index();
-		edge_length_per_thread[worker_index] += length(m, e, vertex_position);
-		++nb_edges_per_thread[worker_index];
+		float64_value() += length(m, e, vertex_position);
+		++uint32_value();
 		return true;
 	});
 
 	Scalar length_sum = 0.0;
 	uint32 nbe = 0;
-	for (Scalar l : edge_length_per_thread) length_sum += l;
-	for (uint32 n : nb_edges_per_thread) nbe += n;
+
+	std::mutex mutex;
+	thread_pool()->execute_all([&] ()
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		length_sum += float64_value();
+		nbe += uint32_value();
+	});
 
 	return length_sum / Scalar(nbe);
 }

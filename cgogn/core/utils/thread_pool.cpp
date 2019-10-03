@@ -47,9 +47,9 @@ ThreadPool::ThreadPool() :
 				}
 
 				std::unique_lock<std::mutex> lock(queue_mutex_);
-				condition_.wait(
+				condition_task_.wait(
 					lock,
-					[this] { return stop_ || !tasks_.empty(); }
+					[this] () { return stop_ || !tasks_.empty(); }
 				);
 
 				if (stop_ && tasks_.empty())
@@ -57,7 +57,7 @@ ThreadPool::ThreadPool() :
 					thread_stop();
 					return;
 				}
-
+				
 				if (i < nb_working_workers_)
 				{
 					PackagedTask task = std::move(tasks_.front());
@@ -72,7 +72,7 @@ ThreadPool::ThreadPool() :
 				else
 				{
 					lock.unlock();
-					condition_.notify_one();
+					condition_task_.notify_one();
 				}
 			}
 		});
@@ -90,10 +90,12 @@ ThreadPool::~ThreadPool()
 		std::unique_lock<std::mutex> lock(queue_mutex_);
 		stop_ = true;
 	}
+
 #if !(defined(CGOGN_WIN_VER) && (CGOGN_WIN_VER <= 61))
 	condition_running_.notify_all();
-	condition_.notify_all();
+	condition_task_.notify_all();
 #endif
+
 	for (std::thread& worker : workers_)
 		worker.join();
 }

@@ -32,8 +32,6 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
-
 using Mesh = cgogn::Graph;
 
 template <typename T>

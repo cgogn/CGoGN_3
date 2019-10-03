@@ -34,7 +34,7 @@
 #include <cgogn/ui/modules/surface_modeling/surface_modeling.h>
 #include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
 using namespace cgogn::numerics;
 

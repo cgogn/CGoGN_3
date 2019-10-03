@@ -69,6 +69,9 @@ class GraphRender : public ViewModule
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
+			
+			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
+			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
@@ -78,8 +81,10 @@ class GraphRender : public ViewModule
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderPointSpriteSize::Param> param_point_sprite_size_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
 		bool render_vertices_;
@@ -137,6 +142,24 @@ public:
 		}
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
+		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
+
+		for (View* v : linked_views_)
+			v->request_update();
+	}
+
+	void set_vertex_radius(const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
+	{
+		Parameters& p = parameters_[&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.vertex_radius_ = vertex_radius;
+		if (p.vertex_radius_)
+			md->update_vbo(vertex_radius.get(), true);
+
+		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
 		for (View* v : linked_views_)
@@ -165,12 +188,21 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_)
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
+				if (p.param_point_sprite_size_->vao_initialized())
+				{
+					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_size_->release();
+				}
+				else if (p.param_point_sprite_->vao_initialized())
+				{
+					p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+					p.param_point_sprite_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_->release();
+				}
 			}
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
@@ -225,6 +257,25 @@ protected:
 				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 				if (ImGui::Button("X##position"))
 					set_vertex_position(*selected_mesh_, nullptr);
+			}
+			
+			if (ImGui::BeginCombo("Radius", p.vertex_radius_ ? p.vertex_radius_->name().c_str() : "-- select --"))
+			{
+				foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Scalar>>& attribute)
+				{
+					bool is_selected = attribute == p.vertex_radius_;
+					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+						set_vertex_radius(*selected_mesh_, attribute);
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				});
+				ImGui::EndCombo();
+			}
+			if (p.vertex_radius_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##radius"))
+					set_vertex_radius(*selected_mesh_, nullptr);
 			}
 
 			ImGui::Separator();
