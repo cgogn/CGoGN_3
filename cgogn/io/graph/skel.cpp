@@ -45,9 +45,6 @@ namespace io
 
 bool import_SKEL(Graph& g, const std::string& filename)
 {
-	using Scalar = geometry::Scalar;
-	using Vec3 = geometry::Vec3;
-
 	// GENERIC
 	Scoped_C_Locale loc;
 	
@@ -70,8 +67,8 @@ bool import_SKEL(Graph& g, const std::string& filename)
 	}	
 
 	std::vector<uint32> vertices_indices(nb_vertices);
-	std::vector<Scalar> vertices_radii(nb_vertices);
-	std::vector<Vec3> vertices_pos(nb_vertices);
+	std::vector<geometry::Scalar> vertices_radii(nb_vertices);
+	std::vector<geometry::Vec3> vertices_pos(nb_vertices);
 	std::vector<uint32> edges_vertex_indices;
 
 	for(uint32 i = 0; i < nb_vertices; ++i){
@@ -107,9 +104,11 @@ bool import_SKEL(Graph& g, const std::string& filename)
 
 	// SPECIALIZED
 	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
+	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
 	for(uint32 i = 0; i < nb_vertices; ++i){
 		uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
 		(*position)[vertex_id] = vertices_pos[i];
+		(*radius)[vertex_id] = vertices_radii[i];
 		vertices_indices[i] = vertex_id;
 	}
 

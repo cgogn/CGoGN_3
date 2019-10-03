@@ -63,13 +63,18 @@ class GraphRender : public ViewModule
 	{
 		Parameters() :
 			vertex_position_(nullptr),
+			vertex_radius_(nullptr),
 			render_vertices_(true),
+			render_vertices_size_(false),
 			render_edges_(true),
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-
+			
+			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
+			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
+			
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
 			param_edge_->width_= 3.0f;
@@ -78,11 +83,14 @@ class GraphRender : public ViewModule
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderPointSpriteSize::Param> param_point_sprite_size_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
 		bool render_vertices_;
+		bool render_vertices_size_;
 		bool render_edges_;
 		
 		float32 vertex_scale_factor_;
@@ -92,7 +100,7 @@ class GraphRender : public ViewModule
 public:
 
 	GraphRender(const App& app) :
-		ViewModule(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -120,6 +128,11 @@ private:
 				}
 			)
 		);
+
+		std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
+		
+		if (vertex_position && vertex_radius)
+			set_vertex_radius(*m, vertex_radius);
 	}
 
 public:
@@ -139,6 +152,22 @@ public:
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
+		for (View* v : linked_views_)
+			v->request_update();
+	}
+
+	void set_vertex_radius(const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
+	{
+		Parameters& p = parameters_[&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.render_vertices_size_ = true;
+		p.vertex_radius_ = vertex_radius;
+		if(p.vertex_radius_)
+			md->update_vbo(vertex_radius.get(), true);
+
+		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
+		
 		for (View* v : linked_views_)
 			v->request_update();
 	}
@@ -165,12 +194,22 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if(p.render_vertices_)
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
+				if(p.render_vertices_size_ && p.param_point_sprite_size_->vao_initialized())
+				{
+					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_size_->release();
+				}
+				else if(p.param_point_sprite_->vao_initialized())
+				{
+					p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+					p.param_point_sprite_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_->release();
+				}
+
 			}
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
@@ -229,6 +268,7 @@ protected:
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
+			need_update |= ImGui::Checkbox("Radius", &p.render_vertices_size_);
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 
 			if (p.render_edges_)
