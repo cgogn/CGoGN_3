@@ -50,6 +50,14 @@ class CellCache
 
 public:
 
+	static const bool is_mesh_view = true;
+	using MeshType = MESH;
+
+	CellCache(const MESH& m) : m_(m) {}
+
+	MESH& mesh() { return const_cast<MESH&>(m_); }
+	const MESH& mesh() const { return m_; }
+
 	template <typename CELL>
 	const std::vector<CELL>& cell_vector() const
 	{
@@ -61,9 +69,6 @@ public:
 	{
 		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
 	}
-
-	static const bool is_mesh_view = true;
-	using MeshType = MESH;
 
 	template <typename CELL>
 	typename std::vector<CELL>::const_iterator begin() const
@@ -77,11 +82,6 @@ public:
 		return cell_vector<CELL>().end();
 	}
 
-	CellCache(const MESH& m) : m_(m) {}
-
-	MESH& mesh() { return const_cast<MESH&>(m_); }
-	const MESH& mesh() const { return m_; }
-
 	template <typename CELL>
 	void build()
 	{
@@ -93,13 +93,13 @@ public:
 	template <typename CELL>
 	void add(CELL c)
 	{
-		std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).push_back(c);
+		cell_vector<CELL>().push_back(c);
 	}
 
 	template <typename CELL>
 	void clear()
 	{
-		std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).clear();
+		cell_vector<CELL>().clear();
 	}
 };
 

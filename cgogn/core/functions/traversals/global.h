@@ -63,7 +63,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 		m.foreach_dart([&] (Dart d) -> bool
 		{
 			const CELL c(d);
-			if (!m.is_boundary(d) && !cm.is_marked(c))
+			if (!cm.is_marked(c) && !m.is_boundary(d))
 			{
 				cm.mark(c);
 				return f(c);
@@ -76,7 +76,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 		DartMarker dm(m);
 		m.foreach_dart([&] (Dart d) -> bool
 		{
-			if (!m.is_boundary(d) && !dm.is_marked(d))
+			if (!dm.is_marked(d) && !m.is_boundary(d))
 			{
 				const CELL c(d);
 				m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });
@@ -150,8 +150,8 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	ThreadPool* thread_pool = cgogn::thread_pool();
-	uint32 nb_workers = thread_pool->nb_workers();
+	ThreadPool* pool = thread_pool();
+	uint32 nb_workers = pool->nb_workers();
 	if (nb_workers == 0)
 		return foreach_cell(m, f, force_dart_marking);
 	
@@ -165,7 +165,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 	futures[0].reserve(nb_workers);
 	futures[1].reserve(nb_workers);
 
-	Buffers<uint32>* buffers = cgogn::uint32_buffers();
+	Buffers<uint32>* buffers = uint32_buffers();
 	
 	Dart it = m.begin();
 	Dart last = m.end();
@@ -182,10 +182,10 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells_buffers[i].push_back(buffers->buffer());
 			VecCell& cells = *cells_buffers[i].back();
 			cells.reserve(PARALLEL_BUFFER_SIZE);
-			for (unsigned k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
+			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
 				CELL c(it);
-				if (!m.is_boundary(it) && !cm.is_marked(c))
+				if (!cm.is_marked(c) && !m.is_boundary(it))
 				{
 					cm.mark(c);
 					cells.push_back(c.dart.index);
@@ -194,7 +194,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 				it = m.next(it);
 			}
 			// launch thread
-			futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+			futures[i].push_back(pool->enqueue([&cells, &f] ()
 			{
 				for (uint32 index : cells)
 					f(CELL(Dart(index)));
@@ -202,7 +202,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();
@@ -224,7 +224,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells.reserve(PARALLEL_BUFFER_SIZE);
 			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
-				if (!m.is_boundary(it) && !dm.is_marked(it))
+				if (!dm.is_marked(it) && !m.is_boundary(it))
 				{
 					CELL c(it);
 					m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });
@@ -234,7 +234,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 				it = m.next(it);
 			}
 			// launch thread
-			futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+			futures[i].push_back(pool->enqueue([&cells, &f] ()
 			{
 				for (uint32 index : cells)
 					f(CELL(Dart(index)));
@@ -242,7 +242,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();
@@ -277,8 +277,8 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	ThreadPool* thread_pool = cgogn::thread_pool();
-	uint32 nb_workers = thread_pool->nb_workers();
+	ThreadPool* pool = thread_pool();
+	uint32 nb_workers = pool->nb_workers();
 	if (nb_workers == 0)
 		return foreach_cell(cc, f);
 	
@@ -292,7 +292,7 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 	futures[0].reserve(nb_workers);
 	futures[1].reserve(nb_workers);
 
-	Buffers<uint32>* buffers = cgogn::uint32_buffers();
+	Buffers<uint32>* buffers = uint32_buffers();
 	
 	auto it = cc.template begin<CELL>();
 	auto last = cc.template end<CELL>();
@@ -312,7 +312,7 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 			it++;
 		}
 		// launch thread
-		futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+		futures[i].push_back(pool->enqueue([&cells, &f] ()
 		{
 			for (uint32 index : cells)
 				f(CELL(Dart(index)));

@@ -27,6 +27,10 @@ endif()
 #### CGoGN PATH
 set(CGOGN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+#### CGoGN DATA PATH
+set(CGOGN_DATA_PATH "${CGOGN_SOURCE_DIR}/data/")
+add_definitions("-DCGOGN_DATA_PATH=${CGOGN_DATA_PATH}")
+
 #### Here are located the FindPackages that we need
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
