@@ -65,7 +65,6 @@ class GraphRender : public ViewModule
 			vertex_position_(nullptr),
 			vertex_radius_(nullptr),
 			render_vertices_(true),
-			render_vertices_size_(false),
 			render_edges_(true),
 			vertex_scale_factor_(1.0)
 		{
@@ -89,7 +88,6 @@ class GraphRender : public ViewModule
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
 		bool render_vertices_;
-		bool render_vertices_size_;
 		bool render_edges_;
 		
 		float32 vertex_scale_factor_;
@@ -158,7 +156,6 @@ public:
 		Parameters& p = parameters_[&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
-		p.render_vertices_size_ = true;
 		p.vertex_radius_ = vertex_radius;
 		if (p.vertex_radius_)
 			md->update_vbo(vertex_radius.get(), true);
@@ -195,7 +192,7 @@ protected:
 
 			if (p.render_vertices_)
 			{
-				if (p.render_vertices_size_ && p.param_point_sprite_size_->vao_initialized())
+				if (p.param_point_sprite_size_->vao_initialized())
 				{
 					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::POINTS);
@@ -285,7 +282,6 @@ protected:
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-			need_update |= ImGui::Checkbox("Radius", &p.render_vertices_size_);
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 
 			if (p.render_edges_)
