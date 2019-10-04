@@ -21,21 +21,14 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_GRAPH_SKEL_H_
-#define CGOGN_IO_GRAPH_SKEL_H_
+#ifndef CGOGN_IO_VOLUME_IMPORT_H_
+#define CGOGN_IO_VOLUME_IMPORT_H_
 
-#include <cgogn/io/graph/graph_import.h>
-#include <cgogn/io/utils.h>
+#include <cgogn/io/cgogn_io_export.h>
 
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/functions/attributes.h>
-
-#include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
-#include <fstream>
-#include <set>
 
 namespace cgogn
 {
@@ -43,77 +36,34 @@ namespace cgogn
 namespace io
 {
 
-template <typename MESH>
-bool import_SKEL(MESH& m, const std::string& filename)
+enum VolumeType
 {
-	static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
+	Tetra,
+	Pyramid,
+	TriangularPrism,
+	Hexa,
+	Connector
+};
 
-	using Vertex = typename MESH::Vertex;
+struct VolumeImportData
+{
+	std::vector<uint32> vertices_id_;
+	std::vector<VolumeType> volumes_types_;
+	std::vector<uint32> volumes_vertex_indices_;
 
-	Scoped_C_Locale loc;
-
-	GraphImportData graph_data;
-	
-	std::ifstream fp(filename.c_str(), std::ios::in);
-
-	std::string line;
-	line.reserve(512);
-	getline_safe(fp, line); // Discard first line, it's useless
-	getline_safe(fp, line); // Number of vertices
-
-	std::stringstream issl(line);
-	uint32 value;
-	issl >> value;
-	const uint32 nb_vertices = value;
-
-	if (nb_vertices == 0u)
+	inline void reserve(uint32 nb_vertices, uint32 nb_volumes)
 	{
-		std::cerr << "File \"" << filename << " has no vertices." << std::endl;
-		return false;
+		vertices_id_.reserve(nb_vertices);
+		volumes_types_.reserve(nb_volumes);
+		volumes_vertex_indices_.reserve(nb_volumes * 8u);
 	}
+};
 
-	graph_data.reserve(nb_vertices);
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
-	auto radius = add_attribute<geometry::Scalar, Vertex>(m, "radius");
-
-	for (uint32 i = 0; i < nb_vertices; ++i)
-	{
-		uint32 id;
-		float64 x, y, z, r;
-		uint32 nb_neighbors;
-
-		getline_safe(fp, line); 
-		std::stringstream iss(line);
-		iss >> id;
-		iss >> x >> y >> z;
-		iss >> r;
-
-		uint32 vertex_id = new_cell_index<Vertex>(m);
-		(*position)[vertex_id] = { x, y, z };
-		(*radius)[vertex_id] = r;
-		graph_data.vertices_id_.push_back(vertex_id);
-
-		iss >> nb_neighbors;
-
-		for (uint32 j = 0; j < nb_neighbors; ++j)
-		{
-			uint32 neighbor_id;
-			iss >> neighbor_id;
-			if (neighbor_id < id)
-			{
-				graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[id]);
-				graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[neighbor_id]);
-			}
-		}
-	}
-
-	import_graph_data(m, graph_data);
-
-	return true;
-}
+void
+CGOGN_IO_EXPORT import_volume_data(CMap3& m, const VolumeImportData& volume_data);
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_GRAPH_SKEL_H_
+#endif // CGOGN_IO_VOLUME_IMPORT_H_

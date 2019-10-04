@@ -21,14 +21,12 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_IMPORT_GRAPH_H_
-#define CGOGN_IO_IMPORT_GRAPH_H_
+#ifndef CGOGN_IO_GRAPH_IMPORT_H_
+#define CGOGN_IO_GRAPH_IMPORT_H_
 
 #include <cgogn/io/cgogn_io_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <vector>
 
@@ -42,31 +40,19 @@ struct GraphImportData
 {
 	std::vector<uint32> vertices_id_;
 	std::vector<uint32> edges_vertex_indices_;
+
+	inline void reserve(uint32 nb_vertices)
+	{
+		vertices_id_.reserve(nb_vertices);
+		edges_vertex_indices_.reserve(nb_vertices * 2u);
+	}
 };
 
-void import_graph_data(Graph& g, const GraphImportData& graph_data)
-{
-	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
-
-	for (uint32 i : graph_data.vertices_id_)
-	{
-		Graph::Vertex v = add_vertex(g, false);
-		g.set_embedding<Graph::Vertex>(v.dart, i);
-		(*vertex_dart)[i] = v.dart;
-	}
-
-	for (uint32 i = 0; i < graph_data.edges_vertex_indices_.size(); i += 2)
-		connect_vertices(
-			g,
-			Graph::Vertex((*vertex_dart)[graph_data.vertices_id_[graph_data.edges_vertex_indices_[i]]]),
-			Graph::Vertex((*vertex_dart)[graph_data.vertices_id_[graph_data.edges_vertex_indices_[i+1]]])
-		);
-
-	remove_attribute<Graph::Vertex>(g, vertex_dart);
-}
+void
+CGOGN_IO_EXPORT import_graph_data(Graph& g, const GraphImportData& graph_data);
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_IMPORT_GRAPH_H_
+#endif // CGOGN_IO_GRAPH_IMPORT_H_
