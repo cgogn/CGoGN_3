@@ -17,6 +17,8 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/graph/cg.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/graph/cg.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/graph/cgr.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/graph/cgr.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/graph/skel.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/graph/skel.cpp"
 	    "${CMAKE_CURRENT_LIST_DIR}/surface/off.h"

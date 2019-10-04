@@ -21,7 +21,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/io/graph/cg.h>
+#include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/utils/numerics.h>
@@ -43,7 +43,7 @@ namespace cgogn
 namespace io
 {
 
-bool import_CG(Graph& g, const std::string& filename)
+bool import_CGR(Graph& g, const std::string& filename)
 {
 	Scoped_C_Locale loc;
 
@@ -57,7 +57,7 @@ bool import_CG(Graph& g, const std::string& filename)
 	getline_safe(fp, line);
 	if (line.rfind("# D") == std::string::npos)
 	{
-		std::cerr << "File \"" << filename << "\" is not a valid cg file." << std::endl;
+		std::cerr << "File \"" << filename << "\" is not a valid cgr file." << std::endl;
 		return false;
 	}
 	
@@ -66,13 +66,13 @@ bool import_CG(Graph& g, const std::string& filename)
 	std::stringstream issl(line);
 	std::string tagl;
 	uint32 value;
-	issl >> tagl;
-	issl >> tagl;
+	issl >> tagl; // #
+	issl >> tagl; // D
 	issl >> value; // dimension unused for now
-	issl >> tagl;
-	issl >> value;
+	issl >> tagl; // NV
+	issl >> value; 
 	const uint32 nb_vertices = value;
-	issl >> tagl;
+	issl >> tagl; // NE
 	issl >> value;
 	const uint32 nb_edges = value;
 
@@ -85,6 +85,7 @@ bool import_CG(Graph& g, const std::string& filename)
 	edges_vertex_indices.reserve(nb_edges * 2);
 
 	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
+	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
 
 	// read vertices
 	std::vector<uint32> vertices_id;
@@ -100,13 +101,15 @@ bool import_CG(Graph& g, const std::string& filename)
 
 		if (tag == std::string("v"))
 		{
-			float64 x, y, z;
+			float64 x, y, z, r;
 			iss >> x;
 			iss >> y;
 			iss >> z;
+			iss >> r;
 
 			uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
 			(*position)[vertex_id] = { x, y, z };
+			(*radius)[vertex_id] = r;
 
 			vertices_id.push_back(vertex_id);
 		}
@@ -153,7 +156,6 @@ bool import_CG(Graph& g, const std::string& filename)
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
 
-	std::cout << "successful import" << std::endl;
 	return true;
 }
 
