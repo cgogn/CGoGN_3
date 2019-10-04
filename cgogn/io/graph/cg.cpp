@@ -47,8 +47,6 @@ bool import_CG(Graph& g, const std::string& filename)
 {
 	Scoped_C_Locale loc;
 
-	std::vector<uint32> edges_vertex_indices;
-
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
 	std::string line;
@@ -76,6 +74,13 @@ bool import_CG(Graph& g, const std::string& filename)
 	issl >> value;
 	const uint32 nb_edges = value;
 
+	if (nb_vertices == 0u)
+	{
+		std::cerr << "File \"" << filename << " has no vertices." << std::endl;
+		return false;
+	}
+
+	std::vector<uint32> edges_vertex_indices;
 	edges_vertex_indices.reserve(nb_edges * 2);
 
 	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
@@ -143,10 +148,15 @@ bool import_CG(Graph& g, const std::string& filename)
 	}
 
 	for (uint32 i = 0; i < edges_vertex_indices.size(); i += 2)
-		connect_vertices(g, Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]), Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]]));
+		connect_vertices(
+			g,
+			Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]),
+			Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]])
+		);
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
 
+	std::cout << "successful import" << std::endl;
 	return true;
 }
 

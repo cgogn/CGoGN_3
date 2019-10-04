@@ -241,6 +241,39 @@ uint32 index_of(const MESH& m, CELL c)
 
 /*****************************************************************************/
 
+// template <typename CELL, typename MESH>
+// uint32 new_cell_index(MESH& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL, typename MESH,
+		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+inline
+uint32 new_cell_index(const MESH& m)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return m.attribute_containers_[CELL::ORBIT].new_index();
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename CELL, typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline
+uint32 new_cell_index(const MESH& m, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return new_cell_index(m.mesh());
+}
+
+/*****************************************************************************/
+
 // template <typename T, typename CELL, typename MESH>
 // T& value(MESH& m, typename mesh_traits<MESH>::template AttributePtr<T> attribute, CELL c);
 

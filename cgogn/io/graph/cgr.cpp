@@ -21,22 +21,21 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_IO_GRAPH_SKEL_H_
-#define CGOGN_IO_GRAPH_SKEL_H_
-
-#include <cgogn/io/graph/skel.h>
-#include <cgogn/io/graph/graph_import.h>
+#include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 #include <fstream>
-#include <set>
+
+
+#include <cgogn/core/types/cmap/cmap_info.h>
 
 namespace cgogn
 {
@@ -44,28 +43,38 @@ namespace cgogn
 namespace io
 {
 
-template <typename MESH>
-bool import_SKEL(MESH& m, const std::string& filename)
+bool import_CGR(Graph& g, const std::string& filename)
 {
-	static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
-
-	using Vertex = typename MESH::Vertex;
-
 	Scoped_C_Locale loc;
 
-	GraphImportData graph_data;
-	
+	std::vector<uint32> edges_vertex_indices;
+
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
 	std::string line;
 	line.reserve(512);
-	getline_safe(fp, line); // Discard first line, it's useless
-	getline_safe(fp, line); // Number of vertices
 
+	getline_safe(fp, line);
+	if (line.rfind("# D") == std::string::npos)
+	{
+		std::cerr << "File \"" << filename << "\" is not a valid cgr file." << std::endl;
+		return false;
+	}
+	
+	// read header
+	std::replace(line.begin(), line.end(), ':', ' ');
 	std::stringstream issl(line);
+	std::string tagl;
 	uint32 value;
-	issl >> value;
+	issl >> tagl; // #
+	issl >> tagl; // D
+	issl >> value; // dimension unused for now
+	issl >> tagl; // NV
+	issl >> value; 
 	const uint32 nb_vertices = value;
+	issl >> tagl; // NE
+	issl >> value;
+	const uint32 nb_edges = value;
 
 	if (nb_vertices == 0u)
 	{
@@ -73,50 +82,79 @@ bool import_SKEL(MESH& m, const std::string& filename)
 		return false;
 	}
 
-	graph_data.vertices_id_.resize(nb_vertices);
-	graph_data.edges_vertex_indices_.reserve(nb_vertices * 3);
+	edges_vertex_indices.reserve(nb_edges * 2);
 
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
-	auto radius = add_attribute<geometry::Scalar, Vertex>(m, "radius");
+	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
+	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
+
+	// read vertices
+	std::vector<uint32> vertices_id;
+	vertices_id.reserve(nb_vertices);
 
 	for (uint32 i = 0; i < nb_vertices; ++i)
 	{
-		uint32 id;
-		float64 x, y, z, r;
-		uint32 nb_neighbors;
-
-		getline_safe(fp, line); 
+		getline_safe(fp, line);
 		std::stringstream iss(line);
-		iss >> id;
-		iss >> x >> y >> z;
-		iss >> r;
 
-		uint32 vertex_id = new_cell_index<Vertex>(m);
-		(*position)[vertex_id] = {x, y, z};
-		(*radius)[vertex_id] = r;
-		graph_data.vertices_id_[id] = vertex_id;
+		std::string tag;
+		iss >> tag;
 
-		iss >> nb_neighbors;
-
-		for (uint32 j = 0; j < nb_neighbors; ++j)
+		if (tag == std::string("v"))
 		{
-			uint32 neighbor_id;
-			iss >> neighbor_id;
-			if (neighbor_id > id)
-			{
-				graph_data.edges_vertex_indices_.push_back(id);
-				graph_data.edges_vertex_indices_.push_back(neighbor_id);
-			}
+			float64 x, y, z, r;
+			iss >> x;
+			iss >> y;
+			iss >> z;
+			iss >> r;
+
+			uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
+			(*position)[vertex_id] = { x, y, z };
+			(*radius)[vertex_id] = r;
+
+			vertices_id.push_back(vertex_id);
 		}
 	}
 
-	if (graph_data.edges_vertex_indices_.size() == 0u)
+	// read edges
+	for (uint32 i = 0; i < nb_edges; ++i)
+	{
+		getline_safe(fp, line);
+		std::stringstream iss(line);
+
+		std::string tag;
+		iss >> tag;
+
+		if (tag == std::string("e"))
+		{
+			uint32 a, b;
+			iss >> a;
+			iss >> b;
+
+			edges_vertex_indices.push_back(vertices_id[a]);
+			edges_vertex_indices.push_back(vertices_id[b]);
+		}
+	}
+
+	if (edges_vertex_indices.size() == 0u)
 	{
 		std::cerr << "File \"" << filename << " has no edges." << std::endl;
 		return false;
 	}
+	
+	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
 
-	import_graph_data(m, graph_data);
+	CMapBase::AttributeContainer& vc = g.attribute_containers_[Graph::Vertex::ORBIT];
+	for (uint32 i = vc.first_index(); i != vc.last_index(); i = vc.next_index(i))
+	{
+		Graph::Vertex v = add_vertex(g, false);
+		g.set_embedding<Graph::Vertex>(v.dart, i);
+		(*vertex_dart)[i] = v.dart;
+	}
+
+	for (uint32 i = 0; i < edges_vertex_indices.size(); i += 2)
+		connect_vertices(g, Graph::Vertex((*vertex_dart)[edges_vertex_indices[i]]), Graph::Vertex((*vertex_dart)[edges_vertex_indices[i+1]]));
+
+	remove_attribute<Graph::Vertex>(g, vertex_dart);
 
 	return true;
 }
@@ -124,5 +162,3 @@ bool import_SKEL(MESH& m, const std::string& filename)
 } // namespace io
 
 } // namespace cgogn
-
-#endif // CGOGN_IO_GRAPH_SKEL_H_
