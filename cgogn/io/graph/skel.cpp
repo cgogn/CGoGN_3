@@ -66,30 +66,35 @@ bool import_SKEL(Graph& g, const std::string& filename)
 		return false;
 	}	
 
-	std::vector<uint32> vertices_indices(nb_vertices);
-	std::vector<geometry::Scalar> vertices_radii(nb_vertices);
-	std::vector<geometry::Vec3> vertices_pos(nb_vertices);
+	std::vector<uint32> vertices_id(nb_vertices);
 	std::vector<uint32> edges_vertex_indices;
 
+	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
+	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
+
 	for(uint32 i = 0; i < nb_vertices; ++i){
-		uint32 vertex_id;
-		float64 x, y, z, radius;
+		uint32 id;
+		float64 x, y, z, r;
 		uint32 nb_neighbors;
 
 		getline_safe(fp, line); 
 		std::stringstream iss(line);
-		iss >> vertex_id;
+		iss >> id;
 		iss >> x >> y >> z;
-		vertices_pos[vertex_id] = {x, y, z};
-		iss >> radius;
-		vertices_radii[vertex_id] = radius;
+		iss >> r;
+
+		uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
+		(*position)[vertex_id] = {x, y, z};
+		(*radius)[vertex_id] = r;
+		vertices_id[id] = vertex_id;
+
 		iss >> nb_neighbors;
 
 		for(uint32 j = 0; j < nb_neighbors; ++j){
 			uint32 neighbor_id;
 			iss >> neighbor_id;
-			if(neighbor_id > vertex_id){
-				edges_vertex_indices.push_back(vertex_id);
+			if(neighbor_id > id){
+				edges_vertex_indices.push_back(id);
 				edges_vertex_indices.push_back(neighbor_id);
 			}
 		}
@@ -103,15 +108,6 @@ bool import_SKEL(Graph& g, const std::string& filename)
 	
 
 	// SPECIALIZED
-	auto position = add_attribute<geometry::Vec3, Graph::Vertex>(g, "position");
-	auto radius = add_attribute<geometry::Scalar, Graph::Vertex>(g, "radius");
-	for(uint32 i = 0; i < nb_vertices; ++i){
-		uint32 vertex_id = g.attribute_containers_[Graph::Vertex::ORBIT].new_index();
-		(*position)[vertex_id] = vertices_pos[i];
-		(*radius)[vertex_id] = vertices_radii[i];
-		vertices_indices[i] = vertex_id;
-	}
-
 	auto vertex_dart = add_attribute<Dart, Graph::Vertex>(g, "__vertex_dart");
 
 	CMapBase::AttributeContainer& vc = g.attribute_containers_[Graph::Vertex::ORBIT];
@@ -123,7 +119,7 @@ bool import_SKEL(Graph& g, const std::string& filename)
 	}
 
 	for (uint32 i = 0; i < edges_vertex_indices.size(); i += 2)
-		connect_vertices(g, Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i]]]), Graph::Vertex((*vertex_dart)[vertices_indices[edges_vertex_indices[i+1]]]));
+		connect_vertices(g, Graph::Vertex((*vertex_dart)[vertices_id[edges_vertex_indices[i]]]), Graph::Vertex((*vertex_dart)[vertices_id[edges_vertex_indices[i+1]]]));
 
 	remove_attribute<Graph::Vertex>(g, vertex_dart);
 

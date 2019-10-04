@@ -34,6 +34,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/io/graph/cg.h>
+#include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
@@ -98,6 +99,8 @@ public:
 			bool imported;
 			if(ext.compare("cg") == 0)
 				imported = cgogn::io::import_CG(*m, filename);
+			else if(ext.compare("cgr") == 0)
+				imported = cgogn::io::import_CGR(*m, filename);
 			else if(ext.compare("skel") == 0)
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
