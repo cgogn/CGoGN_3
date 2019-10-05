@@ -63,7 +63,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 		m.foreach_dart([&] (Dart d) -> bool
 		{
 			const CELL c(d);
-			if (!cm.is_marked(c) && !m.is_boundary(d))
+			if (!m.is_boundary(d) && !cm.is_marked(c))
 			{
 				cm.mark(c);
 				return f(c);
@@ -76,7 +76,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 		DartMarker dm(m);
 		m.foreach_dart([&] (Dart d) -> bool
 		{
-			if (!dm.is_marked(d) && !m.is_boundary(d))
+			if (!m.is_boundary(d) && !dm.is_marked(d))
 			{
 				const CELL c(d);
 				m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });
@@ -185,7 +185,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
 				CELL c(it);
-				if (!cm.is_marked(c) && !m.is_boundary(it))
+				if (!m.is_boundary(it) && !cm.is_marked(c))
 				{
 					cm.mark(c);
 					cells.push_back(c.dart.index);
@@ -224,7 +224,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells.reserve(PARALLEL_BUFFER_SIZE);
 			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
-				if (!dm.is_marked(it) && !m.is_boundary(it))
+				if (!m.is_boundary(it) && !dm.is_marked(it))
 				{
 					CELL c(it);
 					m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });

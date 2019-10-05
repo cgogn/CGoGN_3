@@ -160,9 +160,7 @@ public:
 		if (p.vertex_radius_)
 			md->update_vbo(vertex_radius.get(), true);
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -296,8 +294,13 @@ protected:
 			{
 				ImGui::Separator();
 				ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				if (p.vertex_radius_)
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_size_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+				else
+				{
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				}
 			}
 		}
 
