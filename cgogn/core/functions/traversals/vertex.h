@@ -235,7 +235,6 @@ foreach_adjacent_vertex_through_edge(const Graph& g, Graph::Vertex v, const FUNC
 	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Vertex(g.alpha0(d))); });
 }
 
-
 ///////////
 // CMap2 //
 ///////////
