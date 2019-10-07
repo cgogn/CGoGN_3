@@ -17,6 +17,7 @@ target_link_libraries(modeling
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 
@@ -29,14 +30,28 @@ target_link_libraries(tubular_mesh
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(deformation deformation.cpp)
+target_link_libraries(deformation
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
-	target_link_libraries(modeling 
+	target_link_libraries(modeling
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(tubular_mesh 
+	target_link_libraries(tubular_mesh
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(deformation
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

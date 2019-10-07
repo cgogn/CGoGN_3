@@ -69,6 +69,9 @@ public:
 	inline bool alt_pressed() const { return inputs_->alt_pressed_; }
 	inline bool meta_pressed() const { return inputs_->meta_pressed_; }
 
+	inline int32 previous_mouse_x() const { return inputs_->previous_mouse_x_; }
+	inline int32 previous_mouse_y() const { return inputs_->previous_mouse_y_; }
+
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
 
 	inline void set_wheel_sensitivity(float64 s) { inputs_->wheel_sensitivity_ = s * 0.005; }
