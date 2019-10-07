@@ -223,6 +223,20 @@ foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+template <typename FUNC>
+void
+foreach_adjacent_vertex_through_edge(const Graph& g, Graph::Vertex v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Vertex(g.alpha0(d))); });
+}
+
+
+///////////
 // CMap2 //
 ///////////
 
