@@ -21,14 +21,10 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MARKER_H_
-#define CGOGN_CORE_TYPES_MARKER_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_FUNCTIONS_CELLS_H_
+#define CGOGN_CORE_FUNCTIONS_CELLS_H_
 
 #include <cgogn/core/types/mesh_traits.h>
-
-#include <cgogn/core/functions/cells.h>
 
 namespace cgogn
 {
@@ -36,7 +32,7 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// typename mesh_traits<MESH>::MarkAttribute* get_mark_attribute(MESH& m);
+// uint32 index_of(MESH& m, CELL c);
 
 /*****************************************************************************/
 
@@ -46,13 +42,11 @@ namespace cgogn
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttribute*
-get_mark_attribute(const MESH& m)
+inline
+uint32 index_of(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	if (!m.template is_indexed<CELL>())
-		index_cells<CELL>(const_cast<MESH&>(m));
-	return m.attribute_containers_[CELL::ORBIT].get_mark_attribute();
+	return m.index_of(c);
 }
 
 //////////////
@@ -61,17 +55,17 @@ get_mark_attribute(const MESH& m)
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttribute*
-get_mark_attribute(const MESH& m)
+inline
+uint32 index_of(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return get_mark_attribute<CELL>(m.mesh());
+	return index_of(m.mesh(), c);
 }
 
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// void release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute);
+// uint32 new_index(MESH& m);
 
 /*****************************************************************************/
 
@@ -81,11 +75,11 @@ get_mark_attribute(const MESH& m)
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
+inline
+uint32 new_index(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
+	return m.attribute_containers_[CELL::ORBIT].new_index();
 }
 
 //////////////
@@ -94,117 +88,92 @@ release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute*
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
+inline
+uint32 new_index(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return release_mark_attribute<CELL>(m.mesh(), attribute);
+	return new_index(m.mesh());
 }
 
 /*****************************************************************************/
 
-template <typename MESH, typename CELL>
-class CellMarker
+// template <typename CELL, typename MESH>
+// void set_index(MESH& m, CELL c, uint32 index);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL, typename MESH,
+		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
+inline
+void set_index(MESH& m, CELL c, uint32 index)
 {
-private:
-
-	const MESH& mesh_;
-	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
-
-public:
-
-	CellMarker(const MESH& mesh) : mesh_(mesh)
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool
 	{
-		mark_attribute_ = get_mark_attribute<CELL>(mesh_);
-	}
+		m.template set_index<CELL>(d, index);
+		return true;
+	});
+}
 
-	~CellMarker()
-	{
-		unmark_all();
-		release_mark_attribute<CELL>(mesh_, mark_attribute_);
-	}
+//////////////
+// MESHVIEW //
+//////////////
 
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarker);
-
-	inline void mark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 1u; }
-	inline void unmark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 0u; }
-
-	inline bool is_marked(CELL c) const
-	{
-		return (*mark_attribute_)[index_of(mesh_, c)] != 0u;
-	}
-
-	inline void unmark_all()
-	{
-		mark_attribute_->fill(0u);
-	}
-};
-
-template <typename MESH, typename CELL>
-class CellMarkerStore
+template <typename CELL, typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline
+void set_index(MESH& m, CELL c, uint32 index)
 {
-private:
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return set_index(m.mesh(), c, index);
+}
 
-	const MESH& mesh_;
-	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
-	std::vector<uint32> marked_cells_;
+/*****************************************************************************/
 
-public:
+// template <typename CELL, typename MESH>
+// void index_cells(MESH& m);
 
-	inline CellMarkerStore(const MESH& mesh) : mesh_(mesh)
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL, typename MESH,
+		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+inline
+void index_cells(MESH& m)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	
+	if (!m.template is_indexed<CELL>())
+		m.template init_cells_indexing<CELL>();
+	
+	foreach_cell(m, [&] (CELL c) -> bool
 	{
-		mark_attribute_ = get_mark_attribute<CELL>(mesh_);
-		marked_cells_.reserve(512u);
-	}
+		if (index_of(m, c) == INVALID_INDEX)
+			set_index(m, c, new_index<CELL>(m));
+		return true;
+	}, true);
+}
 
-	~CellMarkerStore()
-	{
-		unmark_all();
-		release_mark_attribute<CELL>(mesh_, mark_attribute_);
-	}
+//////////////
+// MESHVIEW //
+//////////////
 
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarkerStore);
-
-	inline void mark(CELL c)
-	{
-		if (!is_marked(c))
-		{
-			uint32 index = index_of(mesh_, c);
-			(*mark_attribute_)[index] = 1u;
-			marked_cells_.push_back(index);
-		}
-	}
-
-	inline void unmark(CELL c)
-	{
-		uint32 index = index_of(mesh_, c);
-		auto it = std::find(marked_cells_.begin(), marked_cells_.end(), index);
-		if (it != marked_cells_.end())
-		{
-			(*mark_attribute_)[index] = 0u;
-			std::swap(*it, marked_cells_.back());
-			marked_cells_.pop_back();
-		}
-	}
-
-	inline bool is_marked(CELL c) const
-	{
-		return (*mark_attribute_)[index_of(mesh_, c)] != 0u;
-	}
-
-	inline void unmark_all()
-	{
-		for (uint32 i : marked_cells_)
-            (*mark_attribute_)[i] = 0u;
-		marked_cells_.clear();
-	}
-
-	inline const std::vector<uint32>& marked_cells() const
-	{
-		return marked_cells_;
-	}
-};
+template <typename CELL, typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline
+void index_cells(MESH& m)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return index_cells(m.mesh());
+}
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_MARKER_H_
+#endif // CGOGN_CORE_FUNCTIONS_CELLS_H_

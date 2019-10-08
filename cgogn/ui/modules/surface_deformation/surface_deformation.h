@@ -134,7 +134,11 @@ protected:
 			drag_z_ = 0.0;
 			p.selected_handle_vertices_set_->foreach_cell([&] (Vertex v)
 			{
-				drag_z_ += value<Vec3>(*selected_mesh_, p.vertex_position_, v)[2];
+				const Vec3& pos = value<Vec3>(*selected_mesh_, p.vertex_position_, v);
+				rendering::GLVec4d vec(pos[0], pos[1], pos[2], 1.0);
+				vec = view->projection_matrix_d() * view->modelview_matrix_d() * vec;
+				vec /= vec[3];
+				drag_z_ += (1.0 + vec[2]) / 2.0;
 			});
 			drag_z_ /= p.selected_handle_vertices_set_->size();
 			

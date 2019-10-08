@@ -57,7 +57,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 	// shortcuts to relations Dart attributes
 	std::vector<std::shared_ptr<Attribute<Dart>>> relations_;
 	// shortcuts to embedding indices Dart attributes
-	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> embeddings_;
+	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> cells_indices_;
 	// shortcut to boundary marker Dart attribute
     MarkAttribute* boundary_marker_;
 
@@ -92,64 +92,69 @@ public:
 	}
 
 	template <typename CELL>
-	inline bool is_embedded() const
+	inline bool is_indexed() const
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		return embeddings_[orbit] != nullptr;
+		return cells_indices_[orbit] != nullptr;
 	}
 
 	template <typename CELL>
-	inline uint32 embedding(CELL c) const
+	inline uint32 index_of(CELL c) const
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		return (*embeddings_[orbit])[c.dart.index];
+		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
+		return (*cells_indices_[orbit])[c.dart.index];
 	}
 
 	template <typename CELL>
-	inline void set_embedding(Dart d, uint32 emb)
+	inline void set_index(Dart d, uint32 emb)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		const uint32 old = (*embeddings_[orbit])[d.index];
+		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
+		const uint32 old = (*cells_indices_[orbit])[d.index];
 		// ref_line() is done before unref_line() to avoid deleting the indexed line if old == emb
 		attribute_containers_[orbit].ref_index(emb);		// ref the new emb
 		if (old != INVALID_INDEX)
 			attribute_containers_[orbit].unref_index(old);	// unref the old emb
-		(*embeddings_[orbit])[d.index] = emb;				// affect the embedding to the dart
+		(*cells_indices_[orbit])[d.index] = emb;			// affect the index to the dart
 	}
 
 	template <typename CELL>
-	inline void unset_embedding(Dart d)
+	inline void unset_index(Dart d)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		const uint32 old = (*embeddings_[orbit])[d.index];
+		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
+		const uint32 old = (*cells_indices_[orbit])[d.index];
 		if (old != INVALID_INDEX)
 			attribute_containers_[orbit].unref_index(old);	// unref the old emb
-		(*embeddings_[orbit])[d.index] = INVALID_INDEX;		// affect the embedding to the dart
+		(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
 	}
 
 	template <typename CELL>
-	inline void copy_embedding(Dart dest, Dart src)
+	inline void copy_index(Dart dest, Dart src)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		set_embedding<CELL>(dest, embedding(CELL(src)));
+		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
+		set_index<CELL>(dest, index_of(CELL(src)));
 	}
 
 	template <typename CELL>
-	inline void init_embedding()
+	inline void init_cells_indexing()
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(!is_embedded<CELL>(), "Trying to init an already initialized embedding");
-		std::ostringstream oss;
-		oss << "__emb_" << orbit_name(orbit);
-		embeddings_[orbit] = topology_.add_attribute<uint32>(oss.str());
-		for (uint32& i : *embeddings_[orbit])
-			i = INVALID_INDEX;
+		if (!is_indexed<CELL>())
+		{
+			std::ostringstream oss;
+			oss << "__index_" << orbit_name(orbit);
+			cells_indices_[orbit] = topology_.add_attribute<uint32>(oss.str());
+			cells_indices_[orbit]->fill(INVALID_INDEX);
+		}
 	}
 
 	inline Dart add_dart()
@@ -158,7 +163,7 @@ public:
 		Dart d(index);
 		for (auto rel : relations_)
 			(*rel)[d.index] = d;
-		for (auto emb : embeddings_)
+		for (auto emb : cells_indices_)
 			if (emb)
 				(*emb)[d.index] = INVALID_INDEX;
 		return d;
@@ -168,9 +173,9 @@ public:
 	{
 		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
 		{
-			if (embeddings_[orbit])
+			if (cells_indices_[orbit])
 			{
-				uint32 index = (*embeddings_[orbit])[d.index];
+				uint32 index = (*cells_indices_[orbit])[d.index];
 				if (index != INVALID_INDEX)
 					attribute_containers_[orbit].unref_index(index);
 			}

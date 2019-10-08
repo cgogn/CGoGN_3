@@ -23,7 +23,7 @@
 
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
@@ -50,10 +50,10 @@ cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap1::Vertex>())
-			create_embedding(m, v);
-		if (m.is_embedded<CMap1::Face>())
-			m.copy_embedding<CMap1::Face>(d, e.dart);
+		if (m.is_indexed<CMap1::Vertex>())
+			set_index(m, v, new_index<CMap1::Vertex>(m));
+		if (m.is_indexed<CMap1::Face>())
+			m.copy_index<CMap1::Face>(d, e.dart);
 	}
 
 	return v;
@@ -79,22 +79,22 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap2::Vertex>())
-			create_embedding(m, v);
-		if (m.is_embedded<CMap2::Edge>())
+		if (m.is_indexed<CMap2::Vertex>())
+			set_index(m, v, new_index<CMap2::Vertex>(m));
+		if (m.is_indexed<CMap2::Edge>())
 		{
-			m.copy_embedding<CMap2::Edge>(nv2.dart, d1);
-			create_embedding(m, CMap2::Edge(nv1.dart));
+			m.copy_index<CMap2::Edge>(nv2.dart, d1);
+			set_index(m, CMap2::Edge(nv1.dart), new_index<CMap2::Edge>(m));
 		}
-		if (m.is_embedded<CMap2::Face>())
+		if (m.is_indexed<CMap2::Face>())
 		{
-			m.copy_embedding<CMap2::Face>(nv1.dart, d1);
-			m.copy_embedding<CMap2::Face>(nv2.dart, d2);
+			m.copy_index<CMap2::Face>(nv1.dart, d1);
+			m.copy_index<CMap2::Face>(nv2.dart, d2);
 		}
-		if (m.is_embedded<CMap2::Volume>())
+		if (m.is_indexed<CMap2::Volume>())
 		{
-			m.copy_embedding<CMap2::Volume>(nv1.dart, d1);
-			m.copy_embedding<CMap2::Volume>(nv2.dart, d2);
+			m.copy_index<CMap2::Volume>(nv1.dart, d1);
+			m.copy_index<CMap2::Volume>(nv2.dart, d2);
 		}
 	}
 
@@ -168,12 +168,12 @@ collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap2::Vertex>())
-			set_embedding(m, v, m.embedding(v));
-		if (m.is_embedded<CMap2::Edge>())
+		if (m.is_indexed<CMap2::Vertex>())
+			set_index(m, v, index_of(m, v));
+		if (m.is_indexed<CMap2::Edge>())
 		{
-			m.copy_embedding<CMap2::Edge>(dd_12, m.phi2(dd_12));
-			m.copy_embedding<CMap2::Edge>(ee_12, m.phi2(ee_12));
+			m.copy_index<CMap2::Edge>(dd_12, m.phi2(dd_12));
+			m.copy_index<CMap2::Edge>(ee_12, m.phi2(ee_12));
 		}
 	}
 

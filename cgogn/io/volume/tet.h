@@ -82,7 +82,7 @@ bool import_TET(MESH& m, const std::string& filename)
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
 
-		uint32 vertex_id = new_cell_index<Vertex>(m);
+		uint32 vertex_id = new_index<Vertex>(m);
 		(*position)[vertex_id] = { x, y, z };
 
 		volume_data.vertices_id_.push_back(vertex_id);

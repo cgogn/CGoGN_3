@@ -369,7 +369,7 @@ public:
 
 	/**
 	 * @brief bind the shader set uniforms & matrices, bind vao
-	 * @param proj projectiob matrix
+	 * @param proj projection matrix
 	 * @param mv model-view matrix
 	 */
 	void bind(const GLMat4& proj, const GLMat4& mv);

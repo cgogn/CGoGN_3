@@ -57,7 +57,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if (!force_dart_marking && m.template is_embedded<CELL>())
+	if (!force_dart_marking && m.template is_indexed<CELL>())
 	{
 		CellMarker<MESH, CELL> cm(m);
 		m.foreach_dart([&] (Dart d) -> bool
@@ -173,7 +173,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 	uint32 i = 0u; // buffer id (0/1)
 	uint32 j = 0u; // thread id (0..nb_workers)
 	
-	if (!force_dart_marking && m.template is_embedded<CELL>())
+	if (!force_dart_marking && m.template is_indexed<CELL>())
 	{
 		CellMarker<MESH, CELL> cm(m);
 		while (it.index < last.index)
