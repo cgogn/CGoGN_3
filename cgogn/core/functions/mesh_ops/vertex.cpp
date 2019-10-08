@@ -22,7 +22,7 @@
 *******************************************************************************/
 
 #include <cgogn/core/functions/mesh_ops/vertex.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/cells.h>
 
 namespace cgogn
 {
@@ -51,10 +51,10 @@ add_vertex(Graph& g, bool set_indices)
 
 	if (set_indices)
 	{
-		if (g.is_embedded<Graph::Vertex>())
-			create_embedding(g, v);
-		if (g.is_embedded<Graph::Edge>())
-			create_embedding(g, Graph::Edge(v.dart));
+		if (g.is_indexed<Graph::Vertex>())
+			set_index(g, v, new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::Edge>())
+			set_index(g, Graph::Edge(v.dart), new_index<Graph::Edge>(g));
 	}
 
 	return v;
@@ -112,8 +112,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			g.alpha0_sew(d, e);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Edge>())
-					g.copy_embedding<Graph::Edge>(e, d);
+				if (g.is_indexed<Graph::Edge>())
+					g.copy_index<Graph::Edge>(e, d);
 			}
 			return Graph::Edge(d);
 		}
@@ -123,8 +123,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			g.alpha1_sew(e, dd);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Vertex>())
-					g.copy_embedding<Graph::Vertex>(dd, e);
+				if (g.is_indexed<Graph::Vertex>())
+					g.copy_index<Graph::Vertex>(dd, e);
 			}
 			return Graph::Edge(d);
 		}
@@ -137,8 +137,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			g.alpha1_sew(d, ee);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Vertex>())
-					g.copy_embedding<Graph::Vertex>(ee, d);	
+				if (g.is_indexed<Graph::Vertex>())
+					g.copy_index<Graph::Vertex>(ee, d);	
 			}
 			return Graph::Edge(ee);
 		}
@@ -151,13 +151,13 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			g.alpha0_sew(dd, ee);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Vertex>())
+				if (g.is_indexed<Graph::Vertex>())
                 {
-                    g.copy_embedding<Graph::Vertex>(dd, d);
-                    g.copy_embedding<Graph::Vertex>(ee, e);
+                    g.copy_index<Graph::Vertex>(dd, d);
+                    g.copy_index<Graph::Vertex>(ee, e);
 				}
-				if (g.is_embedded<Graph::Edge>())
-                    create_embedding(g, Graph::Edge(dd));
+				if (g.is_indexed<Graph::Edge>())
+					set_index(g, Graph::Edge(dd), new_index<Graph::Edge>(g));
 			}
 			return Graph::Edge(dd);
 		}
@@ -195,10 +195,10 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			g.set_boundary(yy, true);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Edge>())
+				if (g.is_indexed<Graph::Edge>())
 				{
-					g.copy_embedding<Graph::Edge>(g.alpha0(x), x);
-					create_embedding(g, Graph::Edge(y));
+					g.copy_index<Graph::Edge>(g.alpha0(x), x);
+					set_index(g, Graph::Edge(y), new_index<Graph::Edge>(g));
 				}
 			}
 		}
@@ -208,8 +208,8 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			g.set_boundary(y, true);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Vertex>())
-					g.unset_embedding<Graph::Vertex>(g.alpha0(x));
+				if (g.is_indexed<Graph::Vertex>())
+					g.unset_index<Graph::Vertex>(g.alpha0(x));
 			}
 		}
 	}
@@ -221,8 +221,8 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			g.set_boundary(x, true);
 			if (set_indices)
 			{
-				if (g.is_embedded<Graph::Vertex>())
-					g.unset_embedding<Graph::Vertex>(g.alpha0(y));
+				if (g.is_indexed<Graph::Vertex>())
+					g.unset_index<Graph::Vertex>(g.alpha0(y));
 			}
 		}
 		else

@@ -72,7 +72,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
 				const uint32 vertex_index = vertices_buffer[j];
-				m.set_embedding<Vertex>(d, vertex_index);
+				m.set_index<Vertex>(d, vertex_index);
 				(*darts_per_vertex)[vertex_index].push_back(d);
 				d = m.phi1(d);
 			}
@@ -86,7 +86,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	{
 		if (m.phi2(d) == d)
 		{
-			uint32 vertex_index = m.embedding(Vertex(d));
+			uint32 vertex_index = m.index_of(Vertex(d));
 
 			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(m.phi1(d)));
 			bool phi2_found = false;
@@ -96,7 +96,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 				 it != next_vertex_darts.end() && !phi2_found;
 				 ++it)
 			{
-				if (m.embedding(Vertex(m.phi1(*it))) == vertex_index)
+				if (m.index_of(Vertex(m.phi1(*it))) == vertex_index)
 				{
 					if (m.phi2(*it) == *it)
 					{

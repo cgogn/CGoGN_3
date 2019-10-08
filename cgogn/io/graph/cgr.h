@@ -107,7 +107,7 @@ bool import_CGR(MESH& m, const std::string& filename)
 			iss >> z;
 			iss >> r;
 
-			uint32 vertex_id = new_cell_index<Vertex>(m);
+			uint32 vertex_id = new_index<Vertex>(m);
 			(*position)[vertex_id] = { x, y, z };
 			(*radius)[vertex_id] = r;
 

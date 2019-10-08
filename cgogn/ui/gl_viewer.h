@@ -48,8 +48,11 @@ public:
 	inline void request_update() { need_redraw_ = true; }
 	
 	inline const Camera& camera() const { return camera_; }
+	
 	inline rendering::GLMat4 projection_matrix() const { return camera_.projection_matrix(); }
+	inline rendering::GLMat4d projection_matrix_d() const { return camera_.projection_matrix_d(); }
 	inline rendering::GLMat4 modelview_matrix() const { return camera_.modelview_matrix(); }
+	inline rendering::GLMat4d modelview_matrix_d() const { return camera_.modelview_matrix_d(); }
 
 	void set_manipulated_frame(MovingFrame* frame);
 
@@ -68,6 +71,9 @@ public:
 	inline bool control_pressed() const { return inputs_->control_pressed_; }
 	inline bool alt_pressed() const { return inputs_->alt_pressed_; }
 	inline bool meta_pressed() const { return inputs_->meta_pressed_; }
+
+	inline int32 previous_mouse_x() const { return inputs_->previous_mouse_x_; }
+	inline int32 previous_mouse_y() const { return inputs_->previous_mouse_y_; }
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
 

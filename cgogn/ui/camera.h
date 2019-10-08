@@ -142,7 +142,7 @@ public:
 
 	inline rendering::GLMat4 projection_matrix() const
 	{
-		return projection_matrix_d().cast<float>();
+		return projection_matrix_d().cast<float32>();
 	}
 
 	inline rendering::GLMat4 modelview_matrix() const

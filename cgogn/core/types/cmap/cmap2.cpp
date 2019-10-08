@@ -59,12 +59,12 @@ CMap2::Face CMap2::close_hole(Dart d, bool set_indices)
 		foreach_dart_of_orbit(hole, [&] (Dart hd) -> bool
 		{
 			Dart hd2 = phi2(hd);
-			if (is_embedded<Vertex>())
-				copy_embedding<Vertex>(hd, phi1(hd2));
-			if (is_embedded<Edge>())
-				copy_embedding<Edge>(hd, hd2);
-			if (is_embedded<Volume>())
-				copy_embedding<Volume>(hd, hd2);
+			if (is_indexed<Vertex>())
+				copy_index<Vertex>(hd, phi1(hd2));
+			if (is_indexed<Edge>())
+				copy_index<Edge>(hd, hd2);
+			if (is_indexed<Volume>())
+				copy_index<Volume>(hd, hd2);
 			return true;
 		});
 	}

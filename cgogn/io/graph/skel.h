@@ -88,7 +88,7 @@ bool import_SKEL(MESH& m, const std::string& filename)
 		iss >> x >> y >> z;
 		iss >> r;
 
-		uint32 vertex_id = new_cell_index<Vertex>(m);
+		uint32 vertex_id = new_index<Vertex>(m);
 		(*position)[vertex_id] = { x, y, z };
 		(*radius)[vertex_id] = r;
 		graph_data.vertices_id_.push_back(vertex_id);

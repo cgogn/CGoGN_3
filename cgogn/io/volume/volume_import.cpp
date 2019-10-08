@@ -69,7 +69,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
 				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
 				{
-					m.set_embedding<Vertex>(d, vertex_index);
+					m.set_index<Vertex>(d, vertex_index);
 					return true;
 				});
 
@@ -99,7 +99,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
 				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
 				{
-					m.set_embedding<Vertex>(d, vertex_index);
+					m.set_index<Vertex>(d, vertex_index);
 					return true;
 				});
 
@@ -183,8 +183,8 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 		// 	}
 		// }
 
-		if (m.is_embedded<Volume>())
-			set_embedding(m, vol, vol_emb++);
+		if (m.is_indexed<Volume>())
+			set_index(m, vol, vol_emb++);
 	}
 
 	// reconstruct neighbourhood
@@ -203,11 +203,11 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			Dart d_it = d;
 			do
 			{
-				uint32 vindex1 = m.embedding(Vertex(d_it));
-				uint32 vindex2 = m.embedding(Vertex(m.phi1(m.phi1(d_it))));
+				uint32 vindex1 = m.index_of(Vertex(d_it));
+				uint32 vindex2 = m.index_of(Vertex(m.phi1(m.phi1(d_it))));
 				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(m.phi1(d_it)));
 				for (auto it = vec.begin(); it != vec.end() && good_dart.is_nil(); ++it)
-					if (m.embedding(Vertex(m.phi1(*it))) == vindex1 && m.embedding(Vertex(m.phi_1(*it))) == vindex2)
+					if (m.index_of(Vertex(m.phi1(*it))) == vindex1 && m.index_of(Vertex(m.phi_1(*it))) == vindex2)
 						good_dart = *it;
 				d_it = m.phi1(d_it);
 			} while (good_dart.is_nil() && (d_it != d));

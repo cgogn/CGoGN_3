@@ -92,7 +92,7 @@ int main()
 
 	foreach_cell(map1, [&] (CMap1::Face f) -> bool
 	{
-		std::cout << "face " << map1.embedding(f) << " : " << value<float64>(map1, att1, f) << std::endl;
+		std::cout << "face " << map1.index_of(f) << " : " << value<float64>(map1, att1, f) << std::endl;
 		return true;
 	});
 

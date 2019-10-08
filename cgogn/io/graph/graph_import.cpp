@@ -44,7 +44,7 @@ void import_graph_data(Graph& g, const GraphImportData& graph_data)
 	for (uint32 vertex_id : graph_data.vertices_id_)
 	{
 		Vertex v = add_vertex(g, false);
-		g.set_embedding<Vertex>(v.dart, vertex_id);
+		g.set_index<Vertex>(v.dart, vertex_id);
 		(*vertex_dart)[vertex_id] = v.dart;
 	}
 

@@ -105,7 +105,7 @@ bool import_CG(MESH& m, const std::string& filename)
 			iss >> y;
 			iss >> z;
 
-			uint32 vertex_id = new_cell_index<Vertex>(m);
+			uint32 vertex_id = new_index<Vertex>(m);
 			(*position)[vertex_id] = { x, y, z };
 
 			graph_data.vertices_id_.push_back(vertex_id);

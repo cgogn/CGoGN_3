@@ -178,6 +178,7 @@ private:
 	template <class ...T>
 	void internal_rebuild_cells_sets(const std::tuple<T...>&)
 	{
+		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = { (internal_rebuild_cells_sets_of_type<T>(), 0)... };
 	}
 
