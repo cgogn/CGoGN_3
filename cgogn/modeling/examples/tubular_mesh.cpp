@@ -107,7 +107,6 @@ int main(int argc, char** argv)
 	// sr.set_vertex_normal(*m, vertex_normal);
 
 	dump_map(*g);
-	
 
 	return app.launch();
 }
