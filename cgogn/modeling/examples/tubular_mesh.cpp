@@ -107,11 +107,6 @@ int main(int argc, char** argv)
 	// sr.set_vertex_normal(*m, vertex_normal);
 
 	dump_map(*g);
-	foreach_cell(*g, [&]foreach_cell(GraphVertex v) -> bool
-	{
-		
-		return true;
-	})
 
 	return app.launch();
 }
