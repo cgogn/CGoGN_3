@@ -40,6 +40,13 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Edge>
+CGOGN_CORE_EXPORT incident_edges(const Graph& g, Graph::Vertex v);
+
+///////////
 // CMap1 //
 ///////////
 

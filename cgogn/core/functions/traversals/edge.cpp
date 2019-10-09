@@ -34,6 +34,18 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+std::vector<Graph::Edge> incident_edges(const Graph& g, Graph::Vertex v)
+{
+	std::vector<Graph::Edge> edges;
+	edges.reserve(8u);
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { edges.push_back(Graph::Edge(d)); return true; });
+	return edges;
+}
+
+///////////
 // CMap1 //
 ///////////
 
