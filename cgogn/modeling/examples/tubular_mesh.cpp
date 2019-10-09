@@ -105,7 +105,18 @@ int main(int argc, char** argv)
 	
 	// gr.set_vertex_position(*g, vertex_position);
 	// sr.set_vertex_normal(*m, vertex_normal);
+	// auto vertices = 
+	// auto edges = cgogn::incident_edges()
 
+	index_cells<Graph::Edge>(g);
+	cgogn::foreach_cell(*g, [&](GraphVertex v) ->bool 
+	{
+		std::cout << g->embedding(v) << "-" ;
+		// auto edges = cgogn::incident_edges(*g, v);
+		// for(auto e : edges)
+			// std::cout << g->embedding(e) << " ";
+		std::cout << std::endl;
+	});
 	dump_map(*g);
 
 	return app.launch();
