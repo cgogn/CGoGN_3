@@ -82,6 +82,8 @@ public:
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
 
 	void update_scene_bb();
+	void lock_scene_bb();
+	void unlock_scene_bb();
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
 	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
@@ -105,6 +107,8 @@ protected:
 	std::unique_ptr<rendering::ShaderFSTexture::Param> param_fst_;
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
+
+	bool scene_bb_locked_;
 
 	std::vector<ViewModule*> linked_view_modules_;
 	std::vector<ProviderModule*> linked_provider_modules_;
