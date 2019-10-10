@@ -33,6 +33,9 @@
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 
+#include <cgogn/modeling/algos/vessels_generation.h>
+
+
 using namespace cgogn::numerics;
 
 using Graph = cgogn::Graph;
@@ -96,7 +99,7 @@ int main(int argc, char** argv)
 
 	Surface* s = mps.add_mesh("contact");
 
-	// std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, GraphVertex>(*g, "position");
+	std::shared_ptr<Graph::Attribute<cgogn::geometry::Vec3>> vertex_position = cgogn::get_attribute<cgogn::geometry::Vec3, GraphVertex>(*g, "position");
 	// std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
 	// mp.set_mesh_bb_vertex_position(m, vertex_position);
@@ -108,16 +111,28 @@ int main(int argc, char** argv)
 	// auto vertices = 
 	// auto edges = cgogn::incident_edges()
 
-	index_cells<Graph::Edge>(g);
-	cgogn::foreach_cell(*g, [&](GraphVertex v) ->bool 
+	// cgogn::index_cells<Graph::Edge>(*g);
+	// cgogn::foreach_cell(*g, [&](Graph::Vertex v) ->bool 
+	// {
+	// 	std::cout << cgogn::index_of(*g, v) << "-" ;
+	// 	auto edges = cgogn::incident_edges(*g, v);
+	// 	for(auto e : edges)
+	// 		std::cout << cgogn::index_of(*g, e) << " ";
+	// 	std::cout << std::endl;
+	// 	return true;
+	// });
+
+
+	if(cgogn::modeling::build_vessels(*g, *s))
 	{
-		std::cout << g->embedding(v) << "-" ;
-		// auto edges = cgogn::incident_edges(*g, v);
-		// for(auto e : edges)
-			// std::cout << g->embedding(e) << " ";
-		std::cout << std::endl;
-	});
-	dump_map(*g);
+		mpg.emit_connectivity_changed(g);
+		mpg.emit_attribute_changed(g, vertex_position.get());
+		std::shared_ptr<Surface::Attribute<cgogn::geometry::Vec3>> vertex_position_s = cgogn::get_attribute<cgogn::geometry::Vec3, SurfaceVertex>(*s, "position");
+
+		mps.emit_connectivity_changed(s);
+		mps.emit_attribute_changed(s, vertex_position_s.get());
+	}
+	dump_map(*s);
 
 	return app.launch();
 }
