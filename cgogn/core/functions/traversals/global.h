@@ -55,6 +55,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	if (!force_dart_marking && m.template is_indexed<CELL>())
@@ -100,6 +101,7 @@ foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	for (auto it = cc.template begin<CELL>(), end = cc.template end<CELL>(); it != end; it++)
@@ -120,6 +122,7 @@ foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	foreach_cell(cf.mesh(), [&] (CELL c) -> bool
@@ -148,6 +151,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();
@@ -275,6 +279,7 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();
@@ -352,6 +357,7 @@ parallel_foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	parallel_foreach_cell(cf.mesh(), [&] (CELL c) -> bool

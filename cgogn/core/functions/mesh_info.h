@@ -175,7 +175,7 @@ is_incident_to_boundary(const MESH& m, CELL c)
 // MESHVIEW //
 //////////////
 
-template <typename CELL, typename MESH,
+template <typename MESH, typename CELL,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 bool
 is_incident_to_boundary(const MESH& m, CELL c)

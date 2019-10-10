@@ -375,6 +375,8 @@ protected:
 					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
 				}
 			}
+		
+			ImGui::End();
 		}
 	}
 
