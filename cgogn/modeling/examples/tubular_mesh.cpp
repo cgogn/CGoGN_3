@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 		mps.emit_connectivity_changed(s);
 		mps.emit_attribute_changed(s, vertex_position_s.get());
 	}
-	dump_map(*s);
+	// dump_map(*s);
 
 	return app.launch();
 }
