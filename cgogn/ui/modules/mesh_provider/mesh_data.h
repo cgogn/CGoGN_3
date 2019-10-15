@@ -33,6 +33,8 @@
 #include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/vbo_update.h>
 
+#include <boost/synapse/emit.hpp>
+
 #include <unordered_map>
 #include <list>
 

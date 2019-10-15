@@ -513,6 +513,27 @@ public:
 		p.vertex_position_ = vertex_position;
 	}
 
+	void set_selected_free_vertices_set(const MESH& m, CellsSet<MESH, Vertex>* set)
+	{
+		Parameters& p = parameters_[&m];
+		p.selected_free_vertices_set_ = set;
+		// p.selected_free_vertices_set_connection_ =
+		// 	boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Vertex>>(
+		// 		m, [this, m] (CellsSet<MESH, Vertex>* set)
+		// 		{
+		// 			Parameters& p = parameters_[m];
+		// 			if (p.)
+		// 		}
+		// 	)
+		// );
+	}
+
+	void set_selected_handle_vertices_set(const MESH& m, CellsSet<MESH, Vertex>* set)
+	{
+		Parameters& p = parameters_[&m];
+		p.selected_handle_vertices_set_ = set;
+	}
+
 protected:
 
 	void init() override
@@ -642,7 +663,7 @@ protected:
 					{
 						bool is_selected = &cs == p.selected_free_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							p.selected_free_vertices_set_ = &cs;
+							set_selected_free_vertices_set(*selected_mesh_, &cs);
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();
 					});
@@ -652,7 +673,7 @@ protected:
 				{
 					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 					if (ImGui::Button("X##selected_free_vertices_set"))
-						p.selected_free_vertices_set_ = nullptr;
+						set_selected_free_vertices_set(*selected_mesh_, nullptr);
 				}
 
 				if (ImGui::BeginCombo("Handle vertices", p.selected_handle_vertices_set_ ? p.selected_handle_vertices_set_->name().c_str() : "-- select --"))
@@ -661,7 +682,7 @@ protected:
 					{
 						bool is_selected = &cs == p.selected_handle_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							p.selected_handle_vertices_set_ = &cs;
+							set_selected_handle_vertices_set(*selected_mesh_, &cs);
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();
 					});
@@ -671,7 +692,7 @@ protected:
 				{
 					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 					if (ImGui::Button("X##selected_handle_vertices_set"))
-						p.selected_handle_vertices_set_ = nullptr;
+						set_selected_handle_vertices_set(*selected_mesh_, nullptr);
 					ImGui::TextUnformatted("Press D to drag the handle");
 				}
 			}

@@ -204,6 +204,42 @@ private:
 				}
 			)
 		);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Vertex>>(
+				m, [this, m] (CellsSet<MESH, Vertex>* set)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_)
+						p.update_selected_vertices_vbo();
+					for (View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Edge>>(
+				m, [this, m] (CellsSet<MESH, Edge>* set)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_)
+						p.update_selected_edges_vbo();
+					for (View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Face>>(
+				m, [this, m] (CellsSet<MESH, Face>* set)
+				{
+					Parameters& p = parameters_[m];
+					if (p.vertex_position_)
+						p.update_selected_faces_vbo();
+					for (View* v : linked_views_)
+						v->request_update();
+				}
+			)
+		);
 	}
 
 public:
