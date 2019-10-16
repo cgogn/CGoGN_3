@@ -87,6 +87,8 @@ class SurfaceDeformation : public ViewModule
 
 		CellsSet<MESH, Vertex>* selected_free_vertices_set_;
 		CellsSet<MESH, Vertex>* selected_handle_vertices_set_;
+		
+		std::shared_ptr<boost::synapse::connection> cells_set_connection_;
 
 		bool initialized_;
 		bool solver_ready_;
@@ -124,6 +126,15 @@ private:
 	{
 		Parameters& p = parameters_[m];
 		p.working_cells_ = std::make_unique<CellCache<MESH>>(*m);
+		p.cells_set_connection_ =
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Vertex>>(
+				m, [this, m] (CellsSet<MESH, Vertex>* set)
+				{
+					Parameters& p = parameters_[m];
+					if (p.selected_free_vertices_set_ == set || p.selected_handle_vertices_set_ == set)
+						p.solver_ready_ = false;
+				}
+			);
 	}
 
 	void initialize_mesh_data(MESH* m)
@@ -517,15 +528,6 @@ public:
 	{
 		Parameters& p = parameters_[&m];
 		p.selected_free_vertices_set_ = set;
-		// p.selected_free_vertices_set_connection_ =
-		// 	boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Vertex>>(
-		// 		m, [this, m] (CellsSet<MESH, Vertex>* set)
-		// 		{
-		// 			Parameters& p = parameters_[m];
-		// 			if (p.)
-		// 		}
-		// 	)
-		// );
 	}
 
 	void set_selected_handle_vertices_set(const MESH& m, CellsSet<MESH, Vertex>* set)

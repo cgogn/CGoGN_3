@@ -292,42 +292,42 @@ protected:
 				{	
 					std::vector<Vertex> picked;
 					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-									
+					
 					if (!picked.empty())
 					{
 						if (button == 0)
 							p.selected_vertices_set_->select(picked[0]);
 						else if (button == 1)
 							p.selected_vertices_set_->unselect(picked[0]);
-						p.update_selected_vertices_vbo();
+						mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
 					}
 				}
 				else if (p.selecting_cell_ == EdgeSelect && p.selected_edges_set_)
 				{
 					std::vector<Edge> picked;
 					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-									
+					
 					if (!picked.empty())
 					{
 						if (button == 0)
 							p.selected_edges_set_->select(picked[0]);
 						else if (button == 1)
 							p.selected_edges_set_->unselect(picked[0]);
-						p.update_selected_edges_vbo();
+						mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_edges_set_);
 					}
 				}
 				else if (p.selecting_cell_ == FaceSelect && p.selected_faces_set_)
 				{
 					std::vector<Face> picked;
 					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-									
+					
 					if (!picked.empty())
 					{
 						if (button == 0)
 							p.selected_faces_set_->select(picked[0]);
 						else if (button == 1)
 							p.selected_faces_set_->unselect(picked[0]);
-						p.update_selected_faces_vbo();
+						mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
 					}
 				}
 			}
