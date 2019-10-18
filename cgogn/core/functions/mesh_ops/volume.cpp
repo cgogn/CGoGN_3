@@ -23,7 +23,7 @@
 
 #include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -61,14 +61,32 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap2::Vertex>())
-			foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool { create_embedding(m, v); return true; });
-		if (m.is_embedded<CMap2::Edge>())
-			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool { create_embedding(m, e); return true; });
-		if (m.is_embedded<CMap2::Face>())
-			foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool { create_embedding(m, f); return true; });
-		if (m.is_embedded<CMap2::Volume>())
-			create_embedding(m, vol);
+		if (m.is_indexed<CMap2::Vertex>())
+		{
+			foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool
+			{
+				set_index(m, v, new_index<CMap2::Vertex>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap2::Edge>())
+		{
+			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
+			{
+				set_index(m, e, new_index<CMap2::Edge>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap2::Face>())
+		{
+			foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool
+			{
+				set_index(m, f, new_index<CMap2::Face>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap2::Volume>())
+			set_index(m, vol, new_index<CMap2::Volume>(m));
 	}
 
 	return vol;

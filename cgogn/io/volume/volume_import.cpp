@@ -21,20 +21,14 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/io/volume/tet.h>
-#include <cgogn/io/utils.h>
+#include <cgogn/io/volume/volume_import.h>
 
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/functions/orientation.h>
-
 #include <vector>
-#include <fstream>
 
 namespace cgogn
 {
@@ -42,126 +36,22 @@ namespace cgogn
 namespace io
 {
 
-enum VolumeType
+void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 {
-	Tetra,
-	Pyramid,
-	TriangularPrism,
-	Hexa,
-	Connector
-};
+	using Vertex = CMap3::Vertex;
+	using Volume = CMap3::Volume;
 
-bool import_TET(CMap3& m, const std::string& filename)
-{
-	Scoped_C_Locale loc;
-
-	std::vector<VolumeType> volumes_types;
-	std::vector<uint32> volumes_vertex_indices;
-	
-	std::ifstream fp(filename, std::ios::in);
-
-	std::string line;
-	line.reserve(512u);
-
-	// read number of vertices
-	uint32 nb_vertices = read_uint(fp, line);
-	getline_safe(fp, line);
-
-	uint32 nb_volumes = read_uint(fp, line);
-	getline_safe(fp, line);
-
-	std::cout << "nb_vertices: " << nb_vertices << std::endl;
-	std::cout << "nb_volumes: " << nb_volumes << std::endl;
-
-	volumes_types.reserve(nb_volumes);
-	volumes_vertex_indices.reserve(nb_volumes * 8u);
-
-	auto position = add_attribute<geometry::Vec3, CMap3::Vertex>(m, "position");
-
-	// read vertices position
-	std::vector<uint32> vertices_id;
-	vertices_id.reserve(nb_vertices);
-
-	for (uint32 i = 0u; i < nb_vertices; ++i)
-	{
-		float64 x = read_double(fp, line);
-		float64 y = read_double(fp, line);
-		float64 z = read_double(fp, line);
-
-		geometry::Vec3 pos{x, y, z};
-
-		uint32 vertex_id = m.attribute_containers_[CMap3::Vertex::ORBIT].new_index();
-		(*position)[vertex_id] = pos;
-
-		vertices_id.push_back(vertex_id);
-	}
-
-	// read volumes
-	for (uint32 i = 0u; i < nb_volumes; ++i)
-	{
-		uint32 n = read_uint(fp, line);
-		std::vector<uint32> ids(n);
-		for (uint32 j = 0u; j < n; ++j)
-			ids[j] = vertices_id[read_uint(fp, line)];
-
-		switch (n)
-		{
-			case 4: {
-				if (geometry::test_orientation_3D((*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]], (*position)[ids[3]]) == geometry::Orientation3D::UNDER)
-					std::swap(ids[1], ids[2]);
-				volumes_types.push_back(VolumeType::Tetra);
-				volumes_vertex_indices.insert(volumes_vertex_indices.end(), ids.begin(), ids.end());
-				break;
-			}
-			case 5: {
-				if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]]) == geometry::Orientation3D::OVER)
-					std::swap(ids[1], ids[3]);
-				volumes_types.push_back(VolumeType::Pyramid);
-				volumes_vertex_indices.insert(volumes_vertex_indices.end(), ids.begin(), ids.end());
-				break;
-			}
-			case 6: {
-				if (geometry::test_orientation_3D((*position)[ids[3]], (*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]]) == geometry::Orientation3D::OVER)
-				{
-					std::swap(ids[1], ids[2]);
-					std::swap(ids[4], ids[5]);
-				}
-				volumes_types.push_back(VolumeType::TriangularPrism);
-				volumes_vertex_indices.insert(volumes_vertex_indices.end(), ids.begin(), ids.end());
-				break;
-			}
-			case 8: {
-				if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]]) == geometry::Orientation3D::OVER)
-				{
-					std::swap(ids[0], ids[3]);
-					std::swap(ids[1], ids[2]);
-					std::swap(ids[4], ids[7]);
-					std::swap(ids[5], ids[6]);
-				}
-				volumes_types.push_back(VolumeType::Hexa);
-				volumes_vertex_indices.insert(volumes_vertex_indices.end(), ids.begin(), ids.end());
-				break;
-			}
-			default:
-				std::cout << "import_TET: Elements with " << n << " vertices are not handled. Ignoring.";
-				break;
-		}
-	}
-
-	if (volumes_vertex_indices.size() == 0)
-		return false;
-	
-	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap3::Vertex>(m, "__darts_per_vertex");
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
 	
 	uint32 index = 0u;
 	DartMarker dart_marker(m);
 	uint32 vol_emb = 0u;
 
 	// for each volume of table
-	for (uint32 i = 0u, end = nb_volumes; i < end; ++i)
+	for (uint32 i = 0u, end = volume_data.volumes_types_.size(); i < end; ++i)
 	{
-		CMap3::Volume vol;
-		const VolumeType vol_type = volumes_types[i];
+		Volume vol;
+		const VolumeType vol_type = volume_data.volumes_types_[i];
 
 		if (vol_type == VolumeType::Tetra) // tetrahedral case
 		{
@@ -176,9 +66,10 @@ bool import_TET(CMap3& m, const std::string& filename)
 
 			for (Dart dv : vertices_of_tetra)
 			{
-				const uint32 vertex_index = volumes_vertex_indices[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool {
-					m.set_embedding<CMap3::Vertex>(d, vertex_index);
+				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				{
+					m.set_index<Vertex>(d, vertex_index);
 					return true;
 				});
 
@@ -205,9 +96,10 @@ bool import_TET(CMap3& m, const std::string& filename)
 
 			for (Dart dv : vertices_of_pyramid)
 			{
-				const uint32 vertex_index = volumes_vertex_indices[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool {
-					m.set_embedding<CMap3::Vertex>(d, vertex_index);
+				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				{
+					m.set_index<Vertex>(d, vertex_index);
 					return true;
 				});
 
@@ -291,8 +183,8 @@ bool import_TET(CMap3& m, const std::string& filename)
 		// 	}
 		// }
 
-		if (m.is_embedded<CMap3::Volume>())
-			set_embedding(m, vol, vol_emb++);
+		if (m.is_indexed<Volume>())
+			set_index(m, vol, vol_emb++);
 	}
 
 	// reconstruct neighbourhood
@@ -311,11 +203,11 @@ bool import_TET(CMap3& m, const std::string& filename)
 			Dart d_it = d;
 			do
 			{
-				uint32 vindex1 = m.embedding(CMap3::Vertex(d_it));
-				uint32 vindex2 = m.embedding(CMap3::Vertex(m.phi1(m.phi1(d_it))));
-				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, CMap3::Vertex(m.phi1(d_it)));
+				uint32 vindex1 = m.index_of(Vertex(d_it));
+				uint32 vindex2 = m.index_of(Vertex(m.phi1(m.phi1(d_it))));
+				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(m.phi1(d_it)));
 				for (auto it = vec.begin(); it != vec.end() && good_dart.is_nil(); ++it)
-					if (m.embedding(CMap3::Vertex(m.phi1(*it))) == vindex1 && m.embedding(CMap3::Vertex(m.phi_1(*it))) == vindex2)
+					if (m.index_of(Vertex(m.phi1(*it))) == vindex1 && m.index_of(Vertex(m.phi_1(*it))) == vindex2)
 						good_dart = *it;
 				d_it = m.phi1(d_it);
 			} while (good_dart.is_nil() && (d_it != d));
@@ -357,16 +249,7 @@ bool import_TET(CMap3& m, const std::string& filename)
 		std::cout << nb_boundary_faces << " boundary faces" << std::endl;
 	}
 	
-	remove_attribute<CMap3::Vertex>(m, darts_per_vertex);
-
-	m.foreach_dart([&] (Dart d) -> bool
-	{
-		if (m.phi3(d) == d)
-			std::cout << "phi3 fix point Dart: " << d << std::endl;
-		return true;
-	});
-
-	return true;
+	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
 } // namespace io

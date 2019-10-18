@@ -21,35 +21,49 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_OPS_H_
-#define CGOGN_CORE_CMAP_CMAP_OPS_H_
+#ifndef CGOGN_IO_VOLUME_IMPORT_H_
+#define CGOGN_IO_VOLUME_IMPORT_H_
+
+#include <cgogn/io/cgogn_io_export.h>
+
+#include <cgogn/core/types/mesh_traits.h>
+
+#include <vector>
 
 namespace cgogn
 {
 
-template <typename CELL, typename CMAP,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, CMAP>::value>::type>
-void
-set_embedding(CMAP& m, CELL c, uint32 emb)
+namespace io
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool
+
+enum VolumeType
+{
+	Tetra,
+	Pyramid,
+	TriangularPrism,
+	Hexa,
+	Connector
+};
+
+struct VolumeImportData
+{
+	std::vector<uint32> vertices_id_;
+	std::vector<VolumeType> volumes_types_;
+	std::vector<uint32> volumes_vertex_indices_;
+
+	inline void reserve(uint32 nb_vertices, uint32 nb_volumes)
 	{
-		m.template set_embedding<CELL>(d, emb);
-		return true;
-	});
-}
+		vertices_id_.reserve(nb_vertices);
+		volumes_types_.reserve(nb_volumes);
+		volumes_vertex_indices_.reserve(nb_volumes * 8u);
+	}
+};
 
-template <typename CELL, typename CMAP,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, CMAP>::value>::type>
 void
-create_embedding(CMAP& m, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<CMAP>::Cells>::value, "CELL not supported in this MESH");
-	uint32 emb = m.attribute_containers_[CELL::ORBIT].new_index();
-	set_embedding(m, c, emb);
-}
+CGOGN_IO_EXPORT import_volume_data(CMap3& m, const VolumeImportData& volume_data);
 
-}
+} // namespace io
 
-#endif // CGOGN_CORE_CMAP_CMAP_OPS_H_
+} // namespace cgogn
+
+#endif // CGOGN_IO_VOLUME_IMPORT_H_

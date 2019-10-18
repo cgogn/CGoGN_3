@@ -46,7 +46,7 @@ struct CGOGN_UI_EXPORT MovingFrame
 		is_moving_(false)
 	{}
 
-	//GLVec3d local_coordinates(GLVec3d glob);
+	// GLVec3d local_coordinates(GLVec3d glob);
 };
 
 } // namespace cgogn

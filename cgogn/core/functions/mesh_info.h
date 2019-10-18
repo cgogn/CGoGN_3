@@ -40,6 +40,24 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
+// std::string cell_name(const MESH& m);
+
+/*****************************************************************************/
+
+/////////////
+// GENERIC //
+/////////////
+
+template <typename CELL, typename MESH>
+std::string cell_name(const MESH& m)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return mesh_traits<MESH>::cell_names[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
+}
+
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
 // uint32 nb_cells(const MESH& m);
 
 /*****************************************************************************/
@@ -56,13 +74,6 @@ uint32 nb_cells(const MESH& m)
 	foreach_cell(m, [&] (CELL) -> bool { ++result; return true; });
 	return result;
 }
-
-// template <typename CELL, typename MESH>
-// std::string cell_name(const MESH& m)
-// {
-// 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-// 	return mesh_traits<MESH>::cell_names[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
-// }
 
 /*****************************************************************************/
 
@@ -164,7 +175,7 @@ is_incident_to_boundary(const MESH& m, CELL c)
 // MESHVIEW //
 //////////////
 
-template <typename CELL, typename MESH,
+template <typename MESH, typename CELL,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 bool
 is_incident_to_boundary(const MESH& m, CELL c)

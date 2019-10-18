@@ -34,7 +34,7 @@
 #include <cgogn/ui/modules/surface_modeling/surface_modeling.h>
 #include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
 using namespace cgogn::numerics;
 
@@ -70,6 +70,12 @@ int main(int argc, char** argv)
 
 	app.init_modules();
 
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&sr);
+	v1->link_module(&srv);
+	v1->link_module(&ss);
+
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
 	{
@@ -79,29 +85,13 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
+
+	mp.set_mesh_bb_vertex_position(m, vertex_position);
+
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 	
 	sr.set_vertex_position(*m, vertex_position);
 	sr.set_vertex_normal(*m, vertex_normal);
-
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&sr);
-	v1->link_module(&srv);
-	v1->link_module(&ss);
-
-	// cgogn::ui::View* v2 = app.add_view();
-	// v2->link_module(&sr);
-	// v2->link_module(&srv);
-
-	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->set_bb_attribute(vertex_position);
-	Vec3 diagonal = md->bb_max_ - md->bb_min_;
-	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
-	
-	v1->set_scene_radius(diagonal.norm() / 2.0f);
-	v1->set_scene_center(center);
-	// v2->set_scene_radius(diagonal.norm() / 2.0f);
-	// v2->set_scene_center(center);
 
 	return app.launch();
 }

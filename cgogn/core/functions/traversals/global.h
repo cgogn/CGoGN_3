@@ -55,9 +55,10 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if (!force_dart_marking && m.template is_embedded<CELL>())
+	if (!force_dart_marking && m.template is_indexed<CELL>())
 	{
 		CellMarker<MESH, CELL> cm(m);
 		m.foreach_dart([&] (Dart d) -> bool
@@ -100,6 +101,7 @@ foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	for (auto it = cc.template begin<CELL>(), end = cc.template end<CELL>(); it != end; it++)
@@ -120,6 +122,7 @@ foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	foreach_cell(cf.mesh(), [&] (CELL c) -> bool
@@ -148,10 +151,11 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	ThreadPool* thread_pool = cgogn::thread_pool();
-	uint32 nb_workers = thread_pool->nb_workers();
+	ThreadPool* pool = thread_pool();
+	uint32 nb_workers = pool->nb_workers();
 	if (nb_workers == 0)
 		return foreach_cell(m, f, force_dart_marking);
 	
@@ -165,7 +169,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 	futures[0].reserve(nb_workers);
 	futures[1].reserve(nb_workers);
 
-	Buffers<uint32>* buffers = cgogn::uint32_buffers();
+	Buffers<uint32>* buffers = uint32_buffers();
 	
 	Dart it = m.begin();
 	Dart last = m.end();
@@ -173,7 +177,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 	uint32 i = 0u; // buffer id (0/1)
 	uint32 j = 0u; // thread id (0..nb_workers)
 	
-	if (!force_dart_marking && m.template is_embedded<CELL>())
+	if (!force_dart_marking && m.template is_indexed<CELL>())
 	{
 		CellMarker<MESH, CELL> cm(m);
 		while (it.index < last.index)
@@ -182,7 +186,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells_buffers[i].push_back(buffers->buffer());
 			VecCell& cells = *cells_buffers[i].back();
 			cells.reserve(PARALLEL_BUFFER_SIZE);
-			for (unsigned k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
+			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
 				CELL c(it);
 				if (!m.is_boundary(it) && !cm.is_marked(c))
@@ -194,7 +198,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 				it = m.next(it);
 			}
 			// launch thread
-			futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+			futures[i].push_back(pool->enqueue([&cells, &f] ()
 			{
 				for (uint32 index : cells)
 					f(CELL(Dart(index)));
@@ -202,7 +206,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();
@@ -234,7 +238,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 				it = m.next(it);
 			}
 			// launch thread
-			futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+			futures[i].push_back(pool->enqueue([&cells, &f] ()
 			{
 				for (uint32 index : cells)
 					f(CELL(Dart(index)));
@@ -242,7 +246,7 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			// next thread
 			if (++j == nb_workers)
 			{	// again from 0 & change buffer
-				j = 0;
+				j = 0u;
 				i = (i + 1u) % 2u;
 				for (auto& fu : futures[i])
 					fu.wait();
@@ -275,10 +279,11 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	ThreadPool* thread_pool = cgogn::thread_pool();
-	uint32 nb_workers = thread_pool->nb_workers();
+	ThreadPool* pool = thread_pool();
+	uint32 nb_workers = pool->nb_workers();
 	if (nb_workers == 0)
 		return foreach_cell(cc, f);
 	
@@ -292,7 +297,7 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 	futures[0].reserve(nb_workers);
 	futures[1].reserve(nb_workers);
 
-	Buffers<uint32>* buffers = cgogn::uint32_buffers();
+	Buffers<uint32>* buffers = uint32_buffers();
 	
 	auto it = cc.template begin<CELL>();
 	auto last = cc.template end<CELL>();
@@ -312,7 +317,7 @@ parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 			it++;
 		}
 		// launch thread
-		futures[i].push_back(thread_pool->enqueue([&cells, &f] ()
+		futures[i].push_back(pool->enqueue([&cells, &f] ()
 		{
 			for (uint32 index : cells)
 				f(CELL(Dart(index)));
@@ -352,6 +357,7 @@ parallel_foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	parallel_foreach_cell(cf.mesh(), [&] (CELL c) -> bool

@@ -48,8 +48,11 @@ public:
 	inline void request_update() { need_redraw_ = true; }
 	
 	inline const Camera& camera() const { return camera_; }
+	
 	inline rendering::GLMat4 projection_matrix() const { return camera_.projection_matrix(); }
+	inline rendering::GLMat4d projection_matrix_d() const { return camera_.projection_matrix_d(); }
 	inline rendering::GLMat4 modelview_matrix() const { return camera_.modelview_matrix(); }
+	inline rendering::GLMat4d modelview_matrix_d() const { return camera_.modelview_matrix_d(); }
 
 	void set_manipulated_frame(MovingFrame* frame);
 
@@ -61,13 +64,16 @@ public:
 	inline void center_scene() { camera_.center_scene(); }
 	inline void show_entire_scene() { camera_.show_entire_scene(); }
 
-	inline int32 width() const { return viewport_w_; }
-	inline int32 height() const { return viewport_h_; }
+	inline int32 viewport_width() const { return viewport_width_; }
+	inline int32 viewport_height() const { return viewport_height_; }
 
 	inline bool shift_pressed() const { return inputs_->shift_pressed_; }
 	inline bool control_pressed() const { return inputs_->control_pressed_; }
 	inline bool alt_pressed() const { return inputs_->alt_pressed_; }
 	inline bool meta_pressed() const { return inputs_->meta_pressed_; }
+
+	inline int32 previous_mouse_x() const { return inputs_->previous_mouse_x_; }
+	inline int32 previous_mouse_y() const { return inputs_->previous_mouse_y_; }
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
 
@@ -77,14 +83,14 @@ public:
 
 protected:
 
-	virtual void resize_event(int32 frame_width, int32 frame_height);
+	virtual void resize_event(int32 viewport_width, int32 viewport_height);
 	virtual void close_event();
 
-	virtual void mouse_press_event(int32 button, float64 x, float64 y);
-	virtual void mouse_release_event(int32 button, float64 x, float64 y);
-	virtual void mouse_dbl_click_event(int32 button, float64 x, float64 y);
-	virtual void mouse_move_event(float64 x, float64 y);
-	virtual void mouse_wheel_event(float64 x, float64 y);
+	virtual void mouse_press_event(int32 button, int32 x, int32 y);
+	virtual void mouse_release_event(int32 button, int32 x, int32 y);
+	virtual void mouse_dbl_click_event(int32 button, int32 x, int32 y);
+	virtual void mouse_move_event(int32 x, int32 y);
+	virtual void mouse_wheel_event(float64 dx, float64 dy);
 	virtual void key_press_event(int32 key_code);
 	virtual void key_release_event(int32 key_code);
 
@@ -95,10 +101,8 @@ protected:
 	MovingFrame* current_frame_;
 	rendering::Transfo3d inv_camera_;
 	rendering::GLVec3d scene_center_;
-	int32 viewport_x_;
-	int32 viewport_y_;
-	int32 viewport_w_;
-	int32 viewport_h_;
+	int32 viewport_width_;
+	int32 viewport_height_;
 	float64 spinning_speed_;
 
 	Inputs* inputs_;

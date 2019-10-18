@@ -25,8 +25,8 @@
 #define CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
 
+#include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/traversals/global.h>
 
 #include <cgogn/core/utils/tuples.h>
@@ -53,15 +53,8 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>
 add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	if (!m.template is_embedded<CELL>())
-	{
-		m.template init_embedding<CELL>();
-		foreach_cell(m, [&] (CELL c) -> bool
-		{
-			create_embedding(m, c);
-			return true;
-		}, true);
-	}
+	if (!m.template is_indexed<CELL>())
+		index_cells<CELL>(m);
 	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }
 
@@ -204,39 +197,6 @@ foreach_attribute(const MESH& m, const FUNC& f)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	foreach_attribute<T, CELL>(m.mesh(), f);
-}
-
-/*****************************************************************************/
-
-// template <typename CELL, typename MESH>
-// uint32 index_of(MESH& m, CELL c);
-
-/*****************************************************************************/
-
-//////////////
-// CMapBase //
-//////////////
-
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-inline
-uint32 index_of(const MESH& m, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.embedding(c);
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename CELL, typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-inline
-uint32 index_of(const MESH& m, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return index_of(m.mesh(), c);
 }
 
 /*****************************************************************************/

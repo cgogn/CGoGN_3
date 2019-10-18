@@ -23,7 +23,7 @@
 
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 
@@ -55,10 +55,16 @@ add_face(CMap1& m, uint32 size, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap1::Vertex>())
-			foreach_incident_vertex(m, f, [&] (CMap1::Vertex v) -> bool { create_embedding(m, v); return true; });
-		if (m.is_embedded<CMap1::Face>())
-			create_embedding(m, f);
+		if (m.is_indexed<CMap1::Vertex>())
+		{
+			foreach_incident_vertex(m, f, [&] (CMap1::Vertex v) -> bool
+			{
+				set_index(m, v, new_index<CMap1::Vertex>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap1::Face>())
+			set_index(m, f, new_index<CMap1::Face>(m));
 	}
 
 	return f;
@@ -84,12 +90,24 @@ add_face(CMap2& m, uint32 size, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap2::Vertex>())
-			foreach_incident_vertex(m, f, [&] (CMap2::Vertex v) -> bool { create_embedding(m, v); return true; });
-		if (m.is_embedded<CMap2::Edge>())
-			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool { create_embedding(m, e); return true; });
-		if (m.is_embedded<CMap2::Face>())
-			create_embedding(m, f);
+		if (m.is_indexed<CMap2::Vertex>())
+		{
+			foreach_incident_vertex(m, f, [&] (CMap2::Vertex v) -> bool
+			{
+				set_index(m, v, new_index<CMap2::Vertex>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap2::Edge>())
+		{
+			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool
+			{
+				set_index(m, e, new_index<CMap2::Edge>(m));
+				return true;
+			});
+		}
+		if (m.is_indexed<CMap2::Face>())
+			set_index(m, f, new_index<CMap2::Face>(m));
 	}
 
 	return f;
@@ -150,22 +168,22 @@ cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.is_embedded<CMap2::Vertex>())
+		if (m.is_indexed<CMap2::Vertex>())
 		{
-			m.copy_embedding<CMap2::Vertex>(nv1.dart, v1.dart);
-			m.copy_embedding<CMap2::Vertex>(nv2.dart, v2.dart);
+			m.copy_index<CMap2::Vertex>(nv1.dart, v1.dart);
+			m.copy_index<CMap2::Vertex>(nv2.dart, v2.dart);
 		}
-		if (m.is_embedded<CMap2::Edge>())
-			create_embedding(m, CMap2::Edge(nv1.dart));
-		if (m.is_embedded<CMap2::Face>())
+		if (m.is_indexed<CMap2::Edge>())
+			set_index(m, CMap2::Edge(nv1.dart), new_index<CMap2::Edge>(m));
+		if (m.is_indexed<CMap2::Face>())
 		{
-			m.copy_embedding<CMap2::Face>(nv2.dart, v1.dart);
-			create_embedding(m, CMap2::Face(v2.dart));
+			m.copy_index<CMap2::Face>(nv2.dart, v1.dart);
+			set_index(m, CMap2::Face(v2.dart), new_index<CMap2::Face>(m));
 		}
-		if (m.is_embedded<CMap2::Volume>())
+		if (m.is_indexed<CMap2::Volume>())
 		{
-			m.copy_embedding<CMap2::Volume>(nv1.dart, v2.dart);
-			m.copy_embedding<CMap2::Volume>(nv2.dart, v1.dart);
+			m.copy_index<CMap2::Volume>(nv1.dart, v2.dart);
+			m.copy_index<CMap2::Volume>(nv2.dart, v1.dart);
 		}
 	}
 

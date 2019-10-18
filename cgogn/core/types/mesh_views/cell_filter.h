@@ -74,12 +74,16 @@ public:
 	template <typename CELL, typename FilterFunction>
 	void set_filter(const FilterFunction&& filter)
 	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(is_func_parameter_same<FilterFunction, CELL>::value, "Wrong function cell parameter type");
+		static_assert(is_func_return_same<FilterFunction, bool>::value, "Given function should return a bool");
 		cell_filter<CELL>() = [filter] (CELL c) -> bool { return filter(c); };
 	}
 
 	template <typename CELL>
 	bool filter(CELL c) const
 	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 		return cell_filter<CELL>()(c);
 	}
 };

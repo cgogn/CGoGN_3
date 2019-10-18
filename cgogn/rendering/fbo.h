@@ -51,13 +51,13 @@ public:
 	{
 		glGetIntegerv(GL_VIEWPORT, initial_viewport_);
 		glBindFramebuffer(GL_FRAMEBUFFER, id_);
-		glViewport(0,0,tex_[0]->width(),tex_[0]->height());
+		glViewport(0, 0, tex_[0]->width(), tex_[0]->height());
 	}
 
 	inline void release()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(initial_viewport_[0],initial_viewport_[1],initial_viewport_[2],initial_viewport_[3]);
+		glViewport(initial_viewport_[0], initial_viewport_[1], initial_viewport_[2], initial_viewport_[3]);
 	}
 
 	void resize(int w, int h);

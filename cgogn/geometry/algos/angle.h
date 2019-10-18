@@ -39,6 +39,30 @@ namespace cgogn
 namespace geometry
 {
 
+std::vector<Scalar>
+opposite_angles(
+	const CMap2& m,
+	typename CMap2::Edge e,
+	const typename mesh_traits<CMap2>::template Attribute<Vec3>* vertex_position
+)
+{
+	if (!is_incident_to_boundary(m, e))
+	{
+		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi1(e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(e.dart)));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(m.phi2(e.dart))));
+		return { angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4) };
+	}
+	else
+	{
+		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi1(e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(e.dart)));
+		return { angle(p1 - p3, p2 - p3) };
+	}
+}
+
 template <typename MESH>
 Scalar
 angle(
@@ -47,6 +71,8 @@ angle(
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
 )
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
 	using Face = typename mesh_traits<MESH>::Face;
 	std::vector<Face> faces = incident_faces(m, e);
 	if (faces.size() < 2)
@@ -66,6 +92,8 @@ angle(
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* face_normal
 )
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
 	using Face = typename mesh_traits<MESH>::Face;
 	std::vector<Face> faces = incident_faces(m, e);
 	if (faces.size() < 2)
@@ -84,6 +112,8 @@ compute_angle(
 	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
 )
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
 	using Edge = typename mesh_traits<MESH>::Edge;
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
@@ -101,6 +131,8 @@ compute_angle(
 	typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle
 )
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
 	using Edge = typename mesh_traits<MESH>::Edge;
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{

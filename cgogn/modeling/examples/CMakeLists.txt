@@ -10,8 +10,6 @@ find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
-set(CGOGN_TEST_MESHES_PATH "${CMAKE_SOURCE_DIR}/data/meshes/")
-add_definitions("-DCGOGN_TEST_MESHES_PATH=${CGOGN_TEST_MESHES_PATH}")
 
 add_executable(modeling modeling.cpp)
 target_link_libraries(modeling
@@ -19,13 +17,41 @@ target_link_libraries(modeling
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
+	${CMAKE_DL_LIBS}
+)
+
+add_executable(tubular_mesh tubular_mesh.cpp)
+target_link_libraries(tubular_mesh
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
+add_executable(deformation deformation.cpp)
+target_link_libraries(deformation
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
-	target_link_libraries(modeling 
+	target_link_libraries(modeling
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(tubular_mesh
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(deformation
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

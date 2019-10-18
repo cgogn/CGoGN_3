@@ -32,8 +32,6 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_TEST_MESHES_PATH)
-
 using Mesh = cgogn::Graph;
 
 template <typename T>
@@ -65,6 +63,10 @@ int main(int argc, char** argv)
 
 	app.init_modules();
 
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&gr);
+
 	Mesh* m = mp.load_graph_from_file(filename);
 	if (!m)
 	{
@@ -73,19 +75,10 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	
+
+	mp.set_mesh_bb_vertex_position(m, vertex_position);	
+
 	gr.set_vertex_position(*m, vertex_position);
-
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&gr);
-
-	cgogn::ui::MeshData<Mesh>* md = mp.mesh_data(m);
-	md->set_bb_attribute(vertex_position);
-	Vec3 diagonal = md->bb_max_ - md->bb_min_;
-	Vec3 center = (md->bb_max_ + md->bb_min_) / 2.0f;
-
-	v1->set_scene_radius(diagonal.norm() / 2.0f);
-	v1->set_scene_center(center);
 
 	return app.launch();
 }

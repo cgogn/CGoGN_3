@@ -44,6 +44,8 @@ nb_darts_of_orbit(const CMAP& m, CELL c)
 	return result;
 }
 
+void dump_map(const CMapBase& m);
+
 }
 
 #endif // CGOGN_CORE_CMAP_CMAP_INFO_H_

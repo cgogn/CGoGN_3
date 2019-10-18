@@ -27,7 +27,8 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/cmap/cmap_ops.h>
+
+#include <cgogn/core/functions/cells.h>
 
 namespace cgogn
 {
@@ -49,16 +50,8 @@ typename mesh_traits<MESH>::MarkAttribute*
 get_mark_attribute(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	if (!m.template is_embedded<CELL>())
-	{
-        MESH& mesh = const_cast<MESH&>(m);
-		mesh.template init_embedding<CELL>();
-		foreach_cell(mesh, [&] (CELL c) -> bool
-		{
-			create_embedding(mesh, c);
-			return true;
-		}, true);
-	}
+	if (!m.template is_indexed<CELL>())
+		index_cells<CELL>(const_cast<MESH&>(m));
 	return m.attribute_containers_[CELL::ORBIT].get_mark_attribute();
 }
 

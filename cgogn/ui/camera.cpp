@@ -33,7 +33,7 @@ rendering::GLMat4d Camera::perspective(float64 znear, float64 zfar) const
 {
 	float64 range_inv = 1.0 / (znear - zfar);
 	float64 f = 1.0 / std::tan(field_of_view_ / 2.0);
-	auto m05 = (asp_ratio_ > 1) ? std::make_pair(f / asp_ratio_, f) : std::make_pair(f, f * asp_ratio_);
+	auto m05 = (aspect_ratio_ > 1) ? std::make_pair(f / aspect_ratio_, f) : std::make_pair(f, f * aspect_ratio_);
 	rendering::GLMat4d m;
 	m << m05.first, 0, 0, 0,
 		  0, m05.second, 0, 0,
@@ -42,10 +42,10 @@ rendering::GLMat4d Camera::perspective(float64 znear, float64 zfar) const
 	return m;
 }
 
-rendering::GLMat4d Camera::ortho(float64 znear, float64 zfar) const
+rendering::GLMat4d Camera::orthographic(float64 znear, float64 zfar) const
 {
 	float64 range_inv = 1.0 / (znear - zfar);
-	auto m05 = (asp_ratio_ < 1) ? std::make_pair(1.0 / asp_ratio_, 1.0) : std::make_pair(1.0, 1.0 / asp_ratio_);
+	auto m05 = (aspect_ratio_ < 1) ? std::make_pair(1.0 / aspect_ratio_, 1.0) : std::make_pair(1.0, 1.0 / aspect_ratio_);
 	rendering::GLMat4d m;
 	m << m05.first, 0, 0, 0,
 		  0, m05.second, 0, 0,

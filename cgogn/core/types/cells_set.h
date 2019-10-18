@@ -80,6 +80,11 @@ public:
 		}
 	}
 
+	inline bool contains(CELL c)
+	{
+		return marker_.is_marked(c);
+	}
+
 	inline void rebuild()
 	{
 		cells_.clear();

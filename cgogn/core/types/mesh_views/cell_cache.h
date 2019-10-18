@@ -50,32 +50,8 @@ class CellCache
 
 public:
 
-	template <typename CELL>
-	const std::vector<CELL>& cell_vector() const
-	{
-		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
-	}
-
-	template <typename CELL>
-	std::vector<CELL>& cell_vector()
-	{
-		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
-	}
-
 	static const bool is_mesh_view = true;
 	using MeshType = MESH;
-
-	template <typename CELL>
-	typename std::vector<CELL>::const_iterator begin() const
-	{
-		return cell_vector<CELL>().begin();
-	}
-
-	template <typename CELL>
-	typename std::vector<CELL>::const_iterator end() const
-	{
-		return cell_vector<CELL>().end();
-	}
 
 	CellCache(const MESH& m) : m_(m) {}
 
@@ -83,23 +59,77 @@ public:
 	const MESH& mesh() const { return m_; }
 
 	template <typename CELL>
+	const std::vector<CELL>& cell_vector() const
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
+	}
+
+	template <typename CELL>
+	std::vector<CELL>& cell_vector()
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
+	}
+
+	template <typename CELL>
+	uint32 size() const
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).size();
+	}
+
+	template <typename CELL>
+	typename std::vector<CELL>::const_iterator begin() const
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		return cell_vector<CELL>().begin();
+	}
+
+	template <typename CELL>
+	typename std::vector<CELL>::const_iterator end() const
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		return cell_vector<CELL>().end();
+	}
+
+	template <typename CELL>
 	void build()
 	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 		std::vector<CELL>& cells = cell_vector<CELL>();
 		cells.clear();
 		foreach_cell(m_, [&] (CELL c) -> bool { cells.push_back(c); return true; });
 	}
 
+	template <typename CELL, typename FUNC>
+	void build(const FUNC& filter)
+	{
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
+		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+		std::vector<CELL>& cells = cell_vector<CELL>();
+		cells.clear();
+		foreach_cell(m_, [&] (CELL c) -> bool
+		{
+			if (filter(c))
+				cells.push_back(c);
+			return true;
+		});
+	}
+
 	template <typename CELL>
 	void add(CELL c)
 	{
-		std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).push_back(c);
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		cell_vector<CELL>().push_back(c);
 	}
 
 	template <typename CELL>
 	void clear()
 	{
-		std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).clear();
+		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		cell_vector<CELL>().clear();
 	}
 };
 

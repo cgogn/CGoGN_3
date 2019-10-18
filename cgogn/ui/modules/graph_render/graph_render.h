@@ -49,7 +49,7 @@ namespace ui
 {
 
 template <typename MESH>
-class GraphRender : public Module
+class GraphRender : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -63,13 +63,16 @@ class GraphRender : public Module
 	{
 		Parameters() :
 			vertex_position_(nullptr),
+			vertex_radius_(nullptr),
 			render_vertices_(true),
 			render_edges_(true),
 			vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-
+			
+			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
+			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
 			param_edge_->width_= 3.0f;
@@ -78,8 +81,10 @@ class GraphRender : public Module
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderPointSpriteSize::Param> param_point_sprite_size_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
 		bool render_vertices_;
@@ -92,7 +97,7 @@ class GraphRender : public Module
 public:
 
 	GraphRender(const App& app) :
-		ui::Module(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -104,6 +109,9 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_[m];
+		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+		if (vertex_position)
+			set_vertex_position(*m, vertex_position);
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)
@@ -112,11 +120,13 @@ private:
 					if (p.vertex_position_.get() == attribute)
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
 		);
+
+		std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
 	}
 
 public:
@@ -134,9 +144,25 @@ public:
 		}
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
+			v->request_update();
+	}
+
+	void set_vertex_radius(const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
+	{
+		Parameters& p = parameters_[&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.vertex_radius_ = vertex_radius;
+		if (p.vertex_radius_)
+			md->update_vbo(vertex_radius.get(), true);
+
+		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
+
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -162,12 +188,21 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_)
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
+				if (p.param_point_sprite_size_->vao_initialized())
+				{
+					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_size_->release();
+				}
+				else if (p.param_point_sprite_->vao_initialized())
+				{
+					p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+					p.param_point_sprite_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::POINTS);
+					p.param_point_sprite_->release();
+				}
 			}
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
@@ -223,6 +258,25 @@ protected:
 				if (ImGui::Button("X##position"))
 					set_vertex_position(*selected_mesh_, nullptr);
 			}
+			
+			if (ImGui::BeginCombo("Radius", p.vertex_radius_ ? p.vertex_radius_->name().c_str() : "-- select --"))
+			{
+				foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Scalar>>& attribute)
+				{
+					bool is_selected = attribute == p.vertex_radius_;
+					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+						set_vertex_radius(*selected_mesh_, attribute);
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				});
+				ImGui::EndCombo();
+			}
+			if (p.vertex_radius_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##radius"))
+					set_vertex_radius(*selected_mesh_, nullptr);
+			}
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
@@ -240,15 +294,20 @@ protected:
 			{
 				ImGui::Separator();
 				ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				if (p.vertex_radius_)
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_size_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+				else
+				{
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				}
 			}
 		}
 
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 

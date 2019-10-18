@@ -51,7 +51,7 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceRender : public Module
+class SurfaceRender : public ViewModule
 {
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -113,7 +113,7 @@ class SurfaceRender : public Module
 public:
 
 	SurfaceRender(const App& app) :
-		ui::Module(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		selected_mesh_(nullptr)
 	{}
 
@@ -125,6 +125,9 @@ private:
 	void init_mesh(MESH* m)
 	{
 		parameters_[m];
+		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+		if (vertex_position)
+			set_vertex_position(*m, vertex_position);
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 				m, [this, m] (Attribute<Vec3>* attribute)
@@ -133,7 +136,7 @@ private:
 					if (p.vertex_position_.get() == attribute)
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 
-					for (ui::View* v : linked_views_)
+					for (View* v : linked_views_)
 						v->request_update();
 				}
 			)
@@ -159,7 +162,7 @@ public:
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -174,7 +177,7 @@ public:
 		
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 
-		for (ui::View* v : linked_views_)
+		for (View* v : linked_views_)
 			v->request_update();
 	}
 
@@ -352,7 +355,7 @@ protected:
 		ImGui::End();
 
 		if (need_update)
-			for (ui::View* v : linked_views_)
+			for (View* v : linked_views_)
 				v->request_update();
 	}
 
