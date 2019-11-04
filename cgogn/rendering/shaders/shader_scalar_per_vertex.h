@@ -111,7 +111,7 @@ public:
 	inline void set_vbos(VBO* vbo_pos, VBO* vbo_scalar)
 	{
 		bind_vao();
-		associate_vbos(vbo_pos,vbo_scalar);
+		associate_vbos(vbo_pos, vbo_scalar);
 		release_vao();
 	}
 };

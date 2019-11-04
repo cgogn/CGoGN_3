@@ -31,6 +31,8 @@ namespace cgogn
 namespace rendering
 {
 
+ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
+
 static const char* vertex_shader_source =
 "#version 150\n"
 "in vec3 vertex_pos;\n"
@@ -163,13 +165,10 @@ static const char* fragment_shader_source =
 "		fragColor = color_v;\n"
 "}\n";
 
-ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
-
 ShaderScalarPerVertex::ShaderScalarPerVertex()
 {
-	load(vertex_shader_source, fragment_shader_source,
-		 "vertex_pos");
-
+	load2_bind(vertex_shader_source, fragment_shader_source,
+			   "vertex_pos");
 	add_uniforms("color_map", "expansion",
 				 "min_value", "max_value",
 				 "show_iso_lines", "nb_iso_levels");

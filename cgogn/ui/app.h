@@ -82,6 +82,7 @@ private:
 
 	float64 interface_scaling_;
 	bool show_imgui_;
+	bool show_demo_;
 	
 	std::unique_ptr<rendering::ShaderFrame2d::Param> param_frame_;
 

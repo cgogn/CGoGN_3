@@ -97,11 +97,11 @@ public:
 			
 			std::string ext = extension(filename);
 			bool imported;
-			if(ext.compare("cg") == 0)
+			if (ext.compare("cg") == 0)
 				imported = cgogn::io::import_CG(*m, filename);
-			else if(ext.compare("cgr") == 0)
+			else if (ext.compare("cgr") == 0)
 				imported = cgogn::io::import_CGR(*m, filename);
-			else if(ext.compare("skel") == 0)
+			else if (ext.compare("skel") == 0)
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
 				imported = false;
