@@ -118,7 +118,14 @@ private:
 				{
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
+					{
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						if (p.vertex_base_size_ == 0.0)
+						{
+							MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+							p.vertex_base_size_ = (md->bb_max_ - md->bb_min_).norm() / 20.0;
+						}
+					}
 
 					for (View* v : linked_views_)
 						v->request_update();
@@ -140,6 +147,8 @@ public:
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			if (p.vertex_base_size_ == 0.0)
+				p.vertex_base_size_ = (md->bb_max_ - md->bb_min_).norm() / 20.0;
 			md->update_vbo(vertex_position.get(), true);
 		}
 

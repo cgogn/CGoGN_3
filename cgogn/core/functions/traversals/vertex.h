@@ -108,12 +108,7 @@ void foreach_incident_vertex(const Graph& g, Graph::Edge e, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	g.foreach_dart_of_orbit(e, [&] (Dart d) -> bool
-	{
-		if (!g.is_boundary(d))
-			return func(Graph::Vertex(d));
-		return true;
-	});
+	g.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { return func(Graph::Vertex(d)); });
 }
 
 ///////////

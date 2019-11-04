@@ -50,6 +50,11 @@ struct CGOGN_CORE_EXPORT Graph : public CMapBase
 		alpha_1_ = add_relation("alpha_1");
 	}
 
+	inline bool is_isolated(Vertex v) const
+	{
+		return alpha0(v.dart) == alpha1(v.dart);
+	}
+
 	inline Dart alpha0(Dart d) const
 	{
 		return (*alpha0_)[d.index];
