@@ -18,6 +18,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
 	gl3w.c
 	imgui.cpp
+	imgui_demo.cpp
 	imgui_draw.cpp
 	imgui_impl_glfw.cpp
 	imgui_impl_opengl3.cpp
