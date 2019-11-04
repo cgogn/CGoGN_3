@@ -33,9 +33,11 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/geometry/functions/intersection.h>
 
+#include <cgogn/core/types/cmap/dart_marker.h>
 
 namespace cgogn
 {
@@ -52,10 +54,17 @@ using GDart = Graph::Vertex1;
 using GVertex = Graph::Vertex;
 using GEdge = Graph::Edge;
 
+using M2Dart = CMap2::Edge1;
 using M2Vertex = CMap2::Vertex;
 using M2Edge = CMap2::Edge;
 using M2Face = CMap2::Face;
 using M2Volume = CMap2::Volume;
+
+using M3Vertex = CMap3::Vertex;
+using M3Edge = CMap3::Edge;
+using M3Face = CMap3::Face;
+using M3Volume = CMap3::Volume;
+using M3CC = CMap3::CC;
 
 using GBranch = std::pair<Dart, Dart>;
 
@@ -73,6 +82,7 @@ struct GraphAttributes
     std::shared_ptr<Graph::Attribute<Dart>> m2_CC;
     std::shared_ptr<Graph::Attribute<Dart>> m2_interface;
     std::shared_ptr<Graph::Attribute<Matrix3d>> frames;
+    std::shared_ptr<Graph::Attribute<Dart>> m3_section;
     
 };
 
@@ -80,8 +90,10 @@ struct M2Attributes
 {
     std::shared_ptr<CMap2::Attribute<geometry::Vec3>> V_pos;
     std::shared_ptr<CMap2::Attribute<geometry::Vec3>> center;
+    std::shared_ptr<CMap2::Attribute<geometry::Vec3>> edge_mid;
     std::shared_ptr<CMap2::Attribute<geometry::Vec3>> f_point;
     std::shared_ptr<CMap2::Attribute<Dart>> f_branch;
+    std::shared_ptr<CMap2::Attribute<Dart>> connections;
 };
 
 bool get_graph_data(Graph& g, GraphData& gData)
@@ -142,7 +154,7 @@ bool get_graph_attributes(Graph& g, GraphAttributes& gAttribs)
     gAttribs.V_rad = cgogn::get_attribute<geometry::Scalar, GVertex>(g, "radius");
     if(!gAttribs.V_rad)
     {
-        std::cout << "The                 create_intersection_frames(g, gAttribs, m2, m2Attribs, gv);graph has no radius atttribute" << std::endl;
+        std::cout << "The graph has no radius atttribute" << std::endl;
         return false;
     }
 
@@ -167,6 +179,12 @@ bool get_graph_attributes(Graph& g, GraphAttributes& gAttribs)
         return false;
     }
 
+    gAttribs.m3_section = cgogn::add_attribute<Dart, GDart>(g, "m3_sections");
+    if(!gAttribs.m3_section)
+    {
+        std::cout << "Failed to add m3_section attribute to graph" << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -202,6 +220,20 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
     if(!m2Attribs.f_branch)
     {
         std::cout << "Failed to add f_branch attribute to map2" << std::endl;
+        return false;
+    }
+
+    m2Attribs.edge_mid = cgogn::add_attribute<Vec3, M2Edge>(m2, "edge_mid");
+    if(!m2Attribs.edge_mid)
+    {
+        std::cout << "Failed to add edge_mid attribute to map2" << std::endl;
+        return false;
+    }
+
+    m2Attribs.connections = cgogn::add_attribute<Dart, M2Dart>(m2, "connections");
+    if(!m2Attribs.connections)
+    {
+        std::cout << "Failed to add connections attribute to map2" << std::endl;
         return false;
     }
 
@@ -563,10 +595,10 @@ bool create_intersection_frames(
     Vec3 center = value<Vec3>(g, gAttribs.V_pos, gv);
     g.foreach_dart_of_orbit(gv, [&](Dart d) -> bool
     {
-        std::cout << "dart :" << index_of(g, GDart(d)) << std::endl;
+        // std::cout << "dart :" << index_of(g, GDart(d)) << std::endl;
         Dart d0 = value<Dart>(g, gAttribs.m2_interface, GDart(d));
         Dart d1 = m2.phi<11>(d0);
-        std::cout << "M2_interface :" << d0 << std::endl;
+        // std::cout << "M2_interface :" << d0 << std::endl;
 
         Vec3 R, S, T, diag, temp;
         T = (value<Vec3>(g, gAttribs.V_pos, GVertex(g.alpha0(d))) - center).normalized();
@@ -605,14 +637,16 @@ bool create_intersections_frames(
     return true;
 }
 
-Dart shift_interface(CMap2& m2, Dart m2d, uint32 nb_shifts){
+Dart shift_interface(CMap2& m2, Dart m2d, uint32 nb_shifts)
+{
         Dart d = m2d;
         for(uint i = 0; i < nb_shifts; ++i)
             d = m2.phi1(d);
         return d;
-    }
+}
 
-Matrix3d shift_frame(Matrix3d frame, uint nb_shifts){
+Matrix3d shift_frame(Matrix3d frame, uint nb_shifts)
+{
     Matrix3d f = frame;
     for(uint i = 0; i < nb_shifts; ++i){
         Vec3 R, S, T;
@@ -822,55 +856,156 @@ bool propagate_frames(const Graph& g, GraphAttributes& gAttribs, const GraphData
     return true;
 }
 
-bool complete_interface_1(const Graph& g, const GraphAttributes& gAttribs, 
-    CMap2& m2, M2Attributes& m2Attribs, GVertex gv)
-{
-    // Dart cc = value<Dart>(g, gAttribs.m2_CC, gv);
-    Matrix3d frame = value<Matrix3d>(g, gAttribs.frames, GDart(gv.dart));
-    Vec3 center = value<Vec3>(g, gAttribs.V_pos, gv);
-    Scalar radius = value<Scalar>(g, gAttribs.V_rad, gv);
-    Dart f0 = value<Dart>(g, gAttribs.m2_interface, GDart(gv.dart));
-
-    value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(f0)) = center - frame.col(1) * radius;
-    value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi1(f0))) = center + frame.col(0) * radius;
-    value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi<11>(f0))) = center + frame.col(1) * radius;
-    value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi_1(f0))) = center - frame.col(0) * radius;
-
-    return true;
-}
-
-bool complete_interface_2(const Graph& g, const GraphAttributes& gAttribs, 
-    CMap2& m2, M2Attributes& m2Attribs, GVertex gv)
-{
-    Dart cc = value<Dart>(g, gAttribs.m2_CC, gv);
-    m2.foreach_dart_of_orbit(M2Face(cc), [&](Dart d) -> bool 
-    {
-        value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(d)) = value<Vec3>(g, gAttribs.V_pos, gv);
-        return true;
-    });
-
-    return true;
-}
-
-bool complete_interfaces(const Graph& g, const GraphAttributes& gAttribs, 
+bool set_interfaces_geometry(const Graph& g, const GraphAttributes& gAttribs, 
     CMap2& m2, M2Attributes& m2Attribs)
 {
     foreach_cell(g, [&](GVertex gv) -> bool
     {
-        switch(nb_darts_of_orbit(g, gv))
+        Vec3 center = value<Vec3>(g, gAttribs.V_pos, gv);
+        Dart f0 = value<Dart>(g, gAttribs.m2_interface, GDart(gv.dart));
+        value<Vec3>(m2, m2Attribs.center, M2Volume(f0)) = center;
+        Scalar radius = value<Scalar>(g, gAttribs.V_rad, gv);
+
+        if(nb_darts_of_orbit(g, gv) < 3)
         {
-            case 1:
-            case 2:
-                complete_interface_1(g, gAttribs, m2, m2Attribs, gv);
-                break;
-            default:
-                break;
+            Matrix3d frame = value<Matrix3d>(g, gAttribs.frames, GDart(gv.dart));
+            
+            value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(f0)) = center - frame.col(1) * radius;
+            value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi1(f0))) = center + frame.col(0) * radius;
+            value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi<11>(f0))) = center + frame.col(1) * radius;
+            value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi_1(f0))) = center - frame.col(0) * radius;
         }
+
+        foreach_incident_edge(m2, M2Volume(f0), [&](M2Edge m2e) -> bool
+        {
+            Vec3 mid = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2e.dart));
+            mid += value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2e.dart)));
+
+            value<Vec3>(m2, m2Attribs.edge_mid, m2e) = project_on_sphere(mid, radius, center);
+            return true;
+        });
         return true;
     });
+
+    return true;
 }
 
-bool build_vessels(Graph& g, CMap2& m2)
+Dart new_section(CMap3& m3)
+{
+    std::vector<Dart> D = {
+        add_prism(static_cast<CMap2&>(m3), 4).dart,
+        add_prism(static_cast<CMap2&>(m3), 4).dart,
+        add_prism(static_cast<CMap2&>(m3), 4).dart,
+        add_prism(static_cast<CMap2&>(m3), 4).dart
+    };
+
+    m3.sew_volumes(m3.phi2(D[0]), m3.phi<1112>(D[1]));
+    m3.sew_volumes(m3.phi2(D[1]), m3.phi<1112>(D[2]));
+    m3.sew_volumes(m3.phi2(D[2]), m3.phi<1112>(D[3]));
+    m3.sew_volumes(m3.phi2(D[3]), m3.phi<1112>(D[0]));
+
+    return D[0];
+}
+
+bool build_branch_sections(Graph& g, GraphAttributes& gAttribs, 
+    CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
+{
+    foreach_cell(g, [&](GEdge ge) -> bool
+    {
+        Dart gd0 = ge.dart;
+        Dart gd1 = g.alpha0(ge.dart);
+
+        Dart m2f0 = value<Dart>(g, gAttribs.m2_interface, GDart(gd0));
+        Dart m2f1 = value<Dart>(g, gAttribs.m2_interface, GDart(gd1));
+
+        std::vector<Dart> F0 = {m2f0, m2.phi1(m2f0), m2.phi<11>(m2f0), m2.phi_1(m2f0)};
+        std::vector<Dart> F1 = {m2f1, m2.phi1(m2f1), m2.phi<11>(m2f1), m2.phi_1(m2f1)};
+
+        Dart m3d = new_section(m3);
+        std::vector<Dart> D0 = {m3d, m3.phi<2321>(m3d), m3.phi<23212321>(m3d), m3.phi<111232>(m3d)};
+        std::vector<Dart> D1 = {m3.phi<2112>(D0[0]), m3.phi<2112>(D0[1]), m3.phi<2112>(D0[2]), m3.phi<2112>(D0[3])};
+    
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F0[0])) = m3.phi1(D0[0]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F0[1])) = m3.phi1(D0[1]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F0[2])) = m3.phi1(D0[2]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F0[3])) = m3.phi1(D0[3]);
+
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F1[0])) = m3.phi<11>(D1[1]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F1[1])) = m3.phi<11>(D1[0]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F1[2])) = m3.phi<11>(D1[3]);
+        value<Dart>(m2, m2Attribs.connections, M2Dart(F1[3])) = m3.phi<11>(D1[2]);
+
+        value<Dart>(g, gAttribs.m3_section, GDart(gd0)) = m3d;
+        value<Dart>(g, gAttribs.m3_section, GDart(gd1)) = m3.phi<23112>(m3d);
+
+        return true;
+    });
+
+    return true;
+}
+
+bool sew_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
+{
+    foreach_cell(m2, [&](M2Edge m2e) -> bool
+    {
+        Dart m2d0 = m2e.dart;
+        Dart m2d1 = m2.phi2(m2d0);
+
+        if(m2.is_boundary(m2d0)||m2.is_boundary(m2d1))
+            return true;
+
+        m3.sew_volumes(value<Dart>(m2, m2Attribs.connections, M2Dart(m2d0)), 
+            value<Dart>(m2, m2Attribs.connections, M2Dart(m2d1)));
+        
+        return true;
+    });
+    m3.close(true);
+}
+
+bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
+        auto m3pos = cgogn::add_attribute<Vec3, M3Vertex>(m3, "position");
+
+        foreach_cell(m2, [&](M2Volume m2w) -> bool
+        {
+            Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2w.dart)));
+            value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.center, m2w);
+            return true;
+        });
+
+        foreach_cell(m2, [&] (M2Edge m2e) -> bool
+        {
+            // std::cout << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[0] << " "
+            //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[1] << " "
+            //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[2] << std::endl;
+            Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2e.dart)));
+            value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
+            return true;
+        });
+
+        foreach_cell(m2, [&] (M2Vertex m2v) -> bool
+        {
+            Dart m3d = value<Dart>(m2, m2Attribs.connections, M2Dart(m2v.dart));
+            value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, m2v);
+            return true;
+        });
+
+        DartMarker m3Marker(m3);
+        // foreach_cell(m2, [&](Dart m2d)
+        // {
+        //     if(!m2.is_boundary(m2d)) -> bool
+        //     {
+        //         // Dart m3d = m2_attribs.connections[m2d];
+        //         // if(!m3Marker.is_marked(m3d)){
+        //         //     position[m3d] = m2_attribs.position[cmap2.phi1(m2d)];
+        //         //     m3Marker.mark_orbit(M3Vertex(m3d));
+        //         // }
+        //     }
+        //     return true;
+        // });
+        return true;
+    }
+
+bool build_vessels(Graph& g, CMap2& m2, CMap3& m3)
 {
     bool okay;
     GraphAttributes gAttribs;
@@ -946,15 +1081,43 @@ bool build_vessels(Graph& g, CMap2& m2)
     else
         std::cout << "build_vessels (/): propagate_frames completed" << std::endl;
     
-    okay = complete_interfaces(g, gAttribs, m2, m2Attribs);
+    okay = set_interfaces_geometry(g, gAttribs, m2, m2Attribs);
     if(!okay)
     {
-        std::cout << "error build_vessels: complete_interfaces" << std::endl;
+        std::cout << "error build_vessels: set_interfaces_geometry" << std::endl;
         return false;
     }
     else
-        std::cout << "build_vessels (/): complete_interfaces completed" << std::endl;
+        std::cout << "build_vessels (/): set_interfaces_geometry completed" << std::endl;
       
+
+    okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
+    if(!okay)
+    {
+        std::cout << "error build_vessels: build_branch_sections" << std::endl;
+        return false;
+    }
+    else
+        std::cout << "build_vessels (/): build_branch_sections completed" << std::endl;
+
+    okay = sew_sections(m2, m2Attribs, m3);
+    if(!okay)
+    {
+        std::cout << "error build_vessels: sew_sections" << std::endl;
+        return false;
+    }
+    else
+        std::cout << "build_vessels (/): sew_sections completed" << std::endl;
+
+    okay = set_m3_geometry(m2, m2Attribs, m3);
+    if(!okay)
+    {
+        std::cout << "error build_vessels: set_m3_geometry" << std::endl;
+        return false;
+    }
+    else
+        std::cout << "build_vessels (/): set_m3_geometry completed" << std::endl;
+
     return true;    
 }
 
