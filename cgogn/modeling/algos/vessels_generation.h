@@ -881,9 +881,8 @@ bool set_interfaces_geometry(const Graph& g, const GraphAttributes& gAttribs,
         {
             Vec3 mid = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2e.dart));
             mid += value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2e.dart)));
-
-            // value<Vec3>(m2, m2Attribs.edge_mid, m2e) = project_on_sphere(mid, radius, center);
-            value<Vec3>(m2, m2Attribs.edge_mid, m2e) = mid / 2;
+            mid /= 2;
+            value<Vec3>(m2, m2Attribs.edge_mid, m2e) =project_on_sphere(mid, radius, center);
             return true;
         });
         return true;
@@ -901,10 +900,10 @@ Dart new_section(CMap3& m3)
         add_prism(static_cast<CMap2&>(m3), 4).dart
     };
 
-    m3.sew_volumes(m3.phi2(D[0]), m3.phi<1112>(D[1]));
-    m3.sew_volumes(m3.phi2(D[1]), m3.phi<1112>(D[2]));
-    m3.sew_volumes(m3.phi2(D[2]), m3.phi<1112>(D[3]));
-    m3.sew_volumes(m3.phi2(D[3]), m3.phi<1112>(D[0]));
+    m3.sew_volumes(m3.phi2(D[0]), m3.phi2(m3.phi_1((D[1]))));
+    m3.sew_volumes(m3.phi2(D[1]), m3.phi2(m3.phi_1((D[2]))));
+    m3.sew_volumes(m3.phi2(D[2]), m3.phi2(m3.phi_1((D[3]))));
+    m3.sew_volumes(m3.phi2(D[3]), m3.phi2(m3.phi_1((D[0]))));
 
     return D[0];
 }
@@ -957,7 +956,7 @@ bool sew_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
             return true;
 
         m3.sew_volumes(value<Dart>(m2, m2Attribs.connections, M2Dart(m2d0)), 
-            value<Dart>(m2, m2Attribs.connections, M2Dart(m2d1)));
+            m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2d1))));
         
         return true;
     });
@@ -976,34 +975,33 @@ bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
 
         foreach_cell(m2, [&] (M2Edge m2e) -> bool
         {
-            // std::cout << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[0] << " "
-            //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[1] << " "
-            //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[2] << std::endl;
+
+            Dart m2d0 = m2e.dart; 
+            Dart m2d1 = m2.phi2(m2d0); 
             Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2e.dart)));
             value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
-            return true;
-        });
 
-        foreach_cell(m2, [&] (M2Vertex m2v) -> bool
-        {
-            Dart m3d = value<Dart>(m2, m2Attribs.connections, M2Dart(m2v.dart));
-            value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, m2v);
+            
             return true;
         });
 
         DartMarker m3Marker(m3);
-        // foreach_cell(m2, [&](Dart m2d)
-        // {
-        //     if(!m2.is_boundary(m2d)) -> bool
-        //     {
-        //         // Dart m3d = m2_attribs.connections[m2d];
-        //         // if(!m3Marker.is_marked(m3d)){
-        //         //     position[m3d] = m2_attribs.position[cmap2.phi1(m2d)];
-        //         //     m3Marker.mark_orbit(M3Vertex(m3d));
-        //         // }
-        //     }
-        //     return true;
-        // });
+        m2.foreach_dart([&](Dart m2d) -> bool
+        {
+            if(!m2.is_boundary(m2d))
+            {
+                Dart m3d = value<Dart>(m2, m2Attribs.connections, M2Dart(m2d));
+                if(!m3Marker.is_marked(m3d)){
+                    m3.foreach_dart_of_orbit(M3Vertex(m3d), [&](Dart m3d2) -> bool
+                    {
+                        m3Marker.mark(m3d2);
+                        return true;
+                    });
+                    value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2d)));
+                }
+            }
+            return true;
+        });
         return true;
     }
 
@@ -1062,8 +1060,6 @@ bool build_vessels(Graph& g, CMap2& m2, CMap3& m3, Graph& g2)
     }
     else
         std::cout << "build_vessels (/): intersections completed" << std::endl;
-
-    // dump_map(m2);
 
     okay = create_intersections_frames(g, gAttribs, m2, m2Attribs);
     if(!okay)
@@ -1127,33 +1123,24 @@ bool build_vessels(Graph& g, CMap2& m2, CMap3& m3, Graph& g2)
     foreach_cell(m2, [&](M2Volume m2w) -> bool
     {
         GVertex gv = add_vertex(g2, true);
-        // Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2w.dart)));
         value<Vec3>(g2, g2pos, gv) = value<Vec3>(m2, m2Attribs.center, m2w);
 
-        std::cout << value<Vec3>(g2, g2pos, gv)[0] << " "
-            << value<Vec3>(g2, g2pos, gv)[1] << " "
-            << value<Vec3>(g2, g2pos, gv)[2] << std::endl;
         return true;
     });
 
+    foreach_cell(m2, [&] (M2Edge m2e) -> bool
+    {
+        GVertex gv = add_vertex(g2, true);
+        value<Vec3>(g2, g2pos, gv) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
+        return true;
+    });
 
-
-    // foreach_cell(m2, [&] (M2Edge m2e) -> bool
-    // {
-    //     // std::cout << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[0] << " "
-    //     //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[1] << " "
-    //     //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[2] << std::endl;
-    //     Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2e.dart)));
-    //     value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
-    //     return true;
-    // });
-
-    // foreach_cell(m2, [&] (M2Vertex m2v) -> bool
-    // {
-    //     Dart m3d = value<Dart>(m2, m2Attribs.connections, M2Dart(m2v.dart));
-    //     value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, m2v);
-    //     return true;
-    // });
+    foreach_cell(m2, [&] (M2Vertex m2v) -> bool
+    {
+        GVertex gv = add_vertex(g2, true);
+        value<Vec3>(g2, g2pos, gv) = value<Vec3>(m2, m2Attribs.V_pos, m2v);
+        return true;
+    });
 
     return true;    
 }

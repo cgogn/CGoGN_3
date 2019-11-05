@@ -128,26 +128,26 @@ int main(int argc, char** argv)
 	// });
 
 
-	// if(cgogn::modeling::build_vessels(*g, *s, *v, *g2))
-	// {
-	// 	mpg.emit_connectivity_changed(g);
-	// 	mpg.emit_attribute_changed(g, vertex_position.get());
+	if(cgogn::modeling::build_vessels(*g, *s, *v, *g2))
+	{
+		mpg.emit_connectivity_changed(g);
+		mpg.emit_attribute_changed(g, vertex_position.get());
 
-	// std::shared_ptr<Graph::Attribute<cgogn::geometry::Vec3>> vertex_position2 = cgogn::get_attribute<cgogn::geometry::Vec3, GraphVertex>(*g2, "position");
-	// 	mpg.set_mesh_bb_vertex_position(g2, vertex_position2);
+	std::shared_ptr<Graph::Attribute<cgogn::geometry::Vec3>> vertex_position2 = cgogn::get_attribute<cgogn::geometry::Vec3, GraphVertex>(*g2, "position");
+		mpg.set_mesh_bb_vertex_position(g2, vertex_position2);
 
-	// 	mpg.emit_connectivity_changed(g2);
-	// 	mpg.emit_attribute_changed(g2, vertex_position2.get());
+		mpg.emit_connectivity_changed(g2);
+		mpg.emit_attribute_changed(g2, vertex_position2.get());
 
-	// 	std::shared_ptr<Surface::Attribute<cgogn::geometry::Vec3>> vertex_position_s = cgogn::get_attribute<cgogn::geometry::Vec3, SurfaceVertex>(*s, "position");
-	// // mp.set_mesh_bb_vertex_position(m, vertex_position);
-	// 	mps.emit_connectivity_changed(s);
-	// 	mps.emit_attribute_changed(s, vertex_position_s.get());
+		std::shared_ptr<Surface::Attribute<cgogn::geometry::Vec3>> vertex_position_s = cgogn::get_attribute<cgogn::geometry::Vec3, SurfaceVertex>(*s, "position");
+	// mp.set_mesh_bb_vertex_position(m, vertex_position);
+		mps.emit_connectivity_changed(s);
+		mps.emit_attribute_changed(s, vertex_position_s.get());
 
-	// 	std::shared_ptr<Volume::Attribute<cgogn::geometry::Vec3>> vertex_position_v = cgogn::get_attribute<cgogn::geometry::Vec3, VolumeVertex>(*v, "position");
-	// 	mpv.emit_connectivity_changed(v);
-	// 	mpv.emit_attribute_changed(v, vertex_position_v.get());
-	// }
+		std::shared_ptr<Volume::Attribute<cgogn::geometry::Vec3>> vertex_position_v = cgogn::get_attribute<cgogn::geometry::Vec3, VolumeVertex>(*v, "position");
+		mpv.emit_connectivity_changed(v);
+		mpv.emit_attribute_changed(v, vertex_position_v.get());
+	}
 	// dump_map(*s);
 
 	return app.launch();
