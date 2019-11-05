@@ -31,6 +31,7 @@
 
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
@@ -881,7 +882,8 @@ bool set_interfaces_geometry(const Graph& g, const GraphAttributes& gAttribs,
             Vec3 mid = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2e.dart));
             mid += value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2e.dart)));
 
-            value<Vec3>(m2, m2Attribs.edge_mid, m2e) = project_on_sphere(mid, radius, center);
+            // value<Vec3>(m2, m2Attribs.edge_mid, m2e) = project_on_sphere(mid, radius, center);
+            value<Vec3>(m2, m2Attribs.edge_mid, m2e) = mid / 2;
             return true;
         });
         return true;
@@ -1005,7 +1007,7 @@ bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
         return true;
     }
 
-bool build_vessels(Graph& g, CMap2& m2, CMap3& m3)
+bool build_vessels(Graph& g, CMap2& m2, CMap3& m3, Graph& g2)
 {
     bool okay;
     GraphAttributes gAttribs;
@@ -1117,6 +1119,41 @@ bool build_vessels(Graph& g, CMap2& m2, CMap3& m3)
     }
     else
         std::cout << "build_vessels (/): set_m3_geometry completed" << std::endl;
+
+
+	auto g2pos = cgogn::add_attribute<cgogn::geometry::Vec3, GVertex>(g2, "position");
+
+
+    foreach_cell(m2, [&](M2Volume m2w) -> bool
+    {
+        GVertex gv = add_vertex(g2, true);
+        // Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2w.dart)));
+        value<Vec3>(g2, g2pos, gv) = value<Vec3>(m2, m2Attribs.center, m2w);
+
+        std::cout << value<Vec3>(g2, g2pos, gv)[0] << " "
+            << value<Vec3>(g2, g2pos, gv)[1] << " "
+            << value<Vec3>(g2, g2pos, gv)[2] << std::endl;
+        return true;
+    });
+
+
+
+    // foreach_cell(m2, [&] (M2Edge m2e) -> bool
+    // {
+    //     // std::cout << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[0] << " "
+    //     //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[1] << " "
+    //     //     << value<Vec3>(m2, m2Attribs.edge_mid, m2e)[2] << std::endl;
+    //     Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2e.dart)));
+    //     value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
+    //     return true;
+    // });
+
+    // foreach_cell(m2, [&] (M2Vertex m2v) -> bool
+    // {
+    //     Dart m3d = value<Dart>(m2, m2Attribs.connections, M2Dart(m2v.dart));
+    //     value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, m2v);
+    //     return true;
+    // });
 
     return true;    
 }

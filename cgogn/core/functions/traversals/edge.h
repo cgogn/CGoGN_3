@@ -100,6 +100,18 @@ incident_edges(const MESH& m, CELL c)
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+template <typename FUNC>
+void foreach_incident_edge(const Graph& m, Graph::Vertex v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Edge(d)); });
+}
+
+///////////
 // CMap1 //
 ///////////
 
