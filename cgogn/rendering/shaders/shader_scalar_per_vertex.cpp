@@ -167,11 +167,8 @@ static const char* fragment_shader_source =
 
 ShaderScalarPerVertex::ShaderScalarPerVertex()
 {
-	load2_bind(vertex_shader_source, fragment_shader_source,
-			   "vertex_pos");
-	add_uniforms("color_map", "expansion",
-				 "min_value", "max_value",
-				 "show_iso_lines", "nb_iso_levels");
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_scalar");
+	add_uniforms("color_map", "expansion", "min_value", "max_value", "show_iso_lines", "nb_iso_levels");
 }
 
 } // namespace rendering
