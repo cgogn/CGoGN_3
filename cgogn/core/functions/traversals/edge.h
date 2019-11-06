@@ -53,6 +53,9 @@ CGOGN_CORE_EXPORT incident_edges(const CMap1& m, CMap1::Face f);
 std::vector<CMap2::Edge>
 CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Vertex v);
 
+CMap2::Edge
+CGOGN_CORE_EXPORT incident_edge(const CMap2& m, CMap2::Edge1 e1);
+
 std::vector<CMap2::Edge>
 CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Face f);
 

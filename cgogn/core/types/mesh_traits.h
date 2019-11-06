@@ -78,12 +78,13 @@ struct mesh_traits<CMap2>
 	static constexpr const uint8 dimension = 2;
 
 	using Vertex = CMap2::Vertex;
+	using Edge1 = CMap2::Edge1;
 	using Edge = CMap2::Edge;
 	using Face = CMap2::Face;
 	using Volume = CMap2::Volume;
 
-	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
-	static constexpr const char* cell_names[] = { "Vertex", "Edge", "Face", "Volume" };
+	using Cells = std::tuple<Vertex, Edge1, Edge, Face, Volume>;
+	static constexpr const char* cell_names[] = { "Vertex", "Edge1", "Edge", "Face", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
