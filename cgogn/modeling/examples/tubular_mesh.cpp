@@ -37,6 +37,9 @@
 #include <cgogn/modeling/algos/vessels_generation.h>
 
 
+#include <cgogn/modeling/algos/vessels_generation.h>
+
+
 using namespace cgogn::numerics;
 
 using Graph = cgogn::Graph;
