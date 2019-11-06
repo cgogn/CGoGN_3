@@ -111,7 +111,6 @@ class SurfaceRender : public ViewModule
 		std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
 		std::unique_ptr<rendering::ShaderScalarPerVertex::Param> param_scalar_per_vertex_;
 
-
 		bool render_vertices_;
 		bool render_edges_;
 		bool render_faces_;
@@ -160,17 +159,7 @@ private:
 				{
 					Parameters& p = parameters_[m];
 					if (p.vertex_scalar_.get() == attribute && p.auto_update_scalar_min_max_)
-					{
-						Scalar min = std::numeric_limits<float64>::max();
-						Scalar max = std::numeric_limits<float64>::lowest();
-						for (const Scalar& v : *p.vertex_scalar_)
-						{
-							if (v < min) min = v;
-							if (v > max) max = v;
-						}
-						p.param_scalar_per_vertex_->min_value_ = min;
-						p.param_scalar_per_vertex_->max_value_ = max;
-					}
+						update_scalar_min_max_values(p);
 
 					for (View* v : linked_views_)
 						v->request_update();
@@ -225,17 +214,17 @@ public:
 
 		p.vertex_scalar_ = vertex_scalar;
 		if (p.vertex_scalar_)
+		{
 			md->update_vbo(vertex_scalar.get(), true);
 		
-		Scalar min = std::numeric_limits<float64>::max();
-		Scalar max = std::numeric_limits<float64>::lowest();
-		for (const Scalar& v : *vertex_scalar)
-		{
-			if (v < min) min = v;
-			if (v > max) max = v;
+			if (p.auto_update_scalar_min_max_)
+				update_scalar_min_max_values(p);
 		}
-		p.param_scalar_per_vertex_->min_value_ = min;
-		p.param_scalar_per_vertex_->max_value_ = max;
+		else
+		{
+			p.param_scalar_per_vertex_->min_value_ = 0.0f;
+			p.param_scalar_per_vertex_->max_value_ = 1.0f;
+		}
 		
 		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
 
@@ -244,6 +233,19 @@ public:
 	}
 
 protected:
+
+	void update_scalar_min_max_values(Parameters& p)
+	{
+		Scalar min = std::numeric_limits<float64>::max();
+		Scalar max = std::numeric_limits<float64>::lowest();
+		for (const Scalar& v : *p.vertex_scalar_)
+		{
+			if (v < min) min = v;
+			if (v > max) max = v;
+		}
+		p.param_scalar_per_vertex_->min_value_ = min;
+		p.param_scalar_per_vertex_->max_value_ = max;
+	}
 
 	void init() override
 	{
@@ -403,7 +405,9 @@ protected:
 				{
 					need_update |= ImGui::InputFloat("Scalar min", &p.param_scalar_per_vertex_->min_value_, 0.01f, 1.0f, "%.3f");
 					need_update |= ImGui::InputFloat("Scalar max", &p.param_scalar_per_vertex_->max_value_, 0.01f, 1.0f, "%.3f");
-					ImGui::Checkbox("Auto update min/max", &p.auto_update_scalar_min_max_);
+					if (ImGui::Checkbox("Auto update min/max", &p.auto_update_scalar_min_max_))
+						if (p.auto_update_scalar_min_max_)
+							update_scalar_min_max_values(p);
 				}
 				else
 				{
