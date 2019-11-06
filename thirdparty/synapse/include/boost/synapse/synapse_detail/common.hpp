@@ -41,6 +41,9 @@ namespace boost { namespace synapse {
         public:
             virtual void notify_connection_list_created( shared_ptr<thread_local_signal_data> const & )=0;
             virtual int emit( thread_local_signal_data const &, void const *, args_binder_base const * )=0;
+            virtual ~interthread_interface()
+                {
+                }
         };
 
         struct thread_local_signal_data
