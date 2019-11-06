@@ -272,7 +272,7 @@ bool build_interface_2(
 
     value<Dart>(g, gAttribs.m2_CC, GDart(gv.dart)) = d0;
     value<Dart>(g, gAttribs.m2_interface, GDart(gv.dart)) = d0;
-    value<Dart>(g, gAttribs.m2_interface, GDart(g.alpha1(gv.dart))) = d1;
+    value<Dart>(g, gAttribs.m2_interface, GDart(g.alpha1(gv.dart))) = m2.phi<12>(d0);
 
     return true;
 }
@@ -729,23 +729,29 @@ bool propagate_frame_n_n(const Graph& g, GraphAttributes& gAttribs, CMap2& m2, D
     if(!A && B) nb_shifts = 1;
     else if(!A && !B) nb_shifts = 2;
     else if(A && !B) nb_shifts = 3;
-    if(nb_shifts){
+    if(nb_shifts)
+    {
+        std::cout << "shifting :" << nb_shifts << std::endl;
         UE = shift_frame(UE, nb_shifts);
         value<Matrix3d>(g, gAttribs.frames, GDart(d1)) = UE;
         value<Dart>(g, gAttribs.m2_interface, GDart(d1)) = shift_interface(m2, value<Dart>(g, gAttribs.m2_interface, GDart(d1)), nb_shifts);
     }
 
-    if(nb_e){
+    std::cout << nb_e << std::endl;
+
+    if(nb_e)
+    {
         Scalar cos = UE.col(0).dot(U_.col(0));
         Scalar angle = cos > 1 ? std::acos(1) : std::acos(cos);
-        Scalar angle_step = angle / nb_e;
+        Scalar angle_step = -angle / nb_e;
 
         Dart d0 = d;
         Dart d1 = g.alpha0(d0);
         uint valence = nb_darts_of_orbit(g, GVertex(d1));
         uint step = 0;
 
-        while(valence == 2) {
+        while(valence == 2) 
+        {
             step++;
             d0 = g.alpha1(d1);
             U = value<Matrix3d>(g, gAttribs.frames, GDart(d0));
@@ -882,7 +888,7 @@ bool set_interfaces_geometry(const Graph& g, const GraphAttributes& gAttribs,
             Vec3 mid = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2e.dart));
             mid += value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2e.dart)));
             mid /= 2;
-            value<Vec3>(m2, m2Attribs.edge_mid, m2e) =project_on_sphere(mid, radius, center);
+            value<Vec3>(m2, m2Attribs.edge_mid, m2e) = project_on_sphere(mid, radius, center);
             return true;
         });
         return true;
@@ -948,7 +954,7 @@ bool build_branch_sections(Graph& g, GraphAttributes& gAttribs,
 bool sew_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
     foreach_cell(m2, [&](M2Edge m2e) -> bool
-    {
+    { 
         Dart m2d0 = m2e.dart;
         Dart m2d1 = m2.phi2(m2d0);
 
@@ -961,6 +967,7 @@ bool sew_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
         return true;
     });
     m3.close(true);
+    return true;
 }
 
 bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
@@ -980,8 +987,6 @@ bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
             Dart m2d1 = m2.phi2(m2d0); 
             Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.connections, M2Dart(m2e.dart)));
             value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, m2e);
-
-            
             return true;
         });
 
@@ -997,7 +1002,7 @@ bool set_m3_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3){
                         m3Marker.mark(m3d2);
                         return true;
                     });
-                    value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi2(m2d)));
+                    value<Vec3>(m3, m3pos, M3Vertex(m3d)) = value<Vec3>(m2, m2Attribs.V_pos, M2Vertex(m2.phi1(m2d)));
                 }
             }
             return true;
