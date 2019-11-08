@@ -96,7 +96,12 @@ class SurfaceRender : public ViewModule
 			param_scalar_per_vertex_ = rendering::ShaderScalarPerVertex::generate_param();
 			param_scalar_per_vertex_->min_value_ = 0.0f;
 			param_scalar_per_vertex_->max_value_ = 1.0f;
-			param_scalar_per_vertex_->color_map_ = rendering::ShaderScalarPerVertex::BWR;
+			param_scalar_per_vertex_->color_map_ = rendering::BWR;
+
+			param_scalar_per_vertex_gouraud_ = rendering::ShaderScalarPerVertexGouraud::generate_param();
+			param_scalar_per_vertex_gouraud_->min_value_ = 0.0f;
+			param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
+			param_scalar_per_vertex_gouraud_->color_map_ = rendering::BWR;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -110,6 +115,7 @@ class SurfaceRender : public ViewModule
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 		std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
 		std::unique_ptr<rendering::ShaderScalarPerVertex::Param> param_scalar_per_vertex_;
+		std::unique_ptr<rendering::ShaderScalarPerVertexGouraud::Param> param_scalar_per_vertex_gouraud_;
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -187,6 +193,7 @@ public:
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
+		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -202,6 +209,7 @@ public:
 			md->update_vbo(vertex_normal.get(), true);
 		
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
+		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -224,9 +232,12 @@ public:
 		{
 			p.param_scalar_per_vertex_->min_value_ = 0.0f;
 			p.param_scalar_per_vertex_->max_value_ = 1.0f;
+			p.param_scalar_per_vertex_gouraud_->min_value_ = 0.0f;
+			p.param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
 		}
 		
 		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
+		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -245,6 +256,8 @@ protected:
 		}
 		p.param_scalar_per_vertex_->min_value_ = min;
 		p.param_scalar_per_vertex_->max_value_ = max;
+		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
+		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
 	}
 
 	void init() override
@@ -272,7 +285,13 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 
-				if (p.param_scalar_per_vertex_->vao_initialized())
+				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
+				{
+					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::TRIANGLES);
+					p.param_scalar_per_vertex_gouraud_->release();
+				}
+				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES);

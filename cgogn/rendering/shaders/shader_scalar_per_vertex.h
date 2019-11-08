@@ -21,8 +21,8 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_SCALARPERVERTEX_H_
-#define CGOGN_RENDERING_SHADERS_SCALARPERVERTEX_H_
+#ifndef CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,43 +33,15 @@ namespace cgogn
 namespace rendering
 {
 
-// forward
-class ShaderParamScalarPerVertex;
-
-class CGOGN_RENDERING_EXPORT ShaderScalarPerVertex : public ShaderProgram
+enum ColorMap
 {
-public:
-
-	using  Self  = ShaderScalarPerVertex;
-	using  Param = ShaderParamScalarPerVertex;
-	friend Param;
-
-	enum ColorMap
-	{
-		BWR = 0,
-		CWR,
-		BCGYR,
-		BGR
-	};
-
-protected:
-
-	ShaderScalarPerVertex();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderScalarPerVertex);
-	static Self* instance_;
-
-public:
-
-	inline static std::unique_ptr<Param> generate_param()
-	{
-		if (!instance_)
-		{
-			instance_ = new Self();
-			ShaderProgram::register_instance(instance_);
-		}
-		return std::make_unique<Param>(instance_);
-	}
+	BWR = 0,
+	CWR,
+	BCGYR,
+	BGR
 };
+
+DECLARE_SHADER_CLASS(ScalarPerVertex)
 
 class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertex : public ShaderParam
 {
@@ -81,29 +53,32 @@ class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertex : public ShaderParam
 			min_value_,
 			max_value_,
 			show_iso_lines_,
-			nb_iso_levels_
+			nb_iso_levels_,
+			light_position_
 		);
 	}
 
 public:
 
-	ShaderScalarPerVertex::ColorMap color_map_;
+	ColorMap color_map_;
 	int32 expansion_;
 	float32 min_value_;
 	float32 max_value_;
 	bool show_iso_lines_;
 	int32 nb_iso_levels_;
+	GLVec3 light_position_;
 
 	using LocalShader = ShaderScalarPerVertex;
 
 	ShaderParamScalarPerVertex(LocalShader* sh) :
 		ShaderParam(sh),
-		color_map_(ShaderScalarPerVertex::BWR),
+		color_map_(BWR),
 		expansion_(0),
 		min_value_(.0f),
 		max_value_(1.0f),
 		show_iso_lines_(false),
-		nb_iso_levels_(10)
+		nb_iso_levels_(10),
+		light_position_(10, 100, 1000)
 	{}
 
 	inline ~ShaderParamScalarPerVertex() override {}
@@ -116,8 +91,58 @@ public:
 	}
 };
 
+DECLARE_SHADER_CLASS(ScalarPerVertexGouraud)
+
+class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertexGouraud : public ShaderParam
+{
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(
+			color_map_,
+			expansion_,
+			min_value_,
+			max_value_,
+			show_iso_lines_,
+			nb_iso_levels_,
+			light_position_
+		);
+	}
+
+public:
+
+	ColorMap color_map_;
+	int32 expansion_;
+	float32 min_value_;
+	float32 max_value_;
+	bool show_iso_lines_;
+	int32 nb_iso_levels_;
+	GLVec3 light_position_;
+
+	using LocalShader = ShaderScalarPerVertexGouraud;
+
+	ShaderParamScalarPerVertexGouraud(LocalShader* sh) :
+		ShaderParam(sh),
+		color_map_(BWR),
+		expansion_(0),
+		min_value_(.0f),
+		max_value_(1.0f),
+		show_iso_lines_(false),
+		nb_iso_levels_(10),
+		light_position_(10, 100, 1000)
+	{}
+
+	inline ~ShaderParamScalarPerVertexGouraud() override {}
+
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_normal, VBO* vbo_scalar)
+	{
+		bind_vao();
+		associate_vbos(vbo_pos, vbo_normal, vbo_scalar);
+		release_vao();
+	}
+};
+
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_SCALARPERVERTEX_H_
+#endif // CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
