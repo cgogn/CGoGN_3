@@ -83,7 +83,7 @@ curvature(
 		Vec3 ev = p2 - p1;
 		Scalar alpha;
 		intersection_sphere_segment(p, radius, p1, p2, alpha);
-		tensor += (ev * ev.transpose()) * value<Scalar>(m, edge_angle, e) * (Scalar(1) / ev.norm());
+		tensor += (ev * ev.transpose()) * value<Scalar>(m, edge_angle, e) * (Scalar(1) / ev.norm()) * alpha;
 		return true;
 	});
 

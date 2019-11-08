@@ -311,10 +311,10 @@ protected:
 					geometry::compute_angle(*selected_mesh_, selected_vertex_position_.get(), edge_angle.get());
 
 					Scalar mean_edge_length = geometry::mean_edge_length(*selected_mesh_, selected_vertex_position_.get());
-
+					
 					compute_curvature(
 						*selected_mesh_,
-						mean_edge_length * 4.5,
+						mean_edge_length * 2.5,
 						selected_vertex_position_.get(),
 						selected_vertex_normal_.get(),
 						edge_angle.get(),

@@ -95,17 +95,13 @@ area(
 {
 	using Face = typename mesh_traits<MESH>::Face;
 
-    Scalar area_sum = 0;
-	uint32 nbf = 0;
-
+    Scalar result = 0;
     foreach_cell(m, [&] (Face f) -> bool
     {
-		area_sum += area(m, f, vertex_position);
-		++nbf;
+		result += area(m, f, vertex_position);
         return true;
     });
-
-	return area_sum / Scalar(nbf);
+	return result;
 }
 
 } // namespace geometry
