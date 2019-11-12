@@ -50,6 +50,7 @@ App::App():
 	window_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
+	show_demo_(false),
 	current_view_(nullptr)
 {
 	glfwSetErrorCallback(glfw_error_callback);
@@ -228,11 +229,13 @@ App::App():
 			return;
         }
 
-        switch(a)
+        switch (a)
         {
             case GLFW_PRESS:
                 if (k == GLFW_KEY_SPACE)
                     that->show_imgui_ = !that->show_imgui_;
+				if (k == GLFW_KEY_H)
+					that->show_demo_ = !that->show_demo_;
                 else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
                 {
                     that->interface_scaling_ += 0.1f;
@@ -422,6 +425,9 @@ int App::launch()
 			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
 
 			ImGui::PopStyleVar(3);
+
+			if (show_demo_)
+				ImGui::ShowDemoWindow();
 
 			if (ImGui::BeginMainMenuBar())
 			{

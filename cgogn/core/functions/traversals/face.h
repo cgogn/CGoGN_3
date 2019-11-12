@@ -46,6 +46,9 @@ namespace cgogn
 std::vector<CMap2::Face>
 CGOGN_CORE_EXPORT incident_faces(const CMap2& m, CMap2::Vertex v);
 
+CMap2::Face
+CGOGN_CORE_EXPORT incident_face(const CMap2& m, CMap2::Edge1 e1);
+
 std::vector<CMap2::Face>
 CGOGN_CORE_EXPORT incident_faces(const CMap2& m, CMap2::Edge e);
 

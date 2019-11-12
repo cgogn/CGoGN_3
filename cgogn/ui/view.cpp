@@ -160,6 +160,7 @@ void View::draw()
 			m->draw(this);
 		fbo_->release();
 		glDisable(GL_DEPTH_TEST);
+		need_redraw_ = false;
 	}
 
 	param_fst_->draw();
