@@ -21,19 +21,10 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_UI_WINDOW_H_
-#define CGOGN_UI_WINDOW_H_
+#ifndef CGOGN_MODULE_SHALLOW_WATER_H_
+#define CGOGN_MODULE_SHALLOW_WATER_H_
 
-#include <cgogn/ui/cgogn_ui_export.h>
-
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/ui/inputs.h>
-#include <cgogn/rendering/shaders/shader_frame2d.h>
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <cgogn/ui/module.h>
 
 namespace cgogn
 {
@@ -41,61 +32,51 @@ namespace cgogn
 namespace ui
 {
 
-class View;
-class Module;
-
-class CGOGN_UI_EXPORT App
+template <typename MESH>
+class ShallowWater : public ViewModule
 {
-	friend class Module;
+    template <typename T>
+    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+
+    using Vertex = typename mesh_traits<MESH>::Vertex;
+    using Edge = typename mesh_traits<MESH>::Edge;
+    using Face = typename mesh_traits<MESH>::Face;
+
+    using Vec3 = geometry::Vec3;
+    using Scalar = geometry::Scalar;
 
 public:
 
-	App();
-	~App();
+	ShallowWater(const App& app) :
+		ViewModule(app, "ShallowWater (" + std::string{mesh_traits<MESH>::name} + ")")
+	{}
+	~ShallowWater()
+	{}
 
-	void set_window_size(int32 w, int32 h);
-	void set_window_title(const std::string& name);
+protected:
 
-	View* add_view();
-	inline View* current_view() const { return current_view_; }
+	void init() override
+	{
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
+	}
 
-	Module* module(const std::string& name) const;
+    void interface() override
+	{
+		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::SetWindowSize({0, 0});
 
-	void init_modules();
-	int launch();
-	void stop();
+
+		
+		ImGui::End();
+	}
 
 private:
 
-	void close_event();
-    void adapt_views_geometry();
-	
-	GLFWwindow* window_;
-	ImGuiContext* context_;
-
-	std::string window_name_;
-
-	int32 window_width_;
-	int32 window_height_;
-	int32 framebuffer_width_;
-	int32 framebuffer_height_;
-
-	float64 interface_scaling_;
-	bool show_imgui_;
-	bool show_demo_;
-	
-	std::unique_ptr<rendering::ShaderFrame2d::Param> param_frame_;
-
-	Inputs inputs_;
-
-	std::vector<std::unique_ptr<View>> views_;
-	View* current_view_;
-
-    mutable std::vector<Module*> modules_;
+	MeshProvider<MESH>* mesh_provider_;
 };
-
-} // namespace cgogn
 
 } // namespace ui
 
-#endif // CGOGN_UI_WINDOW_H_
+} // namespace cgogn
+
+#endif // CGOGN_MODULE_SHALLOW_WATER_H_

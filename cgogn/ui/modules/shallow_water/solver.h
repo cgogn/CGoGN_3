@@ -21,19 +21,10 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_UI_WINDOW_H_
-#define CGOGN_UI_WINDOW_H_
+#ifndef CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_
+#define CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_
 
-#include <cgogn/ui/cgogn_ui_export.h>
-
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/ui/inputs.h>
-#include <cgogn/rendering/shaders/shader_frame2d.h>
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -41,61 +32,26 @@ namespace cgogn
 namespace ui
 {
 
-class View;
-class Module;
+using Scalar = geometry::Scalar;
 
-class CGOGN_UI_EXPORT App
+struct Str_Riemann_Flux
 {
-	friend class Module;
-
-public:
-
-	App();
-	~App();
-
-	void set_window_size(int32 w, int32 h);
-	void set_window_title(const std::string& name);
-
-	View* add_view();
-	inline View* current_view() const { return current_view_; }
-
-	Module* module(const std::string& name) const;
-
-	void init_modules();
-	int launch();
-	void stop();
-
-private:
-
-	void close_event();
-    void adapt_views_geometry();
-	
-	GLFWwindow* window_;
-	ImGuiContext* context_;
-
-	std::string window_name_;
-
-	int32 window_width_;
-	int32 window_height_;
-	int32 framebuffer_width_;
-	int32 framebuffer_height_;
-
-	float64 interface_scaling_;
-	bool show_imgui_;
-	bool show_demo_;
-	
-	std::unique_ptr<rendering::ShaderFrame2d::Param> param_frame_;
-
-	Inputs inputs_;
-
-	std::vector<std::unique_ptr<View>> views_;
-	View* current_view_;
-
-    mutable std::vector<Module*> modules_;
+    Scalar F1;  /**< Flux de masse à travers l'interface **/
+    Scalar F2;  /**< Flux de quantité de mouvement à travers l'interface dans la direction normale à l'interface **/
+    Scalar F3;  /**< Flux de quantité de mouvement à travers l'interface dans la direction longitudinale à l'interface **/
+    Scalar s2L; /**< Quantité de mouvement associée well-balancing du terme source pour la maille gauche de l'interface **/
+    Scalar s2R; /**< Quantité de mouvement associée well-balancing du terme source pour la maille droite de l'interface **/
 };
 
-} // namespace cgogn
+Str_Riemann_Flux Solv_HLLC(
+    Scalar g, Scalar hmin, Scalar smalll,
+    Scalar zbL, Scalar zbR,
+    Scalar PhiL, Scalar PhiR,
+    Scalar hL, Scalar qL, Scalar rL, Scalar hR, Scalar qR, Scalar rR
+);
 
 } // namespace ui
 
-#endif // CGOGN_UI_WINDOW_H_
+} // namespace cgogn
+
+#endif // CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_

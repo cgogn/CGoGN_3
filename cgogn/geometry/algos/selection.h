@@ -50,11 +50,11 @@ within_sphere(
 )
 {
     using Vertex = typename CMap2::Vertex;
+    using Edge1 = typename CMap2::Edge1;
     using Edge = typename CMap2::Edge;
     using Face = typename CMap2::Face;
 
     CellCache<CMap2> cache(m);
-    // std::vector<Edge> border;
 
 	const Vec3& center_position = value<Vec3>(m, vertex_position, center);
 
@@ -115,8 +115,8 @@ within_sphere(
                     mark_vertex(av);
                 }
             }
-            // else
-            //     border.push_back(Edge(av.dart));
+            else
+                cache.add(Edge1(m.phi2(av.dart)));
             return true;
         });
         ++i;

@@ -33,6 +33,8 @@
 
 #include <cgogn/geometry/algos/selection.h>
 #include <cgogn/geometry/algos/area.h>
+#include <cgogn/geometry/functions/intersection.h>
+#include <cgogn/geometry/functions/inclusion.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -54,7 +56,9 @@ curvature(
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge1 = typename mesh_traits<MESH>::Edge1;
 	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
 	CellCache<MESH> neighborhood = within_sphere(m, v, radius, vertex_position);
 
@@ -64,12 +68,53 @@ curvature(
 	foreach_cell(neighborhood, [&] (Edge e) -> bool
 	{
 		std::vector<Vertex> vv = incident_vertices(m, e);
-		Vec3 ev = value<Vec3>(m, vertex_position, vv[0]) - value<Vec3>(m, vertex_position, vv[1]);
+		Vec3 ev = value<Vec3>(m, vertex_position, vv[1]) - value<Vec3>(m, vertex_position, vv[0]);
 		tensor += (ev * ev.transpose()) * value<Scalar>(m, edge_angle, e) * (Scalar(1) / ev.norm());
 		return true;
 	});
 
-	tensor /= area(neighborhood, vertex_position);
+	const Vec3& p = value<Vec3>(m, vertex_position, v);
+	foreach_cell(neighborhood, [&] (Edge1 e1) -> bool
+	{
+		Edge e = incident_edge(m, e1);
+		std::vector<Vertex> vv = incident_vertices(m, e);
+		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
+		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);
+		Vec3 ev = p2 - p1;
+		Scalar alpha;
+		intersection_sphere_segment(p, radius, p1, p2, alpha);
+		tensor += (ev * ev.transpose()) * value<Scalar>(m, edge_angle, e) * (Scalar(1) / ev.norm()) * alpha;
+		return true;
+	});
+
+	Scalar neighborhood_area = area(neighborhood, vertex_position);
+	foreach_cell(neighborhood, [&] (Edge1 e1) -> bool
+	{
+		Face f = incident_face(m, e1);
+		std::vector<Vertex> vv = incident_vertices(m, f);
+		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
+		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);
+		const Vec3& p3 = value<Vec3>(m, vertex_position, vv[2]);
+		// p1 is inside
+		// p2 is outside
+		if (in_sphere(p3, p, radius)) // p3 is inside
+		{
+			Scalar alpha, beta;
+			intersection_sphere_segment(p, radius, p1, p2, alpha);
+			intersection_sphere_segment(p, radius, p3, p2, beta);
+			neighborhood_area += (alpha+beta - alpha*beta) * area(p1, p2, p3);
+		}
+		else // p3 is outside
+		{
+			Scalar alpha, beta;
+			intersection_sphere_segment(p, radius, p1, p2, alpha);
+			intersection_sphere_segment(p, radius, p1, p3, beta);
+			neighborhood_area += alpha * beta * area(p1, p2, p3);
+		}
+		return true;
+	});
+
+	tensor /= neighborhood_area;
 
 	const Vec3& vnormal = value<Vec3>(m, vertex_normal, v);
 

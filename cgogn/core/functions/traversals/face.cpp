@@ -45,6 +45,11 @@ std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
 	return faces;
 }
 
+CMap2::Face incident_face(const CMap2& m, CMap2::Edge1 e1)
+{
+	return CMap2::Face(e1.dart);
+}
+
 std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Face> faces;

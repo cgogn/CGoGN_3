@@ -31,8 +31,10 @@ namespace cgogn
 namespace rendering
 {
 
+ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
+ShaderScalarPerVertexGouraud* ShaderScalarPerVertexGouraud::instance_ = nullptr;
+
 static const char* vertex_shader_source =
-"#version 150\n"
 "in vec3 vertex_pos;\n"
 "in float vertex_scalar;\n"
 "uniform mat4 projection_matrix;\n"
@@ -41,8 +43,14 @@ static const char* vertex_shader_source =
 "uniform float max_value;\n"
 "uniform int color_map;\n"
 "uniform int expansion;\n"
+"out vec3 pos_v;\n"
 "out vec3 color_v;\n"
 "out float scalar_v;\n"
+"#if WITH_NORMAL==1\n"
+"uniform mat3 normal_matrix;\n"
+"in vec3 vertex_normal;\n"
+"out vec3 normal_v;\n"
+"#endif\n"
 "#define M_PI 3.1415926535897932384626433832795\n"
 "float scale_and_clamp_to_0_1(float x, float min, float max)\n"
 "{\n"
@@ -139,40 +147,66 @@ static const char* vertex_shader_source =
 "		case 3 : color_v = color_map_blue_green_red(value); break;\n"
 "	}\n"
 "	scalar_v = value;\n"
-"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos, 1.0);\n"
+"	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
+"	pos_v = pos4.xyz;\n"
+"#if WITH_NORMAL==1\n"
+"	normal_v = normal_matrix * vertex_normal;\n"
+"#endif\n"
+"   gl_Position = projection_matrix * pos4;\n"
 "}\n";
 
 static const char* fragment_shader_source =
-"#version 150\n"
+"in vec3 pos_v;\n"
 "in vec3 color_v;\n"
 "in float scalar_v;\n"
+"#if WITH_NORMAL==1\n"
+"in vec3 normal_v;\n"
+"#endif\n"
+"uniform vec3 light_position;\n"
 "uniform bool show_iso_lines;\n"
 "uniform int nb_iso_levels;\n"
 "out vec3 fragColor;\n"
 "void main()\n"
 "{\n"
+"#if WITH_NORMAL==1\n"
+"	vec3 N = normal_v;\n"
+"#else\n"
+"	vec3 N = normalize(cross(dFdx(pos_v),dFdy(pos_v)));\n"
+"#endif\n"
+"	vec3 L = normalize(light_position-pos_v);\n"
+"	float lambert = dot(N,L);\n"
 "	if (show_iso_lines)\n"
 "	{\n"
 "		float s = scalar_v * float(nb_iso_levels);\n"
 "		if (s - floor(s) < 0.05)\n"
 "			fragColor = vec3(0.0);\n"
 "		else\n"
-"			fragColor = color_v;\n"
+"			fragColor = lambert*color_v;\n"
 "	}\n"
 "	else\n"
-"		fragColor = color_v;\n"
+"		fragColor = lambert*color_v;\n"
 "}\n";
-
-ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
 
 ShaderScalarPerVertex::ShaderScalarPerVertex()
 {
-	load(vertex_shader_source, fragment_shader_source,
-		 "vertex_pos");
+	std::string bs("#version 150\n#define WITH_NORMAL 0\n");
 
-	add_uniforms("color_map", "expansion",
-				 "min_value", "max_value",
-				 "show_iso_lines", "nb_iso_levels");
+	std::string vs = bs + std::string(vertex_shader_source);
+	std::string fs = bs + std::string(fragment_shader_source);
+
+	load2_bind(vs, fs, "vertex_pos", "vertex_scalar");
+	add_uniforms("color_map", "expansion", "min_value", "max_value", "show_iso_lines", "nb_iso_levels", "light_position");
+}
+
+ShaderScalarPerVertexGouraud::ShaderScalarPerVertexGouraud()
+{
+	std::string bs("#version 150\n#define WITH_NORMAL 1\n");
+
+	std::string vs = bs + std::string(vertex_shader_source);
+	std::string fs = bs + std::string(fragment_shader_source);
+
+	load2_bind(vs, fs, "vertex_pos", "vertex_normal", "vertex_scalar");
+	add_uniforms("color_map", "expansion", "min_value", "max_value", "show_iso_lines", "nb_iso_levels", "light_position");
 }
 
 } // namespace rendering
