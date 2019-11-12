@@ -38,6 +38,39 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+Graph::Vertex
+cut_edge(Graph& g, Graph::Edge e, bool set_indices)
+{
+	Dart e0 = e.dart;
+	Dart e1 = g.alpha0(e0);
+
+	Dart v0 = g.add_dart();
+	Dart v1 = g.add_dart();
+
+	g.alpha1_sew(v0, v1);
+	g.alpha0_unsew(e0);
+	g.alpha0_sew(e0, v0);
+	g.alpha0_sew(e1, v1);
+
+	if (set_indices)
+	{
+		if (g.is_indexed<Graph::Vertex>())
+			set_index(g, Graph::Vertex(v0), new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::Edge>())
+		{
+			g.copy_index<Graph::Edge>(v0, e0);
+			set_index(g, Graph::Edge(e1), new_index<Graph::Edge>(g));
+		}
+	}
+
+	return Graph::Vertex(v0);
+}
+
+
+///////////
 // CMap1 //
 ///////////
 

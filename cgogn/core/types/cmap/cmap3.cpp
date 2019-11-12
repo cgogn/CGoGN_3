@@ -131,4 +131,8 @@ uint32 CMap3::close(bool set_indices)
 	return nb_holes;
 }
 
+// inline void CMap3::sew_volumes(Dart d0, Dart d1)
+
+
+
 } // namespace cgogn

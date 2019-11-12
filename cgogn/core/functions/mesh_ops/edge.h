@@ -40,6 +40,14 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+Graph::Vertex
+CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
+
+
+///////////
 // CMap1 //
 ///////////
 
