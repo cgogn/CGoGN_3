@@ -347,7 +347,7 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs)
 {
     bool res = true;
-	foreach_cell(g, [&] (Graph::Vertex v) -> bool
+	parallel_foreach_cell(g, [&] (Graph::Vertex v) -> bool
 	{
 		switch (degree(g, v))
 		{
@@ -453,7 +453,7 @@ void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 bool create_intersection_frames(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs)
 {
     bool res = true;
-	foreach_cell(g, [&] (Graph::Vertex v) -> bool
+	parallel_foreach_cell(g, [&] (Graph::Vertex v) -> bool
 	{
 		if (degree(g, v) > 2)
 			res = create_intersection_frame_n(g, gAttribs, m2, m2Attribs, v);
@@ -750,7 +750,7 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 
 bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs)
 {
-	foreach_cell(g, [&] (Graph::Vertex v) -> bool
+	parallel_foreach_cell(g, [&] (Graph::Vertex v) -> bool
 	{
 		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 
@@ -794,7 +794,7 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 
 bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
-	foreach_cell(g, [&] (Graph::Edge e) -> bool
+	parallel_foreach_cell(g, [&] (Graph::Edge e) -> bool
 	{
 		std::vector<Graph::Vertex1> vertices1 = incident_vertices1(g, e);
 
@@ -829,7 +829,7 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
-	foreach_cell(m2, [&] (CMap2::Edge e) -> bool
+	parallel_foreach_cell(m2, [&] (CMap2::Edge e) -> bool
 	{
 		if (is_incident_to_boundary(m2, e))
 			return true;
@@ -841,6 +841,7 @@ bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 		);
 		return true;
 	});
+
 	m3.close(false);
 	return true;
 }
@@ -849,14 +850,14 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
 	auto m3pos = cgogn::add_attribute<Vec3, CMap3::Vertex>(m3, "position");
 
-	foreach_cell(m2, [&](CMap2::Volume v) -> bool
+	parallel_foreach_cell(m2, [&] (CMap2::Volume v) -> bool
 	{
 		Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(v.dart)));
 		value<Vec3>(m3, m3pos, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.volume_center, v);
 		return true;
 	});
 
-	foreach_cell(m2, [&] (CMap2::Edge e) -> bool
+	parallel_foreach_cell(m2, [&] (CMap2::Edge e) -> bool
 	{
 		Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(e.dart)));
 		value<Vec3>(m3, m3pos, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, e);
