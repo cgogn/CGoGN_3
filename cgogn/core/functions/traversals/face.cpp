@@ -53,7 +53,7 @@ CMap2::Face incident_face(const CMap2& m, CMap2::Edge1 e1)
 std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Face> faces;
-	faces.reserve(8u);
+	faces.reserve(2u);
 	foreach_incident_face(m, e, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
 	return faces;
 }

@@ -59,6 +59,11 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 	{
 		if (g.is_indexed<Graph::Vertex>())
 			set_index(g, Graph::Vertex(v0), new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::Vertex1>())
+		{
+			set_index(g, Graph::Vertex1(v0), new_index<Graph::Vertex1>(g));
+			set_index(g, Graph::Vertex1(v1), new_index<Graph::Vertex1>(g));
+		}
 		if (g.is_indexed<Graph::Edge>())
 		{
 			g.copy_index<Graph::Edge>(v0, e0);
@@ -68,7 +73,6 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 
 	return Graph::Vertex(v0);
 }
-
 
 ///////////
 // CMap1 //
@@ -85,6 +89,7 @@ cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 	{
 		if (m.is_indexed<CMap1::Vertex>())
 			set_index(m, v, new_index<CMap1::Vertex>(m));
+		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (m.is_indexed<CMap1::Face>())
 			m.copy_index<CMap1::Face>(d, e.dart);
 	}
@@ -114,6 +119,11 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	{
 		if (m.is_indexed<CMap2::Vertex>())
 			set_index(m, v, new_index<CMap2::Vertex>(m));
+		if (m.is_indexed<CMap2::Edge1>())
+		{
+			set_index(m, CMap2::Edge1(nv1.dart), new_index<CMap2::Edge1>(m));
+			set_index(m, CMap2::Edge1(nv2.dart), new_index<CMap2::Edge1>(m));
+		}
 		if (m.is_indexed<CMap2::Edge>())
 		{
 			m.copy_index<CMap2::Edge>(nv2.dart, d1);

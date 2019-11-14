@@ -63,6 +63,7 @@ add_face(CMap1& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
+		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (m.is_indexed<CMap1::Face>())
 			set_index(m, f, new_index<CMap1::Face>(m));
 	}
@@ -98,6 +99,14 @@ add_face(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
+		if (m.is_indexed<CMap2::Edge1>())
+		{
+			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool
+			{
+				set_index(m, CMap2::Edge1(e.dart), new_index<CMap2::Edge1>(m));
+				return true;
+			});
+		}
 		if (m.is_indexed<CMap2::Edge>())
 		{
 			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool
@@ -108,6 +117,8 @@ add_face(CMap2& m, uint32 size, bool set_indices)
 		}
 		if (m.is_indexed<CMap2::Face>())
 			set_index(m, f, new_index<CMap2::Face>(m));
+		if (m.is_indexed<CMap2::Volume>())
+			set_index(m, CMap2::Volume(f.dart), new_index<CMap2::Volume>(m));
 	}
 
 	return f;
@@ -172,6 +183,11 @@ cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices)
 		{
 			m.copy_index<CMap2::Vertex>(nv1.dart, v1.dart);
 			m.copy_index<CMap2::Vertex>(nv2.dart, v2.dart);
+		}
+		if (m.is_indexed<CMap2::Edge1>())
+		{
+			set_index(m, CMap2::Edge1(nv1.dart), new_index<CMap2::Edge1>(m));
+			set_index(m, CMap2::Edge1(nv2.dart), new_index<CMap2::Edge1>(m));
 		}
 		if (m.is_indexed<CMap2::Edge>())
 			set_index(m, CMap2::Edge(nv1.dart), new_index<CMap2::Edge>(m));

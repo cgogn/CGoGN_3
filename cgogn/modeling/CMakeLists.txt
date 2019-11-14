@@ -18,9 +18,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/pipo.cpp"
 )
 
 if(${CGOGN_EXTERNAL_TEMPLATES})

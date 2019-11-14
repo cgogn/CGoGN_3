@@ -69,6 +69,16 @@ std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Vertex v)
 	return edges;
 }
 
+std::vector<CMap2::Edge1>
+CGOGN_CORE_EXPORT incident_edges1(const CMap2& m, CMap2::Edge e)
+{
+	std::vector<CMap2::Edge1> edges1;
+	edges1.reserve(2u);
+	edges1.push_back(CMap2::Edge1(e.dart));
+	edges1.push_back(CMap2::Edge1(m.phi2(e.dart)));
+	return edges1;
+}
+
 CMap2::Edge incident_edge(const CMap2& m, CMap2::Edge1 e1)
 {
 	return CMap2::Edge(e1.dart);

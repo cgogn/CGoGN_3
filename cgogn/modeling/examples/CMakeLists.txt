@@ -27,6 +27,7 @@ target_link_libraries(tubular_mesh
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 

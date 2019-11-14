@@ -39,7 +39,6 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 	using Vertex = Cell<PHI21>;
 	using Edge1 = Cell<DART>;
 	using Edge = Cell<PHI2>;
-	using Edge1 = Cell<DART>;
 	using Face = Cell<PHI1>;
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Volume;

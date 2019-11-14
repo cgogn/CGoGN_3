@@ -22,8 +22,6 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/cmap/cmap_info.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -32,33 +30,14 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
-// #include <cgogn/ui/modules/volume_render/volume_render.h>
 
-#include <cgogn/modeling/algos/vessels_generation.h>
-
-
-#include <cgogn/modeling/algos/vessels_generation.h>
-
+#include <cgogn/modeling/algos/graph_to_hex.h>
 
 using namespace cgogn::numerics;
 
 using Graph = cgogn::Graph;
 using Surface = cgogn::CMap2;
 using Volume = cgogn::CMap3;
-
-template <typename T>
-using GraphAttribute = typename cgogn::mesh_traits<Graph>::Attribute<T>;
-template <typename T>
-using SurfaceAttribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
-template <typename T>
-using VolumeAttribute = typename cgogn::mesh_traits<Volume>::Attribute<T>;
-
-using GraphVertex = typename cgogn::mesh_traits<Graph>::Vertex;
-using SurfaceVertex = typename cgogn::mesh_traits<Surface>::Vertex;
-using VolumeVertex = typename cgogn::mesh_traits<Volume>::Vertex;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
@@ -103,55 +82,14 @@ int main(int argc, char** argv)
 		std::cout << "File could not be loaded" << std::endl;
 		return 1;
 	}
-
 	Surface* s = mps.add_mesh("contact");
 	Volume* v = mpv.add_mesh("tubes");
-	Graph* g2 = mpg.add_mesh("vertices");
-	std::shared_ptr<Graph::Attribute<cgogn::geometry::Vec3>> vertex_position = cgogn::get_attribute<cgogn::geometry::Vec3, GraphVertex>(*g, "position");
-	// std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
-	// mp.set_mesh_bb_vertex_position(m, vertex_position);
-
-	// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-	
-	// gr.set_vertex_position(*g, vertex_position);
-	// sr.set_vertex_normal(*m, vertex_normal);
-	// auto vertices = 
-	// auto edges = cgogn::incident_edges()
-
-	// cgogn::index_cells<Graph::Edge>(*g);
-	// cgogn::foreach_cell(*g, [&](Graph::Vertex v) ->bool 
-	// {
-	// 	std::cout << cgogn::index_of(*g, v) << "-" ;
-	// 	auto edges = cgogn::incident_edges(*g, v);
-	// 	for(auto e : edges)
-	// 		std::cout << cgogn::index_of(*g, e) << " ";
-	// 	std::cout << std::endl;
-	// 	return true;
-	// });
-
-
-	if(cgogn::modeling::build_vessels(*g, *s, *v, *g2))
+	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
 	{
-		mpg.emit_connectivity_changed(g);
-		mpg.emit_attribute_changed(g, vertex_position.get());
-
-	std::shared_ptr<Graph::Attribute<cgogn::geometry::Vec3>> vertex_position2 = cgogn::get_attribute<cgogn::geometry::Vec3, GraphVertex>(*g2, "position");
-		mpg.set_mesh_bb_vertex_position(g2, vertex_position2);
-
-		mpg.emit_connectivity_changed(g2);
-		mpg.emit_attribute_changed(g2, vertex_position2.get());
-
-		std::shared_ptr<Surface::Attribute<cgogn::geometry::Vec3>> vertex_position_s = cgogn::get_attribute<cgogn::geometry::Vec3, SurfaceVertex>(*s, "position");
-	// mp.set_mesh_bb_vertex_position(m, vertex_position);
 		mps.emit_connectivity_changed(s);
-		mps.emit_attribute_changed(s, vertex_position_s.get());
-
-		std::shared_ptr<Volume::Attribute<cgogn::geometry::Vec3>> vertex_position_v = cgogn::get_attribute<cgogn::geometry::Vec3, VolumeVertex>(*v, "position");
 		mpv.emit_connectivity_changed(v);
-		mpv.emit_attribute_changed(v, vertex_position_v.get());
 	}
-	// dump_map(*s);
 
 	return app.launch();
 }
