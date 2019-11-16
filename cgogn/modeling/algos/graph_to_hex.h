@@ -42,7 +42,7 @@ using Mat3 = geometry::Mat3;
 
 struct GData
 {
-	std::vector<std::pair<Graph::Vertex1, Graph::Vertex1>> branches;
+	std::vector<std::pair<Graph::HalfEdge, Graph::HalfEdge>> branches;
 	std::vector<Graph::Vertex> intersections;
 };
 
@@ -51,8 +51,8 @@ struct GAttributes
 	std::shared_ptr<Graph::Attribute<Vec3>> vertex_position;
 	std::shared_ptr<Graph::Attribute<Scalar>> vertex_radius;
 	std::shared_ptr<Graph::Attribute<Dart>> vertex_contact_surface;
-	std::shared_ptr<Graph::Attribute<Dart>> vertex1_contact_surface_face;
-	std::shared_ptr<Graph::Attribute<Mat3>> vertex1_frame;
+	std::shared_ptr<Graph::Attribute<Dart>> halfedge_contact_surface_face;
+	std::shared_ptr<Graph::Attribute<Mat3>> halfedge_frame;
 };
 
 struct M2Attributes
@@ -60,7 +60,7 @@ struct M2Attributes
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position;
 	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
-	std::shared_ptr<CMap2::Attribute<Dart>> edge1_volume_connection;
+	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
 };
 
 bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
@@ -70,7 +70,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
 /*****************************************************************************/
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol);
-Graph::Vertex1 branch_extremity(const Graph& g, Graph::Vertex1 v1, CellMarker<Graph, Graph::Edge>& cm);
+Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<Graph, Graph::Edge>& cm);
 Dart add_branch_section(CMap3& m3);
 void project_on_sphere(Vec3& P, const Vec3& C, Scalar R);
 void shift_frame(Mat3& frame, uint32 nb_shifts);
@@ -100,8 +100,8 @@ bool create_intersection_frames(const Graph& g, GAttributes& gAttribs, CMap2& m2
 bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v);
 
 bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GData& gData, CMap2& m2);
-void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::Vertex1 v1_from_start);
-bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex1 v1_from_start);
+void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start);
+bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::HalfEdge h_from_start);
 
 /*****************************************************************************/
 /* contact surfaces geometry                                                 */

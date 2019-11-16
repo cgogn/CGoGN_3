@@ -31,6 +31,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/inclusion.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -50,7 +51,7 @@ within_sphere(
 )
 {
     using Vertex = typename CMap2::Vertex;
-    using Edge1 = typename CMap2::Edge1;
+    using HalfEdge = typename CMap2::HalfEdge;
     using Edge = typename CMap2::Edge;
     using Face = typename CMap2::Face;
 
@@ -116,7 +117,7 @@ within_sphere(
                 }
             }
             else
-                cache.add(Edge1(m.phi2(av.dart)));
+                cache.add(HalfEdge(m.phi2(av.dart)));
             return true;
         });
         ++i;

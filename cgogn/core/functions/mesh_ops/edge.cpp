@@ -59,10 +59,10 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 	{
 		if (g.is_indexed<Graph::Vertex>())
 			set_index(g, Graph::Vertex(v0), new_index<Graph::Vertex>(g));
-		if (g.is_indexed<Graph::Vertex1>())
+		if (g.is_indexed<Graph::HalfEdge>())
 		{
-			set_index(g, Graph::Vertex1(v0), new_index<Graph::Vertex1>(g));
-			set_index(g, Graph::Vertex1(v1), new_index<Graph::Vertex1>(g));
+			set_index(g, Graph::HalfEdge(v0), new_index<Graph::HalfEdge>(g));
+			set_index(g, Graph::HalfEdge(v1), new_index<Graph::HalfEdge>(g));
 		}
 		if (g.is_indexed<Graph::Edge>())
 		{
@@ -119,10 +119,10 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	{
 		if (m.is_indexed<CMap2::Vertex>())
 			set_index(m, v, new_index<CMap2::Vertex>(m));
-		if (m.is_indexed<CMap2::Edge1>())
+		if (m.is_indexed<CMap2::HalfEdge>())
 		{
-			set_index(m, CMap2::Edge1(nv1.dart), new_index<CMap2::Edge1>(m));
-			set_index(m, CMap2::Edge1(nv2.dart), new_index<CMap2::Edge1>(m));
+			set_index(m, CMap2::HalfEdge(nv1.dart), new_index<CMap2::HalfEdge>(m));
+			set_index(m, CMap2::HalfEdge(nv2.dart), new_index<CMap2::HalfEdge>(m));
 		}
 		if (m.is_indexed<CMap2::Edge>())
 		{

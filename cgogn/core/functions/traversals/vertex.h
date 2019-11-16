@@ -46,12 +46,6 @@ namespace cgogn
 std::vector<Graph::Vertex>
 CGOGN_CORE_EXPORT incident_vertices(const Graph& g, Graph::Edge e);
 
-std::vector<Graph::Vertex1>
-CGOGN_CORE_EXPORT incident_vertices1(const Graph& g, Graph::Edge e);
-
-std::vector<Graph::Vertex1>
-CGOGN_CORE_EXPORT incident_vertices1(const Graph& g, Graph::Vertex v);
-
 ///////////
 // CMap1 //
 ///////////
@@ -120,9 +114,9 @@ void foreach_incident_vertex(const Graph& g, Graph::Edge e, const FUNC& func)
 template <typename FUNC>
 void foreach_incident_vertex1(const Graph& g, Graph::Vertex v, const FUNC& func)
 {
-	static_assert(is_func_parameter_same<FUNC, Graph::Vertex1>::value, "Wrong function cell parameter type");
+	static_assert(is_func_parameter_same<FUNC, Graph::HalfEdge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Vertex1(d)); });
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::HalfEdge(d)); });
 }
 
 ///////////

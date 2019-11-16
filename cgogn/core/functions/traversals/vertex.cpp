@@ -46,23 +46,6 @@ std::vector<Graph::Vertex> incident_vertices(const Graph& g, Graph::Edge e)
 	return vertices;
 }
 
-std::vector<Graph::Vertex1> incident_vertices1(const Graph& g, Graph::Edge e)
-{
-	std::vector<Graph::Vertex1> vertices1;
-	vertices1.reserve(2u);
-	vertices1.push_back(Graph::Vertex1(e.dart));
-	vertices1.push_back(Graph::Vertex1(g.alpha0(e.dart)));
-	return vertices1;
-}
-
-std::vector<Graph::Vertex1> incident_vertices1(const Graph& g, Graph::Vertex v)
-{
-	std::vector<Graph::Vertex1> vertices1;
-	vertices1.reserve(8u);
-	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { vertices1.push_back(Graph::Vertex1(d)); return true; });
-	return vertices1;
-}
-
 ///////////
 // CMap1 //
 ///////////

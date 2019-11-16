@@ -26,10 +26,12 @@
 #include <cgogn/core/types/cell_marker.h>
 
 #include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/traversals/halfedge.h>
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/attributes.h>
 
-// #include <cgogn/core/functions/mesh_ops/vertex.h>
-// #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
 
@@ -164,12 +166,12 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 			return true;
 		});
 	}
-	if (m.is_indexed<CMap2::Edge1>())
+	if (m.is_indexed<CMap2::HalfEdge>())
 	{
 		foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 		{
-			set_index(m, CMap2::Edge1(e.dart), new_index<CMap2::Edge1>(m));
-			set_index(m, CMap2::Edge1(m.phi2(e.dart)), new_index<CMap2::Edge1>(m));
+			set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+			set_index(m, CMap2::HalfEdge(m.phi2(e.dart)), new_index<CMap2::HalfEdge>(m));
 			return true;
 		});
 	}
@@ -193,7 +195,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 		set_index(m, vol, new_index<CMap2::Volume>(m));
 }
 
-Graph::Vertex1 branch_extremity(const Graph& g, Graph::Vertex1 v1, CellMarker<Graph, Graph::Edge>& cm)
+Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge v1, CellMarker<Graph, Graph::Edge>& cm)
 {
 	Dart d = v1.dart;
 	while (degree(g, Graph::Vertex(d)) == 2)
@@ -201,7 +203,7 @@ Graph::Vertex1 branch_extremity(const Graph& g, Graph::Vertex1 v1, CellMarker<Gr
 		d = g.alpha0(g.alpha1(d));
 		cm.mark(Graph::Edge(d));
 	}
-	return Graph::Vertex1(d);
+	return Graph::HalfEdge(d);
 }
 
 Dart add_branch_section(CMap3& m3)
@@ -256,10 +258,10 @@ bool get_graph_data(const Graph& g, GData& gData)
 		if (cm.is_marked(e))
 			return true;
 		cm.mark(e);
-		std::vector<Graph::Vertex1> vertices1 = incident_vertices1(g, e);
+		std::vector<Graph::HalfEdge> halfedges = incident_halfedges(g, e);
 		gData.branches.push_back({
-			branch_extremity(g, vertices1[0], cm),
-			branch_extremity(g, vertices1[1], cm)
+			branch_extremity(g, halfedges[0], cm),
+			branch_extremity(g, halfedges[1], cm)
 		});
 		return true;
 	});
@@ -290,17 +292,17 @@ bool add_graph_attributes(Graph& g, GAttributes& gAttribs)
         return false;
     }
 
-    gAttribs.vertex1_contact_surface_face = add_attribute<Dart, Graph::Vertex1>(g, "contact_surface_face");
-    if (!gAttribs.vertex1_contact_surface_face)
+    gAttribs.halfedge_contact_surface_face = add_attribute<Dart, Graph::HalfEdge>(g, "contact_surface_face");
+    if (!gAttribs.halfedge_contact_surface_face)
     {
-        std::cout << "Failed to add vertex1_contact_surface_face attribute to graph" << std::endl;
+        std::cout << "Failed to add halfedge_contact_surface_face attribute to graph" << std::endl;
         return false;
     }
 
-    gAttribs.vertex1_frame = add_attribute<Mat3, Graph::Vertex1>(g, "frame");
-    if (!gAttribs.vertex1_frame)
+    gAttribs.halfedge_frame = add_attribute<Mat3, Graph::HalfEdge>(g, "frame");
+    if (!gAttribs.halfedge_frame)
     {
-        std::cout << "Failed to add vertex1_frame attribute to graph" << std::endl;
+        std::cout << "Failed to add halfedge_frame attribute to graph" << std::endl;
         return false;
     }
 
@@ -330,10 +332,10 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 		return false;
 	}
 
-	m2Attribs.edge1_volume_connection = add_attribute<Dart, CMap2::Edge1>(m2, "volume_connection");
-	if (!m2Attribs.edge1_volume_connection)
+	m2Attribs.halfedge_volume_connection = add_attribute<Dart, CMap2::HalfEdge>(m2, "volume_connection");
+	if (!m2Attribs.halfedge_volume_connection)
 	{
-		std::cout << "Failed to add edge1_volume_connection attribute to map2" << std::endl;
+		std::cout << "Failed to add halfedge_volume_connection attribute to map2" << std::endl;
 		return false;
 	}
 
@@ -376,7 +378,7 @@ void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, G
 
 	value<Dart>(g, gAttribs.vertex_contact_surface, v) = d;
 
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(v.dart)) = d;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart)) = d;
 }
 
 void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex v)
@@ -392,8 +394,8 @@ void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, G
 
 	value<Dart>(g, gAttribs.vertex_contact_surface, v) = d0;
 
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(v.dart)) = d0;
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(g.alpha1(v.dart))) = m2.phi<12>(d0);
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart)) = d0;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(g.alpha1(v.dart))) = m2.phi<12>(d0);
 }
 
 void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v)
@@ -435,9 +437,9 @@ void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 		center + (Ppos[0] - Ppos[2]).normalized().cross(V) * radius
 	};
 
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(Pdart[0])) = d0;
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(Pdart[1])) = d1;
-	value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(Pdart[2])) = d2;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(Pdart[0])) = d0;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(Pdart[1])) = d1;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(Pdart[2])) = d2;
 
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(d0)) = M[0];
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(d1)) = M[1];
@@ -467,7 +469,7 @@ bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m
 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
 	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
 	{
-		Dart d0 = value<Dart>(g, gAttribs.vertex1_contact_surface_face, Graph::Vertex1(d));
+		Dart d0 = value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(d));
 		Dart d1 = m2.phi<11>(d0);
 
 		Vec3 R, S, T, diag, temp;
@@ -476,7 +478,7 @@ bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m
 		R = diag.cross(T).normalized();
 		S = T.cross(R).normalized();
 
-		Mat3& f = value<Mat3>(g, gAttribs.vertex1_frame, Graph::Vertex1(d));
+		Mat3& f = value<Mat3>(g, gAttribs.halfedge_frame, Graph::HalfEdge(d));
 		f.col(0) = R;
 		f.col(1) = S;
 		f.col(2) = T;
@@ -503,26 +505,26 @@ bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GData& gData,
 	return true;
 }
 
-void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::Vertex1 v1_from_start)
+void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start)
 {
-	Dart d_from = v1_from_start.dart;
+	Dart d_from = h_from_start.dart;
 	Dart d_to = g.alpha0(d_from);
-	Graph::Vertex1 v1_from(d_from);
-	Graph::Vertex1 v1_to(d_to);
+	Graph::HalfEdge h_from(d_from);
+	Graph::HalfEdge h_to(d_to);
 	Graph::Vertex v_from(d_from);
 	Graph::Vertex v_to(d_to);
 
 	uint32 valence = degree(g, v_to);
 	
-	Mat3 U = value<Mat3>(g, gAttribs.vertex1_frame, v1_from);
+	Mat3 U = value<Mat3>(g, gAttribs.halfedge_frame, h_from);
 	Mat3 U_;
 
     while (valence == 2)
     {
 		Dart next_d_from = g.alpha1(d_to);
 		Dart next_d_to = g.alpha0(next_d_from);
-		Graph::Vertex1 next_v1_from(next_d_from);
-		Graph::Vertex1 next_v1_to(next_d_to);
+		Graph::HalfEdge next_h_from(next_d_from);
+		Graph::HalfEdge next_h_to(next_d_to);
 		Graph::Vertex next_v_from(next_d_from);
 		Graph::Vertex next_v_to(next_d_to);
 
@@ -551,15 +553,15 @@ void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::Vertex1 v
         U_.col(1) = -U.col(1);
         U_.col(2) = -U.col(2);
 
-        value<Mat3>(g, gAttribs.vertex1_frame, v1_to) = U_;
-        value<Mat3>(g, gAttribs.vertex1_frame, next_v1_from) = U;
+        value<Mat3>(g, gAttribs.halfedge_frame, h_to) = U_;
+        value<Mat3>(g, gAttribs.halfedge_frame, next_h_from) = U;
 
 		d_from = next_d_from;
 		d_to = next_d_to;
 		v_from = next_v_from;
 		v_to = next_v_to;
-		v1_from = next_v1_from;
-		v1_to = next_v1_to;
+		h_from = next_h_from;
+		h_to = next_h_to;
 
         valence = degree(g, v_to);
     }
@@ -589,22 +591,22 @@ void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::Vertex1 v
 		U_.col(1) = -U.col(1);
 		U_.col(2) = -U.col(2);
 
-		value<Mat3>(g, gAttribs.vertex1_frame, v1_to) = U_;
+		value<Mat3>(g, gAttribs.halfedge_frame, h_to) = U_;
 	}
 }
 
-bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex1 v1_from_start)
+bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::HalfEdge h_from_start)
 {
-	Dart d_from = v1_from_start.dart;
+	Dart d_from = h_from_start.dart;
 	Dart d_to = g.alpha0(d_from);
-	Graph::Vertex1 v1_from(d_from);
-	Graph::Vertex1 v1_to(d_to);
+	Graph::HalfEdge h_from(d_from);
+	Graph::HalfEdge h_to(d_to);
 	Graph::Vertex v_from(d_from);
 	Graph::Vertex v_to(d_to);
 
 	uint32 valence = degree(g, v_to);
 	
-	Mat3 U = value<Mat3>(g, gAttribs.vertex1_frame, v1_from);
+	Mat3 U = value<Mat3>(g, gAttribs.halfedge_frame, h_from);
 	Mat3 U_;
 
     uint32 nb_e = 0;
@@ -615,8 +617,8 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 	{
 		Dart next_d_from = g.alpha1(d_to);
 		Dart next_d_to = g.alpha0(next_d_from);
-		Graph::Vertex1 next_v1_from(next_d_from);
-		Graph::Vertex1 next_v1_to(next_d_to);
+		Graph::HalfEdge next_h_from(next_d_from);
+		Graph::HalfEdge next_h_to(next_d_to);
 		Graph::Vertex next_v_from(next_d_from);
 		Graph::Vertex next_v_to(next_d_to);
 
@@ -640,14 +642,14 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
         U.col(1) = Si1;
         U.col(2) = Ti1;
 
-        value<Mat3>(g, gAttribs.vertex1_frame, next_v1_from) = U;
+        value<Mat3>(g, gAttribs.halfedge_frame, next_h_from) = U;
 
 		d_from = next_d_from;
 		d_to = next_d_to;
 		v_from = next_v_from;
 		v_to = next_v_to;
-		v1_from = next_v1_from;
-		v1_to = next_v1_to;
+		h_from = next_h_from;
+		h_to = next_h_to;
 
         valence = degree(g, v_to);
     }
@@ -673,7 +675,7 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
     U_.col(2) = -U.col(2);
 
     Vec3 X = (U_.col(0) + U_.col(1)).normalized();
-    Mat3 UE = value<Mat3>(g, gAttribs.vertex1_frame, v1_to);
+    Mat3 UE = value<Mat3>(g, gAttribs.halfedge_frame, h_to);
     Vec3 RE = UE.col(0), SE = UE.col(1);
     bool A = (RE.dot(X) >= 0);
     bool B = (SE.dot(X) >= 0);
@@ -685,11 +687,11 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
     if (nb_shifts > 0)
     {
         shift_frame(UE, nb_shifts);
-        value<Mat3>(g, gAttribs.vertex1_frame, v1_to) = UE;
-		Dart csface = value<Dart>(g, gAttribs.vertex1_contact_surface_face, v1_to);
+        value<Mat3>(g, gAttribs.halfedge_frame, h_to) = UE;
+		Dart csface = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h_to);
 		for (uint32 i = 0; i < nb_shifts; ++i)
 			csface = m2.phi1(csface);
-        value<Dart>(g, gAttribs.vertex1_contact_surface_face, v1_to) = csface;
+        value<Dart>(g, gAttribs.halfedge_contact_surface_face, h_to) = csface;
     }
 
     if (nb_e > 0)
@@ -698,10 +700,10 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
         Scalar angle = cos > 1 ? std::acos(1) : std::acos(cos);
         Scalar angle_step = -angle / Scalar(nb_e);
 
-		d_from = v1_from_start.dart;
+		d_from = h_from_start.dart;
 		d_to = g.alpha0(d_from);
-		v1_from.dart = d_from;
-		v1_to.dart = d_to;
+		h_from.dart = d_from;
+		h_to.dart = d_to;
 		v_from.dart = d_from;
 		v_to.dart = d_to;
 
@@ -713,12 +715,12 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 
 			Dart next_d_from = g.alpha1(d_to);
 			Dart next_d_to = g.alpha0(next_d_from);
-			Graph::Vertex1 next_v1_from(next_d_from);
-			Graph::Vertex1 next_v1_to(next_d_to);
+			Graph::HalfEdge next_h_from(next_d_from);
+			Graph::HalfEdge next_h_to(next_d_to);
 			Graph::Vertex next_v_from(next_d_from);
 			Graph::Vertex next_v_to(next_d_to);
 
-            U = value<Mat3>(g, gAttribs.vertex1_frame, next_v1_from);
+            U = value<Mat3>(g, gAttribs.halfedge_frame, next_h_from);
             Eigen::AngleAxisd rot(angle_step * step, U.col(2));
             U.col(0) = rot * U.col(0);
             U.col(1) = U.col(2).cross(U.col(0));
@@ -727,15 +729,15 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
             U_.col(1) = -U.col(1);
             U_.col(2) = -U.col(2);
 
-            value<Mat3>(g, gAttribs.vertex1_frame, v1_to) = U_;
-            value<Mat3>(g, gAttribs.vertex1_frame, next_v1_from) = U;
+            value<Mat3>(g, gAttribs.halfedge_frame, h_to) = U_;
+            value<Mat3>(g, gAttribs.halfedge_frame, next_h_from) = U;
 
 			d_from = next_d_from;
 			d_to = next_d_to;
 			v_from = next_v_from;
 			v_to = next_v_to;
-			v1_from = next_v1_from;
-			v1_to = next_v1_to;
+			h_from = next_h_from;
+			h_to = next_h_to;
 
 			valence = degree(g, v_to);
         }
@@ -761,9 +763,9 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 
 		if (degree(g, v) < 3)
 		{
-			Graph::Vertex1 v1(v.dart);
-			Dart csf = value<Dart>(g, gAttribs.vertex1_contact_surface_face, v1);
-			Mat3 frame = value<Mat3>(g, gAttribs.vertex1_frame, v1);
+			Graph::HalfEdge h(v.dart);
+			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
+			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
 
 			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
 			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(m2.phi1(csf))) = center + frame.col(0) * radius;
@@ -796,10 +798,10 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 {
 	parallel_foreach_cell(g, [&] (Graph::Edge e) -> bool
 	{
-		std::vector<Graph::Vertex1> vertices1 = incident_vertices1(g, e);
+		std::vector<Graph::HalfEdge> halfedges = incident_halfedges(g, e);
 
-		Dart m2f0 = value<Dart>(g, gAttribs.vertex1_contact_surface_face, vertices1[0]);
-		Dart m2f1 = value<Dart>(g, gAttribs.vertex1_contact_surface_face, vertices1[1]);
+		Dart m2f0 = value<Dart>(g, gAttribs.halfedge_contact_surface_face, halfedges[0]);
+		Dart m2f1 = value<Dart>(g, gAttribs.halfedge_contact_surface_face, halfedges[1]);
 
 		std::vector<Dart> F0 = { m2f0, m2.phi1(m2f0), m2.phi<11>(m2f0), m2.phi_1(m2f0) };
 		std::vector<Dart> F1 = { m2f1, m2.phi1(m2f1), m2.phi<11>(m2f1), m2.phi_1(m2f1) };
@@ -808,18 +810,15 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 		std::vector<Dart> D0 = { m3d, m3.phi<2321>(m3d), m3.phi<23212321>(m3d), m3.phi<111232>(m3d) };
 		std::vector<Dart> D1 = { m3.phi<2112>(D0[0]), m3.phi<2112>(D0[1]), m3.phi<2112>(D0[2]), m3.phi<2112>(D0[3]) };
 
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F0[0])) = m3.phi1(D0[0]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F0[1])) = m3.phi1(D0[1]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F0[2])) = m3.phi1(D0[2]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F0[3])) = m3.phi1(D0[3]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[0])) = m3.phi1(D0[0]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[1])) = m3.phi1(D0[1]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[2])) = m3.phi1(D0[2]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[3])) = m3.phi1(D0[3]);
 
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F1[0])) = m3.phi<11>(D1[1]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F1[1])) = m3.phi<11>(D1[0]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F1[2])) = m3.phi<11>(D1[3]);
-		value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(F1[3])) = m3.phi<11>(D1[2]);
-
-		// value<Dart>(g, gAttribs.vertex1_volume_section, vertices1[0]) = m3d;
-		// value<Dart>(g, gAttribs.vertex1_volume_section, vertices1[1]) = m3.phi<23112>(m3d);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[0])) = m3.phi<11>(D1[1]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[1])) = m3.phi<11>(D1[0]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[2])) = m3.phi<11>(D1[3]);
+		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[3])) = m3.phi<11>(D1[2]);
 
 		return true;
 	});
@@ -834,10 +833,10 @@ bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 		if (is_incident_to_boundary(m2, e))
 			return true;
 		
-		std::vector<CMap2::Edge1> edges1 = incident_edges1(m2, e);
+		std::vector<CMap2::HalfEdge> halfedges = incident_halfedges(m2, e);
 		m3.sew_volumes(
-			value<Dart>(m2, m2Attribs.edge1_volume_connection, edges1[0]), 
-			m3.phi1(value<Dart>(m2, m2Attribs.edge1_volume_connection, edges1[1]))
+			value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[0]), 
+			m3.phi1(value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[1]))
 		);
 		return true;
 	});
@@ -852,14 +851,14 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 
 	parallel_foreach_cell(m2, [&] (CMap2::Volume v) -> bool
 	{
-		Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(v.dart)));
+		Dart m3d = m3.phi_1(value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(v.dart)));
 		value<Vec3>(m3, m3pos, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.volume_center, v);
 		return true;
 	});
 
 	parallel_foreach_cell(m2, [&] (CMap2::Edge e) -> bool
 	{
-		Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(e.dart)));
+		Dart m3d = m3.phi1(value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e.dart)));
 		value<Vec3>(m3, m3pos, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, e);
 		return true;
 	});
@@ -869,7 +868,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 	{
 		if (!m2.is_boundary(m2d))
 		{
-			Dart m3d = value<Dart>(m2, m2Attribs.edge1_volume_connection, CMap2::Edge1(m2d));
+			Dart m3d = value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(m2d));
 			CMap3::Vertex m3v(m3d);
 			if (!cm.is_marked(m3v))
 			{

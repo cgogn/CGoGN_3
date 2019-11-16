@@ -69,12 +69,12 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.is_indexed<CMap2::Edge1>())
+		if (m.is_indexed<CMap2::HalfEdge>())
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
-				set_index(m, CMap2::Edge1(e.dart), new_index<CMap2::Edge1>(m));
-				set_index(m, CMap2::Edge1(m.phi2(e.dart)), new_index<CMap2::Edge1>(m));
+				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+				set_index(m, CMap2::HalfEdge(m.phi2(e.dart)), new_index<CMap2::HalfEdge>(m));
 				return true;
 			});
 		}
@@ -128,12 +128,12 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.is_indexed<CMap2::Edge1>())
+		if (m.is_indexed<CMap2::HalfEdge>())
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
-				set_index(m, CMap2::Edge1(e.dart), new_index<CMap2::Edge1>(m));
-				set_index(m, CMap2::Edge1(m.phi2(e.dart)), new_index<CMap2::Edge1>(m));
+				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+				set_index(m, CMap2::HalfEdge(m.phi2(e.dart)), new_index<CMap2::HalfEdge>(m));
 				return true;
 			});
 		}

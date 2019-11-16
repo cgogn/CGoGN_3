@@ -99,11 +99,11 @@ add_face(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.is_indexed<CMap2::Edge1>())
+		if (m.is_indexed<CMap2::HalfEdge>())
 		{
 			foreach_incident_edge(m, f, [&] (CMap2::Edge e) -> bool
 			{
-				set_index(m, CMap2::Edge1(e.dart), new_index<CMap2::Edge1>(m));
+				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
 				return true;
 			});
 		}
@@ -184,10 +184,10 @@ cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices)
 			m.copy_index<CMap2::Vertex>(nv1.dart, v1.dart);
 			m.copy_index<CMap2::Vertex>(nv2.dart, v2.dart);
 		}
-		if (m.is_indexed<CMap2::Edge1>())
+		if (m.is_indexed<CMap2::HalfEdge>())
 		{
-			set_index(m, CMap2::Edge1(nv1.dart), new_index<CMap2::Edge1>(m));
-			set_index(m, CMap2::Edge1(nv2.dart), new_index<CMap2::Edge1>(m));
+			set_index(m, CMap2::HalfEdge(nv1.dart), new_index<CMap2::HalfEdge>(m));
+			set_index(m, CMap2::HalfEdge(nv2.dart), new_index<CMap2::HalfEdge>(m));
 		}
 		if (m.is_indexed<CMap2::Edge>())
 			set_index(m, CMap2::Edge(nv1.dart), new_index<CMap2::Edge>(m));
