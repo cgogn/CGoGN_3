@@ -56,7 +56,7 @@ curvature(
 )
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge1 = typename mesh_traits<MESH>::Edge1;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
@@ -74,9 +74,9 @@ curvature(
 	});
 
 	const Vec3& p = value<Vec3>(m, vertex_position, v);
-	foreach_cell(neighborhood, [&] (Edge1 e1) -> bool
+	foreach_cell(neighborhood, [&] (HalfEdge h) -> bool
 	{
-		Edge e = incident_edge(m, e1);
+		Edge e = incident_edge(m, h);
 		std::vector<Vertex> vv = incident_vertices(m, e);
 		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
 		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);
@@ -88,9 +88,9 @@ curvature(
 	});
 
 	Scalar neighborhood_area = area(neighborhood, vertex_position);
-	foreach_cell(neighborhood, [&] (Edge1 e1) -> bool
+	foreach_cell(neighborhood, [&] (HalfEdge h) -> bool
 	{
-		Face f = incident_face(m, e1);
+		Face f = incident_face(m, h);
 		std::vector<Vertex> vv = incident_vertices(m, f);
 		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
 		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);

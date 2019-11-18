@@ -25,13 +25,11 @@
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/ui/module.h>
-#include <cgogn/ui/view.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
@@ -51,6 +49,8 @@ namespace ui
 template <typename MESH>
 class GraphRender : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension >= 1, "GraphRender can only be used with meshes of dimension >= 1");
+	
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 

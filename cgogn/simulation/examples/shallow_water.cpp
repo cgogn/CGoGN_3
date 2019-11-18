@@ -28,68 +28,43 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/shallow_water/shallow_water.h>
 
-#include <cgogn/modeling/algos/graph_to_hex.h>
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
 using namespace cgogn::numerics;
 
-using Graph = cgogn::Graph;
-using Surface = cgogn::CMap2;
-using Volume = cgogn::CMap3;
+using Mesh = cgogn::CMap2;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
-	std::string filename;
-	if (argc < 2)
-	{
-		std::cout << "Usage: " << argv[0] << " graph_file" << std::endl;
-		return 1;
-	}
-	else
-		filename = std::string(argv[1]);
-
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Tubular mesh");
+	app.set_window_title("Shallow water");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Graph> mpg(app);
-	cgogn::ui::MeshProvider<Surface> mps(app);
-	cgogn::ui::MeshProvider<Volume> mpv(app);
-
-	cgogn::ui::GraphRender<Graph> gr(app);
-	cgogn::ui::SurfaceRender<Surface> sr(app);
-	cgogn::ui::SurfaceRender<Volume> vr(app);
-
-	app.init_modules();
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::ShallowWater<Mesh> sw(app);
 
 	cgogn::ui::View* v1 = app.current_view();
-
-	v1->link_module(&mpg);
-	v1->link_module(&mps);
-	v1->link_module(&mpv);
-
-	v1->link_module(&gr);
+	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&vr);
+	v1->link_module(&srv);
+	v1->link_module(&sw);
 
-	Graph* g = mpg.load_graph_from_file(filename);
-	if (!g)
-	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
-	}
-	Surface* s = mps.add_mesh("contact");
-	Volume* v = mpv.add_mesh("tubes");
-
-	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
-	{
-		mps.emit_connectivity_changed(s);
-		mpv.emit_connectivity_changed(v);
-	}
+	app.init_modules();
 
 	return app.launch();
 }

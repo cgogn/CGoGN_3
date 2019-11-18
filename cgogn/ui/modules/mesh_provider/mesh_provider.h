@@ -24,9 +24,8 @@
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 
-#include <cgogn/ui/modules/mesh_provider/mesh_data.h>
-
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 #include <cgogn/ui/portable-file-dialogs.h>
 
 #include <cgogn/core/utils/string.h>
@@ -133,7 +132,14 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_OFF(*m, filename);
+
+			std::string ext = extension(filename);
+			bool imported;
+			if (ext.compare("off") == 0)
+				imported = cgogn::io::import_OFF(*m, filename);
+			else
+				imported = false;
+			
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
@@ -161,7 +167,14 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_TET(*m, filename);
+
+			std::string ext = extension(filename);
+			bool imported;
+			if (ext.compare("tet") == 0)
+				imported = cgogn::io::import_TET(*m, filename);
+			else
+				imported = false;
+
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];

@@ -69,9 +69,9 @@ std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Vertex v)
 	return edges;
 }
 
-CMap2::Edge incident_edge(const CMap2& m, CMap2::Edge1 e1)
+CMap2::Edge incident_edge(const CMap2& m, CMap2::HalfEdge h)
 {
-	return CMap2::Edge(e1.dart);
+	return CMap2::Edge(h.dart);
 }
 
 std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Face f)

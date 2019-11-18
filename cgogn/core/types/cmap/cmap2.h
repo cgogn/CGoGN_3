@@ -37,14 +37,13 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 	std::shared_ptr<Attribute<Dart>> phi2_;
 
 	using Vertex = Cell<PHI21>;
-	using Edge1 = Cell<DART>;
+	using HalfEdge = Cell<DART>;
 	using Edge = Cell<PHI2>;
-	using Edge1 = Cell<DART>;
 	using Face = Cell<PHI1>;
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Volume;
 
-	using Cells = std::tuple<Vertex, Edge1, Edge, Face, Volume>;
+	using Cells = std::tuple<Vertex, HalfEdge, Edge, Face, Volume>;
 
 	CMap2() : CMap1()
 	{

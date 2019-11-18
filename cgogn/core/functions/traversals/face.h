@@ -47,7 +47,7 @@ std::vector<CMap2::Face>
 CGOGN_CORE_EXPORT incident_faces(const CMap2& m, CMap2::Vertex v);
 
 CMap2::Face
-CGOGN_CORE_EXPORT incident_face(const CMap2& m, CMap2::Edge1 e1);
+CGOGN_CORE_EXPORT incident_face(const CMap2& m, CMap2::HalfEdge h);
 
 std::vector<CMap2::Face>
 CGOGN_CORE_EXPORT incident_faces(const CMap2& m, CMap2::Edge e);
@@ -74,7 +74,7 @@ CGOGN_CORE_EXPORT incident_faces(const CMap3& m, CMap3::Volume v);
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-std::vector<typename mesh_traits<MESH>::Vertex>
+std::vector<typename mesh_traits<MESH>::Face>
 incident_faces(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");

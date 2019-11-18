@@ -41,13 +41,8 @@ std::vector<Graph::Vertex> incident_vertices(const Graph& g, Graph::Edge e)
 {
 	std::vector<Graph::Vertex> vertices;
 	vertices.reserve(2u);
-	Dart d = e.dart;
-	Dart dd = g.alpha0(d);
-	vertices.push_back(Graph::Vertex(d));
-	if (g.is_boundary(dd))
-		vertices.push_back(Graph::Vertex(d));
-	else
-		vertices.push_back(Graph::Vertex(dd));
+	vertices.push_back(Graph::Vertex(e.dart));
+	vertices.push_back(Graph::Vertex(g.alpha0(e.dart)));
 	return vertices;
 }
 
@@ -71,7 +66,8 @@ std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Vertex> vertices;
 	vertices.reserve(2u);
-	m.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	vertices.push_back(CMap2::Vertex(e.dart));
+	vertices.push_back(CMap2::Vertex(m.phi2(e.dart)));
 	return vertices;
 }
 
@@ -99,7 +95,8 @@ std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Edge e)
 {
 	std::vector<CMap3::Vertex> vertices;
 	vertices.reserve(2u);
-	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Edge(e.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	vertices.push_back(CMap3::Vertex(e.dart));
+	vertices.push_back(CMap3::Vertex(m.phi2(e.dart)));
 	return vertices;
 }
 

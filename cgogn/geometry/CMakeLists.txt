@@ -34,13 +34,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )
 
-if(${CGOGN_EXTERNAL_TEMPLATES})
-    target_sources(${PROJECT_NAME}
-        PRIVATE
-            "${CMAKE_CURRENT_LIST_DIR}/external_templates.cpp"
-    )
-endif()
-
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"
 	EXPORT_NAME geometry

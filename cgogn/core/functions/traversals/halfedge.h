@@ -21,7 +21,13 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/core/functions/traversals/face.h>
+#ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_HALFEDGE_H_
+#define CGOGN_CORE_FUNCTIONS_TRAVERSALS_HALFEDGE_H_
+
+#include <cgogn/core/cgogn_core_export.h>
+
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
@@ -29,70 +35,40 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename MESH, typename CELL>
-// std::vector<typename mesh_traits<MESH>::Face> incident_faces(MESH& m, CELL c);
+// std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(MESH& m, CELL c);
 
 /*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+std::vector<Graph::HalfEdge>
+CGOGN_CORE_EXPORT incident_halfedges(const Graph& g, Graph::Edge e);
+
+std::vector<Graph::HalfEdge>
+CGOGN_CORE_EXPORT incident_halfedges(const Graph& g, Graph::Vertex v);
 
 ///////////
 // CMap2 //
 ///////////
 
-std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Vertex v)
-{
-	std::vector<CMap2::Face> faces;
-	faces.reserve(8u);
-	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
-	return faces;
-}
+std::vector<CMap2::HalfEdge>
+CGOGN_CORE_EXPORT incident_halfedges(const CMap2& m, CMap2::Edge e);
 
-CMap2::Face incident_face(const CMap2& m, CMap2::HalfEdge h)
-{
-	return CMap2::Face(h.dart);
-}
+//////////////
+// MESHVIEW //
+//////////////
 
-std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Edge e)
+template <typename CELL, typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+std::vector<typename mesh_traits<MESH>::HalfEdge>
+incident_halfedges(const MESH& m, CELL c)
 {
-	std::vector<CMap2::Face> faces;
-	faces.reserve(2u);
-	foreach_incident_face(m, e, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
-	return faces;
-}
-
-std::vector<CMap2::Face> incident_faces(const CMap2& m, CMap2::Volume v)
-{
-	std::vector<CMap2::Face> faces;
-	faces.reserve(32u);
-	foreach_incident_face(m, v, [&] (CMap2::Face f) -> bool { faces.push_back(f); return true; });
-	return faces;
-}
-
-///////////
-// CMap3 //
-///////////
-
-std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Vertex v)
-{
-	std::vector<CMap3::Face> faces;
-	faces.reserve(16u);
-	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
-	return faces;
-}
-
-std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Edge e)
-{
-	std::vector<CMap3::Face> faces;
-	faces.reserve(16u);
-	foreach_incident_face(m, e, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
-	
-	return faces;
-}
-
-std::vector<CMap3::Face> incident_faces(const CMap3& m, CMap3::Volume v)
-{
-	std::vector<CMap3::Face> faces;
-	faces.reserve(32u);
-	foreach_incident_face(m, v, [&] (CMap3::Face f) -> bool { faces.push_back(f); return true; });
-	return faces;
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return incident_edges(m.mesh(), c);
 }
 
 } // namespace cgogn
+
+#endif // CGOGN_CORE_FUNCTIONS_TRAVERSALS_HALFEDGE_H_

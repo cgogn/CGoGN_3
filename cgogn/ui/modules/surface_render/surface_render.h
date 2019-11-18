@@ -25,13 +25,11 @@
 #define CGOGN_MODULE_SURFACE_RENDER_H_
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/ui/module.h>
-#include <cgogn/ui/view.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
@@ -54,6 +52,8 @@ namespace ui
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension >= 2, "SurfaceRender can only be used with meshes of dimension >= 2");
+
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
