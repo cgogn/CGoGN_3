@@ -30,10 +30,9 @@ namespace cgogn
 ThreadPool::ThreadPool() :
     stop_(false)
 {
-	uint32 nb_ww = std::thread::hardware_concurrency() - 1;
-	nb_working_workers_ = nb_ww;
+	nb_working_workers_ = std::thread::hardware_concurrency() - 1;
 
-	for (uint32 i = 0u; i < nb_ww; ++i)
+	for (uint32 i = 0u; i < nb_working_workers_; ++i)
 	{
 		workers_.emplace_back([this, i] () -> void
 		{
@@ -117,6 +116,11 @@ ThreadPool* thread_pool()
 	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
 	static ThreadPool pool;
 	return &pool;
+}
+
+std::unique_ptr<ThreadPool> temp_thread_pool()
+{
+	return std::make_unique<ThreadPool>();
 }
 
 } // namespace cgogn

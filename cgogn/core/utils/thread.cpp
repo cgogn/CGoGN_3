@@ -22,6 +22,7 @@
 *******************************************************************************/
 
 #include <cgogn/core/utils/thread.h>
+#include <cgogn/core/utils/thread_pool.h>
 
 namespace cgogn
 {
@@ -35,9 +36,9 @@ CGOGN_TLS float64 float64_value_ = 0.0;
 CGOGN_CORE_EXPORT uint32& uint32_value() { return uint32_value_; }
 CGOGN_CORE_EXPORT float64& float64_value() { return float64_value_; }
 
-CGOGN_CORE_EXPORT void thread_start(uint32 ind)
+CGOGN_CORE_EXPORT void thread_start(uint32 index)
 {
-	thread_index_ = ind;
+	thread_index_ = index;
 	if (uint32_buffers_thread_ == nullptr)
 		uint32_buffers_thread_ = new Buffers<uint32>();
 }
@@ -46,6 +47,14 @@ CGOGN_CORE_EXPORT void thread_stop()
 {
 	delete uint32_buffers_thread_;
 	uint32_buffers_thread_ = nullptr;
+}
+
+CGOGN_CORE_EXPORT uint32 max_nb_threads()
+{
+	return uint32(thread_pool()->max_nb_workers())
+		+ 1 // account for the main thread
+		+ 1 // account for 1 external thread
+	;
 }
 
 CGOGN_CORE_EXPORT uint32 current_thread_index()

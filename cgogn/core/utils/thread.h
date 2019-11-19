@@ -30,10 +30,14 @@
 #include <cgogn/core/utils/definitions.h>
 #include <cgogn/core/utils/buffers.h>
 
+#include <thread>
+
 namespace cgogn
 {
 
 const uint32 PARALLEL_BUFFER_SIZE = 1024u;
+
+// thread local values
 
 extern CGOGN_TLS uint32 thread_index_;
 extern CGOGN_TLS Buffers<uint32>* uint32_buffers_thread_;
@@ -46,18 +50,38 @@ CGOGN_CORE_EXPORT float64& float64_value();
 
 /**
  * @brief function to call at the beginning of each thread which uses CGoGN
- * @param ind index of the thread
+ * @param index index of the thread
  */
-CGOGN_CORE_EXPORT void thread_start(uint32 ind = 0);
+CGOGN_CORE_EXPORT void thread_start(uint32 index = 0);
 
 /**
  * @brief function to call at end of each thread which use a map
  */
 CGOGN_CORE_EXPORT void thread_stop();
 
+CGOGN_CORE_EXPORT uint32 max_nb_threads();
+
 CGOGN_CORE_EXPORT uint32 current_thread_index();
 CGOGN_CORE_EXPORT uint32 current_worker_index();
+
 CGOGN_CORE_EXPORT Buffers<uint32>* uint32_buffers();
+
+template <typename F>
+void launch_thread(F f)
+{
+	static bool launched = false;
+	if (!launched)
+	{
+		std::thread t([f] ()
+		{
+			launched = true;
+			thread_start(max_nb_threads() - 1); // additional thread gets the max id
+			f();
+			launched = false;
+		});
+		t.detach();
+	}
+}
 
 } // namespace cgogn
 

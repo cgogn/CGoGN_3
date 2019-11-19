@@ -173,11 +173,6 @@ public:
 		return uint32(workers_.size());
 	}
 
-	inline uint32 max_nb_threads() const
-	{
-		return uint32(workers_.size()) + 1; // account for the main thread
-	}
-
 	/**
 	* @brief set nb working threads for parallel algos (no param = full power)
 	* @param nb [0, max_nb_workers()] (with a value of 0, parallel algo are replaced by normal version)
@@ -193,6 +188,8 @@ private:
 	std::vector<std::thread> workers_;
 	// the task queue
 	std::queue<PackagedTask> tasks_;
+
+	std::vector<std::thread> additional_threads_;
 
 	// synchronization
 	std::mutex queue_mutex_;
