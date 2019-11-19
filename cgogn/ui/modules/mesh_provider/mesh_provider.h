@@ -37,6 +37,7 @@
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
+#include <cgogn/io/volume/meshb.h>
 
 #include <boost/synapse/emit.hpp>
 
@@ -173,7 +174,10 @@ public:
 			if (ext.compare("tet") == 0)
 				imported = cgogn::io::import_TET(*m, filename);
 			else
-				imported = false;
+                if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
+                    imported = cgogn::io::import_MESHB(*m, filename);
+                else
+                    imported = false;
 
 			if (imported)
 			{
