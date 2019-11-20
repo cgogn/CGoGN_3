@@ -61,6 +61,13 @@ CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
 CMap2::Vertex
 CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
+///////////
+// CMap3 //
+///////////
+
+CMap3::Vertex
+CGOGN_CORE_EXPORT cut_edge(CMap3& m, CMap3::Edge e, bool set_indices = true);
+
 //////////////
 // MESHVIEW //
 //////////////
