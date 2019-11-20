@@ -179,7 +179,7 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 		}
 		if (m.is_indexed<CMap3::Edge>())
 		{
-			m.foreach_dart_of_orbit(CMap2::Face(f0), [&](Dart d) -> bool
+			m.foreach_dart_of_orbit(CMap3::Face2(f0), [&](Dart d) -> bool
 			{
 				m.copy_index<CMap3::Edge>(d, m.phi2(d));
 				m.copy_index<CMap3::Edge>(m.phi3(d), d);

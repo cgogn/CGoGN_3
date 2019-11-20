@@ -78,7 +78,7 @@ CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
 ///////////
 
 CMap3::Face
-cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices);
+cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices = true);
 
 //////////////
 // MESHVIEW //
