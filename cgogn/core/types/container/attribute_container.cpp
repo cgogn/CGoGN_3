@@ -62,10 +62,11 @@ AttributeContainerGen::AttributeContainerGen() :
 	attributes_.reserve(32);
 	attributes_shared_ptr_.reserve(32);
 
-	uint32 max_nb_threads = thread_pool()->max_nb_threads();
-	mark_attributes_.resize(max_nb_threads);
-	available_mark_attributes_.resize(max_nb_threads);
-	for (uint32 i = 0; i < max_nb_threads; ++i)
+	uint32 max = max_nb_threads();
+	
+	mark_attributes_.resize(max);
+	available_mark_attributes_.resize(max);
+	for (uint32 i = 0; i < max; ++i)
 	{
 		mark_attributes_[i].reserve(32);
 		available_mark_attributes_[i].reserve(32);

@@ -132,6 +132,179 @@ Str_Riemann_Flux Solv_HLLC(
 	return Riemann_flux;
 }
 
+Str_Riemann_Flux border_condition(
+	BoundaryCondition typBC, Scalar valBC,
+	Scalar NormX, Scalar NormY,
+	Scalar q, Scalar r, Scalar z, Scalar zb,
+	Scalar g, Scalar hmin, Scalar smalll
+)
+{
+	Str_Riemann_Flux Flux;
+
+	//-----------initialization------------
+	//   h1,q1,r1;h,q,r within the domain
+	Scalar q1 = q * NormX + r * NormY;
+	Scalar r1 =-q * NormY + r * NormX;
+	Scalar h1 = z - zb;
+
+	q1 = -q1;
+	r1 = -r1;
+
+	if (h1 < hmin)
+	{
+		h1 = 0.;
+		q1 = 0.;
+		r1 = 0.;
+	}
+
+	// Characteristic variables
+	Scalar c1 = sqrt(g * h1);
+	Scalar u1 = q1 / std::max(h1, smalll);
+	Scalar v1 = r1 / std::max(h1, smalll);
+	Scalar L1 = std::max(u1 + c1, 0.);
+	//===================================================================
+
+	Scalar F1 = 0.;
+	Scalar F2 = 0.;
+	Scalar F3 = 0.;
+	//-----Boundary conditions-------------------
+	//-----Free Outflow-------
+	if (typBC == BC_F)
+	{
+		//----message------
+		F1 = q1;
+		F2 = q1 * u1 + 0.5 * g * h1 * h1;
+	}
+	//=========================
+	//-------Critical Section----
+	else if (typBC == BC_C)
+	{
+		//-----message------
+		Scalar c=(u1-2*c1)/(valBC-2);
+		c=std::max(c,0.);
+		Scalar u=-valBC*c;
+		Scalar h=c*c/g;
+		F1=h*u;
+		F2=h*u*u+0.5*g*h*h;
+	}
+	//============================
+	//-------Prescribed h---------
+	else if (typBC == BC_H)
+	{
+		//------message----------
+		Scalar h = std::max(valBC, 0.);
+		Scalar u = 0;
+
+		if(L1 < 0)
+		{
+			/* torrentiel sortant*/
+			h = h1;
+			u = u1;
+		}
+		else
+		{
+			Scalar cmin = std::max({ sqrt(g * h), (2 * c1 - u1) / 3.0, 0.0 });
+			h = std::max(h, (cmin * cmin) / g);
+			Scalar c = sqrt(g * h);
+			u = u1 + 2 * (c - c1);
+		}
+		F1 = h * u;
+		F2 = h * u * u+ 0.5 * g * h * h;
+
+	}
+	//==============================
+	//-------Prescribed z-----------
+	else if (typBC == BC_Z)
+	{
+		//------message-----
+		Scalar h=std::max(valBC - zb,0.);
+		Scalar c=sqrt(g*h);
+		Scalar u=u1+2*(c-c1);
+		F1=h*u;
+		F2=h*u*u+0.5*g*h*h;
+
+		/** @todo Utilité ??? **/
+		h=std::max(valBC-zb,0.);//why is part need
+		if (L1 < 0)
+		{
+			/* torrentiel sortant*/
+			h = h1;
+			u = u1;
+		}
+		else
+		{
+			Scalar cmin=std::max({ sqrt(g*h), (2*c1-u1)/3, 0. });
+			h=std::max(h,(cmin*cmin)/g);
+			c=sqrt(g*h);
+			u=u1+2*(c-c1);
+		}
+		F1=h*u;
+		F2=h*u*u+0.5*g*h*h;
+	}
+	//===============================
+	//--------Prescribed q-----------
+	else if (typBC == BC_Q)
+	{
+		//-----message-------
+		F1=valBC;
+		Scalar hc=pow(((F1*F1)/g),1/3);
+		if (hc>=h1)
+		{
+			F2=(q1*q1)/std::max(hc,smalll)+
+					0.5*g*h1*h1+
+					(F1-q1)*L1;
+		}
+		else
+		{
+			F2=(q1*q1)/std::max(h1,smalll)+
+					0.5*g*h1*h1+
+					(F1-q1)*L1;
+		}
+	}
+	//=================================
+	//---------Weir--------------------
+	else if (typBC == BC_S)
+	{
+		/**
+	 ** @todo Implémenter les BC de type 's' en renseignant la cote de la pelle et non la hauteur (permet de gérer les cas avec plusieurs mailles de cote du fond diférentes attenantes au même seuil)
+	 **/
+		//-----message-------
+		if (h1<valBC)
+		{
+			//No z:weir elevation not reached
+			F1=0;
+			F2=(q1*q1)/std::max(h1,smalll)
+					+0.5*g*h1*h1;
+		}
+		else
+		{
+			// Weir overtoped
+			F1=-0.42*sqrt(2*g)*pow((h1-valBC),3/2);
+			F2=(q1*q1)/std::max(h1,smalll)
+					+0.5*g*h1*h1;
+		}
+	}
+	else
+	{
+		// std::cout << "pbl bc" << std::endl;
+		// std::cout << typBC << std::endl;
+	}
+
+	F3=(F1-fabs(F1))*v1/2;
+
+	//----output-----
+	F1 = -F1;
+
+	//--return F1,F2,F3
+	Flux.F1=F1;
+	Flux.F2=F2;
+	Flux.F3=F3;
+	Flux.s2L = 0.;
+	Flux.s2R = 0.;
+
+	return Flux;
+}
+
 } // namespace simulation
 
 } // namespace cgogn

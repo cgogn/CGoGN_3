@@ -34,6 +34,11 @@ namespace simulation
 
 using Scalar = geometry::Scalar;
 
+enum BoundaryCondition
+{
+    BC_F = 0, BC_C, BC_H, BC_Z, BC_Q, BC_S
+};
+
 struct Str_Riemann_Flux
 {
     Scalar F1;  /**< Flux de masse à travers l'interface **/
@@ -48,6 +53,13 @@ Str_Riemann_Flux Solv_HLLC(
     Scalar zbL, Scalar zbR,
     Scalar PhiL, Scalar PhiR,
     Scalar hL, Scalar qL, Scalar rL, Scalar hR, Scalar qR, Scalar rR
+);
+
+Str_Riemann_Flux border_condition(
+	BoundaryCondition typBC, Scalar valBC,
+	Scalar NormX, Scalar NormY,
+	Scalar q, Scalar r, Scalar z, Scalar zb,
+	Scalar g, Scalar hmin, Scalar smalll
 );
 
 } // namespace simulation
