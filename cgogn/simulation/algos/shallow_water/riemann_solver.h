@@ -31,6 +31,7 @@ namespace cgogn
 
 namespace simulation
 {
+
 using Scalar = geometry::Scalar;
 
 enum BoundaryCondition
