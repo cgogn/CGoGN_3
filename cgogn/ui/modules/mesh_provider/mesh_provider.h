@@ -37,6 +37,7 @@
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
+#include <cgogn/io/volume/meshb.h>
 
 #include <boost/synapse/emit.hpp>
 
@@ -54,14 +55,14 @@ class App;
 template <typename MESH>
 class MeshProvider : public ProviderModule
 {
-    template <typename T>
-    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-    using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
+	template <typename T>
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
-    using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	using Scalar = geometry::Scalar;
-    using Vec3 = geometry::Vec3;
+	using Vec3 = geometry::Vec3;
 
 public:
 
@@ -173,7 +174,10 @@ public:
 			if (ext.compare("tet") == 0)
 				imported = cgogn::io::import_TET(*m, filename);
 			else
-				imported = false;
+				if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
+					imported = cgogn::io::import_MESHB(*m, filename);
+				else
+					imported = false;
 
 			if (imported)
 			{
@@ -331,7 +335,7 @@ protected:
 		}
 
 		if (ImGui::BeginMenu(name_.c_str()))
-        {
+		{
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
 			{
@@ -344,8 +348,8 @@ protected:
 			}
 			ImGui::MenuItem("Show inspector", "", &show_mesh_inspector_);
 			ImGui::PopItemFlag();
-            ImGui::EndMenu();
-        }
+			ImGui::EndMenu();
+		}
 	}
 
 	void interface() override
