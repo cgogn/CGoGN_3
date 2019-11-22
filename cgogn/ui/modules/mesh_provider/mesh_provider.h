@@ -204,7 +204,7 @@ public:
 	{
 		static_assert(is_ith_func_parameter_same<FUNC, 0, MESH*>::value, "Wrong function parameter type");
 		static_assert(is_ith_func_parameter_same<FUNC, 1, const std::string&>::value, "Wrong function parameter type");
-		for (auto& [name, m] : meshes_)
+		for (const auto& [name, m] : meshes_)
 			f(m.get(), name);
 	}
 

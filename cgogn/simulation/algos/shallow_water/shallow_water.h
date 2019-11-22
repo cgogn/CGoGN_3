@@ -247,7 +247,7 @@ void shallow_water_execute_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa,
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	auto start = std::chrono::high_resolution_clock::now();
+	// auto start = std::chrono::high_resolution_clock::now();
 
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
@@ -399,14 +399,14 @@ void shallow_water_execute_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa,
 	swc.t_ += swc.dt_;
 	// nb_iter_++;
 
-	auto end = std::chrono::high_resolution_clock::now();
+	// auto end = std::chrono::high_resolution_clock::now();
 
-	std::chrono::nanoseconds sleep_duration =
-		std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<Scalar>(swc.dt_))
-		- std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	// std::chrono::nanoseconds sleep_duration =
+	// 	std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<Scalar>(swc.dt_))
+	// 	- std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
-	if (sleep_duration > std::chrono::nanoseconds::zero())
-		std::this_thread::sleep_for(sleep_duration);
+	// if (sleep_duration > std::chrono::nanoseconds::zero())
+	// 	std::this_thread::sleep_for(sleep_duration);
 }
 
 } // namespace simulation

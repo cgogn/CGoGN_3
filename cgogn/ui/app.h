@@ -64,6 +64,14 @@ public:
 
 	View* add_view();
 	inline View* current_view() const { return current_view_; }
+	
+	template <typename FUNC>
+	void foreach_view(const FUNC& f) const
+	{
+		static_assert(is_func_parameter_same<FUNC, View*>::value, "Wrong parameter type: given function should take a View*");
+		for (const auto& v : views_)
+			f(v.get());
+	}
 
 	Module* module(const std::string& name) const;
 
@@ -73,10 +81,10 @@ public:
 
 	using timer_tick = struct timer_tick_(*)();
 
-	template <typename F>
-	void start_timer(uint32 interval, F stop_cond) const
+	template <typename FUNC>
+	void start_timer(uint32 interval, FUNC stop_cond) const
 	{
-		static_assert(is_func_return_same<F, bool>::value, "Given function should return a bool");
+		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 		std::thread timer([this, interval, stop_cond] ()
 		{
 			while (true)

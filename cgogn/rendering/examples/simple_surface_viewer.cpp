@@ -85,8 +85,8 @@ int main(int argc, char** argv)
 	
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 	
-	sr.set_vertex_position(*m, vertex_position);
-	sr.set_vertex_normal(*m, vertex_normal);
+	sr.set_vertex_position(*v1, *m, vertex_position);
+	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
 	srv.set_vertex_position(*m, vertex_position);
 	srv.set_vertex_vector(*m, vertex_normal);

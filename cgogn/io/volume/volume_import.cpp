@@ -112,9 +112,9 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				} while (dd != dv);
 			}
 		}
-		 else if (vol_type == VolumeType::TriangularPrism) // prism case
-		 {
-			vol = add_prism(static_cast<CMap2&>(m),3,false);
+		else if (vol_type == VolumeType::TriangularPrism) // prism case
+		{
+			vol = add_prism(static_cast<CMap2&>(m), 3u, false);
 
 			const std::array<Dart, 6> vertices_of_prism = {
 				vol.dart,
@@ -142,10 +142,10 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 					dd = m.phi1(m.phi2(dd));
 				} while (dd != dv);
 			}
-		 }
-		 else if (vol_type == VolumeType::Hexa) // hexahedral case
-		 {
-			vol = add_prism(static_cast<CMap2&>(m),4,false);
+		}
+		else if (vol_type == VolumeType::Hexa) // hexahedral case
+		{
+			vol = add_prism(static_cast<CMap2&>(m), 4u,false);
 
 			const std::array<Dart, 8> vertices_of_hexa = {
 				vol.dart,
@@ -175,15 +175,15 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 					dd = m.phi1(m.phi2(dd));
 				} while (dd != dv);
 			}
-		 }
-		 else //end of hexa
-		 {
+		}
+		else //end of hexa
+		{
 			if (vol_type == VolumeType::Connector)
 			{
 				index += 4u;
 				// The second part of the code generates connectors automatically. We don't have to do anything here.
 			}
-		 }
+		}
 
 		if (m.is_indexed<Volume>())
 			set_index(m, vol, vol_emb++);

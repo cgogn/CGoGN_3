@@ -99,8 +99,8 @@ int main(int argc, char** argv)
 	
 	sdp.compute_normal(*sm, vertex_position_s.get(), vertex_normal_s.get());
 	
-	sr.set_vertex_position(*sm, vertex_position_s);
-	sr.set_vertex_normal(*sm, vertex_normal_s);
+	sr.set_vertex_position(*v1, *sm, vertex_position_s);
+	sr.set_vertex_normal(*v1, *sm, vertex_normal_s);
 
 	srv.set_vertex_position(*sm, vertex_position_s);
 	srv.set_vertex_vector(*sm, vertex_normal_s);
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v = cgogn::get_attribute<Vec3, VolumeVertex>(*vm, "position");
 	
-	sr_vol.set_vertex_position(*vm, vertex_position_v);
+	sr_vol.set_vertex_position(*v2, *vm, vertex_position_v);
 
 	return app.launch();
 }
