@@ -21,21 +21,15 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/traversals/halfedge.h>
 
 namespace cgogn
 {
 
 /*****************************************************************************/
 
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+// template <typename CELL, typename MESH>
+// std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(const MESH& m, CELL c);
 
 /*****************************************************************************/
 
@@ -43,76 +37,35 @@ namespace cgogn
 // Graph //
 ///////////
 
-Graph::Vertex
-CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-///////////
-// CMap3 //
-///////////
-
-CMap3::Vertex
-CGOGN_CORE_EXPORT cut_edge(CMap3& m, CMap3::Edge e, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+std::vector<Graph::HalfEdge> incident_halfedges(const Graph& g, Graph::Edge e)
 {
-	return cut_edge(m.mesh(), e, set_indices);
+	std::vector<Graph::HalfEdge> halfedges;
+	halfedges.reserve(2u);
+	halfedges.push_back(Graph::HalfEdge(e.dart));
+	halfedges.push_back(Graph::HalfEdge(g.alpha0(e.dart)));
+	return halfedges;
 }
 
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
+std::vector<Graph::HalfEdge> incident_halfedges(const Graph& g, Graph::Vertex v)
+{
+	std::vector<Graph::HalfEdge> halfedges;
+	halfedges.reserve(8u);
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { halfedges.push_back(Graph::HalfEdge(d)); return true; });
+	return halfedges;
+}
 
 ///////////
 // CMap2 //
 ///////////
 
-CMap2::Vertex
-CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::Vertex
-collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true)
+std::vector<CMap2::HalfEdge>
+CGOGN_CORE_EXPORT incident_halfedges(const CMap2& m, CMap2::Edge e)
 {
-	return collapse_edge(m.mesh(), e, set_indices);
+	std::vector<CMap2::HalfEdge> edges1;
+	edges1.reserve(2u);
+	edges1.push_back(CMap2::HalfEdge(e.dart));
+	edges1.push_back(CMap2::HalfEdge(m.phi2(e.dart)));
+	return edges1;
 }
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_

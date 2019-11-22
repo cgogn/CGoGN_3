@@ -111,6 +111,14 @@ void foreach_incident_vertex(const Graph& g, Graph::Edge e, const FUNC& func)
 	g.foreach_dart_of_orbit(e, [&] (Dart d) -> bool { return func(Graph::Vertex(d)); });
 }
 
+template <typename FUNC>
+void foreach_incident_vertex1(const Graph& g, Graph::Vertex v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, Graph::HalfEdge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::HalfEdge(d)); });
+}
+
 ///////////
 // CMap1 //
 ///////////

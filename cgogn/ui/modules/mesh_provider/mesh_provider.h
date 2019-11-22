@@ -24,9 +24,8 @@
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 
-#include <cgogn/ui/modules/mesh_provider/mesh_data.h>
-
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 #include <cgogn/ui/portable-file-dialogs.h>
 
 #include <cgogn/core/utils/string.h>
@@ -38,6 +37,7 @@
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/tet.h>
+#include <cgogn/io/volume/meshb.h>
 
 #include <boost/synapse/emit.hpp>
 
@@ -55,14 +55,14 @@ class App;
 template <typename MESH>
 class MeshProvider : public ProviderModule
 {
-    template <typename T>
-    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-    using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
+	template <typename T>
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
-    using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	using Scalar = geometry::Scalar;
-    using Vec3 = geometry::Vec3;
+	using Vec3 = geometry::Vec3;
 
 public:
 
@@ -133,7 +133,14 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_OFF(*m, filename);
+
+			std::string ext = extension(filename);
+			bool imported;
+			if (ext.compare("off") == 0)
+				imported = cgogn::io::import_OFF(*m, filename);
+			else
+				imported = false;
+			
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
@@ -161,7 +168,17 @@ public:
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
-			bool imported = cgogn::io::import_TET(*m, filename);
+
+			std::string ext = extension(filename);
+			bool imported;
+			if (ext.compare("tet") == 0)
+				imported = cgogn::io::import_TET(*m, filename);
+			else
+				if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
+					imported = cgogn::io::import_MESHB(*m, filename);
+				else
+					imported = false;
+
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data_[m];
@@ -318,7 +335,7 @@ protected:
 		}
 
 		if (ImGui::BeginMenu(name_.c_str()))
-        {
+		{
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
 			{
@@ -331,8 +348,8 @@ protected:
 			}
 			ImGui::MenuItem("Show inspector", "", &show_mesh_inspector_);
 			ImGui::PopItemFlag();
-            ImGui::EndMenu();
-        }
+			ImGui::EndMenu();
+		}
 	}
 
 	void interface() override

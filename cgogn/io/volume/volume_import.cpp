@@ -112,76 +112,78 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				} while (dd != dv);
 			}
 		}
-		// else if (vol_type == VolumeType::TriangularPrism) // prism case
-		// {
-		// 	d = mbuild_.add_prism_topo_fp(3u);
+		 else if (vol_type == VolumeType::TriangularPrism) // prism case
+		 {
+			vol = add_prism(static_cast<CMap2&>(m),3,false);
 
-		// 	// check if add ok (special maps)
-		// 	if (d.is_nil()) break;
+			const std::array<Dart, 6> vertices_of_prism = {
+				vol.dart,
+				m.phi1(vol.dart),
+				m.phi_1(vol.dart),
+				m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(vol.dart))))),
+				m.phi2(m.phi1(m.phi1(m.phi2(vol.dart)))),
+				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(vol.dart)))))
+			};
 
-		// 	const std::array<Dart, 6> vertices_of_prism = {
-		// 		d,
-		// 		m.phi1(d),
-		// 		m.phi_1(d),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(d))))),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(d)))),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(d)))))
-		// 	};
+			for (Dart dv : vertices_of_prism)
+			{
+				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				{
+					m.set_index<Vertex>(d, vertex_index);
+					return true;
+				});
 
-		// 	for (Dart dv : vertices_of_prism)
-		// 	{
-		// 		const uint32 vertex_index = this->volumes_vertex_indices_[index++];
-		// 		mbuild_.template set_orbit_embedding<Vertex>(Vertex2(dv), vertex_index);
+				Dart dd = dv;
+				do
+				{
+					dart_marker.mark(dd);
+					(*darts_per_vertex)[vertex_index].push_back(dd);
+					dd = m.phi1(m.phi2(dd));
+				} while (dd != dv);
+			}
+		 }
+		 else if (vol_type == VolumeType::Hexa) // hexahedral case
+		 {
+			vol = add_prism(static_cast<CMap2&>(m),4,false);
 
-		// 		Dart dd = dv;
-		// 		do
-		// 		{
-		// 			dart_marker.mark(dd);
-		// 			(*darts_per_vertex)[vertex_index].push_back(dd);
-		// 			dd = m.phi1(m.phi2(dd));
-		// 		} while (dd != dv);
-		// 	}
-		// }
-		// else if (vol_type == VolumeType::Hexa) // hexahedral case
-		// {
-		// 	d = mbuild_.add_prism_topo_fp(4u);
+			const std::array<Dart, 8> vertices_of_hexa = {
+				vol.dart,
+				m.phi1(vol.dart),
+				m.phi1(m.phi1(vol.dart)),
+				m.phi_1(vol.dart),
+				m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(vol.dart))))),
+				m.phi2(m.phi1(m.phi1(m.phi2(vol.dart)))),
+				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(vol.dart))))),
+				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(m.phi1(vol.dart))))))
+			};
 
-		// 	// check if add ok (special maps)
-		// 	if (d.is_nil()) break;
+			for (Dart dv : vertices_of_hexa)
+			{
+				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				{
+					m.set_index<Vertex>(d, vertex_index);
+					return true;
+				});
 
-		// 	const std::array<Dart, 8> vertices_of_hexa = {
-		// 		d,
-		// 		m.phi1(d),
-		// 		m.phi1(m.phi1(d)),
-		// 		m.phi_1(d),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(d))))),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(d)))),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(d))))),
-		// 		m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(m.phi1(d))))))
-		// 	};
-
-		// 	for (Dart dv : vertices_of_hexa)
-		// 	{
-		// 		const uint32 vertex_index = this->volumes_vertex_indices_[index++];
-		// 		mbuild_.template set_orbit_embedding<Vertex>(Vertex2(dv), vertex_index);
-
-		// 		Dart dd = dv;
-		// 		do
-		// 		{
-		// 			dart_marker.mark(dd);
-		// 			(*darts_per_vertex)[vertex_index].push_back(dd);
-		// 			dd = m.phi1(m.phi2(dd));
-		// 		} while (dd != dv);
-		// 	}
-		// }
-		// else //end of hexa
-		// {
-		// 	if (vol_type == VolumeType::Connector)
-		// 	{
-		// 		index += 4u;
-		// 		// The second part of the code generates connectors automatically. We don't have to do anything here.
-		// 	}
-		// }
+				Dart dd = dv;
+				do
+				{
+					dart_marker.mark(dd);
+					(*darts_per_vertex)[vertex_index].push_back(dd);
+					dd = m.phi1(m.phi2(dd));
+				} while (dd != dv);
+			}
+		 }
+		 else //end of hexa
+		 {
+			if (vol_type == VolumeType::Connector)
+			{
+				index += 4u;
+				// The second part of the code generates connectors automatically. We don't have to do anything here.
+			}
+		 }
 
 		if (m.is_indexed<Volume>())
 			set_index(m, vol, vol_emb++);

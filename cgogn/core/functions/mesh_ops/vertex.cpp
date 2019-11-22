@@ -51,13 +51,13 @@ add_vertex(Graph& g, bool set_indices)
 
 	if (set_indices)
 	{
-		if (g.is_indexed<Graph::Vertex1>())
-		{
-			set_index(g, Graph::Vertex1(d), new_index<Graph::Vertex1>(g));
-			set_index(g, Graph::Vertex1(dd), new_index<Graph::Vertex1>(g));
-		}
 		if (g.is_indexed<Graph::Vertex>())
 			set_index(g, v, new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::HalfEdge>())
+		{
+			set_index(g, Graph::HalfEdge(d), new_index<Graph::HalfEdge>(g));
+			set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+		}
 		if (g.is_indexed<Graph::Edge>())
 			set_index(g, Graph::Edge(v.dart), new_index<Graph::Edge>(g));
 	}
@@ -158,15 +158,15 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 			g.alpha1_sew(e, ee);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex1>())
-                {
-					set_index(g, Graph::Vertex1(dd), new_index<Graph::Vertex1>(g));
-					set_index(g, Graph::Vertex1(ee), new_index<Graph::Vertex1>(g));
-				}
 				if (g.is_indexed<Graph::Vertex>())
                 {
                     g.copy_index<Graph::Vertex>(dd, d);
                     g.copy_index<Graph::Vertex>(ee, e);
+				}
+				if (g.is_indexed<Graph::HalfEdge>())
+                {
+					set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(ee), new_index<Graph::HalfEdge>(g));
 				}
 				if (g.is_indexed<Graph::Edge>())
 					set_index(g, Graph::Edge(dd), new_index<Graph::Edge>(g));
@@ -207,15 +207,15 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			g.alpha1_sew(y, yy);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex1>())
-                {
-					set_index(g, Graph::Vertex1(xx), new_index<Graph::Vertex1>(g));
-					set_index(g, Graph::Vertex1(yy), new_index<Graph::Vertex1>(g));
-				}
 				if (g.is_indexed<Graph::Vertex>())
 				{
 					g.copy_index<Graph::Edge>(xx, x);
 					g.copy_index<Graph::Edge>(yy, y);
+				}
+				if (g.is_indexed<Graph::HalfEdge>())
+                {
+					set_index(g, Graph::HalfEdge(xx), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(yy), new_index<Graph::HalfEdge>(g));
 				}
 				if (g.is_indexed<Graph::Edge>())
 				{

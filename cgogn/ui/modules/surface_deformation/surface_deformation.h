@@ -25,13 +25,11 @@
 #define CGOGN_MODULE_SURFACE_DEFORMATION_H_
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/angle.h>
-
-#include <cgogn/ui/module.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <GLFW/glfw3.h>
 
@@ -47,6 +45,8 @@ namespace ui
 template <typename MESH>
 class SurfaceDeformation : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "SurfaceDeformation can only be used with meshes of dimension 2");
+
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 

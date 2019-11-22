@@ -53,6 +53,8 @@ App::App():
 	show_demo_(false),
 	current_view_(nullptr)
 {
+	tlq_ = boost::synapse::create_thread_local_queue();
+
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 		std::cerr << "Failed to initialize GFLW!" << std::endl;
@@ -384,6 +386,8 @@ int App::launch()
 
 	while (!glfwWindowShouldClose(window_))
 	{
+		boost::synapse::poll(*tlq_);
+
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 

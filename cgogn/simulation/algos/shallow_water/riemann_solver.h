@@ -21,18 +21,23 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_
-#define CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_
+#ifndef CGOGN_SIMULATION_SHALLOW_WATER_RIEMANN_SOLVER_H_
+#define CGOGN_SIMULATION_SHALLOW_WATER_RIEMANN_SOLVER_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace ui
+namespace simulation
 {
 
 using Scalar = geometry::Scalar;
+
+enum BoundaryCondition
+{
+    BC_F = 0, BC_C, BC_H, BC_Z, BC_Q, BC_S
+};
 
 struct Str_Riemann_Flux
 {
@@ -50,8 +55,15 @@ Str_Riemann_Flux Solv_HLLC(
     Scalar hL, Scalar qL, Scalar rL, Scalar hR, Scalar qR, Scalar rR
 );
 
-} // namespace ui
+Str_Riemann_Flux border_condition(
+	BoundaryCondition typBC, Scalar valBC,
+	Scalar NormX, Scalar NormY,
+	Scalar q, Scalar r, Scalar z, Scalar zb,
+	Scalar g, Scalar hmin, Scalar smalll
+);
+
+} // namespace simulation
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_SHALLOW_WATER_SOLVER_H_
+#endif // CGOGN_SIMULATION_SHALLOW_WATER_RIEMANN_SOLVER_H_

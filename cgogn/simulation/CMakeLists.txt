@@ -1,4 +1,4 @@
-﻿project(cgogn_modeling
+﻿project(cgogn_simulation
 	LANGUAGES CXX
 )
 
@@ -10,22 +10,17 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 add_library(${PROJECT_NAME} STATIC "")
-add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
+add_library(cgogn::simulation ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/decimation.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"
-	EXPORT_NAME modeling
+	EXPORT_NAME simulation
 	LINKER_LANGUAGE CXX
 )
 
@@ -37,26 +32,26 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry)
 
-# Write out cgogn_modeling_export.h to the current binary directory
+# Write out cgogn_simulation_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 
 set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
-configure_file(${PROJECT_SOURCE_DIR}/cgogn_modeling.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling.pc
+configure_file(${PROJECT_SOURCE_DIR}/cgogn_simulation.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_simulation.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_simulation.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-	COMPONENT cgogn_modeling_libraries
+	COMPONENT cgogn_simulation_libraries
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/modeling
-	COMPONENT cgogn_modeling_headers
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/simulation
+	COMPONENT cgogn_simulation_headers
 	FILES_MATCHING PATTERN "*.h"
 	REGEX "(examples|tests)" EXCLUDE
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_modeling_export.h
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/modeling
-	COMPONENT cgogn_modeling_headers
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_simulation_export.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgogn/simulation
+	COMPONENT cgogn_simulation_headers
 )
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")

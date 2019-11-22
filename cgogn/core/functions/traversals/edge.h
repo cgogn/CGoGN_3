@@ -61,7 +61,7 @@ std::vector<CMap2::Edge>
 CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Vertex v);
 
 CMap2::Edge
-CGOGN_CORE_EXPORT incident_edge(const CMap2& m, CMap2::Edge1 e1);
+CGOGN_CORE_EXPORT incident_edge(const CMap2& m, CMap2::HalfEdge h);
 
 std::vector<CMap2::Edge>
 CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Face f);
@@ -88,7 +88,7 @@ CGOGN_CORE_EXPORT incident_edges(const CMap3& m, CMap3::Volume v);
 
 template <typename CELL, typename MESH,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-std::vector<typename mesh_traits<MESH>::Vertex>
+std::vector<typename mesh_traits<MESH>::Edge>
 incident_edges(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -109,7 +109,7 @@ incident_edges(const MESH& m, CELL c)
 template <typename FUNC>
 void foreach_incident_edge(const Graph& m, Graph::Vertex v, const FUNC& func)
 {
-	static_assert(is_func_parameter_same<FUNC, Graph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_parameter_same<FUNC, Graph::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Edge(d)); });
 }

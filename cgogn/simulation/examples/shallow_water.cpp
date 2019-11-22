@@ -21,68 +21,50 @@
 *                                                                              *
 *******************************************************************************/
 
-#ifndef CGOGN_CORE_UTILS_THREAD_H_
-#define CGOGN_CORE_UTILS_THREAD_H_
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/cgogn_core_export.h>
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/core/utils/definitions.h>
-#include <cgogn/core/utils/buffers.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/shallow_water/shallow_water.h>
 
-#include <thread>
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
-namespace cgogn
+using namespace cgogn::numerics;
+
+using Mesh = cgogn::CMap2;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
+	cgogn::thread_start();
 
-const uint32 PARALLEL_BUFFER_SIZE = 1024u;
+	cgogn::ui::App app;
+	app.set_window_title("Shallow water");
+	app.set_window_size(1000, 800);
 
-// thread local values
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::ShallowWater<Mesh> sw(app);
 
-extern CGOGN_TLS uint32 thread_index_;
-extern CGOGN_TLS Buffers<uint32>* uint32_buffers_thread_;
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&sr);
+	v1->link_module(&srv);
+	v1->link_module(&sw);
 
-extern CGOGN_TLS uint32 uint32_value_;
-extern CGOGN_TLS float64 float64_value_;
+	app.init_modules();
 
-CGOGN_CORE_EXPORT uint32& uint32_value();
-CGOGN_CORE_EXPORT float64& float64_value();
-
-/**
- * @brief function to call at the beginning of each thread which uses CGoGN
- * @param index index of the thread
- */
-CGOGN_CORE_EXPORT void thread_start(uint32 index = 0);
-
-/**
- * @brief function to call at end of each thread which use a map
- */
-CGOGN_CORE_EXPORT void thread_stop();
-
-CGOGN_CORE_EXPORT uint32 max_nb_threads();
-
-CGOGN_CORE_EXPORT uint32 current_thread_index();
-CGOGN_CORE_EXPORT uint32 current_worker_index();
-
-CGOGN_CORE_EXPORT Buffers<uint32>* uint32_buffers();
-
-template <typename F>
-void launch_thread(F f)
-{
-	static bool launched = false;
-	if (!launched)
-	{
-		std::thread t([f] ()
-		{
-			launched = true;
-			thread_start(max_nb_threads() - 1); // additional thread gets the max id
-			f();
-			launched = false;
-		});
-		t.detach();
-	}
+	return app.launch();
 }
-
-} // namespace cgogn
-
-#endif // CGOGN_CORE_UTILS_THREAD_H_

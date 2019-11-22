@@ -29,8 +29,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/modules/mesh_provider/mesh_provider.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/mesh_provider/mesh_data.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/shallow_water/shallow_water.h"
-		"${CMAKE_CURRENT_LIST_DIR}/modules/shallow_water/solver.h"
-		"${CMAKE_CURRENT_LIST_DIR}/modules/shallow_water/solver.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_deformation/surface_deformation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_differential_properties/surface_differential_properties.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_filtering/surface_filtering.h"

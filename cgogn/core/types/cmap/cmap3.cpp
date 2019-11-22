@@ -131,8 +131,18 @@ uint32 CMap3::close(bool set_indices)
 	return nb_holes;
 }
 
-// inline void CMap3::sew_volumes(Dart d0, Dart d1)
-
-
+void CMap3::sew_volumes(Dart d0, Dart d1)
+{
+	cgogn_message_assert(codegree(*this, CMap3::Face(d0)) == codegree(*this, CMap3::Face(d1)), "The faces to sew do not have the same codegree");
+	Dart it0 = d0;
+	Dart it1 = d1;
+	do
+	{
+		cgogn_message_assert(phi3(it0) == it0 && phi3(it1) == it1, "The faces to sew are already sewn");
+		phi3_sew(it0, it1);
+		it0 = phi1(it0);
+		it1 = phi_1(it1);
+	} while (it0 != d0);
+}
 
 } // namespace cgogn

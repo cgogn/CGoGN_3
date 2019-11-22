@@ -180,7 +180,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 				{
 					if (!f(it)) // apply the function to the darts of the face2
 						return;
-					marker.mark(it);				// Mark
+					marker.mark(it);					// Mark
 					const Dart adj2 = this->phi2(it);	// Get phi2-adjacent face2
 					if (!marker.is_marked(adj2))
 						visited_face2.push_back(adj2);	// Add it
@@ -194,21 +194,9 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 
 	Volume close_hole(Dart d, bool set_indices = true);
 
-	inline void sew_volumes(Dart d0, Dart d1)
-	{
-		// cgogn_message_assert(codegree(*this, CMap3::Face(d0)) == codegree(*this, CMap3::Face(d1)), "the two faces to sow do not have the same codegree");
-
-		Dart it0 = d0;
-		Dart it1 = d1;
-		do
-		{
-			phi3_sew(it0, it1);
-			it0 = phi1(it0);
-			it1 = phi_1(it1);
-		} while (it0 != d0);
-	}
-
 	uint32 close(bool set_indices = true);
+
+	void sew_volumes(Dart d0, Dart d1);
 };
 
 } // namespace cgogn
