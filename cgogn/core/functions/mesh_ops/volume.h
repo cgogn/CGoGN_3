@@ -73,6 +73,13 @@ add_pyramid(MESH& m, uint32 size, bool set_indices = true)
 CMap2::Volume
 CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
 
+///////////
+// CMap3 //
+///////////
+
+CMap3::Face
+cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
 //////////////
 // MESHVIEW //
 //////////////

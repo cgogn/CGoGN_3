@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	sr.set_vertex_position(*m, vertex_position);
+	sr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

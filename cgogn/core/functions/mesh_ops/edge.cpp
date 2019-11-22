@@ -38,6 +38,43 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// Graph //
+///////////
+
+Graph::Vertex
+cut_edge(Graph& g, Graph::Edge e, bool set_indices)
+{
+	Dart e0 = e.dart;
+	Dart e1 = g.alpha0(e0);
+
+	Dart v0 = g.add_dart();
+	Dart v1 = g.add_dart();
+
+	g.alpha1_sew(v0, v1);
+	g.alpha0_unsew(e0);
+	g.alpha0_sew(e0, v0);
+	g.alpha0_sew(e1, v1);
+
+	if (set_indices)
+	{
+		if (g.is_indexed<Graph::Vertex>())
+			set_index(g, Graph::Vertex(v0), new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::HalfEdge>())
+		{
+			set_index(g, Graph::HalfEdge(v0), new_index<Graph::HalfEdge>(g));
+			set_index(g, Graph::HalfEdge(v1), new_index<Graph::HalfEdge>(g));
+		}
+		if (g.is_indexed<Graph::Edge>())
+		{
+			g.copy_index<Graph::Edge>(v0, e0);
+			set_index(g, Graph::Edge(e1), new_index<Graph::Edge>(g));
+		}
+	}
+
+	return Graph::Vertex(v0);
+}
+
+///////////
 // CMap1 //
 ///////////
 
@@ -52,6 +89,7 @@ cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 	{
 		if (m.is_indexed<CMap1::Vertex>())
 			set_index(m, v, new_index<CMap1::Vertex>(m));
+		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (m.is_indexed<CMap1::Face>())
 			m.copy_index<CMap1::Face>(d, e.dart);
 	}
@@ -81,6 +119,11 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	{
 		if (m.is_indexed<CMap2::Vertex>())
 			set_index(m, v, new_index<CMap2::Vertex>(m));
+		if (m.is_indexed<CMap2::HalfEdge>())
+		{
+			set_index(m, CMap2::HalfEdge(nv1.dart), new_index<CMap2::HalfEdge>(m));
+			set_index(m, CMap2::HalfEdge(nv2.dart), new_index<CMap2::HalfEdge>(m));
+		}
 		if (m.is_indexed<CMap2::Edge>())
 		{
 			m.copy_index<CMap2::Edge>(nv2.dart, d1);
@@ -100,6 +143,72 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 
 	return v;
 }
+
+///////////
+// CMap3 //
+///////////
+
+CMap3::Vertex
+cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
+{
+	Dart d0 = e.dart;
+	Dart d23 = m.phi<23>(d0);
+
+	cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false);
+
+	while(d23 != e.dart)
+	{
+		d0 = d23;
+		d23 = m.phi<23>(d23);
+
+		cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false);
+		
+		const Dart d3 = m.phi3(d0);
+		m.phi3_unsew(d0);
+
+		m.phi3_sew(d0, m.phi1(d3));
+		m.phi3_sew(d3, m.phi1(d0));
+	}
+
+	const Dart d3 = m.phi3(e.dart);
+	m.phi3_unsew(e.dart);
+
+	m.phi3_sew(e.dart, m.phi1(d3));
+	m.phi3_sew(d3, m.phi1(e.dart));
+
+	CMap3::Vertex v(m.phi1(e.dart));
+
+	if (set_indices)
+	{
+		if (m.is_indexed<CMap3::Vertex>())
+			set_index(m, v, new_index<CMap3::Vertex>(m));
+
+		if (m.is_indexed<CMap3::Edge>())
+		{
+			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
+			set_index(m, e, index_of(m, e));
+		}
+		if (m.is_indexed<CMap3::Face>())
+		{
+			m.foreach_dart_of_orbit(e, [&](Dart d) -> bool
+			{
+				m.copy_index<CMap3::Face>(m.phi1(d), d);
+				m.copy_index<CMap3::Face>(m.phi3(d), d);
+			});
+		}
+		if (m.is_indexed<CMap3::Volume>())
+		{
+			m.foreach_dart_of_orbit(e, [&](Dart d) -> bool
+			{
+				m.copy_index<CMap3::Volume>(m.phi1(d), d);
+				m.copy_index<CMap3::Volume>(m.phi2(d), d);
+			});
+		}
+	}
+
+	return v;
+}
+
 
 /*****************************************************************************/
 

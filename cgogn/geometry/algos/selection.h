@@ -31,6 +31,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/inclusion.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -50,11 +51,11 @@ within_sphere(
 )
 {
     using Vertex = typename CMap2::Vertex;
+    using HalfEdge = typename CMap2::HalfEdge;
     using Edge = typename CMap2::Edge;
     using Face = typename CMap2::Face;
 
     CellCache<CMap2> cache(m);
-    // std::vector<Edge> border;
 
 	const Vec3& center_position = value<Vec3>(m, vertex_position, center);
 
@@ -115,8 +116,8 @@ within_sphere(
                     mark_vertex(av);
                 }
             }
-            // else
-            //     border.push_back(Edge(av.dart));
+            else
+                cache.add(HalfEdge(m.phi2(av.dart)));
             return true;
         });
         ++i;

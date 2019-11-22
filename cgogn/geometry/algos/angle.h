@@ -73,14 +73,38 @@ angle(
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
+
 	std::vector<Face> faces = incident_faces(m, e);
 	if (faces.size() < 2)
 		return 0;
-	return angle(
-        normal(m, faces[0], vertex_position),
-        normal(m, faces[1], vertex_position)
-    );
+
+	const Vec3 n1 = normal(m, faces[0], vertex_position);
+	const Vec3 n2 = normal(m, faces[1], vertex_position);
+
+	std::vector<Vertex> vertices = incident_vertices(m, e);
+	Vec3 edge = value<Vec3>(m, vertex_position, vertices[1]) - value<Vec3>(m, vertex_position, vertices[0]);
+	edge.normalize();
+	Scalar s = edge.dot(n1.cross(n2));
+	Scalar c = n1.dot(n2);
+	Scalar a(0);
+
+	// the following trick is useful to avoid NaNs (due to floating point errors)
+	if (c > Scalar(0.5)) a = std::asin(s);
+	else
+	{
+		if (c < -1) c = -1;
+		if (s >= 0) a = std::acos(c);
+		else a = -std::acos(c);
+	}
+
+	return a;
+	
+	// return angle(
+    //     normal(m, faces[0], vertex_position),
+    //     normal(m, faces[1], vertex_position)
+    // );
 }
 
 template <typename MESH>
@@ -115,6 +139,7 @@ compute_angle(
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
 	using Edge = typename mesh_traits<MESH>::Edge;
+
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position);

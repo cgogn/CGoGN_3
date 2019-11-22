@@ -45,7 +45,7 @@ add_vertex(Graph& g, bool set_indices)
 	Dart d = g.add_dart();
 	Dart dd = g.add_dart();
 	g.alpha0_sew(d, dd);
-	g.set_boundary(dd, true);
+	g.alpha1_sew(d, dd);
 
 	Graph::Vertex v(d);
 
@@ -53,6 +53,11 @@ add_vertex(Graph& g, bool set_indices)
 	{
 		if (g.is_indexed<Graph::Vertex>())
 			set_index(g, v, new_index<Graph::Vertex>(g));
+		if (g.is_indexed<Graph::HalfEdge>())
+		{
+			set_index(g, Graph::HalfEdge(d), new_index<Graph::HalfEdge>(g));
+			set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+		}
 		if (g.is_indexed<Graph::Edge>())
 			set_index(g, Graph::Edge(v.dart), new_index<Graph::Edge>(g));
 	}
@@ -103,10 +108,12 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 	Dart e = v2.dart;
 	Dart dd = g.alpha0(d);
 	Dart ee = g.alpha0(e);
-	if (g.is_boundary(dd))
+	if (g.is_isolated(v1))
 	{
-		if (g.is_boundary(ee))
+		if (g.is_isolated(v2))
 		{
+			g.alpha1_unsew(d);
+			g.alpha1_unsew(e);
 			g.remove_dart(dd);
 			g.remove_dart(ee);
 			g.alpha0_sew(d, e);
@@ -119,7 +126,7 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 		}
 		else
 		{
-			g.set_boundary(dd, false);
+			g.alpha1_unsew(d);
 			g.alpha1_sew(e, dd);
 			if (set_indices)
 			{
@@ -131,9 +138,9 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 	}
 	else
 	{
-		if (g.is_boundary(ee))
+		if (g.is_isolated(v2))
 		{
-			g.set_boundary(ee, false);
+			g.alpha1_unsew(e);
 			g.alpha1_sew(d, ee);
 			if (set_indices)
 			{
@@ -146,15 +153,20 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 		{
 			Dart dd = g.add_dart();
 			Dart ee = g.add_dart();
+			g.alpha0_sew(dd, ee);
 			g.alpha1_sew(d, dd);
 			g.alpha1_sew(e, ee);
-			g.alpha0_sew(dd, ee);
 			if (set_indices)
 			{
 				if (g.is_indexed<Graph::Vertex>())
                 {
                     g.copy_index<Graph::Vertex>(dd, d);
                     g.copy_index<Graph::Vertex>(ee, e);
+				}
+				if (g.is_indexed<Graph::HalfEdge>())
+                {
+					set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(ee), new_index<Graph::HalfEdge>(g));
 				}
 				if (g.is_indexed<Graph::Edge>())
 					set_index(g, Graph::Edge(dd), new_index<Graph::Edge>(g));
@@ -181,7 +193,7 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 {
 	Dart x = e.dart;
 	Dart y = g.alpha0(x);
-	cgogn_message_assert(!(g.is_boundary(x) || g.is_boundary(y)), "Given edge does not connect 2 vertices");
+	cgogn_message_assert(!(g.is_isolated(Graph::Vertex(x)) || g.is_isolated(Graph::Vertex(y))), "Given edge does not connect 2 vertices");
 	if (g.alpha1(x) == x)
 	{
 		if (g.alpha1(y) == y)
@@ -190,14 +202,24 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			Dart xx = g.add_dart();
 			Dart yy = g.add_dart();
 			g.alpha0_sew(x, xx);
+			g.alpha1_sew(x, xx);
 			g.alpha0_sew(y, yy);
-			g.set_boundary(xx, true);
-			g.set_boundary(yy, true);
+			g.alpha1_sew(y, yy);
 			if (set_indices)
 			{
+				if (g.is_indexed<Graph::Vertex>())
+				{
+					g.copy_index<Graph::Edge>(xx, x);
+					g.copy_index<Graph::Edge>(yy, y);
+				}
+				if (g.is_indexed<Graph::HalfEdge>())
+                {
+					set_index(g, Graph::HalfEdge(xx), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(yy), new_index<Graph::HalfEdge>(g));
+				}
 				if (g.is_indexed<Graph::Edge>())
 				{
-					g.copy_index<Graph::Edge>(g.alpha0(x), x);
+					g.copy_index<Graph::Edge>(xx, x);
 					set_index(g, Graph::Edge(y), new_index<Graph::Edge>(g));
 				}
 			}
@@ -205,11 +227,11 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 		else
 		{
 			g.alpha1_unsew(y);
-			g.set_boundary(y, true);
+			g.alpha1_sew(x, y);
 			if (set_indices)
 			{
 				if (g.is_indexed<Graph::Vertex>())
-					g.unset_index<Graph::Vertex>(g.alpha0(x));
+					g.copy_index<Graph::Vertex>(y, x);
 			}
 		}
 	}
@@ -218,11 +240,11 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 		if (g.alpha1(y) == y)
 		{
 			g.alpha1_unsew(x);
-			g.set_boundary(x, true);
+			g.alpha1_sew(y, x);
 			if (set_indices)
 			{
 				if (g.is_indexed<Graph::Vertex>())
-					g.unset_index<Graph::Vertex>(g.alpha0(y));
+					g.copy_index<Graph::Vertex>(x, y);
 			}
 		}
 		else

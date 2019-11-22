@@ -109,30 +109,30 @@ public:
 	}
 
 	template <typename CELL>
-	inline void set_index(Dart d, uint32 emb)
+	inline void set_index(Dart d, uint32 index)
 	{
 		static const Orbit orbit = CELL::ORBIT;
 		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
 		const uint32 old = (*cells_indices_[orbit])[d.index];
-		// ref_line() is done before unref_line() to avoid deleting the indexed line if old == emb
-		attribute_containers_[orbit].ref_index(emb);		// ref the new emb
+		// ref_index() is done before unref_index() to avoid deleting the index if old == index
+		attribute_containers_[orbit].ref_index(index);		// ref the new index
 		if (old != INVALID_INDEX)
-			attribute_containers_[orbit].unref_index(old);	// unref the old emb
-		(*cells_indices_[orbit])[d.index] = emb;			// affect the index to the dart
+			attribute_containers_[orbit].unref_index(old);	// unref the old index
+		(*cells_indices_[orbit])[d.index] = index;			// affect the index to the dart
 	}
 
-	template <typename CELL>
-	inline void unset_index(Dart d)
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		const uint32 old = (*cells_indices_[orbit])[d.index];
-		if (old != INVALID_INDEX)
-			attribute_containers_[orbit].unref_index(old);	// unref the old emb
-		(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
-	}
+	// template <typename CELL>
+	// inline void unset_index(Dart d)
+	// {
+	// 	static const Orbit orbit = CELL::ORBIT;
+	// 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	// 	cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
+	// 	const uint32 old = (*cells_indices_[orbit])[d.index];
+	// 	if (old != INVALID_INDEX)
+	// 		attribute_containers_[orbit].unref_index(old);	// unref the old emb
+	// 	(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
+	// }
 
 	template <typename CELL>
 	inline void copy_index(Dart dest, Dart src)

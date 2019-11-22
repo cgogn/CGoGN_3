@@ -37,17 +37,22 @@ struct CGOGN_CORE_EXPORT Graph : public CMapBase
 	std::shared_ptr<Attribute<Dart>> alpha1_;
 	std::shared_ptr<Attribute<Dart>> alpha_1_;
 
-	using Vertex1 = Cell<DART>;
 	using Vertex = Cell<PHI21>;
+	using HalfEdge = Cell<DART>;
 	using Edge = Cell<PHI2>;
 
-	using Cells = std::tuple<Vertex1, Vertex, Edge>;
+	using Cells = std::tuple<Vertex, HalfEdge, Edge>;
 
 	Graph() : CMapBase()
 	{
 		alpha0_ = add_relation("alpha0");
 		alpha1_ = add_relation("alpha1");
 		alpha_1_ = add_relation("alpha_1");
+	}
+
+	inline bool is_isolated(Vertex v) const
+	{
+		return alpha0(v.dart) == alpha1(v.dart);
 	}
 
 	inline Dart alpha0(Dart d) const

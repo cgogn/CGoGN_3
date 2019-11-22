@@ -22,8 +22,6 @@
 *******************************************************************************/
 
 #include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/cmap/cmap_info.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -33,24 +31,13 @@
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 
+#include <cgogn/modeling/algos/graph_to_hex.h>
+
 using namespace cgogn::numerics;
 
 using Graph = cgogn::Graph;
 using Surface = cgogn::CMap2;
 using Volume = cgogn::CMap3;
-
-template <typename T>
-using GraphAttribute = typename cgogn::mesh_traits<Graph>::Attribute<T>;
-template <typename T>
-using SurfaceAttribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
-template <typename T>
-using VolumeAttribute = typename cgogn::mesh_traits<Volume>::Attribute<T>;
-
-using GraphVertex = typename cgogn::mesh_traits<Graph>::Vertex;
-using SurfaceVertex = typename cgogn::mesh_traits<Surface>::Vertex;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
@@ -75,6 +62,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
+	cgogn::ui::SurfaceRender<Volume> vr(app);
 
 	app.init_modules();
 
@@ -86,6 +74,7 @@ int main(int argc, char** argv)
 
 	v1->link_module(&gr);
 	v1->link_module(&sr);
+	v1->link_module(&vr);
 
 	Graph* g = mpg.load_graph_from_file(filename);
 	if (!g)
@@ -93,20 +82,14 @@ int main(int argc, char** argv)
 		std::cout << "File could not be loaded" << std::endl;
 		return 1;
 	}
-
 	Surface* s = mps.add_mesh("contact");
+	Volume* v = mpv.add_mesh("tubes");
 
-	// std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, GraphVertex>(*g, "position");
-	// std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
-
-	// mp.set_mesh_bb_vertex_position(m, vertex_position);
-
-	// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-	
-	// gr.set_vertex_position(*g, vertex_position);
-	// sr.set_vertex_normal(*m, vertex_normal);
-
-	dump_map(*g);
+	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
+	{
+		mps.emit_connectivity_changed(s);
+		mpv.emit_connectivity_changed(v);
+	}
 
 	return app.launch();
 }

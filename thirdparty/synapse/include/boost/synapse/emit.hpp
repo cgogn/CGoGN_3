@@ -33,6 +33,9 @@ namespace boost { namespace synapse {
             virtual shared_ptr<args_binder_base> clone() const=0;
             virtual void call( void const * ) const=0;
             virtual int call_translated( void const * ) const=0;
+            virtual ~args_binder_base()
+                {
+                }
         };
 
         template <class Signal,class CallSignature> class args_binder;

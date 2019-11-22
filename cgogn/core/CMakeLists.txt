@@ -57,6 +57,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/halfedge.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/halfedge.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/edge.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/edge.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/face.h"
@@ -78,13 +80,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/utils/tuples.h"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/type_traits.h"
 )
-
-if(${CGOGN_EXTERNAL_TEMPLATES})
-	target_sources(${PROJECT_NAME}
-		PRIVATE
-			"${CMAKE_CURRENT_LIST_DIR}/external_templates.cpp"
-	)
-endif()
 
 # use of target_compile_options to have transitive flags
 if(CGOGN_USE_SIMD)

@@ -27,6 +27,8 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/utils/type_traits.h>
+
 #include <cgogn/ui/inputs.h>
 #include <cgogn/rendering/shaders/shader_frame2d.h>
 
@@ -34,6 +36,10 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+
+#include <thread>
+#include <boost/synapse/emit.hpp>
+#include <boost/synapse/thread_local_queue.hpp>
 
 namespace cgogn
 {
@@ -58,12 +64,39 @@ public:
 
 	View* add_view();
 	inline View* current_view() const { return current_view_; }
+	
+	template <typename FUNC>
+	void foreach_view(const FUNC& f) const
+	{
+		static_assert(is_func_parameter_same<FUNC, View*>::value, "Wrong parameter type: given function should take a View*");
+		for (const auto& v : views_)
+			f(v.get());
+	}
 
 	Module* module(const std::string& name) const;
 
 	void init_modules();
 	int launch();
 	void stop();
+
+	using timer_tick = struct timer_tick_(*)();
+
+	template <typename FUNC>
+	void start_timer(uint32 interval, FUNC stop_cond) const
+	{
+		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+		std::thread timer([this, interval, stop_cond] ()
+		{
+			while (true)
+			{
+				if (stop_cond()) return;
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				if (stop_cond()) return;
+				boost::synapse::emit<App::timer_tick>(this);
+			}
+		});
+		timer.detach();
+	}
 
 private:
 
@@ -82,6 +115,7 @@ private:
 
 	float64 interface_scaling_;
 	bool show_imgui_;
+	bool show_demo_;
 	
 	std::unique_ptr<rendering::ShaderFrame2d::Param> param_frame_;
 
@@ -91,6 +125,8 @@ private:
 	View* current_view_;
 
     mutable std::vector<Module*> modules_;
+
+	std::shared_ptr<boost::synapse::thread_local_queue> tlq_;
 };
 
 } // namespace cgogn

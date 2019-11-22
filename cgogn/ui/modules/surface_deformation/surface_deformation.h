@@ -25,13 +25,11 @@
 #define CGOGN_MODULE_SURFACE_DEFORMATION_H_
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/angle.h>
-
-#include <cgogn/ui/module.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <GLFW/glfw3.h>
 
@@ -47,6 +45,8 @@ namespace ui
 template <typename MESH>
 class SurfaceDeformation : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension == 2, "SurfaceDeformation can only be used with meshes of dimension 2");
+
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
@@ -87,6 +87,8 @@ class SurfaceDeformation : public ViewModule
 
 		CellsSet<MESH, Vertex>* selected_free_vertices_set_;
 		CellsSet<MESH, Vertex>* selected_handle_vertices_set_;
+		
+		std::shared_ptr<boost::synapse::connection> cells_set_connection_;
 
 		bool initialized_;
 		bool solver_ready_;
@@ -124,6 +126,15 @@ private:
 	{
 		Parameters& p = parameters_[m];
 		p.working_cells_ = std::make_unique<CellCache<MESH>>(*m);
+		p.cells_set_connection_ =
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Vertex>>(
+				m, [this, m] (CellsSet<MESH, Vertex>* set)
+				{
+					Parameters& p = parameters_[m];
+					if (p.selected_free_vertices_set_ == set || p.selected_handle_vertices_set_ == set)
+						p.solver_ready_ = false;
+				}
+			);
 	}
 
 	void initialize_mesh_data(MESH* m)
@@ -513,6 +524,18 @@ public:
 		p.vertex_position_ = vertex_position;
 	}
 
+	void set_selected_free_vertices_set(const MESH& m, CellsSet<MESH, Vertex>* set)
+	{
+		Parameters& p = parameters_[&m];
+		p.selected_free_vertices_set_ = set;
+	}
+
+	void set_selected_handle_vertices_set(const MESH& m, CellsSet<MESH, Vertex>* set)
+	{
+		Parameters& p = parameters_[&m];
+		p.selected_handle_vertices_set_ = set;
+	}
+
 protected:
 
 	void init() override
@@ -642,7 +665,7 @@ protected:
 					{
 						bool is_selected = &cs == p.selected_free_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							p.selected_free_vertices_set_ = &cs;
+							set_selected_free_vertices_set(*selected_mesh_, &cs);
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();
 					});
@@ -652,7 +675,7 @@ protected:
 				{
 					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 					if (ImGui::Button("X##selected_free_vertices_set"))
-						p.selected_free_vertices_set_ = nullptr;
+						set_selected_free_vertices_set(*selected_mesh_, nullptr);
 				}
 
 				if (ImGui::BeginCombo("Handle vertices", p.selected_handle_vertices_set_ ? p.selected_handle_vertices_set_->name().c_str() : "-- select --"))
@@ -661,7 +684,7 @@ protected:
 					{
 						bool is_selected = &cs == p.selected_handle_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							p.selected_handle_vertices_set_ = &cs;
+							set_selected_handle_vertices_set(*selected_mesh_, &cs);
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();
 					});
@@ -671,7 +694,7 @@ protected:
 				{
 					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 					if (ImGui::Button("X##selected_handle_vertices_set"))
-						p.selected_handle_vertices_set_ = nullptr;
+						set_selected_handle_vertices_set(*selected_mesh_, nullptr);
 					ImGui::TextUnformatted("Press D to drag the handle");
 				}
 			}

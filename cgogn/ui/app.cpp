@@ -50,8 +50,11 @@ App::App():
 	window_height_(512),
 	interface_scaling_(1.0),
 	show_imgui_(true),
+	show_demo_(false),
 	current_view_(nullptr)
 {
+	tlq_ = boost::synapse::create_thread_local_queue();
+
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 		std::cerr << "Failed to initialize GFLW!" << std::endl;
@@ -228,11 +231,13 @@ App::App():
 			return;
         }
 
-        switch(a)
+        switch (a)
         {
             case GLFW_PRESS:
                 if (k == GLFW_KEY_SPACE)
                     that->show_imgui_ = !that->show_imgui_;
+				if (k == GLFW_KEY_H)
+					that->show_demo_ = !that->show_demo_;
                 else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
                 {
                     that->interface_scaling_ += 0.1f;
@@ -313,7 +318,7 @@ View* App::add_view()
     if (views_.size() < 4)
     {
         glfwMakeContextCurrent(window_);
-        views_.push_back(std::make_unique<View>(&inputs_));
+        views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(views_.size())));
         adapt_views_geometry();
         return views_.back().get();
     }
@@ -381,6 +386,8 @@ int App::launch()
 
 	while (!glfwWindowShouldClose(window_))
 	{
+		boost::synapse::poll(*tlq_);
+
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 
@@ -422,6 +429,9 @@ int App::launch()
 			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
 
 			ImGui::PopStyleVar(3);
+
+			if (show_demo_)
+				ImGui::ShowDemoWindow();
 
 			if (ImGui::BeginMainMenuBar())
 			{

@@ -105,7 +105,7 @@ bool intersection_sphere_segment(
 	const Vec3& center,
 	Scalar radius,
 	const Vec3& p1,	const Vec3& p2,
-	Scalar alpha)
+	Scalar& alpha)
 {
 	if (in_sphere(p1, center, radius) && !in_sphere(p2, center, radius))
 	{

@@ -39,10 +39,11 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	using Vertex2 = Cell<PHI21>;
 	using Edge = Cell<PHI2_PHI3>;
 	using Face = Cell<PHI1_PHI3>;
+	using Face2 = Cell<PHI1>;
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Cell<PHI1_PHI2_PHI3>;
 
-	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Volume>;
+	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Face2, Volume>;
 
 	CMap3() : CMap2()
 	{
@@ -179,7 +180,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 				{
 					if (!f(it)) // apply the function to the darts of the face2
 						return;
-					marker.mark(it);				// Mark
+					marker.mark(it);					// Mark
 					const Dart adj2 = this->phi2(it);	// Get phi2-adjacent face2
 					if (!marker.is_marked(adj2))
 						visited_face2.push_back(adj2);	// Add it
@@ -194,6 +195,8 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	Volume close_hole(Dart d, bool set_indices = true);
 
 	uint32 close(bool set_indices = true);
+
+	void sew_volumes(Dart d0, Dart d1);
 };
 
 } // namespace cgogn

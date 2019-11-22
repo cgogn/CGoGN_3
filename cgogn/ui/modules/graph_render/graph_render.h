@@ -25,13 +25,11 @@
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
 #include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/ui/module.h>
-#include <cgogn/ui/view.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
@@ -51,6 +49,8 @@ namespace ui
 template <typename MESH>
 class GraphRender : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension >= 1, "GraphRender can only be used with meshes of dimension >= 1");
+	
     template <typename T>
     using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
@@ -118,7 +118,14 @@ private:
 				{
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
+					{
 						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						if (p.vertex_base_size_ == 0.0)
+						{
+							MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+							p.vertex_base_size_ = (md->bb_max_ - md->bb_min_).norm() / 20.0;
+						}
+					}
 
 					for (View* v : linked_views_)
 						v->request_update();
@@ -140,6 +147,8 @@ public:
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			if (p.vertex_base_size_ == 0.0)
+				p.vertex_base_size_ = (md->bb_max_ - md->bb_min_).norm() / 20.0;
 			md->update_vbo(vertex_position.get(), true);
 		}
 
