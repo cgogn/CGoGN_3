@@ -54,9 +54,7 @@ class ShallowWater : public Module
 public:
 
 	ShallowWater(const App& app) :
-		Module(app, "ShallowWater (" + std::string{mesh_traits<MESH>::name} + ")"),
-		domain_(nullptr),
-		domain_initialized_(false)
+		Module(app, "ShallowWater (" + std::string{mesh_traits<MESH>::name} + ")")
 	{}
 	~ShallowWater()
 	{}
@@ -86,14 +84,28 @@ protected:
 			domain_initialized_ = false;
 		else
 		{
-			simulation::shallow_water_get_attributes(*domain_, sw_attributes);
-			simulation::shallow_water_init_attributes(*domain_, sw_attributes, sw_context);
+			simulation::shallow_water::get_attributes(*domain_, sw_attributes_);
+			simulation::shallow_water::init_attributes(*domain_, sw_attributes_, sw_context_);
 
 			vertex_water_position_ = get_attribute<Vec3, Vertex>(*domain_, "water_position");
 			if (!vertex_water_position_)
 				vertex_water_position_ = add_attribute<Vec3, Vertex>(*domain_, "water_position");
 			
-			vertex_water_position_->copy(sw_attributes.vertex_position_.get());
+			vertex_water_position_->copy(sw_attributes_.vertex_position_.get());
+
+			domain_connections_.clear();
+			domain_connections_.push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+					domain_, [this] (Attribute<Vec3>* attribute)
+					{
+						if (sw_attributes_.vertex_position_.get() == attribute)
+						{
+							simulation::shallow_water::domain_geometry_changed(*domain_, sw_attributes_, sw_context_);
+							update_render_data();
+						}
+					}
+				)
+			);
 
 			update_render_data();
 
@@ -112,9 +124,9 @@ protected:
 		{
 			while (this->running_)
 			{
-				simulation::shallow_water_execute_time_step(*domain_, sw_attributes, sw_context);
-				if (sw_context.t_ == sw_context.t_max_)
-					stop();
+				simulation::shallow_water::execute_time_step(*domain_, sw_attributes_, sw_context_);
+				// if (sw_context_.t_ == sw_context_.t_max_)
+				// 	stop();
 			}
 		});
 
@@ -138,7 +150,7 @@ protected:
 			uint32 nbf = 0;
 			foreach_incident_face(*domain_, v, [&] (Face f) -> bool
 			{
-				h += value<Scalar>(*domain_, sw_attributes.face_h_, f);
+				h += value<Scalar>(*domain_, sw_attributes_.face_h_, f);
 				++nbf;
 				return true;
 			});
@@ -162,7 +174,7 @@ protected:
 					start();
 				if (ImGui::Button("step"))
 				{
-					simulation::shallow_water_execute_time_step(*domain_, sw_attributes, sw_context);
+					simulation::shallow_water::execute_time_step(*domain_, sw_attributes_, sw_context_);
 					update_render_data();
 				}
 			}
@@ -178,17 +190,18 @@ protected:
 
 private:
 
-	MeshProvider<MESH>* mesh_provider_;
-	MESH* domain_;
-	bool domain_initialized_;
+	MeshProvider<MESH>* mesh_provider_ = nullptr;
+	MESH* domain_ = nullptr;
+	bool domain_initialized_ = false;
+	bool running_ = false;
 
 	std::shared_ptr<Attribute<Vec3>> vertex_water_position_;
 
-	simulation::ShallowWaterAttributes<MESH> sw_attributes;
-	simulation::ShallowWaterContext sw_context;
+	simulation::shallow_water::Attributes<MESH> sw_attributes_;
+	simulation::shallow_water::Context sw_context_;
 
+	std::vector<std::shared_ptr<boost::synapse::connection>> domain_connections_;
 	std::shared_ptr<boost::synapse::connection> timer_connection_;
-	bool running_ = false;
 };
 
 } // namespace ui

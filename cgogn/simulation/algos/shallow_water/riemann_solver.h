@@ -32,6 +32,9 @@ namespace cgogn
 namespace simulation
 {
 
+namespace shallow_water
+{
+
 using Scalar = geometry::Scalar;
 
 enum BoundaryCondition
@@ -61,6 +64,8 @@ Str_Riemann_Flux border_condition(
 	Scalar q, Scalar r, Scalar z, Scalar zb,
 	Scalar g, Scalar hmin, Scalar smalll
 );
+
+} // namespace shallow_water
 
 } // namespace simulation
 

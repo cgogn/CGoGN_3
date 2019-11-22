@@ -44,11 +44,14 @@ namespace cgogn
 namespace simulation
 {
 
+namespace shallow_water
+{
+
 using Vec3 = geometry::Vec3;
 using Scalar = geometry::Scalar;
 
 template <typename MESH>
-struct ShallowWaterAttributes
+struct Attributes
 {
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -78,7 +81,7 @@ struct ShallowWaterAttributes
 	std::shared_ptr<Attribute<uint32>> edge_left_face_index_;
 };
 
-struct ShallowWaterContext
+struct Context
 {
 	Scalar phi_default_ = 1.0;
 	Scalar kx_ = 35.0;
@@ -91,13 +94,13 @@ struct ShallowWaterContext
 	Scalar Fr_max_ = 5.0;
 
 	Scalar t_ = 0.0;
-	Scalar t_max_ = 5.0;
+	Scalar t_max_ = 10.0;
 	Scalar dt_;
 	Scalar dt_max_ = 1.0;
 };
 
 template <typename MESH>
-void shallow_water_get_attributes(MESH& m, ShallowWaterAttributes<MESH>& swa)
+void get_attributes(MESH& m, Attributes<MESH>& swa)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
     using Edge = typename mesh_traits<MESH>::Edge;
@@ -129,7 +132,7 @@ void shallow_water_get_attributes(MESH& m, ShallowWaterAttributes<MESH>& swa)
 }
 
 template <typename MESH>
-void shallow_water_init_attributes(MESH& m, ShallowWaterAttributes<MESH>& swa, ShallowWaterContext& swc)
+void init_attributes(MESH& m, Attributes<MESH>& swa, Context& swc)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
     using Edge = typename mesh_traits<MESH>::Edge;
@@ -154,6 +157,65 @@ void shallow_water_init_attributes(MESH& m, ShallowWaterAttributes<MESH>& swa, S
 	srand(time(0));
 	parallel_foreach_cell(m, [&] (Face f) -> bool
 	{
+		value<Scalar>(m, swa.face_phi_, f) = swc.phi_default_;
+
+		uint32 nbv = 0;
+		Scalar zb = 0.0;
+		Vec3 centroid{0, 0, 0};
+		foreach_incident_vertex(m, f, [&] (Vertex v) -> bool
+		{
+			const Vec3& p = value<Vec3>(m, swa.vertex_position_, v);
+			zb += p[2];
+			centroid += p;
+			nbv++;
+			return true;
+		});
+		zb /= nbv;
+		centroid /= nbv;
+		
+		value<Scalar>(m, swa.face_zb_, f) = zb;
+		value<Vec3>(m, swa.face_centroid_, f) = centroid;
+		value<Scalar>(m, swa.face_area_, f) = geometry::area(m, f, swa.vertex_position_.get());
+
+		Scalar h;
+		bool border = false;
+		foreach_incident_vertex(m, f, [&] (Vertex v) -> bool
+		{
+			if (is_incident_to_boundary(m, v))
+				border = true;
+			return !border;
+		});
+		if (border) h = static_cast<Scalar>(rand()) / static_cast<Scalar>(RAND_MAX);
+		else h = 0.05;
+
+		value<Scalar>(m, swa.face_h_, f) = h;
+		value<Scalar>(m, swa.face_q_, f) = 0.0;
+		value<Scalar>(m, swa.face_r_, f) = 0.0;
+
+		return true;
+	});
+}
+
+template <typename MESH>
+void domain_geometry_changed(MESH& m, Attributes<MESH>& swa, Context& swc)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+    using Edge = typename mesh_traits<MESH>::Edge;
+    using Face = typename mesh_traits<MESH>::Face;
+
+	parallel_foreach_cell(m, [&] (Edge e) -> bool
+	{		
+		Scalar l = geometry::length(m, e, swa.vertex_position_.get());
+		std::vector<Vertex> vertices = incident_vertices(m, e);
+		Vec3 vec = value<Vec3>(m, swa.vertex_position_, vertices[1]) - value<Vec3>(m, swa.vertex_position_, vertices[0]);
+		value<Scalar>(m, swa.edge_length_, e) = l;
+		value<Scalar>(m, swa.edge_normX_, e) = vec[1] / l;
+		value<Scalar>(m, swa.edge_normY_, e) = -vec[0] / l;
+		return true;
+	});
+
+	parallel_foreach_cell(m, [&] (Face f) -> bool
+	{
 		uint32 nbv = 0;
 		Scalar zb = 0.0;
 		Vec3 centroid{0, 0, 0};
@@ -168,31 +230,24 @@ void shallow_water_init_attributes(MESH& m, ShallowWaterAttributes<MESH>& swa, S
 		zb /= nbv;
 		centroid /= nbv;
 
-		Scalar h;
-		bool border = false;
-		foreach_incident_vertex(m, f, [&] (Vertex v) -> bool
-		{
-			if (is_incident_to_boundary(m, v))
-				border = true;
-			return !border;
-		});
-		if (border) h = static_cast<Scalar>(rand()) / static_cast<Scalar>(RAND_MAX);
-		else h = 0.05;
-		
-		value<Scalar>(m, swa.face_phi_, f) = swc.phi_default_;
 		value<Scalar>(m, swa.face_zb_, f) = zb;
-		value<Scalar>(m, swa.face_h_, f) = h;
-		value<Scalar>(m, swa.face_q_, f) = 0.0;
-		value<Scalar>(m, swa.face_r_, f) = 0.0;
 		value<Vec3>(m, swa.face_centroid_, f) = centroid;
-		value<Scalar>(m, swa.face_area_, f) = geometry::area(m, f, swa.vertex_position_.get());
+		
+		Scalar old_area = value<Scalar>(m, swa.face_area_, f);
+		Scalar old_h = value<Scalar>(m, swa.face_h_, f);
+
+		Scalar new_area = geometry::area(m, f, swa.vertex_position_.get());
+		Scalar new_h = old_area / new_area * old_h;
+
+		value<Scalar>(m, swa.face_area_, f) = new_area;
+		value<Scalar>(m, swa.face_h_, f) = new_h;
 
 		return true;
 	});
 }
 
 template <typename MESH>
-void shallow_water_update_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa, ShallowWaterContext& swc)
+void update_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -242,12 +297,12 @@ void shallow_water_update_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa, 
 }
 
 template <typename MESH>
-void shallow_water_execute_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa, ShallowWaterContext& swc)
+void execute_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	// auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
@@ -300,7 +355,7 @@ void shallow_water_execute_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa,
 		return true;
 	});
 
-	shallow_water_update_time_step(m, swa, swc);
+	update_time_step(m, swa, swc);
 
 	// simu_data_access_.lock();
 
@@ -399,15 +454,17 @@ void shallow_water_execute_time_step(MESH& m, ShallowWaterAttributes<MESH>& swa,
 	swc.t_ += swc.dt_;
 	// nb_iter_++;
 
-	// auto end = std::chrono::high_resolution_clock::now();
+	auto end = std::chrono::high_resolution_clock::now();
 
-	// std::chrono::nanoseconds sleep_duration =
-	// 	std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<Scalar>(swc.dt_))
-	// 	- std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	std::chrono::nanoseconds sleep_duration =
+		std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<Scalar>(swc.dt_))
+		- std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
-	// if (sleep_duration > std::chrono::nanoseconds::zero())
-	// 	std::this_thread::sleep_for(sleep_duration);
+	if (sleep_duration > std::chrono::nanoseconds::zero())
+		std::this_thread::sleep_for(sleep_duration);
 }
+
+} // namespace shallow_water
 
 } // namespace simulation
 

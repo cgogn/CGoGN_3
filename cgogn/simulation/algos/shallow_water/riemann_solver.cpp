@@ -29,6 +29,9 @@ namespace cgogn
 namespace simulation
 {
 
+namespace shallow_water
+{
+
 Str_Riemann_Flux Solv_HLLC(
     Scalar g, Scalar hmin, Scalar smalll,
     Scalar zbL, Scalar zbR,
@@ -304,6 +307,8 @@ Str_Riemann_Flux border_condition(
 
 	return Flux;
 }
+
+} // namespace shallow_water
 
 } // namespace simulation
 
