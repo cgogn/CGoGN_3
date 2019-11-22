@@ -117,7 +117,8 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		for (uint32 i = 0; i < number_of_tetras; ++i)
 		{
 			(void) GmfGetLin(mesh_index, GmfTetrahedra, &ids[0],&ids[1], &ids[2], &ids[3], &ref);
-			for (auto& id : ids){
+			for (auto& id : ids)
+			{
 				--id;
 				id = volume_data.vertices_id_[id];
 			}
@@ -135,7 +136,8 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		for (uint32 i = 0 ; i < number_of_hexas; ++i)
 		{
 			(void) GmfGetLin(mesh_index, GmfHexahedra, &ids[0],&ids[1], &ids[2], &ids[3], &ids[4], &ids[5], &ids[6], &ids[7], &ref);
-			for (auto& id : ids){
+			for (auto& id : ids)
+			{
 				--id;
 				id = volume_data.vertices_id_[id];
 			}
@@ -158,7 +160,8 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		for (uint32 i = 0; i < number_of_prisms; ++i)
 		{
 			(void) GmfGetLin(mesh_index, GmfPrisms, &ids[0],&ids[1], &ids[2], &ids[3], &ids[4], &ids[5], &ref);
-			for (auto& id : ids){
+			for (auto& id : ids)
+			{
 				--id;
 				id = volume_data.vertices_id_[id];
 			}
@@ -179,7 +182,8 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		for (uint32 i = 0; i < number_of_pyramids; ++i)
 		{
 			(void) GmfGetLin(mesh_index, GmfPyramids, &ids[0],&ids[1], &ids[2], &ids[3], &ids[4], &ref);
-			for (auto& id : ids){
+			for (auto& id : ids)
+			{
 				--id;
 				id = volume_data.vertices_id_[id];
 			}

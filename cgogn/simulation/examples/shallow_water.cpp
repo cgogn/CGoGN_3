@@ -47,6 +47,15 @@ using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
+	std::string filename;
+	if (argc < 2)
+	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
+	}
+	else
+		filename = std::string(argv[1]);
+	
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
@@ -56,9 +65,9 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
-	cgogn::ui::ShallowWater<Mesh> sw(app);
 	cgogn::ui::SurfaceSelection<Mesh> ss(app);
 	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
+	cgogn::ui::ShallowWater<Mesh> sw(app);
 
 	cgogn::ui::View* v1 = app.current_view();
 	cgogn::ui::View* v2 = app.add_view();
@@ -66,7 +75,6 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
-	v1->link_module(&sw);
 
 	v2->link_module(&mp);
 	v2->link_module(&sr);
@@ -74,6 +82,14 @@ int main(int argc, char** argv)
 	v2->link_module(&sd);
 
 	app.init_modules();
+
+	Mesh* domain = mp.load_surface_from_file(filename);
+	if (!domain)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
+	sw.set_domain(domain);
 
 	return app.launch();
 }
