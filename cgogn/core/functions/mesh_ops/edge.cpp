@@ -144,6 +144,72 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	return v;
 }
 
+///////////
+// CMap3 //
+///////////
+
+CMap3::Vertex
+cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
+{
+	Dart d0 = e.dart;
+	Dart d23 = m.phi<23>(d0);
+
+	cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false);
+
+	while(d23 != e.dart)
+	{
+		d0 = d23;
+		d23 = m.phi<23>(d23);
+
+		cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false);
+		
+		const Dart d3 = m.phi3(d0);
+		m.phi3_unsew(d0);
+
+		m.phi3_sew(d0, m.phi1(d3));
+		m.phi3_sew(d3, m.phi1(d0));
+	}
+
+	const Dart d3 = m.phi3(e.dart);
+	m.phi3_unsew(e.dart);
+
+	m.phi3_sew(e.dart, m.phi1(d3));
+	m.phi3_sew(d3, m.phi1(e.dart));
+
+	CMap3::Vertex v(m.phi1(e.dart));
+
+	if (set_indices)
+	{
+		if (m.is_indexed<CMap3::Vertex>())
+			set_index(m, v, new_index<CMap3::Vertex>(m));
+
+		if (m.is_indexed<CMap3::Edge>())
+		{
+			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
+			set_index(m, e, index_of(m, e));
+		}
+		if (m.is_indexed<CMap3::Face>())
+		{
+			m.foreach_dart_of_orbit(e, [&](Dart d) -> bool
+			{
+				m.copy_index<CMap3::Face>(m.phi1(d), d);
+				m.copy_index<CMap3::Face>(m.phi3(d), d);
+			});
+		}
+		if (m.is_indexed<CMap3::Volume>())
+		{
+			m.foreach_dart_of_orbit(e, [&](Dart d) -> bool
+			{
+				m.copy_index<CMap3::Volume>(m.phi1(d), d);
+				m.copy_index<CMap3::Volume>(m.phi2(d), d);
+			});
+		}
+	}
+
+	return v;
+}
+
+
 /*****************************************************************************/
 
 // template <typename MESH>

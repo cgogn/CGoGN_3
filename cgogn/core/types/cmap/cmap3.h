@@ -39,10 +39,11 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	using Vertex2 = Cell<PHI21>;
 	using Edge = Cell<PHI2_PHI3>;
 	using Face = Cell<PHI1_PHI3>;
+	using Face2 = Cell<PHI1>;
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Cell<PHI1_PHI2_PHI3>;
 
-	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Volume>;
+	using Cells = std::tuple<Vertex, Vertex2, Edge, Face, Face2, Volume>;
 
 	CMap3() : CMap2()
 	{

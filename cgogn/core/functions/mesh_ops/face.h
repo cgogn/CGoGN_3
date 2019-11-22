@@ -107,6 +107,13 @@ remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true
 CMap2::Edge
 CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
 
+///////////
+// CMap3 //
+///////////
+
+CMap3::Edge
+CGOGN_CORE_EXPORT cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices = true);
+
 //////////////
 // MESHVIEW //
 //////////////
