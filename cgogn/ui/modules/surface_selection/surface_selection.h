@@ -509,6 +509,8 @@ protected:
 							{
 								p.selected_vertices_set_ = &cs;
 								p.update_selected_vertices_vbo();
+								for (View* v : linked_views_)
+									v->request_update();
 							}
 							if (is_selected)
 								ImGui::SetItemDefaultFocus();
@@ -538,6 +540,8 @@ protected:
 							{
 								p.selected_edges_set_ = &cs;
 								p.update_selected_edges_vbo();
+								for (View* v : linked_views_)
+									v->request_update();
 							}
 							if (is_selected)
 								ImGui::SetItemDefaultFocus();
@@ -567,6 +571,8 @@ protected:
 							{
 								p.selected_faces_set_ = &cs;
 								p.update_selected_faces_vbo();
+								for (View* v : linked_views_)
+									v->request_update();
 							}
 							if (is_selected)
 								ImGui::SetItemDefaultFocus();

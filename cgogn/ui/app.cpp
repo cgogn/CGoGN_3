@@ -318,7 +318,7 @@ View* App::add_view()
     if (views_.size() < 4)
     {
         glfwMakeContextCurrent(window_);
-        views_.push_back(std::make_unique<View>(&inputs_));
+        views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(views_.size())));
         adapt_views_geometry();
         return views_.back().get();
     }

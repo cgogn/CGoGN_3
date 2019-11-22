@@ -49,7 +49,7 @@ class CGOGN_UI_EXPORT View : public GLViewer
 
 public:
 
-	View(Inputs* inputs, View* share = nullptr);
+	View(Inputs* inputs, const std::string& name);
 	virtual ~View() override;
 
 protected:
@@ -68,6 +68,8 @@ protected:
 	void draw();
 
 public:
+
+	const std::string& name() { return name_; }
 
     void link_module(ViewModule* m);
     void link_module(ProviderModule* m);
@@ -89,6 +91,8 @@ public:
 	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
 
 protected:
+
+	std::string name_;
 
 	float64 ratio_x_offset_;
 	float64 ratio_y_offset_;

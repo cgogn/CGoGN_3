@@ -29,8 +29,9 @@ namespace cgogn
 namespace ui
 {
 
-View::View(Inputs* inputs, View* share) :
+View::View(Inputs* inputs, const std::string& name) :
 	GLViewer(inputs),
+	name_(name),
 	ratio_x_offset_(0),
 	ratio_y_offset_(0),
 	ratio_width_(1),

@@ -31,8 +31,8 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 #include <cgogn/ui/modules/shallow_water/shallow_water.h>
-
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
+#include <cgogn/ui/modules/surface_selection/surface_selection.h>
+#include <cgogn/ui/modules/surface_deformation/surface_deformation.h>
 
 using namespace cgogn::numerics;
 
@@ -57,12 +57,21 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::ShallowWater<Mesh> sw(app);
+	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
 
 	cgogn::ui::View* v1 = app.current_view();
+	cgogn::ui::View* v2 = app.add_view();
+
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
 	v1->link_module(&sw);
+
+	v2->link_module(&mp);
+	v2->link_module(&sr);
+	v2->link_module(&ss);
+	v2->link_module(&sd);
 
 	app.init_modules();
 

@@ -132,6 +132,7 @@ public:
 
 	SurfaceRender(const App& app) :
 		ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		selected_view_(app.current_view()),
 		selected_mesh_(nullptr)
 	{}
 
@@ -142,43 +143,42 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		parameters_[m];
-		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-		if (vertex_position)
-			set_vertex_position(*m, vertex_position);
-		mesh_connections_[m].push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
-				m, [this, m] (Attribute<Vec3>* attribute)
-				{
-					Parameters& p = parameters_[m];
-					if (p.vertex_position_.get() == attribute)
-						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
-
-					for (View* v : linked_views_)
+		app_.foreach_view([this, m] (View* v)
+		{
+			parameters_[v][m];
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			if (vertex_position)
+				set_vertex_position(*v, *m, vertex_position);
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+					m, [this, v, m] (Attribute<Vec3>* attribute)
+					{
+						Parameters& p = parameters_[v][m];
+						if (p.vertex_position_.get() == attribute)
+							p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 						v->request_update();
-				}
-			)
-		);
-		mesh_connections_[m].push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Scalar>>(
-				m, [this, m] (Attribute<Scalar>* attribute)
-				{
-					Parameters& p = parameters_[m];
-					if (p.vertex_scalar_.get() == attribute && p.auto_update_scalar_min_max_)
-						update_scalar_min_max_values(p);
-
-					for (View* v : linked_views_)
+					}
+				)
+			);
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Scalar>>(
+					m, [this, v, m] (Attribute<Scalar>* attribute)
+					{
+						Parameters& p = parameters_[v][m];
+						if (p.vertex_scalar_.get() == attribute && p.auto_update_scalar_min_max_)
+							update_scalar_min_max_values(p);
 						v->request_update();
-				}
-			)
-		);
+					}
+				)
+			);
+		});
 	}
 
 public:
 
-	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		Parameters& p = parameters_[&m];
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
@@ -195,13 +195,12 @@ public:
 		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
 		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
-		for (View* v : linked_views_)
-			v->request_update();
+		v.request_update();
 	}
 
-	void set_vertex_normal(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
+	void set_vertex_normal(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
-		Parameters& p = parameters_[&m];
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_normal_ = vertex_normal;
@@ -211,13 +210,12 @@ public:
 		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
 		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
-		for (View* v : linked_views_)
-			v->request_update();
+		v.request_update();
 	}
 
-	void set_vertex_scalar(const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
+	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
 	{
-		Parameters& p = parameters_[&m];
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_scalar_ = vertex_scalar;
@@ -239,8 +237,7 @@ public:
 		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
 		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()), md->vbo(p.vertex_scalar_.get()));
 
-		for (View* v : linked_views_)
-			v->request_update();
+		v.request_update();
 	}
 
 protected:
@@ -273,7 +270,7 @@ protected:
 
 	void draw(View* view) override
 	{
-		for (auto& [m, p] : parameters_)
+		for (auto& [m, p] : parameters_[view])
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
@@ -340,6 +337,19 @@ protected:
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
 
+		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
+		{
+			app_.foreach_view([this] (View* v)
+			{
+				bool is_selected = v == selected_view_;
+				if (ImGui::Selectable(v->name().c_str(), is_selected))
+					selected_view_ = v;
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			});
+			ImGui::EndCombo();
+		}
+
 		if (ImGui::ListBoxHeader("Mesh"))
 		{
 			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
@@ -350,11 +360,11 @@ protected:
 			ImGui::ListBoxFooter();
 		}
 
-		if (selected_mesh_)
+		if (selected_view_ && selected_mesh_)
 		{
 			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
-			Parameters& p = parameters_[selected_mesh_];
+			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
 			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
 			{
@@ -362,7 +372,7 @@ protected:
 				{
 					bool is_selected = attribute == p.vertex_position_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_position(*selected_mesh_, attribute);
+						set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
 				});
@@ -372,7 +382,7 @@ protected:
 			{
 				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 				if (ImGui::Button("X##position"))
-					set_vertex_position(*selected_mesh_, nullptr);
+					set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
 			}
 
 			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
@@ -381,7 +391,7 @@ protected:
 				{
 					bool is_selected = attribute == p.vertex_normal_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_normal(*selected_mesh_, attribute);
+						set_vertex_normal(*selected_view_, *selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
 				});
@@ -391,7 +401,7 @@ protected:
 			{
 				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 				if (ImGui::Button("X##normal"))
-					set_vertex_normal(*selected_mesh_, nullptr);
+					set_vertex_normal(*selected_view_, *selected_mesh_, nullptr);
 			}
 
 			if (ImGui::BeginCombo("Scalar", p.vertex_scalar_ ? p.vertex_scalar_->name().c_str() : "-- select --"))
@@ -400,7 +410,7 @@ protected:
 				{
 					bool is_selected = attribute == p.vertex_scalar_;
 					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_scalar(*selected_mesh_, attribute);
+						set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
 				});
@@ -410,7 +420,7 @@ protected:
 			{
 				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 				if (ImGui::Button("X##scalar"))
-					set_vertex_scalar(*selected_mesh_, nullptr);
+					set_vertex_scalar(*selected_view_, *selected_mesh_, nullptr);
 			}
 
 			ImGui::Separator();
@@ -479,8 +489,9 @@ protected:
 
 private:
 
+	View* selected_view_;
 	const MESH* selected_mesh_;
-	std::unordered_map<const MESH*, Parameters> parameters_;
+	std::unordered_map<View*, std::unordered_map<const MESH*, Parameters>> parameters_;
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
