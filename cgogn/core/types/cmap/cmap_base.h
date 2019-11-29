@@ -67,14 +67,12 @@ struct CGOGN_CORE_EXPORT CMapBase
 	CMapBase();
 	virtual ~CMapBase();
 
-protected:
+public:
 
 	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
 		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
-
-public:
 
 	inline uint32 nb_darts() const
 	{
@@ -99,29 +97,6 @@ public:
 		return cells_indices_[orbit] != nullptr;
 	}
 
-	template <typename CELL>
-	inline uint32 index_of(CELL c) const
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		return (*cells_indices_[orbit])[c.dart.index];
-	}
-
-	template <typename CELL>
-	inline void set_index(Dart d, uint32 index)
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		const uint32 old = (*cells_indices_[orbit])[d.index];
-		// ref_index() is done before unref_index() to avoid deleting the index if old == index
-		attribute_containers_[orbit].ref_index(index);		// ref the new index
-		if (old != INVALID_INDEX)
-			attribute_containers_[orbit].unref_index(old);	// unref the old index
-		(*cells_indices_[orbit])[d.index] = index;			// affect the index to the dart
-	}
-
 	// template <typename CELL>
 	// inline void unset_index(Dart d)
 	// {
@@ -133,15 +108,6 @@ public:
 	// 		attribute_containers_[orbit].unref_index(old);	// unref the old emb
 	// 	(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
 	// }
-
-	template <typename CELL>
-	inline void copy_index(Dart dest, Dart src)
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		set_index<CELL>(dest, index_of(CELL(src)));
-	}
 
 	template <typename CELL>
 	inline void init_cells_indexing()
@@ -197,6 +163,7 @@ public:
 	inline Dart end() const { return Dart(topology_.last_index()); }
 	inline Dart next(Dart d) const { return Dart(topology_.next_index(d.index)); }
 };
+
 
 } // namespace cgogn
 

@@ -28,6 +28,7 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/type_traits.h>
+#include <cgogn/core/functions/traversals/dart.h>
 
 namespace cgogn
 {
@@ -123,7 +124,7 @@ void foreach_incident_edge(const CMap1& m, CMap1::Face f, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap1::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { return func(CMap1::Edge(d)); });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { return func(CMap1::Edge(d)); });
 }
 
 ///////////
@@ -135,7 +136,7 @@ void foreach_incident_edge(const CMap2& m, CMap2::Vertex v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
+	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
 }
 
 template <typename FUNC>
@@ -143,7 +144,7 @@ void foreach_incident_edge(const CMap2& m, CMap2::Face f, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
 }
 
 template <typename FUNC>
@@ -151,12 +152,12 @@ void foreach_incident_edge(const CMap2& m, CMap2::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	DartMarkerStore marker(m.mesh());
+	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
 		{
-			m.foreach_dart_of_orbit(CMap2::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			foreach_dart_of_orbit(m,CMap2::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
 			return func(CMap2::Edge(d));
 		}
 		return true;
@@ -172,12 +173,12 @@ void foreach_incident_edge(const CMap3& m, CMap3::Vertex v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	DartMarkerStore marker(m.mesh());
+	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
 		{
-			m.foreach_dart_of_orbit(CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			foreach_dart_of_orbit(m,CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
 			return func(CMap3::Edge(d));
 		}
 		return true;
@@ -189,7 +190,7 @@ void foreach_incident_edge(const CMap3& m, CMap3::Face f, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { return func(CMap3::Edge(d)); });
+	foreach_dart_of_orbit(m,CMap3::Face2(f.dart), [&] (Dart d) -> bool { return func(CMap3::Edge(d)); });
 }
 
 template <typename FUNC>
@@ -197,13 +198,13 @@ void foreach_incident_edge(const CMap3& m, CMap3::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	DartMarkerStore marker(m.mesh());
+	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
 		{
 			// TODO: could mark only the darts of CMap2::Edge(d)
-			m.foreach_dart_of_orbit(CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
+			foreach_dart_of_orbit(m,CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
 			return func(CMap3::Edge(d));
 		}
 		return true;

@@ -47,12 +47,10 @@ namespace cgogn
 // CMapBase //
 //////////////
 
-template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>
-add_attribute(MESH& m, const std::string& name)
+template <typename T, typename CELL>
+std::shared_ptr<CMapBase::Attribute<T>>
+add_attribute(CMapBase& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	if (!m.template is_indexed<CELL>())
 		index_cells<CELL>(m);
 	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
@@ -82,12 +80,10 @@ add_attribute(MESH& m, const std::string& name)
 // CMapBase //
 //////////////
 
-template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>
-get_attribute(const MESH& m, const std::string& name)
+template <typename T, typename CELL>
+std::shared_ptr<CMapBase::Attribute<T>>
+get_attribute(const CMapBase& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
 }
 
@@ -118,21 +114,17 @@ get_attribute(const MESH& m, const std::string& name)
 // CMapBase //
 //////////////
 
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+template <typename CELL>
 void
-remove_attribute(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::AttributeGen> attribute)
+remove_attribute(CMapBase& m, std::shared_ptr<CMapBase::AttributeGen> attribute)
 {
-	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
 
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+template <typename CELL>
 void
-remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
+remove_attribute(CMapBase& m, CMapBase::AttributeGen* attribute)
 {
-	static_assert (is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL note supported in this MESH");
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
 

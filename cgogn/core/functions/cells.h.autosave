@@ -167,7 +167,7 @@ void index_cells(MESH& m)
 	if (!m.template is_indexed<CELL>())
 		m.template init_cells_indexing<CELL>();
 	
-	m.mesh().foreach_cell(m, [&] (CELL c) -> bool
+	foreach_cell(m, [&] (CELL c) -> bool
 	{
 		if (index_of(m, c) == INVALID_INDEX)
 			set_index(m, c, new_index<CELL>(m));

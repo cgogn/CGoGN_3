@@ -44,7 +44,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
 	
 	uint32 index = 0u;
-	DartMarker dart_marker(m);
+	DartMarker dart_marker(m.mesh());
 	uint32 vol_emb = 0u;
 
 	// for each volume of table
@@ -59,17 +59,17 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 
 			const std::array<Dart, 4> vertices_of_tetra = {
 				vol.dart,
-				m.phi1(vol.dart),
-				m.phi_1(vol.dart),
-				m.phi_1(m.phi2(m.phi_1(vol.dart)))
+				phi1(m,vol.dart),
+				phi_1(m,vol.dart),
+				phi_1(m,phi2(m,phi_1(m,vol.dart)))
 			};
 
 			for (Dart dv : vertices_of_tetra)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				foreach_dart_of_orbit(m,CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
-					m.set_index<Vertex>(d, vertex_index);
+					set_index<Vertex>(m,d, vertex_index);
 					return true;
 				});
 
@@ -78,7 +78,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				{
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = m.phi1(m.phi2(dd));
+					dd = phi1(m,phi2(m,dd));
 				} while (dd != dv);
 			}
 		}
@@ -88,18 +88,18 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 
 			const std::array<Dart, 5> vertices_of_pyramid = {
 				vol.dart,
-				m.phi1(vol.dart),
-				m.phi1(m.phi1(vol.dart)),
-				m.phi_1(vol.dart),
-				m.phi_1(m.phi2(m.phi_1(vol.dart)))
+				phi1(m,vol.dart),
+				phi1(m,phi1(m,vol.dart)),
+				phi_1(m,vol.dart),
+				phi_1(m,phi2(m,phi_1(m,vol.dart)))
 			};
 
 			for (Dart dv : vertices_of_pyramid)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				foreach_dart_of_orbit(m,CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
-					m.set_index<Vertex>(d, vertex_index);
+					set_index<Vertex>(m,d, vertex_index);
 					return true;
 				});
 
@@ -108,7 +108,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				{
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = m.phi1(m.phi2(dd));
+					dd = phi1(m,phi2(m,dd));
 				} while (dd != dv);
 			}
 		}
@@ -118,19 +118,19 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 
 			const std::array<Dart, 6> vertices_of_prism = {
 				vol.dart,
-				m.phi1(vol.dart),
-				m.phi_1(vol.dart),
-				m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(vol.dart))))),
-				m.phi2(m.phi1(m.phi1(m.phi2(vol.dart)))),
-				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(vol.dart)))))
+				phi1(m,vol.dart),
+				phi_1(m,vol.dart),
+				phi2(m,phi1(m,phi1(m,phi2(m,phi_1(m,vol.dart))))),
+				phi2(m,phi1(m,phi1(m,phi2(m,vol.dart)))),
+				phi2(m,phi1(m,phi1(m,phi2(m,phi1(m,vol.dart)))))
 			};
 
 			for (Dart dv : vertices_of_prism)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				foreach_dart_of_orbit(m,CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
-					m.set_index<Vertex>(d, vertex_index);
+					set_index<Vertex>(m,d, vertex_index);
 					return true;
 				});
 
@@ -139,7 +139,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				{
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = m.phi1(m.phi2(dd));
+					dd = phi1(m,phi2(m,dd));
 				} while (dd != dv);
 			}
 		}
@@ -149,21 +149,21 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 
 			const std::array<Dart, 8> vertices_of_hexa = {
 				vol.dart,
-				m.phi1(vol.dart),
-				m.phi1(m.phi1(vol.dart)),
-				m.phi_1(vol.dart),
-				m.phi2(m.phi1(m.phi1(m.phi2(m.phi_1(vol.dart))))),
-				m.phi2(m.phi1(m.phi1(m.phi2(vol.dart)))),
-				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(vol.dart))))),
-				m.phi2(m.phi1(m.phi1(m.phi2(m.phi1(m.phi1(vol.dart))))))
+				phi1(m,vol.dart),
+				phi1(m,phi1(m,vol.dart)),
+				phi_1(m,vol.dart),
+				phi2(m,phi1(m,phi1(m,phi2(m,phi_1(m,vol.dart))))),
+				phi2(m,phi1(m,phi1(m,phi2(m,vol.dart)))),
+				phi2(m,phi1(m,phi1(m,phi2(m,phi1(m,vol.dart))))),
+				phi2(m,phi1(m,phi1(m,phi2(m,phi1(m,phi1(m,vol.dart))))))
 			};
 
 			for (Dart dv : vertices_of_hexa)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Vertex(dv), [&] (Dart d) -> bool
+				foreach_dart_of_orbit(m,CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
-					m.set_index<Vertex>(d, vertex_index);
+					set_index<Vertex>(m,d, vertex_index);
 					return true;
 				});
 
@@ -172,7 +172,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 				{
 					dart_marker.mark(dd);
 					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = m.phi1(m.phi2(dd));
+					dd = phi1(m,phi2(m,dd));
 				} while (dd != dv);
 			}
 		}
@@ -185,19 +185,19 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			}
 		}
 
-		if (m.is_indexed<Volume>())
+		if (m.mesh().is_indexed<Volume>())
 			set_index(m, vol, vol_emb++);
 	}
 
 	// reconstruct neighbourhood
 	uint32 nb_boundary_faces = 0u;
-	DartMarkerStore marker(m);
+	DartMarkerStore marker(m.mesh());
 
-	m.foreach_dart([&] (Dart d) -> bool
+	m.mesh().foreach_dart([&] (Dart d) -> bool
 	{
-		if (m.phi3(d) == d && !marker.is_marked(d))
+		if (phi3(m,d) == d && !marker.is_marked(d))
 		{
-			static_cast<CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(d), [&] (Dart fd) -> bool { marker.mark(fd); return true; });
+			foreach_dart_of_orbit(m,CMap3::Face2(d), [&] (Dart fd) -> bool { marker.mark(fd); return true; });
 
 			Dart good_dart;
 
@@ -205,15 +205,15 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			Dart d_it = d;
 			do
 			{
-				uint32 vindex1 = m.index_of(Vertex(d_it));
-				uint32 vindex2 = m.index_of(Vertex(m.phi1(m.phi1(d_it))));
-				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(m.phi1(d_it)));
+				uint32 vindex1 = index_of(m,Vertex(d_it));
+				uint32 vindex2 = index_of(m,Vertex(phi1(m,phi1(m,d_it))));
+				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(phi1(m,d_it)));
 				for (auto it = vec.begin(); it != vec.end() && good_dart.is_nil(); ++it)
-					if (m.index_of(Vertex(m.phi1(*it))) == vindex1 && m.index_of(Vertex(m.phi_1(*it))) == vindex2)
+					if (index_of(m,Vertex(phi1(m,*it))) == vindex1 && index_of(m,Vertex(phi_1(m,*it))) == vindex2)
 						good_dart = *it;
-				d_it = m.phi1(d_it);
+				d_it = phi1(m,d_it);
 			} while (good_dart.is_nil() && (d_it != d));
-			d = m.phi_1(d_it);
+			d = phi_1(m,d_it);
 
 			if (!good_dart.is_nil())
 			{
@@ -226,9 +226,9 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 					Dart it2 = good_dart;
 					do
 					{
-						m.phi3_sew(it1, it2);
-						it1 = m.phi1(it1);
-						it2 = m.phi_1(it2);
+						phi3_sew(m,it1, it2);
+						it1 = phi1(m,it1);
+						it2 = phi_1(m,it2);
 					} while (it1 != d);
 				}
 				else
@@ -246,7 +246,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 
 	if (nb_boundary_faces > 0u)
 	{
-		uint32 nb_holes = m.close();
+		uint32 nb_holes = close(m);
 		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
 		std::cout << nb_boundary_faces << " boundary faces" << std::endl;
 	}

@@ -33,6 +33,17 @@ namespace cgogn
 
 struct CGOGN_CORE_EXPORT CMap1 : public CMap0
 {
+	
+	using Self = CMap1;
+	using Inherit = CMap0;
+	
+	using AttributeContainer = Inherit::AttributeContainer;
+
+	template <typename T>
+	using Attribute = Inherit::Attribute<T>;
+	using AttributeGen = Inherit::AttributeGen;
+	using MarkAttribute = Inherit::MarkAttribute;
+	
 	std::shared_ptr<Attribute<Dart>> phi1_;
 	std::shared_ptr<Attribute<Dart>> phi_1_;
 
@@ -45,78 +56,8 @@ struct CGOGN_CORE_EXPORT CMap1 : public CMap0
 
 	CMap1() : CMap0()
 	{
-		phi1_ = add_relation("phi1");
-		phi_1_ = add_relation("phi_1");
-	}
-
-	inline Dart phi1(Dart d) const
-	{
-		return (*phi1_)[d.index];
-	}
-
-	inline Dart phi_1(Dart d) const
-	{
-		return (*phi_1_)[d.index];
-	}
-
-	template <uint64 N>
-	inline Dart phi(Dart d) const
-	{
-		static_assert(N % 10 <= 1, "Composition of PHI: invalid index");
-		if (N >= 10)
-			return phi1(phi<N / 10>(d));
-		if (N == 1)
-			return phi1(d);
-		return d;
-	}
-
-	inline void phi1_sew(Dart d, Dart e)
-	{
-		Dart f = phi1(d);
-		Dart g = phi1(e);
-		(*phi1_)[d.index] = g;
-		(*phi1_)[e.index] = f;
-		(*phi_1_)[g.index] = d;
-		(*phi_1_)[f.index] = e;
-	}
-
-	inline void phi1_unsew(Dart d)
-	{
-		Dart e = phi1(d);
-		Dart f = phi1(e);
-		(*phi1_)[d.index] = f;
-		(*phi1_)[e.index] = e;
-		(*phi_1_)[f.index] = d;
-		(*phi_1_)[e.index] = e;
-	}
-
-	template <typename CELL, typename FUNC>
-	inline void foreach_dart_of_orbit(CELL c, const FUNC& f) const
-	{
-		static_assert(is_in_tuple<CELL, Cells>::value, "Cell not supported in a CMap1");
-		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		static const Orbit orbit = CELL::ORBIT;
-		switch (orbit)
-		{
-			case DART: f(c.dart); break;
-			case PHI1: foreach_dart_of_PHI1(c.dart, f); break;
-			default: break;
-		}
-	}
-
-	template <typename FUNC>
-	inline void foreach_dart_of_PHI1(Dart d, const FUNC& f) const
-	{
-		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		Dart it = d;
-		do
-		{
-			if (!f(it))
-				break;
-			it = phi1(it);
-		} while (it != d);
+		phi1_ = base_map_.add_relation("phi1");
+		phi_1_ = base_map_.add_relation("phi_1");
 	}
 };
 

@@ -45,6 +45,7 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/phi.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
@@ -65,7 +66,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/face.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/volume.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/volume.cpp"
-
+		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/dart.h"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/utils/assert.h"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/assert.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/buffers.h"
