@@ -71,6 +71,24 @@ inline void foreach_dart_of_orbit(const Graph& g,CELL c, const FUNC& f)
 	}
 }
 
+template <typename FUNC>
+void foreach_dart(const CMapBase& m,const FUNC& f)
+{
+    static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+    static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+    for (uint32 i = m.topology_.first_index(), last_index = m.topology_.last_index(); i < last_index; i = m.topology_.next_index(i))
+        if (!f(Dart(i)))
+            break;
+}
+
+template <typename FUNC, typename MESH, typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+void foreach_dart(const MESH& m,const FUNC& f)
+{
+    static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+    static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+    foreach_dart(m.mesh(),f);
+}
+
 template <typename MAP,typename FUNC>
 inline void foreach_dart_of_PHI1(const MAP& m, Dart d, const FUNC& f)
 {
@@ -113,7 +131,7 @@ void foreach_dart_of_PHI1_PHI2(const MAP& m,Dart d, const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m.mesh());
+    DartMarkerStore marker(*m.mesh());
 
 	std::vector<Dart> visited_faces;
 	visited_faces.push_back(d); // Start with the face of d
@@ -173,7 +191,7 @@ inline void foreach_dart_of_PHI21_PHI31(const MAP& m,Dart d, const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m.mesh());
+    DartMarkerStore marker(*m.mesh());
 	const std::vector<Dart>& marked_darts = marker.marked_darts();
 
 	marker.mark(d);

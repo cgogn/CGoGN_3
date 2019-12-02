@@ -64,7 +64,7 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap2::Vertex>())
+        if (is_indexed<CMap2::Vertex>(m))
 		{
 			foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool
 			{
@@ -72,7 +72,7 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::HalfEdge>())
+        if (is_indexed<CMap2::HalfEdge>(m))
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
@@ -81,7 +81,7 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Edge>())
+        if (is_indexed<CMap2::Edge>(m))
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
@@ -89,7 +89,7 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Face>())
+        if (is_indexed<CMap2::Face>(m))
 		{
 			foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool
 			{
@@ -97,7 +97,7 @@ add_pyramid(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Volume>())
+        if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));
 	}
 
@@ -117,13 +117,13 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 	}
 	phi2_sew(m,phi_1(m,current), phi1(m,first.dart)); // Finish the sides
 	CMap2::Face base = close_hole(m,first.dart, false); // Add the base face
-	CMap2::Face top = close_hole(m,phi<11>(m,first.dart), false); // Add the top face
+    //CMap2::Face top = close_hole(m,phi<11>(m,first.dart), false); // Add the top face
 	
 	CMap2::Volume vol(base.dart);
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap2::Vertex>())
+        if (is_indexed<CMap2::Vertex>(m))
 		{
 			foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool
 			{
@@ -131,7 +131,7 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::HalfEdge>())
+        if (is_indexed<CMap2::HalfEdge>(m))
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
@@ -140,7 +140,7 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Edge>())
+        if (is_indexed<CMap2::Edge>(m))
 		{
 			foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 			{
@@ -148,7 +148,7 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Face>())
+        if (is_indexed<CMap2::Face>(m))
 		{
 			foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool
 			{
@@ -156,7 +156,7 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap2::Volume>())
+        if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));
 	}
 
@@ -189,7 +189,7 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap3::Vertex>())
+        if (is_indexed<CMap3::Vertex>(m))
 		{
 			foreach_dart_of_orbit(m,CMap3::Face(f0), [&](Dart d) -> bool
 			{
@@ -197,7 +197,7 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap3::Edge>())
+        if (is_indexed<CMap3::Edge>(m))
 		{
 			foreach_dart_of_orbit(m,CMap3::Face2(f0), [&](Dart d) -> bool
 			{
@@ -206,7 +206,7 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 				return true;
 			});
 		}
-		if (m.mesh().is_indexed<CMap3::Face>())
+        if (is_indexed<CMap3::Face>(m))
 		{
 			set_index(m, CMap3::Face(f0), new_index<CMap3::Face>(m));
 		}
@@ -219,8 +219,8 @@ CMap3::Volume close_hole(CMap3& m,Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi3(m,d) == d, "CMap3: close hole called on a dart that is not a phi3 fix point");
 
-	DartMarkerStore marker(m.mesh());
-	DartMarkerStore hole_volume_marker(m.mesh());
+    DartMarkerStore marker(*m.mesh());
+    DartMarkerStore hole_volume_marker(*m.mesh());
 
 	std::vector<Dart> visited_faces;
 	visited_faces.reserve(1024u);
@@ -281,11 +281,11 @@ CMap3::Volume close_hole(CMap3& m,Dart d, bool set_indices)
 		foreach_dart_of_orbit(m,hole, [&] (Dart hd) -> bool
 		{
 			Dart hd3 = phi3(m,hd);
-			if (m.mesh().is_indexed<CMap3::Vertex>())
+            if (is_indexed<CMap3::Vertex>(m))
 				copy_index<CMap3::Vertex>(m,hd, phi1(m,hd3));
-			if (m.mesh().is_indexed<CMap3::Edge>())
+            if (is_indexed<CMap3::Edge>(m))
 				copy_index<CMap3::Edge>(m,hd, hd3);
-			if (m.mesh().is_indexed<CMap3::Face>())
+            if (is_indexed<CMap3::Face>(m))
 				copy_index<CMap3::Face>(m,hd, hd3);
 			return true;
 		});
@@ -299,7 +299,7 @@ uint32 close(CMap3& m,bool set_indices)
 	uint32 nb_holes = 0u;
 
 	std::vector<Dart> fix_point_darts;
-	m.mesh().foreach_dart([&] (Dart d) -> bool
+    m.mesh()->foreach_dart([&] (Dart d) -> bool
 	{
 		if (phi3(m,d) == d)
 			fix_point_darts.push_back(d);
@@ -311,7 +311,7 @@ uint32 close(CMap3& m,bool set_indices)
 		if (phi3(m,d) == d)
 		{
 			CMap3::Volume h = close_hole(m,d, set_indices);
-			foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { m.mesh().set_boundary(hd, true); return true; });
+            foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { m.mesh()->set_boundary(hd, true); return true; });
 			++nb_holes;
 		}
 	}

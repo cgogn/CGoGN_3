@@ -54,11 +54,17 @@ struct CGOGN_CORE_EXPORT CMap1 : public CMap0
 
 	using Cells = std::tuple<Vertex, Edge, Face>;
 
-	CMap1() : CMap0()
-	{
-		phi1_ = base_map_.add_relation("phi1");
-		phi_1_ = base_map_.add_relation("phi_1");
-	}
+    CMap1() : CMap0()
+    {
+        phi1_ = base_map_->add_or_get_relation("phi1");
+        phi_1_ = base_map_->add_relation("phi_1");
+    }
+
+    CMap1(std::shared_ptr<CMapBase> m) : CMap0(m)
+    {
+        phi1_ = base_map_->add_or_get_relation("phi1");
+        phi_1_ = base_map_->add_relation("phi_1");
+    }
 };
 
 } // namespace cgogn

@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/cmap/cmap_base.h>
+#include <memory>
 
 namespace cgogn
 {
@@ -49,13 +50,18 @@ struct CGOGN_CORE_EXPORT CMap0
 	
 	static const bool is_mesh_view = true;
 	
-	CMapBase base_map_;  
+   std::shared_ptr<CMapBase> base_map_;
 
-	CMap0() : base_map_()
-	{}
+    CMap0()
+    {
+        base_map_ = std::make_shared<CMapBase>();
+    }
+
+    CMap0(std::shared_ptr<CMapBase> m) : base_map_(m)
+    {}
 	
-	inline const CMapBase& mesh() const {return base_map_;}
-	inline CMapBase& mesh(){return base_map_;}
+    inline const std::shared_ptr<CMapBase> mesh() const {return base_map_;}
+    inline std::shared_ptr<CMapBase> mesh(){return base_map_;}
 };
 
 } // namespace cgogn

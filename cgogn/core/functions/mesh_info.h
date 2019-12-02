@@ -171,7 +171,7 @@ template <typename MESH,
 bool
 is_boundary(const MESH& m, Dart d)
 {
-	return is_boundary(m.mesh(),d);
+    return is_boundary(*m.mesh(),d);
 }
 
 
@@ -184,7 +184,7 @@ is_incident_to_boundary(const MESH& m, CELL c)
 	bool result = false;
 	foreach_dart_of_orbit(m,c, [&m, &result] (Dart d) -> bool
 	{
-		if (is_boundary(m.mesh(),d)) { result = true; return false; }
+        if (is_boundary(*m.mesh(),d)) { result = true; return false; }
 		return true;
 	});
 	return result;

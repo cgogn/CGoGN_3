@@ -158,7 +158,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol)
 {
-	if (m.is_indexed<CMap2::Vertex>())
+    if (is_indexed<CMap2::Vertex>(m))
 	{
 		foreach_incident_vertex(m, vol, [&] (CMap2::Vertex v) -> bool
 		{
@@ -166,16 +166,16 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 			return true;
 		});
 	}
-	if (m.is_indexed<CMap2::HalfEdge>())
+    if (is_indexed<CMap2::HalfEdge>(m))
 	{
 		foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 		{
 			set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-			set_index(m, CMap2::HalfEdge(m.phi2(e.dart)), new_index<CMap2::HalfEdge>(m));
+            set_index(m, CMap2::HalfEdge(phi2(m,e.dart)), new_index<CMap2::HalfEdge>(m));
 			return true;
 		});
 	}
-	if (m.is_indexed<CMap2::Edge>())
+    if (is_indexed<CMap2::Edge>(m))
 	{
 		foreach_incident_edge(m, vol, [&] (CMap2::Edge e) -> bool
 		{
@@ -183,7 +183,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 			return true;
 		});
 	}
-	if (m.is_indexed<CMap2::Face>())
+    if (is_indexed<CMap2::Face>(m))
 	{
 		foreach_incident_face(m, vol, [&] (CMap2::Face f) -> bool
 		{
@@ -191,7 +191,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 			return true;
 		});
 	}
-	if (m.is_indexed<CMap2::Volume>())
+    if (is_indexed<CMap2::Volume>(m))
 		set_index(m, vol, new_index<CMap2::Volume>(m));
 }
 
@@ -215,10 +215,10 @@ Dart add_branch_section(CMap3& m3)
 		add_prism(static_cast<CMap2&>(m3), 4).dart
 	};
 
-	m3.sew_volumes(m3.phi2(D[0]), m3.phi2(m3.phi_1((D[1]))));
-	m3.sew_volumes(m3.phi2(D[1]), m3.phi2(m3.phi_1((D[2]))));
-	m3.sew_volumes(m3.phi2(D[2]), m3.phi2(m3.phi_1((D[3]))));
-	m3.sew_volumes(m3.phi2(D[3]), m3.phi2(m3.phi_1((D[0]))));
+    sew_volumes(m3,phi2(m3,D[0]), phi2(m3,phi_1(m3,(D[1]))));
+    sew_volumes(m3,phi2(m3,D[1]), phi2(m3,phi_1(m3,(D[2]))));
+    sew_volumes(m3,phi2(m3,D[2]), phi2(m3,phi_1(m3,(D[3]))));
+    sew_volumes(m3,phi2(m3,D[3]), phi2(m3,phi_1(m3,(D[0]))));
 
 	return D[0];
 }

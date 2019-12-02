@@ -52,10 +52,14 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 	using AttributeGen = Inherit::AttributeGen;
 	using MarkAttribute = Inherit::MarkAttribute;
 
-	CMap2() : CMap1()
-	{
-		phi2_ = base_map_.add_relation("phi2");
-	}
+    CMap2() : CMap1()
+    {
+        phi2_ = base_map_->add_or_get_relation("phi2");
+    }
+    CMap2(std::shared_ptr<CMapBase> m) : CMap1(m)
+    {
+        phi2_ = base_map_->add_or_get_relation("phi2");
+    }
 };
 
 } // namespace cgogn

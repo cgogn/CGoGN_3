@@ -74,6 +74,14 @@ public:
 		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
 
+    std::shared_ptr<Attribute<Dart>> add_or_get_relation(const std::string& name)
+    {
+        auto rel = topology_.add_attribute<Dart>(name);
+        if(rel == nullptr)
+            return topology_.get_attribute<Dart>(name);
+        return relations_.emplace_back(rel);
+    }
+
 	inline uint32 nb_darts() const
 	{
 		return topology_.nb_elements();
@@ -89,14 +97,6 @@ public:
 		return (*boundary_marker_)[d.index] != 0u;
 	}
 
-	template <typename CELL>
-	inline bool is_indexed() const
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		return cells_indices_[orbit] != nullptr;
-	}
-
 	// template <typename CELL>
 	// inline void unset_index(Dart d)
 	// {
@@ -108,20 +108,6 @@ public:
 	// 		attribute_containers_[orbit].unref_index(old);	// unref the old emb
 	// 	(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
 	// }
-
-	template <typename CELL>
-	inline void init_cells_indexing()
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		if (!is_indexed<CELL>())
-		{
-			std::ostringstream oss;
-			oss << "__index_" << orbit_name(orbit);
-			cells_indices_[orbit] = topology_.add_attribute<uint32>(oss.str());
-			cells_indices_[orbit]->fill(INVALID_INDEX);
-		}
-	}
 
 	inline Dart add_dart()
 	{

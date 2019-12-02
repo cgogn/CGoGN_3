@@ -60,7 +60,7 @@ inline
 uint32 index_of(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return index_of(m.mesh(), c);
+    return index_of(*m.mesh(), c);
 }
 
 /*****************************************************************************/
@@ -91,7 +91,7 @@ inline
 uint32 new_index(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return new_index<CELL>(m.mesh());
+    return new_index<CELL>(*m.mesh());
 }
 
 /*****************************************************************************/
@@ -129,7 +129,7 @@ inline
 void set_index(MESH& m, Dart d, uint32 index)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	set_index<CELL>(m.mesh(),d, index);
+    set_index<CELL>(*m.mesh(),d, index);
 }
 
 
@@ -141,9 +141,81 @@ void set_index(MESH& m, CELL c, uint32 index)
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	foreach_dart_of_orbit(m,c, [&] (Dart d) -> bool
 	{
-		set_index<CELL>(m.mesh(),d, index);
+        set_index<CELL>(*m.mesh(),d, index);
 		return true;
 	});
+}
+
+/*****************************************************************************/
+
+// template <typename CELL>
+// bool is_indexed(CMapBase& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+inline
+bool is_indexed(CMapBase& m)
+{
+    static const Orbit orbit = CELL::ORBIT;
+    static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
+    return m.cells_indices_[orbit] != nullptr;
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename CELL, typename MESH,
+          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline
+bool is_indexed(MESH& m)
+{
+    static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+    return is_indexed<CELL>(*(m.mesh()));
+}
+
+/*****************************************************************************/
+
+// template <typename CELL>
+// bool is_indexed(CMapBase& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+inline
+void init_cells_indexing(CMapBase& m)
+{
+    static const Orbit orbit = CELL::ORBIT;
+    static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+    if (!is_indexed<CELL>(m))
+    {
+        std::ostringstream oss;
+        oss << "__index_" << orbit_name(orbit);
+        m.cells_indices_[orbit] = m.topology_.add_attribute<uint32>(oss.str());
+        m.cells_indices_[orbit]->fill(INVALID_INDEX);
+    }
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename CELL, typename MESH,
+          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline
+void init_cells_indexing(MESH& m)
+{
+    static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+    return init_cells_indexing<CELL>(m.mesh());
 }
 
 /*****************************************************************************/
@@ -157,22 +229,19 @@ void set_index(MESH& m, CELL c, uint32 index)
 // CMapBase //
 //////////////
 
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+template <typename CELL>
 inline
-void index_cells(MESH& m)
+void index_cells(CMapBase& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	
-	if (!m.template is_indexed<CELL>())
+    /*if (!m.template is_indexed<CELL>())
 		m.template init_cells_indexing<CELL>();
 	
-	m.mesh().foreach_cell(m, [&] (CELL c) -> bool
+    foreach_cell(m, [&] (CELL c) -> bool
 	{
 		if (index_of(m, c) == INVALID_INDEX)
-			set_index(m, c, new_index<CELL>(m));
+            set_index<CELL>(m, c, new_index<CELL>(m));
 		return true;
-	}, true);
+    }, true);*/
 }
 
 //////////////
@@ -185,7 +254,16 @@ inline
 void index_cells(MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return index_cells(m.mesh());
+    if(is_indexed<CELL>(m.mesh()))
+    {
+        init_cells_indexing<CELL>(m.mesh());
+    }
+    foreach_cell(m, [&] (CELL c) -> bool
+    {
+        if (index_of(m, c) == INVALID_INDEX)
+            set_index<CELL>(m, c, new_index<CELL>(m));
+        return true;
+    }, true);
 }
 
 
@@ -211,7 +289,7 @@ template <typename CELL,typename MESH,
 inline
 void copy_index(MESH& m,Dart dest, Dart src)
 {
-	return copy_index<CELL>(m.mesh(),dest,src);
+    return copy_index<CELL>(*m.mesh(),dest,src);
 }
 
 } // namespace cgogn

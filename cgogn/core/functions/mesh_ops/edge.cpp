@@ -47,8 +47,8 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 	Dart e0 = e.dart;
 	Dart e1 = g.alpha0(e0);
 
-	Dart v0 = g.mesh().add_dart();
-	Dart v1 = g.mesh().add_dart();
+    Dart v0 = g.mesh()->add_dart();
+    Dart v1 = g.mesh()->add_dart();
 
 	g.alpha1_sew(v0, v1);
 	g.alpha0_unsew(e0);
@@ -57,14 +57,14 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (g.mesh().is_indexed<Graph::Vertex>())
+        if (is_indexed<Graph::Vertex>(g))
 			set_index(g, Graph::Vertex(v0), new_index<Graph::Vertex>(g));
-		if (g.mesh().is_indexed<Graph::HalfEdge>())
+        if (is_indexed<Graph::HalfEdge>(g))
 		{
 			set_index(g, Graph::HalfEdge(v0), new_index<Graph::HalfEdge>(g));
 			set_index(g, Graph::HalfEdge(v1), new_index<Graph::HalfEdge>(g));
 		}
-		if (g.mesh().is_indexed<Graph::Edge>())
+        if (is_indexed<Graph::Edge>(g))
 		{
 			copy_index<Graph::Edge>(g,v0, e0);
 			set_index(g, Graph::Edge(e1), new_index<Graph::Edge>(g));
@@ -81,16 +81,16 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 CMap1::Vertex
 cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
-	Dart d = m.mesh().add_dart();
+    Dart d = m.mesh()->add_dart();
 	phi1_sew(m,e.dart, d);
 	CMap1::Vertex v(d);
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap1::Vertex>())
+        if (is_indexed<CMap1::Vertex>(m))
 			set_index(m, v, new_index<CMap1::Vertex>(m));
 		// CMap1::Edge is the same orbit as CMap1::Vertex
-		if (m.mesh().is_indexed<CMap1::Face>())
+        if (is_indexed<CMap1::Face>(m))
 			copy_index<CMap1::Face>(m,d, e.dart);
 	}
 
@@ -111,30 +111,30 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	CMap1::Vertex nv2 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(d2), false);
 	phi2_sew(m,d1, nv2.dart);
 	phi2_sew(m,d2, nv1.dart);
-	m.mesh().set_boundary(nv1.dart, is_boundary(m,d1));
-	m.mesh().set_boundary(nv2.dart, is_boundary(m,d2));
+    m.mesh()->set_boundary(nv1.dart, is_boundary(m,d1));
+    m.mesh()->set_boundary(nv2.dart, is_boundary(m,d2));
 	CMap2::Vertex v(nv1.dart);
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap2::Vertex>())
+        if (is_indexed<CMap2::Vertex>(m))
 			set_index(m, v, new_index<CMap2::Vertex>(m));
-		if (m.mesh().is_indexed<CMap2::HalfEdge>())
+        if (is_indexed<CMap2::HalfEdge>(m))
 		{
 			set_index(m, CMap2::HalfEdge(nv1.dart), new_index<CMap2::HalfEdge>(m));
 			set_index(m, CMap2::HalfEdge(nv2.dart), new_index<CMap2::HalfEdge>(m));
 		}
-		if (m.mesh().is_indexed<CMap2::Edge>())
+        if (is_indexed<CMap2::Edge>(m))
 		{
 			copy_index<CMap2::Edge>(m,nv2.dart, d1);
 			set_index(m, CMap2::Edge(nv1.dart), new_index<CMap2::Edge>(m));
 		}
-		if (m.mesh().is_indexed<CMap2::Face>())
+        if (is_indexed<CMap2::Face>(m))
 		{
 			copy_index<CMap2::Face>(m,nv1.dart, d1);
 			copy_index<CMap2::Face>(m,nv2.dart, d2);
 		}
-		if (m.mesh().is_indexed<CMap2::Volume>())
+        if (is_indexed<CMap2::Volume>(m))
 		{
 			copy_index<CMap2::Volume>(m,nv1.dart, d1);
 			copy_index<CMap2::Volume>(m,nv2.dart, d2);
@@ -180,15 +180,15 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap3::Vertex>())
+        if (is_indexed<CMap3::Vertex>(m))
 			set_index(m, v, new_index<CMap3::Vertex>(m));
 
-		if (m.mesh().is_indexed<CMap3::Edge>())
+        if (is_indexed<CMap3::Edge>(m))
 		{
 			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
 			set_index(m, e, index_of(m, e));
 		}
-		if (m.mesh().is_indexed<CMap3::Face>())
+        if (is_indexed<CMap3::Face>(m))
 		{
 			foreach_dart_of_orbit(m,e, [&](Dart d) -> bool
 			{
@@ -196,7 +196,7 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 				copy_index<CMap3::Face>(m,phi3(m,d), d);
 			});
 		}
-		if (m.mesh().is_indexed<CMap3::Volume>())
+        if (is_indexed<CMap3::Volume>(m))
 		{
 			foreach_dart_of_orbit(m,e, [&](Dart d) -> bool
 			{
@@ -227,7 +227,7 @@ collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
 	Dart d = phi_1(m,e.dart);
 	phi1_unsew(m,d);
-	m.mesh().remove_dart(e.dart);
+    m.mesh()->remove_dart(e.dart);
 	CMap1::Vertex v(phi1(m,d));
 
 	if (set_indices)
@@ -277,9 +277,9 @@ collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 
 	if (set_indices)
 	{
-		if (m.mesh().is_indexed<CMap2::Vertex>())
+        if (is_indexed<CMap2::Vertex>(m))
 			set_index(m, v, index_of(m, v));
-		if (m.mesh().is_indexed<CMap2::Edge>())
+        if (is_indexed<CMap2::Edge>(m))
 		{
 			copy_index<CMap2::Edge>(m,dd_12, phi2(m,dd_12));
 			copy_index<CMap2::Edge>(m,ee_12, phi2(m,ee_12));
