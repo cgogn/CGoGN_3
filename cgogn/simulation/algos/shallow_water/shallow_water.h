@@ -95,7 +95,7 @@ struct Context
 
 	Scalar t_ = 0.0;
 	Scalar t_max_ = 10.0;
-	Scalar dt_;
+	Scalar dt_ = 0.0;
 	Scalar dt_max_ = 1.0;
 };
 
@@ -143,9 +143,9 @@ void init_attributes(MESH& m, Attributes<MESH>& swa, Context& swc)
 		if (is_incident_to_boundary(m, e))
 			value<BoundaryCondition>(m, swa.edge_bc_type_, e) = BC_Q;
 		
-		Scalar l = geometry::length(m, e, swa.vertex_position_.get());
 		std::vector<Vertex> vertices = incident_vertices(m, e);
 		Vec3 vec = value<Vec3>(m, swa.vertex_position_, vertices[1]) - value<Vec3>(m, swa.vertex_position_, vertices[0]);
+		Scalar l = vec.norm();
 		value<Scalar>(m, swa.edge_length_, e) = l;
 		value<Scalar>(m, swa.edge_normX_, e) = vec[1] / l;
 		value<Scalar>(m, swa.edge_normY_, e) = -vec[0] / l;
@@ -185,8 +185,8 @@ void init_attributes(MESH& m, Attributes<MESH>& swa, Context& swc)
 				border = true;
 			return !border;
 		});
-		if (border) h = static_cast<Scalar>(rand()) / static_cast<Scalar>(RAND_MAX);
-		else h = 0.05;
+		if (border) h = static_cast<Scalar>(rand()) / static_cast<Scalar>(RAND_MAX) * 2.0;
+		else h = 0.25;
 
 		value<Scalar>(m, swa.face_h_, f) = h;
 		value<Scalar>(m, swa.face_q_, f) = 0.0;
@@ -205,9 +205,9 @@ void domain_geometry_changed(MESH& m, Attributes<MESH>& swa, Context& swc)
 
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{		
-		Scalar l = geometry::length(m, e, swa.vertex_position_.get());
 		std::vector<Vertex> vertices = incident_vertices(m, e);
 		Vec3 vec = value<Vec3>(m, swa.vertex_position_, vertices[1]) - value<Vec3>(m, swa.vertex_position_, vertices[0]);
+		Scalar l = vec.norm();
 		value<Scalar>(m, swa.edge_length_, e) = l;
 		value<Scalar>(m, swa.edge_normX_, e) = vec[1] / l;
 		value<Scalar>(m, swa.edge_normY_, e) = -vec[0] / l;
@@ -236,8 +236,8 @@ void domain_geometry_changed(MESH& m, Attributes<MESH>& swa, Context& swc)
 		Scalar old_area = value<Scalar>(m, swa.face_area_, f);
 		Scalar old_h = value<Scalar>(m, swa.face_h_, f);
 
-		Scalar new_area = geometry::area(m, f, swa.vertex_position_.get());
-		Scalar new_h = old_area / new_area * old_h;
+		Scalar new_area = std::max(geometry::area(m, f, swa.vertex_position_.get()), swc.small_);
+		Scalar new_h = std::max(old_area / new_area * old_h, swc.hmin_);
 
 		value<Scalar>(m, swa.face_area_, f) = new_area;
 		value<Scalar>(m, swa.face_h_, f) = new_h;
@@ -278,7 +278,8 @@ void update_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 	});
 
 	std::vector<Scalar> min_dt_per_thread(thread_pool()->nb_workers());
-	for (Scalar& d : min_dt_per_thread) d = std::min(swc.dt_max_, swc.t_max_ - swc.t_); // Timestep for ending simulation
+	// for (Scalar& d : min_dt_per_thread) d = std::min(swc.dt_max_, swc.t_max_ - swc.t_); // Timestep for ending simulation
+	for (Scalar& d : min_dt_per_thread) d = swc.dt_max_;
 
 	parallel_foreach_cell(m, [&] (Face f) -> bool
 	{
@@ -415,6 +416,7 @@ void execute_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 		if ((*swa.face_h_)[fidx] < 0.)
 		{
 			(*swa.face_h_)[fidx] = 0.;
+			// (*swa.face_h_)[fidx] = swc.hmin_;
 			(*swa.face_q_)[fidx] = 0.;
 			(*swa.face_r_)[fidx] = 0.;
 		}
@@ -425,7 +427,7 @@ void execute_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 			Scalar v = sqrt((*swa.face_q_)[fidx]*(*swa.face_q_)[fidx]+(*swa.face_r_)[fidx]*(*swa.face_r_)[fidx]) / std::max((*swa.face_h_)[fidx], swc.small_);
 			Scalar c = sqrt(9.81 * std::max((*swa.face_h_)[fidx], swc.small_));
 			Scalar Fr = v / c;
-			Scalar Fact = std::max({ 1e0, v / swc.v_max_, Fr / swc.Fr_max_ });
+			Scalar Fact = std::max({ 1.0, v / swc.v_max_, Fr / swc.Fr_max_ });
 			(*swa.face_q_)[fidx] /= Fact;
 			(*swa.face_r_)[fidx] /= Fact;
 		}

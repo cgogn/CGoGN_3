@@ -39,8 +39,21 @@ using Scalar = geometry::Scalar;
 
 enum BoundaryCondition
 {
-    BC_F = 0, BC_C, BC_H, BC_Z, BC_Q, BC_S
+    BC_F = 0, BC_C, BC_H, BC_Q, BC_Z, BC_S
 };
+
+inline std::string bc_name(BoundaryCondition bc)
+{
+    switch (bc)
+    {
+        case BC_F: return "Free Outflow"; break;
+        case BC_C: return "Critical"; break;
+        case BC_H: return "Prescribed H"; break;
+        case BC_Q: return "Prescribed Q"; break;
+        case BC_Z: return "Prescribed Z"; break;
+        case BC_S: return "Weir"; break;
+    }
+}
 
 struct Str_Riemann_Flux
 {
