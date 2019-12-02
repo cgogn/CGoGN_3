@@ -112,6 +112,41 @@ public:
 			f(index);
 	}
 
+	class const_iterator
+	{
+		const CellsSet<MESH, CELL>* cs_;
+		typename std::unordered_map<uint32, CELL>::const_iterator map_it_;
+
+	public:
+
+		inline const_iterator(const CellsSet<MESH, CELL>* cs, typename std::unordered_map<uint32, CELL>::const_iterator&& map_it) : cs_(cs), map_it_(map_it)
+		{}
+		inline const_iterator(const const_iterator& it) : cs_(it.cs_), map_it_(it.map_it_)
+		{}
+		inline const_iterator& operator=(const const_iterator& it)
+		{
+			cs_ = it.cs_;
+			map_it_ = it.map_it_;
+			return *this;
+		}
+		inline bool operator!=(const_iterator it) const
+		{
+			cgogn_assert(cs_ == it.cs_);
+			return map_it_ != it.map_it_;
+		}
+		inline const_iterator& operator++()
+		{
+			map_it_++;
+			return *this;
+		}
+		inline CELL operator*() const
+		{
+			return map_it_->second;
+		}
+	};
+	inline const_iterator begin() const { return const_iterator(this, cells_.begin()); }
+	inline const_iterator end() const { return const_iterator(this, cells_.end()); }
+
 private:
 
 	const MESH& m_;
