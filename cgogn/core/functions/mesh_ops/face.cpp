@@ -27,6 +27,7 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/phi.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
@@ -46,10 +47,10 @@ namespace cgogn
 CMap1::Face
 add_face(CMap1& m, uint32 size, bool set_indices)
 {
-    Dart d = m.mesh()->add_dart();
+    Dart d = m.mesh().add_dart();
 	for (uint32 i = 1u; i < size; ++i)
 	{
-        Dart e = m.mesh()->add_dart();
+        Dart e = m.mesh().add_dart();
 		phi1_sew(m,d, e);
 	}
 	CMap1::Face f(d);
@@ -66,7 +67,7 @@ add_face(CMap1& m, uint32 size, bool set_indices)
 		}
 		// CMap1::Edge is the same orbit as CMap1::Vertex
         if (is_indexed<CMap1::Face>(m))
-            set_index(m, f, new_index<CMap1::Face>(*m.mesh()));
+            set_index(m, f, new_index<CMap1::Face>(m));
 	}
 
 	return f;
@@ -84,7 +85,7 @@ add_face(CMap2& m, uint32 size, bool set_indices)
 	Dart it = b.dart;
 	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool
 	{
-        m.mesh()->set_boundary(it, true);
+        set_boundary(m,it, true);
 		phi2_sew(m,d, it);
 		it = phi_1(m,it);
 		return true;
@@ -144,10 +145,10 @@ remove_face(CMap1& m, CMap1::Face f, bool set_indices)
 	while(it != f.dart)
 	{
 		Dart next = phi1(m,it);
-        m.mesh()->remove_dart(it);
+        m.mesh().remove_dart(it);
 		it = next;
 	}
-    m.mesh()->remove_dart(f.dart);
+    m.mesh().remove_dart(f.dart);
 
 	if (set_indices)
 	{}
@@ -174,8 +175,8 @@ cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices)
 	CMap1::Vertex nv2 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(ee), false);
 	phi1_sew(m,nv1.dart, nv2.dart);
 	phi2_sew(m,nv1.dart, nv2.dart);
-    m.mesh()->set_boundary(nv1.dart, m.mesh()->is_boundary(dd));
-    m.mesh()->set_boundary(nv2.dart, m.mesh()->is_boundary(ee));
+    set_boundary(m,nv1.dart, is_boundary(m,dd));
+    set_boundary(m,nv2.dart, is_boundary(m,ee));
 	CMap2::Edge e(nv1.dart);
 
 	if (set_indices)
@@ -261,7 +262,7 @@ CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi2(m,d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
 
-    Dart first = m.mesh()->add_dart();	// First edge of the face that will fill the hole
+    Dart first = m.mesh().add_dart();	// First edge of the face that will fill the hole
 	phi2_sew(m,d, first);			// 2-sew the new edge to the hole
 
 	Dart d_next = d;			// Turn around the hole
@@ -276,7 +277,7 @@ CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices)
 
 		if (d_phi1 != d)
 		{
-            Dart next = m.mesh()->add_dart();	// Add a vertex into the built face
+            Dart next = m.mesh().add_dart();	// Add a vertex into the built face
 			phi1_sew(m,first, next);
 			phi2_sew(m,d_next, next);	// and 2-sew the face to the hole
 		}
@@ -307,7 +308,7 @@ uint32 close(CMap2& m,bool set_indices)
 	uint32 nb_holes = 0u;
 
 	std::vector<Dart> fix_point_darts;
-    m.mesh()->foreach_dart([&] (Dart d) -> bool
+    foreach_dart(m,[&] (Dart d) -> bool
 	{
 		if (phi2(m,d) == d)
 			fix_point_darts.push_back(d);
@@ -319,7 +320,7 @@ uint32 close(CMap2& m,bool set_indices)
 		if (phi2(m,d) == d)
 		{
 			CMap2::Face h = close_hole(m,d, set_indices);
-            foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { m.mesh()->set_boundary(hd, true); return true; });
+            foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { set_boundary(m,hd, true); return true; });
 			++nb_holes;
 		}
 	}

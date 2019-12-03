@@ -63,7 +63,7 @@ within_sphere(
 
     auto mark_vertex = [&] (Vertex v)
     {
-        m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+        foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
         {
             // mark a dart of the vertex
             dm.mark(d);
@@ -72,7 +72,7 @@ within_sphere(
             // (which means all the vertices of the edge are in the sphere)
             Edge e(d);
             bool all_in = true;
-            m.foreach_dart_of_orbit(e, [&] (Dart dd) -> bool
+            foreach_dart_of_orbit(m,e, [&] (Dart dd) -> bool
             {
                 if (!dm.is_marked(dd))
                     all_in = false;
@@ -85,7 +85,7 @@ within_sphere(
             // (which means all the vertices of the face are in the sphere)
             Face f(d);
             all_in = true;
-            m.foreach_dart_of_orbit(f, [&] (Dart dd) -> bool
+            foreach_dart_of_orbit(m,f, [&] (Dart dd) -> bool
             {
                 if (!dm.is_marked(dd))
                     all_in = false;
@@ -117,7 +117,7 @@ within_sphere(
                 }
             }
             else
-                cache.add(HalfEdge(m.phi2(av.dart)));
+                cache.add(HalfEdge(phi2(m,av.dart)));
             return true;
         });
         ++i;

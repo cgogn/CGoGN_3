@@ -131,7 +131,7 @@ void foreach_dart_of_PHI1_PHI2(const MAP& m,Dart d, const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(*m.mesh());
+    DartMarkerStore marker(m);
 
 	std::vector<Dart> visited_faces;
 	visited_faces.push_back(d); // Start with the face of d
@@ -191,7 +191,7 @@ inline void foreach_dart_of_PHI21_PHI31(const MAP& m,Dart d, const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(*m.mesh());
+    DartMarkerStore marker(m);
 	const std::vector<Dart>& marked_darts = marker.marked_darts();
 
 	marker.mark(d);

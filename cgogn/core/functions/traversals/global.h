@@ -33,6 +33,7 @@
 #include <cgogn/core/types/cell_marker.h>
 
 #include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/functions/cmapbase_infos.h>
 
 namespace cgogn
 {
@@ -64,7 +65,7 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
         foreach_dart(m,[&] (Dart d) -> bool
 		{
 			const CELL c(d);
-			if (!m.is_boundary(d) && !cm.is_marked(c))
+			if (!is_boundary(m,d) && !cm.is_marked(c))
 			{
 				cm.mark(c);
 				return f(c);
@@ -75,12 +76,12 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 	else
 	{
 		DartMarker dm(m);
-		m.foreach_dart([&] (Dart d) -> bool
+		foreach_dart(m,[&] (Dart d) -> bool
 		{
-			if (!m.is_boundary(d) && !dm.is_marked(d))
+			if (!is_boundary(m,d) && !dm.is_marked(d))
 			{
 				const CELL c(d);
-				m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });
+				foreach_dart_of_orbit(m,c, [&] (Dart d) -> bool { dm.mark(d); return true; });
 				return f(c);
 			}
 			return true;
@@ -145,7 +146,7 @@ foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 //////////////
 
 template <typename MESH, typename FUNC,
-		  typename = typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 void
 parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 {
@@ -171,13 +172,13 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 
 	Buffers<uint32>* buffers = uint32_buffers();
 	
-	Dart it = m.begin();
-	Dart last = m.end();
+	Dart it = begin(m);
+	Dart last = end(m);
 
 	uint32 i = 0u; // buffer id (0/1)
 	uint32 j = 0u; // thread id (0..nb_workers)
 	
-	if (!force_dart_marking && m.template is_indexed<CELL>())
+	if (!force_dart_marking && is_indexed<CELL>(m))
 	{
 		CellMarker<MESH, CELL> cm(m);
 		while (it.index < last.index)
@@ -189,13 +190,13 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
 				CELL c(it);
-				if (!m.is_boundary(it) && !cm.is_marked(c))
+				if (!is_boundary(m,it) && !cm.is_marked(c))
 				{
 					cm.mark(c);
 					cells.push_back(c.dart.index);
 					++k;
 				}
-				it = m.next(it);
+				it = next(m,it);
 			}
 			// launch thread
 			futures[i].push_back(pool->enqueue([&cells, &f] ()
@@ -228,14 +229,14 @@ parallel_foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = fa
 			cells.reserve(PARALLEL_BUFFER_SIZE);
 			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index; )
 			{
-				if (!m.is_boundary(it) && !dm.is_marked(it))
+				if (!is_boundary(m,it) && !dm.is_marked(it))
 				{
 					CELL c(it);
-					m.foreach_dart_of_orbit(c, [&] (Dart d) -> bool { dm.mark(d); return true; });
+					foreach_dart_of_orbit(m,c, [&] (Dart d) -> bool { dm.mark(d); return true; });
 					cells.push_back(c.dart.index);
 					++k;
 				}
-				it = m.next(it);
+				it = next(m,it);
 			}
 			// launch thread
 			futures[i].push_back(pool->enqueue([&cells, &f] ()

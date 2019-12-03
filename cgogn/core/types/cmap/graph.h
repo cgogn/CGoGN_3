@@ -63,8 +63,8 @@ struct CGOGN_CORE_EXPORT Graph
         alpha_1_ = base_map_->add_relation("alpha_1");
 	}
 
-    inline const  std::shared_ptr<CMapBase> mesh() const {return base_map_;}
-    inline  std::shared_ptr<CMapBase> mesh(){return base_map_;}
+    inline const  CMapBase& mesh() const {return *base_map_;}
+    inline  CMapBase& mesh(){return *base_map_;}
 	
 	inline bool is_isolated(Vertex v) const
 	{

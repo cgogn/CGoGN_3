@@ -157,7 +157,7 @@ void foreach_incident_vertex(const CMap2& m, CMap2::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap2::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(*m.mesh());
+    DartMarkerStore marker(m);
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
@@ -194,7 +194,7 @@ void foreach_incident_vertex(const CMap3& m, CMap3::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(*m.mesh());
+    DartMarkerStore marker(m);
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))

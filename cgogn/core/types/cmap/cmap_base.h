@@ -82,21 +82,6 @@ public:
         return relations_.emplace_back(rel);
     }
 
-	inline uint32 nb_darts() const
-	{
-		return topology_.nb_elements();
-	}
-
-	inline void set_boundary(Dart d, bool b)
-	{
-		(*boundary_marker_)[d.index] = b ? 1u : 0u;
-	}
-
-	inline bool is_boundary(Dart d) const
-	{
-		return (*boundary_marker_)[d.index] != 0u;
-	}
-
 	// template <typename CELL>
 	// inline void unset_index(Dart d)
 	// {
@@ -134,20 +119,6 @@ public:
 		}
 		topology_.release_index(d.index);
 	}
-
-	template <typename FUNC>
-	void foreach_dart(const FUNC& f) const
-	{
-		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = topology_.first_index(), last_index = topology_.last_index(); i < last_index; i = topology_.next_index(i))
-			if (!f(Dart(i)))
-				break;
-	}
-
-	inline Dart begin() const { return Dart(topology_.first_index()); }
-	inline Dart end() const { return Dart(topology_.last_index()); }
-	inline Dart next(Dart d) const { return Dart(topology_.next_index(d.index)); }
 };
 
 

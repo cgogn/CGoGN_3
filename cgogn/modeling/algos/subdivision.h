@@ -50,12 +50,12 @@ using Vec3 = geometry::Vec3;
 void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 {
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
-	Dart d0 = m.phi1(f.dart);
-	Dart d1 = m.template phi<11>(d0);
+	Dart d0 = phi1(m,f.dart);
+	Dart d1 = phi<11>(m,d0);
 	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
-	Dart d2 = m.template phi<11>(d1);
+	Dart d2 = phi<11>(m,d1);
 	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
-	Dart d3 = m.template phi<11>(d2);
+	Dart d3 = phi<11>(m,d2);
 	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
 }
 

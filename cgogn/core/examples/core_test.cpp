@@ -34,19 +34,19 @@ int main()
 
 	do_something(map2);
 
-	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
+	std::cout << "nb darts: " << nb_darts(map2) << std::endl;
 	std::cout << "vertex attributes:" << std::endl;
-	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	for (auto ag : map2.mesh().attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 	std::cout << "face attributes:" << std::endl;
-	for (auto ag : map2.attribute_containers_[CMap2::Face::ORBIT])
+	for (auto ag : map2.mesh().attribute_containers_[CMap2::Face::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	io::import_OFF(map2, "/home/kraemer/Media/Data/surface/lowRes/cube_tri.off");
 
-	std::cout << "nb darts: " << map2.nb_darts() << std::endl;
+	std::cout << "nb darts: " << nb_darts(map2) << std::endl;
 	std::cout << "vertex attributes:" << std::endl;
-	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	for (auto ag : map2.mesh().attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	auto bla = add_attribute<uint32, CMap2::Vertex>(map2, "bla");
@@ -74,7 +74,7 @@ int main()
 	remove_attribute<CMap2::Vertex>(map2, position);
 
 	std::cout << "vertex attributes:" << std::endl;
-	for (auto ag : map2.attribute_containers_[CMap2::Vertex::ORBIT])
+	for (auto ag : map2.mesh().attribute_containers_[CMap2::Vertex::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	///////////////////////
@@ -83,16 +83,16 @@ int main()
 
 	do_something(map1);
 
-	std::cout << "nb darts: " << map1.nb_darts() << std::endl;
+	std::cout << "nb darts: " << nb_darts(map1) << std::endl;
 	std::cout << "face attributes:" << std::endl;
-	for (auto ag : map1.attribute_containers_[CMap1::Face::ORBIT])
+	for (auto ag : map1.mesh().attribute_containers_[CMap1::Face::ORBIT])
 		std::cout << ag->name() << std::endl;
 
 	auto att1 = get_attribute<float64, CMap2::Face>(map1, "value");
 
 	foreach_cell(map1, [&] (CMap1::Face f) -> bool
 	{
-		std::cout << "face " << map1.index_of(f) << " : " << value<float64>(map1, att1, f) << std::endl;
+		std::cout << "face " << index_of(map1,f) << " : " << value<float64>(map1, att1, f) << std::endl;
 		return true;
 	});
 

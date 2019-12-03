@@ -23,6 +23,7 @@
 
 #include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/cells.h>
+#include <cgogn/core/functions/cmapbase_infos.h>
 
 namespace cgogn
 {
@@ -42,8 +43,8 @@ namespace cgogn
 Graph::Vertex
 add_vertex(Graph& g, bool set_indices)
 {
-    Dart d = g.mesh()->add_dart();
-    Dart dd = g.mesh()->add_dart();
+    Dart d = g.mesh().add_dart();
+    Dart dd = g.mesh().add_dart();
 	g.alpha0_sew(d, dd);
 	g.alpha1_sew(d, dd);
 
@@ -81,9 +82,9 @@ void
 remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 {
 	Dart dd = g.alpha0(v.dart);
-	cgogn_message_assert(g.is_boundary(dd), "Vertex is still connected to another vertex");
-    g.mesh()->remove_dart(v.dart);
-    g.mesh()->remove_dart(dd);
+	cgogn_message_assert(is_boundary(g,dd), "Vertex is still connected to another vertex");
+    g.mesh().remove_dart(v.dart);
+    g.mesh().remove_dart(dd);
 
 	if (set_indices)
 	{}
@@ -114,8 +115,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 		{
 			g.alpha1_unsew(d);
 			g.alpha1_unsew(e);
-            g.mesh()->remove_dart(dd);
-            g.mesh()->remove_dart(ee);
+            g.mesh().remove_dart(dd);
+            g.mesh().remove_dart(ee);
 			g.alpha0_sew(d, e);
 			if (set_indices)
 			{
@@ -151,8 +152,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 		}
 		else
 		{
-            Dart dd = g.mesh()->add_dart();
-            Dart ee = g.mesh()->add_dart();
+            Dart dd = g.mesh().add_dart();
+            Dart ee = g.mesh().add_dart();
 			g.alpha0_sew(dd, ee);
 			g.alpha1_sew(d, dd);
 			g.alpha1_sew(e, ee);
@@ -199,8 +200,8 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 		if (g.alpha1(y) == y)
 		{
 			g.alpha0_unsew(x);
-            Dart xx = g.mesh()->add_dart();
-            Dart yy = g.mesh()->add_dart();
+            Dart xx = g.mesh().add_dart();
+            Dart yy = g.mesh().add_dart();
 			g.alpha0_sew(x, xx);
 			g.alpha1_sew(x, xx);
 			g.alpha0_sew(y, yy);
@@ -252,8 +253,8 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			g.alpha0_unsew(x);
 			g.alpha1_unsew(x);
 			g.alpha1_unsew(y);
-            g.mesh()->remove_dart(x);
-            g.mesh()->remove_dart(y);
+            g.mesh().remove_dart(x);
+            g.mesh().remove_dart(y);
 			if (set_indices)
 			{}
 		}

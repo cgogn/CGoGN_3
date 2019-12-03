@@ -66,7 +66,7 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>
 add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    return add_attribute<T, CELL>(*m.mesh(), name);
+    return add_attribute<T, CELL>(m.mesh(), name);
 }
 
 /*****************************************************************************/
@@ -138,7 +138,7 @@ void
 remove_attribute(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::AttributeGen> attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    remove_attribute<CELL>(*m.mesh(), attribute);
+    remove_attribute<CELL>(m.mesh(), attribute);
 }
 
 template <typename CELL, typename MESH,
@@ -147,7 +147,7 @@ void
 remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    remove_attribute<CELL>(*m.mesh(), attribute);
+    remove_attribute<CELL>(m.mesh(), attribute);
 }
 
 /*****************************************************************************/
@@ -161,14 +161,12 @@ remove_attribute(MESH& m, typename mesh_traits<MESH>::AttributeGen* attribute)
 // CMapBase //
 //////////////
 
-template <typename T, typename CELL, typename MESH, typename FUNC,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+template <typename T, typename CELL, typename FUNC>
 void
-foreach_attribute(const MESH& m, const FUNC& f)
+foreach_attribute(const CMapBase& m, const FUNC& f)
 {
-	using AttributeT = typename mesh_traits<MESH>::template Attribute<T>;
-	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	using AttributeT = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value, "Wrong function attribute parameter type");
 	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
 	{

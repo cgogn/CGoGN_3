@@ -152,29 +152,6 @@ uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Volume v)
 
 /*****************************************************************************/
 
-//////////////
-// CMapBase //
-//////////////
-
-
-bool is_boundary(const CMapBase& m, Dart d)
-{
-	return m.is_boundary(d);
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-bool
-is_boundary(const MESH& m, Dart d)
-{
-    return is_boundary(*m.mesh(),d);
-}
-
-
 template <typename MESH, typename CELL,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 bool
@@ -184,7 +161,7 @@ is_incident_to_boundary(const MESH& m, CELL c)
 	bool result = false;
 	foreach_dart_of_orbit(m,c, [&m, &result] (Dart d) -> bool
 	{
-        if (is_boundary(*m.mesh(),d)) { result = true; return false; }
+        if (is_boundary(m,d)) { result = true; return false; }
 		return true;
 	});
 	return result;

@@ -47,8 +47,8 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 	Dart e0 = e.dart;
 	Dart e1 = g.alpha0(e0);
 
-    Dart v0 = g.mesh()->add_dart();
-    Dart v1 = g.mesh()->add_dart();
+    Dart v0 = g.mesh().add_dart();
+    Dart v1 = g.mesh().add_dart();
 
 	g.alpha1_sew(v0, v1);
 	g.alpha0_unsew(e0);
@@ -81,7 +81,7 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 CMap1::Vertex
 cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
-    Dart d = m.mesh()->add_dart();
+    Dart d = m.mesh().add_dart();
 	phi1_sew(m,e.dart, d);
 	CMap1::Vertex v(d);
 
@@ -111,8 +111,8 @@ cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	CMap1::Vertex nv2 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(d2), false);
 	phi2_sew(m,d1, nv2.dart);
 	phi2_sew(m,d2, nv1.dart);
-    m.mesh()->set_boundary(nv1.dart, is_boundary(m,d1));
-    m.mesh()->set_boundary(nv2.dart, is_boundary(m,d2));
+    set_boundary(m,nv1.dart, is_boundary(m,d1));
+    set_boundary(m,nv2.dart, is_boundary(m,d2));
 	CMap2::Vertex v(nv1.dart);
 
 	if (set_indices)
@@ -227,7 +227,7 @@ collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
 	Dart d = phi_1(m,e.dart);
 	phi1_unsew(m,d);
-    m.mesh()->remove_dart(e.dart);
+    m.mesh().remove_dart(e.dart);
 	CMap1::Vertex v(phi1(m,d));
 
 	if (set_indices)

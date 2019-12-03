@@ -219,8 +219,8 @@ CMap3::Volume close_hole(CMap3& m,Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi3(m,d) == d, "CMap3: close hole called on a dart that is not a phi3 fix point");
 
-    DartMarkerStore marker(*m.mesh());
-    DartMarkerStore hole_volume_marker(*m.mesh());
+    DartMarkerStore marker(m.mesh());
+    DartMarkerStore hole_volume_marker(m.mesh());
 
 	std::vector<Dart> visited_faces;
 	visited_faces.reserve(1024u);
@@ -299,7 +299,7 @@ uint32 close(CMap3& m,bool set_indices)
 	uint32 nb_holes = 0u;
 
 	std::vector<Dart> fix_point_darts;
-    m.mesh()->foreach_dart([&] (Dart d) -> bool
+    foreach_dart(m,[&] (Dart d) -> bool
 	{
 		if (phi3(m,d) == d)
 			fix_point_darts.push_back(d);
@@ -311,7 +311,7 @@ uint32 close(CMap3& m,bool set_indices)
 		if (phi3(m,d) == d)
 		{
 			CMap3::Volume h = close_hole(m,d, set_indices);
-            foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { m.mesh()->set_boundary(hd, true); return true; });
+            foreach_dart_of_orbit(m,h, [&] (Dart hd) -> bool { set_boundary(m,hd, true); return true; });
 			++nb_holes;
 		}
 	}
