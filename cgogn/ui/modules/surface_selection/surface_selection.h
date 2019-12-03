@@ -221,10 +221,12 @@ private:
 				m, [this, m] (CellsSet<MESH, Vertex>* set)
 				{
 					Parameters& p = parameters_[m];
-					if (p.vertex_position_)
+					if (p.selected_vertices_set_ == set && p.vertex_position_)
+					{
 						p.update_selected_vertices_vbo();
-					for (View* v : linked_views_)
-						v->request_update();
+						for (View* v : linked_views_)
+							v->request_update();
+					}
 				}
 			)
 		);
@@ -233,10 +235,12 @@ private:
 				m, [this, m] (CellsSet<MESH, Edge>* set)
 				{
 					Parameters& p = parameters_[m];
-					if (p.vertex_position_)
+					if (p.selected_edges_set_ == set && p.vertex_position_)
+					{
 						p.update_selected_edges_vbo();
-					for (View* v : linked_views_)
-						v->request_update();
+						for (View* v : linked_views_)
+							v->request_update();
+					}
 				}
 			)
 		);
@@ -245,10 +249,12 @@ private:
 				m, [this, m] (CellsSet<MESH, Face>* set)
 				{
 					Parameters& p = parameters_[m];
-					if (p.vertex_position_)
+					if (p.selected_faces_set_ == set && p.vertex_position_)
+					{
 						p.update_selected_faces_vbo();
-					for (View* v : linked_views_)
-						v->request_update();
+						for (View* v : linked_views_)
+							v->request_update();
+					}
 				}
 			)
 		);
@@ -485,12 +491,12 @@ protected:
 				
 				ImGui::Separator();
 				
-				ImGui::RadioButton("Vertex", (int*)(&p.selecting_cell_), VertexSelect); ImGui::SameLine();
-        		ImGui::RadioButton("Edge", (int*)(&p.selecting_cell_), EdgeSelect); ImGui::SameLine();
-        		ImGui::RadioButton("Face", (int*)(&p.selecting_cell_), FaceSelect);
+				need_update |= ImGui::RadioButton("Vertex", (int*)(&p.selecting_cell_), VertexSelect); ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Edge", (int*)(&p.selecting_cell_), EdgeSelect); ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Face", (int*)(&p.selecting_cell_), FaceSelect);
 
 				ImGui::RadioButton("Single", (int*)(&p.selection_method_), SingleCell); ImGui::SameLine();
-        		ImGui::RadioButton("Sphere", (int*)(&p.selection_method_), WithinSphere);
+				ImGui::RadioButton("Sphere", (int*)(&p.selection_method_), WithinSphere);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);

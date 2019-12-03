@@ -108,16 +108,16 @@ protected:
 						if (sw_attributes_.vertex_position_.get() == attribute)
 						{
 							simulation::shallow_water::domain_geometry_changed(*domain_, sw_attributes_, sw_context_);
-							update_render_data();
+							update_render_data(true);
 						}
 					}
 				)
 			);
 
-			update_render_data();
-
 			running_ = false;
 			domain_initialized_ = true;
+
+			update_render_data();
 		}
 	}
 
@@ -147,7 +147,7 @@ protected:
 		running_ = false;
 	}
 
-	void update_render_data()
+	void update_render_data(bool update_position = false)
 	{
 		cgogn_message_assert(domain_initialized_, "Domain is not initialized");
 
@@ -159,14 +159,23 @@ protected:
 			uint32 nbf = 0;
 			foreach_incident_face(*domain_, v, [&] (Face f) -> bool
 			{
-				h += value<Scalar>(*domain_, sw_attributes_.face_h_, f);
-				q += value<Scalar>(*domain_, sw_attributes_.face_q_, f);
-				r += value<Scalar>(*domain_, sw_attributes_.face_r_, f);
+				uint32 fidx = index_of(*domain_, f);
+				h += (*sw_attributes_.face_h_)[fidx];
+				q += (*sw_attributes_.face_q_)[fidx];
+				r += (*sw_attributes_.face_r_)[fidx];
 				++nbf;
 				return true;
 			});
-			value<Vec3>(*domain_, vertex_water_position_, v)[2] = h / nbf;
-			value<Vec3>(*domain_, vertex_water_flux_, v) = { q / nbf, r / nbf, 0.0 };
+			h /= nbf;
+			uint32 vidx = index_of(*domain_, v);
+			if (update_position)
+			{
+				const Vec3& p = (*sw_attributes_.vertex_position_)[vidx];
+				(*vertex_water_position_)[vidx] = { p[0], p[1], h };
+			}
+			else
+				(*vertex_water_position_)[vidx][2] = h;
+			(*vertex_water_flux_)[vidx] = { (q / nbf) / h, (r / nbf) / h, 0.0 };
 			return true;
 		});
 		
@@ -297,8 +306,8 @@ private:
 	simulation::shallow_water::Attributes<MESH> sw_attributes_;
 	simulation::shallow_water::Context sw_context_;
 
-	CellsSet<MESH, Face>* selected_faces_set_;
-	CellsSet<MESH, Edge>* selected_edges_set_;
+	CellsSet<MESH, Face>* selected_faces_set_ = nullptr;
+	CellsSet<MESH, Edge>* selected_edges_set_ = nullptr;
 
 	std::vector<std::shared_ptr<boost::synapse::connection>> domain_connections_;
 	std::shared_ptr<boost::synapse::connection> timer_connection_;
