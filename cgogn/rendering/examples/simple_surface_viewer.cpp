@@ -88,8 +88,8 @@ int main(int argc, char** argv)
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
-	srv.set_vertex_position(*m, vertex_position);
-	srv.set_vertex_vector(*m, vertex_normal);
+	srv.set_vertex_position(*v1,*m, vertex_position);
+	srv.set_vertex_vector(*v1,*m, vertex_normal);
 
 	return app.launch();
 }

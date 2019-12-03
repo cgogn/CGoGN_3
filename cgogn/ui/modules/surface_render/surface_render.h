@@ -143,7 +143,7 @@ private:
 
 	void init_mesh(MESH* m)
 	{
-		app_.foreach_view([this, m] (View* v)
+		for (View* v : linked_views_)
 		{
 			parameters_[v][m];
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
@@ -171,7 +171,7 @@ private:
 					}
 				)
 			);
-		});
+		}
 	}
 
 public:

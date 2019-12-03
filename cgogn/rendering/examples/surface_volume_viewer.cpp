@@ -102,8 +102,8 @@ int main(int argc, char** argv)
 	sr.set_vertex_position(*v1, *sm, vertex_position_s);
 	sr.set_vertex_normal(*v1, *sm, vertex_normal_s);
 
-	srv.set_vertex_position(*sm, vertex_position_s);
-	srv.set_vertex_vector(*sm, vertex_normal_s);
+	srv.set_vertex_position(*v1,*sm, vertex_position_s);
+	srv.set_vertex_vector(*v1,*sm, vertex_normal_s);
 
 	VolumeMesh* vm = mpv.load_volume_from_file(volume_filename);
 	if (!vm)
