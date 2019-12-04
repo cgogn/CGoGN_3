@@ -51,7 +51,7 @@ namespace cgogn
 
 template <typename MESH, typename FUNC,
           typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
+inline void
 foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 {
 	using CELL = func_parameter_type<FUNC>;

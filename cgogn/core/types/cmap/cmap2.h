@@ -27,7 +27,6 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/cmap/cmap1.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
 
 namespace cgogn
 {

@@ -26,6 +26,9 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/traversals/dart.h>
+#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/functions/cmapbase_infos.h>
+#include <functional>
 
 namespace cgogn
 {
@@ -215,7 +218,7 @@ inline
 void init_cells_indexing(MESH& m)
 {
     static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    return init_cells_indexing<CELL>(m.mesh());
+    init_cells_indexing<CELL>(m.mesh());
 }
 
 /*****************************************************************************/
@@ -229,20 +232,6 @@ void init_cells_indexing(MESH& m)
 // CMapBase //
 //////////////
 
-template <typename CELL>
-inline
-void index_cells(CMapBase& m)
-{
-    /*if (!m.template is_indexed<CELL>())
-		m.template init_cells_indexing<CELL>();
-	
-    foreach_cell(m, [&] (CELL c) -> bool
-	{
-		if (index_of(m, c) == INVALID_INDEX)
-            set_index<CELL>(m, c, new_index<CELL>(m));
-		return true;
-    }, true);*/
-}
 
 //////////////
 // MESHVIEW //
@@ -254,16 +243,24 @@ inline
 void index_cells(MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    if(is_indexed<CELL>(m.mesh()))
+    if(!is_indexed<CELL>(m))
     {
-        init_cells_indexing<CELL>(m.mesh());
+        init_cells_indexing<CELL>(m);
     }
-    foreach_cell(m, [&] (CELL c) -> bool
-    {
-        if (index_of(m, c) == INVALID_INDEX)
-            set_index<CELL>(m, c, new_index<CELL>(m));
-        return true;
-    }, true);
+	
+	DartMarker dm(m);
+	foreach_dart(m,[&] (Dart d) -> bool
+	{
+		if (!is_boundary(m,d) && !dm.is_marked(d))
+		{
+			const CELL c(d);
+			foreach_dart_of_orbit(m,c, [&] (Dart d) -> bool { dm.mark(d); return true; });
+			if (index_of(m, c) == INVALID_INDEX)
+				set_index<CELL>(m, c, new_index<CELL>(m));
+			return true;
+		}
+		return true;
+	});
 }
 
 

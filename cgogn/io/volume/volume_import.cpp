@@ -161,9 +161,13 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			for (Dart dv : vertices_of_hexa)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				foreach_dart_of_orbit(m,CMap3::Vertex2(dv), [&] (Dart d) -> bool
+				auto tmp = m.mesh().attribute_containers_[Vertex::ORBIT].nb_refs(579);
+				if(tmp == 0)
+					std::cout << "hum" << std::endl;
+				foreach_dart_of_orbit(static_cast<CMap2&>(m),CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
 					set_index<Vertex>(m,d, vertex_index);
+					std::cout << dv.index << " , " << d.index << std::endl;
 					return true;
 				});
 

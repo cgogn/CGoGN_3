@@ -109,6 +109,9 @@ uint32 AttributeContainerGen::new_index()
 	}
 
 	init_ref_counter(index);
+	
+	if(index == 579)
+		std::cout << "ok" << std::endl;
 
 	++nb_elements_;
 	return index;

@@ -6,6 +6,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/type_traits.h>
 #include <cgogn/core/functions/phi.h>
+#include <cgogn/core/types/cmap/dart_marker.h>
 
 namespace cgogn{
 
@@ -56,7 +57,7 @@ inline void foreach_dart_of_orbit(const MAP& m,CELL c, const FUNC& f)
 }
 
 template <typename CELL, typename FUNC>
-inline void foreach_dart_of_orbit(const Graph& g,CELL c, const FUNC& f)
+void foreach_dart_of_orbit(const Graph& g,CELL c, const FUNC& f)
 {
 	static_assert(is_in_tuple<CELL, Graph::Cells>::value, "Cell not supported in a Graph");
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");

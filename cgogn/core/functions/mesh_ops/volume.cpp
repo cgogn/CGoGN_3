@@ -117,7 +117,7 @@ add_prism(CMap2& m, uint32 size, bool set_indices)
 	}
 	phi2_sew(m,phi_1(m,current), phi1(m,first.dart)); // Finish the sides
 	CMap2::Face base = close_hole(m,first.dart, false); // Add the base face
-    //CMap2::Face top = close_hole(m,phi<11>(m,first.dart), false); // Add the top face
+    close_hole(m,phi<11>(m,first.dart), false); // Add the top face
 	
 	CMap2::Volume vol(base.dart);
 

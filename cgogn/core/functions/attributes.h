@@ -51,8 +51,6 @@ template <typename T, typename CELL>
 std::shared_ptr<CMapBase::Attribute<T>>
 add_attribute(CMapBase& m, const std::string& name)
 {
-    if (!is_indexed<CELL>(m))
-		index_cells<CELL>(m);
 	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }
 
@@ -66,6 +64,8 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>
 add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	if (!is_indexed<CELL>(m))
+		index_cells<CELL>(m);
     return add_attribute<T, CELL>(m.mesh(), name);
 }
 
