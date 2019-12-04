@@ -102,9 +102,9 @@ angle(
 	return a;
 	
 	// return angle(
-    //     normal(m, faces[0], vertex_position),
-    //     normal(m, faces[1], vertex_position)
-    // );
+	//	 normal(m, faces[0], vertex_position),
+	//	 normal(m, faces[1], vertex_position)
+	// );
 }
 
 template <typename MESH>
@@ -123,9 +123,9 @@ angle(
 	if (faces.size() < 2)
 		return 0;
 	return angle(
-        value<Vec3>(m, face_normal, faces[0]),
-        value<Vec3>(m, face_normal, faces[1])
-    );
+		value<Vec3>(m, face_normal, faces[0]),
+		value<Vec3>(m, face_normal, faces[1])
+	);
 }
 
 template <typename MESH>
@@ -143,7 +143,7 @@ compute_angle(
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position);
-        return true;
+		return true;
 	});
 }
 
@@ -162,7 +162,7 @@ compute_angle(
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
-        return true;
+		return true;
 	});
 }
 

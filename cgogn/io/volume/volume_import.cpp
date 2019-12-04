@@ -44,7 +44,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
 	
 	uint32 index = 0u;
-    DartMarker dart_marker(m);
+	DartMarker dart_marker(m);
 	uint32 vol_emb = 0u;
 
 	// for each volume of table
@@ -161,13 +161,9 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			for (Dart dv : vertices_of_hexa)
 			{
 				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
-				auto tmp = m.mesh().attribute_containers_[Vertex::ORBIT].nb_refs(579);
-				if(tmp == 0)
-					std::cout << "hum" << std::endl;
 				foreach_dart_of_orbit(static_cast<CMap2&>(m),CMap3::Vertex2(dv), [&] (Dart d) -> bool
 				{
 					set_index<Vertex>(m,d, vertex_index);
-					std::cout << dv.index << " , " << d.index << std::endl;
 					return true;
 				});
 
@@ -189,15 +185,15 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			}
 		}
 
-        if (is_indexed<Volume>(m))
+		if (is_indexed<Volume>(m))
 			set_index(m, vol, vol_emb++);
 	}
 
 	// reconstruct neighbourhood
 	uint32 nb_boundary_faces = 0u;
-    DartMarkerStore marker(m);
+	DartMarkerStore marker(m);
 
-    foreach_dart(m,[&] (Dart d) -> bool
+	foreach_dart(m,[&] (Dart d) -> bool
 	{
 		if (phi3(m,d) == d && !marker.is_marked(d))
 		{

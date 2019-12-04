@@ -191,7 +191,7 @@ public:
 	inline void unmark_all()
 	{
 		for (uint32 i : marked_cells_)
-            (*mark_attribute_)[i] = 0u;
+			(*mark_attribute_)[i] = 0u;
 		marked_cells_.clear();
 	}
 

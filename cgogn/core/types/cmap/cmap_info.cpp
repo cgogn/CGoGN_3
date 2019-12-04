@@ -32,14 +32,14 @@ namespace cgogn
 
 void dump_map(const CMapBase& m)
 {
-    foreach_dart(m,[&] (Dart d) -> bool
-    {
-        std::cout << "index: " << std::setw(5) << d.index << " / ";
-        for (auto& r : m.relations_)
-            std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index] << " / ";
-        std::cout << " boundary: " << std::boolalpha << is_boundary(m,d) << std::endl;
-        return true;
-    });
+	foreach_dart(m,[&] (Dart d) -> bool
+	{
+		std::cout << "index: " << std::setw(5) << d.index << " / ";
+		for (auto& r : m.relations_)
+			std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index] << " / ";
+		std::cout << " boundary: " << std::boolalpha << is_boundary(m,d) << std::endl;
+		return true;
+	});
 }
 
 }

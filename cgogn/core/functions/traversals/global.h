@@ -50,7 +50,7 @@ namespace cgogn
 //////////////
 
 template <typename MESH, typename FUNC,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline void
 foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 {
@@ -59,10 +59,10 @@ foreach_cell(const MESH& m, const FUNC& f, bool force_dart_marking = false)
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-    if (!force_dart_marking && is_indexed<CELL>(m))
+	if (!force_dart_marking && is_indexed<CELL>(m))
 	{
 		CellMarker<MESH, CELL> cm(m);
-        foreach_dart(m,[&] (Dart d) -> bool
+		foreach_dart(m,[&] (Dart d) -> bool
 		{
 			const CELL c(d);
 			if (!is_boundary(m,d) && !cm.is_marked(c))

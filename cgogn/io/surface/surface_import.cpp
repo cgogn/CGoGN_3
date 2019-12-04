@@ -82,7 +82,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	bool need_vertex_unicity_check = false;
 	uint32 nb_boundary_edges = 0u;
 
-    foreach_dart(m,[&] (Dart d) -> bool
+	foreach_dart(m,[&] (Dart d) -> bool
 	{
 		if (phi2(m,d) == d)
 		{
