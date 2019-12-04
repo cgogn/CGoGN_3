@@ -101,7 +101,7 @@ void foreach_incident_face(const CMap2& m, CMap2::Vertex v, const FUNC& func)
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
-        if (!is_boundary(m,d))
+		if (!is_boundary(m,d))
 			return func(CMap2::Face(d));
 		return true;
 	});
@@ -114,7 +114,7 @@ void foreach_incident_face(const CMap2& m, CMap2::Edge e, const FUNC& func)
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 	foreach_dart_of_orbit(m,e, [&] (Dart d) -> bool
 	{
-        if (!is_boundary(m,d))
+		if (!is_boundary(m,d))
 			return func(CMap2::Face(d));
 		return true;
 	});
@@ -125,10 +125,10 @@ void foreach_incident_face(const CMap2& m, CMap2::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap2::Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(m);
+	DartMarkerStore marker(m);
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
-        if (!marker.is_marked(d) && !is_boundary(m,d))
+		if (!marker.is_marked(d) && !is_boundary(m,d))
 		{
 			foreach_dart_of_orbit(m,CMap2::Face(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
 			return func(CMap2::Face(d));
@@ -146,7 +146,7 @@ void foreach_incident_face(const CMap3& m, CMap3::Vertex v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(m);
+	DartMarkerStore marker(m);
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
@@ -176,7 +176,7 @@ void foreach_incident_face(const CMap3& m, CMap3::Volume v, const FUNC& func)
 {
 	static_assert(is_func_parameter_same<FUNC, CMap3::Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-    DartMarkerStore marker(m);
+	DartMarkerStore marker(m);
 	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
 	{
 		if (!marker.is_marked(d))
@@ -199,7 +199,7 @@ void
 foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-    foreach_incident_face(*m.mesh(), c, func);
+	foreach_incident_face(*m.mesh(), c, func);
 }
 
 } // namespace cgogn

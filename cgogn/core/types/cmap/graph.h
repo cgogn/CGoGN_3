@@ -53,18 +53,18 @@ struct CGOGN_CORE_EXPORT Graph
 	
 	static const bool is_mesh_view = true;
 	
-    std::shared_ptr<CMapBase> base_map_;
+	std::shared_ptr<CMapBase> base_map_;
 
-    Graph()
+	Graph()
 	{
-        base_map_ = std::make_shared<CMapBase>();
-        alpha0_ = base_map_->add_relation("alpha0");
-        alpha1_ = base_map_->add_relation("alpha1");
-        alpha_1_ = base_map_->add_relation("alpha_1");
+		base_map_ = std::make_shared<CMapBase>();
+		alpha0_ = base_map_->add_relation("alpha0");
+		alpha1_ = base_map_->add_relation("alpha1");
+		alpha_1_ = base_map_->add_relation("alpha_1");
 	}
 
-    inline const  CMapBase& mesh() const {return *base_map_;}
-    inline  CMapBase& mesh(){return *base_map_;}
+	inline const  CMapBase& mesh() const {return *base_map_;}
+	inline  CMapBase& mesh(){return *base_map_;}
 	
 	inline bool is_isolated(Vertex v) const
 	{

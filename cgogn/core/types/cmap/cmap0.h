@@ -52,16 +52,16 @@ struct CGOGN_CORE_EXPORT CMap0
 	
    std::shared_ptr<CMapBase> base_map_;
 
-    CMap0()
-    {
-        base_map_ = std::make_shared<CMapBase>();
-    }
+	CMap0()
+	{
+		base_map_ = std::make_shared<CMapBase>();
+	}
 
-    CMap0(std::shared_ptr<CMapBase> m) : base_map_(m)
-    {}
+	CMap0(std::shared_ptr<CMapBase> m) : base_map_(m)
+	{}
 	
-    inline const CMapBase& mesh() const {return *base_map_;}
-    inline CMapBase& mesh(){return *base_map_;}
+	inline const CMapBase& mesh() const {return *base_map_;}
+	inline CMapBase& mesh(){return *base_map_;}
 };
 
 } // namespace cgogn

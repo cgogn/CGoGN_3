@@ -21,7 +21,7 @@ inline bool is_boundary(const CMapBase& m, Dart d)
 template <typename MESH, typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline bool is_boundary(const MESH& m, Dart d)
 {
-    return is_boundary(m.mesh(),d);
+	return is_boundary(m.mesh(),d);
 }
 
 //////////////
@@ -39,7 +39,7 @@ inline void set_boundary(const CMapBase& m,Dart d, bool b)
 //////////////
 
 template <typename MESH,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline void set_boundary(const MESH& m,Dart d, bool b)
 {
 	return set_boundary(m.mesh(),d,b);
@@ -58,15 +58,15 @@ inline Dart next(const CMapBase& m,Dart d){ return Dart(m.topology_.next_index(d
 //////////////
 
 template <typename MESH,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline Dart begin(const MESH& m){ return begin(m.mesh()); }
 
 template <typename MESH,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline Dart end(const MESH& m){ return end(m.mesh()); }
 
 template <typename MESH,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline Dart next(const MESH& m,Dart d){ return next(m.mesh(),d); }
 
 //////////////
@@ -83,7 +83,7 @@ inline uint32 nb_darts(const CMapBase& m)
 //////////////
 
 template <typename MESH,
-          typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 inline uint32 nb_darts(const MESH& m)
 {
 	return nb_darts(m.mesh());

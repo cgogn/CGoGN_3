@@ -49,14 +49,14 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 
 	using Cells = std::tuple<Vertex, Vertex2, Edge, Edge2, Face, Face2, Volume>;
 
-    CMap3() : CMap2()
-    {
-        phi3_ = base_map_->add_or_get_relation("phi3");
-    }
-    CMap3(std::shared_ptr<CMapBase> m) : CMap2(m)
-    {
-        phi3_ = base_map_->add_or_get_relation("phi3");
-    }
+	CMap3() : CMap2()
+	{
+		phi3_ = base_map_->add_or_get_relation("phi3");
+	}
+	CMap3(std::shared_ptr<CMapBase> m) : CMap2(m)
+	{
+		phi3_ = base_map_->add_or_get_relation("phi3");
+	}
 };
 
 } // namespace cgogn

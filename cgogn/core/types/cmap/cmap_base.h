@@ -59,7 +59,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 	// shortcuts to embedding indices Dart attributes
 	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> cells_indices_;
 	// shortcut to boundary marker Dart attribute
-    MarkAttribute* boundary_marker_;
+	MarkAttribute* boundary_marker_;
 
 	// Cells attributes containers
 	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
@@ -74,13 +74,13 @@ public:
 		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
 
-    std::shared_ptr<Attribute<Dart>> add_or_get_relation(const std::string& name)
-    {
-        auto rel = topology_.add_attribute<Dart>(name);
-        if(rel == nullptr)
-            return topology_.get_attribute<Dart>(name);
-        return relations_.emplace_back(rel);
-    }
+	std::shared_ptr<Attribute<Dart>> add_or_get_relation(const std::string& name)
+	{
+		auto rel = topology_.add_attribute<Dart>(name);
+		if(rel == nullptr)
+			return topology_.get_attribute<Dart>(name);
+		return relations_.emplace_back(rel);
+	}
 
 	// template <typename CELL>
 	// inline void unset_index(Dart d)
