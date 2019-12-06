@@ -49,16 +49,16 @@ opposite_angles(
 	if (!is_incident_to_boundary(m, e))
 	{
 		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi1(e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(e.dart)));
-		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(m.phi2(e.dart))));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m,e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m,e.dart)));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m,phi2(m,e.dart))));
 		return { angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4) };
 	}
 	else
 	{
 		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi1(e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(m.phi_1(e.dart)));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m,e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m,e.dart)));
 		return { angle(p1 - p3, p2 - p3) };
 	}
 }
@@ -102,9 +102,9 @@ angle(
 	return a;
 	
 	// return angle(
-    //     normal(m, faces[0], vertex_position),
-    //     normal(m, faces[1], vertex_position)
-    // );
+	//	 normal(m, faces[0], vertex_position),
+	//	 normal(m, faces[1], vertex_position)
+	// );
 }
 
 template <typename MESH>
@@ -123,9 +123,9 @@ angle(
 	if (faces.size() < 2)
 		return 0;
 	return angle(
-        value<Vec3>(m, face_normal, faces[0]),
-        value<Vec3>(m, face_normal, faces[1])
-    );
+		value<Vec3>(m, face_normal, faces[0]),
+		value<Vec3>(m, face_normal, faces[1])
+	);
 }
 
 template <typename MESH>
@@ -143,7 +143,7 @@ compute_angle(
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position);
-        return true;
+		return true;
 	});
 }
 
@@ -162,7 +162,7 @@ compute_angle(
 	parallel_foreach_cell(m, [&] (Edge e) -> bool
 	{
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
-        return true;
+		return true;
 	});
 }
 

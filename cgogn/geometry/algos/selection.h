@@ -44,86 +44,86 @@ namespace geometry
 
 CellCache<CMap2>
 within_sphere(
-    const CMap2& m,
+	const CMap2& m,
 	typename CMap2::Vertex center,
-    geometry::Scalar radius,
+	geometry::Scalar radius,
 	const typename CMap2::template Attribute<Vec3>* vertex_position
 )
 {
-    using Vertex = typename CMap2::Vertex;
-    using HalfEdge = typename CMap2::HalfEdge;
-    using Edge = typename CMap2::Edge;
-    using Face = typename CMap2::Face;
+	using Vertex = typename CMap2::Vertex;
+	using HalfEdge = typename CMap2::HalfEdge;
+	using Edge = typename CMap2::Edge;
+	using Face = typename CMap2::Face;
 
-    CellCache<CMap2> cache(m);
+	CellCache<CMap2> cache(m);
 
 	const Vec3& center_position = value<Vec3>(m, vertex_position, center);
 
-    DartMarkerStore dm(m);
+	DartMarkerStore dm(m);
 
-    auto mark_vertex = [&] (Vertex v)
-    {
-        m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
-        {
-            // mark a dart of the vertex
-            dm.mark(d);
+	auto mark_vertex = [&] (Vertex v)
+	{
+		foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
+		{
+			// mark a dart of the vertex
+			dm.mark(d);
 
-            // check if the edge of d is now completely marked
-            // (which means all the vertices of the edge are in the sphere)
-            Edge e(d);
-            bool all_in = true;
-            m.foreach_dart_of_orbit(e, [&] (Dart dd) -> bool
-            {
-                if (!dm.is_marked(dd))
-                    all_in = false;
-                return all_in;
-            });
-            if (all_in)
-                cache.add(e);
+			// check if the edge of d is now completely marked
+			// (which means all the vertices of the edge are in the sphere)
+			Edge e(d);
+			bool all_in = true;
+			foreach_dart_of_orbit(m,e, [&] (Dart dd) -> bool
+			{
+				if (!dm.is_marked(dd))
+					all_in = false;
+				return all_in;
+			});
+			if (all_in)
+				cache.add(e);
 
-            // check if the face of d is now completely marked
-            // (which means all the vertices of the face are in the sphere)
-            Face f(d);
-            all_in = true;
-            m.foreach_dart_of_orbit(f, [&] (Dart dd) -> bool
-            {
-                if (!dm.is_marked(dd))
-                    all_in = false;
-                return all_in;
-            });
-            if (all_in)
-                cache.add(f);
-            
-            return true;
-        });
-    };
+			// check if the face of d is now completely marked
+			// (which means all the vertices of the face are in the sphere)
+			Face f(d);
+			all_in = true;
+			foreach_dart_of_orbit(m,f, [&] (Dart dd) -> bool
+			{
+				if (!dm.is_marked(dd))
+					all_in = false;
+				return all_in;
+			});
+			if (all_in)
+				cache.add(f);
+			
+			return true;
+		});
+	};
 
-    cache.add(center);
-    mark_vertex(center);
+	cache.add(center);
+	mark_vertex(center);
 
-    uint32 i = 0;
-    while (i < cache.cell_vector<Vertex>().size())
-    {
-        Vertex v = cache.cell_vector<Vertex>()[i];
-        foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
-        {
-	        const Vec3& p = value<Vec3>(m, vertex_position, av);
-            if (in_sphere(p, center_position, radius))
-            {
-                if (!dm.is_marked(av.dart))
-                {
-                    cache.add(av);
-                    mark_vertex(av);
-                }
-            }
-            else
-                cache.add(HalfEdge(m.phi2(av.dart)));
-            return true;
-        });
-        ++i;
-    }
+	uint32 i = 0;
+	while (i < cache.cell_vector<Vertex>().size())
+	{
+		Vertex v = cache.cell_vector<Vertex>()[i];
+		foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
+		{
+			const Vec3& p = value<Vec3>(m, vertex_position, av);
+			if (in_sphere(p, center_position, radius))
+			{
+				if (!dm.is_marked(av.dart))
+				{
+					cache.add(av);
+					mark_vertex(av);
+				}
+			}
+			else
+				cache.add(HalfEdge(phi2(m,av.dart)));
+			return true;
+		});
+		++i;
+	}
 
-    return cache;
+	return cache;
 }
 
 } // namespace geometry

@@ -89,81 +89,7 @@ update_edge_queue(
 // CMapBase //
 //////////////
 
-template <typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-void
-pre_collapse_edge_length(
-	const MESH& m,
-	typename mesh_traits<MESH>::Edge e,
-	typename mesh_traits<MESH>::Edge& e1,
-	typename mesh_traits<MESH>::Edge& e2,
-	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info
-)
-{
-	using Edge = typename mesh_traits<MESH>::Edge;
-	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 
-	EdgeQueueInfo& ei = value<EdgeQueueInfo>(m, edge_queue_info, e);
-	if (ei.valid_) { edge_queue.cells_.erase(ei.it_); ei.valid_ = false; }
-
-	e1 = Edge(m.phi2(m.phi_1(e.dart)));
-	e2 = Edge(m.phi2(m.phi_1(m.phi2(e.dart))));
-
-	Dart ed1 = e.dart;
-	Dart ed2 = m.phi2(ed1);
-
-	EdgeQueueInfo& ei1 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(m.phi1(ed1)));
-	if (ei1.valid_) { edge_queue.cells_.erase(ei1.it_); ei1.valid_ = false; }
-
-	EdgeQueueInfo& ei2 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(m.phi_1(ed1)));
-	if (ei2.valid_) { edge_queue.cells_.erase(ei2.it_); ei2.valid_ = false; }
-
-	EdgeQueueInfo& ei3 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(m.phi1(ed2)));
-	if (ei3.valid_) { edge_queue.cells_.erase(ei3.it_); ei3.valid_ = false; }
-
-	EdgeQueueInfo& ei4 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(m.phi_1(ed2)));
-	if (ei4.valid_) { edge_queue.cells_.erase(ei4.it_); ei4.valid_ = false; }
-}
-
-template <typename MESH, typename FUNC,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-void
-post_collapse_edge_length(
-	const MESH& m,
-	typename mesh_traits<MESH>::Edge& e1,
-	typename mesh_traits<MESH>::Edge& e2,
-	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
-	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info,
-	const FUNC& edge_cost
-)
-{
-	using Edge = typename mesh_traits<MESH>::Edge;
-	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
-
-	Dart vit = e1.dart;
-	do
-	{
-		update_edge_queue(m, Edge(m.phi1(vit)), edge_queue, edge_queue_info, edge_cost);
-		if(vit == e1.dart || vit == e2.dart)
-		{
-			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
-
-			Dart vit2 = m.template phi<121>(vit);
-			Dart stop = m.phi2(vit);
-			do
-			{
-				update_edge_queue(m, Edge(vit2), edge_queue, edge_queue_info, edge_cost);
-				update_edge_queue(m, Edge(m.phi1(vit2)), edge_queue, edge_queue_info, edge_cost);
-				vit2 = m.phi1(m.phi2(vit2));
-			} while(vit2 != stop);
-		}
-		else
-			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
-
-		vit = m.phi2(m.phi_1(vit));
-	} while(vit != e1.dart);
-}
 
 //////////////
 // MESHVIEW //
@@ -181,7 +107,29 @@ pre_collapse_edge_length(
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>* edge_queue_info
 )
 {
-	return pre_collapse_edge_length(m.mesh(), e, e1, e2, edge_queue, edge_queue_info);
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
+
+	EdgeQueueInfo& ei = value<EdgeQueueInfo>(m, edge_queue_info, e);
+	if (ei.valid_) { edge_queue.cells_.erase(ei.it_); ei.valid_ = false; }
+
+	e1 = Edge(phi2(m,phi_1(m,e.dart)));
+	e2 = Edge(phi2(m,phi_1(m,phi2(m,e.dart))));
+
+	Dart ed1 = e.dart;
+	Dart ed2 = phi2(m,ed1);
+
+	EdgeQueueInfo& ei1 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(phi1(m,ed1)));
+	if (ei1.valid_) { edge_queue.cells_.erase(ei1.it_); ei1.valid_ = false; }
+
+	EdgeQueueInfo& ei2 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(phi_1(m,ed1)));
+	if (ei2.valid_) { edge_queue.cells_.erase(ei2.it_); ei2.valid_ = false; }
+
+	EdgeQueueInfo& ei3 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(phi1(m,ed2)));
+	if (ei3.valid_) { edge_queue.cells_.erase(ei3.it_); ei3.valid_ = false; }
+
+	EdgeQueueInfo& ei4 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(phi_1(m,ed2)));
+	if (ei4.valid_) { edge_queue.cells_.erase(ei4.it_); ei4.valid_ = false; }
 }
 
 template <typename MESH, typename FUNC,
@@ -196,7 +144,31 @@ post_collapse_edge_length(
 	const FUNC& edge_cost
 )
 {
-	return post_collapse_edge_length(m.mesh(), e1, e2, edge_queue, edge_queue_info, edge_cost);
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
+
+	Dart vit = e1.dart;
+	do
+	{
+		update_edge_queue(m, Edge(phi1(m,vit)), edge_queue, edge_queue_info, edge_cost);
+		if(vit == e1.dart || vit == e2.dart)
+		{
+			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
+
+			Dart vit2 = phi<121>(m,vit);
+			Dart stop = phi2(m,vit);
+			do
+			{
+				update_edge_queue(m, Edge(vit2), edge_queue, edge_queue_info, edge_cost);
+				update_edge_queue(m, Edge(phi1(m,vit2)), edge_queue, edge_queue_info, edge_cost);
+				vit2 = phi1(m,phi2(m,vit2));
+			} while(vit2 != stop);
+		}
+		else
+			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
+
+		vit = phi2(m,phi_1(m,vit));
+	} while(vit != e1.dart);
 }
 
 ////////////////
@@ -223,7 +195,7 @@ post_collapse_edge_length(
 	Dart vit = e1.dart;
 	do
 	{
-		Edge e(m.phi1(vit));
+		Edge e(phi1(m,vit));
 		if (cf.filter(e))
 			update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 		if(vit == e1.dart || vit == e2.dart)
@@ -233,16 +205,16 @@ post_collapse_edge_length(
 				update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 
 			Dart vit2 = m.template phi<121>(vit);
-			Dart stop = m.phi2(vit);
+			Dart stop = phi2(m,vit);
 			do
 			{
 				e = Edge(vit2);
 				if (cf.filter(e))
 					update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
-				e = Edge(m.phi1(vit2));
+				e = Edge(phi1(m,vit2));
 				if (cf.filter(e))
 					update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
-				vit2 = m.phi1(m.phi2(vit2));
+				vit2 = phi1(m,phi2(m,vit2));
 			} while(vit2 != stop);
 		}
 		else
@@ -252,7 +224,7 @@ post_collapse_edge_length(
 				update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 		}
 
-		vit = m.phi2(m.phi_1(vit));
+		vit = phi2(m,phi_1(m,vit));
 	} while(vit != e1.dart);
 }
 

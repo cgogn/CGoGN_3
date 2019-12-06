@@ -154,7 +154,7 @@ public:
 	using AttributeGen = AttributeGenT;
 	using MarkAttribute = Attribute<uint8>;
 
-protected:
+public:
 
 	std::unique_ptr<Attribute<uint32>> ref_counter_;
 

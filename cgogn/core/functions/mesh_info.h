@@ -152,36 +152,19 @@ uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Volume v)
 
 /*****************************************************************************/
 
-//////////////
-// CMapBase //
-//////////////
-
-template <typename MESH, typename CELL,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-bool
-is_incident_to_boundary(const MESH& m, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	bool result = false;
-	m.foreach_dart_of_orbit(c, [&m, &result] (Dart d) -> bool
-	{
-		if (m.is_boundary(d)) { result = true; return false; }
-		return true;
-	});
-	return result;
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
 template <typename MESH, typename CELL,
 		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
 bool
 is_incident_to_boundary(const MESH& m, CELL c)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return is_incident_to_boundary(m.mesh(), c);
+	bool result = false;
+	foreach_dart_of_orbit(m,c, [&m, &result] (Dart d) -> bool
+	{
+		if (is_boundary(m,d)) { result = true; return false; }
+		return true;
+	});
+	return result;
 }
 
 /*****************************************************************************/
@@ -212,36 +195,36 @@ inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
 		return false;
 
 	Dart e1 = e.dart;
-	Dart e2 = m.phi2(e.dart);
+	Dart e2 = phi2(m,e.dart);
 
 	if (codegree(m, Face(e1)) == 3)
 	{
-		if (degree(m, Vertex(m.phi_1(e1))) < 4)
+		if (degree(m, Vertex(phi_1(m,e1))) < 4)
 			return false;
 	}
 
 	if (codegree(m, Face(e2)) == 3)
 	{
-		if (degree(m, Vertex(m.phi_1(e2))) < 4)
+		if (degree(m, Vertex(phi_1(m,e2))) < 4)
 			return false;
 	}
 
-	auto next_edge = [&m] (Dart d) { return m.phi2(m.phi_1(d)); };
+	auto next_edge = [&m] (Dart d) { return phi2(m,phi_1(m,d)); };
 
 	// Check vertex sharing condition
 	std::vector<uint32> vn1;
 	Dart it = next_edge(next_edge(e1));
-	Dart end = m.phi1(e2);
+	Dart end = phi1(m,e2);
 	do
 	{
-		vn1.push_back(index_of(m, Vertex(m.phi1(it))));
+		vn1.push_back(index_of(m, Vertex(phi1(m,it))));
 		it = next_edge(it);
 	} while (it != end);
 	it = next_edge(next_edge(e2));
-	end = m.phi1(e1);
+	end = phi1(m,e1);
 	do
 	{
-		auto vn1it = std::find(vn1.begin(), vn1.end(), index_of(m, Vertex(m.phi1(it))));
+		auto vn1it = std::find(vn1.begin(), vn1.end(), index_of(m, Vertex(phi1(m,it))));
 		if (vn1it != vn1.end())
 			return false;
 		it = next_edge(it);

@@ -53,7 +53,7 @@ std::vector<CMap1::Vertex> incident_edges(const CMap1& m, CMap1::Face f)
 {
 	std::vector<CMap1::Edge> edges;
 	edges.reserve(8u);
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap1::Edge(d)); return true; });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { edges.push_back(CMap1::Edge(d)); return true; });
 	return edges;
 }
 
@@ -65,7 +65,7 @@ std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Edge> edges;
 	edges.reserve(8u);
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
+	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
 	return edges;
 }
 
@@ -78,7 +78,7 @@ std::vector<CMap2::Edge> incident_edges(const CMap2& m, CMap2::Face f)
 {
 	std::vector<CMap2::Edge> edges;
 	edges.reserve(16u);
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { edges.push_back(CMap2::Edge(d)); return true; });
 	return edges;
 }
 
@@ -106,7 +106,7 @@ std::vector<CMap3::Edge> incident_edges(const CMap3& m, CMap3::Face f)
 {
 	std::vector<CMap3::Edge> edges;
 	edges.reserve(16u);
-	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { edges.push_back(CMap3::Edge(d)); return true; });
+	foreach_dart_of_orbit(m,CMap3::Face2(f.dart), [&] (Dart d) -> bool { edges.push_back(CMap3::Edge(d)); return true; });
 	return edges;
 }
 
