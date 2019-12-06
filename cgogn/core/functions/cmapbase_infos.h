@@ -2,6 +2,7 @@
 #define CGOGN_CORE_FUNCTIONS_CMAPBASE_INFOS_H
 
 #include <cgogn/core/types/cmap/cmap_base.h>
+#include <cgogn/core/types/cmap/mr_cmap3.h>
 
 namespace cgogn {
 
@@ -87,6 +88,33 @@ template <typename MESH,
 inline uint32 nb_darts(const MESH& m)
 {
 	return nb_darts(m.mesh());
+}
+
+//////////////
+// CMapBase //
+//////////////
+
+inline Dart add_dart(CMapBase& m)
+{
+	uint32 index = m.topology_.new_index();
+	Dart d(index);
+	for (auto rel : m.relations_)
+		(*rel)[d.index] = d;
+	for (auto emb : m.cells_indices_)
+		if (emb)
+			(*emb)[d.index] = INVALID_INDEX;
+	return d;
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline Dart add_dart(MESH& m)
+{
+	return add_dart(m.mesh());
 }
 
 

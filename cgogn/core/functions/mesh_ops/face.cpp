@@ -47,10 +47,10 @@ namespace cgogn
 CMap1::Face
 add_face(CMap1& m, uint32 size, bool set_indices)
 {
-	Dart d = m.mesh().add_dart();
+	Dart d = add_dart(m);
 	for (uint32 i = 1u; i < size; ++i)
 	{
-		Dart e = m.mesh().add_dart();
+		Dart e = add_dart(m);
 		phi1_sew(m,d, e);
 	}
 	CMap1::Face f(d);
@@ -262,7 +262,7 @@ CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi2(m,d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
 
-	Dart first = m.mesh().add_dart();	// First edge of the face that will fill the hole
+	Dart first = add_dart(m);	// First edge of the face that will fill the hole
 	phi2_sew(m,d, first);			// 2-sew the new edge to the hole
 
 	Dart d_next = d;			// Turn around the hole
@@ -277,7 +277,7 @@ CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices)
 
 		if (d_phi1 != d)
 		{
-			Dart next = m.mesh().add_dart();	// Add a vertex into the built face
+			Dart next = add_dart(m);	// Add a vertex into the built face
 			phi1_sew(m,first, next);
 			phi2_sew(m,d_next, next);	// and 2-sew the face to the hole
 		}
