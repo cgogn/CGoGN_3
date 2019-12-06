@@ -47,8 +47,8 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 	Dart e0 = e.dart;
 	Dart e1 = g.alpha0(e0);
 
-	Dart v0 = g.mesh().add_dart();
-	Dart v1 = g.mesh().add_dart();
+	Dart v0 = add_dart(g);
+	Dart v1 = add_dart(g);
 
 	g.alpha1_sew(v0, v1);
 	g.alpha0_unsew(e0);
@@ -81,7 +81,7 @@ cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 CMap1::Vertex
 cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
-	Dart d = m.mesh().add_dart();
+	Dart d = add_dart(m);
 	phi1_sew(m,e.dart, d);
 	CMap1::Vertex v(d);
 

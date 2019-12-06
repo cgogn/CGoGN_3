@@ -43,8 +43,8 @@ namespace cgogn
 Graph::Vertex
 add_vertex(Graph& g, bool set_indices)
 {
-	Dart d = g.mesh().add_dart();
-	Dart dd = g.mesh().add_dart();
+	Dart d = add_dart(g);
+	Dart dd = add_dart(g);
 	g.alpha0_sew(d, dd);
 	g.alpha1_sew(d, dd);
 
@@ -152,8 +152,8 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 		}
 		else
 		{
-			Dart dd = g.mesh().add_dart();
-			Dart ee = g.mesh().add_dart();
+			Dart dd = add_dart(g);
+			Dart ee = add_dart(g);
 			g.alpha0_sew(dd, ee);
 			g.alpha1_sew(d, dd);
 			g.alpha1_sew(e, ee);
@@ -200,8 +200,8 @@ disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 		if (g.alpha1(y) == y)
 		{
 			g.alpha0_unsew(x);
-			Dart xx = g.mesh().add_dart();
-			Dart yy = g.mesh().add_dart();
+			Dart xx = add_dart(g);
+			Dart yy = add_dart(g);
 			g.alpha0_sew(x, xx);
 			g.alpha1_sew(x, xx);
 			g.alpha0_sew(y, yy);

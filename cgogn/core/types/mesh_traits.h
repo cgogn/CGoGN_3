@@ -28,6 +28,7 @@
 
 #include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/cmap/mr_cmap3.h>
 
 namespace cgogn
 {
@@ -128,6 +129,29 @@ struct mesh_traits<Graph>
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+};
+
+template <>
+struct mesh_traits<MRCmap3>
+{
+	static constexpr const char* name = "IHCMap3";
+	static constexpr const uint8 dimension = 3;
+
+	using Vertex = MRCmap3::Vertex;
+	using Vertex2 = MRCmap3::Vertex2;
+	using Edge = MRCmap3::Edge;
+	using Edge2 = MRCmap3::Edge2;
+	using Face = MRCmap3::Face;
+	using Face2 = MRCmap3::Face2;
+	using Volume = MRCmap3::Volume;
+
+	using Cells = MRCmap3::Cells;
+	static constexpr const char* cell_names[] = { "Vertex", "Vertex2", "Edge", "Edge2", "Face", "Face2", "Volume" };
+
+	template <typename T>
+	using Attribute = MRCmap3::Attribute<T>;
 	using AttributeGen = CMapBase::AttributeGen;
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
