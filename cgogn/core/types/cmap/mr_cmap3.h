@@ -32,6 +32,7 @@ public:
 
 	MRCmap3():base_map_(),Inherit(base_map_->base_map_->topology_){}
 	MRCmap3(std::shared_ptr<CMap3> m):base_map_(m),Inherit(m->base_map_->topology_){}
+
 	MRCmap3(const MRCmap3& mr2):MRCmap3(mr2.base_map_){
 		this->current_level(mr2.current_level());
 	}
