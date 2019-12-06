@@ -67,8 +67,6 @@ struct CGOGN_CORE_EXPORT CMapBase
 	CMapBase();
 	virtual ~CMapBase();
 
-public:
-
 	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
 		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
@@ -93,18 +91,6 @@ public:
 	// 		attribute_containers_[orbit].unref_index(old);	// unref the old emb
 	// 	(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
 	// }
-
-	inline Dart add_dart()
-	{
-		uint32 index = topology_.new_index();
-		Dart d(index);
-		for (auto rel : relations_)
-			(*rel)[d.index] = d;
-		for (auto emb : cells_indices_)
-			if (emb)
-				(*emb)[d.index] = INVALID_INDEX;
-		return d;
-	}
 
 	inline void remove_dart(Dart d)
 	{
