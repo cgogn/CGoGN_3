@@ -339,14 +339,14 @@ protected:
 
 		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
 		{
-			app_.foreach_view([this] (View* v)
+			for (View* v : linked_views_)
 			{
 				bool is_selected = v == selected_view_;
 				if (ImGui::Selectable(v->name().c_str(), is_selected))
 					selected_view_ = v;
 				if (is_selected)
 					ImGui::SetItemDefaultFocus();
-			});
+			}
 			ImGui::EndCombo();
 		}
 
