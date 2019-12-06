@@ -72,9 +72,9 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
 				const uint32 vertex_index = vertices_buffer[j];
-				m.set_index<Vertex>(d, vertex_index);
+				set_index<Vertex>(m,d, vertex_index);
 				(*darts_per_vertex)[vertex_index].push_back(d);
-				d = m.phi1(d);
+				d = phi1(m,d);
 			}
 		}
 	}
@@ -82,13 +82,13 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	bool need_vertex_unicity_check = false;
 	uint32 nb_boundary_edges = 0u;
 
-	m.foreach_dart([&] (Dart d) -> bool
+	foreach_dart(m,[&] (Dart d) -> bool
 	{
-		if (m.phi2(d) == d)
+		if (phi2(m,d) == d)
 		{
-			uint32 vertex_index = m.index_of(Vertex(d));
+			uint32 vertex_index = index_of(m,Vertex(d));
 
-			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(m.phi1(d)));
+			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(phi1(m,d)));
 			bool phi2_found = false;
 			bool first_OK = true;
 
@@ -96,11 +96,11 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 				 it != next_vertex_darts.end() && !phi2_found;
 				 ++it)
 			{
-				if (m.index_of(Vertex(m.phi1(*it))) == vertex_index)
+				if (index_of(m,Vertex(phi1(m,*it))) == vertex_index)
 				{
-					if (m.phi2(*it) == *it)
+					if (phi2(m,*it) == *it)
 					{
-						m.phi2_sew(d, *it);
+						phi2_sew(m,d, *it);
 						phi2_found = true;
 					}
 					else
@@ -119,7 +119,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 
 	if (nb_boundary_edges > 0u)
 	{
-		uint32 nb_holes = m.close();
+		uint32 nb_holes = close(m);
 		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
 		std::cout << nb_boundary_edges << " boundary edges" << std::endl;
 	}

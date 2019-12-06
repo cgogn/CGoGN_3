@@ -22,6 +22,7 @@
 *******************************************************************************/
 
 #include <cgogn/core/functions/traversals/halfedge.h>
+#include <cgogn/core/functions/phi.h>
 
 namespace cgogn
 {
@@ -64,7 +65,7 @@ CGOGN_CORE_EXPORT incident_halfedges(const CMap2& m, CMap2::Edge e)
 	std::vector<CMap2::HalfEdge> edges1;
 	edges1.reserve(2u);
 	edges1.push_back(CMap2::HalfEdge(e.dart));
-	edges1.push_back(CMap2::HalfEdge(m.phi2(e.dart)));
+	edges1.push_back(CMap2::HalfEdge(phi2(m,e.dart)));
 	return edges1;
 }
 

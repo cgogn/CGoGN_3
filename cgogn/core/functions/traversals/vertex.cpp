@@ -54,7 +54,7 @@ std::vector<CMap1::Vertex> incident_vertices(const CMap1& m, CMap1::Face f)
 {
 	std::vector<CMap1::Vertex> vertices;
 	vertices.reserve(8u);
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap1::Vertex(d)); return true; });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { vertices.push_back(CMap1::Vertex(d)); return true; });
 	return vertices;
 }
 
@@ -67,7 +67,7 @@ std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Edge e)
 	std::vector<CMap2::Vertex> vertices;
 	vertices.reserve(2u);
 	vertices.push_back(CMap2::Vertex(e.dart));
-	vertices.push_back(CMap2::Vertex(m.phi2(e.dart)));
+	vertices.push_back(CMap2::Vertex(phi2(m,e.dart)));
 	return vertices;
 }
 
@@ -75,7 +75,7 @@ std::vector<CMap2::Vertex> incident_vertices(const CMap2& m, CMap2::Face f)
 {
 	std::vector<CMap2::Vertex> vertices;
 	vertices.reserve(16u);
-	m.foreach_dart_of_orbit(f, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { vertices.push_back(CMap2::Vertex(d)); return true; });
 	return vertices;
 }
 
@@ -96,7 +96,7 @@ std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Edge e)
 	std::vector<CMap3::Vertex> vertices;
 	vertices.reserve(2u);
 	vertices.push_back(CMap3::Vertex(e.dart));
-	vertices.push_back(CMap3::Vertex(m.phi2(e.dart)));
+	vertices.push_back(CMap3::Vertex(phi2(m,e.dart)));
 	return vertices;
 }
 
@@ -104,7 +104,7 @@ std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Face f)
 {
 	std::vector<CMap3::Vertex> vertices;
 	vertices.reserve(16u);
-	static_cast<const CMap2&>(m).foreach_dart_of_orbit(CMap2::Face(f.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	foreach_dart_of_orbit(m,CMap3::Face2(f.dart), [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
 	return vertices;
 }
 

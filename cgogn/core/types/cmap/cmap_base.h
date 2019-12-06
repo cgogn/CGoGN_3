@@ -59,7 +59,7 @@ struct CGOGN_CORE_EXPORT CMapBase
 	// shortcuts to embedding indices Dart attributes
 	std::array<std::shared_ptr<Attribute<uint32>>, NB_ORBITS> cells_indices_;
 	// shortcut to boundary marker Dart attribute
-    MarkAttribute* boundary_marker_;
+	MarkAttribute* boundary_marker_;
 
 	// Cells attributes containers
 	mutable std::array<AttributeContainer, NB_ORBITS> attribute_containers_;
@@ -67,59 +67,17 @@ struct CGOGN_CORE_EXPORT CMapBase
 	CMapBase();
 	virtual ~CMapBase();
 
-protected:
-
 	std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{
 		return relations_.emplace_back(topology_.add_attribute<Dart>(name));
 	}
 
-public:
-
-	inline uint32 nb_darts() const
+	std::shared_ptr<Attribute<Dart>> add_or_get_relation(const std::string& name)
 	{
-		return topology_.nb_elements();
-	}
-
-	inline void set_boundary(Dart d, bool b)
-	{
-		(*boundary_marker_)[d.index] = b ? 1u : 0u;
-	}
-
-	inline bool is_boundary(Dart d) const
-	{
-		return (*boundary_marker_)[d.index] != 0u;
-	}
-
-	template <typename CELL>
-	inline bool is_indexed() const
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		return cells_indices_[orbit] != nullptr;
-	}
-
-	template <typename CELL>
-	inline uint32 index_of(CELL c) const
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		return (*cells_indices_[orbit])[c.dart.index];
-	}
-
-	template <typename CELL>
-	inline void set_index(Dart d, uint32 index)
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		const uint32 old = (*cells_indices_[orbit])[d.index];
-		// ref_index() is done before unref_index() to avoid deleting the index if old == index
-		attribute_containers_[orbit].ref_index(index);		// ref the new index
-		if (old != INVALID_INDEX)
-			attribute_containers_[orbit].unref_index(old);	// unref the old index
-		(*cells_indices_[orbit])[d.index] = index;			// affect the index to the dart
+		auto rel = topology_.add_attribute<Dart>(name);
+		if(rel == nullptr)
+			return topology_.get_attribute<Dart>(name);
+		return relations_.emplace_back(rel);
 	}
 
 	// template <typename CELL>
@@ -134,41 +92,6 @@ public:
 	// 	(*cells_indices_[orbit])[d.index] = INVALID_INDEX;	// affect the index to the dart
 	// }
 
-	template <typename CELL>
-	inline void copy_index(Dart dest, Dart src)
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		cgogn_message_assert(is_indexed<CELL>(), "Trying to access the cell index of an unindexed cell type");
-		set_index<CELL>(dest, index_of(CELL(src)));
-	}
-
-	template <typename CELL>
-	inline void init_cells_indexing()
-	{
-		static const Orbit orbit = CELL::ORBIT;
-		static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-		if (!is_indexed<CELL>())
-		{
-			std::ostringstream oss;
-			oss << "__index_" << orbit_name(orbit);
-			cells_indices_[orbit] = topology_.add_attribute<uint32>(oss.str());
-			cells_indices_[orbit]->fill(INVALID_INDEX);
-		}
-	}
-
-	inline Dart add_dart()
-	{
-		uint32 index = topology_.new_index();
-		Dart d(index);
-		for (auto rel : relations_)
-			(*rel)[d.index] = d;
-		for (auto emb : cells_indices_)
-			if (emb)
-				(*emb)[d.index] = INVALID_INDEX;
-		return d;
-	}
-
 	inline void remove_dart(Dart d)
 	{
 		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
@@ -182,21 +105,8 @@ public:
 		}
 		topology_.release_index(d.index);
 	}
-
-	template <typename FUNC>
-	void foreach_dart(const FUNC& f) const
-	{
-		static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-		for (uint32 i = topology_.first_index(), last_index = topology_.last_index(); i < last_index; i = topology_.next_index(i))
-			if (!f(Dart(i)))
-				break;
-	}
-
-	inline Dart begin() const { return Dart(topology_.first_index()); }
-	inline Dart end() const { return Dart(topology_.last_index()); }
-	inline Dart next(Dart d) const { return Dart(topology_.next_index(d.index)); }
 };
+
 
 } // namespace cgogn
 

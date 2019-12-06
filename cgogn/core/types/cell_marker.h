@@ -44,14 +44,10 @@ namespace cgogn
 // CMapBase //
 //////////////
 
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttribute*
-get_mark_attribute(const MESH& m)
+template <typename CELL>
+typename CMapBase::MarkAttribute*
+get_mark_attribute(const CMapBase& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	if (!m.template is_indexed<CELL>())
-		index_cells<CELL>(const_cast<MESH&>(m));
 	return m.attribute_containers_[CELL::ORBIT].get_mark_attribute();
 }
 
@@ -65,6 +61,8 @@ typename mesh_traits<MESH>::MarkAttribute*
 get_mark_attribute(const MESH& m)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	if (!is_indexed<CELL>(m))
+		index_cells<CELL>(const_cast<MESH&>(m));
 	return get_mark_attribute<CELL>(m.mesh());
 }
 
@@ -79,12 +77,10 @@ get_mark_attribute(const MESH& m)
 // CMapBase //
 //////////////
 
-template <typename CELL, typename MESH,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
+template <typename CELL>
 void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
+release_mark_attribute(const CMapBase& m, CMapBase::MarkAttribute* attribute)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
 }
 
@@ -98,7 +94,7 @@ void
 release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return release_mark_attribute<CELL>(m.mesh(), attribute);
+	release_mark_attribute<CELL>(m.mesh(), attribute);
 }
 
 /*****************************************************************************/
@@ -195,7 +191,7 @@ public:
 	inline void unmark_all()
 	{
 		for (uint32 i : marked_cells_)
-            (*mark_attribute_)[i] = 0u;
+			(*mark_attribute_)[i] = 0u;
 		marked_cells_.clear();
 	}
 

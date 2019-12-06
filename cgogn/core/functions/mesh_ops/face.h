@@ -126,6 +126,10 @@ cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<ME
 	return cut_face(m.mesh(), v1, v2, set_indices);
 }
 
+CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices = true);
+
+uint32 close(CMap2& m,bool set_indices = true);
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_

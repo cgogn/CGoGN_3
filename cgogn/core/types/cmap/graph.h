@@ -31,8 +31,16 @@
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT Graph : public CMapBase
+struct CGOGN_CORE_EXPORT Graph
 {
+	
+	using AttributeContainer = CMapBase::AttributeContainer;
+
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+	
 	std::shared_ptr<Attribute<Dart>> alpha0_;
 	std::shared_ptr<Attribute<Dart>> alpha1_;
 	std::shared_ptr<Attribute<Dart>> alpha_1_;
@@ -42,14 +50,22 @@ struct CGOGN_CORE_EXPORT Graph : public CMapBase
 	using Edge = Cell<PHI2>;
 
 	using Cells = std::tuple<Vertex, HalfEdge, Edge>;
+	
+	static const bool is_mesh_view = true;
+	
+	std::shared_ptr<CMapBase> base_map_;
 
-	Graph() : CMapBase()
+	Graph()
 	{
-		alpha0_ = add_relation("alpha0");
-		alpha1_ = add_relation("alpha1");
-		alpha_1_ = add_relation("alpha_1");
+		base_map_ = std::make_shared<CMapBase>();
+		alpha0_ = base_map_->add_relation("alpha0");
+		alpha1_ = base_map_->add_relation("alpha1");
+		alpha_1_ = base_map_->add_relation("alpha_1");
 	}
 
+	inline const  CMapBase& mesh() const {return *base_map_;}
+	inline  CMapBase& mesh(){return *base_map_;}
+	
 	inline bool is_isolated(Vertex v) const
 	{
 		return alpha0(v.dart) == alpha1(v.dart);

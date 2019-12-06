@@ -80,6 +80,12 @@ CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
 CMap3::Face
 cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices = true);
 
+CMap3::Volume close_hole(CMap3& m,Dart d, bool set_indices = true);
+
+uint32 close(CMap3& m,bool set_indices = true);
+
+void sew_volumes(CMap3& m,Dart d0, Dart d1);
+
 //////////////
 // MESHVIEW //
 //////////////

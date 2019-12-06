@@ -41,6 +41,9 @@ private:
 public:
 
 	DartMarker(const CMapBase& map);
+	template <typename MESH, typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+	DartMarker(const MESH& map) : DartMarker(map.mesh())
+	{}
 	~DartMarker();
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(DartMarker);
@@ -70,6 +73,11 @@ private:
 public:
 
 	DartMarkerStore(const CMapBase& map);
+	
+	template <typename MESH, typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+	DartMarkerStore(const MESH& map) : DartMarkerStore(map.mesh())
+	{}
+	
 	~DartMarkerStore();
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(DartMarkerStore);

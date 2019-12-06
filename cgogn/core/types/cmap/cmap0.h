@@ -27,19 +27,41 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/cmap/cmap_base.h>
+#include <memory>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT CMap0 : public CMapBase
+struct CGOGN_CORE_EXPORT CMap0
 {
+	using Self = CMap0;
+	
 	using Vertex = Cell<DART>;
 	using CC = Vertex;
 
 	using Cells = std::tuple<Vertex>;
+	
+	using AttributeContainer = CMapBase::AttributeContainer;
 
-	CMap0() : CMapBase()
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+	
+	static const bool is_mesh_view = true;
+	
+   std::shared_ptr<CMapBase> base_map_;
+
+	CMap0()
+	{
+		base_map_ = std::make_shared<CMapBase>();
+	}
+
+	CMap0(std::shared_ptr<CMapBase> m) : base_map_(m)
 	{}
+	
+	inline const CMapBase& mesh() const {return *base_map_;}
+	inline CMapBase& mesh(){return *base_map_;}
 };
 
 } // namespace cgogn
