@@ -53,6 +53,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mr_cmap_infos.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mr_cmap_infos.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/phi.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/phi.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"

@@ -254,6 +254,10 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
+void import_volume_data(MRCmap3& m, const VolumeImportData& volume_data){
+	import_volume_data(m.mesh(),volume_data);
+}
+
 } // namespace io
 
 } // namespace cgogn

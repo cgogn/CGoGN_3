@@ -2,7 +2,6 @@
 #define CGOGN_CORE_FUNCTIONS_CMAPBASE_INFOS_H
 
 #include <cgogn/core/types/cmap/cmap_base.h>
-#include <cgogn/core/types/cmap/mr_cmap3.h>
 
 namespace cgogn {
 
@@ -117,6 +116,25 @@ inline Dart add_dart(MESH& m)
 	return add_dart(m.mesh());
 }
 
+//////////////
+// CMapBase //
+//////////////
+
+inline CMapBase::AttributeContainer& get_topology(CMapBase& m)
+{
+	return m.topology_;
+}
+
+//////////////
+// MESHVIEW //
+//////////////
+
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+inline CMapBase::AttributeContainer& get_topology(MESH& m)
+{
+	return get_topology(m.mesh());
+}
 
 }
 

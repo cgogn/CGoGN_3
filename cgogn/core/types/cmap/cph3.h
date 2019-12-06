@@ -6,12 +6,13 @@
 namespace cgogn
 {
 
-class CPH3 : public CPH2
+template<typename MAP>
+class CPH3 : public CPH2<MAP>
 {
 public:
 
     using Self =  CPH3;
-    using Inherit = CPH2;
+    using Inherit = CPH2<MAP>;
 
     using AttributeContainer = AttributeContainerT<ChunkArray>;
     template <typename T>
@@ -22,10 +23,15 @@ protected:
     std::shared_ptr<Attribute<uint32>> face_id_;
 
 public:
-    CPH3(AttributeContainer& topology) : Inherit(topology)
+    CPH3() : Inherit()
     {
-		face_id_ = topology.template add_attribute<uint32>("faceId");
+		face_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("faceId");
     }
+	
+	inline CPH3(std::shared_ptr<MAP> m) : Inherit(m)
+	{
+		face_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("faceId");
+	}
     
     /***************************************************
      *             FACE ID MANAGEMENT                  *

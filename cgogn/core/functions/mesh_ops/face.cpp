@@ -221,8 +221,8 @@ cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices)
 	Dart dd = phi<31>(m,v1.dart);
 	Dart ee = phi<31>(m,e);
 
-	CMap2::Edge e0 = cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart), CMap2::Vertex(e), false);
-	CMap2::Edge e1 = cut_face(static_cast<CMap2&>(m), CMap2::Vertex(dd), CMap2::Vertex(ee), false);
+	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart), CMap2::Vertex(e), false);
+	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(dd), CMap2::Vertex(ee), false);
 
 	phi3_sew(m,phi_1(m,v1.dart), phi_1(m,ee));
 	phi3_sew(m,phi_1(m,dd), phi_1(m,e));

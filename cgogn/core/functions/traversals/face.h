@@ -199,7 +199,7 @@ void
 foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	foreach_incident_face(*m.mesh(), c, func);
+	foreach_incident_face(m.mesh(), c, func);
 }
 
 } // namespace cgogn

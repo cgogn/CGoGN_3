@@ -46,13 +46,13 @@ namespace cgogn
 ///////////
 
 std::vector<CMap2::Volume>
-CGOGN_CORE_EXPORT incident_volumes(const CMap2& m, CMap2::Vertex v);
+CGOGN_CORE_EXPORT incident_volumes(const CMap2&, CMap2::Vertex v);
 
 std::vector<CMap2::Volume>
-CGOGN_CORE_EXPORT incident_volumes(const CMap2& m, CMap2::Edge e);
+CGOGN_CORE_EXPORT incident_volumes(const CMap2& , CMap2::Edge e);
 
 std::vector<CMap2::Volume>
-CGOGN_CORE_EXPORT incident_volumes(const CMap2& m, CMap2::Face f);
+CGOGN_CORE_EXPORT incident_volumes(const CMap2& , CMap2::Face f);
 
 ///////////
 // CMap3 //

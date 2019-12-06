@@ -9,19 +9,7 @@ namespace cgogn {
 * \brief add and init a new dart
 * The dart is added to the current level of resolution
 */
-inline Dart add_dart(MRCmap3& m)
-{
-	Dart d = add_dart(m.mesh());
-	m.inc_nb_darts();
-	m.edge_id(d, 0u);
-	m.face_id(d, 0u);
-	m.dart_level(d, m.current_level());
-
-	// update max level if needed
-	if(m.current_level() > m.maximum_level())
-		m.maximum_level(m.current_level());
-	return d;
-}
+Dart add_dart(MRCmap3& m);
 
 /**
  * Return the level of the edge of d in the current level map

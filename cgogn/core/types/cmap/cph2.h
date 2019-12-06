@@ -6,12 +6,13 @@
 namespace cgogn 
 {
 
-class CPH2 : public CPH_Base
+template<typename MAP>
+class CPH2 : public CPH_Base<MAP>
 {
 public:
 
     using Self = CPH2;
-    using Inherit = CPH_Base;
+    using Inherit = CPH_Base<MAP>;
     using AttributeContainer = AttributeContainerT<ChunkArray>;
     template <typename T>
     using Attribute = AttributeContainer::Attribute<T>;
@@ -22,10 +23,15 @@ protected:
 	
 public:
 	
-    CPH2(AttributeContainer& topology) : Inherit(topology)
+    CPH2() : Inherit()
     {
-		edge_id_ = topology.template add_attribute<uint32>("edgeId");
+		edge_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("edgeId");
     }
+	
+	inline CPH2(std::shared_ptr<MAP>& m) : Inherit(m)
+	{
+		edge_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("edgeId");
+	}
     
     /***************************************************
     *             EDGE ID MANAGEMENT                  *

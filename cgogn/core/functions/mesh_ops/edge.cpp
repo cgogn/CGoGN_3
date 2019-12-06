@@ -194,6 +194,7 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			{
 				copy_index<CMap3::Face>(m,phi1(m,d), d);
 				copy_index<CMap3::Face>(m,phi3(m,d), d);
+				return true;
 			});
 		}
 		if (is_indexed<CMap3::Volume>(m))
@@ -202,6 +203,7 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			{
 				copy_index<CMap3::Volume>(m,phi1(m,d), d);
 				copy_index<CMap3::Volume>(m,phi2(m,d), d);
+				return true;
 			});
 		}
 	}

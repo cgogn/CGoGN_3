@@ -5,9 +5,11 @@
 #include <cgogn/core/types/container/vector.h>
 #include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/cmap/cell.h>
+#include <cgogn/core/functions/cmapbase_infos.h>
 
 namespace cgogn{
 
+template<typename MAP>
 class CPH_Base{
 public :
 	using Self = CPH_Base;
@@ -25,17 +27,31 @@ public :
 	 */
 	std::vector<uint32> nb_darts_per_level_;
 	std::shared_ptr<Attribute<uint32>> dart_level_;
+	std::shared_ptr<MAP> base_map_;
 public:
 
-	inline CPH_Base(AttributeContainer& topology) :
+	inline CPH_Base() :
 		current_level_(0u),
 		maximum_level_(0u)
 	{
+		base_map_ = std::make_shared<MAP>();
 		nb_darts_per_level_.reserve(32u);
 		nb_darts_per_level_.push_back(0);
-		dart_level_ = topology.template add_attribute<uint32>("dartLevel") ;
+		dart_level_ = get_topology(*base_map_).template add_attribute<uint32>("dartLevel") ;
 		if(dart_level_ == nullptr)
-			dart_level_ = topology.template get_attribute<uint32>("dartLevel") ;
+			dart_level_ = get_topology(*base_map_).template get_attribute<uint32>("dartLevel") ;
+	}
+	
+	inline CPH_Base(std::shared_ptr<MAP>& m) :
+		current_level_(0u),
+		maximum_level_(0u),
+		base_map_(m)
+	{
+		nb_darts_per_level_.reserve(32u);
+		nb_darts_per_level_.push_back(0);
+		dart_level_ = get_topology(*base_map_).template add_attribute<uint32>("dartLevel") ;
+		if(dart_level_ == nullptr)
+			dart_level_ = get_topology(*base_map_).template get_attribute<uint32>("dartLevel") ;
 	}
 
 	/***************************************************
@@ -95,6 +111,9 @@ public:
 	{
 		nb_darts_per_level_[current_level_]++;
 	}
+	
+	inline const MAP& mesh() const {return *base_map_;}
+	inline MAP& mesh(){return *base_map_;}
 };
 
 }

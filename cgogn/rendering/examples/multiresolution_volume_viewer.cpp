@@ -21,63 +21,64 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <cgogn/core/functions/traversals/volume.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-namespace cgogn
+#include <cgogn/core/functions/attributes.h>
+
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
+
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
+
+using Mesh = cgogn::MRCmap3;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
+	std::string filename;
+	if (argc < 2)
+	{
+		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
+		return 1;
+	}
+	else
+		filename = std::string(argv[1]);
 
-/*****************************************************************************/
+	cgogn::thread_start();
 
-// template <typename CELL, typename MESH>
-// std::vector<typename mesh_traits<MESH>::Vertex> incident_volumes(const MESH& m, CELL c);
+	cgogn::ui::App app;
+	app.set_window_title("Simple viewer");
+	app.set_window_size(1000, 800);
 
-/*****************************************************************************/
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
 
-///////////
-// CMap2 //
-///////////
+	app.init_modules();
+	
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&sr);
 
-std::vector<CMap2::Volume> incident_volumes(const CMap2& , CMap2::Vertex v)
-{
-	return { CMap2::Volume(v.dart) };
+	Mesh* m = mp.load_volume_from_file(filename);
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+
+	mp.set_mesh_bb_vertex_position(m, vertex_position);
+
+	sr.set_vertex_position(*v1, *m, vertex_position);
+
+	return app.launch();
 }
-
-std::vector<CMap2::Volume> incident_volumes(const CMap2& , CMap2::Edge e)
-{
-	return { CMap2::Volume(e.dart) };
-}
-
-std::vector<CMap2::Volume> incident_volumes(const CMap2& , CMap2::Face f)
-{
-	return { CMap2::Volume(f.dart) };
-}
-
-///////////
-// CMap3 //
-///////////
-
-std::vector<CMap3::Volume> incident_volumes(const CMap3& m, CMap3::Vertex v)
-{
-	std::vector<CMap3::Volume> volumes;
-	volumes.reserve(32u);
-	foreach_incident_volume(m, v, [&] (CMap3::Volume vol) -> bool { volumes.push_back(vol); return true; });
-	return volumes;
-}
-
-std::vector<CMap3::Volume> incident_volumes(const CMap3& m, CMap3::Edge e)
-{
-	std::vector<CMap3::Volume> volumes;
-	volumes.reserve(16u);
-	foreach_incident_volume(m, e, [&] (CMap3::Volume v) -> bool { volumes.push_back(v); return true; });
-	return volumes;
-}
-
-std::vector<CMap3::Volume> incident_volumes(const CMap3& m, CMap3::Face f)
-{
-	std::vector<CMap3::Volume> volumes;
-	volumes.reserve(2u);
-	foreach_incident_volume(m, f, [&] (CMap3::Volume v) -> bool { volumes.push_back(v); return true; });
-	return volumes;
-}
-
-} // namespace cgogn

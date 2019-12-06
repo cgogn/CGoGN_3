@@ -62,6 +62,9 @@ struct VolumeImportData
 void
 CGOGN_IO_EXPORT import_volume_data(CMap3& m, const VolumeImportData& volume_data);
 
+void
+CGOGN_IO_EXPORT import_volume_data(MRCmap3& m, const VolumeImportData& volume_data);
+
 } // namespace io
 
 } // namespace cgogn

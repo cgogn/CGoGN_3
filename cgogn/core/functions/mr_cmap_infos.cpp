@@ -5,6 +5,20 @@
 
 namespace cgogn{
 
+Dart add_dart(MRCmap3& m)
+{
+	Dart d = add_dart(m.mesh());
+	m.inc_nb_darts();
+	m.edge_id(d, 0u);
+	m.face_id(d, 0u);
+	m.dart_level(d, m.current_level());
+
+	// update max level if needed
+	if(m.current_level() > m.maximum_level())
+		m.maximum_level(m.current_level());
+	return d;
+}
+
 uint32 edge_level(const MRCmap3& m, Dart d){
 	cgogn_message_assert(m.dart_level(d) <= m.current_level(),
 				 "Access to a dart introduced after current level");
