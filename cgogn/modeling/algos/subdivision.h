@@ -411,7 +411,100 @@ void surfaceEdgePointMask(const MESH& m,Dart d,
     r_point.push_back(phi<11>(m,t));
 }
 
+/* ----------------------------- BUTTERFLY RULES ----------------------------- */
 
+template<typename MESH,typename T>
+Vec3 sum(const MESH& m,const std::vector<Dart> &v,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    Vec3 s = Vec3(0.f, 0.f, 0.f);
+    for (Dart i : v) s += value<T>(m, attribute,typename MESH::Vertex(i));
+    return s;
+}
+
+// Le nombre de p-points est nécessairement 8,
+// par contre pour les volumes en bordure de l'objet il peut manquer des q-points
+// Si c'est le cas, on fait une subdivision linéaire au lieu de la subdivision interpolante
+template<typename MESH,typename T>
+Vec3 volumePointRule(const MESH& m,
+                     const std::vector<Dart> &p_point,
+                     const std::vector<Dart> &q_point,
+                     const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    static const float _W_ = 1.f/16;
+    if (q_point.size() == 0) {
+        return (1.f/8)*sum<MESH>(m,p_point,attribute);
+    }
+    else {
+        return ((6*_W_ + 1)/8)*sum<MESH>(m,p_point,attribute) - (_W_/4)*sum<MESH>(m,q_point,attribute);
+    }
+}
+
+// Meme principe
+template<typename MESH,typename T>
+Vec3 facePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
+                   const std::vector<Dart> &r_point, const std::vector<Dart> &s_point,
+                   const std::vector<Dart> &t_point,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    static const float _W_ = 1.f/16;
+    if (q_point.size() == 0) {
+        return (1.f/4)*sum<MESH>(m,p_point,attribute);
+    }
+    else {
+        float w1 = (2*_W_ + 1)/4, w2 = _W_/4, w3 = _W_/8;
+        return w1*sum<MESH>(m,p_point,attribute) +
+                w2*sum<MESH>(m,q_point,attribute) -
+                w2*sum<MESH>(m,r_point,attribute) -
+                w3*sum<MESH>(m,s_point,attribute) -
+                w3*sum<MESH>(m,t_point,attribute);
+    }
+}
+
+// Même principe, et on prend en plus en considération la possibilité d'avoir
+// un nombre de q-points différent de 4*2 (wq toujours > 2)
+template<typename MESH,typename T>
+Vec3 edgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
+                   const std::vector<Dart> &r_point, const std::vector<Dart> &s_point,
+                   const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    static const float _W_ = 1.f/16;
+    int N = q_point.size()/2;
+    float w1 = 1.f/2;
+    if (N == 0) {
+        return w1*sum<MESH>(m,p_point,attribute);
+    }
+    else {
+        float w2 = _W_/N, w3 = _W_/(2*N);
+        return w1*sum<MESH>(m,p_point,attribute) +
+                w2*sum<MESH>(m,q_point,attribute) -
+                w2*sum<MESH>(m,r_point,attribute) -
+                w3*sum<MESH>(m,s_point,attribute);
+    }
+}
+
+// Le nombre de p/q-points est constant car on ne considère pas les surface à bord
+template<typename MESH,typename T>
+Vec3 surfaceFacePointRule(const MESH& m,const std::vector<Dart> &p_point,
+                          const std::vector<Dart> &q_point,
+                          const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    static const float _W_ = 1.f/16;
+    Vec3 sum_p = sum<MESH>(m,p_point,attribute), sum_q = sum<MESH>(m,q_point,attribute);
+    float wp = 1.f/4.f + _W_, wq = -_W_/2.f;
+    return wp*sum_p + wq*sum_q;
+}
+
+// Le nombre de p/q/r-points est constant car on ne considère pas les surface à bord
+template<typename MESH,typename T>
+Vec3 surfaceEdgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
+                          const std::vector<Dart> &r_point,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
+{
+    static const float _W_ = 1.f/16;
+    Vec3 sum_p = sum<MESH>(m,p_point,attribute),
+            sum_q = sum<MESH>(m,q_point,attribute),
+            sum_r = sum<MESH>(m,r_point,attribute);
+    float wp = 1.f/2.f, wq = _W_/2.f, wr = -_W_/2.f;
+    return wp*sum_p + wq*sum_q + wr*sum_r;
+}
 
 } // namespace modeling
 

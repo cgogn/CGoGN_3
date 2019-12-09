@@ -83,6 +83,7 @@ int main(int argc, char** argv)
 
     std::vector<cgogn::Dart> p_point,q_point,r_point,s_point,t_point;
     cgogn::modeling::edgePointMask(*m,cgogn::Dart(0),p_point,q_point,r_point,s_point);
+    cgogn::modeling::edgePointRule<Mesh>(*m,p_point,q_point,r_point,s_point,vertex_position);
 
 	return app.launch();
 }
