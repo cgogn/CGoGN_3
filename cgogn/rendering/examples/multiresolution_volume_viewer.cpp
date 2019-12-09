@@ -31,6 +31,7 @@
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/modeling/algos/subdivision.h>
 
 using Mesh = cgogn::MRCmap3;
 
@@ -79,6 +80,9 @@ int main(int argc, char** argv)
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
+
+    std::vector<cgogn::Dart> p_point,q_point,r_point,s_point,t_point;
+    cgogn::modeling::edgePointMask(*m,cgogn::Dart(0),p_point,q_point,r_point,s_point);
 
 	return app.launch();
 }
