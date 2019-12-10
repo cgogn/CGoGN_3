@@ -100,6 +100,14 @@ std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Edge e)
 	return vertices;
 }
 
+std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Face2 f)
+{
+	std::vector<CMap3::Vertex> vertices;
+	vertices.reserve(16u);
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { vertices.push_back(CMap3::Vertex(d)); return true; });
+	return vertices;
+}
+
 std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Face f)
 {
 	std::vector<CMap3::Vertex> vertices;

@@ -129,6 +129,36 @@ angle(
 }
 
 template <typename MESH>
+Scalar
+angle(
+	const MESH& m,
+	Cell<Orbit::PHI1> f1,
+	Cell<Orbit::PHI1> f2,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
+)
+{
+    const Vec3 n1 = normal(m, f1, vertex_position);
+    const Vec3 n2 = normal(m, f2, vertex_position);
+
+    Vec3 edge = value<Vec3>(m, vertex_position,typename MESH::Vertex(f2.dart)) - value<Vec3>(m, vertex_position,typename MESH::Vertex(f1.dart));
+    edge.normalize();
+    Scalar s = edge.dot(n1.cross(n2));
+    Scalar c = n1.dot(n2);
+    Scalar a(0);
+
+    // the following trick is useful to avoid NaNs (due to floating point errors)
+    if (c > Scalar(0.5)) a = std::asin(s);
+    else
+    {
+        if(c < -1) c = -1;
+        if (s >= 0) a = std::acos(c);
+        else a = -std::acos(c);
+    }
+
+    return a;
+}
+
+template <typename MESH>
 void
 compute_angle(
 	const MESH& m,

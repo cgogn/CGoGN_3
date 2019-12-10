@@ -186,6 +186,7 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 		f0 = phi_1(m,f0);
 		f1 = phi1(m,f1);
 	}
+	f0 = phi_1(m,f0);
 
 	if (set_indices)
 	{
@@ -210,9 +211,18 @@ cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 		{
 			set_index(m, CMap3::Face(f0), new_index<CMap3::Face>(m));
 		}
+		if (is_indexed<CMap3::Volume>(m))
+		{
+			foreach_dart_of_orbit(m,CMap3::Face2(f0), [&] (Dart d)->bool
+			{
+				copy_index<CMap3::Volume>(m,d, phi2(m,d));
+				return true;
+			});
+			set_index(m, CMap3::Volume(f1), new_index<CMap3::Volume>(m));
+		}
 	}
 
-	return CMap3::Face(phi_1(m,f0));
+	return CMap3::Face(f0);
 }
 
 CMap3::Volume close_hole(CMap3& m,Dart d, bool set_indices)

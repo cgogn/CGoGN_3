@@ -75,6 +75,9 @@ std::vector<CMap3::Vertex>
 CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Edge e);
 
 std::vector<CMap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Face2 f);
+
+std::vector<CMap3::Vertex>
 CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Face f);
 
 std::vector<CMap3::Vertex>

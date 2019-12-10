@@ -83,7 +83,7 @@ inline uint32 index_of(const CMapBase& m,CELL c)
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert (orbit < NB_ORBITS, "Unknown orbit parameter");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
-	return (*m.cells_indices_[orbit])[c.dart.index];
+	return (*(m.cells_indices_[orbit]))[c.dart.index];
 }
 
 //////////////

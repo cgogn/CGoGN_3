@@ -98,6 +98,14 @@ add_prism(MESH& m, uint32 size, bool set_indices = true)
 	return add_prism(m.mesh(), size, set_indices);
 }
 
+template <typename MESH,
+		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+typename mesh_traits<MESH>::Face
+cut_volume(MESH& m, const std::vector<Dart>& path, bool set_indices = true)
+{
+	return cut_volume(m.mesh(), path, set_indices);
+}
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VOLUME_H_

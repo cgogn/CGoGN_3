@@ -33,7 +33,7 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
-using Mesh = cgogn::MRCmap3;
+using Mesh = cgogn::CMap3;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -76,14 +76,19 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	
+	cgogn::index_cells<Mesh::Volume>(*m);
+	cgogn::index_cells<Mesh::Edge>(*m);
+	cgogn::index_cells<Mesh::Face>(*m);
+
+	//cgogn::cut_edge(*m,Mesh::Edge(cgogn::Dart(0)));
+    cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
-
-    std::vector<cgogn::Dart> p_point,q_point,r_point,s_point,t_point;
-    cgogn::modeling::edgePointMask(*m,cgogn::Dart(0),p_point,q_point,r_point,s_point);
-    cgogn::modeling::edgePointRule<Mesh>(*m,p_point,q_point,r_point,s_point,vertex_position);
+	
+	
 
 	return app.launch();
 }

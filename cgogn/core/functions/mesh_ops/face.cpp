@@ -248,10 +248,14 @@ cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices)
 		}
 		if (is_indexed<CMap3::Volume>(m))
 		{
-			copy_index<CMap3::Volume>(m,phi_1(m,d), d);
-			copy_index<CMap3::Volume>(m,phi_1(m,e), d);
-			copy_index<CMap3::Volume>(m,phi_1(m,dd), dd);
-			copy_index<CMap3::Volume>(m,phi_1(m,ee), dd);
+			if(!is_boundary(m,d)){
+				copy_index<CMap3::Volume>(m,phi_1(m,d), d);
+				copy_index<CMap3::Volume>(m,phi_1(m,e), d);
+			}
+			if(!is_boundary(m,dd)){
+				copy_index<CMap3::Volume>(m,phi_1(m,dd), dd);
+				copy_index<CMap3::Volume>(m,phi_1(m,ee), dd);
+			}
 		}
 	}
 

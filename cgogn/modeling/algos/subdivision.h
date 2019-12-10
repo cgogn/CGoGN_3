@@ -28,12 +28,15 @@
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/algos/angle.h>
 
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/functions/mr_cmap_infos.h>
 
 namespace cgogn
 {
@@ -160,8 +163,9 @@ void facePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector
 {
     // p-points : ajouter les sommets de Face(d)
     Dart t = d;
-    foreach_incident_vertex(m,typename MESH::Face(d),[&](typename MESH::Vertex dd){
+    foreach_incident_vertex(m,typename MESH::Face(d),[&](typename MESH::Vertex dd)->bool{
         p_point.push_back(dd.dart);
+		return true;
     });
 
     // q-points : ajouter les sommets de Face(Inherit::phi<2112>(d)) + Face(Inherit::phi<32112>(d))
@@ -424,7 +428,7 @@ Vec3 sum(const MESH& m,const std::vector<Dart> &v,const std::shared_ptr<typename
 // Le nombre de p-points est nécessairement 8,
 // par contre pour les volumes en bordure de l'objet il peut manquer des q-points
 // Si c'est le cas, on fait une subdivision linéaire au lieu de la subdivision interpolante
-template<typename MESH,typename T>
+template<typename T,typename MESH>
 Vec3 volumePointRule(const MESH& m,
                      const std::vector<Dart> &p_point,
                      const std::vector<Dart> &q_point,
@@ -440,7 +444,7 @@ Vec3 volumePointRule(const MESH& m,
 }
 
 // Meme principe
-template<typename MESH,typename T>
+template<typename T,typename MESH>
 Vec3 facePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
                    const std::vector<Dart> &r_point, const std::vector<Dart> &s_point,
                    const std::vector<Dart> &t_point,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
@@ -461,7 +465,7 @@ Vec3 facePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::ve
 
 // Même principe, et on prend en plus en considération la possibilité d'avoir
 // un nombre de q-points différent de 4*2 (wq toujours > 2)
-template<typename MESH,typename T>
+template<typename T,typename MESH>
 Vec3 edgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
                    const std::vector<Dart> &r_point, const std::vector<Dart> &s_point,
                    const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
@@ -482,7 +486,7 @@ Vec3 edgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::ve
 }
 
 // Le nombre de p/q-points est constant car on ne considère pas les surface à bord
-template<typename MESH,typename T>
+template<typename T,typename MESH>
 Vec3 surfaceFacePointRule(const MESH& m,const std::vector<Dart> &p_point,
                           const std::vector<Dart> &q_point,
                           const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
@@ -494,7 +498,7 @@ Vec3 surfaceFacePointRule(const MESH& m,const std::vector<Dart> &p_point,
 }
 
 // Le nombre de p/q/r-points est constant car on ne considère pas les surface à bord
-template<typename MESH,typename T>
+template<typename T,typename MESH>
 Vec3 surfaceEdgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::vector<Dart> &q_point,
                           const std::vector<Dart> &r_point,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute)
 {
@@ -504,6 +508,218 @@ Vec3 surfaceEdgePointRule(const MESH& m,const std::vector<Dart> &p_point, const 
             sum_r = sum<MESH>(m,r_point,attribute);
     float wp = 1.f/2.f, wq = _W_/2.f, wr = -_W_/2.f;
     return wp*sum_p + wq*sum_q + wr*sum_r;
+}
+
+
+template<typename MESH>
+void subdivideEdge(MESH& m,Dart d, Vec3& p,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
+{
+	cut_edge(m,typename MESH::Edge(d));
+	
+	value<Vec3>(m, attribute,typename MESH::Vertex(phi1(m,d))) = p;
+}
+
+template<typename MESH>
+Dart subdivideFace(MESH& m,Dart d, Vec3& p,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
+{
+	using Vertex = typename MESH::Vertex;
+	Dart e = phi1(m,d);
+	Dart f = phi<1111>(m,e);
+	// 1ère coupe
+	cut_face(m,Vertex(e),Vertex(f));
+	// Nouveau sommet
+	subdivideEdge(m,phi_1(m,e),p,attribute);
+
+	Dart result = phi_1(m,e);
+
+	// 2ème et 3ème coupes
+	cut_face(m,Vertex(phi_1(m,e)), Vertex(phi<11>(m,e)));
+	cut_face(m,Vertex(phi_1(m,f)), Vertex(phi<11>(m,f)));
+
+	return result;
+}
+
+// /!\ les faces du volume sont déjà subdivisées
+template<typename MESH>
+void subdivideVolume(MESH& m,Dart d, Vec3& p,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
+{
+	using Vertex = typename MESH::Vertex;
+	// direction pour la coupe centrale en deux carrés
+	Dart first_cut_dir = phi1(m,d);
+	// directions pour les coupes des carrés gauches et droits en 2 briques
+	Dart left_cut_dir = phi<1>(m,first_cut_dir), right_cut_dir = phi<21112>(m,first_cut_dir);
+
+	Dart cut_direction[4];
+	// directions pour les coupes des deux briques du carré gauche
+	cut_direction[0] = phi<1211>(m,left_cut_dir);
+	cut_direction[1] = phi<1212111>(m,left_cut_dir);
+	// directions pour les coupes des deux briques du carré droit
+	cut_direction[2] = phi<1211>(m,right_cut_dir);
+	cut_direction[3] = phi<1212111>(m,right_cut_dir);
+	
+	auto cutVolume = [&](Dart d)->typename MESH::Face{
+		std::vector<Dart> cut_path;
+        Dart t = d;
+        do {
+            cut_path.push_back(t);
+            t = phi<121>(m,t);
+        } while (t != d);
+        return cut_volume(m,cut_path);
+	};
+
+	// première coupe en 2 sous-volumes carrés et subdivision de la face centrale
+	typename MESH::Face F = cutVolume(first_cut_dir);
+	subdivideFace(m,F.dart, p,attribute);
+
+	// coupes des 2 carrés et coupe de la face entre les 2 briques résultantes pour chaque carré
+	F = cutVolume(left_cut_dir);
+	cut_face(m,Vertex(F.dart), Vertex(phi<111>(m,F.dart)));
+	F = cutVolume(right_cut_dir);
+	cut_face(m,Vertex(F.dart), Vertex(phi<111>(m,F.dart)));
+	// coupes des briques
+	for (int i = 0; i < 4; ++i) {
+		cutVolume(cut_direction[i]);
+	}
+}
+
+template<typename MESH>
+void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
+{
+	using Volume = typename MESH::Volume;
+	using Face = typename MESH::Face;
+	using Edge = typename MESH::Edge;
+	
+	CellMarker<MESH,Edge> cm_surface(m);
+	CellMarker<MESH,Volume> cm_cell(m);
+
+	// Sélection de volumes à subdiviser en fonction des angles entre les faces à la surface
+	for (Dart d = begin(m); d != end(m);d = next(m,d)) {
+		if (is_boundary(m,phi3(m,d)) && !cm_surface.is_marked(Edge(d))){
+			// recherche de la seconde face incidente à l'arete en surface
+			Dart d2 = phi2(m,d);
+			while (!is_boundary(m,phi3(m,d2))) {
+				d2 = phi<32>(m,d2);
+			}
+			auto edge_angle = geometry::angle(m, typename MESH::Face2(d), typename MESH::Face2(d2), attribute.get());
+			// Sélection en fonction de l'angle entre les faces
+			if (std::abs(edge_angle) > angle_threshold) {
+				if (!cm_cell.is_marked(Volume(d)))
+					cm_cell.mark(Volume(d));
+				if (!cm_cell.is_marked(Volume(d2)))
+					cm_cell.mark(Volume(d2));
+			}
+			cm_surface.mark(Edge(d));
+		}
+	}
+
+	CellMarker<MESH,Edge>  cm_edge(m);
+	CellMarker<MESH,Face>  cm_face(m);
+	CellMarker<MESH,Volume>  cm_volume(m);
+	std::queue<Vec3> volume_points, face_points, edge_points;
+	std::vector<Dart> edges, faces, volumes;
+	std::vector<Dart> p_point, q_point, r_point, s_point, t_point;
+
+	// Calcul des plongements pour les points-arete/face/volume
+	for (Dart d = begin(m); d!= end(m); d = next(m,d)) {
+		if (!is_boundary(m,d) && cm_cell.is_marked(Volume(d))) {
+			// pour chaque volume sélectionné, s'il est valide pour la subdivision,
+			// alors pour chaque brin du volume, on calcule les points-arete/face/volume
+			foreach_dart_of_orbit(m,Volume(d), [&] (Dart t) -> bool{
+				// points arete
+				if (!cm_edge.is_marked(Edge(t))) {
+					if (is_incident_to_boundary(m,Edge(t)) && !is_boundary(m,phi3(m,t))) {
+						// on ignore les brins en surface mais en jonction de deux volumes
+					}
+					// cas surface
+					else if (is_boundary(m,phi3(m,t))) {
+						p_point.clear();
+						q_point.clear();
+						r_point.clear();
+						surfaceEdgePointMask(m,t, p_point, q_point, r_point);
+						
+						Vec3 vec = surfaceEdgePointRule<Vec3>(m,p_point, q_point, r_point,attribute);
+
+						edge_points.push(vec);
+						edges.push_back(t);
+						cm_edge.mark(Edge(t));
+					}
+					// cas volume
+					else {
+						p_point.clear();
+						q_point.clear();
+						r_point.clear();
+						s_point.clear();
+						edgePointMask(m,t, p_point, q_point, r_point, s_point);
+						
+						Vec3 vec = edgePointRule<Vec3>(m,p_point, q_point, r_point,s_point,attribute);
+
+						edge_points.push(vec);
+
+						edges.push_back(t);
+						cm_edge.mark(Edge(t));
+					}
+				}
+				// points face
+				if (!cm_face.is_marked(Face(t))) {
+					// cas surface
+					if (is_incident_to_boundary(m,Face(t))) {
+						p_point.clear();
+						q_point.clear();
+						surfaceFacePointMask(m,t, p_point, q_point);
+						
+						Vec3 vec = surfaceFacePointRule<Vec3>(m,p_point, q_point,attribute);
+
+						face_points.push(vec);
+					}
+					// cas volume
+					else {
+						p_point.clear();
+						q_point.clear();
+						r_point.clear();
+						s_point.clear();
+						t_point.clear();
+						facePointMask(m,t, p_point, q_point, r_point, s_point, t_point);
+
+						Vec3 vec = facePointRule<Vec3>(m,p_point, q_point, r_point,s_point,t_point,attribute);
+						
+						face_points.push(vec);
+					}
+					faces.push_back(t);
+					cm_face.mark(Face(t));
+				}
+				// points volumes
+				if (!cm_volume.is_marked(Volume(t))) {
+					p_point.clear();
+					q_point.clear();
+					volumePointMask(m,t, p_point, q_point);
+					
+					Vec3 vec = volumePointRule<Vec3>(m,p_point, q_point,attribute);
+
+					volume_points.push(vec);
+					volumes.push_back(t);
+					cm_volume.mark(Volume(t));
+				}
+				return true;
+			});
+			cm_cell.unmark(Volume(d));
+		}
+	}
+
+	// Subdivision des aretes
+	for (Dart d : edges) {
+		subdivideEdge(m,d, edge_points.front(),attribute);
+		edge_points.pop();
+	}
+	// Subdivision des faces
+	for (Dart d : faces) {
+		subdivideFace(m,d, face_points.front(),attribute);
+		face_points.pop();
+	}
+	// Subdivision des volumes
+	for (Dart d : volumes) {
+		subdivideVolume(m,d, volume_points.front(),attribute);
+		volume_points.pop();
+	}
 }
 
 } // namespace modeling
