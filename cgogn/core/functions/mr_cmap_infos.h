@@ -11,6 +11,21 @@ namespace cgogn {
 */
 Dart add_dart(MRCmap3& m);
 
+inline Dart begin(const MRCmap3& m)
+{ 
+	Dart d = begin(m.mesh());
+	while(d != end(m.mesh()) && m.cph().dart_level(d) > m.current_level())
+		d = next(m.mesh(),d);
+	return d; 
+}
+inline Dart next(const MRCmap3& m,Dart d)
+{ 
+	d = next(m.mesh(),d);
+	while(d != end(m.mesh()) && m.cph().dart_level(d) > m.current_level())
+		d = next(m.mesh(),d);
+	return d;
+}
+
 /**
  * Return the level of the edge of d in the current level map
  * \details The level of an edge is the maximum of the levels of

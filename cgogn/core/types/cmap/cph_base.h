@@ -16,7 +16,6 @@ public :
 	using AttributeContainer = AttributeContainerT<ChunkArray>;
 	template <typename T>
 	using Attribute = AttributeContainer::Attribute<T>;
-	uint32 current_level_;
 	uint32 maximum_level_;
 
 	/*!
@@ -31,7 +30,6 @@ public :
 public:
 
 	inline CPH_Base() :
-		current_level_(0u),
 		maximum_level_(0u)
 	{
 		base_map_ = std::make_shared<MAP>();
@@ -43,7 +41,6 @@ public:
 	}
 	
 	inline CPH_Base(std::shared_ptr<MAP>& m) :
-		current_level_(0u),
 		maximum_level_(0u),
 		base_map_(m)
 	{
@@ -57,16 +54,6 @@ public:
 	/***************************************************
 	 *              LEVELS MANAGEMENT                  *
 	 ***************************************************/
-
-	inline uint32 current_level() const
-	{
-		return current_level_;
-	}
-
-	inline void current_level(uint32 l)
-	{
-		current_level_ = l ;
-	}
 
 	inline uint32 maximum_level() const
 	{
@@ -87,29 +74,21 @@ public:
 	{
 		(*dart_level_)[d.index] = l ;
 	}
-
-	inline void inc_current_level()
+	
+	inline void change_dart_level(Dart d,uint32 l)
 	{
-		current_level_++;
-	}
-
-	inline void dec_current_level()
-	{
-		cgogn_message_assert(current_level_ > 0u, "dec_current_level : already at minimal resolution level");
-
-		if (current_level_ == maximum_level_) {
-			if (nb_darts_per_level_[current_level_] == 0u) {
-				maximum_level_--;
+		nb_darts_per_level_[dart_level(d)]--;
+		nb_darts_per_level_[l]++;
+		if(l>dart_level(d) && l>maximum_level()){
+			maximum_level(l);
+		}
+		if(l<dart_level(d)){
+			while(nb_darts_per_level_[maximum_level()] == 0u){
+				--maximum_level_;
 				nb_darts_per_level_.pop_back();
 			}
 		}
-
-		current_level_--;
-	}
-
-	inline void inc_nb_darts()
-	{
-		nb_darts_per_level_[current_level_]++;
+		(*dart_level_)[d.index] = l ;
 	}
 	
 	inline const MAP& mesh() const {return *base_map_;}

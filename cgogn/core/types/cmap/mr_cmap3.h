@@ -6,10 +6,9 @@
 
 namespace cgogn {
 
-class MRCmap3 : public CPH3<CMap3>{
+class MRCmap3{
 public:
 	using Self = MRCmap3;
-	using Inherit = CPH3;
 
 	using Vertex = CMap3::Vertex;
 	using Vertex2 = CMap3::Vertex2;
@@ -25,17 +24,25 @@ public:
 	using AttributeContainer = AttributeContainerT<ChunkArray>;
 	template <typename T>
 	using Attribute = AttributeContainer::Attribute<T>;
+	uint32 current_level_;
 	
 	static const bool is_mesh_view = true;
+	
+	std::shared_ptr<CPH3<CMap3>> base_cph_;
 
-	MRCmap3():Inherit(){
+	MRCmap3():current_level_(0u){
+		base_cph_ = std::make_shared<CPH3<CMap3>>();
 	}
-	MRCmap3(std::shared_ptr<CMap3> m):Inherit(m){}
-
-	MRCmap3(const MRCmap3& mr2):MRCmap3(mr2.base_map_){
+	MRCmap3(std::shared_ptr<CMap3> m):current_level_(0u){
+		base_cph_ = std::make_shared<CPH3<CMap3>>(m);
+	}
+	MRCmap3(const std::shared_ptr<CPH3<CMap3>>& m):current_level_(0u){
+		base_cph_ = m;
+	}
+	MRCmap3(const MRCmap3& mr2):MRCmap3(mr2.base_cph_){
 		this->current_level(mr2.current_level());
 	}
-	MRCmap3(const MRCmap3& mr2,uint32 l):MRCmap3(mr2.base_map_){
+	MRCmap3(const MRCmap3& mr2,uint32 l):MRCmap3(mr2.base_cph_){
 		this->current_level(l);
 	}
 	
@@ -45,6 +52,26 @@ public:
 		return result;
 	}
 	
+	inline uint32 current_level() const
+	{
+		return current_level_;
+	}
+
+	inline void current_level(uint32 l)
+	{
+		current_level_ = l ;
+	}
+	
+	inline void inc_nb_darts()
+	{
+		base_cph_->nb_darts_per_level_[current_level_]++;
+	}
+	
+	inline const CPH3<CMap3>& cph() const {return *base_cph_;}
+	inline CPH3<CMap3>& cph(){return *base_cph_;}
+	
+	inline const CMap3& mesh() const {return cph().mesh();}
+	inline CMap3& mesh(){return cph().mesh();}
 };
 
 }

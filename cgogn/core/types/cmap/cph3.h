@@ -30,7 +30,9 @@ public:
 	
 	inline CPH3(std::shared_ptr<MAP> m) : Inherit(m)
 	{
-		face_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("faceId");
+		face_id_ = get_topology(*m).template add_attribute<uint32>("faceId") ;
+		if(face_id_ == nullptr)
+			face_id_ = get_topology(*m).template get_attribute<uint32>("faceId") ;
 	}
     
     /***************************************************

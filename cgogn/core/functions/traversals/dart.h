@@ -72,22 +72,14 @@ void foreach_dart_of_orbit(const Graph& g,CELL c, const FUNC& f)
 	}
 }
 
-template <typename FUNC>
-void foreach_dart(const CMapBase& m,const FUNC& f)
-{
-	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	for (uint32 i = m.topology_.first_index(), last_index = m.topology_.last_index(); i < last_index; i = m.topology_.next_index(i))
-		if (!f(Dart(i)))
-			break;
-}
-
-template <typename FUNC, typename MESH, typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
+template <typename FUNC, typename MESH>
 void foreach_dart(const MESH& m,const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	foreach_dart(m.mesh(),f);
+	for (Dart d = begin(m); d != end(m); d = next(m,d))
+		if (!f(d))
+			break;
 }
 
 template <typename MAP,typename FUNC>

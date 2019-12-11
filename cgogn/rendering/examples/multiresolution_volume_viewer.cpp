@@ -33,7 +33,7 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
-using Mesh = cgogn::CMap3;
+using Mesh = cgogn::MRCmap3;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -81,26 +81,18 @@ int main(int argc, char** argv)
 	cgogn::index_cells<Mesh::Edge>(*m);
 	cgogn::index_cells<Mesh::Face>(*m);
 
-	//cgogn::cut_edge(*m,Mesh::Edge(cgogn::Dart(0)));
     cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
-	cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
-	mp.emit_connectivity_changed(m);
+	std::cout << "current level map : " << m->current_level() << std::endl;
 	
-	int nb_face = 0;
-	cgogn::foreach_cell(*m,[&](Mesh::Face)->bool{
-		nb_face++;
-		return true;
-	});
-	
-	std::cout << "nb face = " << nb_face << std::endl;
-	
-	int nb_edge = 0;
+	int nb_edges = 0;
 	cgogn::foreach_cell(*m,[&](Mesh::Edge)->bool{
-		nb_edge++;
+		nb_edges++;
 		return true;
 	});
+	std::cout << "nb edges : " << nb_edges << std::endl;
 	
-	std::cout << "nb edge = " << nb_edge << std::endl;
+	//cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
+	mp.emit_connectivity_changed(m);
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 

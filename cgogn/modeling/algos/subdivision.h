@@ -583,6 +583,22 @@ void subdivideVolume(MESH& m,Dart d, Vec3& p,const std::shared_ptr<typename mesh
 }
 
 template<typename MESH>
+void subdivideListEdges(MESH& m,std::vector<Dart>& edges,std::queue<Vec3>& edge_points,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute){
+	for (Dart d : edges) {
+		subdivideEdge(m,d, edge_points.front(),attribute);
+		edge_points.pop();
+	}
+}
+
+void subdivideListEdges(MRCmap3& m,std::vector<Dart>& edges,std::queue<Vec3>& edge_points,const std::shared_ptr<typename mesh_traits<MRCmap3>::template Attribute<Vec3>>& attribute){
+	for (Dart d : edges) {
+		MRCmap3 m2(m,edge_level(m,d)+1);
+		subdivideEdge(m2,d, edge_points.front(),attribute);
+		edge_points.pop();
+	}
+}
+
+template<typename MESH>
 void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
 {
 	using Volume = typename MESH::Volume;
@@ -706,12 +722,9 @@ void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const s
 	}
 
 	// Subdivision des aretes
-	for (Dart d : edges) {
-		subdivideEdge(m,d, edge_points.front(),attribute);
-		edge_points.pop();
-	}
+	subdivideListEdges(m,edges,edge_points,attribute);
 	// Subdivision des faces
-	for (Dart d : faces) {
+	/*for (Dart d : faces) {
 		subdivideFace(m,d, face_points.front(),attribute);
 		face_points.pop();
 	}
@@ -719,7 +732,7 @@ void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const s
 	for (Dart d : volumes) {
 		subdivideVolume(m,d, volume_points.front(),attribute);
 		volume_points.pop();
-	}
+	}*/
 }
 
 } // namespace modeling

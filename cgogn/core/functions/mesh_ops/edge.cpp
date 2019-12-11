@@ -153,11 +153,6 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 {
 	Dart d0 = e.dart;
 	Dart d23 = phi<23>(m,d0);
-	while(d23 != e.dart)
-	{
-		d23 = phi<23>(m,d23);
-	}
-	d23 = phi<23>(m,d0);
 	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart);
 
 	while(d23 != e.dart)
@@ -213,6 +208,30 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 		}
 	}
 
+	return v;
+}
+
+/////////////
+// MRCmap3 //
+/////////////
+
+MRCmap3::Vertex
+cut_edge(MRCmap3& m, MRCmap3::Edge e, bool set_indices)
+{
+	MRCmap3::Vertex v = cut_edge(m.mesh(),e,set_indices);
+	foreach_dart_of_PHI23(m,e.dart, [&](Dart d) -> bool
+	{
+		m.cph().edge_id(phi1(m,d),m.cph().edge_id(d));
+		m.cph().edge_id(phi3(m,d),m.cph().edge_id(d));
+		m.cph().edge_id(phi2(m,d),m.cph().edge_id(phi<12>(m,d)));
+		m.cph().face_id(phi1(m,d),m.cph().face_id(d));
+		m.cph().face_id(phi3(m,d),m.cph().face_id(d));
+		m.cph().face_id(phi2(m,d),m.cph().face_id(phi<12>(m,d)));
+		m.cph().change_dart_level(phi1(m,d),m.current_level());
+		m.cph().change_dart_level(phi3(m,d),m.current_level());
+		m.cph().change_dart_level(phi2(m,d),m.current_level());
+		return true;
+	});
 	return v;
 }
 

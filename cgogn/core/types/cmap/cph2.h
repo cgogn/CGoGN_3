@@ -30,7 +30,9 @@ public:
 	
 	inline CPH2(std::shared_ptr<MAP>& m) : Inherit(m)
 	{
-		edge_id_ = get_topology(*this->base_map_).template add_attribute<uint32>("edgeId");
+		edge_id_ = get_topology(*m).template add_attribute<uint32>("edgeId") ;
+		if(edge_id_ == nullptr)
+			edge_id_ = get_topology(*m).template get_attribute<uint32>("edgeId") ;
 	}
     
     /***************************************************
