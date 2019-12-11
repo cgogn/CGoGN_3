@@ -83,6 +83,24 @@ int main(int argc, char** argv)
 
 	//cgogn::cut_edge(*m,Mesh::Edge(cgogn::Dart(0)));
     cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
+	cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
+	mp.emit_connectivity_changed(m);
+	
+	int nb_face = 0;
+	cgogn::foreach_cell(*m,[&](Mesh::Face)->bool{
+		nb_face++;
+		return true;
+	});
+	
+	std::cout << "nb face = " << nb_face << std::endl;
+	
+	int nb_edge = 0;
+	cgogn::foreach_cell(*m,[&](Mesh::Edge)->bool{
+		nb_edge++;
+		return true;
+	});
+	
+	std::cout << "nb edge = " << nb_edge << std::endl;
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 

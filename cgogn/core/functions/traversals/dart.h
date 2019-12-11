@@ -188,6 +188,19 @@ inline void foreach_dart_of_PHI2_PHI3(const MAP& m,Dart d, const FUNC& f)
 }
 
 template <typename MAP,typename FUNC>
+inline void foreach_dart_of_PHI23(const MAP& m,Dart d, const FUNC& f)
+{
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	Dart it = d;
+	do
+	{
+		if (!f(it)) break;
+		it = phi<23>(m,it);
+	} while (it != d);
+}
+
+template <typename MAP,typename FUNC>
 inline void foreach_dart_of_PHI21_PHI31(const MAP& m,Dart d, const FUNC& f)
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");

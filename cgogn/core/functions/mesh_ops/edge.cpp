@@ -153,7 +153,11 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 {
 	Dart d0 = e.dart;
 	Dart d23 = phi<23>(m,d0);
-
+	while(d23 != e.dart)
+	{
+		d23 = phi<23>(m,d23);
+	}
+	d23 = phi<23>(m,d0);
 	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart);
 
 	while(d23 != e.dart)
@@ -188,7 +192,7 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 		}
 		if (is_indexed<CMap3::Face>(m))
 		{
-			foreach_dart_of_orbit(m,e, [&](Dart d) -> bool
+			foreach_dart_of_PHI23(m,e.dart, [&](Dart d) -> bool
 			{
 				copy_index<CMap3::Face>(m,phi1(m,d), d);
 				copy_index<CMap3::Face>(m,phi3(m,d), d);

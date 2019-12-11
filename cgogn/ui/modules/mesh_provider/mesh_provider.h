@@ -396,6 +396,7 @@ protected:
 				ImGui::Separator();
 				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 				{
+					auto tmp = mesh_traits<MESH>::cell_names;
 					ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]); ImGui::NextColumn();
 					ImGui::Text("%d", md->nb_cells_[i]); ImGui::NextColumn();
 				}

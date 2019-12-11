@@ -108,7 +108,7 @@ struct mesh_traits<CMap3>
 	using Volume = CMap3::Volume;
 
 	using Cells = std::tuple<Vertex, Vertex2, Edge, Edge2, Face, Face2, Volume>;
-	static constexpr const char* cell_names[] = { "Vertex", "Vertex2", "Edge", "Face", "Volume" };
+	static constexpr const char* cell_names[] = { "Vertex", "Vertex2", "Edge", "Edge2", "Face", "Face2", "Volume" };
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
@@ -138,7 +138,7 @@ struct mesh_traits<Graph>
 template <>
 struct mesh_traits<MRCmap3>
 {
-	static constexpr const char* name = "IHCMap3";
+	static constexpr const char* name = "MRCMap3";
 	static constexpr const uint8 dimension = 3;
 
 	using Vertex = MRCmap3::Vertex;
