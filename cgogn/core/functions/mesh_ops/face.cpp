@@ -298,24 +298,18 @@ cut_face(MRCmap3& m, MRCmap3::Vertex v1, MRCmap3::Vertex v2, bool set_indices)
 			set_index(m, CMap3::Edge(phi_1(m,v1.dart)), new_index<CMap3::Edge>(m));
 		if (is_indexed<CMap3::Face>(m))
 		{
-			if(flevel != m.current_level()){
-				uint32 nf1 = new_index<MRCmap3::Face>(m);
-				uint32 nf2 = new_index<MRCmap3::Face>(m);
-				foreach_dart_of_orbit(m,MRCmap3::Face(d),[&](Dart df)->bool{
-					if(m.current_level() == m.cph().dart_level(df))
-						set_index<MRCmap3::Face>(m,df,nf1);
-					return true;
-				});
-				foreach_dart_of_orbit(m,MRCmap3::Face(e),[&](Dart df)->bool{
-					if(m.current_level() == m.cph().dart_level(df))
-						set_index<MRCmap3::Face>(m,df,nf2);
-					return true;
-				});
-			}else{
-				copy_index<CMap3::Face>(m,phi_1(m,ee), d);
-				copy_index<CMap3::Face>(m,phi_1(m,d), d);
-				set_index(m, CMap3::Face(e), new_index<CMap3::Face>(m));
-			}
+			uint32 nf1 = new_index<MRCmap3::Face>(m);
+			uint32 nf2 = new_index<MRCmap3::Face>(m);
+			foreach_dart_of_orbit(m,MRCmap3::Face(d),[&](Dart df)->bool{
+				if(m.current_level() == m.cph().dart_level(df))
+					set_index<MRCmap3::Face>(m,df,nf1);
+				return true;
+			});
+			foreach_dart_of_orbit(m,MRCmap3::Face(e),[&](Dart df)->bool{
+				if(m.current_level() == m.cph().dart_level(df))
+					set_index<MRCmap3::Face>(m,df,nf2);
+				return true;
+			});
 		}
 		if (is_indexed<CMap3::Volume>(m))
 		{

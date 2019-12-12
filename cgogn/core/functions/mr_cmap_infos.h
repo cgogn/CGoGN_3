@@ -26,6 +26,24 @@ inline Dart next(const MRCmap3& m,Dart d)
 	return d;
 }
 
+template <typename CELL>
+inline uint32 index_of(const MRCmap3& m,CELL c){
+	static const Orbit orbit = CELL::ORBIT;
+	Dart d = c.dart;
+	
+	if constexpr(orbit == PHI1_PHI2){
+		d = volume_youngest_dart(m,c.dart);
+	}
+	if constexpr(orbit == PHI1_PHI3){
+		d = face_youngest_dart(m,c.dart);
+	}
+	if constexpr(orbit == PHI2_PHI3){
+		d = edge_youngest_dart(m,c.dart);
+	}
+	
+	return index_of(m.mesh(),CELL(d));
+}
+
 /**
  * Return the level of the edge of d in the current level map
  * \details The level of an edge is the maximum of the levels of

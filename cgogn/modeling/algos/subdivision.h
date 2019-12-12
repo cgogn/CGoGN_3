@@ -515,7 +515,10 @@ template<typename MESH>
 void subdivideEdge(MESH& m,Dart d, Vec3& p,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
 {
 	cut_edge(m,typename MESH::Edge(d));
-	
+	Dart tmp = phi1(m,Dart(0));
+	while(Dart(0) != tmp){
+		tmp = phi1(m,tmp);
+	}
 	value<Vec3>(m, attribute,typename MESH::Vertex(phi1(m,d))) = p;
 }
 
@@ -753,9 +756,20 @@ void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const s
 			cm_cell.unmark(Volume(d));
 		}
 	}
-
+	
+	MESH m2(m,m.cph().maximum_level()+1);
+	
+	Dart tes_dart = phi2(m2,Dart(0));
+	Dart tmp = phi1(m2,edges[1]);
+	while(tmp != edges[1]){
+		tmp = phi1(m2,tmp);
+	}
 	// Subdivision des aretes
 	subdivideListEdges(m,edges,edge_points,attribute);
+	tmp = phi1(m2,edges[1]);
+	while(tmp != edges[1]){
+		tmp = phi1(m2,tmp);
+	}
 	// Subdivision des faces
 	subdivideListFaces(m,faces,face_points,attribute);
 	// Subdivision des volumes
