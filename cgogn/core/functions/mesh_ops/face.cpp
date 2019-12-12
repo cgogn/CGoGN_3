@@ -262,6 +262,77 @@ cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices)
 	return edge;
 }
 
+/////////////
+// MRCmap3 //
+/////////////
+
+MRCmap3::Edge
+cut_face(MRCmap3& m, MRCmap3::Vertex v1, MRCmap3::Vertex v2, bool set_indices)
+{
+	uint32 flevel = face_level(m,v1.dart);
+	Dart d = v1.dart;
+	Dart e = v2.dart;
+
+	Dart dd = phi<31>(m,v1.dart);
+	Dart ee = phi<31>(m,e);
+	MRCmap3::Edge result = cut_face(m.mesh(),v1,v2,false);
+	uint32 eid = m.cph().refinement_edge_id(v1.dart,v2.dart);
+	
+	foreach_dart_of_orbit(m,result,[&](Dart d)->bool{
+		m.cph().edge_id(d,eid);
+		m.cph().face_id(d,m.cph().face_id(v1.dart));
+		m.cph().dart_level(d,m.current_level());
+		return true;
+	});
+	
+	if (set_indices)
+	{
+		if (is_indexed<CMap3::Vertex>(m))
+		{
+			copy_index<CMap3::Vertex>(m,phi_1(m,e), v1.dart);
+			copy_index<CMap3::Vertex>(m,phi_1(m,ee), v1.dart);
+			copy_index<CMap3::Vertex>(m,phi_1(m,d), e);
+			copy_index<CMap3::Vertex>(m,phi_1(m,dd), e);
+		}
+		if (is_indexed<CMap3::Edge>(m))
+			set_index(m, CMap3::Edge(phi_1(m,v1.dart)), new_index<CMap3::Edge>(m));
+		if (is_indexed<CMap3::Face>(m))
+		{
+			if(flevel != m.current_level()){
+				uint32 nf1 = new_index<MRCmap3::Face>(m);
+				uint32 nf2 = new_index<MRCmap3::Face>(m);
+				foreach_dart_of_orbit(m,MRCmap3::Face(d),[&](Dart df)->bool{
+					if(m.current_level() == m.cph().dart_level(df))
+						set_index<MRCmap3::Face>(m,df,nf1);
+					return true;
+				});
+				foreach_dart_of_orbit(m,MRCmap3::Face(e),[&](Dart df)->bool{
+					if(m.current_level() == m.cph().dart_level(df))
+						set_index<MRCmap3::Face>(m,df,nf2);
+					return true;
+				});
+			}else{
+				copy_index<CMap3::Face>(m,phi_1(m,ee), d);
+				copy_index<CMap3::Face>(m,phi_1(m,d), d);
+				set_index(m, CMap3::Face(e), new_index<CMap3::Face>(m));
+			}
+		}
+		if (is_indexed<CMap3::Volume>(m))
+		{
+			if(!is_boundary(m,d)){
+				copy_index<CMap3::Volume>(m,phi_1(m,d), d);
+				copy_index<CMap3::Volume>(m,phi_1(m,e), d);
+			}
+			if(!is_boundary(m,dd)){
+				copy_index<CMap3::Volume>(m,phi_1(m,dd), dd);
+				copy_index<CMap3::Volume>(m,phi_1(m,ee), dd);
+			}
+		}
+	}
+	
+	return result;
+}
+
 CMap2::Face close_hole(CMap2& m,Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi2(m,d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");

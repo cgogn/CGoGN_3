@@ -32,6 +32,7 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/modeling/algos/subdivision.h>
+#include <cgogn/ui/modules/multiresolution_modeling/multiresolution_modeling.h>
 
 using Mesh = cgogn::MRCmap3;
 
@@ -61,6 +62,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::MultiresolutionModeling<Mesh> mm(app);
 
 	app.init_modules();
 	
@@ -81,15 +83,7 @@ int main(int argc, char** argv)
 	cgogn::index_cells<Mesh::Edge>(*m);
 	cgogn::index_cells<Mesh::Face>(*m);
 
-    cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
-	std::cout << "current level map : " << m->current_level() << std::endl;
-	
-	int nb_edges = 0;
-	cgogn::foreach_cell(*m,[&](Mesh::Edge)->bool{
-		nb_edges++;
-		return true;
-	});
-	std::cout << "nb edges : " << nb_edges << std::endl;
+    //cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
 	
 	//cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
 	mp.emit_connectivity_changed(m);

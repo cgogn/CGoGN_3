@@ -27,6 +27,7 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/mr_cmap_infos.h>
 
 namespace cgogn
 {
@@ -113,6 +114,13 @@ CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool se
 
 CMap3::Edge
 CGOGN_CORE_EXPORT cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices = true);
+
+/////////////
+// MRCmap3 //
+/////////////
+
+MRCmap3::Edge
+CGOGN_CORE_EXPORT cut_face(MRCmap3& m, MRCmap3::Vertex v1, MRCmap3::Vertex v2, bool set_indices = true);
 
 //////////////
 // MESHVIEW //

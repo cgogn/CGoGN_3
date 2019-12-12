@@ -25,6 +25,7 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/functions/mr_cmap_infos.h>
 
 namespace cgogn
 {
@@ -218,7 +219,7 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 MRCmap3::Vertex
 cut_edge(MRCmap3& m, MRCmap3::Edge e, bool set_indices)
 {
-	MRCmap3::Vertex v = cut_edge(m.mesh(),e,set_indices);
+	MRCmap3::Vertex v = cut_edge(m.mesh(),e,false);
 	foreach_dart_of_PHI23(m,e.dart, [&](Dart d) -> bool
 	{
 		m.cph().edge_id(phi1(m,d),m.cph().edge_id(d));
@@ -232,6 +233,65 @@ cut_edge(MRCmap3& m, MRCmap3::Edge e, bool set_indices)
 		m.cph().change_dart_level(phi2(m,d),m.current_level());
 		return true;
 	});
+	
+	if (set_indices)
+	{
+		if (is_indexed<MRCmap3::Vertex>(m))
+			set_index(m, v, new_index<MRCmap3::Vertex>(m));
+
+		if (is_indexed<MRCmap3::Edge>(m))
+		{
+			uint32 ne = new_index<MRCmap3::Edge>(m);
+			foreach_dart_of_orbit(m,e,[&](Dart d)->bool{
+				if(m.cph().dart_level(d) == m.current_level())
+					set_index<MRCmap3::Edge>(m,d,ne);
+				return true;
+			});
+			ne = new_index<MRCmap3::Edge>(m);
+			foreach_dart_of_orbit(m,MRCmap3::Edge(phi1(m,e.dart)),[&](Dart d)->bool{
+				if(m.cph().dart_level(d) == m.current_level())
+					set_index<MRCmap3::Edge>(m,d,ne);
+				return true;
+			});
+		}
+		if (is_indexed<MRCmap3::Face>(m))
+		{
+			foreach_dart_of_PHI23(m,e.dart, [&](Dart d) -> bool
+			{
+				Dart it = phi1(m,d);
+                do{
+                    it = phi1(m,it);
+                }while(m.cph().dart_level(it) < m.current_level()-1 && it != d);
+				copy_index<MRCmap3::Face>(m,phi1(m,d), it);
+                it = phi2(m,d);
+                do{
+                    it = phi1(m,it);
+                }while(m.cph().dart_level(it) < m.current_level()-1 && it != phi2(m,phi1(m,d)));
+				copy_index<MRCmap3::Face>(m,phi2(m,d), it);
+				return true;
+			});
+		}
+		if (is_indexed<MRCmap3::Volume>(m))
+		{
+			foreach_dart_of_PHI23(m,e.dart, [&](Dart d) -> bool
+			{
+				if (!is_boundary(m,d))
+                {
+                    Dart it = phi1(m,d);
+                    do{
+                        it = phi1(m,it);
+                    }while(m.cph().dart_level(it) < m.current_level()-1 && it != d);
+					copy_index<MRCmap3::Volume>(m,phi1(m,d), it);
+                    it = phi2(m,d);
+                    do{
+                        it = phi1(m,it);
+                    }while(m.cph().dart_level(it) < m.current_level()-1 && it != phi2(m,phi1(m,d)));
+					copy_index<MRCmap3::Volume>(m,phi2(m,d), it);
+                }
+				return true;
+			});
+		}
+	}
 	return v;
 }
 

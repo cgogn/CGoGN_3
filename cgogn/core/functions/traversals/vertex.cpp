@@ -124,4 +124,41 @@ std::vector<CMap3::Vertex> incident_vertices(const CMap3& m, CMap3::Volume v)
 	return vertices;
 }
 
+/////////////
+// MRCmap3 //
+/////////////
+
+std::vector<MRCmap3::Vertex> incident_vertices(const MRCmap3& m, MRCmap3::Edge e)
+{
+	std::vector<MRCmap3::Vertex> vertices;
+	vertices.reserve(2u);
+	vertices.push_back(MRCmap3::Vertex(e.dart));
+	vertices.push_back(MRCmap3::Vertex(phi2(m,e.dart)));
+	return vertices;
+}
+
+std::vector<MRCmap3::Vertex> incident_vertices(const MRCmap3& m, MRCmap3::Face2 f)
+{
+	std::vector<MRCmap3::Vertex> vertices;
+	vertices.reserve(16u);
+	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { vertices.push_back(MRCmap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<MRCmap3::Vertex> incident_vertices(const MRCmap3& m, MRCmap3::Face f)
+{
+	std::vector<MRCmap3::Vertex> vertices;
+	vertices.reserve(16u);
+	foreach_dart_of_orbit(m,MRCmap3::Face2(f.dart), [&] (Dart d) -> bool { vertices.push_back(MRCmap3::Vertex(d)); return true; });
+	return vertices;
+}
+
+std::vector<MRCmap3::Vertex> incident_vertices(const MRCmap3& m, MRCmap3::Volume v)
+{
+	std::vector<MRCmap3::Vertex> vertices;
+	vertices.reserve(32u);
+	foreach_incident_vertex(m, v, [&] (MRCmap3::Vertex vert) -> bool { vertices.push_back(vert); return true; });
+	return vertices;
+}
+
 } // namespace cgogn

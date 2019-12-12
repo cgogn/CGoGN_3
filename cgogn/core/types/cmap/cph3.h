@@ -2,6 +2,7 @@
 #define CPH3_H
 
 #include "cph2.h"
+#include <set>
 
 namespace cgogn
 {
@@ -47,6 +48,19 @@ public:
     inline void face_id(Dart d, uint32 i)
     {
 		(*face_id_)[d.index] = i ;
+    }
+	
+	inline uint32 refinement_face_id(const std::vector<Dart>& cut_path) const
+    {
+		std::set<uint32> set_fid;
+		for(Dart d:cut_path){
+			set_fid.insert(face_id(d));
+		}
+		uint32 result = 0;
+		while(set_fid.find(result) != set_fid.end()){
+            ++result;
+        }
+		return result;
     }
 };
 

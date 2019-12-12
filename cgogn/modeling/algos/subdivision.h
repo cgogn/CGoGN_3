@@ -599,6 +599,39 @@ void subdivideListEdges(MRCmap3& m,std::vector<Dart>& edges,std::queue<Vec3>& ed
 }
 
 template<typename MESH>
+void subdivideListFaces(MESH& m,std::vector<Dart>& faces,std::queue<Vec3>& face_points,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute){
+	for (Dart d : faces) {
+		subdivideFace(m,d, face_points.front(),attribute);
+		face_points.pop();
+	}
+}
+
+void subdivideListFaces(MRCmap3& m,std::vector<Dart>& faces,std::queue<Vec3>& face_points,const std::shared_ptr<typename mesh_traits<MRCmap3>::template Attribute<Vec3>>& attribute){
+	for (Dart d : faces) {
+		MRCmap3 m2(m,face_level(m,d)+1);
+		subdivideFace(m2,d, face_points.front(),attribute);
+		face_points.pop();
+	}
+}
+
+template<typename MESH>
+void subdivideListVolumes(MESH& m,std::vector<Dart>& volumes,std::queue<Vec3>& volume_points,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute){
+	for (Dart d : volumes) {
+		subdivideVolume(m,d, volume_points.front(),attribute);
+		volume_points.pop();
+	}
+}
+
+void subdivideListVolumes(MRCmap3& m,std::vector<Dart>& volumes,std::queue<Vec3>& volume_points,const std::shared_ptr<typename mesh_traits<MRCmap3>::template Attribute<Vec3>>& attribute){
+	for (Dart d : volumes) {
+		MRCmap3 m2(m,volume_level(m,d)+1);
+		subdivideVolume(m2,d, volume_points.front(),attribute);
+		volume_points.pop();
+	}
+}
+
+
+template<typename MESH>
 void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& attribute)
 {
 	using Volume = typename MESH::Volume;
@@ -724,15 +757,9 @@ void butterflySubdivisionVolumeAdaptative(MESH& m,double angle_threshold,const s
 	// Subdivision des aretes
 	subdivideListEdges(m,edges,edge_points,attribute);
 	// Subdivision des faces
-	/*for (Dart d : faces) {
-		subdivideFace(m,d, face_points.front(),attribute);
-		face_points.pop();
-	}
+	subdivideListFaces(m,faces,face_points,attribute);
 	// Subdivision des volumes
-	for (Dart d : volumes) {
-		subdivideVolume(m,d, volume_points.front(),attribute);
-		volume_points.pop();
-	}*/
+	subdivideListVolumes(m,volumes,volume_points,attribute);
 }
 
 } // namespace modeling

@@ -343,4 +343,77 @@ void sew_volumes(CMap3& m,Dart d0, Dart d1)
 	} while (it0 != d0);
 }
 
+/////////////
+// MRCmap3 //
+/////////////
+
+MRCmap3::Face
+cut_volume(MRCmap3& m, const std::vector<Dart>& path, bool set_indices)
+{
+	uint32 vid = m.cph().refinement_face_id(path);
+	uint32 vlevel = volume_level(m,path[0]);
+	MRCmap3::Face result = cut_volume(m.mesh(),path,false);
+	Dart f0 = result.dart;
+	Dart f1 = phi3(m,f0);
+	
+	foreach_dart_of_orbit(m,result,[&](Dart d)->bool{
+		m.cph().edge_id(d,m.cph().edge_id(phi2(m,d)));
+		m.cph().face_id(d,vid);
+		m.cph().dart_level(d,m.current_level());
+		return true;
+	});
+	
+	if (set_indices)
+	{
+		if (is_indexed<MRCmap3::Vertex>(m))
+		{
+			foreach_dart_of_orbit(m,MRCmap3::Face(f0), [&](Dart d) -> bool
+			{
+				copy_index<MRCmap3::Vertex>(m,d, phi<21>(m,d));
+				return true;
+			});
+		}
+		if (is_indexed<MRCmap3::Edge>(m))
+		{
+			foreach_dart_of_orbit(m,MRCmap3::Face2(f0), [&](Dart d) -> bool
+			{
+				copy_index<MRCmap3::Edge>(m,d, phi2(m,d));
+				copy_index<MRCmap3::Edge>(m,phi3(m,d), d);
+				return true;
+			});
+		}
+		if (is_indexed<MRCmap3::Face>(m))
+		{
+			set_index(m, MRCmap3::Face(f0), new_index<MRCmap3::Face>(m));
+		}
+		if (is_indexed<MRCmap3::Volume>(m))
+		{
+			if(vlevel == m.current_level()){
+				foreach_dart_of_orbit(m,MRCmap3::Face2(f0), [&] (Dart d)->bool
+				{
+					copy_index<MRCmap3::Volume>(m,d, phi2(m,d));
+					return true;
+				});
+				set_index(m, MRCmap3::Volume(f1), new_index<MRCmap3::Volume>(m));
+			}else{
+				uint32 ved1 = new_index<MRCmap3::Volume>(m);
+				uint32 ved2 = new_index<MRCmap3::Volume>(m);
+				foreach_dart_of_orbit(m,MRCmap3::Volume(f0),[&](Dart d)->bool{
+					if(m.cph().dart_level(d) == m.current_level())
+						set_index<MRCmap3::Volume>(m,d,ved1);
+					return true;
+				});
+				foreach_dart_of_orbit(m,MRCmap3::Volume(f1),[&](Dart d)->bool{
+					if(m.cph().dart_level(d) == m.current_level())
+						set_index<MRCmap3::Volume>(m,d,ved2);
+					return true;
+				});
+			}
+			
+		}
+	}
+	
+	return result;
+}
+
 } // namespace cgogn

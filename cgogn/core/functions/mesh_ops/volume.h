@@ -86,6 +86,13 @@ uint32 close(CMap3& m,bool set_indices = true);
 
 void sew_volumes(CMap3& m,Dart d0, Dart d1);
 
+/////////////
+// MRCmap3 //
+/////////////
+
+MRCmap3::Face
+cut_volume(MRCmap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
 //////////////
 // MESHVIEW //
 //////////////

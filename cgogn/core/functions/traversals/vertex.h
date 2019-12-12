@@ -83,6 +83,22 @@ CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Face f);
 std::vector<CMap3::Vertex>
 CGOGN_CORE_EXPORT incident_vertices(const CMap3& m, CMap3::Volume v);
 
+/////////////
+// MRCmap3 //
+/////////////
+
+std::vector<MRCmap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const MRCmap3& m, MRCmap3::Edge e);
+
+std::vector<MRCmap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const MRCmap3& m, MRCmap3::Face2 f);
+
+std::vector<MRCmap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const MRCmap3& m, MRCmap3::Face f);
+
+std::vector<MRCmap3::Vertex>
+CGOGN_CORE_EXPORT incident_vertices(const MRCmap3& m, MRCmap3::Volume v);
+
 //////////////
 // MESHVIEW //
 //////////////
