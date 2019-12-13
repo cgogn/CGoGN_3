@@ -156,11 +156,6 @@ cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 	Dart d23 = phi<23>(m,d0);
 	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart);
 	
-	Dart tmp = phi1(m,d0);
-	while(d0 != tmp){
-		tmp = phi1(m,tmp);
-	}
-
 	while(d23 != e.dart)
 	{
 		d0 = d23;
