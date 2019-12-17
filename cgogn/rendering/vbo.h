@@ -1,34 +1,34 @@
 ﻿
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_VBO_H_
 #define CGOGN_RENDERING_VBO_H_
 
 #include <GL/gl3w.h>
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/rendering/cgogn_rendering_export.h>
 
 #include <string>
 
@@ -41,17 +41,13 @@ namespace rendering
 class CGOGN_RENDERING_EXPORT VBO
 {
 protected:
-
 	GLuint id_;
 	std::size_t nb_vectors_;
 	int32 vector_dimension_;
 	std::string name_;
 
 public:
-
-	inline VBO(int32 vec_dim = 3) :
-		nb_vectors_(0),
-		vector_dimension_(vec_dim)
+	inline VBO(int32 vec_dim = 3) : nb_vectors_(0), vector_dimension_(vec_dim)
 	{
 		glGenBuffers(1, &id_);
 	}
@@ -90,7 +86,7 @@ public:
 	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
 		std::size_t total = nb_vectors * uint32(vector_dimension);
-//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
+		//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
 			// glBindBuffer(GL_ARRAY_BUFFER, id_);
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
@@ -157,7 +153,8 @@ public:
 	{
 		bind();
 		glEnableVertexAttribArray(attrib);
-		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4, reinterpret_cast<GLvoid *>(first * uint64(vector_dimension()) * 4u));
+		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4,
+							  reinterpret_cast<GLvoid*>(first * uint64(vector_dimension()) * 4u));
 		release();
 	}
 };

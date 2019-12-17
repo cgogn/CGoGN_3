@@ -1,36 +1,36 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_DRAWER_H_
 #define CGOGN_RENDERING_DRAWER_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
+#include <cgogn/rendering/shaders/shader_bold_line_color.h>
 #include <cgogn/rendering/shaders/shader_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_flat.h>
-#include <cgogn/rendering/shaders/shader_bold_line_color.h>
-#include <cgogn/rendering/shaders/shader_round_point_color.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
+#include <cgogn/rendering/shaders/shader_round_point_color.h>
 
 #include <cgogn/rendering/types.h>
 
@@ -74,13 +74,12 @@ class CGOGN_RENDERING_EXPORT DisplayListDrawer
 		GLsizei nb;
 		bool aa;
 
-		PrimParam(std::size_t b, GLenum m, float32 w, bool a) :
-			begin(GLint(b)), mode(m), width(w), nb(0), aa(a)
-		{}
+		PrimParam(std::size_t b, GLenum m, float32 w, bool a) : begin(GLint(b)), mode(m), width(w), nb(0), aa(a)
+		{
+		}
 	};
 
 protected:
-
 	std::unique_ptr<VBO> vbo_pos_;
 	std::unique_ptr<VBO> vbo_col_;
 
@@ -102,7 +101,6 @@ protected:
 	bool current_ball_;
 
 public:
-
 	class CGOGN_RENDERING_EXPORT Renderer
 	{
 		friend class DisplayListDrawer;
@@ -116,7 +114,6 @@ public:
 		Renderer(DisplayListDrawer* dr);
 
 	public:
-
 		~Renderer();
 
 		/**
@@ -174,8 +171,8 @@ public:
 	void vertex3ff(float32 x, float32 y, float32 z);
 
 	/**
-	* use as glVertex3f
-	*/
+	 * use as glVertex3f
+	 */
 	template <typename SCALAR>
 	inline void vertex3f(SCALAR x, SCALAR y, SCALAR z)
 	{
@@ -186,8 +183,8 @@ public:
 	void color3ff(float32 r, float32 g, float32 b);
 
 	/**
-	* use as glColor3f
-	*/
+	 * use as glColor3f
+	 */
 	template <typename SCALAR>
 	inline void color3f(SCALAR x, SCALAR y, SCALAR z)
 	{
@@ -276,7 +273,7 @@ public:
 	inline void line_width_aa(float32 lw)
 	{
 		current_aa_ = true;
-		current_size_ = 2.0f*lw;
+		current_size_ = 2.0f * lw;
 	}
 };
 

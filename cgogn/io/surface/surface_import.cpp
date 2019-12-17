@@ -1,31 +1,33 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/io/surface/surface_import.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/types/mesh_traits.h>
+
+#include <cgogn/core/types/cmap/cmap_ops.h>
 
 #include <vector>
 
@@ -72,9 +74,9 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
 				const uint32 vertex_index = vertices_buffer[j];
-				set_index<Vertex>(m,d, vertex_index);
+				set_index<Vertex>(m, d, vertex_index);
 				(*darts_per_vertex)[vertex_index].push_back(d);
-				d = phi1(m,d);
+				d = phi1(m, d);
 			}
 		}
 	}
@@ -82,25 +84,24 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	bool need_vertex_unicity_check = false;
 	uint32 nb_boundary_edges = 0u;
 
-	foreach_dart(m,[&] (Dart d) -> bool
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
-		if (phi2(m,d) == d)
+		if (phi2(m, d) == d)
 		{
-			uint32 vertex_index = index_of(m,Vertex(d));
+			uint32 vertex_index = index_of(m, Vertex(d));
 
-			const std::vector<Dart>& next_vertex_darts = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(phi1(m,d)));
+			const std::vector<Dart>& next_vertex_darts =
+				value<std::vector<Dart>>(m, darts_per_vertex, Vertex(phi1(m, d)));
 			bool phi2_found = false;
 			bool first_OK = true;
 
-			for (auto it = next_vertex_darts.begin();
-				 it != next_vertex_darts.end() && !phi2_found;
-				 ++it)
+			for (auto it = next_vertex_darts.begin(); it != next_vertex_darts.end() && !phi2_found; ++it)
 			{
-				if (index_of(m,Vertex(phi1(m,*it))) == vertex_index)
+				if (index_of(m, Vertex(phi1(m, *it))) == vertex_index)
 				{
-					if (phi2(m,*it) == *it)
+					if (phi2(m, *it) == *it)
 					{
-						phi2_sew(m,d, *it);
+						phi2_sew(m, d, *it);
 						phi2_found = true;
 					}
 					else
@@ -114,8 +115,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 			if (!first_OK)
 				need_vertex_unicity_check = true;
 		}
-		return true;
-	});
+	}
 
 	if (nb_boundary_edges > 0u)
 	{

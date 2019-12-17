@@ -1,34 +1,40 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
-#include <cgogn/core/functions/traversals/dart.h>
+
+#include <cgogn/core/types/cell_marker.h>
+#include <cgogn/core/types/mesh_traits.h>
+
+#include <cgogn/core/types/cmap/cmap_info.h>
+#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/cmap/orbit_traversal.h>
 
 namespace cgogn
 {
@@ -40,60 +46,21 @@ namespace cgogn
 
 /*****************************************************************************/
 
-///////////
-// Graph //
-///////////
+/////////////
+// GENERIC //
+/////////////
 
-std::vector<Graph::Edge>
-CGOGN_CORE_EXPORT incident_edges(const Graph& g, Graph::Vertex v);
-
-///////////
-// CMap1 //
-///////////
-
-std::vector<CMap1::Vertex>
-CGOGN_CORE_EXPORT incident_edges(const CMap1& m, CMap1::Face f);
-
-///////////
-// CMap2 //
-///////////
-
-std::vector<CMap2::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Vertex v);
-
-CMap2::Edge
-CGOGN_CORE_EXPORT incident_edge(const CMap2& m, CMap2::HalfEdge h);
-
-std::vector<CMap2::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Face f);
-
-std::vector<CMap2::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap2& m, CMap2::Volume v);
-
-///////////
-// CMap3 //
-///////////
-
-std::vector<CMap3::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap3& m, CMap3::Vertex v);
-
-std::vector<CMap3::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap3& m, CMap3::Face f);
-
-std::vector<CMap3::Edge>
-CGOGN_CORE_EXPORT incident_edges(const CMap3& m, CMap3::Volume v);
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename CELL, typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-std::vector<typename mesh_traits<MESH>::Edge>
-incident_edges(const MESH& m, CELL c)
+template <typename MESH, typename CELL>
+std::vector<typename mesh_traits<MESH>::Edge> incident_edges(const MESH& m, CELL c)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return incident_edges(m.mesh(), c);
+	using Edge = typename mesh_traits<MESH>::Edge;
+	std::vector<Edge> edges;
+	edges.reserve(32u);
+	foreach_incident_edge(m, c, [&](Edge e) -> bool {
+		edges.push_back(e);
+		return true;
+	});
+	return edges;
 }
 
 /*****************************************************************************/
@@ -103,125 +70,117 @@ incident_edges(const MESH& m, CELL c)
 
 /*****************************************************************************/
 
-///////////
-// Graph //
-///////////
+///////////////////////////////
+// CMapBase (or convertible) //
+///////////////////////////////
 
-template <typename FUNC>
-void foreach_incident_edge(const Graph& m, Graph::Vertex v, const FUNC& func)
+// this version works for any CMap and CELL
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, CMapBase>>
 {
-	static_assert(is_func_parameter_same<FUNC, Graph::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	m.foreach_dart_of_orbit(v, [&] (Dart d) -> bool { return func(Graph::Edge(d)); });
-}
-
-///////////
-// CMap1 //
-///////////
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap1& m, CMap1::Face f, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap1::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { return func(CMap1::Edge(d)); });
-}
-
-///////////
-// CMap2 //
-///////////
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap2& m, CMap2::Vertex v, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
-}
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap2& m, CMap2::Face f, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	foreach_dart_of_orbit(m,f, [&] (Dart d) -> bool { return func(CMap2::Edge(d)); });
-}
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap2& m, CMap2::Volume v, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap2::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
-	{
-		if (!marker.is_marked(d))
-		{
-			foreach_dart_of_orbit(m,CMap2::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
-			return func(CMap2::Edge(d));
-		}
-		return true;
-	});
-}
-
-///////////
-// CMap3 //
-///////////
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap3& m, CMap3::Vertex v, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
-	{
-		if (!marker.is_marked(d))
-		{
-			foreach_dart_of_orbit(m,CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
-			return func(CMap3::Edge(d));
-		}
-		return true;
-	});
-}
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap3& m, CMap3::Face f, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	foreach_dart_of_orbit(m,CMap3::Face2(f.dart), [&] (Dart d) -> bool { return func(CMap3::Edge(d)); });
-}
-
-template <typename FUNC>
-void foreach_incident_edge(const CMap3& m, CMap3::Volume v, const FUNC& func)
-{
-	static_assert(is_func_parameter_same<FUNC, CMap3::Edge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	DartMarkerStore marker(m);
-	foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
-	{
-		if (!marker.is_marked(d))
-		{
-			// TODO: could mark only the darts of CMap2::Edge(d)
-			foreach_dart_of_orbit(m,CMap3::Edge(d), [&] (Dart d) -> bool { marker.mark(d); return true; });
-			return func(CMap3::Edge(d));
-		}
-		return true;
-	});
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename CELL, typename MESH, typename FUNC,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
-foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
-{
+	using Edge = typename mesh_traits<MESH>::Edge;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	foreach_incident_edge(m.mesh(), c, func);
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	if (is_indexed<Edge>(m))
+	{
+		CellMarkerStore<MESH, Edge> marker(m);
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
+			Edge e(d);
+			if (!marker.is_marked(e))
+			{
+				marker.mark(e);
+				return func(e);
+			}
+			return true;
+		});
+	}
+	else
+	{
+		DartMarkerStore<MESH> marker(m);
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
+			Edge e(d);
+			if (!marker.is_marked(d))
+			{
+				foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
+					marker.mark(d);
+					return true;
+				});
+				return func(e);
+			}
+			return true;
+		});
+	}
+}
+
+// below are specialized versions for cases that do not need marking (ordered neighborhoods)
+
+////////////////////////////
+// Graph (or convertible) //
+////////////////////////////
+
+template <typename MESH, typename FUNC>
+auto foreach_incident_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, Graph>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	foreach_dart_of_orbit(m, v, [&](Dart d) -> bool { return func(Edge(d)); });
+}
+
+////////////////////////////
+// CMap1 (or convertible) //
+////////////////////////////
+
+template <typename MESH, typename FUNC>
+auto foreach_incident_edge(const MESH& m, typename mesh_traits<MESH>::Face f, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, CMap1>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	foreach_dart_of_orbit(m, f, [&](Dart d) -> bool { return func(Edge(d)); });
+}
+
+////////////////////////////
+// CMap2 (or convertible) //
+////////////////////////////
+
+template <typename MESH, typename FUNC>
+auto foreach_incident_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, CMap2>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	foreach_dart_of_orbit(m, v, [&](Dart d) -> bool { return func(Edge(d)); });
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_incident_edge(const MESH& m, typename mesh_traits<MESH>::Face f, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, CMap2>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	foreach_dart_of_orbit(m, f, [&](Dart d) -> bool { return func(Edge(d)); });
+}
+
+////////////////////////////
+// CMap3 (or convertible) //
+////////////////////////////
+
+template <typename MESH, typename FUNC>
+auto foreach_incident_edge(const MESH& m, typename mesh_traits<MESH>::Face f, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH, CMap3>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Face2(f.dart), [&](Dart d) -> bool { return func(Edge(d)); });
 }
 
 } // namespace cgogn

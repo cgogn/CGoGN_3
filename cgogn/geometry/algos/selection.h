@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_GEOMETRY_ALGOS_SELECTION_H_
 #define CGOGN_GEOMETRY_ALGOS_SELECTION_H_
@@ -28,13 +28,13 @@
 #include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/inclusion.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 namespace cgogn
 {
@@ -42,13 +42,8 @@ namespace cgogn
 namespace geometry
 {
 
-CellCache<CMap2>
-within_sphere(
-	const CMap2& m,
-	typename CMap2::Vertex center,
-	geometry::Scalar radius,
-	const typename CMap2::template Attribute<Vec3>* vertex_position
-)
+CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
+							   const typename CMap2::template Attribute<Vec3>* vertex_position)
 {
 	using Vertex = typename CMap2::Vertex;
 	using HalfEdge = typename CMap2::HalfEdge;
@@ -61,10 +56,8 @@ within_sphere(
 
 	DartMarkerStore dm(m);
 
-	auto mark_vertex = [&] (Vertex v)
-	{
-		foreach_dart_of_orbit(m,v, [&] (Dart d) -> bool
-		{
+	auto mark_vertex = [&](Vertex v) {
+		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 			// mark a dart of the vertex
 			dm.mark(d);
 
@@ -72,8 +65,7 @@ within_sphere(
 			// (which means all the vertices of the edge are in the sphere)
 			Edge e(d);
 			bool all_in = true;
-			foreach_dart_of_orbit(m,e, [&] (Dart dd) -> bool
-			{
+			foreach_dart_of_orbit(m, e, [&](Dart dd) -> bool {
 				if (!dm.is_marked(dd))
 					all_in = false;
 				return all_in;
@@ -85,15 +77,14 @@ within_sphere(
 			// (which means all the vertices of the face are in the sphere)
 			Face f(d);
 			all_in = true;
-			foreach_dart_of_orbit(m,f, [&] (Dart dd) -> bool
-			{
+			foreach_dart_of_orbit(m, f, [&](Dart dd) -> bool {
 				if (!dm.is_marked(dd))
 					all_in = false;
 				return all_in;
 			});
 			if (all_in)
 				cache.add(f);
-			
+
 			return true;
 		});
 	};
@@ -105,8 +96,7 @@ within_sphere(
 	while (i < cache.cell_vector<Vertex>().size())
 	{
 		Vertex v = cache.cell_vector<Vertex>()[i];
-		foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
-		{
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 			const Vec3& p = value<Vec3>(m, vertex_position, av);
 			if (in_sphere(p, center_position, radius))
 			{
@@ -117,7 +107,7 @@ within_sphere(
 				}
 			}
 			else
-				cache.add(HalfEdge(phi2(m,av.dart)));
+				cache.add(HalfEdge(phi2(m, av.dart)));
 			return true;
 		});
 		++i;

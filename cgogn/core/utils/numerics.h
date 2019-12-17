@@ -1,34 +1,34 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_CORE_UTILS_NUMERICS_H_
 #define CGOGN_CORE_UTILS_NUMERICS_H_
 
-#include <cstdint>
-#include <type_traits>
-#include <cmath>
-#include <limits>
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <type_traits>
 
 #include <cgogn/core/utils/assert.h>
 
@@ -55,7 +55,9 @@ using float64 = double;
 static const uint32 INVALID_INDEX = UINT32_MAX;
 
 template <class Scalar>
-inline auto almost_equal_relative(Scalar x, Scalar y, const Scalar max_rel_diff = std::numeric_limits<Scalar>::epsilon() ) -> typename std::enable_if<std::is_floating_point<Scalar>::value, bool>::type
+inline auto almost_equal_relative(Scalar x, Scalar y,
+								  const Scalar max_rel_diff = std::numeric_limits<Scalar>::epsilon()) ->
+	typename std::enable_if<std::is_floating_point<Scalar>::value, bool>::type
 {
 	const Scalar diff = std::fabs(x - y);
 	x = std::fabs(x);
@@ -65,7 +67,8 @@ inline auto almost_equal_relative(Scalar x, Scalar y, const Scalar max_rel_diff 
 }
 
 template <class Scalar>
-inline auto almost_equal_absolute(Scalar x, Scalar y, const Scalar epsilon = std::numeric_limits<Scalar>::epsilon() ) -> typename std::enable_if<std::is_floating_point<Scalar>::value, bool>::type
+inline auto almost_equal_absolute(Scalar x, Scalar y, const Scalar epsilon = std::numeric_limits<Scalar>::epsilon()) ->
+	typename std::enable_if<std::is_floating_point<Scalar>::value, bool>::type
 {
 	cgogn_assert(epsilon > 0);
 	return std::fabs(y - x) < epsilon;
@@ -84,7 +87,7 @@ inline Scalar scale_expand_within_0_1(Scalar x, const Integer n)
 	return x;
 }
 
-template  <class Scalar, class Integer>
+template <class Scalar, class Integer>
 inline Scalar scale_expand_towards_1(Scalar x, const Integer n)
 {
 	static_assert(std::is_floating_point<Scalar>::value, "Floating point number required.");
@@ -137,88 +140,90 @@ template <typename Scalar>
 inline Scalar clamp(const Scalar x, const Scalar min, const Scalar max)
 {
 	static_assert(std::is_floating_point<Scalar>::value || std::is_integral<Scalar>::value,
-		"'clamp' only accept floating-point or integer inputs");
+				  "'clamp' only accept floating-point or integer inputs");
 
 	return std::min(max, std::max(min, x));
 }
 
-template<typename T, std::size_t bytes, typename enable = void>
-struct fixed_precision {};
+template <typename T, std::size_t bytes, typename enable = void>
+struct fixed_precision
+{
+};
 
-template<typename T>
-struct fixed_precision<T,1ul,typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 1ul, typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = int8;
 };
 
-template<typename T>
-struct fixed_precision<T,2ul,typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 2ul, typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = int16;
 };
 
-template<typename T>
-struct fixed_precision<T,4ul,typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 4ul, typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = int32;
 };
 
-template<typename T>
-struct fixed_precision<T,8ul,typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 8ul, typename std::enable_if<std::is_signed<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = int64;
 };
 
-template<typename T>
-struct fixed_precision<T,1ul,typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 1ul, typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = uint8;
 };
 
-template<typename T>
-struct fixed_precision<T,2ul,typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 2ul, typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = uint16;
 };
 
-template<typename T>
-struct fixed_precision<T,4ul,typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 4ul, typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = uint32;
 };
 
-template<typename T>
-struct fixed_precision<T,8ul,typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 8ul, typename std::enable_if<std::is_unsigned<T>::value && std::is_integral<T>::value>::type>
 {
 	using type = uint64;
 };
 
-template<typename T>
-struct fixed_precision<T,1ul,typename std::enable_if<std::is_floating_point<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 1ul, typename std::enable_if<std::is_floating_point<T>::value>::type>
 {
 	using type = float32; // float is at least 32 bits, but we need this specialization for the compilation
 };
 
-template<typename T>
-struct fixed_precision<T,2ul,typename std::enable_if<std::is_floating_point<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 2ul, typename std::enable_if<std::is_floating_point<T>::value>::type>
 {
 	using type = float32; // float is at least 32 bits, but we need this specialization for the compilation
 };
 
-template<typename T>
-struct fixed_precision<T,4ul,typename std::enable_if<std::is_floating_point<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 4ul, typename std::enable_if<std::is_floating_point<T>::value>::type>
 {
 	using type = float32;
 };
 
-template<typename T>
-struct fixed_precision<T,8ul,typename std::enable_if<std::is_floating_point<T>::value>::type>
+template <typename T>
+struct fixed_precision<T, 8ul, typename std::enable_if<std::is_floating_point<T>::value>::type>
 {
 	using type = float64;
 };
 
-template<typename T, std::size_t sz>
-struct fixed_precision<T, sz,typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+template <typename T, std::size_t sz>
+struct fixed_precision<T, sz, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
 	using type = T;
 };

@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
 #define CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
@@ -90,14 +90,16 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
 bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
 void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex v);
 void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex v);
-void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v);
+void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 Graph::Vertex v);
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */
 /*****************************************************************************/
 
 bool create_intersection_frames(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
-bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v);
+bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								 Graph::Vertex v);
 
 bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GData& gData, CMap2& m2);
 void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start);
@@ -117,14 +119,12 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
-
-
 // Dart convex_quad(CMap2& m2, M2Attributes& m2Attribs, Dart f){
 //         Dart res;
 //         Vec3 A = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(f));
-//         Vec3 B = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(m2.phi1(f))); 
+//         Vec3 B = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(m2.phi1(f)));
 //         Vec3 C = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(m2.phi<11>(f)));
-//         Vec3 D = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(m2.phi_1(f))); 
+//         Vec3 D = value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(m2.phi_1(f)));
 //         Vec3 AB = B - A;
 //         Vec3 AC = C - A;
 //         Vec3 AD = D - A;
@@ -182,7 +182,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 // bool complete_intersection_n(
 // 	const Graph& g,
-// 	GAttributes& gAttribs, 
+// 	GAttributes& gAttribs,
 //     CMap2& m2,
 // 	M2Attributes& m2Attribs,
 // 	Graph::Vertex gv
@@ -192,14 +192,14 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 //     Vec3 center = value<Vec3>(g, gAttribs.vertex_position, gv);
 //     Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, gv);
-//     Dart cc = value<Dart>(g, gAttribs.m2_CC, gv); 
+//     Dart cc = value<Dart>(g, gAttribs.m2_CC, gv);
 
 //     std::vector<Dart> Fd = {cc, m2.phi<2111>(cc), m2.phi<12>(cc)};
 //     std::vector<Vec3> Ppos;
 //     Ppos.reserve(3);
 //     std::vector<Dart> Pdart;
 //     Pdart.reserve(3);
-//     g.foreach_dart_of_orbit(gv, [&](Dart d) -> bool 
+//     g.foreach_dart_of_orbit(gv, [&](Dart d) -> bool
 //     {
 //         Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(g.alpha0(d)));
 //         p = project_on_sphere(p, radius, center);
@@ -239,7 +239,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 //         bool face_found = false;
 
-//         foreach_cell(m2, [&](M2Face f) -> bool 
+//         foreach_cell(m2, [&](M2Face f) -> bool
 //         {
 //             Dart fd = convex_quad(m2, m2Attribs, f.dart);
 //             Quadd = {fd, m2.phi1(fd),
@@ -280,10 +280,11 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 //         Dart newFace, oldFace;
 //         Vec3 out0 =  value<Vec3>(m2, m2Attribs.vertex_position, v) - center;
-//         // Vec3 out1 = ((P0 - value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized().cross((P1 - m2_attribs.position[cut0]).normalized()));
+//         // Vec3 out1 = ((P0 - value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized().cross((P1 -
+//         m2_attribs.position[cut0]).normalized()));
 
-//         Vec3 out1 = ((P0 - value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized().cross((P1 - value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized()));
-//         if (out1.dot(out0) >= 0)
+//         Vec3 out1 = ((P0 - value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized().cross((P1 -
+//         value<Vec3>(m2, m2Attribs.vertex_position, M2Vertex(cut0))).normalized())); if (out1.dot(out0) >= 0)
 //         {
 //             newFace = cut0; oldFace = cut1;
 //         }
@@ -305,8 +306,8 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 //                 points.push_back(value<Vec3>(m2, m2Attribs.face_point, m2f));
 //                 return true;
 //             });
-//             value<Vec3>(m2, m2Attribs.vertex_position, m2v) = mean_dir(center, radius, value<Vec3>(m2, m2Attribs.vertex_position, m2v), points);
-//             return true;
+//             value<Vec3>(m2, m2Attribs.vertex_position, m2v) = mean_dir(center, radius, value<Vec3>(m2,
+//             m2Attribs.vertex_position, m2v), points); return true;
 //         });
 //     }
 
@@ -322,7 +323,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 // bool complete_intersections(
 // 	const Graph& g,
-// 	GAttributes& gAttribs, 
+// 	GAttributes& gAttribs,
 // 	CMap2& m2,
 // 	M2Attributes& m2Attribs)
 // {

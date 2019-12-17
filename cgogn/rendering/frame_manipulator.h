@@ -1,31 +1,31 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_FRAMEMANIPULATOR_H_
 #define CGOGN_RENDERING_FRAMEMANIPULATOR_H_
 
-#include <cgogn/rendering/shaders/shader_simple_color.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
+#include <cgogn/rendering/shaders/shader_simple_color.h>
 #include <cgogn/rendering/types.h>
 
 namespace cgogn
@@ -59,7 +59,7 @@ namespace rendering
  *   frame_manip_->get_position(position);
  *   frame_manip_->get_axis(cgogn::rendering::FrameManipulator::Zt,axis_z);
  *   float32 d = -(position.dot(axis_z));
-  */
+ */
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
 	std::unique_ptr<VBO> vbo_grid_;
@@ -69,21 +69,25 @@ class CGOGN_RENDERING_EXPORT FrameManipulator
 	static const uint32 nb_grid_ind_ = 4 * (nb_grid_ + 1);
 
 public:
-
 	enum AXIS
 	{
 		NONE = 0,
 		CENTER,
-		Xt, Yt, Zt,
-		Xr, Yr, Zr,
-		Xs, Ys, Zs,
+		Xt,
+		Yt,
+		Zt,
+		Xr,
+		Yr,
+		Zr,
+		Xs,
+		Ys,
+		Zs,
 		Translations,
 		Rotations,
 		Scales
 	};
 
 protected:
-
 	/**
 	 * number of segment for circle drawing
 	 */
@@ -133,7 +137,10 @@ protected:
 	int beg_X_;
 	int beg_Y_;
 
-	inline bool axis_pickable(uint32 a) { return (!locked_axis_[a]) && (!locked_picking_axis_[a]); }
+	inline bool axis_pickable(uint32 a)
+	{
+		return (!locked_axis_[a]) && (!locked_picking_axis_[a]);
+	}
 
 	GLMat4 transfo_render_frame();
 	void set_length_axes();
@@ -146,7 +153,6 @@ protected:
 	void rotate_in_screen(int dx, int dy);
 
 public:
-
 	FrameManipulator();
 
 	/**
@@ -184,7 +190,7 @@ public:
 	 * @param PP first point of ray picking
 	 * @param QQ second point of ray picking
 	 */
-	template<typename VEC>
+	template <typename VEC>
 	void pick(int x, int y, const VEC& PP, const VEC& QQ);
 
 	/**
@@ -203,38 +209,38 @@ public:
 	 */
 	void drag(bool local, int x, int y);
 
-	 /**
-	  * lock an axis (drawing & picking are disabled)
-	  * @param axis the axis Xt/Yt/Zt/Xs/Yx/Zs/Xr/Yr/Zr or group Translations/Scales/Rotations)
-	  */
-	 void lock(uint32 axis);
+	/**
+	 * lock an axis (drawing & picking are disabled)
+	 * @param axis the axis Xt/Yt/Zt/Xs/Yx/Zs/Xr/Yr/Zr or group Translations/Scales/Rotations)
+	 */
+	void lock(uint32 axis);
 
-	 /**
-	  * unlock an axis
-	  * @param axis the axis Xt/Yt/Zt/Xs/Yx/Zs/Xr/Yr/Zr or group Translations/Scales/Rotations)
-	  */
-	 void unlock(uint32 axis);
+	/**
+	 * unlock an axis
+	 * @param axis the axis Xt/Yt/Zt/Xs/Yx/Zs/Xr/Yr/Zr or group Translations/Scales/Rotations)
+	 */
+	void unlock(uint32 axis);
 
-	 /**
-	  * is an axis locked
-	  * @param axis the axis to test
-	  */
-	 bool locked(uint32 axis);
+	/**
+	 * is an axis locked
+	 * @param axis the axis to test
+	 */
+	bool locked(uint32 axis);
 
-	 /**
-	  * lock an axis only for pinking
-	  */
-	 void lock_picking(uint32 axis);
+	/**
+	 * lock an axis only for pinking
+	 */
+	void lock_picking(uint32 axis);
 
-	 /**
-	  * unlock an axis (only for pinking)
-	  */
-	 void unlock_picking(uint32 axis);
+	/**
+	 * unlock an axis (only for pinking)
+	 */
+	void unlock_picking(uint32 axis);
 
-	 /**
-	  * is an axis locked (only for pinking)
-	  */
-	 bool locked_picking(uint32 axis);
+	/**
+	 * is an axis locked (only for pinking)
+	 */
+	bool locked_picking(uint32 axis);
 
 	/**
 	 * higlight an axis (change width rendering).
@@ -273,7 +279,10 @@ public:
 	template <typename VEC3>
 	void set_position(const VEC3& P);
 
-	inline GLVec3 get_position() { return trans_; }
+	inline GLVec3 get_position()
+	{
+		return trans_;
+	}
 
 	// get position in a non-QVector3 vector
 	template <typename VEC3>
@@ -307,7 +316,7 @@ public:
 	/**
 	 * set transformation matrix
 	 */
-	void set_transformation( const GLMat4& transfo);
+	void set_transformation(const GLMat4& transfo);
 
 	inline static bool rotation_axis(uint32 axis)
 	{
@@ -327,7 +336,7 @@ public:
 
 // template implementation
 
-template<typename VEC>
+template <typename VEC>
 void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 {
 	beg_X_ = x;
