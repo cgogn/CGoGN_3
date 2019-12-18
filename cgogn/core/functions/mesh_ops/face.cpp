@@ -266,14 +266,14 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 {
 	CPH3::CMAP& map = static_cast<CPH3::CMAP&>(m);
 
-	uint32 flevel = m.face_level(m, v1.dart);
+	uint32 flevel = m.face_level(v1.dart);
 	Dart d = v1.dart;
 	Dart e = v2.dart;
 
 	Dart dd = phi<31>(m, v1.dart);
 	Dart ee = phi<31>(m, e);
 
-	CPH3::CMAP::Edge result = cut_face(m.mesh(), v1, v2, false);
+	CPH3::CMAP::Edge result = cut_face(map, v1, v2, false);
 
 	uint32 eid = m.refinement_edge_id(v1.dart, v2.dart);
 
@@ -300,12 +300,12 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 			uint32 nf1 = new_index<CPH3::CMAP::Face>(m);
 			uint32 nf2 = new_index<CPH3::CMAP::Face>(m);
 			foreach_dart_of_orbit(m, CPH3::CMAP::Face(d), [&](Dart df) -> bool {
-				if (m.current_level() == m.dart_level(df))
+				if (m.current_level_ == m.dart_level(df))
 					set_index<CPH3::CMAP::Face>(m, df, nf1);
 				return true;
 			});
 			foreach_dart_of_orbit(m, CPH3::CMAP::Face(e), [&](Dart df) -> bool {
-				if (m.current_level() == m.dart_level(df))
+				if (m.current_level_ == m.dart_level(df))
 					set_index<CPH3::CMAP::Face>(m, df, nf2);
 				return true;
 			});

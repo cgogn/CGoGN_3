@@ -86,29 +86,53 @@ struct CPH3
 		return m_;
 	}
 
+	inline Dart begin() const
+	{
+		Dart d(m_.darts_.first_index());
+		uint32 lastidx = m_.darts_.last_index();
+		while (dart_level(d) > current_level_ && d.index < lastidx)
+			d = Dart(m_.darts_.next_index(d.index));
+		return d;
+	}
+
+	inline Dart end() const
+	{
+		return Dart(m_.darts_.last_index());
+	}
+
+	inline Dart next(Dart d) const
+	{
+		uint32 lastidx = m_.darts_.last_index();
+		do
+		{
+			d = Dart(m_.darts_.next_index(d.index));
+		} while (dart_level(d) > current_level_ && d.index < lastidx);
+		return d;
+	}
+
 	/***************************************************
 	 *              LEVELS MANAGEMENT                  *
 	 ***************************************************/
 
-	inline uint32 dart_level(Dart d) const;
-	inline void set_dart_level(Dart d, uint32 l);
-	inline void change_dart_level(Dart d, uint32 l);
+	uint32 dart_level(Dart d) const;
+	void set_dart_level(Dart d, uint32 l);
+	void change_dart_level(Dart d, uint32 l);
 
 	/***************************************************
 	 *             EDGE ID MANAGEMENT                  *
 	 ***************************************************/
 
-	inline uint32 edge_id(Dart d) const;
-	inline void set_edge_id(Dart d, uint32 i);
-	inline uint32 refinement_edge_id(Dart d, Dart e) const;
+	uint32 edge_id(Dart d) const;
+	void set_edge_id(Dart d, uint32 i);
+	uint32 refinement_edge_id(Dart d, Dart e) const;
 
 	/***************************************************
 	 *             FACE ID MANAGEMENT                  *
 	 ***************************************************/
 
-	inline uint32 face_id(Dart d) const;
-	inline void set_face_id(Dart d, uint32 i);
-	inline uint32 refinement_face_id(const std::vector<Dart>& cut_path) const;
+	uint32 face_id(Dart d) const;
+	void set_face_id(Dart d, uint32 i);
+	uint32 refinement_face_id(const std::vector<Dart>& cut_path) const;
 
 	/***************************************************
 	 *                  EDGE INFO                      *

@@ -27,6 +27,7 @@
 #include <cgogn/core/types/cmap/cell.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/cmap/phi.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
@@ -38,11 +39,11 @@ namespace cgogn
 // CMapBase (or convertible) //
 ///////////////////////////////
 
-template <typename CMAP, typename CELL, typename FUNC>
-auto foreach_dart_of_orbit(const CMAP& m, CELL c, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
-	static_assert(is_in_tuple<CELL, typename CMAP::Cells>::value, "CELL not supported in this CMAP");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -130,9 +131,9 @@ void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
 // CMapBase (or convertible) //
 ///////////////////////////////
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI1(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI1(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -145,9 +146,9 @@ auto foreach_dart_of_PHI1(const CMAP& m, Dart d, const FUNC& f)
 	} while (it != d);
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI2(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI2(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -155,9 +156,9 @@ auto foreach_dart_of_PHI2(const CMAP& m, Dart d, const FUNC& f)
 		f(phi2(m, d));
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI21(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI21(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -170,14 +171,14 @@ auto foreach_dart_of_PHI21(const CMAP& m, Dart d, const FUNC& f)
 	} while (it != d);
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI1_PHI2(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI1_PHI2(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	DartMarkerStore<CMAP> marker(m);
+	DartMarkerStore<MESH> marker(m);
 
 	std::vector<Dart> visited_faces;
 	visited_faces.push_back(d); // Start with the face of d
@@ -205,9 +206,9 @@ auto foreach_dart_of_PHI1_PHI2(const CMAP& m, Dart d, const FUNC& f)
 	}
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI1_PHI3(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI1_PHI3(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -218,9 +219,9 @@ auto foreach_dart_of_PHI1_PHI3(const CMAP& m, Dart d, const FUNC& f)
 	});
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI2_PHI3(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -236,14 +237,14 @@ auto foreach_dart_of_PHI2_PHI3(const CMAP& m, Dart d, const FUNC& f)
 	} while (it != d);
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI21_PHI31(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI21_PHI31(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	DartMarkerStore<CMAP> marker(m);
+	DartMarkerStore<MESH> marker(m);
 	const std::vector<Dart>& marked_darts = marker.marked_darts();
 
 	marker.mark(d);
@@ -265,14 +266,14 @@ auto foreach_dart_of_PHI21_PHI31(const CMAP& m, Dart d, const FUNC& f)
 	}
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_PHI1_PHI2_PHI3(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_PHI1_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	DartMarkerStore<CMAP> marker(m);
+	DartMarkerStore<MESH> marker(m);
 
 	std::vector<Dart> visited_face2;
 	visited_face2.push_back(d); // Start with the face of d
@@ -302,9 +303,9 @@ auto foreach_dart_of_PHI1_PHI2_PHI3(const CMAP& m, Dart d, const FUNC& f)
 	}
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_ALPHA0(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_ALPHA0(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -312,9 +313,9 @@ auto foreach_dart_of_ALPHA0(const CMAP& m, Dart d, const FUNC& f)
 		f(alpha0(m, d));
 }
 
-template <typename CMAP, typename FUNC>
-auto foreach_dart_of_ALPHA1(const CMAP& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<CMAP&, CMapBase&>>
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_ALPHA1(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");

@@ -24,16 +24,15 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_PHI_H_
 #define CGOGN_CORE_TYPES_CMAP_PHI_H_
 
+#include <cgogn/core/types/mesh_traits.h>
+
 namespace cgogn
 {
 
-struct CMapBase;
-struct CPH3;
-
 /*****************************************************************************/
 
-// template <typename CMAP>
-// Dart phiX(const CMAP& m, Dart d);
+// template <typename MESH>
+// Dart phiX(const MESH& m, Dart d);
 
 /*****************************************************************************/
 
@@ -41,44 +40,37 @@ struct CPH3;
 // CMapBase //
 //////////////
 
-template <typename CMAP>
-auto phi1(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart phi1(const CMap1& m, Dart d)
 {
 	return (*(m.phi1_))[d.index];
 }
 
-template <typename CMAP>
-auto phi_1(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart phi_1(const CMap1& m, Dart d)
 {
 	return (*(m.phi_1_))[d.index];
 }
 
-template <typename CMAP>
-auto phi2(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart phi2(const CMap2& m, Dart d)
 {
 	return (*(m.phi2_))[d.index];
 }
 
-template <typename CMAP>
-auto phi3(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart phi3(const CMap3& m, Dart d)
 {
 	return (*(m.phi3_))[d.index];
 }
 
-template <typename CMAP>
-auto alpha0(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart alpha0(const Graph& m, Dart d)
 {
 	return (*m.alpha0_)[d.index];
 }
 
-template <typename CMAP>
-auto alpha1(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart alpha1(const Graph& m, Dart d)
 {
 	return (*m.alpha1_)[d.index];
 }
 
-template <typename CMAP>
-auto alpha_1(const CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>, Dart>
+inline Dart alpha_1(const Graph& m, Dart d)
 {
 	return (*m.alpha_1_)[d.index];
 }
@@ -96,20 +88,20 @@ Dart phi3(const CPH3& m, Dart d);
 // GENERIC //
 /////////////
 
-template <uint64 N, typename CMAP>
-inline Dart phi(const CMAP& m, Dart d)
+template <uint64 N, typename MESH>
+inline Dart phi(const MESH& m, Dart d)
 {
-	static_assert(N % 10 <= CMAP::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
+	static_assert(N % 10 <= mesh_traits<MESH>::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
 
-	if constexpr (N % 10 == 1 && CMAP::dimension >= 1)
+	if constexpr (N % 10 == 1 && mesh_traits<MESH>::dimension >= 1)
 		return phi1(m, phi<N / 10>(m, d));
 	else
 	{
-		if constexpr (N % 10 == 2 && CMAP::dimension >= 2)
+		if constexpr (N % 10 == 2 && mesh_traits<MESH>::dimension >= 2)
 			return phi2(m, phi<N / 10>(m, d));
 		else
 		{
-			if constexpr (N % 10 == 3 && CMAP::dimension >= 3)
+			if constexpr (N % 10 == 3 && mesh_traits<MESH>::dimension >= 3)
 				return phi3(m, phi<N / 10>(m, d));
 			else
 				return d;
@@ -119,8 +111,8 @@ inline Dart phi(const CMAP& m, Dart d)
 
 /*****************************************************************************/
 
-// template <typename CMAP>
-// Dart phiX_sew(const CMAP& m, Dart d, Dart e);
+// template <typename MESH>
+// Dart phiX_sew(const MESH& m, Dart d, Dart e);
 
 /*****************************************************************************/
 
@@ -128,8 +120,8 @@ inline Dart phi(const CMAP& m, Dart d)
 // CMapBase //
 //////////////
 
-template <typename CMAP>
-auto phi1_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart f = phi1(m, d);
 	Dart g = phi1(m, e);
@@ -139,8 +131,8 @@ auto phi1_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi_1_))[f.index] = e;
 }
 
-template <typename CMAP>
-auto phi1_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi1_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart e = phi1(m, d);
 	Dart f = phi1(m, e);
@@ -150,8 +142,8 @@ auto phi1_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<
 	(*(m.phi_1_))[e.index] = e;
 }
 
-template <typename CMAP>
-auto phi2_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi2_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	cgogn_assert(phi2(m, d) == d);
 	cgogn_assert(phi2(m, e) == e);
@@ -159,16 +151,16 @@ auto phi2_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi2_))[e.index] = d;
 }
 
-template <typename CMAP>
-auto phi2_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi2_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart e = phi2(m, d);
 	(*(m.phi2_))[d.index] = d;
 	(*(m.phi2_))[e.index] = e;
 }
 
-template <typename CMAP>
-auto phi3_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi3_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	cgogn_assert(phi3(m, d) == d);
 	cgogn_assert(phi3(m, e) == e);
@@ -176,31 +168,31 @@ auto phi3_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi3_))[e.index] = d;
 }
 
-template <typename CMAP>
-auto phi3_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto phi3_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart e = phi3(m, d);
 	(*(m.phi3_))[d.index] = d;
 	(*(m.phi3_))[e.index] = e;
 }
 
-template <typename CMAP>
-auto alpha0_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto alpha0_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	(*m.alpha0_)[d.index] = e;
 	(*m.alpha0_)[e.index] = d;
 }
 
-template <typename CMAP>
-auto alpha0_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto alpha0_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart e = alpha0(m, d);
 	(*m.alpha0_)[d.index] = d;
 	(*m.alpha0_)[e.index] = e;
 }
 
-template <typename CMAP>
-auto alpha1_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto alpha1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart f = alpha1(m, d);
 	Dart g = alpha1(m, e);
@@ -210,8 +202,8 @@ auto alpha1_sew(CMAP& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_ba
 	(*m.alpha_1_)[f.index] = e;
 }
 
-template <typename CMAP>
-auto alpha1_unsew(CMAP& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, CMAP>>
+template <typename MESH>
+auto alpha1_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
 {
 	Dart e = alpha1(m, d);
 	Dart f = alpha_1(m, d);

@@ -27,6 +27,7 @@
 #include <cgogn/core/types/cmap/cmap_base.h>
 #include <cgogn/core/types/cmap/cph3.h>
 #include <cgogn/core/types/cmap/orbit_traversal.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/utils/type_traits.h>
 
@@ -142,8 +143,8 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 
 /*****************************************************************************/
 
-// template <typename CELL, typename CMAP>
-// void set_index(CMAP& m, CELL c, uint32 index);
+// template <typename CELL, typename MESH>
+// void set_index(MESH& m, CELL c, uint32 index);
 
 /*****************************************************************************/
 
@@ -151,10 +152,10 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 // GENERIC //
 /////////////
 
-template <typename CELL, typename CMAP>
-void set_index(CMAP& m, CELL c, uint32 index)
+template <typename CELL, typename MESH>
+void set_index(MESH& m, CELL c, uint32 index)
 {
-	static_assert(is_in_tuple<CELL, typename CMAP::Cells>::value, "CELL not supported in this CMAP");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
 		set_index<CELL>(m, d, index);
 		return true;
@@ -163,8 +164,8 @@ void set_index(CMAP& m, CELL c, uint32 index)
 
 /*****************************************************************************/
 
-// template <typename CELL, typename CMAP>
-// void copy_index(CMAP& m, Dart dest, Dart src);
+// template <typename CELL, typename MESH>
+// void copy_index(MESH& m, Dart dest, Dart src);
 
 /*****************************************************************************/
 
@@ -172,8 +173,8 @@ void set_index(CMAP& m, CELL c, uint32 index)
 // GENERIC //
 /////////////
 
-template <typename CELL, typename CMAP>
-inline void copy_index(CMAP& m, Dart dest, Dart src)
+template <typename CELL, typename MESH>
+inline void copy_index(MESH& m, Dart dest, Dart src)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");

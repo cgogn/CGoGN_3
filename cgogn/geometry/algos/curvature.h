@@ -70,7 +70,7 @@ std::tuple<Scalar, Scalar, Vec3, Vec3, Vec3> curvature(
 
 	const Vec3& p = value<Vec3>(m, vertex_position, v);
 	foreach_cell(neighborhood, [&](HalfEdge h) -> bool {
-		Edge e = incident_edge(m, h);
+		Edge e = incident_edges(m, h)[0];
 		std::vector<Vertex> vv = incident_vertices(m, e);
 		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
 		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);
@@ -83,7 +83,7 @@ std::tuple<Scalar, Scalar, Vec3, Vec3, Vec3> curvature(
 
 	Scalar neighborhood_area = area(neighborhood, vertex_position);
 	foreach_cell(neighborhood, [&](HalfEdge h) -> bool {
-		Face f = incident_face(m, h);
+		Face f = incident_faces(m, h)[0];
 		std::vector<Vertex> vv = incident_vertices(m, f);
 		const Vec3& p1 = value<Vec3>(m, vertex_position, vv[0]);
 		const Vec3& p2 = value<Vec3>(m, vertex_position, vv[1]);

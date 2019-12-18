@@ -284,16 +284,17 @@ uint32 CPH3::volume_level(Dart d)
 		return true;
 	});
 
-	MRCmap3 m2(m, vLevel);
+	uint32 lsave = current_level_;
+	current_level_ = vLevel;
 
 	uint32 nbSubd = 0;
 	Dart it = oldest;
-	uint32 eId = m2.cph().edge_id(oldest);
+	uint32 eId = edge_id(oldest);
 	do
 	{
 		++nbSubd;
-		it = phi<121>(m2, it);
-	} while (m2.cph().edge_id(it) == eId && lold != m2.cph().dart_level(it));
+		it = phi<121>(*this, it);
+	} while (edge_id(it) == eId && lold != dart_level(it));
 
 	while (nbSubd > 1)
 	{
@@ -301,18 +302,20 @@ uint32 CPH3::volume_level(Dart d)
 		--vLevel;
 	}
 
+	current_level_ = lsave;
+
 	return vLevel;
 }
 
 Dart CPH3::volume_oldest_dart(Dart d)
 {
-	cgogn_message_assert(m.cph().dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
 	Dart oldest = d;
-	uint32 l_old = m.cph().dart_level(oldest);
-	foreach_incident_face(m, MRCmap3::Volume(oldest), [&](MRCmap3::Face f) -> bool {
-		Dart old = face_oldest_dart(m, f.dart);
-		uint32 l = m.cph().dart_level(old);
+	uint32 l_old = dart_level(oldest);
+	foreach_incident_face(*this, CPH3::CMAP::Volume(oldest), [&](CPH3::CMAP::Face f) -> bool {
+		Dart old = face_oldest_dart(f.dart);
+		uint32 l = dart_level(old);
 		if (l < l_old)
 		{
 			oldest = old;
@@ -326,13 +329,13 @@ Dart CPH3::volume_oldest_dart(Dart d)
 
 Dart CPH3::volume_youngest_dart(Dart d)
 {
-	cgogn_message_assert(m.cph().dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
 	Dart youngest = d;
-	uint32 l_young = m.cph().dart_level(youngest);
-	foreach_incident_face(m, MRCmap3::Volume(youngest), [&](MRCmap3::Face f) -> bool {
-		Dart young = face_youngest_dart(m, f.dart);
-		uint32 l = m.cph().dart_level(young);
+	uint32 l_young = dart_level(youngest);
+	foreach_incident_face(*this, CPH3::CMAP::Volume(youngest), [&](CPH3::CMAP::Face f) -> bool {
+		Dart young = face_youngest_dart(f.dart);
+		uint32 l = dart_level(young);
 		if (l > l_young)
 		{
 			youngest = young;

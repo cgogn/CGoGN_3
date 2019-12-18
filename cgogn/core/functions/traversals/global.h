@@ -52,7 +52,7 @@ namespace cgogn
 ///////////////////////////////
 
 template <typename MESH, typename FUNC>
-auto foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH, CMapBase>>
+auto foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename MESH::Cells>::value, "CELL not supported in this MESH");
@@ -142,12 +142,12 @@ void foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 
 /*****************************************************************************/
 
-//////////////
-// CMapBase //
-//////////////
+///////////////////////////////
+// CMapBase (or convertible) //
+///////////////////////////////
 
 template <typename MESH, typename FUNC>
-auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH, CMapBase>>
+auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");

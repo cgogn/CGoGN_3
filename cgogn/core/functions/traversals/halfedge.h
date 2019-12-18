@@ -35,24 +35,53 @@ namespace cgogn
 
 /*****************************************************************************/
 
+// template <typename MESH, typename CELL, typename FUNC>
+// void foreach_incident_halfedge(MESH& m, CELL c, const FUNC& f);
+
+/*****************************************************************************/
+
+///////////////////////////////
+// CMapBase (or convertible) //
+///////////////////////////////
+
+// this version works for any CMap and CELL
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, HalfEdge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(HalfEdge(d)); });
+}
+
+/*****************************************************************************/
+
 // template <typename MESH, typename CELL>
 // std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(MESH& m, CELL c);
 
 /*****************************************************************************/
 
-///////////
-// Graph //
-///////////
+/////////////
+// GENERIC //
+/////////////
 
-std::vector<Graph::HalfEdge> CGOGN_CORE_EXPORT incident_halfedges(const Graph& g, Graph::Edge e);
-
-std::vector<Graph::HalfEdge> CGOGN_CORE_EXPORT incident_halfedges(const Graph& g, Graph::Vertex v);
-
-///////////
-// CMap2 //
-///////////
-
-std::vector<CMap2::HalfEdge> CGOGN_CORE_EXPORT incident_halfedges(const CMap2& m, CMap2::Edge e);
+template <typename MESH, typename CELL>
+std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(const MESH& m, CELL c)
+{
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	std::vector<HalfEdge> halfedges;
+	halfedges.reserve(32u);
+	foreach_incident_halfedge(m, c, [&](HalfEdge e) -> bool {
+		halfedges.push_back(e);
+		return true;
+	});
+	return halfedges;
+}
 
 } // namespace cgogn
 
