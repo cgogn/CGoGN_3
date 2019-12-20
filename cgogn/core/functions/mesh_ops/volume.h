@@ -59,11 +59,25 @@ CMap2::Volume CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indi
 
 CMap2::Volume CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Face
+// cut_volume(MESH& m, const std::vector<Dart>& path, bool set_indices = true);
+
+/*****************************************************************************/
+
 ///////////
 // CMap3 //
 ///////////
 
 CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
+//////////
+// CPH3 //
+//////////
+
+CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_indices = true);
 
 /*****************************************************************************/
 
@@ -88,12 +102,10 @@ CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices = true);
 /*****************************************************************************/
 
 ///////////
-// CMap2 //
+// CMap3 //
 ///////////
 
 uint32 close(CMap3& m, bool set_indices = true);
-
-void sew_volumes(CMap3& m, Dart d0, Dart d1);
 
 } // namespace cgogn
 

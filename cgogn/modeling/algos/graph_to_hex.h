@@ -70,6 +70,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
 /*****************************************************************************/
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol);
+void sew_volumes(CMap3& m, Dart d0, Dart d1);
 Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<Graph, Graph::Edge>& cm);
 Dart add_branch_section(CMap3& m3);
 void project_on_sphere(Vec3& P, const Vec3& C, Scalar R);

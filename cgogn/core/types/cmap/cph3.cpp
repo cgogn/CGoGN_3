@@ -140,11 +140,27 @@ Dart CPH3::edge_youngest_dart(Dart d) const
 	return d2;
 }
 
+bool CPH3::edge_is_subdivided(Dart d) const
+{
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+	if (current_level_ == maximum_level_)
+		return false;
+
+	Dart d1 = phi1(*this, d);
+	current_level_++;
+	Dart d1_l = phi1(*this, d);
+	current_level_--;
+	if (d1 != d1_l)
+		return true;
+	else
+		return false;
+}
+
 /***************************************************
  *                  FACE INFO                      *
  ***************************************************/
 
-uint32 CPH3::face_level(Dart d)
+uint32 CPH3::face_level(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 	if (current_level_ == 0)
@@ -193,7 +209,7 @@ uint32 CPH3::face_level(Dart d)
 	return fLevel;
 }
 
-Dart CPH3::face_origin(Dart d)
+Dart CPH3::face_origin(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 	Dart p = d;
@@ -209,7 +225,7 @@ Dart CPH3::face_origin(Dart d)
 	return p;
 }
 
-Dart CPH3::face_oldest_dart(Dart d)
+Dart CPH3::face_oldest_dart(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 	Dart it = d;
@@ -233,7 +249,7 @@ Dart CPH3::face_oldest_dart(Dart d)
 	return oldest;
 }
 
-Dart CPH3::face_youngest_dart(Dart d)
+Dart CPH3::face_youngest_dart(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 	Dart it = d;
@@ -257,11 +273,69 @@ Dart CPH3::face_youngest_dart(Dart d)
 	return youngest;
 }
 
+bool CPH3::face_is_subdivided(Dart d) const
+{
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+	uint32 fLevel = face_level(d);
+	if (fLevel < current_level_)
+		return false;
+
+	bool subd = false;
+	current_level_++;
+	if (dart_level(phi1(*this, d)) == current_level_ && edge_id(phi1(*this, d)) != edge_id(d))
+		subd = true;
+	current_level_--;
+	return subd;
+}
+
+bool CPH3::face_is_subdivided_once(Dart d) const
+{
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+
+	uint32 fLevel = face_level(d);
+	if (fLevel < current_level_)
+		return false;
+
+	uint32 degree = 0;
+	bool subd = false;
+	bool subdOnce = true;
+	Dart fit = d;
+	// MRCmap3 m2(m, m.current_level() + 1), m3(m, m.current_level() + 2);
+	do
+	{
+		current_level_++;
+		if (dart_level(phi1(*this, fit)) == current_level_ && edge_id(phi1(*this, fit)) != edge_id(fit))
+		{
+			subd = true;
+			current_level_++;
+			if (dart_level(phi1(*this, fit)) == current_level_ && edge_id(phi1(*this, fit)) != edge_id(fit))
+				subdOnce = false;
+			current_level_--;
+		}
+		current_level_--;
+		++degree;
+		fit = phi1(*this, fit);
+	} while (subd && subdOnce && fit != d);
+
+	if (degree == 3 && subd)
+	{
+		current_level_++;
+		Dart cf = phi2(*this, phi1(*this, d));
+		current_level_++;
+		if (dart_level(phi1(*this, cf)) == current_level_ && edge_id(phi1(*this, cf)) != edge_id(cf))
+			subdOnce = false;
+		current_level_--;
+		current_level_--;
+	}
+
+	return subd && subdOnce;
+}
+
 /***************************************************
  *                 VOLUME INFO                     *
  ***************************************************/
 
-uint32 CPH3::volume_level(Dart d)
+uint32 CPH3::volume_level(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
@@ -307,7 +381,7 @@ uint32 CPH3::volume_level(Dart d)
 	return vLevel;
 }
 
-Dart CPH3::volume_oldest_dart(Dart d)
+Dart CPH3::volume_oldest_dart(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
@@ -327,7 +401,7 @@ Dart CPH3::volume_oldest_dart(Dart d)
 	return oldest;
 }
 
-Dart CPH3::volume_youngest_dart(Dart d)
+Dart CPH3::volume_youngest_dart(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
@@ -345,6 +419,31 @@ Dart CPH3::volume_youngest_dart(Dart d)
 	});
 
 	return youngest;
+}
+
+bool CPH3::volume_is_subdivided(Dart d) const
+{
+	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
+
+	uint vLevel = volume_level(d);
+	if (vLevel < current_level_)
+		return false;
+
+	bool faceAreSubdivided = face_is_subdivided(d);
+
+	foreach_incident_face(*this, CPH3::CMAP::Volume(d), [&](CPH3::CMAP::Face f) -> bool {
+		faceAreSubdivided &= face_is_subdivided(f.dart);
+		return true;
+	});
+
+	bool subd = false;
+	current_level_++;
+	if (faceAreSubdivided && dart_level(phi<112>(*this, d)) == current_level_ &&
+		face_id(phi<112>(*this, d)) != face_id(d))
+		subd = true;
+	current_level_--;
+
+	return subd;
 }
 
 } // namespace cgogn

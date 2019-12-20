@@ -194,6 +194,21 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 		set_index(m, vol, new_index<CMap2::Volume>(m));
 }
 
+void sew_volumes(CMap3& m, Dart d0, Dart d1)
+{
+	cgogn_message_assert(codegree(m, CMap3::Face(d0)) == codegree(m, CMap3::Face(d1)),
+						 "The faces to sew do not have the same codegree");
+	Dart it0 = d0;
+	Dart it1 = d1;
+	do
+	{
+		cgogn_message_assert(phi3(m, it0) == it0 && phi3(m, it1) == it1, "The faces to sew are already sewn");
+		phi3_sew(m, it0, it1);
+		it0 = phi1(m, it0);
+		it1 = phi_1(m, it1);
+	} while (it0 != d0);
+}
+
 Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge v1, CellMarker<Graph, Graph::Edge>& cm)
 {
 	Dart d = v1.dart;

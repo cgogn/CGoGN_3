@@ -286,16 +286,16 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 
 	if (set_indices)
 	{
-		if (is_indexed<CMap3::Vertex>(m))
+		if (is_indexed<CPH3::CMAP::Vertex>(m))
 		{
-			copy_index<CMap3::Vertex>(m, phi_1(m, e), v1.dart);
-			copy_index<CMap3::Vertex>(m, phi_1(m, ee), v1.dart);
-			copy_index<CMap3::Vertex>(m, phi_1(m, d), e);
-			copy_index<CMap3::Vertex>(m, phi_1(m, dd), e);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, e), v1.dart);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, ee), v1.dart);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, d), e);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, dd), e);
 		}
-		if (is_indexed<CMap3::Edge>(m))
-			set_index(m, CMap3::Edge(phi_1(m, v1.dart)), new_index<CMap3::Edge>(m));
-		if (is_indexed<CMap3::Face>(m))
+		if (is_indexed<CPH3::CMAP::Edge>(m))
+			set_index(m, CPH3::CMAP::Edge(phi_1(m, v1.dart)), new_index<CPH3::CMAP::Edge>(m));
+		if (is_indexed<CPH3::CMAP::Face>(m))
 		{
 			uint32 nf1 = new_index<CPH3::CMAP::Face>(m);
 			uint32 nf2 = new_index<CPH3::CMAP::Face>(m);
@@ -310,17 +310,17 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 				return true;
 			});
 		}
-		if (is_indexed<CMap3::Volume>(m))
+		if (is_indexed<CPH3::CMAP::Volume>(m))
 		{
 			if (!is_boundary(m, d))
 			{
-				copy_index<CMap3::Volume>(m, phi_1(m, d), d);
-				copy_index<CMap3::Volume>(m, phi_1(m, e), d);
+				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, d), d);
+				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, e), d);
 			}
 			if (!is_boundary(m, dd))
 			{
-				copy_index<CMap3::Volume>(m, phi_1(m, dd), dd);
-				copy_index<CMap3::Volume>(m, phi_1(m, ee), dd);
+				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, dd), dd);
+				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, ee), dd);
 			}
 		}
 	}

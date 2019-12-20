@@ -49,7 +49,7 @@ struct CPH3
 	std::vector<uint32>& nb_darts_per_level_;
 	uint32& maximum_level_;
 
-	uint32 current_level_;
+	mutable uint32 current_level_;
 
 	CPH3(CMAP& m)
 		: m_(m), current_level_(0),
@@ -145,23 +145,27 @@ struct CPH3
 
 	uint32 edge_level(Dart d) const;
 	Dart edge_youngest_dart(Dart d) const;
+	bool edge_is_subdivided(Dart d) const;
 
 	/***************************************************
 	 *                  FACE INFO                      *
 	 ***************************************************/
 
-	uint32 face_level(Dart d);
-	Dart face_origin(Dart d);
-	Dart face_oldest_dart(Dart d);
-	Dart face_youngest_dart(Dart d);
+	uint32 face_level(Dart d) const;
+	Dart face_origin(Dart d) const;
+	Dart face_oldest_dart(Dart d) const;
+	Dart face_youngest_dart(Dart d) const;
+	bool face_is_subdivided(Dart d) const;
+	bool face_is_subdivided_once(Dart d) const;
 
 	/***************************************************
 	 *                 VOLUME INFO                     *
 	 ***************************************************/
 
-	uint32 volume_level(Dart d);
-	Dart volume_oldest_dart(Dart d);
-	Dart volume_youngest_dart(Dart d);
+	uint32 volume_level(Dart d) const;
+	Dart volume_oldest_dart(Dart d) const;
+	Dart volume_youngest_dart(Dart d) const;
+	bool volume_is_subdivided(Dart d) const;
 };
 
 } // namespace cgogn

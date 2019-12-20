@@ -100,6 +100,18 @@ CMap2::Volume add_pyramid(CMap2& m, uint32 size, bool set_indices)
 	return vol;
 }
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// add_prism(MESH& m, uint32 size, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
 CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 {
 	CMap1::Face first = add_face(static_cast<CMap1&>(m), 4u, false); // first quad
@@ -154,6 +166,14 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 	return vol;
 }
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Face
+// cut_volume(MESH& m, const std::vector<Dart>& path, bool set_indices = true);
+
+/*****************************************************************************/
+
 ///////////
 // CMap3 //
 ///////////
@@ -176,6 +196,7 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 		f0 = phi_1(m, f0);
 		f1 = phi1(m, f1);
 	}
+	f0 = phi_1(m, f0);
 
 	if (set_indices)
 	{
@@ -198,10 +219,103 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 		{
 			set_index(m, CMap3::Face(f0), new_index<CMap3::Face>(m));
 		}
+		if (is_indexed<CMap3::Volume>(m))
+		{
+			foreach_dart_of_orbit(m, CMap3::Face2(f0), [&](Dart d) -> bool {
+				copy_index<CMap3::Volume>(m, d, phi2(m, d));
+				return true;
+			});
+			set_index(m, CMap3::Volume(f1), new_index<CMap3::Volume>(m));
+		}
 	}
 
-	return CMap3::Face(phi_1(m, f0));
+	return CMap3::Face(f0);
 }
+
+//////////
+// CPH3 //
+//////////
+
+CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_indices)
+{
+	CPH3::CMAP& map = static_cast<CPH3::CMAP&>(m);
+
+	uint32 vid = m.refinement_face_id(path);
+	uint32 vlevel = m.volume_level(path[0]);
+
+	CPH3::CMAP::Face result = cut_volume(map, path, false);
+
+	Dart f0 = result.dart;
+	Dart f1 = phi3(m, f0);
+
+	foreach_dart_of_orbit(m, result, [&](Dart d) -> bool {
+		m.set_edge_id(d, m.edge_id(phi2(m, d)));
+		m.set_face_id(d, vid);
+		m.set_dart_level(d, m.current_level_);
+		return true;
+	});
+
+	if (set_indices)
+	{
+		if (is_indexed<CPH3::CMAP::Vertex>(m))
+		{
+			foreach_dart_of_orbit(m, CPH3::CMAP::Face(f0), [&](Dart d) -> bool {
+				copy_index<CPH3::CMAP::Vertex>(m, d, phi<21>(m, d));
+				return true;
+			});
+		}
+		if (is_indexed<CPH3::CMAP::Edge>(m))
+		{
+			foreach_dart_of_orbit(m, CPH3::CMAP::Face2(f0), [&](Dart d) -> bool {
+				copy_index<CPH3::CMAP::Edge>(m, d, phi2(m, d));
+				copy_index<CPH3::CMAP::Edge>(m, phi3(m, d), d);
+				return true;
+			});
+		}
+		if (is_indexed<CPH3::CMAP::Face>(m))
+			set_index(m, CPH3::CMAP::Face(f0), new_index<CPH3::CMAP::Face>(m));
+		if (is_indexed<CPH3::CMAP::Volume>(m))
+		{
+			if (vlevel == m.current_level_)
+			{
+				foreach_dart_of_orbit(m, CPH3::CMAP::Face2(f0), [&](Dart d) -> bool {
+					copy_index<CPH3::CMAP::Volume>(m, d, phi2(m, d));
+					return true;
+				});
+				set_index(m, CPH3::CMAP::Volume(f1), new_index<CPH3::CMAP::Volume>(m));
+			}
+			else
+			{
+				uint32 ved1 = new_index<CPH3::CMAP::Volume>(m);
+				uint32 ved2 = new_index<CPH3::CMAP::Volume>(m);
+				foreach_dart_of_orbit(m, CPH3::CMAP::Volume(f0), [&](Dart d) -> bool {
+					if (m.dart_level(d) == m.current_level_)
+						set_index<CPH3::CMAP::Volume>(m, d, ved1);
+					return true;
+				});
+				foreach_dart_of_orbit(m, CPH3::CMAP::Volume(f1), [&](Dart d) -> bool {
+					if (m.dart_level(d) == m.current_level_)
+						set_index<CPH3::CMAP::Volume>(m, d, ved2);
+					return true;
+				});
+			}
+		}
+	}
+
+	return result;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// close_hole(MESH& m, Dart d, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap3 //
+///////////
 
 CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 {
@@ -290,6 +404,18 @@ CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 	return hole;
 }
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// uint32
+// close(MESH& m, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap3 //
+///////////
+
 uint32 close(CMap3& m, bool set_indices)
 {
 	uint32 nb_holes = 0u;
@@ -313,21 +439,6 @@ uint32 close(CMap3& m, bool set_indices)
 	}
 
 	return nb_holes;
-}
-
-void sew_volumes(CMap3& m, Dart d0, Dart d1)
-{
-	cgogn_message_assert(codegree(m, CMap3::Face(d0)) == codegree(m, CMap3::Face(d1)),
-						 "The faces to sew do not have the same codegree");
-	Dart it0 = d0;
-	Dart it1 = d1;
-	do
-	{
-		cgogn_message_assert(phi3(m, it0) == it0 && phi3(m, it1) == it1, "The faces to sew are already sewn");
-		phi3_sew(m, it0, it1);
-		it0 = phi1(m, it0);
-		it1 = phi_1(m, it1);
-	} while (it0 != d0);
 }
 
 } // namespace cgogn
