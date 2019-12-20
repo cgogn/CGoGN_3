@@ -32,7 +32,9 @@
 
 #include <cgogn/core/types/cmap/cell.h>
 
+#include <any>
 #include <array>
+#include <unordered_map>
 
 namespace cgogn
 {
@@ -46,6 +48,11 @@ struct CGOGN_CORE_EXPORT CMapBase
 	using Attribute = AttributeContainer::Attribute<T>;
 	using AttributeGen = AttributeContainer::AttributeGen;
 	using MarkAttribute = AttributeContainer::MarkAttribute;
+
+	/*************************************************************************/
+	// Map attributes container
+	/*************************************************************************/
+	std::unordered_map<std::string, std::any> attributes_;
 
 	/*************************************************************************/
 	// Dart attributes container
@@ -67,6 +74,13 @@ struct CGOGN_CORE_EXPORT CMapBase
 
 	CMapBase();
 	~CMapBase();
+
+	template <typename T>
+	T& get_attribute(const std::string& name)
+	{
+		auto [it, inserted] = attributes_.try_emplace(name, T());
+		return std::any_cast<T&>(it->second);
+	}
 
 	inline std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
 	{

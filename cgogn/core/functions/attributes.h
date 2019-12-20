@@ -48,13 +48,14 @@ namespace cgogn
 //////////////
 
 template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
+		  typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
 		index_cells<CELL>(m);
-	return m.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
+	CMapBase& mb = static_cast<CMapBase&>(m);
+	return mb.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }
 
 /*****************************************************************************/
@@ -158,6 +159,23 @@ inline const T& value(const MESH& m, const typename mesh_traits<MESH>::template 
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
+}
+
+/*****************************************************************************/
+
+// template <typename T, typename MESH>
+// T& get_attribute(MESH& m, const std::string& name);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename T>
+T& get_attribute(CMapBase& m, const std::string& name)
+{
+	return m.get_attribute<T>(name);
 }
 
 } // namespace cgogn

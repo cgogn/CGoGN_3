@@ -168,8 +168,8 @@ public:
 
 	inline void init_ref_counter(uint32 index) override
 	{
-		static_cast<AttributeGenT*>(ref_counter_.get())
-			->manage_index(index); // AttributeContainerT is friend of AttributeGenT
+		// AttributeContainerT is friend of AttributeGenT
+		static_cast<AttributeGenT*>(ref_counter_.get())->manage_index(index);
 		(*ref_counter_)[index] = 1u;
 	}
 
@@ -214,8 +214,8 @@ public:
 		{
 			std::shared_ptr<Attribute<T>> asp = std::make_shared<Attribute<T>>(this, name);
 			Attribute<T>* ap = asp.get();
-			static_cast<AttributeGenT*>(ap)->manage_index(
-				maximum_index_); // AttributeContainerT is friend of AttributeGenT
+			// AttributeContainerT is friend of AttributeGenT
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
 			attributes_.push_back(ap);
 			attributes_shared_ptr_.push_back(asp);
 			return asp;
@@ -245,8 +245,8 @@ public:
 		else
 		{
 			MarkAttribute* ap = new MarkAttribute(nullptr, "__mark");
-			static_cast<AttributeGenT*>(ap)->manage_index(
-				maximum_index_); // AttributeContainerT is friend of AttributeGenT
+			// AttributeContainerT is friend of AttributeGenT
+			static_cast<AttributeGenT*>(ap)->manage_index(maximum_index_);
 			mark_attributes_[thread_index].push_back(ap);
 			return ap;
 		}

@@ -46,12 +46,15 @@ struct CPH3
 	std::shared_ptr<Attribute<uint32>> edge_id_;
 	std::shared_ptr<Attribute<uint32>> face_id_;
 
-	std::vector<uint32> nb_darts_per_level_;
-	uint32 maximum_level_;
+	std::vector<uint32>& nb_darts_per_level_;
+	uint32& maximum_level_;
 
 	uint32 current_level_;
 
-	CPH3(CMAP& m) : m_(m), maximum_level_(0), current_level_(0)
+	CPH3(CMAP& m)
+		: m_(m), current_level_(0),
+		  nb_darts_per_level_(m.get_attribute<std::vector<uint32>>("cph3_nb_darts_per_level")),
+		  maximum_level_(m.get_attribute<uint32>("cph3_maximum_level"))
 	{
 		dart_level_ = m_.darts_.get_attribute<uint32>("dart_level");
 		if (!dart_level_)
@@ -62,9 +65,11 @@ struct CPH3
 				if (l > maximum_level_)
 					maximum_level_ = l;
 		}
+
 		edge_id_ = m_.darts_.get_attribute<uint32>("edge_id");
 		if (!edge_id_)
 			edge_id_ = m_.darts_.add_attribute<uint32>("edge_id");
+
 		face_id_ = m_.darts_.get_attribute<uint32>("face_id");
 		if (!face_id_)
 			face_id_ = m_.darts_.add_attribute<uint32>("face_id");
