@@ -43,6 +43,7 @@ class CGOGN_RENDERING_EXPORT VBO
 protected:
 
 	GLuint id_;
+	GLuint id_tb_;
 	std::size_t nb_vectors_;
 	int32 vector_dimension_;
 	std::string name_;
@@ -51,6 +52,7 @@ public:
 
 	inline VBO(int32 vec_dim = 3) :
 		nb_vectors_(0),
+		id_tb_(0),
 		vector_dimension_(vec_dim)
 	{
 		glGenBuffers(1, &id_);
@@ -80,6 +82,27 @@ public:
 	inline void release()
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+
+	inline GLint bind_tb(GLint unit)
+	{
+		if (id_tb_==0)
+		{
+			static GLenum internals[]={GL_R32F,GL_RG32F,GL_RGB32F,GL_RGB32F};
+			glGenTextures(1,&id_tb_);
+			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_], id_);
+		}
+		else
+			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		glActiveTexture(GL_TEXTURE0 + unit);
+		return unit;
+	}
+
+	inline static void release_tb()
+	{
+		glBindTexture(GL_TEXTURE_BUFFER,0);
 	}
 
 	/**

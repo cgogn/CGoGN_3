@@ -42,12 +42,14 @@ class CGOGN_RENDERING_EXPORT EBO
 protected:
 
 	GLuint id_;
+	GLuint id_tb_;
 	std::size_t nb_;
 
 public:
 
 	inline EBO() :
 		id_(0),
+		id_tb_(0),
 		nb_(0)
 	{}
 
@@ -74,6 +76,25 @@ public:
 	inline void release()
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	inline GLint bind_tb(GLint unit)
+	{
+		if (id_tb_==0)
+		{
+			glGenTextures(1,&id_tb_);
+			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
+		}
+		else
+			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		glActiveTexture(GL_TEXTURE0 + unit);
+		return unit;
+	}
+
+	inline static void release_tb()
+	{
+		glBindTexture(GL_TEXTURE_BUFFER,0);
 	}
 
 	inline void allocate(std::size_t nb_ind)

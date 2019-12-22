@@ -1037,3 +1037,6 @@ public:
 
 } // namespace pfd
 
+#undef far
+#undef near
+#undef interface
