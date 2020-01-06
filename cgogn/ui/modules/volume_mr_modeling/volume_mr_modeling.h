@@ -67,12 +67,6 @@ public:
 
 		m.current_level_ = m.maximum_level_;
 
-		// Edge e(m.begin());
-		// std::vector<Vertex> vertices = incident_vertices(m, e);
-		// Vertex v = cut_edge(m, e);
-		// value<Vec3>(m, vertex_position, v) =
-		// 	0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
-
 		modeling::cut_all_edges(m, vertex_position);
 
 		cph3_provider_->emit_connectivity_changed(&m);
