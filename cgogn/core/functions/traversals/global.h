@@ -55,7 +55,7 @@ template <typename MESH, typename FUNC>
 auto foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename MESH::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

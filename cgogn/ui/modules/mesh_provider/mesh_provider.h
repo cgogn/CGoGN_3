@@ -77,17 +77,44 @@ public:
 
 	MESH* add_mesh(const std::string& name)
 	{
-		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
-		MESH* m = it->second.get();
-		MeshData<MESH>& md = mesh_data_[m];
-		md.init(m);
-		boost::synapse::emit<mesh_added>(this, m);
-		return m;
+		if constexpr (std::is_default_constructible_v<MESH>)
+		{
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m = it->second.get();
+			if (inserted)
+			{
+				MeshData<MESH>& md = mesh_data_[m];
+				md.init(m);
+				boost::synapse::emit<mesh_added>(this, m);
+			}
+			return m;
+		}
+		else
+			return nullptr;
+	}
+
+	void register_mesh(MESH* m, const std::string& name)
+	{
+		const auto [it, inserted] = meshes_.emplace(name, std::unique_ptr<MESH>(m));
+		if (inserted)
+		{
+			MeshData<MESH>& md = mesh_data_[m];
+			md.init(m);
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			if (vertex_position)
+				set_mesh_bb_vertex_position(m, vertex_position);
+			boost::synapse::emit<mesh_added>(this, m);
+		}
+	}
+
+	bool has_mesh(const std::string& name) const
+	{
+		return meshes_.count(name) == 1;
 	}
 
 	MESH* load_graph_from_file(const std::string& filename)
 	{
-		if constexpr (mesh_traits<MESH>::dimension == 1)
+		if constexpr (mesh_traits<MESH>::dimension == 1 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
@@ -126,7 +153,7 @@ public:
 
 	MESH* load_surface_from_file(const std::string& filename)
 	{
-		if constexpr (mesh_traits<MESH>::dimension == 2)
+		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
@@ -161,7 +188,7 @@ public:
 
 	MESH* load_volume_from_file(const std::string& filename)
 	{
-		if constexpr (mesh_traits<MESH>::dimension == 3)
+		if constexpr (mesh_traits<MESH>::dimension == 3 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
@@ -285,6 +312,9 @@ public:
 				v->update_scene_bb();
 		}
 
+		for (View* v : linked_views_)
+			v->request_update();
+
 		boost::synapse::emit<attribute_changed>(m, attribute);
 		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
 	}
@@ -297,6 +327,9 @@ public:
 		md->set_primitives_dirty(rendering::POINTS);
 		md->set_primitives_dirty(rendering::LINES);
 		md->set_primitives_dirty(rendering::TRIANGLES);
+
+		for (View* v : linked_views_)
+			v->request_update();
 
 		boost::synapse::emit<connectivity_changed>(m);
 	}

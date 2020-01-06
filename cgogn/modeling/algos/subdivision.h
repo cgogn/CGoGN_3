@@ -89,6 +89,25 @@ void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ve
 	});
 }
 
+template <typename MESH>
+void cut_all_edges(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
+	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	using Face = typename cgogn::mesh_traits<MESH>::Face;
+
+	CellCache<MESH> cache(m);
+	cache.template build<Edge>();
+
+	foreach_cell(cache, [&](Edge e) -> bool {
+		std::vector<Vertex> vertices = incident_vertices(m, e);
+		Vertex v = cut_edge(m, e);
+		value<Vec3>(m, vertex_position, v) =
+			0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
+		return true;
+	});
+}
+
 } // namespace modeling
 
 } // namespace cgogn

@@ -59,12 +59,12 @@ struct CPH3
 		dart_level_ = m_.darts_.get_attribute<uint32>("dart_level");
 		if (!dart_level_)
 			dart_level_ = m_.darts_.add_attribute<uint32>("dart_level");
-		else
-		{
-			for (uint32 l : *dart_level_)
-				if (l > maximum_level_)
-					maximum_level_ = l;
-		}
+		// else
+		// {
+		// 	for (uint32 l : *dart_level_)
+		// 		if (l > maximum_level_)
+		// 			maximum_level_ = l;
+		// }
 
 		edge_id_ = m_.darts_.get_attribute<uint32>("edge_id");
 		if (!edge_id_)

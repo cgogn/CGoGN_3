@@ -73,6 +73,21 @@ uint32 index_of(const CMapBase& m, CELL c)
 	return (*m.cells_indices_[orbit])[c.dart.index];
 }
 
+template <typename CELL>
+inline uint32 index_of(const CPH3& m, CELL c)
+{
+	static const Orbit orbit = CELL::ORBIT;
+
+	if constexpr (orbit == CPH3::CMAP::Edge::ORBIT)
+		c.dart = m.edge_youngest_dart(c.dart);
+	if constexpr (orbit == CPH3::CMAP::Face::ORBIT)
+		c.dart = m.face_youngest_dart(c.dart);
+	if constexpr (orbit == CPH3::CMAP::Volume::ORBIT)
+		c.dart = m.volume_youngest_dart(c.dart);
+
+	return index_of(static_cast<const CPH3::CMAP&>(m), c);
+}
+
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>

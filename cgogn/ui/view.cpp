@@ -161,14 +161,21 @@ void View::draw()
 
 void View::link_module(ViewModule* m)
 {
-	linked_view_modules_.push_back(m);
-	m->linked_views_.push_back(this);
+	if (std::find(linked_view_modules_.begin(), linked_view_modules_.end(), m) == linked_view_modules_.end())
+	{
+		linked_view_modules_.push_back(m);
+		m->linked_views_.push_back(this);
+	}
 }
 
 void View::link_module(ProviderModule* m)
 {
-	linked_provider_modules_.push_back(m);
-	m->linked_views_.push_back(this);
+	if (std::find(linked_provider_modules_.begin(), linked_provider_modules_.end(), m) ==
+		linked_provider_modules_.end())
+	{
+		linked_provider_modules_.push_back(m);
+		m->linked_views_.push_back(this);
+	}
 }
 
 void View::update_scene_bb()
