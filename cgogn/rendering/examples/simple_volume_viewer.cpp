@@ -30,7 +30,10 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/surface_render/surface_render.h>
+//#include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
+
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
 using Mesh = cgogn::CMap3;
 
@@ -46,8 +49,9 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc < 2)
 	{
-		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
-		return 1;
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
+//		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
+//		return 1;
 	}
 	else
 		filename = std::string(argv[1]);
@@ -59,13 +63,15 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> sr(app);
+//	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::VolumeRender<Mesh> vr(app);
 
 	app.init_modules();
 	
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
-	v1->link_module(&sr);
+//	v1->link_module(&sr);
+	v1->link_module(&vr);
 
 	Mesh* m = mp.load_volume_from_file(filename);
 	if (!m)
@@ -78,7 +84,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	sr.set_vertex_position(*v1, *m, vertex_position);
+	vr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

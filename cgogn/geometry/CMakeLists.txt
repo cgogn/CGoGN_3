@@ -30,7 +30,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
-		
+        "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )
 

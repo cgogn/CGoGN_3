@@ -39,11 +39,11 @@ VolumeDrawerGen::VolumeDrawerGen(bool with_color_per_face) :
 	edge_color_(0,0,0,1),
 	shrink_v_(0.6f)
 {
-	vbo_pos_ = cgogn::make_unique<VBO>(3);
-	vbo_pos2_ = cgogn::make_unique<VBO>(3);
+	vbo_pos_ = std::make_unique<VBO>(3);
+	vbo_pos2_ = std::make_unique<VBO>(3);
 
 	if (with_color_per_face)
-		vbo_col_ = cgogn::make_unique<VBO>(3);
+		vbo_col_ = std::make_unique<VBO>(3);
 }
 
 VolumeDrawerGen::~VolumeDrawerGen()
