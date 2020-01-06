@@ -36,6 +36,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render/surface_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render_vector/surface_render_vector.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_selection/surface_selection.h"
+                "${CMAKE_CURRENT_LIST_DIR}/modules/volume_render/volume_render.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
