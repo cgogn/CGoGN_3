@@ -76,17 +76,16 @@ public:
 
 	void subdivide(CPH3& m, Attribute<Vec3>* vertex_position)
 	{
-		m.maximum_level_++;
-		m.nb_darts_per_level_.resize(m.maximum_level_);
-
-		m.current_level_ = m.maximum_level_;
+		m.current_level_++;
 
 		modeling::cut_all_edges(m, [&](Vertex v) {
 			std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
 			value<Vec3>(m, vertex_position, v) =
 				0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
 		});
-
+		
+		//modeling::butterflySubdivisionVolumeAdaptative(m,0.5f,vertex_position);
+		
 		cph3_provider_->emit_connectivity_changed(&m);
 		cph3_provider_->emit_attribute_changed(&m, vertex_position);
 

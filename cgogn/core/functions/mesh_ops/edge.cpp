@@ -215,14 +215,15 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 
 CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 {
+	auto tmp = index_of(m, CPH3::Face(Dart(3)));
 	CPH3::CMAP& map = static_cast<CPH3::CMAP&>(m);
 
 	CPH3::CMAP::Vertex v = cut_edge(map, e, false);
 
+	tmp = index_of(m, CPH3::Face(Dart(3)));
 	Dart d = e.dart;
 	do
 	{
-		m.nb_darts_per_level_[m.current_level_] += 2;
 		m.set_edge_id(phi1(map, d), m.edge_id(d));
 		m.set_edge_id(phi3(map, d), m.edge_id(d));
 		m.set_edge_id(phi2(map, d), m.edge_id(phi<12>(map, d)));
@@ -230,11 +231,12 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 		m.set_face_id(phi3(map, d), m.face_id(d));
 		m.set_face_id(phi2(map, d), m.face_id(phi<12>(map, d)));
 		m.set_dart_level(phi1(map, d), m.current_level_);
-		// m.set_dart_level(phi3(map, d), m.current_level_);
+		m.set_dart_level(phi3(map, d), m.current_level_);
 		m.set_dart_level(phi2(map, d), m.current_level_);
 		d = phi<23>(map, d);
 	} while (d != e.dart);
-
+	 tmp = index_of(m, CPH3::Face(Dart(3)));
+	CPH3 m2(m);
 	if (set_indices)
 	{
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
@@ -259,19 +261,22 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 			d = e.dart;
 			do
 			{
-				Dart it = phi1(map, d);
+				Dart it = phi1(m, d);
 				do
 				{
-					it = phi1(map, it);
+					it = phi1(m, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != d);
-				copy_index<CPH3::CMAP::Face>(m, phi1(map, d), it);
-				it = phi2(map, d);
+				
+				m2.current_level_ = m2.dart_level(it);
+				copy_index<CPH3::CMAP::Face>(m2, phi1(m, d), it);
+				it = phi2(m, d);
 				do
 				{
-					it = phi1(map, it);
-				} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
-				copy_index<CPH3::CMAP::Face>(m, phi2(map, d), it);
-				d = phi<23>(map, d);
+					it = phi1(m, it);
+				} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(m, phi1(m, d)));
+				m2.current_level_ = m2.dart_level(it);
+				copy_index<CPH3::CMAP::Face>(m2, phi2(m, d), it);
+				d = phi<23>(m, d);
 			} while (d != e.dart);
 		}
 		if (is_indexed<CPH3::CMAP::Volume>(m))

@@ -39,6 +39,17 @@ struct CPH3
 	using Attribute = CMAP::Attribute<T>;
 	using AttributeGen = CMAP::AttributeGen;
 	using MarkAttribute = CMAP::MarkAttribute;
+	
+	using Vertex = Cell<PHI21_PHI31>;
+	using Vertex2 = Cell<PHI21>;
+	using HalfEdge = Cell<DART>;
+	using Edge = Cell<PHI2_PHI3>;
+	using Edge2 = Cell<PHI2>;
+	using Face = Cell<PHI1_PHI3>;
+	using Face2 = Cell<PHI1>;
+	using Volume = Cell<PHI1_PHI2>;
+
+	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
 
 	CMAP& m_;
 
@@ -49,7 +60,7 @@ struct CPH3
 	std::vector<uint32>& nb_darts_per_level_;
 	uint32& maximum_level_;
 
-	mutable uint32 current_level_;
+	uint32 current_level_;
 
 	CPH3(CMAP& m)
 		: m_(m), current_level_(0),
@@ -121,7 +132,6 @@ struct CPH3
 
 	uint32 dart_level(Dart d) const;
 	void set_dart_level(Dart d, uint32 l);
-	void change_dart_level(Dart d, uint32 l);
 
 	/***************************************************
 	 *             EDGE ID MANAGEMENT                  *
