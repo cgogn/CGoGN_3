@@ -152,7 +152,35 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
-		// TODO
+		if (is_indexed<Vertex>(m))
+		{
+			CellMarkerStore<MESH, Vertex> marker(m);
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				Vertex av(phi2(m, d));
+				if (!marker.is_marked(av))
+				{
+					marker.mark(av);
+					return func(av);
+				}
+				return true;
+			});
+		}
+		else
+		{
+			DartMarkerStore<MESH> marker(m);
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				Vertex av(phi2(m, d));
+				if (!marker.is_marked(av.dart))
+				{
+					foreach_dart_of_orbit(m, av, [&](Dart d) -> bool {
+						marker.mark(d);
+						return true;
+					});
+					return func(v);
+				}
+				return true;
+			});
+		}
 	}
 }
 
@@ -175,6 +203,32 @@ std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m,
 	vertices.reserve(32u);
 	foreach_incident_vertex(m, c, [&](Vertex v) -> bool {
 		vertices.push_back(v);
+		return true;
+	});
+	return vertices;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// std::vector<typename mesh_traits<MESH>::Vertex>
+// adjacent_vertices_through_edge(MESH& m, typename mesh_traits<MESH>::Vertex v);
+
+/*****************************************************************************/
+
+/////////////
+// GENERIC //
+/////////////
+
+template <typename MESH>
+std::vector<typename mesh_traits<MESH>::Vertex> adjacent_vertices_through_edge(const MESH& m,
+																			   typename mesh_traits<MESH>::Vertex v)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	std::vector<Vertex> vertices;
+	vertices.reserve(32u);
+	foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+		vertices.push_back(av);
 		return true;
 	});
 	return vertices;
