@@ -1,28 +1,31 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/cells.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
+
+#include <cgogn/core/types/cmap/cmap_info.h>
+#include <cgogn/core/types/cmap/cmap_ops.h>
 
 namespace cgogn
 {
@@ -39,21 +42,25 @@ namespace cgogn
 // Graph //
 ///////////
 
-Graph::Vertex
-add_vertex(Graph& g, bool set_indices)
+Graph::Vertex add_vertex(Graph& g, bool set_indices)
 {
-	Dart d = g.add_dart();
-	Dart dd = g.add_dart();
-	g.alpha0_sew(d, dd);
-	g.set_boundary(dd, true);
+	Dart d = add_dart(g);
+	Dart dd = add_dart(g);
+	alpha0_sew(g, d, dd);
+	alpha1_sew(g, d, dd);
 
 	Graph::Vertex v(d);
 
 	if (set_indices)
 	{
-		if (g.is_indexed<Graph::Vertex>())
+		if (is_indexed<Graph::Vertex>(g))
 			set_index(g, v, new_index<Graph::Vertex>(g));
-		if (g.is_indexed<Graph::Edge>())
+		if (is_indexed<Graph::HalfEdge>(g))
+		{
+			set_index(g, Graph::HalfEdge(d), new_index<Graph::HalfEdge>(g));
+			set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+		}
+		if (is_indexed<Graph::Edge>(g))
 			set_index(g, Graph::Edge(v.dart), new_index<Graph::Edge>(g));
 	}
 
@@ -72,23 +79,24 @@ add_vertex(Graph& g, bool set_indices)
 // Graph //
 ///////////
 
-void
-remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
+void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 {
-	Dart dd = g.alpha0(v.dart);
-	cgogn_message_assert(g.is_boundary(dd), "Vertex is still connected to another vertex");
-	g.remove_dart(v.dart);
-	g.remove_dart(dd);
+	Dart dd = alpha0(g, v.dart);
+	cgogn_message_assert(is_boundary(g, dd), "Vertex is still connected to another vertex");
+	remove_dart(g, v.dart);
+	remove_dart(g, dd);
 
 	if (set_indices)
-	{}
+	{
+	}
 }
 
 /*****************************************************************************/
 
 // template <typename MESH>
 // typename mesh_traits<MESH>::Edge
-// connect_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices = true);
+// connect_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool
+// set_indices = true);
 
 /*****************************************************************************/
 
@@ -96,67 +104,75 @@ remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 // Graph //
 ///////////
 
-Graph::Edge
-connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
+Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 {
+	auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
+
 	Dart d = v1.dart;
 	Dart e = v2.dart;
-	Dart dd = g.alpha0(d);
-	Dart ee = g.alpha0(e);
-	if (g.is_boundary(dd))
+	Dart dd = alpha0(g, d);
+	Dart ee = alpha0(g, e);
+	if (is_isolated(g, v1))
 	{
-		if (g.is_boundary(ee))
+		if (is_isolated(g, v2))
 		{
-			g.remove_dart(dd);
-			g.remove_dart(ee);
-			g.alpha0_sew(d, e);
+			alpha1_unsew(g, d);
+			alpha1_unsew(g, e);
+			remove_dart(g, dd);
+			remove_dart(g, ee);
+			alpha0_sew(g, d, e);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Edge>())
-					g.copy_index<Graph::Edge>(e, d);
+				if (is_indexed<Graph::Edge>(g))
+					copy_index<Graph::Edge>(g, e, d);
 			}
 			return Graph::Edge(d);
 		}
 		else
 		{
-			g.set_boundary(dd, false);
-			g.alpha1_sew(e, dd);
+			alpha1_unsew(g, d);
+			alpha1_sew(g, e, dd);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex>())
-					g.copy_index<Graph::Vertex>(dd, e);
+				if (is_indexed<Graph::Vertex>(g))
+					copy_index<Graph::Vertex>(g, dd, e);
 			}
 			return Graph::Edge(d);
 		}
 	}
 	else
 	{
-		if (g.is_boundary(ee))
+		if (is_isolated(g, v2))
 		{
-			g.set_boundary(ee, false);
-			g.alpha1_sew(d, ee);
+			alpha1_unsew(g, e);
+			alpha1_sew(g, d, ee);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex>())
-					g.copy_index<Graph::Vertex>(ee, d);	
+				if (is_indexed<Graph::Vertex>(g))
+					copy_index<Graph::Vertex>(g, ee, d);
 			}
 			return Graph::Edge(ee);
 		}
 		else
 		{
-			Dart dd = g.add_dart();
-			Dart ee = g.add_dart();
-			g.alpha1_sew(d, dd);
-			g.alpha1_sew(e, ee);
-			g.alpha0_sew(dd, ee);
+			Dart dd = add_dart(g);
+			Dart ee = add_dart(g);
+			alpha0_sew(g, dd, ee);
+			alpha1_sew(g, d, dd);
+			alpha1_sew(g, e, ee);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex>())
-                {
-                    g.copy_index<Graph::Vertex>(dd, d);
-                    g.copy_index<Graph::Vertex>(ee, e);
+				if (is_indexed<Graph::Vertex>(g))
+				{
+					copy_index<Graph::Vertex>(g, dd, d);
+					copy_index<Graph::Vertex>(g, ee, e);
 				}
-				if (g.is_indexed<Graph::Edge>())
+				if (is_indexed<Graph::HalfEdge>(g))
+				{
+					set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(ee), new_index<Graph::HalfEdge>(g));
+				}
+				if (is_indexed<Graph::Edge>(g))
 					set_index(g, Graph::Edge(dd), new_index<Graph::Edge>(g));
 			}
 			return Graph::Edge(dd);
@@ -176,64 +192,77 @@ connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 // Graph //
 ///////////
 
-void
-disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
+void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 {
+	auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
+
 	Dart x = e.dart;
-	Dart y = g.alpha0(x);
-	cgogn_message_assert(!(g.is_boundary(x) || g.is_boundary(y)), "Given edge does not connect 2 vertices");
-	if (g.alpha1(x) == x)
+	Dart y = alpha0(g, x);
+	cgogn_message_assert(!(is_isolated(g, Graph::Vertex(x)) || is_isolated(g, Graph::Vertex(y))),
+						 "Given edge does not connect 2 vertices");
+	if (alpha1(g, x) == x)
 	{
-		if (g.alpha1(y) == y)
+		if (alpha1(g, y) == y)
 		{
-			g.alpha0_unsew(x);
-			Dart xx = g.add_dart();
-			Dart yy = g.add_dart();
-			g.alpha0_sew(x, xx);
-			g.alpha0_sew(y, yy);
-			g.set_boundary(xx, true);
-			g.set_boundary(yy, true);
+			alpha0_unsew(g, x);
+			Dart xx = add_dart(g);
+			Dart yy = add_dart(g);
+			alpha0_sew(g, x, xx);
+			alpha1_sew(g, x, xx);
+			alpha0_sew(g, y, yy);
+			alpha1_sew(g, y, yy);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Edge>())
+				if (is_indexed<Graph::Vertex>(g))
 				{
-					g.copy_index<Graph::Edge>(g.alpha0(x), x);
+					copy_index<Graph::Edge>(g, xx, x);
+					copy_index<Graph::Edge>(g, yy, y);
+				}
+				if (is_indexed<Graph::HalfEdge>(g))
+				{
+					set_index(g, Graph::HalfEdge(xx), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(yy), new_index<Graph::HalfEdge>(g));
+				}
+				if (is_indexed<Graph::Edge>(g))
+				{
+					copy_index<Graph::Edge>(g, xx, x);
 					set_index(g, Graph::Edge(y), new_index<Graph::Edge>(g));
 				}
 			}
 		}
 		else
 		{
-			g.alpha1_unsew(y);
-			g.set_boundary(y, true);
+			alpha1_unsew(g, y);
+			alpha1_sew(g, x, y);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex>())
-					g.unset_index<Graph::Vertex>(g.alpha0(x));
+				if (is_indexed<Graph::Vertex>(g))
+					copy_index<Graph::Vertex>(g, y, x);
 			}
 		}
 	}
 	else
 	{
-		if (g.alpha1(y) == y)
+		if (alpha1(g, y) == y)
 		{
-			g.alpha1_unsew(x);
-			g.set_boundary(x, true);
+			alpha1_unsew(g, x);
+			alpha1_sew(g, y, x);
 			if (set_indices)
 			{
-				if (g.is_indexed<Graph::Vertex>())
-					g.unset_index<Graph::Vertex>(g.alpha0(y));
+				if (is_indexed<Graph::Vertex>(g))
+					copy_index<Graph::Vertex>(g, x, y);
 			}
 		}
 		else
 		{
-			g.alpha0_unsew(x);
-			g.alpha1_unsew(x);
-			g.alpha1_unsew(y);
-			g.remove_dart(x);
-			g.remove_dart(y);
+			alpha0_unsew(g, x);
+			alpha1_unsew(g, x);
+			alpha1_unsew(g, y);
+			remove_dart(g, x);
+			remove_dart(g, y);
 			if (set_indices)
-			{}
+			{
+			}
 		}
 	}
 }

@@ -8,6 +8,7 @@ find_package(cgogn_core REQUIRED)
 find_package(cgogn_ui REQUIRED)
 find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
+find_package(cgogn_modeling REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 
@@ -27,11 +28,22 @@ target_link_libraries(tubular_mesh
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 
 add_executable(deformation deformation.cpp)
 target_link_libraries(deformation
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	${CMAKE_DL_LIBS}
+)
+
+add_executable(mr_volume mr_volume.cpp)
+target_link_libraries(mr_volume
 	cgogn::core
 	cgogn::ui
 	cgogn::io
@@ -52,6 +64,10 @@ if(APPLE)
 		${CARBON}
 	)
 	target_link_libraries(deformation
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(mr_volume
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

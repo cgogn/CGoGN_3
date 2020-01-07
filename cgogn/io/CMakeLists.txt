@@ -28,16 +28,10 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
+		"${CMAKE_CURRENT_LIST_DIR}/volume/meshb.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
 )
-
-if(${CGOGN_EXTERNAL_TEMPLATES})
-	target_sources(${PROJECT_NAME}
-		PRIVATE
-			"${CMAKE_CURRENT_LIST_DIR}/external_templates.cpp"
-	)
-endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"
@@ -49,13 +43,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-#	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
 # Write out cgogn_io_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen)
+target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen Meshb)
 
 set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_io.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_io.pc @ONLY)

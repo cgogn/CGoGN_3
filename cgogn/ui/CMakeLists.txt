@@ -25,14 +25,17 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/view.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/modules/graph_render/graph_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/mesh_provider/mesh_provider.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/mesh_provider/mesh_data.h"
-		"${CMAKE_CURRENT_LIST_DIR}/modules/graph_render/graph_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/shallow_water/shallow_water.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_deformation/surface_deformation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_differential_properties/surface_differential_properties.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_filtering/surface_filtering.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_modeling/surface_modeling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render/surface_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render_vector/surface_render_vector.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_selection/surface_selection.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

@@ -1,30 +1,30 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/core/types/container/attribute_container.h>
 
-#include <cgogn/core/utils/thread_pool.h>
 #include <cgogn/core/utils/assert.h>
+#include <cgogn/core/utils/thread_pool.h>
 
 namespace cgogn
 {
@@ -33,10 +33,10 @@ namespace cgogn
 // AttributeGenT class //
 /////////////////////////
 
-AttributeGenT::AttributeGenT(AttributeContainerGen* container, const std::string& name) :
-	container_(container),
-	name_(name)
-{}
+AttributeGenT::AttributeGenT(AttributeContainerGen* container, const std::string& name)
+	: container_(container), name_(name)
+{
+}
 
 AttributeGenT::~AttributeGenT()
 {
@@ -55,22 +55,21 @@ uint32 AttributeGenT::maximum_index() const
 // AttributeContainerGen class //
 /////////////////////////////////
 
-AttributeContainerGen::AttributeContainerGen() :
-	nb_elements_(0),
-	maximum_index_(0)
+AttributeContainerGen::AttributeContainerGen() : nb_elements_(0), maximum_index_(0)
 {
 	attributes_.reserve(32);
 	attributes_shared_ptr_.reserve(32);
 
-	uint32 max_nb_threads = thread_pool()->max_nb_threads();
-	mark_attributes_.resize(max_nb_threads);
-	available_mark_attributes_.resize(max_nb_threads);
-	for (uint32 i = 0; i < max_nb_threads; ++i)
+	uint32 max = max_nb_threads();
+
+	mark_attributes_.resize(max);
+	available_mark_attributes_.resize(max);
+	for (uint32 i = 0; i < max; ++i)
 	{
 		mark_attributes_[i].reserve(32);
 		available_mark_attributes_[i].reserve(32);
 	}
-	
+
 	available_indices_.reserve(1024);
 }
 
@@ -96,7 +95,7 @@ uint32 AttributeContainerGen::new_index()
 
 	for (AttributeGenT* ag : attributes_)
 		ag->manage_index(index);
-	
+
 	{
 		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
 		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
@@ -133,11 +132,8 @@ void AttributeContainerGen::remove_attribute(const std::shared_ptr<AttributeGenT
 
 void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 {
-	auto it = std::find_if(
-		attributes_shared_ptr_.begin(),
-		attributes_shared_ptr_.end(),
-		[&] (const auto& att) { return att.get() == attribute; }
-	);
+	auto it = std::find_if(attributes_shared_ptr_.begin(), attributes_shared_ptr_.end(),
+						   [&](const auto& att) { return att.get() == attribute; });
 	if (it != attributes_shared_ptr_.end())
 	{
 		*it = attributes_shared_ptr_.back();

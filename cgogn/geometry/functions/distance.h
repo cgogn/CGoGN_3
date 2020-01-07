@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_GEOMETRY_FUNCTIONS_DISTANCE_H_
 #define CGOGN_GEOMETRY_FUNCTIONS_DISTANCE_H_
@@ -42,7 +42,7 @@ namespace geometry
  */
 inline Scalar squared_distance_normalized_line_point(const Vec3& A, const Vec3& AB_norm, const Vec3& P)
 {
-	return ((A - P).cross(AB_norm)).squaredNorm() ;
+	return ((A - P).cross(AB_norm)).squaredNorm();
 }
 
 /**
@@ -54,21 +54,21 @@ inline Scalar squared_distance_normalized_line_point(const Vec3& A, const Vec3& 
  */
 inline Scalar squared_distance_line_point(const Vec3& A, const Vec3& B, const Vec3& P)
 {
-	Vec3 AB = B - A ;
+	Vec3 AB = B - A;
 	cgogn_message_assert(AB.squaredNorm() > 0.0, "line must be defined by 2 different points");
 	AB.normalize();
-	return squared_distance_normalized_line_point(A, AB, P) ;
+	return squared_distance_normalized_line_point(A, AB, P);
 }
 
 /**
-* compute squared distance from line to segment
-* @param A point of line
-* @param AB vector of line
-* @param AB2 AB*AB (for optimization if call several times with AB
-* @param P first point of segment
-* @param Q second point of segment
-* @return the squared distance
-*/
+ * compute squared distance from line to segment
+ * @param A point of line
+ * @param AB vector of line
+ * @param AB2 AB*AB (for optimization if call several times with AB
+ * @param P first point of segment
+ * @param Q second point of segment
+ * @return the squared distance
+ */
 Scalar squared_distance_line_seg(const Vec3& A, const Vec3& AB, Scalar AB2, const Vec3& P, const Vec3& Q)
 {
 	Vec3 PQ = Q - P;
@@ -84,7 +84,7 @@ Scalar squared_distance_line_seg(const Vec3& A, const Vec3& AB, Scalar AB2, cons
 	Scalar X = AB.dot(PQ);
 	Vec3 AP = P - A;
 
-	Scalar beta = ( AB2 * (AP.dot(PQ)) - X * (AP.dot(AB)) ) / ( X * X - AB2 * PQ_n2 );
+	Scalar beta = (AB2 * (AP.dot(PQ)) - X * (AP.dot(AB))) / (X * X - AB2 * PQ_n2);
 
 	if (beta < Scalar(0))
 	{
@@ -107,14 +107,14 @@ Scalar squared_distance_line_seg(const Vec3& A, const Vec3& AB, Scalar AB2, cons
 }
 
 /**
-* compute squared distance from line to segment
-* @warning if used many times with same line prefer version, with A, AB and AB2 parameter
-* @param A point of line
-* @param B point of line
-* @param P first point of segment
-* @param Q second point of segment
-* @return the squared distance
-*/
+ * compute squared distance from line to segment
+ * @warning if used many times with same line prefer version, with A, AB and AB2 parameter
+ * @param A point of line
+ * @param B point of line
+ * @param P first point of segment
+ * @param Q second point of segment
+ * @return the squared distance
+ */
 inline Scalar squared_distance_line_seg(const Vec3& A, const Vec3& B, const Vec3& P, const Vec3& Q)
 {
 	Vec3 AB = B - A;
@@ -122,12 +122,12 @@ inline Scalar squared_distance_line_seg(const Vec3& A, const Vec3& B, const Vec3
 }
 
 /**
-* compute squared distance from segment to point
-* @param A point of segment
-* @param AB vector of segment
-* @param P the point
-* @return the squared distance
-*/
+ * compute squared distance from segment to point
+ * @param A point of segment
+ * @param AB vector of segment
+ * @param P the point
+ * @return the squared distance
+ */
 Scalar squared_distance_seg_point(const Vec3& A, const Vec3& AB, const Vec3& P)
 {
 	Vec3 AP = P - A;

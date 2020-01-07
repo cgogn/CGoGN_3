@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN                                                                        *
-* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN                                                                        *
+ * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
@@ -42,16 +42,12 @@ static void glfw_error_callback(int error, const char* description)
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
 }
 
-App::App():
-	window_(nullptr),
-    context_(nullptr),
-	window_name_("CGoGN"),
-	window_width_(512),
-	window_height_(512),
-	interface_scaling_(1.0),
-	show_imgui_(true),
-	current_view_(nullptr)
+App::App()
+	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
+	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
 {
+	tlq_ = boost::synapse::create_thread_local_queue();
+
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 		std::cerr << "Failed to initialize GFLW!" << std::endl;
@@ -76,10 +72,11 @@ App::App():
 
 	IMGUI_CHECKVERSION();
 	context_ = ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	  // Enable Multi-Viewport / Platform Windows
 	// io.ConfigDockingWithShift = false;
 	// io.ConfigWindowsResizeFromEdges = true;
 
@@ -101,8 +98,7 @@ App::App():
 	std::cout << glGetString(GL_RENDERER) << std::endl;
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	glfwSetWindowSizeCallback(window_, [] (GLFWwindow* wi, int width, int height)
-	{
+	glfwSetWindowSizeCallback(window_, [](GLFWwindow* wi, int width, int height) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
 		that->window_width_ = width;
@@ -110,13 +106,13 @@ App::App():
 		glfwGetFramebufferSize(wi, &(that->framebuffer_width_), &(that->framebuffer_height_));
 
 		for (const auto& v : that->views_)
-			v->resize_event(that->window_width_, that->window_height_, that->framebuffer_width_, that->framebuffer_height_);
+			v->resize_event(that->window_width_, that->window_height_, that->framebuffer_width_,
+							that->framebuffer_height_);
 	});
 
-	glfwSetMouseButtonCallback(window_, [] (GLFWwindow* wi, int b, int a, int m)
-	{
+	glfwSetMouseButtonCallback(window_, [](GLFWwindow* wi, int b, int a, int m) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-		
+
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->inputs_.mouse_buttons_ = 0;
@@ -129,30 +125,32 @@ App::App():
 			that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
 			that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
 			that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
-			
+
 			double now = glfwGetTime();
 
 			switch (a)
 			{
 			case GLFW_PRESS:
 				that->inputs_.mouse_buttons_ |= 1 << b;
-				that->current_view_->mouse_press_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				that->current_view_->mouse_press_event(b, that->inputs_.previous_mouse_x_,
+													   that->inputs_.previous_mouse_y_);
 				if (now - that->inputs_.previous_click_time_ < that->inputs_.double_click_timeout_)
-					that->current_view_->mouse_dbl_click_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+					that->current_view_->mouse_dbl_click_event(b, that->inputs_.previous_mouse_x_,
+															   that->inputs_.previous_mouse_y_);
 				that->inputs_.previous_click_time_ = now;
 				break;
 			case GLFW_RELEASE:
 				that->inputs_.mouse_buttons_ &= ~(1 << b);
-				that->current_view_->mouse_release_event(b, that->inputs_.previous_mouse_x_, that->inputs_.previous_mouse_y_);
+				that->current_view_->mouse_release_event(b, that->inputs_.previous_mouse_x_,
+														 that->inputs_.previous_mouse_y_);
 				break;
 			}
 		}
 	});
 
-	glfwSetCursorPosCallback(window_, [] (GLFWwindow* wi, double cx, double cy)
-	{
+	glfwSetCursorPosCallback(window_, [](GLFWwindow* wi, double cx, double cy) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-		
+
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->inputs_.mouse_buttons_ = 0;
@@ -178,12 +176,11 @@ App::App():
 			}
 		}
 
-        that->inputs_.previous_mouse_x_ = px;
-        that->inputs_.previous_mouse_y_ = py;
+		that->inputs_.previous_mouse_x_ = px;
+		that->inputs_.previous_mouse_y_ = py;
 	});
 
-	glfwSetScrollCallback(window_, [] (GLFWwindow* wi, double dx, double dy)
-	{
+	glfwSetScrollCallback(window_, [](GLFWwindow* wi, double dx, double dy) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyWindowFocused())
@@ -196,16 +193,15 @@ App::App():
 			that->current_view_->mouse_wheel_event(dx, 100 * dy);
 	});
 
-	glfwSetCursorEnterCallback(window_, [] (GLFWwindow* wi, int enter)
-	{
+	glfwSetCursorEnterCallback(window_, [](GLFWwindow* wi, int enter) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
-		
+
 		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
-		
+
 		if (!enter)
 		{
 			that->inputs_.mouse_buttons_ = 0;
@@ -213,47 +209,48 @@ App::App():
 		}
 	});
 
-	glfwSetKeyCallback(window_, [] (GLFWwindow* wi, int k, int s, int a, int m)
-	{
+	glfwSetKeyCallback(window_, [](GLFWwindow* wi, int k, int s, int a, int m) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
-        that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
-        that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
-        that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
-        that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
+		that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
+		that->inputs_.control_pressed_ = (m & GLFW_MOD_CONTROL);
+		that->inputs_.alt_pressed_ = (m & GLFW_MOD_ALT);
+		that->inputs_.meta_pressed_ = (m & GLFW_MOD_SUPER);
 
 		if (k == GLFW_KEY_ESCAPE)
-        {
-            that->stop();
+		{
+			that->stop();
 			return;
-        }
+		}
 
-        switch(a)
-        {
-            case GLFW_PRESS:
-                if (k == GLFW_KEY_SPACE)
-                    that->show_imgui_ = !that->show_imgui_;
-                else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
-                {
-                    that->interface_scaling_ += 0.1f;
-                    ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
-                }
-                else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
-                {
-                    that->interface_scaling_ -= 0.1f;
-                    ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
-                }
-                break;
-            case GLFW_RELEASE:
-                break;
-        }
+		switch (a)
+		{
+		case GLFW_PRESS:
+			if (k == GLFW_KEY_SPACE)
+				that->show_imgui_ = !that->show_imgui_;
+			if (k == GLFW_KEY_H)
+				that->show_demo_ = !that->show_demo_;
+			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
+			{
+				that->interface_scaling_ += 0.1f;
+				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
+			}
+			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
+			{
+				that->interface_scaling_ -= 0.1f;
+				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
+			}
+			break;
+		case GLFW_RELEASE:
+			break;
+		}
 
 		if (that->current_view_)
 		{
-			switch(a)
+			switch (a)
 			{
 			case GLFW_PRESS:
-				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_  && !that->inputs_.shift_pressed_)
+				if ((k == GLFW_KEY_F) && that->inputs_.control_pressed_ && !that->inputs_.shift_pressed_)
 				{
 					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 					const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -290,11 +287,12 @@ App::App():
 		}
 	});
 
-    current_view_ = add_view();
+	current_view_ = add_view();
 }
 
 App::~App()
-{}
+{
+}
 
 void App::set_window_size(int32 w, int32 h)
 {
@@ -310,23 +308,19 @@ void App::set_window_title(const std::string& name)
 
 View* App::add_view()
 {
-    if (views_.size() < 4)
-    {
-        glfwMakeContextCurrent(window_);
-        views_.push_back(std::make_unique<View>(&inputs_));
-        adapt_views_geometry();
-        return views_.back().get();
-    }
-    return nullptr;
+	if (views_.size() < 4)
+	{
+		glfwMakeContextCurrent(window_);
+		views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(views_.size())));
+		adapt_views_geometry();
+		return views_.back().get();
+	}
+	return nullptr;
 }
 
 Module* App::module(const std::string& name) const
 {
-	auto it = std::find_if(
-		modules_.begin(),
-		modules_.end(),
-		[&] (Module* m) { return m->name().compare(name) == 0; }
-	);
+	auto it = std::find_if(modules_.begin(), modules_.end(), [&](Module* m) { return m->name().compare(name) == 0; });
 	if (it != modules_.end())
 		return *it;
 	return nullptr;
@@ -336,7 +330,7 @@ void App::close_event()
 {
 	for (const auto& v : views_)
 		v->close_event();
-	
+
 	cgogn::rendering::ShaderProgram::clean_all();
 }
 
@@ -381,6 +375,8 @@ int App::launch()
 
 	while (!glfwWindowShouldClose(window_))
 	{
+		boost::synapse::poll(*tlq_);
+
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 
@@ -416,12 +412,16 @@ int App::launch()
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
 			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+							ImGuiWindowFlags_NoMove;
 			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 			window_flags |= ImGuiWindowFlags_NoBackground;
 			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
 
 			ImGui::PopStyleVar(3);
+
+			if (show_demo_)
+				ImGui::ShowDemoWindow();
 
 			if (ImGui::BeginMainMenuBar())
 			{
@@ -437,13 +437,14 @@ int App::launch()
 			}
 
 			ImGuiID dockspace_id = ImGui::GetID("DockSpaceWindow");
-			ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
+			ImGuiDockNodeFlags dockspace_flags =
+				ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
 
 			ImGuiID dockIdLeft, dockIdBottom;
 			static bool first_render = true;
-			
+
 			if (first_render)
 			{
 				ImGui::DockBuilderRemoveNode(dockspace_id);
@@ -477,10 +478,10 @@ int App::launch()
 		}
 
 		glfwSwapBuffers(window_);
-		
+
 		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
-	
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
@@ -496,6 +497,6 @@ void App::stop()
 	glfwSetWindowShouldClose(window_, GLFW_TRUE);
 }
 
-} // namespace cgogn
-
 } // namespace ui
+
+} // namespace cgogn
