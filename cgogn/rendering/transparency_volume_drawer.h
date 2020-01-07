@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_TRANSP_VOLUME_DRAWER_H_
 #define CGOGN_RENDERING_TRANSP_VOLUME_DRAWER_H_
@@ -29,13 +29,13 @@
 #include <cgogn/rendering/shaders/vbo.h>
 #include <cgogn/rendering/transparency_shaders/shader_transparent_volumes.h>
 
-#include <cgogn/geometry/types/geometry_traits.h>
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/ear_triangulation.h>
+#include <cgogn/geometry/types/geometry_traits.h>
 
-#include <QOpenGLFunctions_3_3_Core>
 #include <GLColor>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions_3_3_Core>
 
 namespace cgogn
 {
@@ -43,11 +43,9 @@ namespace cgogn
 namespace rendering
 {
 
-
 class CGOGN_RENDERING_EXPORT VolumeTransparencyDrawer
 {
 protected:
-
 	using Vec3f = std::array<float32, 3>;
 	std::unique_ptr<VBO> vbo_pos_;
 	GLColor face_color_;
@@ -80,7 +78,6 @@ public:
 		void set_back_face_culling(bool cull);
 
 		void set_lighted(bool lighted);
-
 	};
 
 	using Self = VolumeTransparencyDrawer;
@@ -90,7 +87,6 @@ public:
 	 * @Warning need OpenGL context
 	 */
 	VolumeTransparencyDrawer();
-
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(VolumeTransparencyDrawer);
 
@@ -107,14 +103,10 @@ public:
 	void update_face(const MAP& m, const VERTEX_ATTR& position);
 };
 
-
-
-
-
 template <typename MAP, typename VERTEX_ATTR>
 void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& position)
 {
-	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
+	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position must be a vertex attribute");
 
 	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 	using Vertex = typename MAP::Vertex;
@@ -127,11 +119,9 @@ void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& posi
 	std::vector<uint32> ear_indices;
 	ear_indices.reserve(256);
 
-	m.foreach_cell([&] (Volume v)
-	{
+	m.foreach_cell([&](Volume v) {
 		VEC3 CV = geometry::centroid(m, v, position);
-		m.foreach_incident_face(v, [&] (Face f)
-		{
+		m.foreach_incident_face(v, [&](Face f) {
 			if (m.has_codegree(f, 3))
 			{
 				const VEC3& P1 = position[Vertex(f.dart)];
@@ -146,11 +136,11 @@ void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& posi
 			{
 				ear_indices.clear();
 				cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-				for(std::size_t i = 0; i < ear_indices.size(); i += 3)
+				for (std::size_t i = 0; i < ear_indices.size(); i += 3)
 				{
 					const VEC3& P1 = position[ear_indices[i]];
-					const VEC3& P2 = position[ear_indices[i+1]];
-					const VEC3& P3 = position[ear_indices[i+2]];
+					const VEC3& P2 = position[ear_indices[i + 1]];
+					const VEC3& P3 = position[ear_indices[i + 2]];
 					out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 					out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 					out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -167,8 +157,6 @@ void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& posi
 	vbo_pos_->copy_data(0, nbvec * 12, out_pos[0].data());
 	vbo_pos_->release();
 }
-
-
 
 } // namespace rendering
 

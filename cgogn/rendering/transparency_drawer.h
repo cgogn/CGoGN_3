@@ -1,41 +1,41 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_FLAT_TR_DR_H_
 #define CGOGN_RENDERING_FLAT_TR_DR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/transparency_shaders/shader_copy_depth.h>
 #include <cgogn/rendering/transparency_shaders/shader_transparent_flat.h>
 #include <cgogn/rendering/transparency_shaders/shader_transparent_phong.h>
-#include <cgogn/rendering/transparency_shaders/shader_transparent_volumes.h>
 #include <cgogn/rendering/transparency_shaders/shader_transparent_quad.h>
-#include <cgogn/rendering/transparency_shaders/shader_copy_depth.h>
+#include <cgogn/rendering/transparency_shaders/shader_transparent_volumes.h>
 
 #include <cgogn/rendering/shaders/vbo.h>
 
-#include <QOpenGLFunctions>
 #include <GLColor>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
 
 namespace cgogn
 {
@@ -72,7 +72,6 @@ class CGOGN_RENDERING_EXPORT SurfaceTransparencyDrawer
 	GLuint depthTexture_;
 
 public:
-
 	~SurfaceTransparencyDrawer();
 
 	/**
@@ -80,7 +79,6 @@ public:
 
 	 */
 	SurfaceTransparencyDrawer();
-
 
 	/**
 	 * @brief resize call_back need to be called when resize windows
@@ -96,14 +94,15 @@ public:
 	 * @param view modelview matrix
 	 * @param draw_func the func/lambda that draw transparent objects
 	 */
-	//template<typename PARAM, typename TFUNC>
-	//void draw(PARAM& param, const QMatrix4x4& proj, const QMatrix4x4& view, const TFUNC& draw_func);
+	// template<typename PARAM, typename TFUNC>
+	// void draw(PARAM& param, const QMatrix4x4& proj, const QMatrix4x4& view, const TFUNC& draw_func);
 
 	/**
 	 * @brief draw the transparent objects (can draw several meshes)
-	 * @param draw_func the func/lambda that draw transparent objects (must bind/unbind ShaderFlatTransp::Param or ShaderPhongTransp::Param)
+	 * @param draw_func the func/lambda that draw transparent objects (must bind/unbind ShaderFlatTransp::Param or
+	 * ShaderPhongTransp::Param)
 	 */
-	template<typename TFUNC>
+	template <typename TFUNC>
 	void draw(const TFUNC& draw_func);
 
 	/**
@@ -112,12 +111,11 @@ public:
 	 * @param view modelview matrix
 	 * @param draw_func the func/lambda that draw transparent objects
 	 */
-	template<typename TFUNC>
+	template <typename TFUNC>
 	void draw_flat(const QMatrix4x4& proj, const QMatrix4x4& view, const TFUNC& draw_func)
 	{
-		//draw(*param_flat_, proj, view, draw_func);
-		draw([&]() -> void
-		{
+		// draw(*param_flat_, proj, view, draw_func);
+		draw([&]() -> void {
 			param_flat_->bind(proj, view);
 			draw_func();
 			param_flat_->release();
@@ -130,17 +128,15 @@ public:
 	 * @param view modelview matrix
 	 * @param draw_func the func/lambda that draw transparent objects
 	 */
-	template<typename TFUNC>
+	template <typename TFUNC>
 	void draw_phong(const QMatrix4x4& proj, const QMatrix4x4& view, const TFUNC& draw_func)
 	{
-//		draw(*param_phong_, proj, view, draw_func);
-		draw([&]() -> void
-		{
+		//		draw(*param_phong_, proj, view, draw_func);
+		draw([&]() -> void {
 			param_phong_->bind(proj, view);
 			draw_func();
 			param_phong_->release();
 		});
-
 	}
 
 	/**
@@ -193,13 +189,13 @@ public:
 		param_phong_->bf_culling_ = cull;
 	}
 
-	inline void  set_lighted(bool lighted)
+	inline void set_lighted(bool lighted)
 	{
-		param_flat_->lighted_=lighted;
+		param_flat_->lighted_ = lighted;
 	}
 };
 
-template<typename TFUNC>
+template <typename TFUNC>
 void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 {
 	if (ogl33_ == nullptr)
@@ -219,7 +215,7 @@ void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 	ogl33_->glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width_, height_);
 
 	QVector<GLuint> textures = fbo_layer_->textures();
-	GLenum buffs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2 };
+	GLenum buffs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2};
 
 	sh_flat->bind();
 	sh_flat->set_rgba_sampler(0);
@@ -236,7 +232,7 @@ void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 
 	fbo_layer_->bind();
 
-	GLenum clear_buff[1] = { GL_COLOR_ATTACHMENT3 };
+	GLenum clear_buff[1] = {GL_COLOR_ATTACHMENT3};
 	ogl33_->glDrawBuffers(1, clear_buff);
 	ogl33_->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	ogl33_->glClear(GL_COLOR_BUFFER_BIT);
@@ -244,7 +240,7 @@ void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 	ogl33_->glDrawBuffers(1, buffs);
 	ogl33_->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	GLenum opaq_buff[1] = { GL_COLOR_ATTACHMENT5 };
+	GLenum opaq_buff[1] = {GL_COLOR_ATTACHMENT5};
 
 	for (int p = 0; p < max_nb_layers_; ++p)
 	{
@@ -289,17 +285,17 @@ void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 		else
 		{
 			ogl33_->glReadBuffer(GL_COLOR_ATTACHMENT2);
-			ogl33_->glBindTexture(GL_TEXTURE_2D,textures[1]);
+			ogl33_->glBindTexture(GL_TEXTURE_2D, textures[1]);
 			ogl33_->glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 0, 0, width_, height_, 0);
 
 			if (p == 0)
 			{
-				ogl33_->glBindTexture(GL_TEXTURE_2D,textures[4]);
+				ogl33_->glBindTexture(GL_TEXTURE_2D, textures[4]);
 				ogl33_->glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 0, 0, width_, height_, 0);
 			}
 
 			ogl33_->glReadBuffer(GL_COLOR_ATTACHMENT0);
-			ogl33_->glBindTexture(GL_TEXTURE_2D,textures[3]);
+			ogl33_->glBindTexture(GL_TEXTURE_2D, textures[3]);
 			ogl33_->glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 0, 0, width_, height_, 0);
 		}
 	}
@@ -318,7 +314,7 @@ void SurfaceTransparencyDrawer::draw(const TFUNC& draw_func)
 	ogl33_->glBindTexture(GL_TEXTURE_2D, textures[4]);
 
 	ogl33_->glEnable(GL_BLEND);
-	ogl33_->glBlendFunc(GL_ONE,GL_SRC_ALPHA);
+	ogl33_->glBlendFunc(GL_ONE, GL_SRC_ALPHA);
 	param_trq_->bind(fake_mat, fake_mat);
 	ogl33_->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	param_trq_->release();
