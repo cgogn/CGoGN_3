@@ -34,15 +34,14 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/volume_mr_modeling/volume_mr_modeling.h>
 
-using Mesh = cgogn::CMap3;
 using MRMesh = cgogn::CPH3;
+using Mesh = cgogn::CPH3::CMAP;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
 
 using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
@@ -84,18 +83,18 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	// std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<Attribute<Vec3>> position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 
-	// cgogn::index_cells<Mesh::Volume>(*m);
-	// cgogn::index_cells<Mesh::Edge>(*m);
-	// cgogn::index_cells<Mesh::Face>(*m);
+	MRMesh* cph1 = vmrm.create_cph3(*m, mp.mesh_name(m));
+	MRMesh* cph2 = vmrm.create_cph3(*m, mp.mesh_name(m));
 
-	// cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
-	// cgogn::modeling::butterflySubdivisionVolumeAdaptative(*m,0.5f,vertex_position);
-	// mp.emit_connectivity_changed(m);
+	vmrm.subdivide(*cph1, position.get());
+	vmrm.subdivide(*cph1, position.get());
 
-	// mp.set_mesh_bb_vertex_position(m, vertex_position);
-	// sr.set_vertex_position(*v1, *m, vertex_position);
+	mrsr.set_vertex_position(*v1, *cph1, position);
+	mrsr.set_vertex_position(*v1, *cph2, nullptr);
+	mrsr.set_vertex_position(*v2, *cph1, nullptr);
+	mrsr.set_vertex_position(*v2, *cph2, position);
 
 	return app.launch();
 }

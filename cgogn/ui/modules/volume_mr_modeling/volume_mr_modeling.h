@@ -60,7 +60,21 @@ public:
 	{
 	}
 
-	void subdivide_mesh(CPH3& m, Attribute<Vec3>* vertex_position)
+	CPH3* create_cph3(CPH3::CMAP& m, const std::string& name)
+	{
+		CPH3* cph = new CPH3(m);
+		std::string cph_name;
+		uint32 count = 1;
+		do
+		{
+			cph_name = name + "_" + std::to_string(count);
+			++count;
+		} while (cph3_provider_->has_mesh(cph_name));
+		cph3_provider_->register_mesh(cph, cph_name);
+		return cph;
+	}
+
+	void subdivide(CPH3& m, Attribute<Vec3>* vertex_position)
 	{
 		m.maximum_level_++;
 		m.nb_darts_per_level_.resize(m.maximum_level_);
@@ -106,17 +120,7 @@ protected:
 		if (selected_cmap3_)
 		{
 			if (ImGui::Button("Create CPH3"))
-			{
-				CPH3* cph = new CPH3(*selected_cmap3_);
-				std::string name;
-				uint32 count = 1;
-				do
-				{
-					name = selected_cmap3_name_ + "_" + std::to_string(count);
-					++count;
-				} while (cph3_provider_->has_mesh(name));
-				cph3_provider_->register_mesh(cph, name);
-			}
+				create_cph3(*selected_cmap3_, selected_cmap3_name_);
 		}
 
 		if (ImGui::ListBoxHeader("CPH3"))
@@ -164,7 +168,7 @@ protected:
 			if (selected_vertex_position_)
 			{
 				if (ImGui::Button("Subdivide"))
-					subdivide_mesh(*selected_cph3_, selected_vertex_position_.get());
+					subdivide(*selected_cph3_, selected_vertex_position_.get());
 			}
 		}
 
