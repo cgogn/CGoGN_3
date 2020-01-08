@@ -88,10 +88,12 @@ int main(int argc, char** argv)
 	MRMesh* cph1 = vmrm.create_cph3(*m, mp.mesh_name(m));
 	MRMesh* cph2 = vmrm.create_cph3(*m, mp.mesh_name(m));
 
+	cgogn::index_cells<Mesh::Volume>(*m);
+	cgogn::index_cells<Mesh::Edge>(*m);
 	cgogn::index_cells<Mesh::Face>(*m);
 
 	vmrm.subdivide(*cph1, position.get());
-	vmrm.subdivide(*cph1, position.get());
+	//vmrm.subdivide(*cph1, position.get());
 
 	mrsr.set_vertex_position(*v1, *cph1, position);
 	mrsr.set_vertex_position(*v1, *cph2, nullptr);

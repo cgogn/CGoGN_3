@@ -574,8 +574,8 @@ auto subdivideListEdges(MESH& m,std::vector<Dart>& edges,std::queue<Vec3>& edge_
 }
 
 void subdivideListEdges(CPH3& m,std::vector<Dart>& edges,std::queue<Vec3>& edge_points,typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute){
+	CPH3 m2(m);
 	for (Dart d : edges) {
-		CPH3 m2(m);
 		m2.current_level_ = m.edge_level(d)+1;
 		subdivideEdge(m2,d, edge_points.front(),attribute);
 		edge_points.pop();
@@ -593,8 +593,8 @@ auto subdivideListFaces(MESH& m,std::vector<Dart>& faces,std::queue<Vec3>& face_
 }
 
 void subdivideListFaces(CPH3& m,std::vector<Dart>& faces,std::queue<Vec3>& face_points,typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute){
+	CPH3 m2(m);
 	for (Dart d : faces) {
-		CPH3 m2(m);
 		m2.current_level_ = m.face_level(d)+1;
 		subdivideFace(m2,d, face_points.front(),attribute);
 		face_points.pop();
@@ -612,8 +612,8 @@ auto subdivideListVolumes(MESH& m,std::vector<Dart>& volumes,std::queue<Vec3>& v
 }
 
 void subdivideListVolumes(CPH3& m,std::vector<Dart>& volumes,std::queue<Vec3>& volume_points,typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute){
+	CPH3 m2(m);
 	for (Dart d : volumes) {
-		CPH3 m2(m);
 		m2.current_level_ = m.volume_level(d)+1;													 
 		subdivideVolume(m2,d, volume_points.front(),attribute);
 		volume_points.pop();
