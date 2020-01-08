@@ -229,7 +229,6 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 		m.set_face_id(phi3(map, d), m.face_id(d));
 		m.set_face_id(phi2(map, d), m.face_id(phi<12>(map, d)));
 		m.set_dart_level(phi1(map, d), m.current_level_);
-		m.set_dart_level(phi3(map, d), m.current_level_);
 		m.set_dart_level(phi2(map, d), m.current_level_);
 		d = phi<23>(map, d);
 	} while (d != e.dart);
