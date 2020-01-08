@@ -141,8 +141,11 @@ protected:
 
 			uint32 min = 0;
 			if (ImGui::SliderScalar("Level", ImGuiDataType_U32, &selected_cph3_->current_level_, &min,
-									&selected_cph3_->maximum_level_))
+									&selected_cph3_->maximum_level_)){
 				cph3_provider_->emit_connectivity_changed(selected_cph3_);
+				cph3_provider_->emit_attribute_changed(selected_cph3_, selected_vertex_position_.get());
+			}
+				
 
 			std::string selected_vertex_position_name_ =
 				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
