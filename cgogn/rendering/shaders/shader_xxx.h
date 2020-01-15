@@ -1,25 +1,25 @@
 ﻿/*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
 #define CGOGN_RENDERING_SHADERS_XXXX_H_
@@ -39,13 +39,11 @@ class ShaderParamXXXX;
 class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
 {
 public:
-
-	using  Self  = ShaderXXXX;
-	using  Param = ShaderParamXXXX;
+	using Self = ShaderXXXX;
+	using Param = ShaderParamXXXX;
 	friend Param;
 
 protected:
-
 	ShaderXXXX();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
 
@@ -53,7 +51,6 @@ protected:
 	static Self* instance_;
 
 public:
-
 	inline static std::unique_ptr<Param> generate_param()
 	{
 		if (!instance_)
@@ -73,7 +70,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
 	}
 
 public:
-
 	GLColor front_color_;
 	GLColor back_color_;
 	GLColor ambiant_color_;
@@ -82,14 +78,16 @@ public:
 
 	using LocalShader = ShaderXXXX;
 
-	ShaderParamXXXX(LocalShader* sh) :
-		ShaderParam(sh),
+	ShaderParamXXXX(LocalShader* sh)
+		: ShaderParam(sh),
 
-		light_pos_(10, 100, 1000),
-		bf_culling_(false)
-	{}
+		  light_pos_(10, 100, 1000), bf_culling_(false)
+	{
+	}
 
-	inline ~ShaderParamXXXX() override {}
+	inline ~ShaderParamXXXX() override
+	{
+	}
 
 	inline void set_vbos(VBO* vbo_pos)
 	{

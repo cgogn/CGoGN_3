@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_SHADERS_CIRCLE_H_
 #define CGOGN_RENDERING_SHADERS_CIRCLE_H_
@@ -37,19 +37,17 @@ namespace rendering
 // forward
 class ShaderParamCircle;
 
-
 class CGOGN_RENDERING_EXPORT ShaderCircle : public ShaderProgram
 {
 	friend class ShaderParamCircle;
 
 protected:
-
 	static const char* vertex_shader_source_;
 	static const char* fragment_shader_source_;
 	GLint unif_color_;
 	void set_locations();
-public:
 
+public:
 	using Self = ShaderCircle;
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderCircle);
 
@@ -59,24 +57,19 @@ public:
 	void set_color(const GLColor& rgba);
 
 private:
-
 	ShaderCircle();
 	static ShaderCircle* instance_;
 };
-
 
 // COLOR UNIFORM PARAM
 class CGOGN_RENDERING_EXPORT ShaderParamCircle : public ShaderParam
 {
 protected:
-
 	inline void set_uniforms() override
 	{
 		ShaderCircle* sh = static_cast<ShaderCircle*>(this->shader_);
 		sh->set_color(color_);
 	}
-
-
 
 public:
 	inline void set_color_vbo(VBO* vbo_color)
@@ -94,13 +87,13 @@ public:
 	using ShaderType = ShaderCircle;
 	GLColor color_;
 
-	inline ShaderParamCircle(ShaderCircle* sh) :
-		ShaderParam(sh),
-		color_(1.0, 1.0, 1.0,1.0)
-	{}
+	inline ShaderParamCircle(ShaderCircle* sh) : ShaderParam(sh), color_(1.0, 1.0, 1.0, 1.0)
+	{
+	}
 
-	inline virtual ~ShaderParamCircle() override {}
-
+	inline virtual ~ShaderParamCircle() override
+	{
+	}
 };
 
 } // namespace rendering
