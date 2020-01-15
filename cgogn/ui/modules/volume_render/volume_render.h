@@ -56,9 +56,6 @@ class VolumeRender : public ViewModule
     using Scalar = geometry::Scalar;
     using GLColor = rendering::GLColor;
 
-    template <typename T>
-    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-
 	struct Parameters
 	{
 		Parameters() :

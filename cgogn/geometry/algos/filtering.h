@@ -1,33 +1,33 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_GEOMETRY_ALGOS_FILTERING_H_
 #define CGOGN_GEOMETRY_ALGOS_FILTERING_H_
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -40,20 +40,15 @@ namespace geometry
 {
 
 template <typename T, typename MESH>
-void filter_average(
-	const MESH& m,
-	const typename mesh_traits<MESH>::template Attribute<T>* attribute_in,
-	typename mesh_traits<MESH>::template Attribute<T>* attribute_out
-)
+void filter_average(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute_in,
+					typename mesh_traits<MESH>::template Attribute<T>* attribute_out)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	parallel_foreach_cell(m, [&] (Vertex v) -> bool
-	{
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		T sum;
 		sum.setZero();
 		uint32 count = 0;
-		foreach_adjacent_vertex_through_edge(m, v, [&] (Vertex av) -> bool
-		{
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 			sum += value<T>(m, attribute_in, av);
 			++count;
 			return true;
@@ -63,8 +58,8 @@ void filter_average(
 	});
 }
 
-//template <typename MAP, typename MASK, typename VERTEX_ATTR>
-//void filter_bilateral(
+// template <typename MAP, typename MASK, typename VERTEX_ATTR>
+// void filter_bilateral(
 //	const MAP& map,
 //	const MASK& mask,
 //	const VERTEX_ATTR& position_in,
@@ -72,7 +67,8 @@ void filter_average(
 //	const VERTEX_ATTR& normal
 //)
 //{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in, position_out & normal must be a vertex attribute");
+//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in, position_out & normal must be a
+//vertex attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -106,9 +102,8 @@ void filter_average(
 //			VEC3 edge = position_in[av] - position_in[v];
 //			Scalar t = edge.norm();
 //			Scalar h = n.dot(edge);
-//			Scalar wcs = std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS * sigmaS)));
-//			sum += wcs * h;
-//			normalizer += wcs;
+//			Scalar wcs = std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS *
+//sigmaS))); 			sum += wcs * h; 			normalizer += wcs;
 //		});
 
 //		position_out[v] = position_in[v] + ((sum / normalizer) * n);
@@ -116,14 +111,15 @@ void filter_average(
 //	mask);
 //}
 
-//template <typename MAP, typename MASK, typename VERTEX_ATTR>
-//void filter_taubin(
+// template <typename MAP, typename MASK, typename VERTEX_ATTR>
+// void filter_taubin(
 //	const MAP& map,
 //	const MASK& mask,
 //	VERTEX_ATTR& position,
 //	VERTEX_ATTR& position_tmp)
 //{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position & position_tmp must be a vertex attribute");
+//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position & position_tmp must be a vertex
+//attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -165,15 +161,16 @@ void filter_average(
 //	mask);
 //}
 
-//template <typename MAP, typename MASK, typename VERTEX_ATTR>
-//void filter_laplacian(
+// template <typename MAP, typename MASK, typename VERTEX_ATTR>
+// void filter_laplacian(
 //	MAP& map,
 //	const MASK& mask,
 //	VERTEX_ATTR& position_in,
 //	VERTEX_ATTR& position_out
 //)
 //{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in & position_out must be a vertex attribute");
+//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in & position_out must be a vertex
+//attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -181,9 +178,10 @@ void filter_average(
 //	using Vertex = typename MAP::Vertex;
 //	using Edge = typename MAP::Edge;
 
-//	typename MAP::template EdgeAttribute<Scalar> edge_weight = map.template add_attribute<Scalar, Edge::ORBIT>("__edge_weight");
-//	typename MAP::template VertexAttribute<uint32> vertex_index = map.template add_attribute<uint32, Vertex::ORBIT>("__vertex_index");
-//	typename MAP::template VertexAttribute<VEC3> vertex_lapl = map.template add_attribute<VEC3, Vertex::ORBIT>("__vertex_lapl");
+//	typename MAP::template EdgeAttribute<Scalar> edge_weight = map.template add_attribute<Scalar,
+//Edge::ORBIT>("__edge_weight"); 	typename MAP::template VertexAttribute<uint32> vertex_index = map.template
+//add_attribute<uint32, Vertex::ORBIT>("__vertex_index"); 	typename MAP::template VertexAttribute<VEC3> vertex_lapl =
+//map.template add_attribute<VEC3, Vertex::ORBIT>("__vertex_lapl");
 
 //	// compute edge weights
 //	map.parallel_foreach_cell([&] (Edge e)
@@ -217,7 +215,8 @@ void filter_average(
 //		map.foreach_incident_edge(v, [&] (Edge e) { wsum += a * edge_weight[e]; });
 //		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
 //		{
-//			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vertex_index[av], (a * edge_weight[Edge(av.dart)]) / wsum));
+//			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vertex_index[av], (a * edge_weight[Edge(av.dart)]) /
+//wsum));
 //		});
 //		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vidx, -1.));
 //	},

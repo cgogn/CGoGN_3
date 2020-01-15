@@ -1,34 +1,34 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_CORE_TYPES_MARKER_H_
 #define CGOGN_CORE_TYPES_MARKER_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/core/functions/cells.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
@@ -44,26 +44,15 @@ namespace cgogn
 // CMapBase //
 //////////////
 
-template <typename CELL>
-typename CMapBase::MarkAttribute*
-get_mark_attribute(const CMapBase& m)
-{
-	return m.attribute_containers_[CELL::ORBIT].get_mark_attribute();
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename CELL, typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-typename mesh_traits<MESH>::MarkAttribute*
-get_mark_attribute(const MESH& m)
+template <typename CELL, typename MESH>
+auto get_mark_attribute(const MESH& m)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, typename mesh_traits<MESH>::MarkAttribute*>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
 		index_cells<CELL>(const_cast<MESH&>(m));
-	return get_mark_attribute<CELL>(m.mesh());
+	const CMapBase& mb = static_cast<const CMapBase&>(m);
+	return mb.attribute_containers_[CELL::ORBIT].get_mark_attribute();
 }
 
 /*****************************************************************************/
@@ -78,23 +67,9 @@ get_mark_attribute(const MESH& m)
 //////////////
 
 template <typename CELL>
-void
-release_mark_attribute(const CMapBase& m, CMapBase::MarkAttribute* attribute)
+void release_mark_attribute(const CMapBase& m, CMapBase::MarkAttribute* attribute)
 {
 	return m.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
-}
-
-//////////////
-// MESHVIEW //
-//////////////
-
-template <typename CELL, typename MESH,
-		  typename std::enable_if<is_mesh_view<MESH>::value>::type* = nullptr>
-void
-release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	release_mark_attribute<CELL>(m.mesh(), attribute);
 }
 
 /*****************************************************************************/
@@ -103,12 +78,10 @@ template <typename MESH, typename CELL>
 class CellMarker
 {
 private:
-
 	const MESH& mesh_;
 	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
 
 public:
-
 	CellMarker(const MESH& mesh) : mesh_(mesh)
 	{
 		mark_attribute_ = get_mark_attribute<CELL>(mesh_);
@@ -122,8 +95,14 @@ public:
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(CellMarker);
 
-	inline void mark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 1u; }
-	inline void unmark(CELL c) { (*mark_attribute_)[index_of(mesh_, c)] = 0u; }
+	inline void mark(CELL c)
+	{
+		(*mark_attribute_)[index_of(mesh_, c)] = 1u;
+	}
+	inline void unmark(CELL c)
+	{
+		(*mark_attribute_)[index_of(mesh_, c)] = 0u;
+	}
 
 	inline bool is_marked(CELL c) const
 	{
@@ -140,13 +119,11 @@ template <typename MESH, typename CELL>
 class CellMarkerStore
 {
 private:
-
 	const MESH& mesh_;
 	typename mesh_traits<MESH>::MarkAttribute* mark_attribute_;
 	std::vector<uint32> marked_cells_;
 
 public:
-
 	inline CellMarkerStore(const MESH& mesh) : mesh_(mesh)
 	{
 		mark_attribute_ = get_mark_attribute<CELL>(mesh_);

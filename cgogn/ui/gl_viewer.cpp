@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/ui/gl_viewer.h>
 
@@ -29,17 +29,14 @@ namespace cgogn
 namespace ui
 {
 
-GLViewer::GLViewer(Inputs* inputs) :
-	viewport_width_(0),
-	viewport_height_(0),
-	inputs_(inputs),
-	need_redraw_(true)
+GLViewer::GLViewer(Inputs* inputs) : viewport_width_(0), viewport_height_(0), inputs_(inputs), need_redraw_(true)
 {
 	current_frame_ = &camera_;
 }
 
 GLViewer::~GLViewer()
-{}
+{
+}
 
 void GLViewer::set_manipulated_frame(MovingFrame* frame)
 {
@@ -61,7 +58,8 @@ void GLViewer::resize_event(int32 viewport_width, int32 viewport_height)
 }
 
 void GLViewer::close_event()
-{}
+{
+}
 
 void GLViewer::mouse_press_event(int32 button, int32 x, int32 y)
 {
@@ -115,7 +113,7 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		if (obj_mode())
 		{
 			rendering::Transfo3d sm(Eigen::AngleAxisd(2.0 * spinning_speed_, axis));
-			current_frame_->spin_ = inv_camera_ *  sm * camera_.frame_;
+			current_frame_->spin_ = inv_camera_ * sm * camera_.frame_;
 			auto tr = current_frame_->frame_.translation().eval();
 			current_frame_->frame_.translation().setZero();
 			current_frame_->frame_ = current_frame_->spin_ * current_frame_->frame_;
@@ -131,7 +129,7 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		}
 		need_redraw_ = true;
 	}
-	
+
 	if (inputs_->mouse_buttons_ & 2)
 	{
 		float64 zcam = 1.0 / std::tan(camera_.field_of_view() / 2.0);
@@ -139,14 +137,15 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		if (obj_mode())
 		{
 			float64 tx = dx / viewport_width_ * camera_.width() * a;
-			float64 ty = - dy / viewport_height_ * camera_.height() * a;
-			rendering::Transfo3d ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(tx, ty, 0.0)) * camera_.frame_;
+			float64 ty = -dy / viewport_height_ * camera_.height() * a;
+			rendering::Transfo3d ntr =
+				inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(tx, ty, 0.0)) * camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
 		{
 			float64 nx = float64(dx) / viewport_width_ * camera_.width() * a;
-			float64 ny = - 1.0 * float64(dy) / viewport_height_ * camera_.height() * a;
+			float64 ny = -1.0 * float64(dy) / viewport_height_ * camera_.height() * a;
 			camera_.frame_.translation().x() += 2 * nx;
 			camera_.frame_.translation().y() += 2 * ny;
 		}
@@ -160,7 +159,8 @@ void GLViewer::mouse_wheel_event(float64 dx, float64 dy)
 	{
 		if (obj_mode())
 		{
-			auto ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(0, 0, -inputs_->wheel_sensitivity_ * dy)) * camera_.frame_;
+			auto ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(0, 0, -inputs_->wheel_sensitivity_ * dy)) *
+					   camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
@@ -174,10 +174,12 @@ void GLViewer::mouse_wheel_event(float64 dx, float64 dy)
 }
 
 void GLViewer::key_press_event(int32 key_code)
-{}
+{
+}
 
 void GLViewer::key_release_event(int32 key_code)
-{}
+{
+}
 
 void GLViewer::spin()
 {
@@ -191,6 +193,6 @@ void GLViewer::spin()
 	}
 }
 
-} // namespace cgogn
-
 } // namespace ui
+
+} // namespace cgogn

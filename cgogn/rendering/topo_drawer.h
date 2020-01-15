@@ -1,35 +1,35 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_TOPO_DRAWER_H_
 #define CGOGN_RENDERING_TOPO_DRAWER_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
-#include <cgogn/rendering/shaders/shader_simple_color.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_bold_line_color.h>
 #include <cgogn/rendering/shaders/shader_round_point_color.h>
+#include <cgogn/rendering/shaders/shader_simple_color.h>
 
 #include <cgogn/geometry/algos/centroid.h>
 //#include <cgogn/geometry/functions/distance.h>
@@ -62,7 +62,6 @@ class CGOGN_RENDERING_EXPORT TopoDrawer
 	using Vec3f = Eigen::Vector3f;
 
 protected:
-
 	std::unique_ptr<VBO> vbo_darts_;
 	std::unique_ptr<VBO> vbo_relations_;
 	std::unique_ptr<VBO> vbo_color_darts_;
@@ -80,12 +79,10 @@ protected:
 
 public:
 	template <typename MAP, typename VERTEX_ATTR>
-	auto update(const MAP& m, const VERTEX_ATTR& position)
-	-> typename std::enable_if<MAP::DIMENSION == 2, void>::type;
+	auto update(const MAP& m, const VERTEX_ATTR& position) -> typename std::enable_if<MAP::DIMENSION == 2, void>::type;
 
 	template <typename MAP, typename VERTEX_ATTR>
-	auto update(const MAP& m, const VERTEX_ATTR& position)
-	-> typename std::enable_if<MAP::DIMENSION == 3, void>::type;
+	auto update(const MAP& m, const VERTEX_ATTR& position) -> typename std::enable_if<MAP::DIMENSION == 3, void>::type;
 
 	class CGOGN_RENDERING_EXPORT Renderer
 	{
@@ -99,7 +96,6 @@ public:
 		Renderer(TopoDrawer* tr);
 
 	public:
-
 		~Renderer();
 
 		/**
@@ -141,11 +137,20 @@ public:
 		return std::unique_ptr<Renderer>(new Renderer(this));
 	}
 
-	inline void set_explode_volume(float32 x) { shrink_v_ = x; }
+	inline void set_explode_volume(float32 x)
+	{
+		shrink_v_ = x;
+	}
 
-	inline void set_explode_face(float32 x) { shrink_f_ = x; }
+	inline void set_explode_face(float32 x)
+	{
+		shrink_f_ = x;
+	}
 
-	inline void set_explode_edge(float32 x) { shrink_e_ = x; }
+	inline void set_explode_edge(float32 x)
+	{
+		shrink_e_ = x;
+	}
 
 	/**
 	 * @brief update colors of darts
@@ -182,24 +187,24 @@ public:
 	 * @return the selected dart
 	 */
 	template <typename VEC3, typename VEC4>
-	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane, VEC3* dp1=nullptr, VEC3* dp2=nullptr);
+	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane, VEC3* dp1 = nullptr, VEC3* dp2 = nullptr);
 
 	template <typename VEC3, typename VEC4>
-	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane1, const VEC4& plane2, VEC3* dp1=nullptr, VEC3* dp2=nullptr);
+	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane1, const VEC4& plane2, VEC3* dp1 = nullptr,
+			  VEC3* dp2 = nullptr);
 
 	template <typename VEC3, typename VEC4>
-	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane, float32 thickness, VEC3* dp1=nullptr, VEC3* dp2=nullptr);
-
+	Dart pick(const VEC3& A, const VEC3& B, const VEC4& plane, float32 thickness, VEC3* dp1 = nullptr,
+			  VEC3* dp2 = nullptr);
 };
 
-
 template <typename MAP, typename VERTEX_ATTR>
-auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
--> typename std::enable_if<MAP::DIMENSION == 2, void>::type
+auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position) ->
+	typename std::enable_if<MAP::DIMENSION == 2, void>::type
 {
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
+	//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
 
-//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
+	//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 	using Vertex = typename MAP::Vertex;
 	using Face = typename MAP::Face;
 	using Scalar = typename geometry::vector_traits<VEC3>::Scalar;
@@ -222,15 +227,13 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 	std::vector<Dart> local_darts;
 	local_darts.reserve(256);
 
-	m.foreach_cell([&] (Face f)
-	{
+	m.foreach_cell([&](Face f) {
 		local_vertices.clear();
 		local_darts.clear();
 		VEC3 center;
 		center.setZero();
 		uint32 count = 0u;
-		m.foreach_incident_vertex(f, [&] (Vertex v)
-		{
+		m.foreach_incident_vertex(f, [&](Vertex v) {
 			local_vertices.push_back(position[v]);
 			local_darts.push_back(v.dart);
 			center += position[v];
@@ -240,38 +243,39 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 
 		// phi2 mid-edge: N -> 2N-1
 		for (uint32 i = 0; i < count; ++i)
-			local_vertices.push_back((local_vertices[i]+local_vertices[(i+1)%count])/Scalar(2.0));
+			local_vertices.push_back((local_vertices[i] + local_vertices[(i + 1) % count]) / Scalar(2.0));
 
 		// dart round point: 0 -> N-1
 		for (uint32 i = 0; i < count; ++i)
 			local_vertices[i] = local_vertices[i] * Scalar(shrink_f_) + center * (opp_shrink_f);
 
-		//dart other extremety: 2N -> 3N-1
+		// dart other extremety: 2N -> 3N-1
 		for (uint32 i = 0; i < count; ++i)
-			local_vertices.push_back(local_vertices[i]*(opp_shrink_e) + local_vertices[(i+1)%count]*Scalar(shrink_e_));
+			local_vertices.push_back(local_vertices[i] * (opp_shrink_e) +
+									 local_vertices[(i + 1) % count] * Scalar(shrink_e_));
 
-		//phi2 mid-dart: 3N -> 4N-1
+		// phi2 mid-dart: 3N -> 4N-1
 		for (uint32 i = 0; i < count; ++i)
-			local_vertices.push_back((local_vertices[i]+local_vertices[(2*count+i+1)%count])/Scalar(2.0));
+			local_vertices.push_back((local_vertices[i] + local_vertices[(2 * count + i + 1) % count]) / Scalar(2.0));
 
 		for (uint32 i = 0; i < count; ++i)
 		{
 			darts_id_.push_back(local_darts[i]);
 			const VEC3& P1 = local_vertices[i];
 			darts_pos_.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
-			const VEC3& P2 = local_vertices[2*count+i];
+			const VEC3& P2 = local_vertices[2 * count + i];
 			darts_pos_.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
 
-			const VEC3& P3 = local_vertices[count+i];
+			const VEC3& P3 = local_vertices[count + i];
 			out_pos2.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
-			const VEC3& P4 = local_vertices[3*count+i];
+			const VEC3& P4 = local_vertices[3 * count + i];
 			out_pos2.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
 		}
 	});
 
 	std::vector<Vec3f> darts_col;
 	darts_col.resize(darts_pos_.size());
-	for (auto& c: darts_col)
+	for (auto& c : darts_col)
 	{
 		c[0] = dart_color_.x();
 		c[1] = dart_color_.y();
@@ -287,7 +291,7 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 
 	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
-	vbo_color_darts_->copy_data(0, nbvec*12, darts_col[0].data());
+	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
 
 	vbo_relations_->allocate(nbvec, 3);
@@ -297,10 +301,10 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 }
 
 template <typename MAP, typename VERTEX_ATTR>
-auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
--> typename std::enable_if<MAP::DIMENSION == 3, void>::type
+auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position) ->
+	typename std::enable_if<MAP::DIMENSION == 3, void>::type
 {
-	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
+	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position must be a vertex attribute");
 
 	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 	using Vertex = typename MAP::Vertex;
@@ -330,18 +334,15 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 	std::vector<Dart> local_darts;
 	local_darts.reserve(256);
 
-	m.foreach_cell([&] (Volume v)
-	{
+	m.foreach_cell([&](Volume v) {
 		VEC3 center_vol = geometry::centroid(m, v, position);
-		m.foreach_incident_face(v, [&] (Face f)
-		{
+		m.foreach_incident_face(v, [&](Face f) {
 			local_vertices.clear();
 			local_darts.clear();
 			VEC3 center;
 			center.setZero();
 			uint32 count = 0u;
-			m.foreach_incident_vertex(f, [&] (Vertex v)
-			{
+			m.foreach_incident_vertex(f, [&](Vertex v) {
 				local_vertices.push_back(position[v]);
 				local_darts.push_back(v.dart);
 				center += position[v];
@@ -351,37 +352,39 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 
 			// phi2 mid-edge: N -> 2N-1
 			for (uint32 i = 0; i < count; ++i)
-				local_vertices.push_back((local_vertices[i]+local_vertices[(i+1)%count])/Scalar(2.0));
+				local_vertices.push_back((local_vertices[i] + local_vertices[(i + 1) % count]) / Scalar(2.0));
 
-			//phi3: 2N -> 3N-1
+			// phi3: 2N -> 3N-1
 			for (uint32 i = 0; i < count; ++i)
-				local_vertices.push_back(local_vertices[count+i]* shrink_f_ + center * (opp_shrink_f));
+				local_vertices.push_back(local_vertices[count + i] * shrink_f_ + center * (opp_shrink_f));
 
 			// dart round point: 0 -> N-1
 			for (uint32 i = 0; i < count; ++i)
 				local_vertices[i] = local_vertices[i] * shrink_f_ + center * (opp_shrink_f);
 
-			//dart other extremety: 3N -> 4N-1
+			// dart other extremety: 3N -> 4N-1
 			for (uint32 i = 0; i < count; ++i)
-				local_vertices.push_back(local_vertices[i]*(opp_shrink_e) + local_vertices[(i+1)%count]*shrink_e_);
+				local_vertices.push_back(local_vertices[i] * (opp_shrink_e) +
+										 local_vertices[(i + 1) % count] * shrink_e_);
 
-			//phi2/3 mid-dart: 4N -> 5N-1
+			// phi2/3 mid-dart: 4N -> 5N-1
 			for (uint32 i = 0; i < count; ++i)
-				local_vertices.push_back((local_vertices[i]+local_vertices[(2*count+i+1)%count])/Scalar(2.0));
+				local_vertices.push_back((local_vertices[i] + local_vertices[(2 * count + i + 1) % count]) /
+										 Scalar(2.0));
 
 			for (uint32 i = 0; i < count; ++i)
 			{
 				darts_id_.push_back(local_darts[i]);
 				VEC3 P1 = (local_vertices[i] * shrink_v_) + (center_vol * opp_shrink_v);
 				darts_pos_.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
-				VEC3 P2 = (local_vertices[3*count+i] * shrink_v_) + (center_vol * opp_shrink_v);
+				VEC3 P2 = (local_vertices[3 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
 				darts_pos_.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
 
-				const VEC3 P3 = (local_vertices[count+i] * shrink_v_) + (center_vol * opp_shrink_v);
+				const VEC3 P3 = (local_vertices[count + i] * shrink_v_) + (center_vol * opp_shrink_v);
 				out_pos2.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
-				const VEC3 P4 = (local_vertices[4*count+i] * shrink_v_) + (center_vol * opp_shrink_v);
+				const VEC3 P4 = (local_vertices[4 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
 				out_pos2.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
-				const VEC3& P5 = local_vertices[2*count+i];
+				const VEC3& P5 = local_vertices[2 * count + i];
 				out_pos3.push_back({float32(P5[0]), float32(P5[1]), float32(P5[2])});
 				out_pos3.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
 			}
@@ -390,7 +393,7 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 
 	std::vector<Vec3f> darts_col;
 	darts_col.resize(darts_pos_.size());
-	for (auto& c: darts_col)
+	for (auto& c : darts_col)
 	{
 		c[0] = dart_color_.x();
 		c[1] = dart_color_.y();
@@ -405,17 +408,15 @@ auto TopoDrawer::update(const MAP& m, const VERTEX_ATTR& position)
 
 	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
-	vbo_color_darts_->copy_data(0, nbvec*12, darts_col[0].data());
+	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
 
 	vbo_relations_->allocate(2 * nbvec, 3);
 	vbo_relations_->bind();
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
-	vbo_relations_->copy_data(nbvec * 12, nbvec*12, out_pos3[0].data());
+	vbo_relations_->copy_data(nbvec * 12, nbvec * 12, out_pos3[0].data());
 	vbo_relations_->release();
 }
-
-
 
 template <typename VERTEX_ATTR>
 void TopoDrawer::update_colors(const VERTEX_ATTR& color)
@@ -423,22 +424,21 @@ void TopoDrawer::update_colors(const VERTEX_ATTR& color)
 	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 
 	std::vector<Vec3f> darts_col;
-	darts_col.reserve(2*darts_id_.size());
-//	darts_col.clear();
+	darts_col.reserve(2 * darts_id_.size());
+	//	darts_col.clear();
 
-	for (Dart d: darts_id_)
+	for (Dart d : darts_id_)
 	{
 		const VEC3& col = color[d];
-		darts_col.push_back({float32(col[0]),float32(col[1]),float32(col[2])});
-		darts_col.push_back({float32(col[0]),float32(col[1]),float32(col[2])});
+		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
+		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
 	}
 
 	uint32 nbvec = darts_col.size();
 	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
-	vbo_color_darts_->copy_data(0, nbvec*12, darts_col[0].data());
+	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
-
 }
 
 template <typename RGB>
@@ -450,9 +450,9 @@ void TopoDrawer::update_color(Dart d, const RGB& rgb)
 		std::size_t x = it - darts_id_.begin();
 
 		vbo_color_darts_->bind();
-		float32 rgbf[6] = {float32(rgb[0]),float32(rgb[1]),float32(rgb[2]),
-						  float32(rgb[0]),float32(rgb[1]),float32(rgb[2])};
-		vbo_color_darts_->copy_data(uint32(x)*24u, 24u, rgbf);
+		float32 rgbf[6] = {float32(rgb[0]), float32(rgb[1]), float32(rgb[2]),
+						   float32(rgb[0]), float32(rgb[1]), float32(rgb[2])};
+		vbo_color_darts_->copy_data(uint32(x) * 24u, 24u, rgbf);
 		vbo_color_darts_->release();
 	}
 }
@@ -460,34 +460,33 @@ void TopoDrawer::update_color(Dart d, const RGB& rgb)
 template <typename VEC3, typename VEC4>
 Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane, VEC3* xdp1, VEC3* xdp2)
 {
-//	using LVEC = geometry::Vec_T<Vec3f>;
+	//	using LVEC = geometry::Vec_T<Vec3f>;
 
-	VEC3 xAB = xB-xA;
-	Vec3f A(xA[0],xA[1],xA[2]);
-	Vec3f AB(xAB[0],xAB[1],xAB[2]);
+	VEC3 xAB = xB - xA;
+	Vec3f A(xA[0], xA[1], xA[2]);
+	Vec3f AB(xAB[0], xAB[1], xAB[2]);
 
 	float32 dmax = std::numeric_limits<float32>::max();
 	float32 AB2 = AB.dot(AB);
 
 	std::size_t isel = INVALID_INDEX;
 
-	for(std::size_t i=0, nb_d = darts_id_.size(); i<nb_d; ++i)
+	for (std::size_t i = 0, nb_d = darts_id_.size(); i < nb_d; ++i)
 	{
-		const Vec3f& PP = darts_pos_[2*i];
-		const Vec3f& QQ = darts_pos_[2*i+1];
+		const Vec3f& PP = darts_pos_[2 * i];
+		const Vec3f& QQ = darts_pos_[2 * i + 1];
 
-		float32 prod1 = PP[0]*float32(plane[0]);
-		prod1 += PP[1]*float32(plane[1]);
-		prod1 += PP[2]*float32(plane[2]);
+		float32 prod1 = PP[0] * float32(plane[0]);
+		prod1 += PP[1] * float32(plane[1]);
+		prod1 += PP[2] * float32(plane[2]);
 		prod1 += float32(plane[3]);
 
-
-		float32 prod2 = QQ[0]*float32(plane[0]);
-		prod2 += QQ[1]*float32(plane[1]);
-		prod2 += QQ[2]*float32(plane[2]);
+		float32 prod2 = QQ[0] * float32(plane[0]);
+		prod2 += QQ[1] * float32(plane[1]);
+		prod2 += QQ[2] * float32(plane[2]);
 		prod2 += float32(plane[3]);
 
-		if ((prod1<=0.0f)||(prod2<=0.0f))
+		if ((prod1 <= 0.0f) || (prod2 <= 0.0f))
 		{
 			float32 d2 = geometry::squared_distance_line_seg(A, AB, AB2, PP, QQ);
 			if (d2 < dmax)
@@ -502,10 +501,10 @@ Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane, VEC3* x
 	{
 		if (xdp1 && xdp2)
 		{
-			Vec3f dp1 = darts_pos_[2*isel];
-			Vec3f dp2 = darts_pos_[2*isel+1];
-			*xdp1 = VEC3(dp1[0],dp1[1],dp1[2]);
-			*xdp2 = VEC3(dp2[0],dp2[1],dp2[2]);
+			Vec3f dp1 = darts_pos_[2 * isel];
+			Vec3f dp2 = darts_pos_[2 * isel + 1];
+			*xdp1 = VEC3(dp1[0], dp1[1], dp1[2]);
+			*xdp2 = VEC3(dp2[0], dp2[1], dp2[2]);
 		}
 		return darts_id_[isel];
 	}
@@ -513,48 +512,46 @@ Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane, VEC3* x
 	return Dart(INVALID_INDEX);
 }
 
-
-
 template <typename VEC3, typename VEC4>
 Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane1, const VEC4& plane2, VEC3* xdp1, VEC3* xdp2)
 {
-//	using LVEC = geometry::Vec_T<Vec3f>;
+	//	using LVEC = geometry::Vec_T<Vec3f>;
 
-	VEC3 xAB = xB-xA;
-	Vec3f A(xA[0],xA[1],xA[2]);
-	Vec3f AB(xAB[0],xAB[1],xAB[2]);
+	VEC3 xAB = xB - xA;
+	Vec3f A(xA[0], xA[1], xA[2]);
+	Vec3f AB(xAB[0], xAB[1], xAB[2]);
 
 	float32 dmax = std::numeric_limits<float32>::max();
 	float32 AB2 = AB.dot(AB);
 
 	std::size_t isel = INVALID_INDEX;
 
-	for(std::size_t i=0, nb_d = darts_id_.size(); i<nb_d; ++i)
+	for (std::size_t i = 0, nb_d = darts_id_.size(); i < nb_d; ++i)
 	{
-		const Vec3f& PP = darts_pos_[2*i];
-		const Vec3f& QQ = darts_pos_[2*i+1];
+		const Vec3f& PP = darts_pos_[2 * i];
+		const Vec3f& QQ = darts_pos_[2 * i + 1];
 
-		float32 prod1 = PP[0]*float32(plane1[0]);
-		prod1 += PP[1]*float32(plane1[1]);
-		prod1 += PP[2]*float32(plane1[2]);
+		float32 prod1 = PP[0] * float32(plane1[0]);
+		prod1 += PP[1] * float32(plane1[1]);
+		prod1 += PP[2] * float32(plane1[2]);
 		prod1 += float32(plane1[3]);
 
-		float32 prod2 = QQ[0]*float32(plane1[0]);
-		prod2 += QQ[1]*float32(plane1[1]);
-		prod2 += QQ[2]*float32(plane1[2]);
+		float32 prod2 = QQ[0] * float32(plane1[0]);
+		prod2 += QQ[1] * float32(plane1[1]);
+		prod2 += QQ[2] * float32(plane1[2]);
 		prod2 += float32(plane1[3]);
 
-		float32 prod3 = PP[0]*float32(plane2[0]);
-		prod3 += PP[1]*float32(plane2[1]);
-		prod3 += PP[2]*float32(plane2[2]);
+		float32 prod3 = PP[0] * float32(plane2[0]);
+		prod3 += PP[1] * float32(plane2[1]);
+		prod3 += PP[2] * float32(plane2[2]);
 		prod3 += float32(plane2[3]);
 
-		float32 prod4 = QQ[0]*float32(plane2[0]);
-		prod4 += QQ[1]*float32(plane2[1]);
-		prod4 += QQ[2]*float32(plane2[2]);
+		float32 prod4 = QQ[0] * float32(plane2[0]);
+		prod4 += QQ[1] * float32(plane2[1]);
+		prod4 += QQ[2] * float32(plane2[2]);
 		prod4 += float32(plane2[3]);
 
-		if (((prod1<=0.0f)||(prod2<=0.0f)) && ((prod3<=0.0f)||(prod4<=0.0f)))
+		if (((prod1 <= 0.0f) || (prod2 <= 0.0f)) && ((prod3 <= 0.0f) || (prod4 <= 0.0f)))
 		{
 			float32 d2 = geometry::squared_distance_line_seg(A, AB, AB2, PP, QQ);
 			if (d2 < dmax)
@@ -569,10 +566,10 @@ Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane1, const 
 	{
 		if (xdp1 && xdp2)
 		{
-			Vec3f dp1 = darts_pos_[2*isel];
-			Vec3f dp2 = darts_pos_[2*isel+1];
-			*xdp1 = VEC3(dp1[0],dp1[1],dp1[2]);
-			*xdp2 = VEC3(dp2[0],dp2[1],dp2[2]);
+			Vec3f dp1 = darts_pos_[2 * isel];
+			Vec3f dp2 = darts_pos_[2 * isel + 1];
+			*xdp1 = VEC3(dp1[0], dp1[1], dp1[2]);
+			*xdp2 = VEC3(dp2[0], dp2[1], dp2[2]);
 		}
 		return darts_id_[isel];
 	}
@@ -584,12 +581,11 @@ template <typename VEC3, typename VEC4>
 Dart TopoDrawer::pick(const VEC3& xA, const VEC3& xB, const VEC4& plane, float32 thickness, VEC3* xdp1, VEC3* xdp2)
 {
 	VEC4 p1 = plane;
-	p1[3] -= thickness/2.0f;
+	p1[3] -= thickness / 2.0f;
 	VEC4 p2 = -plane;
-	p2[3] -= thickness/2.0f;
-	return pick(xA,xB,p1,p2,xdp1,xdp2);
+	p2[3] -= thickness / 2.0f;
+	return pick(xA, xB, p1, p2, xdp1, xdp2);
 }
-
 
 } // namespace rendering
 
