@@ -61,11 +61,14 @@ class VolumeRender : public ViewModule
 
 	struct Parameters
 	{
-		Parameters() :
+		inline Parameters() :
 			vertex_position_(nullptr),
-			render_volumes_(true),
-                        render_volumes_edges_(false),
-                        explode_factor_(0.9f)
+			render_volumes_(false),
+			render_volumes_edges_(false),
+			color_volumes_(0,0,1,1),
+			color_edges_(1,1,0,1),
+			explode_factor_(0.9f),
+			auto_update_center_(true)
 		{
                     vol_drw_ = std::make_unique<cgogn::rendering::VolumeDrawer>();
                     vol_rend_ = vol_drw_->generate_renderer();
@@ -73,16 +76,16 @@ class VolumeRender : public ViewModule
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
-                std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 //                std::shared_ptr<Attribute<Vec3>> volume_color_;
 
-                std::unique_ptr<cgogn::rendering::VolumeDrawer> vol_drw_;
-                std::unique_ptr<cgogn::rendering::VolumeDrawer::Renderer> vol_rend_;
+		std::unique_ptr<cgogn::rendering::VolumeDrawer> vol_drw_;
+		std::unique_ptr<cgogn::rendering::VolumeDrawer::Renderer> vol_rend_;
 
-                bool render_volumes_;
-                bool render_volumes_edges_;
-                GLColor color_volumes_;
-                GLColor color_edges_;
+		bool render_volumes_;
+		bool render_volumes_edges_;
+		GLColor color_volumes_;
+		GLColor color_edges_;
 		float32 explode_factor_;
 
 		bool auto_update_center_;
@@ -115,10 +118,10 @@ private:
 					{
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
-                                                {
-                                                    p.vol_drw_->update_edge(*m, p.vertex_position_.get());
-                                                    p.vol_drw_->update_face(*m, p.vertex_position_.get());
-                                                }
+						{
+							p.vol_drw_->update_edge(*m, p.vertex_position_.get());
+							p.vol_drw_->update_face(*m, p.vertex_position_.get());
+						}
 						v->request_update();
 					}
 				)
@@ -162,20 +165,20 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-                        p.vol_rend_->set_explode_volume(p.explode_factor_);
-                        if (p.render_volumes_)
-			{
-                            p.vol_rend_->set_face_color(p.color_volumes_);
-                            glEnable(GL_POLYGON_OFFSET_FILL);
-                            glPolygonOffset(1.0f, 2.0f);
-                            p.vol_rend_->draw_faces(proj_matrix, view_matrix);
-                            glDisable(GL_POLYGON_OFFSET_FILL);
-			}
+			p.vol_rend_->set_explode_volume(p.explode_factor_);
+//			if (p.render_volumes_)
+//			{
+//				p.vol_rend_->set_face_color(p.color_volumes_);
+//				glEnable(GL_POLYGON_OFFSET_FILL);
+//				glPolygonOffset(1.0f, 2.0f);
+//				p.vol_rend_->draw_faces(proj_matrix, view_matrix);
+//				glDisable(GL_POLYGON_OFFSET_FILL);
+//			}
 
-                        if (p.render_volumes_edges_)
+			if (p.render_volumes_edges_)
 			{
-                            p.vol_rend_->set_edge_color(p.color_edges_);
-                            p.vol_rend_->draw_edges(proj_matrix, view_matrix);
+				p.vol_rend_->set_edge_color(p.color_edges_);
+				p.vol_rend_->draw_edges(proj_matrix, view_matrix);
 			}
 		}
 	}
@@ -228,7 +231,7 @@ protected:
 			}
 //			if (p.vertex_position_)
 //			{
-//			set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
+//				set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
 //			}
 
 

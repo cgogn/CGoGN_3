@@ -34,6 +34,9 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
+
+
 using SurfaceMesh = cgogn::CMap2;
 using VolumeMesh = cgogn::CMap3;
 
@@ -53,8 +56,10 @@ int main(int argc, char** argv)
 	std::string surface_filename, volume_filename;
 	if (argc < 3)
 	{
-		std::cout << "Usage: " << argv[0] << " surface_filename volume_filename" << std::endl;
-		return 1;
+		volume_filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
+
+//		std::cout << "Usage: " << argv[0] << " surface_filename volume_filename" << std::endl;
+//		return 1;
 	}
 	else
 	{

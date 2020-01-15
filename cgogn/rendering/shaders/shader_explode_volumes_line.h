@@ -66,7 +66,6 @@ public:
 		associate_vbos(vbo_pos);
 		release_vao();
 	}
-
 };
 
 

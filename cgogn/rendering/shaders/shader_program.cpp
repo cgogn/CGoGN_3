@@ -329,6 +329,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) :
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();
+	vao_initialized_ = true;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
