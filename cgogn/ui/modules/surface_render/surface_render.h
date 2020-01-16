@@ -281,25 +281,25 @@ protected:
 				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_gouraud_->release();
 				}
 				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_->release();
 				}
 				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
 				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 

@@ -425,7 +425,7 @@ bool CPH3::volume_is_subdivided(Dart d) const
 {
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 
-	uint vLevel = volume_level(d);
+	uint32 vLevel = volume_level(d);
 	if (vLevel < current_level_)
 		return false;
 

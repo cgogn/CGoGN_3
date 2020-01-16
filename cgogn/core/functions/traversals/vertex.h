@@ -122,6 +122,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 	}
 }
 
+
 /*****************************************************************************/
 
 // template <typename MESH, typename FUNC>

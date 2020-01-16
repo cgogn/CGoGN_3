@@ -65,16 +65,16 @@ struct MeshData
 		update_nb_cells();
 	}
 
-	void draw(rendering::DrawingType primitive)
+	void draw(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
 		if (!render_.is_primitive_uptodate(primitive))
-			render_.init_primitives(*mesh_, primitive);
+			render_.init_primitives(*mesh_, primitive, position.get());
 		render_.draw(primitive);
 	}
 
-	void init_primitives(rendering::DrawingType primitive)
+	void init_primitives(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
-		render_.init_primitives(*mesh_, primitive);
+		render_.init_primitives(*mesh_, primitive, position);
 	}
 
 	void set_primitives_dirty(rendering::DrawingType primitive)
