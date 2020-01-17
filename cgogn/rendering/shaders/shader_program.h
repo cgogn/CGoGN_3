@@ -366,6 +366,53 @@ public:
 
 		get_matrices_uniforms();
 	}
+
+	template <typename... Ts>
+	void load_tfb1_bind(const std::string& vert_src, const std::vector<std::string>& tf_outs, Ts... pn)
+	{
+		vert_shader_ = new Shader(GL_VERTEX_SHADER);
+		vert_shader_->compile(vert_src);
+
+		glAttachShader(id_, vert_shader_->shaderId());
+//		glAttachShader(id_, frag_shader_->shaderId());
+
+		bind_attrib_locations(pn...);
+
+		if (!tf_outs.empty())
+		{
+			std::vector<const char*> tfo;
+			for (const auto& t: tf_outs)
+				tfo.push_back(t.c_str());
+			glTransformFeedbackVaryings(id_, GLsizei(tf_outs.size()), tfo.data(), GL_SEPARATE_ATTRIBS);
+		}
+
+		glLinkProgram(id_);
+
+		// puis detache (?)
+//		glDetachShader(id_, frag_shader_->shaderId());
+		glDetachShader(id_, vert_shader_->shaderId());
+
+		// Print log if needed
+		GLint infologLength = 0;
+		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+		if (infologLength != GL_TRUE)
+			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+		if (infologLength != GL_TRUE)
+			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+
+		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+		if (infologLength > 1)
+		{
+			char* infoLog = new char[infologLength];
+			int charsWritten = 0;
+			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+			std::cerr << "Link message: " << infoLog << std::endl;
+			delete[] infoLog;
+		}
+
+		get_matrices_uniforms();
+	}
 };
 
 class CGOGN_RENDERING_EXPORT ShaderParam

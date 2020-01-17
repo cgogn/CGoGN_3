@@ -57,7 +57,9 @@ enum DrawingType : uint8
 	VOLUMES_VERTICES,
 	VOLUMES_EDGES,
 	VOLUMES_FACES,
-	SIZE_BUFFER
+	SIZE_BUFFER,
+	LINES_TB,
+	TRIANGLES_TB,
 };
 
 class CGOGN_RENDERING_EXPORT MeshRender
@@ -110,6 +112,24 @@ protected:
 	}
 
 	template <typename MESH>
+	inline void init_lines(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_indices_edge)
+	{
+		if constexpr (mesh_traits<MESH>::dimension > 0)
+		{
+			using Vertex = typename mesh_traits<MESH>::Vertex;
+			using Edge = typename mesh_traits<MESH>::Edge;
+			foreach_cell(m, [&](Edge e) -> bool {
+				foreach_incident_vertex(m, e, [&](Vertex v) -> bool {
+					table_indices.push_back(index_of(m, v));
+					return true;
+				});
+				table_indices.push_back(index_of(m, e));
+				return true;
+			});
+		}
+	}
+
+	template <typename MESH>
 	inline void init_triangles(const MESH& m, std::vector<uint32>& table_indices)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 1)
@@ -124,6 +144,28 @@ protected:
 					table_indices.push_back(index_of(m, vertices[i]));
 					table_indices.push_back(index_of(m, vertices[i + 1]));
 				}
+				return true;
+			});
+		}
+	}
+
+
+	template <typename MESH>
+	inline void init_triangles(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_indices_face)
+	{
+		if constexpr (mesh_traits<MESH>::dimension > 1)
+		{
+			using Vertex = typename mesh_traits<MESH>::Vertex;
+			using Face = typename mesh_traits<MESH>::Face;
+			foreach_cell(m, [&](Face f) -> bool {
+				std::vector<Vertex> vertices = incident_vertices(m, f);
+				for (uint32 i = 1; i < vertices.size() - 1; ++i)
+				{
+					table_indices.push_back(index_of(m, vertices[0]));
+					table_indices.push_back(index_of(m, vertices[i]));
+					table_indices.push_back(index_of(m, vertices[i + 1]));
+				}
+				table_indices_face.push_back(index_of(m,f));
 				return true;
 			});
 		}
@@ -154,6 +196,31 @@ protected:
 		}
 	}
 
+	template <typename MESH>
+	inline void init_ear_triangles(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_indices_face,
+				   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+	{
+		if constexpr (mesh_traits<MESH>::dimension > 1)
+		{
+			using Vertex = typename mesh_traits<MESH>::Vertex;
+			using Face = typename mesh_traits<MESH>::Face;
+			foreach_cell(m, [&](Face f) -> bool {
+				if (codegree(m,f)==3)
+				{
+					std::vector<Vertex> vertices = incident_vertices(m,f);
+					table_indices.push_back(index_of(m, vertices[0]));
+					table_indices.push_back(index_of(m, vertices[1]));
+					table_indices.push_back(index_of(m, vertices[2]));
+				}
+				else
+				{
+					cgogn::geometry::append_ear_triangulation(m, f, position, table_indices);
+				}
+				table_indices_face.push_back(index_of(m,f));
+				return true;
+			});
+		}
+	}
 	template <typename MESH>
 	inline void init_volumes_faces(const MESH& m, std::vector<uint32>& table_indices,
 			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
@@ -236,6 +303,11 @@ public:
 	{
 		std::vector<uint32> table_indices;
 		table_indices.reserve(1024u);
+		std::vector<uint32> table_indices_cell;
+		table_indices_cell.reserve(1024u);
+
+		 using Edge = typename mesh_traits<MESH>::Edge;
+		 using Face = typename mesh_traits<MESH>::FAce;
 
 		switch (prim)
 		{
@@ -243,10 +315,16 @@ public:
 			init_points(m, table_indices);
 			break;
 		case LINES:
-			init_lines(m, table_indices);
+			if (is_indexed<Face>(m))
+				init_lines(m, table_indices,table_indices_cell);
+			else
+				init_lines(m, table_indices);
 			break;
 		case TRIANGLES:
-			init_ear_triangles(m, table_indices, position);
+			if (is_indexed<Face>(m))
+				init_ear_triangles(m, table_indices, position);
+			else
+				init_ear_triangles(m, table_indices, table_indices_cell, position);
 			break;
 		case BOUNDARY:
 			break;

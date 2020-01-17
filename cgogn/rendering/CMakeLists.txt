@@ -35,6 +35,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo_update.h"
 
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_simple_color.h"
@@ -81,6 +82,11 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_frame2d.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_histo.h"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_histo.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/transform_feedback.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/texture_to_vbo.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/texture_to_vbo.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_face.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_face.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

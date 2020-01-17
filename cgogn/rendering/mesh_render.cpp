@@ -53,35 +53,45 @@ void MeshRender::draw(DrawingType prim)
 	{
 	case POINTS:
 		indices_buffers_[POINTS]->bind();
-		glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_POINTS, nb_indices_[POINTS], GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[POINTS]->release();
 		break;
 	case LINES:
 		indices_buffers_[LINES]->bind();
-		glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_LINES, nb_indices_[LINES], GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[LINES]->release();
+		break;
+	case LINES_TB:
+		indices_buffers_[LINES]->bind_tb(10);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices_[LINES]/2);
+		indices_buffers_[LINES]->release_tb();
 		break;
 	case TRIANGLES:
 		indices_buffers_[TRIANGLES]->bind();
-		glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, nb_indices_[TRIANGLES], GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[TRIANGLES]->release();
+		break;
+	case TRIANGLES_TB:
+		indices_buffers_[TRIANGLES]->bind_tb(10);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices_[TRIANGLES]/3);
+		indices_buffers_[TRIANGLES]->release_tb();
 		break;
 	case BOUNDARY:
 		break;
 	case VOLUMES_EDGES:
 		indices_buffers_[VOLUMES_EDGES]->bind_tb(10);
 		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices_[VOLUMES_EDGES]/3);
-		indices_buffers_[VOLUMES_EDGES]->release();
+		indices_buffers_[VOLUMES_EDGES]->release_tb();
 		break;
 	case VOLUMES_FACES:
 		indices_buffers_[VOLUMES_FACES]->bind_tb(10);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices_[VOLUMES_FACES]/4);
-		indices_buffers_[VOLUMES_FACES]->release();
+		indices_buffers_[VOLUMES_FACES]->release_tb();
 		break;
 	case VOLUMES_VERTICES:
 		indices_buffers_[VOLUMES_VERTICES]->bind_tb(10);
 		glDrawArrays(GL_POINTS, 0, nb_indices_[VOLUMES_VERTICES]/2);
-		indices_buffers_[VOLUMES_VERTICES]->release();
+		indices_buffers_[VOLUMES_VERTICES]->release_tb();
 		break;
 	default:
 		break;
