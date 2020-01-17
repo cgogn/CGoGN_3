@@ -198,6 +198,7 @@ public:
 		add_uniforms(pn...);
 	}
 
+
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
 		glBindAttribLocation(id_, attrib, str_var);
@@ -219,6 +220,11 @@ public:
 	{
 		bind_attrib_location(attrib1, p1);
 		internal_bind_attrib_locations(attrib1 + 1, pn...);
+	}
+
+
+	void bind_attrib_locations()
+	{
 	}
 
 	template <typename... Ts>

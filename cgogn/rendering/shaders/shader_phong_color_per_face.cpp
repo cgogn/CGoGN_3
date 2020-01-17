@@ -36,65 +36,79 @@ namespace rendering
 ShaderPhongColor* ShaderPhongColor::instance_ = nullptr;
 
 static const char* vertex_shader_source =
-	"#version 150\n"
-	"in vec3 vertex_pos;\n"
-	"in vec3 vertex_normal;\n"
-	"in vec3 vertex_color;\n"
-	"uniform mat4 projection_matrix;\n"
-	"uniform mat4 model_view_matrix;\n"
-	"uniform mat3 normal_matrix;\n"
-	"uniform vec3 lightPosition;\n"
-	"out vec3 EyeVector;\n"
-	"out vec3 Normal;\n"
-	"out vec3 LightDir;\n"
-	"out vec3 front_color;\n"
-	"void main ()\n"
-	"{\n"
-	"	Normal = normal_matrix * vertex_normal;\n"
-	"	vec3 Position = vec3 (model_view_matrix * vec4 (vertex_pos, 1.0));\n"
-	"	LightDir = lightPosition - Position;\n"
-	"	EyeVector = -Position;"
-	"	front_color = vertex_color;"
-	"	gl_Position = projection_matrix * model_view_matrix * vec4 (vertex_pos, 1.0);\n"
-	"}\n";
+R"(
+#version 430
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat3 normalMatrix;
+
+uniform usamplerBuffer tri_indices;
+uniform usamplerBuffer face_emb;
+
+uniform samplerBuffer position_vertex;
+uniform samplerBuffer normal_vertex;
+uniform samplerBuffer color_face;
+
+out vec3 Po;
+out vec3 No;
+flat out vec3 Co;
+void main()
+{
+	int ind_v = int(texelFetch(tri_indices,3*gl_InstanceID+gl_VertexID).r);
+	int emb = int(texelFetch(face_emb, gl_InstanceID).r);
+
+	vec3 normal_in = texelFetch(normal_vertex, ind_v).rgb;
+	vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
+	Co = texelFetch(color_face, emb).rgb;;
+
+	No = normalMatrix * normal_in;
+	vec4 Po4 = viewMatrix * vec4(position_in,1);
+	Po = Po4.xyz;
+	gl_Position = projectionMatrix * Po4;
+}
+)";
 
 static const char* fragment_shader_source =
-	"#version 150\n"
-	"in vec3 EyeVector;\n"
-	"in vec3 Normal;\n"
-	"in vec3 LightDir;\n"
-	"in vec3 front_color;\n"
-	"uniform vec4 spec_color;\n"
-	"uniform vec4 ambiant_color;\n"
-	"uniform float spec_coef;\n"
-	"uniform bool double_side;\n"
-	"out vec4 frag_color;\n"
-	"void main()\n"
-	"{\n"
-	"	vec3 N = normalize (Normal);\n"
-	"	vec3 L = normalize (LightDir);\n"
-	"	vec4 finalColor = ambiant_color;\n"
-	"	if (gl_FrontFacing==false)\n" // do not use ! because of bug on old intel under OS/X
-	"	{\n"
-	"		if (!double_side)\n"
-	"			discard;\n"
-	"		N *= -1.0;\n"
-	"	}\n"
-	"	float lambertTerm = clamp(dot(N,L),0.0,1.0);\n"
-	"	finalColor += vec4(front_color*lambertTerm,0.0);\n"
-	"	vec3 E = normalize(EyeVector);\n"
-	"	vec3 R = reflect(-L, N);\n"
-	"	float specular = pow( max(dot(R, E), 0.0), spec_coef );\n"
-	"	finalColor += spec_color * specular;\n"
-	"	frag_color=finalColor;\n"
-	"}\n";
+R"(
+#version 330
+precision highp float;
+in vec3 Po;
+in vec3 No;
+in flat vec3 Co;
+
+out vec3 frag_out;
+
+uniform vec3 light_pos;
+uniform vec4 spec_color;
+uniform vec4 ambiant_color;
+uniform float spec_coef;
+uniform bool double_side;
+
+void main()
+{
+	vec3 N = normalize(No);
+	vec3 L = normalize(light_pos-Po);
+	if (gl_FrontFacing==false)
+	{
+		if (!double_side)
+			discard;
+		N *= -1.0;
+	}
+
+	float lamb = max(0.0,dot(N,L));
+	vec3 E = normalize(-Po);
+	vec3 R = reflect(-L, N);
+	float spec = pow( max(dot(R,E), 0.0), spec_coef);
+	frag_out = ambiant_color + lamb*Co + spec*spec_color;
+}
+)";
+
 
 ShaderPhongColor::ShaderPhongColor()
 {
 
-	load3_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_color");
-
-	add_uniforms("light_position", "ambiant_color", "spec_color", "spec_coef", "double_side");
+	load2_bind(vertex_shader_source, fragment_shader_source);
+	add_uniforms("tri_indices", "face_emb", "position_vertex", "normal_vertex", "color_face", "light_position", "ambiant_color", "spec_color", "spec_coef", "double_side");
 }
 
 } // namespace rendering

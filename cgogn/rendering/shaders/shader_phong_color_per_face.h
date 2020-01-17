@@ -26,6 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/ebo.h>
 
 namespace cgogn
 {
@@ -39,7 +40,9 @@ class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
 protected:
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
+		shader_->set_uniforms_values(10,11, // tb bind by draw call
+									vbo_pos_->bind_tb(20),vbo_norm_->bind_tb(21),vbo_color_->bind_tb(22),
+									light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
 	}
 
 public:
@@ -66,6 +69,7 @@ public:
 		vbo_norm_ = vbo_norm;
 		vbo_color_ = vbo_color;
 	}
+
 };
 } // namespace rendering
 } // namespace cgogn

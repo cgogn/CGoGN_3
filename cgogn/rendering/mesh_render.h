@@ -307,7 +307,7 @@ public:
 		table_indices_cell.reserve(1024u);
 
 		 using Edge = typename mesh_traits<MESH>::Edge;
-		 using Face = typename mesh_traits<MESH>::FAce;
+		 using Face = typename mesh_traits<MESH>::Face;
 
 		switch (prim)
 		{

@@ -77,14 +77,10 @@ using TFB_TEX2VBO = TransformFeedback<ShaderTEX2VBO>;
 void texture_to_vbo( TFB_TEX2VBO* tfb, Texture2D* tex, VBO* vbo)
 {
 	tfb->start(GL_POINTS,{vbo});
-
 }
 
+}
+}
 
-};
-
-} // namespace rendering
-
-} // namespace cgogn
 
 #endif // CGOGN_RENDERING_SHADERS_FLAT_H_
