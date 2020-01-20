@@ -164,7 +164,7 @@ protected:
 			{
 				p.param_vector_per_vertex_->length_ = p.vector_base_size_ * p.vector_scale_factor_;
 				p.param_vector_per_vertex_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
+				md->draw(rendering::BUFFER_POINTS);
 				p.param_vector_per_vertex_->release();
 			}
 		}

@@ -87,13 +87,13 @@ public:
 	{
 		if (id_tb_==0)
 		{
-			static GLenum internals[]={GL_R32F,GL_RG32F,GL_RGB32F,GL_RGB32F};
+			static GLenum internals[]={GL_R32F,GL_RG32F,GL_RGB32F,GL_RGBA32F};
 			glGenTextures(1,&id_tb_);
 			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
-			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_], id_);
+			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_-1], id_);
+			glBindTexture(GL_TEXTURE_BUFFER,0);
 		}
-		else
-			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		glActiveTexture(GL_TEXTURE0 + unit);
 		return unit;
 	}

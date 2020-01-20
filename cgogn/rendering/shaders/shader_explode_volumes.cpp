@@ -32,8 +32,8 @@ namespace rendering
 static const char* vertex_shader_source =
 		R"(
 		#version 330
-		uniform mat4 projectionMatrix;
-		uniform mat4 viewMatrix;
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
 
 		uniform usamplerBuffer tri_indices;
 		uniform samplerBuffer position_vertex;
@@ -52,14 +52,17 @@ static const char* vertex_shader_source =
 			vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
 			vec3 center = texelFetch(center_volume, ind_c).rgb;
 
-			float d = dot(plane_clip,gl_in[0].gl_Position);
-			float d2 = dot(plane_clip,gl_in[0].gl_Position);
+			float d = dot(plane_clip, vec4(center,1));
+			float d2 = dot(plane_clip2,vec4(center,1));
 			if ((d<=0.0)&&(d2<=0.0))
 			{
-				vec3 P = mix(center, position_in, explode);
-				vec4 Po4 = viewMatrix * vec4(position_in,1);
+				vec3 P = mix(center, position_in, explode)*0.0001+position_in *0.00001 +
+						vec3(gl_VertexID%2,gl_VertexID/2,0)*0.02 +
+						texelFetch(position_vertex,100).rgb;
+
+				vec4 Po4 = model_view_matrix * vec4(P,1);
 				Po = Po4.xyz;
-				gl_Position = projectionMatrix * Po4;
+				gl_Position = projection_matrix * Po4;
 			}
 			else
 			{
@@ -90,7 +93,7 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source);
 	add_uniforms("tri_indices", "position_vertex", "center_volume",
-				"color", "light_position", "explode_vol", "plane_clip", "plane_clip2");
+				"color", "light_position", "explode", "plane_clip", "plane_clip2");
 }
 
 } // namespace rendering

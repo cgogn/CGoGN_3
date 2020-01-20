@@ -134,7 +134,8 @@ struct mesh_traits<Graph>
 	using HalfEdge = Graph::HalfEdge;
 	using Edge = Graph::Edge;
 	// FOR TEST
-	using Face = Graph::Edge;
+	using Face = Edge;
+	using Volume = Edge;
 
 	using Cells = std::tuple<Vertex, HalfEdge, Edge>;
 	static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge"};

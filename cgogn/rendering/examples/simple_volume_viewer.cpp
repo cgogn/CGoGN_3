@@ -30,8 +30,9 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-//#include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/volume_render/volume_render.h>
+#include <cgogn/geometry/algos/centroid.h>
+
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
@@ -40,6 +41,8 @@ using Mesh = cgogn::CMap3;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Volume = typename cgogn::mesh_traits<Mesh>::Volume;
+
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -63,8 +66,7 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-//	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::VolumeRender<Mesh> vr(app);
+	cgogn::ui::Volume_Render<Mesh> vr(app);
 
 	app.init_modules();
 
@@ -81,6 +83,11 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<Attribute<Vec3>> volume_center = cgogn::add_attribute<Vec3, Volume>(*m, "center");
+
+	cgogn::index_cells<Volume>(*m);
+	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
+
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 

@@ -83,9 +83,10 @@ public:
 			glGenTextures(1,&id_tb_);
 			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
+			glBindTexture(GL_TEXTURE_BUFFER,0);
 		}
-		else
-			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		glActiveTexture(GL_TEXTURE0 + unit);
 		return unit;
 	}
@@ -106,7 +107,7 @@ public:
 		}
 	}
 
-	inline void allocate(GLuint* indices, std::size_t nb_ind)
+	inline void allocate(const GLuint* indices, std::size_t nb_ind)
 	{
 		if (nb_ind != nb_) // only allocate when > ?
 		{

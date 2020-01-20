@@ -324,9 +324,9 @@ public:
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_nb_cells();
 		md->rebuild_cells_sets();
-		md->set_primitives_dirty(rendering::POINTS);
-		md->set_primitives_dirty(rendering::LINES);
-		md->set_primitives_dirty(rendering::TRIANGLES);
+		md->set_primitives_dirty(rendering::BUFFER_POINTS);
+		md->set_primitives_dirty(rendering::BUFFER_LINES);
+		md->set_primitives_dirty(rendering::BUFFER_TRIANGLES);
 
 		for (View* v : linked_views_)
 			v->request_update();

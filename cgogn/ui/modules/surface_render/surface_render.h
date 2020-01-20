@@ -281,25 +281,25 @@ protected:
 				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
+					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_gouraud_->release();
 				}
 				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
+					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_->release();
 				}
 				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
+					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
 				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
+					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 
@@ -310,7 +310,7 @@ protected:
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
+				md->draw(rendering::BUFFER_POINTS);
 				p.param_point_sprite_->release();
 			}
 
@@ -319,7 +319,7 @@ protected:
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::LINES);
+				md->draw(rendering::BUFFER_LINES);
 				glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}

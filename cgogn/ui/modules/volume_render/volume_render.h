@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_VOLUME_RENDER_H_
 #define CGOGN_MODULE_VOLUME_RENDER_H_
 
+#include <imgui/imgui.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -31,7 +32,13 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/rendering/shaders/shader_bold_line.h>
+#include <cgogn/rendering/shaders/shader_flat.h>
+#include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes.h>
+
+//#include <cgogn/geometry/algos/centroid.h>
+#include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
 
@@ -44,25 +51,41 @@ namespace ui
 {
 
 template <typename MESH>
-class VolumeRender : public ViewModule
+class Volume_Render : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension >= 3,
-				  "VolumeRender can only be used with meshes of dimension >= 3");
+	static_assert(mesh_traits<MESH>::dimension >= 3, "Volume_Render can only be used with meshes of dimension >= 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Volume = typename mesh_traits<MESH>::Volume;
+
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{
-		Parameters() : render_volumes_(true), explode_factor_(1.0)
+		Parameters()
+			: vertex_position_(nullptr),
+			  render_vertices_(false), render_edges_(false), render_faces_(false), render_volumes_(true),
+			  auto_update_scalar_min_max_(true)
 		{
-			param_explode_volumes_ = rendering::ShaderExplodeVolumes::generate_param();
-			param_explode_volumes_->color_ = rendering::GLColor(1, 0, 0, 1);
+			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
+			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
+
+			param_edge_ = rendering::ShaderBoldLine::generate_param();
+			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
+			param_edge_->width_ = 1.0f;
+
+			param_flat_ = rendering::ShaderFlat::generate_param();
+			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
+			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
+			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+
+			param_volumes_ = rendering::ShaderExplodeVolumes::generate_param();
+
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -70,21 +93,30 @@ class VolumeRender : public ViewModule
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> volume_center_;
 
-		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_explode_volumes_;
+		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
+		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
+		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volumes_;
 
+		bool render_vertices_;
+		bool render_edges_;
+		bool render_faces_;
 		bool render_volumes_;
-		float32 explode_factor_;
-		float32 vector_base_size_;
+
+		float32 vertex_scale_factor_;
+		float32 vertex_base_size_;
+
+		bool auto_update_scalar_min_max_;
 	};
 
 public:
-	VolumeRender(const App& app)
-		: ViewModule(app, "VolumeRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+	Volume_Render(const App& app)
+		: ViewModule(app, "Volume_Render (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 	}
 
-	~VolumeRender()
+	~Volume_Render()
 	{
 	}
 
@@ -97,12 +129,20 @@ private:
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
+
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
+					Parameters& p = parameters_[v][m];
+					if (p.vertex_position_)
+						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+					v->request_update();
+				}));
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
-//						if (p.vertex_position_.get() == attribute)
-//							p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
+						if (p.vertex_position_.get() == attribute)
+							p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
 						v->request_update();
 					}));
 		}
@@ -117,34 +157,51 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 			md->update_vbo(vertex_position.get(), true);
+
+			p.volume_center_ = cgogn::get_attribute<Vec3, Volume>(m, "center");
+
+			if (p.volume_center_)
+			{
+				md->update_vbo(p.volume_center_.get(),true);
+			}
 		}
 
-		p.param_explode_volumes_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),md->vbo(p.volume_center_.get()));
 
 		v.request_update();
 	}
 
-	void set_volume_center(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& volume_center)
-	{
-		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-
-		p.volume_center_ = volume_center;
-		if (p.volume_center_)
-			md->update_vbo(p.volume_center_.get(), true);
-
-		p.param_explode_volumes_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.volume_center_.get()));
-	}
 
 protected:
+	void update_scalar_min_max_values(Parameters& p)
+	{
+		Scalar min = std::numeric_limits<float64>::max();
+		Scalar max = std::numeric_limits<float64>::lowest();
+		for (const Scalar& v : *p.vertex_scalar_)
+		{
+			if (v < min)
+				min = v;
+			if (v > max)
+				max = v;
+		}
+		p.param_scalar_per_vertex_->min_value_ = min;
+		p.param_scalar_per_vertex_->max_value_ = max;
+		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
+		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
+	}
+
 	void init() override
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-			mesh_provider_, this, &VolumeRender<MESH>::init_mesh));
+			mesh_provider_, this, &Volume_Render<MESH>::init_mesh));
 	}
 
 	void draw(View* view) override
@@ -156,12 +213,52 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_volumes_ && p.param_explode_volumes_->vao_initialized())
+			if (p.render_faces_)
 			{
-				p.param_explode_volumes_->length_ = p.vector_base_size_ * p.explode_factor_;
-				p.param_explode_volumes_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_explode_volumes_->release();
+				glEnable(GL_POLYGON_OFFSET_FILL);
+				glPolygonOffset(1.0f, 2.0f);
+
+				if (p.param_flat_->vao_initialized())
+				{
+					p.param_flat_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					p.param_flat_->release();
+				}
+
+				glDisable(GL_POLYGON_OFFSET_FILL);
+			}
+
+			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			{
+				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->bind(proj_matrix, view_matrix);
+				md->draw(rendering::BUFFER_POINTS);
+				p.param_point_sprite_->release();
+			}
+
+			if (p.render_edges_ && p.param_edge_->vao_initialized())
+			{
+				p.param_edge_->bind(proj_matrix, view_matrix);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				md->draw(rendering::BUFFER_LINES);
+				glDisable(GL_BLEND);
+				p.param_edge_->release();
+			}
+
+			if (p.render_volumes_)
+			{
+				glEnable(GL_POLYGON_OFFSET_FILL);
+				glPolygonOffset(1.0f, 2.0f);
+
+				if (p.param_volumes_->vao_initialized())
+				{
+					p.param_volumes_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::BUFFER_VOLUMES_FACES, p.vertex_position_);
+					p.param_volumes_->release();
+				}
+
+				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 		}
 	}
@@ -220,33 +317,51 @@ protected:
 					set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
 			}
 
-			if (ImGui::BeginCombo("Vector", p.vertex_vector_ ? p.vertex_vector_->name().c_str() : "-- select --"))
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
+			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
+			need_update |= ImGui::Checkbox("Volumes", &p.render_volumes_);
+
+			if (p.render_volumes_)
 			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_vector_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_vector(*selected_view_, *selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_vector_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##vector"))
-					set_vertex_vector(*selected_view_, *selected_mesh_, nullptr);
+				ImGui::Separator();
+				ImGui::TextUnformatted("Volume parameters");
+				need_update |= ImGui::ColorEdit3("color##flat", p.param_volumes_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("explode##edges", &(p.param_volumes_->explode_), 0.01f, 1.0f);
 			}
 
-			ImGui::Separator();
-			need_update |= ImGui::Checkbox("Render vectors", &p.render_volumes_);
 
-			ImGui::Separator();
-			ImGui::TextUnformatted("Vector parameters");
-			need_update |= ImGui::ColorEdit3("color##vectors", p.param_explode_volumes_->color_.data(),
-											 ImGuiColorEditFlags_NoInputs);
-			need_update |= ImGui::SliderFloat("length##vectors", &(p.explode_factor_), 0.1, 5.0);
+			if (p.render_faces_)
+			{
+				ImGui::Separator();
+				ImGui::TextUnformatted("Flat parameters");
+				need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
+												 ImGuiColorEditFlags_NoInputs);
+				if (p.param_flat_->double_side_)
+					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
+			}
+
+			if (p.render_edges_)
+			{
+				ImGui::Separator();
+				ImGui::TextUnformatted("Edges parameters");
+				need_update |=
+					ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
+			}
+
+			if (p.render_vertices_)
+			{
+				ImGui::Separator();
+				ImGui::TextUnformatted("Vertices parameters");
+				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+			}
 		}
 
 		ImGui::End();
@@ -269,4 +384,4 @@ private:
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
+#endif

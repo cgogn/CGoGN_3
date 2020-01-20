@@ -26,6 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/ebo.h>
 
 namespace cgogn
 {
@@ -39,24 +40,26 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(10,
-									vbo_pos_->bind_tb(20),vbo_center_->bind_tb(21),
-									color_, light_pos_, explode_vol_, plane_clip_, plane_clip2_);
+		shader_->set_uniforms_values(10, vbo_center_->bind_tb(21), vbo_pos_->bind_tb(22),
+									color_, light_pos_, explode_, plane_clip_, plane_clip2_);
 	}
 
 public:
 	GLColor color_;
 	GLVec3 light_pos_;
-	float32 explode_vol_;
+	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-	std::shared_ptr<VBO> vbo_pos_;
-	std::shared_ptr<VBO> vbo_center_;
+//	std::shared_ptr<VBO> vbo_pos_;
+//	std::shared_ptr<VBO> vbo_center_;
+	VBO* vbo_pos_;
+	VBO* vbo_center_;
+
 
 	using LocalShader = ShaderExplodeVolumes;
 
-	ShaderParamExplodeVolumes(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_vol_(0.8f),
+	inline ShaderParamExplodeVolumes(LocalShader* sh)
+		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
 		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -65,11 +68,12 @@ public:
 	{
 	}
 
-	inline void set_vbos(std::shared_ptr<VBO> vbo_pos, std::shared_ptr<VBO> vbo_center)
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
 	{
 		vbo_pos_ = vbo_pos;
 		vbo_center_ = vbo_center;
 	}
+
 };
 
 } // namespace rendering

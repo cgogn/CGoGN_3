@@ -209,6 +209,19 @@ std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m,
 	return vertices;
 }
 
+
+template <typename MESH, typename CELL>
+void incident_vertices(const MESH& m, CELL c, std::vector<typename mesh_traits<MESH>::Vertex>& vertices)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	foreach_incident_vertex(m, c, [&vertices](Vertex v) -> bool
+	{
+		vertices.push_back(v);
+		return true;
+	});
+}
+
 /*****************************************************************************/
 
 // template <typename MESH>
