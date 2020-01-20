@@ -21,58 +21,80 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/ebo.h>
+#include <cgogn/rendering/shaders/compute_volume_centers.h>
 
 namespace cgogn
 {
 
 namespace rendering
 {
+static const char* vertex_shader_source1 =
+		R"(
+		#version 330
+		uniform mat3 tex_matrix;
+		uniform usamplerBuffer vertex_volume;
+		uniform samplerBuffer pos_vertex;
+		out vec4 P;
+		void main()
+		{
+			int vid = gl_VertexID;
+			int ind_v = int(texelFetch( vid++).r);
+			uint ind_c = texelFetch(vid).r;
+			vec2 coord_c = tex_matrix * vec2(float(ind_c%1024),float(ind_c/1024),1);
+			gl_Position = vec4(coord_c,0,1);
+			P.xyz = texelFetch(pos_vertex, ind_v).rgb;
+			P.w = 1.0;
+		}
+		)";
 
-DECLARE_SHADER_CLASS(ExplodeVolumes)
+static const char* fragment_shader_source1 =
+		R"(
+		#version 330
+		out vec4 fragOout;
+		in vec4 P;
+		void main()
+		{
+			fragOut = P;
+		};
+		)";
 
-class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
+
+static const char* vertex_shader_source2 =
+		R"(
+		#version 330
+		uniform sampler2D TUin;
+		out vec3 vbo_out;
+
+		const int w = 1024;
+
+		void main()
+		{
+			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
+			vec4 P4 = texelFetch(TUn,icoord,0)
+			vbo_out = P4.xyz / P4.w;
+		}
+		)";
+
+
+
+ShaderComputeCenter1* ShaderComputeCenter1::instance_ = nullptr;
+
+ShaderComputeCenter1::ShaderComputeCenter1()
 {
-	void set_uniforms() override;
-
-public:
-	GLColor color_;
-	GLVec3 light_pos_;
-	float32 explode_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-//	std::shared_ptr<VBO> vbo_pos_;
-//	std::shared_ptr<VBO> vbo_center_;
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
+	load2_bind(vertex_shader_source1, fragment_shader_source1);
+	add_uniforms("tex_matrix","pos_vertex");
+}
 
 
-	using LocalShader = ShaderExplodeVolumes;
+ShaderComputeCenter2* ShaderComputeCenter2::instance_ = nullptr;
 
-	inline ShaderParamExplodeVolumes(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0),
-		  vbo_pos_(nullptr), vbo_center_(nullptr)
-	{
-	}
+ShaderComputeCenter2::ShaderComputeCenter2()
+{
+	load_tfb1_bind(vertex_shader_source2, {"vbo_out"});
 
-	inline ~ShaderParamExplodeVolumes() override
-	{
-	}
+}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
-	{
-		vbo_pos_ = vbo_pos;
-		vbo_center_ = vbo_center;
-	}
-};
 
 } // namespace rendering
-} // namespace cgogn
 
-#endif
+} // namespace cgogn

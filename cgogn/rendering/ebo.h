@@ -28,7 +28,7 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
+#include <iostream>
 #include <string>
 
 namespace cgogn
@@ -85,9 +85,9 @@ public:
 			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
 			glBindTexture(GL_TEXTURE_BUFFER,0);
 		}
-
-		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		std::cout << "ebo bind_tb "<<id_<<" "<<id_tb_ <<" "<<unit << std::endl;
 		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		return unit;
 	}
 

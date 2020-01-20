@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,58 +21,66 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
+#ifndef CGOGN_RENDERING_SHADERS_TEX2VBO_H_
+#define CGOGN_RENDERING_SHADERS_TEX2VBO_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/ebo.h>
+#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/vbo.h>
 
+#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/transform_feedback.h>
 namespace cgogn
 {
 
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes)
+DECLARE_SHADER_CLASS(TEX2VBO)
 
-class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
 {
-	void set_uniforms() override;
+protected:
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(TUin_);
+	}
+
+	inline void set_normalization( bool n)
+	{
+		shader_->set_uniform_value(1,n);
+	}
+
 
 public:
-	GLColor color_;
-	GLVec3 light_pos_;
-	float32 explode_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-//	std::shared_ptr<VBO> vbo_pos_;
-//	std::shared_ptr<VBO> vbo_center_;
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
+	using LocalShader = ShaderTEX2VBO;
 
+	ShaderParamTEX2VBO(LocalShader* sh)
+		: ShaderParam(sh), TUin_(-1)
+	{}
+	 //
+	int32_t TUin_;
 
-	using LocalShader = ShaderExplodeVolumes;
-
-	inline ShaderParamExplodeVolumes(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0),
-		  vbo_pos_(nullptr), vbo_center_(nullptr)
+	inline void set_vbos(VBO* vbo_pos)
 	{
-	}
-
-	inline ~ShaderParamExplodeVolumes() override
-	{
-	}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
-	{
-		vbo_pos_ = vbo_pos;
-		vbo_center_ = vbo_center;
+		bind_vao();
+		associate_vbos(vbo_pos);
+		release_vao();
 	}
 };
 
-} // namespace rendering
-} // namespace cgogn
 
-#endif
+using TFB_TEX2VBO = TransformFeedback<ShaderTEX2VBO>;
+
+
+
+void texture_to_vbo( TFB_TEX2VBO* tfb, Texture2D* tex, VBO* vbo)
+{
+	tfb->start(GL_POINTS,{vbo});
+}
+
+}
+}
+
+
+#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

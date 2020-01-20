@@ -35,9 +35,9 @@ static const char* vertex_shader_source =
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
 
-		uniform usamplerBuffer tri_indices;
-		uniform samplerBuffer position_vertex;
 		uniform samplerBuffer center_volume;
+		uniform samplerBuffer pos_vertex;
+		uniform usamplerBuffer tri_indices;
 
 		uniform float explode;
 		uniform vec4 plane_clip;
@@ -49,17 +49,14 @@ static const char* vertex_shader_source =
 			int ind_v = int(texelFetch(tri_indices,4*gl_InstanceID+gl_VertexID).r);
 			int ind_c = int(texelFetch(tri_indices,4*gl_InstanceID+3).r);
 
-			vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
+			vec3 position_in = texelFetch(pos_vertex, ind_v).rgb;
 			vec3 center = texelFetch(center_volume, ind_c).rgb;
 
 			float d = dot(plane_clip, vec4(center,1));
 			float d2 = dot(plane_clip2,vec4(center,1));
 			if ((d<=0.0)&&(d2<=0.0))
 			{
-				vec3 P = mix(center, position_in, explode)*0.0001+position_in *0.00001 +
-						vec3(gl_VertexID%2,gl_VertexID/2,0)*0.02 +
-						texelFetch(position_vertex,100).rgb;
-
+				vec3 P = mix(center, position_in, explode);
 				vec4 Po4 = model_view_matrix * vec4(P,1);
 				Po = Po4.xyz;
 				gl_Position = projection_matrix * Po4;
@@ -89,12 +86,20 @@ static const char* fragment_shader_source =
 
 ShaderExplodeVolumes* ShaderExplodeVolumes::instance_ = nullptr;
 
+
 ShaderExplodeVolumes::ShaderExplodeVolumes()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("tri_indices", "position_vertex", "center_volume",
+	add_uniforms("tri_indices", "center_volume", "pos_vertex",
 				"color", "light_position", "explode", "plane_clip", "plane_clip2");
 }
+
+void ShaderParamExplodeVolumes::set_uniforms()
+{
+	shader_->set_uniforms_values(10, vbo_center_->bind_tb(21), vbo_pos_->bind_tb(20),
+								color_, light_pos_, explode_, plane_clip_, plane_clip2_);
+}
+
 
 } // namespace rendering
 } // namespace cgogn

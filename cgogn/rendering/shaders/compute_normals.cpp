@@ -21,12 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/ebo.h>
+#include <cgogn/rendering/shaders/texture_to_vbo.h>
 
 namespace cgogn
 {
@@ -34,45 +29,34 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes)
+ShaderTEX2VBO* ShaderTEX2VBO::instance_ = nullptr;
 
-class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
+ShaderTEX2VBO::ShaderTEX2VBO()
 {
-	void set_uniforms() override;
+	const char* vertex_shader_source =
+			R"(
+			#version 330
+			uniform sampler2D TUin;
+			uniform bool normalization;
+			out vec3 vbo_out;
 
-public:
-	GLColor color_;
-	GLVec3 light_pos_;
-	float32 explode_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-//	std::shared_ptr<VBO> vbo_pos_;
-//	std::shared_ptr<VBO> vbo_center_;
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
+			void main()
+			{
+				int w = textureSize(TUn,0).x;
+				ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
+				if (normalization)
+					vbo_out = normalize(texelFetch(TUn,icoord,0).rgb);
+				else
+					vbo_out = texelFetch(TUn,icoord,0).rgb;
+			}
+			)";
 
 
-	using LocalShader = ShaderExplodeVolumes;
+	load_tfb1_bind(vertex_shader_source, {"vbo_out"});
 
-	inline ShaderParamExplodeVolumes(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0),
-		  vbo_pos_(nullptr), vbo_center_(nullptr)
-	{
-	}
-
-	inline ~ShaderParamExplodeVolumes() override
-	{
-	}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
-	{
-		vbo_pos_ = vbo_pos;
-		vbo_center_ = vbo_center;
-	}
-};
+	add_uniforms("TUin","normalization");
+}
 
 } // namespace rendering
-} // namespace cgogn
 
-#endif
+} // namespace cgogn
