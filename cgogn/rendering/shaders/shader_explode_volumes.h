@@ -40,7 +40,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(10, vbo_center_->bind_tb(21), vbo_pos_->bind_tb(22),
+		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), vbo_center_->bind_tb(21),
 									color_, light_pos_, explode_, plane_clip_, plane_clip2_);
 	}
 
