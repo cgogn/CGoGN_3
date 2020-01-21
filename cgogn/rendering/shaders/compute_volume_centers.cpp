@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*********************************************************000000**********************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -37,25 +37,24 @@ static const char* vertex_shader_source1 =
 		out vec4 P;
 		void main()
 		{
-			vec2 d = vec2(1.0/1024,inv_h)
+			vec2 d = vec2(1.0/1024.0,inv_h);
 			int vid = gl_VertexID;
 			int ind_v = int(texelFetch(vertex_volume, 2*gl_VertexID).r);
 			uint ind_c = texelFetch(vertex_volume, 2*gl_VertexID+1).r;
-			vec2 coord_c = (-1.0+d) + 2.0 * d * vec2(float(ind_c%1024),float(ind_c/1024),1);
+			vec2 coord_c = (-1.0+d) + 2.0 * d * vec2(float(ind_c%1024u),float(ind_c/1024u));
 			gl_Position = vec4(coord_c,0,1);
-			P.xyz = texelFetch(pos_vertex, ind_v).rgb;
-			P.w = 1.0;
+			P = vec4(texelFetch(pos_vertex, ind_v).rgb,1);
 		}
 		)";
 
 static const char* fragment_shader_source1 =
 		R"(
 		#version 330
-		out vec4 fragOout;
+		out vec4 frag_out;
 		in vec4 P;
 		void main()
 		{
-			fragOut = P;
+			frag_out = P;
 		};
 		)";
 
@@ -69,7 +68,7 @@ ShaderComputeCenter1::ShaderComputeCenter1()
 
 void ShaderParamComputeCenter1::set_uniforms()
 {
-	shader_->set_uniforms_values(1.0f/float(height_tex_), vbo_pos_->bind_tb(20));
+	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), 1.0f/float(height_tex_));
 }
 
 
@@ -99,7 +98,7 @@ ShaderComputeCenter2::ShaderComputeCenter2()
 }
 void ShaderParamComputeCenter2::set_uniforms()
 {
-	shader_->set_uniforms_values(tex_->bind(0));
+	shader_->set_uniforms_values(tex_->bind(1));
 }
 
 
@@ -109,7 +108,7 @@ ComputeCenterEngine::ComputeCenterEngine()
 	param1_ = ShaderComputeCenter1::generate_param();
 	param2_ = ShaderComputeCenter2::generate_param();
 	param2_->tex_ = new Texture2D();
-	param2_->tex_->alloc(0,0,GL_RGB32F,GL_RGB,nullptr,GL_FLOAT);
+	param2_->tex_->alloc(0,0,GL_RGBA32F,GL_RGBA,nullptr,GL_FLOAT);
 	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_},false, nullptr);
 	tfb_ = new TFB_ComputeCenter(*param2_);
 }
@@ -132,17 +131,20 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE,GL_ONE);
-	glPointSize(1.0f);
+	glPointSize(1.001f);
 	param1_->vbo_pos_ = pos;
 	param1_->height_tex_ = h;
 	param1_->bind();
+	glPointSize(1.001f);
 	renderer->draw(BUFFER_VOLUMES_VERTICES);
 	param1_->release();
+	glDisable(GL_BLEND);
 	fbo_->release();
 
 	tfb_->start(GL_POINTS,{centers});
 	glDrawArrays(GL_POINTS,0,centers->size());
 	tfb_->stop();
+	glEnable(GL_DEPTH_TEST);
 }
 
 

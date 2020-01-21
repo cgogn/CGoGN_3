@@ -69,7 +69,7 @@ class Volume_Render : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr),
+			: vertex_position_(nullptr),volume_center_(nullptr),vbo_volume_center_(nullptr),
 			  render_vertices_(false), render_edges_(false), render_faces_(false), render_volumes_(true),
 			  auto_update_scalar_min_max_(true),gpu_center_(true)
 		{
@@ -92,7 +92,7 @@ class Volume_Render : public ViewModule
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> volume_center_;
-		rendering::VBO* vbo_volume_center_;
+		std::unique_ptr<rendering::VBO> vbo_volume_center_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
@@ -170,19 +170,28 @@ public:
 
 			if ((p.volume_center_) && !p.gpu_center_)
 			{
-				vbo_center = p.volume_center_.get();
-				md->update_vbo(vbo_center,true);
+				md->update_vbo(p.volume_center_.get(),true);
+				vbo_center = md->vbo(p.volume_center_.get());
 			}
 		}
 		if (p.gpu_center_)
 		{
-			compute_center_engine_->compute(p.vertex_position_.get(),md->get_render(),vbo_center);
+			if (vbo_center == nullptr)
+			{
+				p.vbo_volume_center_ = std::make_unique<rendering::VBO>();
+				vbo_center = p.vbo_volume_center_.get();
+				vbo_center->allocate(nb_cells<Volume>(m),3);
+			}
+			rendering::MeshRender* render = md->get_render();
+			if (!render->is_primitive_uptodate(rendering::BUFFER_VOLUMES_VERTICES))
+				render->init_primitives(m,rendering::VOLUMES,p.vertex_position_.get());
+			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,vbo_center);
 		}
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),md->vbo(vbo_center));
+		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),vbo_center);
 
 		v.request_update();
 	}
@@ -342,6 +351,10 @@ protected:
 				need_update |= ImGui::ColorEdit3("color##flat", p.param_volumes_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("explode##edges", &(p.param_volumes_->explode_), 0.01f, 1.0f);
+//				bool center_comp = ImGui::Checkbox("GPU compute center", &p.gpu_center_);
+//				if (center_comp)
+//					p.vbo_volume_center_ = nullptr;
+//				need_update |= center_comp;
 			}
 
 
