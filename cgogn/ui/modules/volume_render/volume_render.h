@@ -36,6 +36,7 @@
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes.h>
+#include <cgogn/rendering/shaders/compute_volume_centers.h>
 
 //#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/length.h>
@@ -70,7 +71,7 @@ class Volume_Render : public ViewModule
 		Parameters()
 			: vertex_position_(nullptr),
 			  render_vertices_(false), render_edges_(false), render_faces_(false), render_volumes_(true),
-			  auto_update_scalar_min_max_(true)
+			  auto_update_scalar_min_max_(true),gpu_center_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -85,18 +86,20 @@ class Volume_Render : public ViewModule
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_volumes_ = rendering::ShaderExplodeVolumes::generate_param();
-
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> volume_center_;
+		rendering::VBO* vbo_volume_center_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volumes_;
+
+
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -107,6 +110,7 @@ class Volume_Render : public ViewModule
 		float32 vertex_base_size_;
 
 		bool auto_update_scalar_min_max_;
+		bool gpu_center_;
 	};
 
 public:
@@ -155,23 +159,30 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
+		rendering::VBO* vbo_center = nullptr;
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 			md->update_vbo(vertex_position.get(), true);
 
 			p.volume_center_ = cgogn::get_attribute<Vec3, Volume>(m, "center");
+			p.gpu_center_ |= (p.volume_center_ == nullptr);
 
-			if (p.volume_center_)
+			if ((p.volume_center_) && !p.gpu_center_)
 			{
-				md->update_vbo(p.volume_center_.get(),true);
+				vbo_center = p.volume_center_.get();
+				md->update_vbo(vbo_center,true);
 			}
+		}
+		if (p.gpu_center_)
+		{
+			compute_center_engine_->compute(p.vertex_position_.get(),md->get_render(),vbo_center);
 		}
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),md->vbo(p.volume_center_.get()));
+		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),md->vbo(vbo_center));
 
 		v.request_update();
 	}
@@ -202,6 +213,7 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &Volume_Render<MESH>::init_mesh));
+		compute_center_engine_ = std::make_unique<rendering::ComputeCenterEngine>();
 	}
 
 	void draw(View* view) override
@@ -378,6 +390,7 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
+	std::unique_ptr<rendering::ComputeCenterEngine> compute_center_engine_;
 };
 
 } // namespace ui

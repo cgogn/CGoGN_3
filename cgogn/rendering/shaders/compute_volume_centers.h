@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿	/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,12 +21,17 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_H_
+#ifndef CGOGN_RENDERING_SHADERS_COMPUTER_VOLUME_CENTERS_H_
+#define CGOGN_RENDERING_SHADERS_COMPUTER_VOLUME_CENTERS_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/rendering/vbo.h>
 #include <cgogn/rendering/ebo.h>
+#include <cgogn/rendering/fbo.h>
+#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/transform_feedback.h>
 
 namespace cgogn
 {
@@ -34,45 +39,69 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes)
+DECLARE_SHADER_CLASS(ComputeCenter1)
+DECLARE_SHADER_CLASS(ComputeCenter2)
 
-class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter1 : public ShaderParam
 {
+protected:
 	void set_uniforms() override;
 
 public:
-	GLColor color_;
-	GLVec3 light_pos_;
-	float32 explode_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-//	std::shared_ptr<VBO> vbo_pos_;
-//	std::shared_ptr<VBO> vbo_center_;
 	VBO* vbo_pos_;
-	VBO* vbo_center_;
+	int32 height_tex_;
 
+	using LocalShader = ShaderComputeCenter1;
 
-	using LocalShader = ShaderExplodeVolumes;
+	ShaderParamComputeCenter1(LocalShader* sh)
+		: ShaderParam(sh)
+	{}
 
-	inline ShaderParamExplodeVolumes(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0),
-		  vbo_pos_(nullptr), vbo_center_(nullptr)
-	{
-	}
-
-	inline ~ShaderParamExplodeVolumes() override
-	{
-	}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
+	inline void set_vbos(VBO* vbo_pos)
 	{
 		vbo_pos_ = vbo_pos;
-		vbo_center_ = vbo_center;
 	}
 };
 
-} // namespace rendering
-} // namespace cgogn
 
-#endif
+class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter2 : public ShaderParam
+{
+protected:
+	void set_uniforms() override;
+
+public:
+	Texture2D* tex_;
+
+	using LocalShader = ShaderComputeCenter2;
+
+	ShaderParamComputeCenter2(LocalShader* sh)
+		: ShaderParam(sh)
+	{}
+};
+
+
+using TFB_ComputeCenter = TransformFeedback<ShaderComputeCenter2>;
+
+
+class ComputeCenterEngine
+{
+	Texture2D* tex_;
+	FBO* fbo_;
+	std::unique_ptr<ShaderComputeCenter1::Param> param1_;
+	std::unique_ptr<ShaderComputeCenter2::Param> param2_;
+	TFB_ComputeCenter* tfb_;
+
+public:
+	ComputeCenterEngine();
+
+	~ComputeCenterEngine();
+
+	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
+
+};
+
+}
+}
+
+
+#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

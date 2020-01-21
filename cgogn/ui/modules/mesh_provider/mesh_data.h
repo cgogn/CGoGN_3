@@ -59,6 +59,11 @@ struct MeshData
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshData);
 
+	rendering::MeshRender* get_render()
+	{
+		return &render_;
+	}
+
 	void init(const MESH* m)
 	{
 		mesh_ = m;

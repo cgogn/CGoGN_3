@@ -28,7 +28,7 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
+#include <iostream>
 #include <string>
 
 namespace cgogn
@@ -86,8 +86,8 @@ public:
 			glBindTexture(GL_TEXTURE_BUFFER,0);
 		}
 
-		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		return unit;
 	}
 

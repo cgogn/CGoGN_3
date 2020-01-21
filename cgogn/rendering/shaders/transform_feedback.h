@@ -42,7 +42,7 @@ template <typename SHADER>
 class CGOGN_RENDERING_EXPORT TransformFeedback
 {
 	GLuint id_;
-	typename SHADER::Param prg_param_;
+	typename SHADER::Param& prg_param_;
 
 	void internal_start(GLenum prim, const std::vector<VBO*>& vbos)
 	{
@@ -54,10 +54,10 @@ class CGOGN_RENDERING_EXPORT TransformFeedback
 	}
 
 public:
-	TransformFeedback()
+	inline TransformFeedback(typename SHADER::Param& param):
+		prg_param_(param)
 	{
 		glCreateTransformFeedbacks(1,&id_);
-		prg_param_ = SHADER::generate_param();
 	}
 
 
@@ -65,19 +65,19 @@ public:
 	TransformFeedback& operator=(const TransformFeedback&) = delete;
 	inline ~TransformFeedback() {}
 
-	void start(GLenum prim, const std::vector<VBO*>& vbos)
+	inline void start(GLenum prim, const std::vector<VBO*>& vbos)
 	{
 		prg_param_.bind();
 		internal_start(prim,vbos);
 	}
 
-	void start(GLenum prim, const std::vector<VBO*>& vbos, const GLMat4& proj, const GLMat4& mv)
+	inline void start(GLenum prim, const std::vector<VBO*>& vbos, const GLMat4& proj, const GLMat4& mv)
 	{
 		prg_param_.bind(proj,mv);
 		internal_start(prim,vbos);
 	}
 
-	void stop()
+	inline void stop()
 	{
 		prg_param_.release();
 		glEndTransformFeedback();
