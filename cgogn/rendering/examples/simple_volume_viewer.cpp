@@ -85,8 +85,8 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> volume_center = cgogn::add_attribute<Vec3, Volume>(*m, "center");
 
-	cgogn::index_cells<Volume>(*m);
-	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
+//	cgogn::index_cells<Volume>(*m);
+//	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
 
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);

@@ -43,7 +43,7 @@ static const char* vertex_shader_source1 =
 			uint ind_c = texelFetch(vertex_volume, 2*gl_VertexID+1).r;
 			vec2 coord_c = (-1.0+d) + 2.0 * d * vec2(float(ind_c%1024u),float(ind_c/1024u));
 			gl_Position = vec4(coord_c,0,1);
-			P = vec4(texelFetch(pos_vertex, ind_v).rgb,1);
+			P = vec4(texelFetch(pos_vertex, ind_v).rgb,1.0);
 		}
 		)";
 
@@ -75,7 +75,9 @@ void ShaderParamComputeCenter1::set_uniforms()
 static const char* vertex_shader_source2 =
 		R"(
 		#version 330
-		uniform sampler2D TU;
+
+		uniform sampler2D tex_centers;
+
 		out vec3 vbo_out;
 
 		const int w = 1024;
@@ -83,8 +85,8 @@ static const char* vertex_shader_source2 =
 		void main()
 		{
 			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
-			vec4 P4 = texelFetch(TU,icoord,0);
-			vbo_out = P4.xyz / P4.w;
+			vec4 P4 = texelFetch(tex_centers,icoord,0);
+			vbo_out = P4.xyz/P4.w;
 		}
 		)";
 
@@ -94,11 +96,11 @@ ShaderComputeCenter2* ShaderComputeCenter2::instance_ = nullptr;
 ShaderComputeCenter2::ShaderComputeCenter2()
 {
 	load_tfb1_bind(vertex_shader_source2, {"vbo_out"});
-	add_uniforms("TU");
+	add_uniforms("tex_centers");
 }
 void ShaderParamComputeCenter2::set_uniforms()
 {
-	shader_->set_uniforms_values(tex_->bind(1));
+	shader_->set_uniforms_values(tex_->bind(0));
 }
 
 
@@ -110,7 +112,7 @@ ComputeCenterEngine::ComputeCenterEngine()
 	param2_->tex_ = new Texture2D();
 	param2_->tex_->alloc(0,0,GL_RGBA32F,GL_RGBA,nullptr,GL_FLOAT);
 	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_},false, nullptr);
-	tfb_ = new TFB_ComputeCenter(*param2_);
+	tfb_ = new TFB_ComputeCenter(*(param2_.get()));
 }
 
 ComputeCenterEngine::~ComputeCenterEngine()
@@ -135,12 +137,27 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 	param1_->vbo_pos_ = pos;
 	param1_->height_tex_ = h;
 	param1_->bind();
-	glPointSize(1.001f);
+	glPointSize(1.0f);
 	renderer->draw(BUFFER_VOLUMES_VERTICES);
 	param1_->release();
 	glDisable(GL_BLEND);
 	fbo_->release();
 
+//	fbo_->bind_read();
+//	float buf[100];
+//	glReadPixels(0,0,20,1,GL_RGBA,GL_FLOAT, buf);
+//	std::cout <<"======  FBO TEXURE ========"<< std::endl;
+//	for (int i=0; i<20; ++i)
+//	{
+//		for (int j=0; j<4; ++j)
+//		{
+//			std::cout<< buf[4*i+j] << " ";
+//		}
+//		std::cout << std::endl;
+//	}
+//	fbo_->release_read();
+
+	glClearColor(0,0,0,0);
 	tfb_->start(GL_POINTS,{centers});
 	glDrawArrays(GL_POINTS,0,centers->size());
 	tfb_->stop();

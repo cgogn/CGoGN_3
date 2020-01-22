@@ -28,6 +28,8 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
+#include <cgogn/ui/app.h>
+
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -99,7 +101,7 @@ class Volume_Render : public ViewModule
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volumes_;
 
-
+		rendering::VBO* vbo_center_;
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -159,7 +161,7 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
-		rendering::VBO* vbo_center = nullptr;
+		p.vbo_center_ = nullptr;
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
@@ -171,27 +173,30 @@ public:
 			if ((p.volume_center_) && !p.gpu_center_)
 			{
 				md->update_vbo(p.volume_center_.get(),true);
-				vbo_center = md->vbo(p.volume_center_.get());
+				p.vbo_center_ = md->vbo(p.volume_center_.get());
 			}
 		}
 		if (p.gpu_center_)
 		{
-			if (vbo_center == nullptr)
+
+			if (p.vbo_center_ == nullptr)
 			{
 				p.vbo_volume_center_ = std::make_unique<rendering::VBO>();
-				vbo_center = p.vbo_volume_center_.get();
-				vbo_center->allocate(nb_cells<Volume>(m),3);
+				p.vbo_center_ = p.vbo_volume_center_.get();
+				p.vbo_center_->bind();
+				p.vbo_center_->allocate(nb_cells<Volume>(m),3);
+				p.vbo_center_->release();
 			}
 			rendering::MeshRender* render = md->get_render();
 			if (!render->is_primitive_uptodate(rendering::BUFFER_VOLUMES_VERTICES))
 				render->init_primitives(m,rendering::VOLUMES,p.vertex_position_.get());
-			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,vbo_center);
+			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 		}
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),vbo_center);
+		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),p.vbo_center_);
 
 		v.request_update();
 	}
@@ -272,6 +277,8 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 
+				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),md->get_render(),p.vbo_center_);
+
 				if (p.param_volumes_->vao_initialized())
 				{
 					p.param_volumes_->bind(proj_matrix, view_matrix);
@@ -290,6 +297,10 @@ protected:
 
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
+		std::stringstream ss;
+		ss << std::setw(6)<<std::fixed <<std::setprecision(2)<< App::fps();
+		std::string str_fps = ss.str() +" fps";
+		ImGui::Text(str_fps.c_str());
 
 		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
 		{

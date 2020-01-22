@@ -113,9 +113,7 @@ public:
 		std::size_t total = nb_vectors * uint32(vector_dimension);
 		//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			// glBindBuffer(GL_ARRAY_BUFFER, id_);
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
-			// glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		nb_vectors_ = nb_vectors;
 		vector_dimension_ = vector_dimension;
@@ -128,7 +126,7 @@ public:
 	inline float32* lock_pointer()
 	{
 		// this->bind();
-		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
 		// this->release();
 		return ptr;
 	}

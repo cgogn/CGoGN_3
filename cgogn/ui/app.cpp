@@ -42,6 +42,8 @@ static void glfw_error_callback(int error, const char* description)
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
 }
 
+float64 App::fps_ = 0.0;
+
 App::App()
 	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
 	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
@@ -373,8 +375,17 @@ int App::launch()
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
 	param_frame_->sz_ = 5.0f;
 
+	int32 frame_counter = 0;
 	while (!glfwWindowShouldClose(window_))
 	{
+		if (++frame_counter == 50)
+		{
+			double now = glfwGetTime();
+			frame_counter = 0;
+			fps_ = 50 / (now - time_last_50_frames_);
+			time_last_50_frames_ = now;
+		}
+
 		boost::synapse::poll(*tlq_);
 
 		glfwPollEvents();

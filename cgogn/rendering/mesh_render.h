@@ -274,19 +274,31 @@ protected:
 							 std::vector<uint32>& table_emb_vol,
 			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
+		using Future = std::future<void>;
+		ThreadPool* pool = thread_pool();
+		uint32 nb_workers = pool->nb_workers();
+
+		std::array<std::vector<Future>, 2> futures;
+		futures[0].reserve(nb_workers);
+		futures[1].reserve(nb_workers);
+
 		if constexpr (mesh_traits<MESH>::dimension > 2)
 		{
 			using Vertex = typename mesh_traits<MESH>::Vertex;
 			using Edge = typename mesh_traits<MESH>::Edge;
 			using Face = typename mesh_traits<MESH>::Face;
 			using Volume = typename mesh_traits<MESH>::Volume;
+
+			std::vector<Vertex> vertices;
+			vertices.reserve(256);
 			foreach_cell(m, [&](Volume vol) -> bool
 			{
 				foreach_incident_face(m, vol, [&](Face f)-> bool
 				{
 					if (codegree(m,f)==3)
 					{
-						std::vector<Vertex> vertices = incident_vertices(m, f);
+						vertices.clear();
+						incident_vertices(m, f, vertices);
 						table_indices_f.push_back(index_of(m, vertices[0]));
 						table_indices_f.push_back(index_of(m, vertices[1]));
 						table_indices_f.push_back(index_of(m, vertices[2]));
@@ -297,20 +309,22 @@ protected:
 					if (EMB)
 						table_indices_f.push_back(index_of(m, vol));
 					else
-						table_indices_f.push_back(table_indices_f.size());
+						table_indices_f.push_back(table_emb_vol.size());
 					return true;
 				});
 
 				foreach_incident_edge(m, vol, [&](Edge e)-> bool
 				{
-					std::vector<Vertex> vertices = incident_vertices(m, e);
+					vertices.clear();
+					incident_vertices(m, e, vertices);
+
 					table_indices_e.push_back(index_of(m, vertices[0]));
 					table_indices_e.push_back(index_of(m, vertices[1]));
 
 					if (EMB)
 						table_indices_e.push_back(index_of(m, vol));
 					else
-						table_indices_e.push_back(table_indices_e.size());
+						table_indices_e.push_back(table_emb_vol.size());
 					return true;
 				});
 
@@ -321,7 +335,7 @@ protected:
 					if (EMB)
 						table_indices_v.push_back(index_of(m, vol));
 					else
-						table_indices_v.push_back(table_indices_v.size());
+						table_indices_v.push_back(table_emb_vol.size());
 					return true;
 				});
 
@@ -427,6 +441,9 @@ public:
 	inline void init_primitives(const MESH& m, DrawingType prim,
 								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
+
+		auto start_timer = std::chrono::high_resolution_clock::now();
+
 		std::vector<uint32> table_indices;
 		table_indices.reserve(1024u);
 		std::vector<uint32> table_indices_emb;
@@ -520,6 +537,12 @@ public:
 		default:
 			break;
 		}
+
+		auto end_timer = std::chrono::high_resolution_clock::now();
+
+		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
+		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
+
 	}
 
 	void draw(DrawingBufferType prim,GLint binding_point=10);
