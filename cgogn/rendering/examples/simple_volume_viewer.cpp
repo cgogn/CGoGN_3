@@ -71,9 +71,19 @@ int main(int argc, char** argv)
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
+	cgogn::ui::View* v2 = app.add_view();
+	cgogn::ui::View* v3 = app.add_view();
+	cgogn::ui::View* v4 = app.add_view();
+
 	v1->link_module(&mp);
-//	v1->link_module(&sr);
 	v1->link_module(&vr);
+	v2->link_module(&mp);
+	v2->link_module(&vr);
+	v3->link_module(&mp);
+	v3->link_module(&vr);
+	v4->link_module(&mp);
+	v4->link_module(&vr);
+
 
 	Mesh* m = mp.load_volume_from_file(filename);
 	if (!m)

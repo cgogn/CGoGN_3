@@ -274,13 +274,6 @@ protected:
 							 std::vector<uint32>& table_emb_vol,
 			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
-		using Future = std::future<void>;
-		ThreadPool* pool = thread_pool();
-		uint32 nb_workers = pool->nb_workers();
-
-		std::array<std::vector<Future>, 2> futures;
-		futures[0].reserve(nb_workers);
-		futures[1].reserve(nb_workers);
 
 		if constexpr (mesh_traits<MESH>::dimension > 2)
 		{

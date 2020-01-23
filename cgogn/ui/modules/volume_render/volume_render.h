@@ -38,6 +38,7 @@
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes.h>
+#include <cgogn/rendering/shaders/shader_explode_volumes_line.h>
 #include <cgogn/rendering/shaders/compute_volume_centers.h>
 
 //#include <cgogn/geometry/algos/centroid.h>
@@ -62,6 +63,7 @@ class Volume_Render : public ViewModule
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 	using Volume = typename mesh_traits<MESH>::Volume;
 
 
@@ -72,7 +74,8 @@ class Volume_Render : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr),volume_center_(nullptr),vbo_volume_center_(nullptr),
-			  render_vertices_(false), render_edges_(false), render_faces_(false), render_volumes_(true),
+			  render_vertices_(false), render_edges_(false), render_faces_(false),
+			  render_volumes_(true),render_volumes_line_(true),
 			  auto_update_scalar_min_max_(true),gpu_center_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
@@ -88,6 +91,7 @@ class Volume_Render : public ViewModule
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_volumes_ = rendering::ShaderExplodeVolumes::generate_param();
+			param_volumes_line_ = rendering::ShaderExplodeVolumesLine::generate_param();
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -100,6 +104,7 @@ class Volume_Render : public ViewModule
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volumes_;
+		std::unique_ptr<rendering::ShaderExplodeVolumesLine::Param> param_volumes_line_;
 
 		rendering::VBO* vbo_center_;
 
@@ -107,6 +112,7 @@ class Volume_Render : public ViewModule
 		bool render_edges_;
 		bool render_faces_;
 		bool render_volumes_;
+		bool render_volumes_line_;
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -178,7 +184,6 @@ public:
 		}
 		if (p.gpu_center_)
 		{
-
 			if (p.vbo_center_ == nullptr)
 			{
 				p.vbo_volume_center_ = std::make_unique<rendering::VBO>();
@@ -197,6 +202,7 @@ public:
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),p.vbo_center_);
+		p.param_volumes_line_->set_vbos(md->vbo(p.vertex_position_.get()),p.vbo_center_);
 
 		v.request_update();
 	}
@@ -276,7 +282,8 @@ protected:
 			{
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
-
+				md->update_vbo(p.vertex_position_.get());
+//				md->set_primitives_dirty(rendering::BUFFER_VOLUMES_FACES);
 				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),md->get_render(),p.vbo_center_);
 
 				if (p.param_volumes_->vao_initialized())
@@ -288,6 +295,17 @@ protected:
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
+
+			if (p.render_volumes_line_)
+			{
+				if (p.param_volumes_->vao_initialized())
+				{
+					p.param_volumes_line_->bind(proj_matrix, view_matrix);
+					md->draw(rendering::BUFFER_VOLUMES_EDGES);
+					p.param_volumes_line_->release();
+				}
+			}
+
 		}
 	}
 
@@ -354,19 +372,29 @@ protected:
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
 			need_update |= ImGui::Checkbox("Volumes", &p.render_volumes_);
+			need_update |= ImGui::Checkbox("VolumesLine", &p.render_volumes_line_);
+
 
 			if (p.render_volumes_)
 			{
 				ImGui::Separator();
 				ImGui::TextUnformatted("Volume parameters");
-				need_update |= ImGui::ColorEdit3("color##flat", p.param_volumes_->color_.data(),
+				need_update |= ImGui::ColorEdit3("color##volume", p.param_volumes_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("explode##edges", &(p.param_volumes_->explode_), 0.01f, 1.0f);
-//				bool center_comp = ImGui::Checkbox("GPU compute center", &p.gpu_center_);
-//				if (center_comp)
-//					p.vbo_volume_center_ = nullptr;
-//				need_update |= center_comp;
+				p.param_volumes_line_->explode_ = p.param_volumes_->explode_;
 			}
+
+			if (p.render_volumes_line_)
+			{
+				ImGui::Separator();
+				ImGui::TextUnformatted("Volume line parameters");
+				need_update |= ImGui::ColorEdit3("color##volume_line", p.param_volumes_line_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("explode##edges", &(p.param_volumes_line_->explode_), 0.01f, 1.0f);
+				p.param_volumes_->explode_ =p.param_volumes_line_->explode_;
+			}
+
 
 
 			if (p.render_faces_)

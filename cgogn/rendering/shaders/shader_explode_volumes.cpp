@@ -71,7 +71,7 @@ static const char* vertex_shader_source =
 static const char* fragment_shader_source =
 		R"(
 		#version 330
-		out vec4 fragColor;
+		out vec4 frag_out;
 		uniform vec4 color;
 		uniform vec3 light_position;
 		in vec3 Po;
@@ -80,7 +80,7 @@ static const char* fragment_shader_source =
 			vec3 N = normalize(cross(dFdx(Po),dFdy(Po)));
 			vec3 L = normalize(light_position-Po);
 			float lambert = 0.2+0.8*(max(0.0,dot(N,L)));
-			fragColor = vec4(lambert * color.rgb, color.a);
+			frag_out = vec4(lambert * color.rgb, color.a);
 		};
 		)";
 
@@ -96,7 +96,7 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 
 void ShaderParamExplodeVolumes::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), vbo_center_->bind_tb(21),
+	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), vbo_center_->bind_tb(12),
 								color_, light_pos_, explode_, plane_clip_, plane_clip2_);
 }
 

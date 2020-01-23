@@ -36,22 +36,22 @@ DECLARE_SHADER_CLASS(ExplodeVolumesLine)
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(color_, explode_factor_, plane_clip_, plane_clip2_);
-	}
+	void set_uniforms() override;
 
 public:
 	GLColor color_;
-	float32 explode_factor_;
+	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
+	VBO* vbo_pos_;
+	VBO* vbo_center_;
+
 
 	using LocalShader = ShaderExplodeVolumesLine;
 
 	ShaderParamExplodeVolumesLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_front_default), explode_factor_(0.8f), plane_clip_(0, 0, 0, 0),
-		  plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), color_(color_line_default), explode_(0.8f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0), vbo_pos_(nullptr), vbo_center_(nullptr)
 	{
 	}
 
@@ -59,11 +59,10 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
+	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
 	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
+		vbo_pos_ = vbo_pos;
+		vbo_center_ = vbo_center;
 	}
 };
 

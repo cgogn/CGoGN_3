@@ -166,7 +166,7 @@ App::App()
 
 		for (const auto& v : that->views_)
 		{
-			if (v->contains(px, py))
+			if (v->contains(px, that->window_height_ - py))
 			{
 				if (v.get() != that->current_view_)
 				{

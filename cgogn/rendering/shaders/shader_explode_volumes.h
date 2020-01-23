@@ -26,7 +26,6 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/ebo.h>
 
 namespace cgogn
 {
