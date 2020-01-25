@@ -296,12 +296,13 @@ public:
 	 * @brief compute table of vertices indices (embeddings) of triangulation
 	 * @param table_indices
 	 */
-	void append_indices(std::vector<uint32>& table_indices)
+	template <typename FUNC>
+	void append_indices(std::vector<uint32>& table_indices, const FUNC& post_func)
 	{
 		if (nb_verts_ < 3)
 			return;
 
-		table_indices.reserve((nb_verts_ - 2) * 3);
+//		table_indices.reserve((nb_verts_ - 2) * 3);
 
 		if (nb_verts_ == 3)
 		{
@@ -310,6 +311,7 @@ public:
 				table_indices.push_back(index_of(m_,v));
 				return true;
 			});
+			post_func();
 			return;
 		}
 
@@ -322,6 +324,7 @@ public:
 			table_indices.push_back(index_of(m_, be->vert_));
 			table_indices.push_back(index_of(m_, be->next_->vert_));
 			table_indices.push_back(index_of(m_, be->prev_->vert_));
+			post_func();
 			--nb_verts_;
 
 			if (nb_verts_ > 3)	// do not recompute if only one triangle left
@@ -341,6 +344,7 @@ public:
 				table_indices.push_back(index_of(m_,be->vert_));
 				table_indices.push_back(index_of(m_,be->next_->vert_));
 				table_indices.push_back(index_of(m_,be->prev_->vert_));
+				post_func();
 				// release memory of last triangle in polygon
 				delete be->next_;
 				delete be->prev_;
@@ -393,16 +397,16 @@ public:
  * @param position
  * @param table_indices table of indices (vertex embedding) to append
  */
-template <typename MESH>
+template <typename MESH, typename FUNC>
 void append_ear_triangulation(
 	const MESH& mesh,
 	const typename mesh_traits<MESH>::Face f,
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* position,
-	std::vector<uint32>& table_indices
-)
+	std::vector<uint32>& table_indices,
+	const FUNC& post_func)
 {
 	EarTriangulation tri(mesh, f, position);
-	tri.append_indices(table_indices);
+	tri.append_indices(table_indices,post_func);
 }
 
 /**
@@ -436,7 +440,7 @@ void apply_ear_triangulation(
 {
 	foreach_cell(mesh, [&] (typename mesh_traits<MESH>::Face f) -> bool
 	{
-		if (codegree(mesh,f))
+		if (codegree(mesh,f)>3)
 		{
 			EarTriangulation tri(mesh, f, position);
 			tri.apply();

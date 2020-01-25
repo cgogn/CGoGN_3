@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc < 2)
 	{
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hex_dominant.meshb");
 //		std::cout << "Usage: " << argv[0] << " volume_mesh_file" << std::endl;
 //		return 1;
 	}

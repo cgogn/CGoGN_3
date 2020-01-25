@@ -53,6 +53,7 @@ enum DrawingType : uint8
 	POINTS = 0,
 	LINES,
 	TRIANGLES,
+	FACES_CENTERS,
 	VOLUMES
 };
 
@@ -250,21 +251,45 @@ protected:
 					table_indices.push_back(index_of(m, vertices[0]));
 					table_indices.push_back(index_of(m, vertices[1]));
 					table_indices.push_back(index_of(m, vertices[2]));
+					table_emb_face.push_back(EMB ? index_of(m, f) : table_emb_face.size());
 				}
 				else
 				{
-					cgogn::geometry::append_ear_triangulation(m, f, position, table_indices);
+					cgogn::geometry::append_ear_triangulation(m, f, position, table_indices,
+					  [&] ()
+					  {
+						  table_indices.push_back(EMB ? index_of(m, f) : table_emb_face.size());
+					  });
 				}
-
-				if (EMB)
-					table_emb_face.push_back(index_of(m,f));
-				else
-					table_emb_face.push_back(table_emb_face.size());
-
 				return true;
 			});
 		}
 	}
+
+
+//	template <bool EMB, typename MESH>
+//	inline void init_faces_centers(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_edge)
+//	{
+//		if constexpr (mesh_traits<MESH>::dimension > 0)
+//		{
+//			using Vertex = typename mesh_traits<MESH>::Vertex;
+//			using Face = typename mesh_traits<MESH>::Edge;
+//			uint32 last = 0;
+//			foreach_cell(m, [&](Face f) -> bool
+//			{
+//				foreach_incident_vertex(m, f, [&](Vertex v) -> bool
+//				{
+//					table_indices.push_back(index_of(m, v));
+//					return true;
+//					if (EMB)
+//						table_indices.push_back(index_of(m,f));
+//					else
+//						table_indices.push_back(last++);
+//				});
+//				return true;
+//			});
+//		}
+//	}
 
 	template <bool EMB, typename MESH>
 	inline void init_volumes(const MESH& m,
@@ -295,14 +320,19 @@ protected:
 						table_indices_f.push_back(index_of(m, vertices[0]));
 						table_indices_f.push_back(index_of(m, vertices[1]));
 						table_indices_f.push_back(index_of(m, vertices[2]));
+						table_indices_f.push_back(EMB ? index_of(m, vol) : table_emb_vol.size());
 					}
 					else
-						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices_f);
+						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices_f,
+							[&] ()
+						{
+							table_indices_f.push_back(EMB ? index_of(m, vol) : table_emb_vol.size());
+						});
 
-					if (EMB)
-						table_indices_f.push_back(index_of(m, vol));
-					else
-						table_indices_f.push_back(table_emb_vol.size());
+//					if (EMB)
+//						table_indices_f.push_back(index_of(m, vol));
+//					else
+//						table_indices_f.push_back(table_emb_vol.size());
 					return true;
 				});
 
@@ -479,6 +509,12 @@ public:
 					init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
 			}
 			break;
+//		case FACES_CENTERS:
+//				if (is_indexed<Face>(m))
+//					init_faces_center<true>(m, table_indices, position);
+//				else
+//					init_faces_center<false>(m, table_indices, position);
+//				break;
 		case VOLUMES:
 				if (is_indexed<Volume>(m))
 					init_volumes<true>(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
