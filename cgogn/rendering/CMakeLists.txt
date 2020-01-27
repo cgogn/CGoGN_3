@@ -12,8 +12,8 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
+                "${CMAKE_CURRENT_LIST_DIR}/topo_drawer.cpp"
                 "${CMAKE_CURRENT_LIST_DIR}/volume_drawer.h"
                 "${CMAKE_CURRENT_LIST_DIR}/volume_drawer.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/mesh_render.h"

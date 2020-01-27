@@ -45,7 +45,8 @@ static void glfw_error_callback(int error, const char* description)
 float64 App::fps_ = 0.0;
 
 App::App()
-	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
+	: window_(nullptr), context_(nullptr), window_name_("CGoGN"),
+	  window_width_(512), window_height_(512), framebuffer_width_(0),framebuffer_height_(0),
 	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
 {
 	tlq_ = boost::synapse::create_thread_local_queue();

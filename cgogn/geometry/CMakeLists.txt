@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/inclusion.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/normal.h"
+                "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/algos/angle.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/area.h"

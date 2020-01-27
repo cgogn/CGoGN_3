@@ -28,6 +28,7 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/types.h>
 #include <iostream>
 #include <string>
 
@@ -53,7 +54,7 @@ public:
 
 	inline void create()
 	{
-		glGenBuffers(1, &id_);
+		glGenBuffers(1, &id_);GL_ASSERT("")
 	}
 
 	inline bool is_created()
@@ -63,17 +64,17 @@ public:
 
 	inline ~EBO()
 	{
-		glDeleteBuffers(1, &id_);
+		glDeleteBuffers(1, &id_);GL_ASSERT("")
 	}
 
 	inline void bind()
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);GL_ASSERT("")
 	}
 
 	inline void release()
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT("")
 	}
 
 	inline GLint bind_tb(GLint unit)
@@ -84,10 +85,11 @@ public:
 			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
 			glBindTexture(GL_TEXTURE_BUFFER,0);
+			GL_ASSERT("")
 		}
 
 		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);GL_ASSERT("")
 		return unit;
 	}
 
@@ -102,7 +104,7 @@ public:
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), nullptr, GL_STATIC_DRAW);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT("")
 			nb_ = nb_ind;
 		}
 	}
@@ -113,14 +115,14 @@ public:
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), indices, GL_STATIC_DRAW);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT("")
 			nb_ = nb_ind;
 		}
 		else
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, GLsizeiptr(nb_ind * sizeof(GLuint)), indices);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT("")
 		}
 	}
 
@@ -142,6 +144,7 @@ public:
 		this->bind();
 		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 		this->release();
+		GL_ASSERT("")
 	}
 
 	/**
@@ -154,7 +157,7 @@ public:
 	{
 		this->bind();
 		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
-		this->release();
+		this->release();GL_ASSERT("")
 	}
 
 	uint32 size() const

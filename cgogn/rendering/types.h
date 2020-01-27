@@ -32,8 +32,10 @@
 // #include <Eigen/Eigen>
 // #include <Eigen/Geometry>
 // #include <Eigen/SVD>
-
+#include <map>
 #include <string>
+#include <iostream>
+#include <GL/gl3w.h>
 
 namespace cgogn
 {
@@ -112,6 +114,26 @@ public:
 			*ptr++ = uint8(255 * col[i]);
 	}
 };
+
+static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
+	{GL_INVALID_ENUM,"GL_INVALID_ENUM"},
+	{GL_INVALID_VALUE,"GL_INVALID_VALUE"},
+	{GL_INVALID_OPERATION,"GL_INVALID_OPERATION"},
+	{GL_INVALID_FRAMEBUFFER_OPERATION,"GL_INVALID_FRAMEBUFFER_OPERATION"},
+	{GL_OUT_OF_MEMORY,"GL_OUT_OF_MEMORY"},
+	{GL_STACK_UNDERFLOW,"GL_STACK_UNDERFLOW"},
+	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
+};
+
+#ifndef NDEBUG
+#define GL_ASSERT(MSG) \
+	{ GLenum err = glGetError(); \
+	if (err != GL_NO_ERROR) \
+		std::cerr<< GL_ERRORS_NAMES[err]<<" in "<< __FUNCTION__<< " line " << __LINE__ << " " << MSG <<std::endl; \
+	assert(err == GL_NO_ERROR); }
+#else
+	#define GL_ASSERT()
+#endif
 
 } // namespace rendering
 

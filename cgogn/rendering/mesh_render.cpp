@@ -93,6 +93,7 @@ void MeshRender::draw(DrawingBufferType prim, GLint binding_point)
 	default:
 		break;
 	}
+	GL_ASSERT("")
 }
 
 

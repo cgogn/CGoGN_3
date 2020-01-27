@@ -45,6 +45,13 @@ inline Scalar squared_distance_normalized_line_point(const Vec3& A, const Vec3& 
 	return ((A - P).cross(AB_norm)).squaredNorm();
 }
 
+template <typename VEC3A, typename VEC3B, typename VEC3C>
+inline Scalar pipo_dist(const Eigen::MapBase<VEC3A>& A, const Eigen::MapBase<VEC3B>& AB_norm, const Eigen::MapBase<VEC3C>& P)
+{
+	return ((A - P).cross(AB_norm)).squaredNorm();
+}
+
+
 /**
  * @brief squared distance line point
  * @param A one point of line
@@ -69,7 +76,7 @@ inline Scalar squared_distance_line_point(const Vec3& A, const Vec3& B, const Ve
  * @param Q second point of segment
  * @return the squared distance
  */
-Scalar squared_distance_line_seg(const Vec3& A, const Vec3& AB, Scalar AB2, const Vec3& P, const Vec3& Q)
+inline Scalar squared_distance_line_seg(const Vec3& A, const Vec3& AB, Scalar AB2, const Vec3& P, const Vec3& Q)
 {
 	Vec3 PQ = Q - P;
 	Scalar PQ_n2 = PQ.squaredNorm();
@@ -128,7 +135,7 @@ inline Scalar squared_distance_line_seg(const Vec3& A, const Vec3& B, const Vec3
  * @param P the point
  * @return the squared distance
  */
-Scalar squared_distance_seg_point(const Vec3& A, const Vec3& AB, const Vec3& P)
+inline Scalar squared_distance_seg_point(const Vec3& A, const Vec3& AB, const Vec3& P)
 {
 	Vec3 AP = P - A;
 

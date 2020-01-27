@@ -58,18 +58,18 @@ public:
 	inline void release()
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_id_);
-		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);GL_ASSERT("")
 	}
 
 
 	inline void bind_read()
 	{
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, id_);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, id_);GL_ASSERT("")
 	}
 
 	inline void release_read()
 	{
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);GL_ASSERT("")
 	}
 
 	void resize(int w, int h);
