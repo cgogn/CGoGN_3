@@ -29,6 +29,7 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/types.h>
 #include <iostream>
 #include <string>
 
@@ -100,7 +101,7 @@ public:
 
 	inline static void release_tb()
 	{
-		glBindTexture(GL_TEXTURE_BUFFER,0);GL_ASSERT("")
+		glBindTexture(GL_TEXTURE_BUFFER,0);GL_ASSERT()
 	}
 
 	/**
@@ -137,7 +138,7 @@ public:
 	inline void release_pointer()
 	{
 		// this->bind();
-		glUnmapBuffer(GL_ARRAY_BUFFER);GL_ASSERT("")
+		glUnmapBuffer(GL_ARRAY_BUFFER);GL_ASSERT()
 		// this->release();
 	}
 
@@ -150,7 +151,7 @@ public:
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
 		// glBindBuffer(GL_ARRAY_BUFFER, id_);
-		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);GL_ASSERT("")
+		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);GL_ASSERT()
 		// glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
@@ -179,7 +180,7 @@ public:
 		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4,
 							  reinterpret_cast<GLvoid*>(first * uint64(vector_dimension()) * 4u));
 		release();
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 };
 

@@ -247,13 +247,17 @@ protected:
 				if (mesh_traits<MESH>::dimension >= 3)
 					need_update |= ImGui::SliderFloat("explodeVolumes", &(p.topo_drawer_->shrink_v_), 0.01f, 1.0f);
 			}
+			if (need_update)
+				p.update_topo(*selected_mesh_);
 		}
 
 		ImGui::End();
 
 		if (need_update)
+		{
 			for (View* v : linked_views_)
 				v->request_update();
+		}
 	}
 
 private:

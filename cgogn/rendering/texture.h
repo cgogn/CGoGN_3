@@ -51,12 +51,12 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		depth_ = false;
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline ~Texture2D()
 	{
-		glDeleteTextures(1, &id_);GL_ASSERT("")
+		glDeleteTextures(1, &id_);GL_ASSERT()
 	}
 
 	inline GLuint id()
@@ -95,17 +95,17 @@ public:
 			alloc(img.width(), img.height(), GL_RGBA8, GL_RGBA, img.data());
 			break;
 		}
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline void resize(GLsizei w, GLsizei h)
 	{
 		bind();
-		glTexImage2D(GL_TEXTURE_2D, 0, internal_, w, h, 0, external_, data_type_, nullptr);GL_ASSERT("")
+		glTexImage2D(GL_TEXTURE_2D, 0, internal_, w, h, 0, external_, data_type_, nullptr);GL_ASSERT()
 		width_ = w;
 		height_ = h;
 		release();
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline GLsizei width() const
@@ -121,21 +121,21 @@ public:
 	inline void bind()
 	{
 		glBindTexture(GL_TEXTURE_2D, id_);
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline GLuint bind(GLuint unit)
 	{
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_2D, id_);
-		GL_ASSERT("")
+		GL_ASSERT()
 		return unit;
 	}
 
 	inline static void release()
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 protected:

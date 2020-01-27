@@ -328,9 +328,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT("")
+		GL_ASSERT()
 		get_matrices_uniforms();
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	template <typename... Ts>
@@ -372,9 +372,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT("")
+		GL_ASSERT()
 		get_matrices_uniforms();
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	template <typename... Ts>
@@ -421,9 +421,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT("")
+		GL_ASSERT()
 		get_matrices_uniforms();
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 };
 
@@ -458,12 +458,12 @@ public:
 
 	inline void bind_vao()
 	{
-		vao_->bind(); GL_ASSERT("")
+		vao_->bind(); GL_ASSERT()
 	}
 
 	inline void release_vao()
 	{
-		vao_->release(); GL_ASSERT("")
+		vao_->release(); GL_ASSERT()
 	}
 
 	inline ShaderProgram* get_shader()

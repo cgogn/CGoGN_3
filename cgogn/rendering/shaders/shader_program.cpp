@@ -103,13 +103,12 @@ void Shader::compile(const std::string& src)
 		}
 		std::cerr << "----------------------------------------" << std::endl;
 	}
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr)
 {
-	 GL_ASSERT("AVANT")
-	id_ = glCreateProgram();  GL_ASSERT("")
+	id_ = glCreateProgram();  GL_ASSERT()
 }
 
 // ShaderProgram::ShaderProgram(const std::string& vert_src, const std::string& frag_src):
@@ -142,7 +141,7 @@ ShaderProgram::~ShaderProgram()
 		delete frag_shader_;
 
 	glDeleteProgram(id_);
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
@@ -175,7 +174,7 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	}
 
 	get_matrices_uniforms();
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src)
@@ -220,7 +219,7 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	}
 
 	get_matrices_uniforms();
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
@@ -258,7 +257,7 @@ void ShaderProgram::get_matrices_uniforms()
 	unif_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
 	unif_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
 	unif_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
-	unif_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");  GL_ASSERT("")
+	unif_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");  GL_ASSERT()
 }
 
 void ShaderProgram::set_matrices(const GLMat4d& proj, const GLMat4d& mv)
@@ -267,23 +266,23 @@ void ShaderProgram::set_matrices(const GLMat4d& proj, const GLMat4d& mv)
 	{
 		GLMat4d mvp = proj * mv;
 		GLMat4 m = mvp.cast<float>();
-		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());  GL_ASSERT()
 	}
 	if (unif_projection_matrix_ >= 0)
 	{
 		GLMat4 m = proj.cast<float>();
-		glUniformMatrix4fv(unif_projection_matrix_, 1, false, m.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_projection_matrix_, 1, false, m.data());  GL_ASSERT()
 	}
 	if (unif_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());  GL_ASSERT()
 	}
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT("")
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT()
 	}
 }
 
@@ -292,17 +291,17 @@ void ShaderProgram::set_matrices(const GLMat4& proj, const GLMat4& mv)
 	if (unif_mvp_matrix_ >= 0)
 	{
 		GLMat4 m = proj * mv;
-		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());  GL_ASSERT()
 	}
 	if (unif_projection_matrix_ >= 0)
-		glUniformMatrix4fv(unif_projection_matrix_, 1, false, proj.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_projection_matrix_, 1, false, proj.data());  GL_ASSERT()
 	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());  GL_ASSERT()
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT("")
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT()
 	}
 }
 
@@ -311,54 +310,54 @@ void ShaderProgram::set_view_matrix(const GLMat4d& mv)
 	if (unif_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());  GL_ASSERT()
 	}
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT("")
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT()
 	}
 }
 
 void ShaderProgram::set_view_matrix(const GLMat4& mv)
 {
 	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());  GL_ASSERT("")
+		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());  GL_ASSERT()
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT("")
+		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());  GL_ASSERT()
 	}
 }
 
 ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(false)
 {
 	vao_ = std::make_unique<VAO>();
-	vao_->create();  GL_ASSERT("")
+	vao_->create();  GL_ASSERT()
 	vao_initialized_ = true;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
 {
-	shader_->bind();  GL_ASSERT("")
-	shader_->set_matrices(proj, mv);  GL_ASSERT("")
-	set_uniforms();  GL_ASSERT("")
-	vao_->bind();  GL_ASSERT("")
+	shader_->bind();  GL_ASSERT()
+	shader_->set_matrices(proj, mv);  GL_ASSERT()
+	set_uniforms();  GL_ASSERT()
+	vao_->bind();  GL_ASSERT()
 }
 
 void ShaderParam::bind()
 {
-	shader_->bind();  GL_ASSERT("")
-	set_uniforms();  GL_ASSERT("")
-	vao_->bind();  GL_ASSERT("")
+	shader_->bind();  GL_ASSERT()
+	set_uniforms();  GL_ASSERT()
+	vao_->bind();  GL_ASSERT()
 }
 
 void ShaderParam::release()
 {
-	vao_->release();  GL_ASSERT("")
-	shader_->release();  GL_ASSERT("")
+	vao_->release();  GL_ASSERT()
+	shader_->release();  GL_ASSERT()
 }
 
 } // namespace rendering

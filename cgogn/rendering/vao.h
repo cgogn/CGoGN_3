@@ -62,7 +62,7 @@ public:
 		if (is_created())
 			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline VAO(const std::vector<std::tuple<GLint, VBO, GLint>>& params)
@@ -78,17 +78,17 @@ public:
 			glVertexAttribPointer(vid, GLint(std::get<1>(p).vector_dimension()), GL_FLOAT, GL_FALSE, 0, nullptr);
 		}
 		glBindVertexArray(0);
-		GL_ASSERT("")
+		GL_ASSERT()
 	}
 
 	inline void bind()
 	{
-		glBindVertexArray(id_);GL_ASSERT("")
+		glBindVertexArray(id_);GL_ASSERT()
 	}
 
 	static inline void release()
 	{
-		glBindVertexArray(0);GL_ASSERT("")
+		glBindVertexArray(0);GL_ASSERT()
 	}
 };
 

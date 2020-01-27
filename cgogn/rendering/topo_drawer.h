@@ -35,6 +35,7 @@
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/distance.h>
 
+
 namespace cgogn
 {
 
@@ -309,13 +310,14 @@ void TopoDrawer::update2D(const MESH& m,
 	vbo_relations_->bind();
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
 	vbo_relations_->release();
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 template <typename MESH>
 void TopoDrawer::update3D(const MESH& m,
 						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 {
+	auto start_timer = std::chrono::high_resolution_clock::now();
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -435,7 +437,12 @@ void TopoDrawer::update3D(const MESH& m,
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
 	vbo_relations_->copy_data(nbvec * 12, nbvec * 12, out_pos3[0].data());
 	vbo_relations_->release();
-	GL_ASSERT("")
+
+	auto end_timer = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
+	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
+
+	GL_ASSERT()
 }
 
 template <typename MESH, typename CELL>
@@ -458,7 +465,7 @@ void TopoDrawer::update_colors(const MESH& m,
 	vbo_color_darts_->bind();
 	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
-	GL_ASSERT("")
+	GL_ASSERT()
 }
 
 

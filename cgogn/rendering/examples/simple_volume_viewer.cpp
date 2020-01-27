@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-//	cgogn::ui::Volume_Render<Mesh> vr(app);
+	cgogn::ui::Volume_Render<Mesh> vr(app);
 	cgogn::ui::Topo_Render<Mesh> tr(app);
 
 	app.init_modules();
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 //	cgogn::ui::View* v4 = app.add_view();
 
 	v1->link_module(&mp);
-//	v1->link_module(&vr);
+	v1->link_module(&vr);
 	v1->link_module(&tr);
 
 //	v2->link_module(&mp);
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-//	vr.set_vertex_position(*v1, *m, vertex_position);
+	vr.set_vertex_position(*v1, *m, vertex_position);
 	tr.set_vertex_position(*v1, *m, vertex_position);
 
 

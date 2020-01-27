@@ -78,14 +78,14 @@ void TopoDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& modelvie
 	param_rp_->size_ = 2.0f * lw;
 
 	param_bl_->bind(projection, modelview);
-	GL_ASSERT("")
+	GL_ASSERT()
 	glDrawArrays(GL_LINES, 0, topo_drawer_data_->vbo_darts_->size());
-	GL_ASSERT("")
+	GL_ASSERT()
 	param_bl_->release();
-	GL_ASSERT("")
+	GL_ASSERT()
 
 	param_rp_->bind(projection, modelview);
-	GL_ASSERT("")
+	GL_ASSERT()
 
 	glDrawArrays(GL_POINTS, 0, topo_drawer_data_->vbo_darts_->size() / 2);
 	param_rp_->release();

@@ -126,10 +126,10 @@ static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
 };
 
 #ifndef NDEBUG
-#define GL_ASSERT(MSG) \
+#define GL_ASSERT() \
 	{ GLenum err = glGetError(); \
 	if (err != GL_NO_ERROR) \
-		std::cerr<< GL_ERRORS_NAMES[err]<<" in "<< __FUNCTION__<< " line " << __LINE__ << " " << MSG <<std::endl; \
+		std::cerr<< GL_ERRORS_NAMES[err]<<" in "<< __FUNCTION__<< " line " << __LINE__ <<std::endl; \
 	assert(err == GL_NO_ERROR); }
 #else
 	#define GL_ASSERT()
