@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -128,13 +128,14 @@ protected:
 //		}
 //	}
 
-	template <bool EMB, typename MESH>
+	template <typename MESH>
 	inline void init_lines(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_edge)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 0)
 		{
 			using Vertex = typename mesh_traits<MESH>::Vertex;
 			using Edge = typename mesh_traits<MESH>::Edge;
+			uint32 i_e;
 			foreach_cell(m, [&](Edge e) -> bool
 			{
 				foreach_incident_vertex(m, e, [&](Vertex v) -> bool
@@ -142,39 +143,15 @@ protected:
 					table_indices.push_back(index_of(m, v));
 					return true;
 				});
-
-				if (EMB)
-					table_emb_edge.push_back(index_of(m,e));
-				else
-					table_emb_edge.push_back(table_emb_edge.size());
-
+				table_emb_edge.push_back(is_indexed<Edge>(m) ? index_of(m,e) :i_e);
+				++i_e;
 				return true;
 			});
 		}
 	}
 
-//	template <typename MESH>
-//	inline void init_triangles(const MESH& m, std::vector<uint32>& table_indices)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 1)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Face = typename mesh_traits<MESH>::Face;
-//			foreach_cell(m, [&](Face f) -> bool {
-//				std::vector<Vertex> vertices = incident_vertices(m, f);
-//				for (uint32 i = 1; i < vertices.size() - 1; ++i)
-//				{
-//					table_indices.push_back(index_of(m, vertices[0]));
-//					table_indices.push_back(index_of(m, vertices[i]));
-//					table_indices.push_back(index_of(m, vertices[i + 1]));
-//				}
-//				return true;
-//			});
-//		}
-//	}
 
-
-	template <bool EMB, typename MESH>
+	template <typename MESH>
 	inline void init_triangles(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_face)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 1)
@@ -183,6 +160,8 @@ protected:
 			using Face = typename mesh_traits<MESH>::Face;
 			std::vector<Vertex> vertices;
 			vertices.reserve(32u);
+			bool emb = is_indexed<Face>(m);
+			uint32 i_f=0;
 			foreach_cell(m, [&](Face f) -> bool
 			{
 				vertices.clear();
@@ -193,45 +172,14 @@ protected:
 					table_indices.push_back(index_of(m, vertices[i]));
 					table_indices.push_back(index_of(m, vertices[i + 1]));
 				}
-				if (EMB)
-					table_emb_face.push_back(index_of(m,f));
-				else
-					table_emb_face.push_back(table_emb_face.size());
+				table_emb_face.push_back( emb ? index_of(m,f) : i_f++);
 				return true;
 			});
 		}
 	}
 
-//	template <typename MESH>
-//	inline void init_ear_triangles(const MESH& m, std::vector<uint32>& table_indices,
-//				   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 1)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Face = typename mesh_traits<MESH>::Face;
-//			std::vector<Vertex> vertices;
-//			vertices.reserve(32u);
-//			foreach_cell(m, [&](Face f) -> bool
-//			{
-//				if (codegree(m,f)==3)
-//				{
-//					vertices.clear();
-//					incident_vertices(m, f, vertices);
-//					table_indices.push_back(index_of(m, vertices[0]));
-//					table_indices.push_back(index_of(m, vertices[1]));
-//					table_indices.push_back(index_of(m, vertices[2]));
-//				}
-//				else
-//				{
-//					cgogn::geometry::append_ear_triangulation(m, f, position, table_indices);
-//				}
-//				return true;
-//			});
-//		}
-//	}
 
-	template <bool EMB, typename MESH>
+	template <typename MESH>
 	inline void init_ear_triangles(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_face,
 				   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
@@ -241,6 +189,8 @@ protected:
 			using Face = typename mesh_traits<MESH>::Face;
 			std::vector<Vertex> vertices;
 			vertices.reserve(32u);
+			uint32 i_f=0;
+			bool emb = is_indexed<Face>(m);
 			foreach_cell(m, [&](Face f) -> bool
 			{
 				if (codegree(m,f)==3)
@@ -251,16 +201,29 @@ protected:
 					table_indices.push_back(index_of(m, vertices[0]));
 					table_indices.push_back(index_of(m, vertices[1]));
 					table_indices.push_back(index_of(m, vertices[2]));
-					table_emb_face.push_back(EMB ? index_of(m, f) : table_emb_face.size());
+					table_emb_face.push_back(emb ? index_of(m, f) : i_f);
 				}
 				else
 				{
-					cgogn::geometry::append_ear_triangulation(m, f, position, table_indices,
-					  [&] ()
-					  {
-						  table_indices.push_back(EMB ? index_of(m, f) : table_emb_face.size());
-					  });
+					if (emb)
+					{
+						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices,
+						  [&] ()
+						  {
+							  table_emb_face.push_back(index_of(m, f));
+						  });
+					}
+					else
+					{
+						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices,
+						  [&] ()
+						  {
+							  table_emb_face.push_back(i_f);
+						  });
+					}
+
 				}
+				i_f++;
 				return true;
 			});
 		}
@@ -275,23 +238,22 @@ protected:
 //			using Vertex = typename mesh_traits<MESH>::Vertex;
 //			using Face = typename mesh_traits<MESH>::Edge;
 //			uint32 last = 0;
+//			bool emb = is_indexed<Face>(m);
 //			foreach_cell(m, [&](Face f) -> bool
 //			{
 //				foreach_incident_vertex(m, f, [&](Vertex v) -> bool
 //				{
 //					table_indices.push_back(index_of(m, v));
+//					table_indices.push_back(emb ? index_of(m,f) : last);
 //					return true;
-//					if (EMB)
-//						table_indices.push_back(index_of(m,f));
-//					else
-//						table_indices.push_back(last++);
 //				});
 //				return true;
+//				++last;
 //			});
 //		}
 //	}
 
-	template <bool EMB, typename MESH>
+	template <typename MESH>
 	inline void init_volumes(const MESH& m,
 							 std::vector<uint32>& table_indices_f,
 							 std::vector<uint32>& table_indices_e,
@@ -309,6 +271,8 @@ protected:
 
 			std::vector<Vertex> vertices;
 			vertices.reserve(256);
+			uint32 i_vol=0;
+			bool emb = is_indexed<Volume>(m);
 			foreach_cell(m, [&](Volume vol) -> bool
 			{
 				foreach_incident_face(m, vol, [&](Face f)-> bool
@@ -320,19 +284,21 @@ protected:
 						table_indices_f.push_back(index_of(m, vertices[0]));
 						table_indices_f.push_back(index_of(m, vertices[1]));
 						table_indices_f.push_back(index_of(m, vertices[2]));
-						table_indices_f.push_back(EMB ? index_of(m, vol) : table_emb_vol.size());
+						table_indices_f.push_back(emb ? index_of(m, vol) : i_vol);
 					}
 					else
-						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices_f,
-							[&] ()
+					{
+						if (emb)
 						{
-							table_indices_f.push_back(EMB ? index_of(m, vol) : table_emb_vol.size());
-						});
-
-//					if (EMB)
-//						table_indices_f.push_back(index_of(m, vol));
-//					else
-//						table_indices_f.push_back(table_emb_vol.size());
+							cgogn::geometry::append_ear_triangulation(m, f, position, table_indices_f,
+								[&] () { table_indices_f.push_back(index_of(m, vol)); });
+						}
+						else
+						{
+							cgogn::geometry::append_ear_triangulation(m, f, position, table_indices_f,
+								[&] () { table_indices_f.push_back(i_vol); });
+						}
+					}
 					return true;
 				});
 
@@ -343,116 +309,23 @@ protected:
 
 					table_indices_e.push_back(index_of(m, vertices[0]));
 					table_indices_e.push_back(index_of(m, vertices[1]));
-
-					if (EMB)
-						table_indices_e.push_back(index_of(m, vol));
-					else
-						table_indices_e.push_back(table_emb_vol.size());
+					table_indices_e.push_back(emb ? index_of(m, vol) : i_vol);
 					return true;
 				});
 
 				foreach_incident_vertex(m, vol, [&](Vertex v)-> bool
 				{
 					table_indices_v.push_back(index_of(m, v));
-
-					if (EMB)
-						table_indices_v.push_back(index_of(m, vol));
-					else
-						table_indices_v.push_back(table_emb_vol.size());
+					table_indices_v.push_back(emb ? index_of(m, vol) : i_vol);
 					return true;
 				});
 
-				if (EMB)
-					table_emb_vol.push_back(index_of(m, vol));
-				else
-					table_emb_vol.push_back(table_emb_vol.size());
+				table_emb_vol.push_back(emb ? index_of(m, vol) : i_vol++);
 
 				return true;
 			});
 		}
 	}
-
-//	template <typename MESH, bool EMB>
-//	inline void init_volumes_faces(const MESH& m, std::vector<uint32>& table_indices,
-//			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 2)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Face = typename mesh_traits<MESH>::Face;
-//			using Volume = typename mesh_traits<MESH>::Volume;
-//			foreach_cell(m, [&](Volume vol) -> bool
-//			{
-//				foreach_incident_face(m, vol, [&](Face f)-> bool
-//				{
-//					if (codegree(m,f)==3)
-//					{
-//						std::vector<Vertex> vertices = incident_vertices(m, f);
-//						table_indices.push_back(index_of(m, vertices[0]));
-//						table_indices.push_back(index_of(m, vertices[1]));
-//						table_indices.push_back(index_of(m, vertices[2]));
-//					}
-//					else
-//						cgogn::geometry::append_ear_triangulation(m, f, position, table_indices);
-
-//					if (EMB)
-//						table_indices.push_back(index_of(m, vol));
-//					else
-//						table_indices.push_back(table_indices.size());
-
-//					return true;
-//				});
-//				return true;
-//			});
-//		}
-//	}
-
-//	template <typename MESH, bool EMB>
-//	inline void init_volumes_edges(const MESH& m, std::vector<uint32>& table_indices)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 2)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Edge = typename mesh_traits<MESH>::Edge;
-//			using Volume = typename mesh_traits<MESH>::Volume;
-//			foreach_cell(m, [&](Volume vol) -> bool
-//			{
-//				foreach_incident_edge(m, vol, [&](Edge e)-> bool
-//				{
-//					std::vector<Vertex> vertices = incident_vertices(m, e);
-//					table_indices.push_back(index_of(m, vertices[0]));
-//					table_indices.push_back(index_of(m, vertices[1]));
-//					if (EMB)
-//						table_indices.push_back(index_of(m, vol));
-//					else
-//						table_indices.push_back(table_indices.size());
-//					return true;
-//				});
-//				return true;
-//			});
-//		}
-//	}
-
-//	template <typename MESH>
-//	inline void init_volumes_vertices(const MESH& m, std::vector<uint32>& table_indices)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 2)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Volume = typename mesh_traits<MESH>::Volume;
-//			foreach_cell(m, [&](Volume vol) -> bool
-//			{
-//				foreach_incident_vertex(m, vol, [&](Vertex v)-> bool
-//				{
-//					table_indices.push_back(index_of(m, v));
-//					table_indices.push_back(index_of(m, vol));
-//					return true;
-//				});
-//				return true;
-//			});
-//		}
-//	}
-
 
 public:
 	inline uint32 nb_indices(DrawingType prim) const
@@ -487,39 +360,16 @@ public:
 			init_points(m, table_indices);
 			break;
 		case LINES:
-			if (is_indexed<Edge>(m))
-				init_lines<true>(m, table_indices,table_indices_emb);
-			else
-				init_lines<false>(m, table_indices,table_indices_emb);
-
+			init_lines(m, table_indices,table_indices_emb);
 			break;
 		case TRIANGLES:
 			if (position == nullptr)
-			{
-				if (is_indexed<Face>(m))
-					init_triangles<true>(m, table_indices, table_indices_emb);
-				else
-					init_triangles<false>(m, table_indices, table_indices_emb);
-			}
+				init_triangles(m, table_indices, table_indices_emb);
 			else
-			{
-				if (is_indexed<Face>(m))
-					init_ear_triangles<true>(m, table_indices, table_indices_emb, position);
-				else
-					init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
-			}
+				init_ear_triangles(m, table_indices, table_indices_emb, position);
 			break;
-//		case FACES_CENTERS:
-//				if (is_indexed<Face>(m))
-//					init_faces_center<true>(m, table_indices, position);
-//				else
-//					init_faces_center<false>(m, table_indices, position);
-//				break;
 		case VOLUMES:
-				if (is_indexed<Volume>(m))
-					init_volumes<true>(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
-				else
-					init_volumes<false>(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
+				init_volumes(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
 				break;
 		default:
 			break;

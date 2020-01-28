@@ -45,7 +45,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamFSTexture : public ShaderParam
 
 public:
 	Texture2D* texture_;
-	GLuint unit_;
+	GLint unit_;
 	GLfloat alpha_;
 
 	using LocalShader = ShaderFSTexture;

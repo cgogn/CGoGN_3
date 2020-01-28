@@ -31,14 +31,14 @@ namespace rendering
 
 FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 {
-	glGenFramebuffers(1, &id_);
-	glBindFramebuffer(GL_FRAMEBUFFER, id_);
+	glGenFramebuffers(1, &id_);GL_ASSERT()
+	glBindFramebuffer(GL_FRAMEBUFFER, id_);GL_ASSERT()
 	GLenum att = GL_COLOR_ATTACHMENT0;
 	for (auto* t : textures)
 	{
 		tex_.clear();
 		tex_.push_back(t);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, att++, GL_TEXTURE_2D, t->id(), 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, att++, GL_TEXTURE_2D, t->id(), 0);GL_ASSERT()
 	}
 
 	if (add_depth)
@@ -46,19 +46,21 @@ FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 		if (from)
 		{
 			depth_render_buffer_ = from->depth_render_buffer_;
-			glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);
-			glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);GL_ASSERT()
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);GL_ASSERT()
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);GL_ASSERT()
 		}
 		else
 		{
 			glGenRenderbuffers(1, &depth_render_buffer_);
-			glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, tex_[0]->width(), tex_[0]->height());
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);
-			glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);GL_ASSERT()
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, tex_[0]->width(), tex_[0]->height());GL_ASSERT()
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);GL_ASSERT()
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);GL_ASSERT()
 		}
 	}
+	else
+		depth_render_buffer_ = 0;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	GL_ASSERT()
 }
@@ -70,9 +72,9 @@ void FBO::resize(int w, int h)
 
 	if (depth_render_buffer_ != 0)
 	{
-		glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);GL_ASSERT()
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);GL_ASSERT()
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);GL_ASSERT()
 	}
 	GL_ASSERT()
 }

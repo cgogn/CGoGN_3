@@ -79,10 +79,10 @@ public:
 
 	inline void stop()
 	{
-		prg_param_.release();
 		glEndTransformFeedback();
 		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK,0);
 		glDisable(GL_RASTERIZER_DISCARD);
+		prg_param_.release();
 	}
 };
 

@@ -124,9 +124,9 @@ public:
 		GL_ASSERT()
 	}
 
-	inline GLuint bind(GLuint unit)
+	inline GLint bind(GLint unit)
 	{
-		glActiveTexture(GL_TEXTURE0 + unit);
+		glActiveTexture(GL_TEXTURE0 + GLuint(unit));
 		glBindTexture(GL_TEXTURE_2D, id_);
 		GL_ASSERT()
 		return unit;

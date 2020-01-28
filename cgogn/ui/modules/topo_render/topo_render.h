@@ -236,14 +236,16 @@ protected:
 				ImGui::TextUnformatted("Volume parameters");
 				need_update |= ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(),
+				if (mesh_traits<MESH>::dimension >= 2)
+					need_update |= ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
 				if (mesh_traits<MESH>::dimension >= 3)
-					need_update |= ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi2_color_.data(),
+					need_update |= ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
 
 				need_update |= ImGui::SliderFloat("explodeEdges", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f);
-				need_update |= ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f);
+				if (mesh_traits<MESH>::dimension >= 2)
+					need_update |= ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f);
 				if (mesh_traits<MESH>::dimension >= 3)
 					need_update |= ImGui::SliderFloat("explodeVolumes", &(p.topo_drawer_->shrink_v_), 0.01f, 1.0f);
 			}

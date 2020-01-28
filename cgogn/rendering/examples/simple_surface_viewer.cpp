@@ -33,6 +33,8 @@
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/topo_render/topo_render.h>
+
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -63,6 +65,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::Topo_Render<Mesh> tr(app);
 
 	app.init_modules();
 
@@ -70,6 +73,7 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
+	v1->link_module(&tr);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
@@ -90,6 +94,8 @@ int main(int argc, char** argv)
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
 	srv.set_vertex_vector(*v1, *m, vertex_normal);
+
+	tr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

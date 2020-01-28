@@ -87,12 +87,12 @@ public:
 
 	inline Shader(GLenum type)
 	{
-		id_ = glCreateShader(type);
+		id_ = glCreateShader(type);  GL_ASSERT()
 	}
 
 	inline ~Shader()
 	{
-		glDeleteShader(id_);
+		glDeleteShader(id_); GL_ASSERT()
 	}
 
 	inline GLuint shaderId() const
@@ -153,32 +153,32 @@ public:
 
 	inline void start_use()
 	{
-		glUseProgram(id_);
+		glUseProgram(id_); GL_ASSERT()
 	}
 
 	inline void stop_use()
 	{
-		glUseProgram(0);
+		glUseProgram(0); GL_ASSERT()
 	}
 
 	inline void bind()
 	{
-		glUseProgram(id_);
+		glUseProgram(id_); GL_ASSERT()
 	}
 
 	inline void release()
 	{
-		glUseProgram(0);
+		glUseProgram(0); GL_ASSERT()
 	}
 
 	inline GLint uniform_location(const GLchar* str) const
 	{
-		return glGetUniformLocation(id_, str);
+		return glGetUniformLocation(id_, str); GL_ASSERT()
 	}
 
 	inline void add_uniform(const GLchar* str)
 	{
-		GLint u = glGetUniformLocation(id_, str);
+		GLint u = glGetUniformLocation(id_, str); GL_ASSERT()
 		if (u >= 0)
 			uniforms_.push_back(u);
 		else
@@ -201,12 +201,12 @@ public:
 
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
-		glBindAttribLocation(id_, attrib, str_var);
+		glBindAttribLocation(id_, attrib, str_var); GL_ASSERT()
 	}
 
 	inline void bind_attrib_location(GLuint attrib, const std::string& str_var)
 	{
-		glBindAttribLocation(id_, attrib, str_var.c_str());
+		glBindAttribLocation(id_, attrib, str_var.c_str()); GL_ASSERT()
 	}
 
 	template <typename T1>
@@ -235,31 +235,31 @@ public:
 
 	inline void set_uniform_value(std::size_t i, const float32 v)
 	{
-		glUniform1f(uniforms_[i], v);
+		glUniform1f(uniforms_[i], v); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec2& v)
 	{
-		glUniform2fv(uniforms_[i], 1, v.data());
+		glUniform2fv(uniforms_[i], 1, v.data()); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec3& v)
 	{
-		glUniform3fv(uniforms_[i], 1, v.data());
+		glUniform3fv(uniforms_[i], 1, v.data()); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec4& v)
 	{
-		glUniform4fv(uniforms_[i], 1, v.data());
+		glUniform4fv(uniforms_[i], 1, v.data()); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const int32 v)
 	{
-		glUniform1i(uniforms_[i], v);
+		glUniform1i(uniforms_[i], v); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const uint32 v)
 	{
-		glUniform1ui(uniforms_[i], v);
+		glUniform1ui(uniforms_[i], v); GL_ASSERT()
 	}
 	inline void set_uniform_value(std::size_t i, const bool v)
 	{
-		glUniform1i(uniforms_[i], int32(v));
+		glUniform1i(uniforms_[i], int32(v)); GL_ASSERT()
 	}
 
 	template <typename T1>

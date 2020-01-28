@@ -296,18 +296,18 @@ void TopoDrawer::update2D(const MESH& m,
 
 	uint32 nbvec = std::uint32_t(darts_pos_.size());
 
-	vbo_darts_->allocate(nbvec, 3);
 	vbo_darts_->bind();
+	vbo_darts_->allocate(nbvec, 3);
 	vbo_darts_->copy_data(0, nbvec * 12, darts_pos_[0].data());
 	vbo_darts_->release();
 
-	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
+	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
 
-	vbo_relations_->allocate(nbvec, 3);
 	vbo_relations_->bind();
+	vbo_relations_->allocate(nbvec, 3);
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
 	vbo_relations_->release();
 	GL_ASSERT()
