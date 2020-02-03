@@ -93,7 +93,7 @@ public:
 			{
 				if (stop_cond())
 					return;
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 				if (stop_cond())
 					return;
 				boost::synapse::emit<App::timer_tick>(this);
