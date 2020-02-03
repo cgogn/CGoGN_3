@@ -314,13 +314,13 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 		{
 			if (!is_boundary(m, d))
 			{
-				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, d), d);
-				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, e), d);
+				copy_index<CPH3::CMAP::Volume>(map, phi_1(m, d), d);
+				copy_index<CPH3::CMAP::Volume>(map, phi_1(m, e), d);
 			}
 			if (!is_boundary(m, dd))
 			{
-				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, dd), dd);
-				copy_index<CPH3::CMAP::Volume>(m, phi_1(m, ee), dd);
+				copy_index<CPH3::CMAP::Volume>(map, phi_1(m, dd), dd);
+				copy_index<CPH3::CMAP::Volume>(map, phi_1(m, ee), dd);
 			}
 		}
 	}

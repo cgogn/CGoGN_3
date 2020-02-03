@@ -32,6 +32,7 @@
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
@@ -115,6 +116,36 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	if (faces.size() < 2)
 		return 0;
 	return angle(value<Vec3>(m, face_normal, faces[0]), value<Vec3>(m, face_normal, faces[1]));
+}
+
+template <typename MESH>
+Scalar
+angle(
+	const MESH& m,
+	Cell<Orbit::PHI1> f1,
+	Cell<Orbit::PHI1> f2,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
+)
+{
+    const Vec3 n1 = normal(m, f1, vertex_position);
+    const Vec3 n2 = normal(m, f2, vertex_position);
+
+    Vec3 edge = value<Vec3>(m, vertex_position,typename MESH::Vertex(f2.dart)) - value<Vec3>(m, vertex_position,typename MESH::Vertex(f1.dart));
+    edge.normalize();
+    Scalar s = edge.dot(n1.cross(n2));
+    Scalar c = n1.dot(n2);
+    Scalar a(0);
+
+    // the following trick is useful to avoid NaNs (due to floating point errors)
+    if (c > Scalar(0.5)) a = std::asin(s);
+    else
+    {
+        if(c < -1) c = -1;
+        if (s >= 0) a = std::acos(c);
+        else a = -std::acos(c);
+    }
+
+    return a;
 }
 
 template <typename MESH>

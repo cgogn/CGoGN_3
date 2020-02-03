@@ -177,8 +177,9 @@ uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Volume v)
 // CMapBase //
 //////////////
 
-template <typename MESH, typename CELL, std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
-bool is_incident_to_boundary(const MESH& m, CELL c)
+template <typename MESH, typename CELL>
+auto is_incident_to_boundary(const MESH& m,CELL c)
+-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>,bool>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	bool result = false;
