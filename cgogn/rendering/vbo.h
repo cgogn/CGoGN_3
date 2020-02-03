@@ -75,6 +75,7 @@ public:
 
 	inline void bind()
 	{
+		std::cout << "BIND VBO "<< id_ << std::endl;
 		glBindBuffer(GL_ARRAY_BUFFER, id_);
 	}
 
@@ -183,6 +184,26 @@ public:
 		GL_ASSERT()
 	}
 };
+
+inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
+{
+	vbo.bind();
+	float* f = vbo.lock_pointer();
+	std::cout <<"VBO "<< vbo.name()<<std::endl;
+	for (int i=0; i<5; ++i)
+	{
+		for (int j=0; j<vbo.vector_dimension(); ++j)
+		{
+			std::cout << *f++<<" ; ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout<< "-------------------" << std::endl;
+	vbo.release_pointer();
+	vbo.release();
+	return out;
+}
+
 
 } // namespace rendering
 

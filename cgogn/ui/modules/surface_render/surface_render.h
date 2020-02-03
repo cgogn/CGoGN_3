@@ -37,6 +37,9 @@
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
 
+#include <cgogn/rendering/shaders/compute_volume_centers.h>
+
+
 #include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
@@ -58,9 +61,12 @@ class SurfaceRender : public ViewModule
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
+
 
 	struct Parameters
 	{
@@ -103,6 +109,9 @@ class SurfaceRender : public ViewModule
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 		std::shared_ptr<Attribute<Scalar>> vertex_scalar_;
+
+		std::unique_ptr<rendering::VBO> vbo_volume_center_;
+		rendering::VBO* vbo_center_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
@@ -176,11 +185,17 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
+		p.vbo_center_ = nullptr;
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 			md->update_vbo(vertex_position.get(), true);
 		}
+
+		rendering::MeshRender* render = md->get_render();
+		if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+			render->init_primitives(m,rendering::VOLUMES_VERTICES,p.vertex_position_.get());
+		compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 
 		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
 		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
@@ -262,6 +277,7 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
+		compute_center_engine_ = std::make_unique<rendering::ComputeCenterEngine>();
 	}
 
 	void draw(View* view) override
@@ -281,25 +297,25 @@ protected:
 				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_gouraud_->release();
 				}
 				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_->release();
 				}
 				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
 				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 
@@ -310,7 +326,7 @@ protected:
 			{
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::BUFFER_POINTS);
+				md->draw(rendering::POINTS);
 				p.param_point_sprite_->release();
 			}
 
@@ -319,7 +335,7 @@ protected:
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::BUFFER_LINES);
+				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}
@@ -498,6 +514,8 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
+	std::unique_ptr<rendering::ComputeCenterEngine> compute_center_engine_;
+
 };
 
 } // namespace ui

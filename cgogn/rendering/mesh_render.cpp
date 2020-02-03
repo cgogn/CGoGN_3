@@ -35,7 +35,7 @@ MeshRender::MeshRender()
 	{
 		indices_buffers_[i] = std::make_unique<EBO>();
 		indices_buffers_uptodate_[i] = false;
-		nb_indices_[i] = 0;
+//		nb_indices_[i] = 0;
 	}
 }
 
@@ -43,51 +43,54 @@ MeshRender::~MeshRender()
 {
 }
 
-void MeshRender::draw(DrawingBufferType prim, GLint binding_point)
+void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
-	if (nb_indices_[prim] == 0)
+	uint32 prim_buffer = (prim<SIZE_BUFFER) ? prim : prim-(SIZE_BUFFER+1);
+	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
+	if (nb_indices == 0)
 		return;
 
 	switch (prim)
 	{
-	case BUFFER_POINTS:
+	case POINTS:
 		indices_buffers_[prim]->bind();
-		glDrawElements(GL_POINTS, nb_indices_[prim], GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_POINTS, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
 		break;
-	case BUFFER_LINES:
+	case LINES:
 		indices_buffers_[prim]->bind();
-		glDrawElements(GL_LINES, nb_indices_[prim], GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_LINES, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
 		break;
-	case BUFFER_LINES_TB:
-		indices_buffers_[BUFFER_LINES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices_[BUFFER_LINES]/2);
-		indices_buffers_[BUFFER_LINES]->release_tb();
+	case LINES_TB:
+		indices_buffers_[LINES]->bind_tb(binding_point);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/2);
+		indices_buffers_[LINES]->release_tb();
 		break;
-	case BUFFER_TRIANGLES:
+	case TRIANGLES:
+		std::cout << *indices_buffers_[prim]<<std::endl;
 		indices_buffers_[prim]->bind();
-		glDrawElements(GL_TRIANGLES, nb_indices_[prim], GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
 		break;
-	case BUFFER_TRIANGLES_TB:
-		indices_buffers_[BUFFER_TRIANGLES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices_[BUFFER_TRIANGLES]/3);
-		indices_buffers_[BUFFER_TRIANGLES]->release_tb();
+	case TRIANGLES_TB:
+		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/3);
+		indices_buffers_[TRIANGLES]->release_tb();
 		break;
-	case BUFFER_VOLUMES_EDGES:
+	case VOLUMES_EDGES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices_[prim]/3);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/3);
 		indices_buffers_[prim]->release_tb();
 		break;
-	case BUFFER_VOLUMES_FACES:
+	case VOLUMES_FACES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices_[prim]/4);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/4);
 		indices_buffers_[prim]->release_tb();
 		break;
-	case BUFFER_VOLUMES_VERTICES:
+	case VOLUMES_VERTICES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArrays(GL_POINTS, 0, nb_indices_[prim]/2);
+		glDrawArrays(GL_POINTS, 0, nb_indices/2);
 		indices_buffers_[prim]->release_tb();
 		break;
 	default:

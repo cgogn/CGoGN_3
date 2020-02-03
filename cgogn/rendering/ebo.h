@@ -55,6 +55,7 @@ public:
 	inline void create()
 	{
 		glGenBuffers(1, &id_);GL_ASSERT()
+		std::cout << "EBO CREATION: "<< id_<<std::endl;
 	}
 
 	inline bool is_created()
@@ -69,6 +70,7 @@ public:
 
 	inline void bind()
 	{
+		std::cout << "BIND EBO "<< id_ << std::endl;
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);GL_ASSERT()
 	}
 
@@ -170,6 +172,22 @@ public:
 		return id_;
 	}
 };
+
+
+inline std::ostream& operator<<(std::ostream& out, EBO& ebo)
+{
+	ebo.bind();
+	uint32* f = ebo.lock_pointer();
+	std::cout <<"Debug EBO "<< ebo.id()<<std::endl;
+	for (int i=0; i<10; ++i)
+	{
+		std::cout << *f++<<" / ";
+	}
+	std::cout << std::endl<< "-------------------" << std::endl;
+	ebo.release_pointer();
+	ebo.release();
+	return out;
+}
 
 } // namespace rendering
 

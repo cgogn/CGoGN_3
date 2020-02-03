@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -48,34 +48,30 @@ namespace cgogn
 namespace rendering
 {
 
-enum DrawingType : uint8
+enum DrawingType : uint32
 {
 	POINTS = 0,
 	LINES,
 	TRIANGLES,
-	FACES_CENTERS,
-	VOLUMES
-};
 
-enum DrawingBufferType : uint8
-{
-	BUFFER_POINTS = 0,
-	BUFFER_LINES,
-	BUFFER_TRIANGLES,
+	VOLUMES_FACES,
+	VOLUMES_EDGES,
+	VOLUMES_VERTICES,
 
-	BUFFER_VOLUMES_FACES,
-	BUFFER_VOLUMES_EDGES,
-	BUFFER_VOLUMES_VERTICES,
-
-	BUFFER_EMB_EDGES,
-	BUFFER_EMB_FACES,
-	BUFFER_EMB_VOLUMES,
+	INDEX_EDGES,
+	INDEX_FACES,
+	INDEX_VOLUMES,
 
 	SIZE_BUFFER,
-	BUFFER_POINTS_TB,
-	BUFFER_LINES_TB,
-	BUFFER_TRIANGLES_TB,
-
+	POINTS_TB,
+	LINES_TB,
+	TRIANGLES_TB,
+	VOLUMES_FACES_TB,
+	VOLUMES_EDGES_TB,
+	VOLUMES_VERTICES_TB,
+	INDEX_EDGES_TB,
+	INDEX_FACES_TB,
+	INDEX_VOLUMES_TB
 };
 
 class CGOGN_RENDERING_EXPORT MeshRender
@@ -83,19 +79,19 @@ class CGOGN_RENDERING_EXPORT MeshRender
 protected:
 	std::array<std::unique_ptr<EBO>, SIZE_BUFFER> indices_buffers_;
 	std::array<bool, SIZE_BUFFER> indices_buffers_uptodate_;
-	std::array<uint32, SIZE_BUFFER> nb_indices_;
+//	std::array<uint32, SIZE_BUFFER> nb_indices_;
 
 public:
 	MeshRender();
 	~MeshRender();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshRender);
 
-	inline bool is_primitive_uptodate(DrawingBufferType prim)
+	inline bool is_primitive_uptodate(DrawingType prim)
 	{
 		return indices_buffers_uptodate_[prim];
 	}
 
-	inline void set_primitive_dirty(DrawingBufferType prim)
+	inline void set_primitive_dirty(DrawingType prim)
 	{
 		indices_buffers_uptodate_[prim] = false;
 	}
@@ -262,7 +258,7 @@ protected:
 			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
 
-		if constexpr (mesh_traits<MESH>::dimension > 2)
+		if constexpr (mesh_traits<MESH>::dimension >= 2)
 		{
 			using Vertex = typename mesh_traits<MESH>::Vertex;
 			using Edge = typename mesh_traits<MESH>::Edge;
@@ -328,15 +324,30 @@ protected:
 	}
 
 public:
-	inline uint32 nb_indices(DrawingType prim) const
-	{
-		return nb_indices_[prim];
-	}
+//	inline uint32 nb_indices(DrawingType prim) const
+//	{
+//		return nb_indices_[prim];
+//	}
 
 	template <typename MESH>
 	inline void init_primitives(const MESH& m, DrawingType prim,
 								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
+		//
+		if (prim>=SIZE_BUFFER)
+			prim = DrawingType(prim + POINTS - POINTS_TB);
+
+		auto func_update_ebo = [&] (DrawingType pr, const std::vector<uint32>& table ) -> void
+		{
+			indices_buffers_uptodate_[pr] = true;
+//			nb_indices_[pr] = uint32(table.size());
+			if (!table.empty())
+			{
+				if (!indices_buffers_[pr]->is_created())
+					indices_buffers_[pr]->create();
+				indices_buffers_[pr]->allocate(table.data(), table.size());
+			}
+		};
 
 		auto start_timer = std::chrono::high_resolution_clock::now();
 
@@ -348,71 +359,40 @@ public:
 		std::vector<uint32> table_indices_e;
 		table_indices_emb.reserve(1024u);
 		std::vector<uint32> table_indices_v;
-		table_indices_emb.reserve(1024u);
-
-		using Edge = typename mesh_traits<MESH>::Edge;
-		using Face = typename mesh_traits<MESH>::Face;
-		using Volume = typename mesh_traits<MESH>::Volume;
+		table_indices_v.reserve(1024u);
 
 		switch (prim)
 		{
 		case POINTS:
 			init_points(m, table_indices);
+			func_update_ebo(POINTS,table_indices);
 			break;
 		case LINES:
+		case INDEX_EDGES:
 			init_lines(m, table_indices,table_indices_emb);
+			func_update_ebo(LINES,table_indices);
+			func_update_ebo(INDEX_EDGES,table_indices_emb);
 			break;
 		case TRIANGLES:
+		case INDEX_FACES:
 			if (position == nullptr)
 				init_triangles(m, table_indices, table_indices_emb);
 			else
 				init_ear_triangles(m, table_indices, table_indices_emb, position);
+			func_update_ebo(TRIANGLES,table_indices);
+			func_update_ebo(INDEX_FACES,table_indices_emb);
 			break;
-		case VOLUMES:
-				init_volumes(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
-				break;
-		default:
+
+		case VOLUMES_VERTICES:
+		case VOLUMES_EDGES:
+		case VOLUMES_FACES:
+		case INDEX_VOLUMES:
+			init_volumes(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
+			func_update_ebo(VOLUMES_FACES,table_indices);
+			func_update_ebo(VOLUMES_EDGES,table_indices_e);
+			func_update_ebo(VOLUMES_VERTICES,table_indices_v);
+			func_update_ebo(INDEX_VOLUMES, table_indices_emb);
 			break;
-		}
-
-
-
-		auto func_update_ebo = [&] (DrawingBufferType pr, const std::vector<uint32>& table ) -> void
-		{
-			indices_buffers_uptodate_[pr] = true;
-			nb_indices_[pr] = uint32(table.size());
-
-			if (!table.empty())
-			{
-				if (!indices_buffers_[pr]->is_created())
-					indices_buffers_[pr]->create();
-
-				indices_buffers_[pr]->bind();
-				indices_buffers_[pr]->allocate(table.data(), table.size());
-				indices_buffers_[pr]->release();
-			}
-		};
-
-		switch (prim)
-		{
-		case POINTS:
-				func_update_ebo(BUFFER_POINTS,table_indices);
-				break;
-		case LINES:
-				func_update_ebo(BUFFER_LINES,table_indices);
-				func_update_ebo(BUFFER_EMB_EDGES,table_indices_emb);
-				break;
-		case TRIANGLES:
-				func_update_ebo(BUFFER_TRIANGLES,table_indices);
-				func_update_ebo(BUFFER_EMB_FACES,table_indices_emb);
-				break;
-			break;
-		case VOLUMES:
-				func_update_ebo(BUFFER_VOLUMES_FACES,table_indices);
-				func_update_ebo(BUFFER_VOLUMES_EDGES,table_indices_e);
-				func_update_ebo(BUFFER_VOLUMES_VERTICES,table_indices_v);
-				func_update_ebo(BUFFER_EMB_VOLUMES, table_indices_emb);
-				break;
 		default:
 			break;
 		}
@@ -424,20 +404,9 @@ public:
 
 	}
 
-	void draw(DrawingBufferType prim,GLint binding_point=10);
+	void draw(DrawingType prim, GLint binding_point=10);
 
-	template <typename MESH>
-	inline void init_primitives(const MESH& m, DrawingBufferType prim,
-								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
-	{
-		if (prim<= BUFFER_TRIANGLES)
-			init_primitives(m, static_cast<DrawingType>(prim), position);
-		else if (prim<= BUFFER_VOLUMES_VERTICES)
-			init_primitives(m, VOLUMES, position);
-	}
-
-
-	inline void bind_ebo_tb(DrawingBufferType prim, GLint binding_point)
+	inline void bind_ebo_tb(DrawingType prim, GLint binding_point)
 	{
 		if (prim >= SIZE_BUFFER)
 			indices_buffers_[prim - SIZE_BUFFER - 1]->bind_tb(binding_point);

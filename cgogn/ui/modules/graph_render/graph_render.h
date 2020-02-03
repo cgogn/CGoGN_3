@@ -192,14 +192,14 @@ protected:
 				if (p.param_point_sprite_size_->vao_initialized())
 				{
 					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_POINTS);
+					md->draw(rendering::POINTS);
 					p.param_point_sprite_size_->release();
 				}
 				else if (p.param_point_sprite_->vao_initialized())
 				{
 					p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 					p.param_point_sprite_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_POINTS);
+					md->draw(rendering::POINTS);
 					p.param_point_sprite_->release();
 				}
 			}
@@ -209,7 +209,7 @@ protected:
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::BUFFER_LINES);
+				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}

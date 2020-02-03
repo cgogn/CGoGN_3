@@ -57,7 +57,7 @@ namespace ui
 template <typename MESH>
 class Volume_Render : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension >= 3, "Volume_Render can only be used with meshes of dimension >= 2");
+	static_assert(mesh_traits<MESH>::dimension >= 2, "Volume_Render can only be used with meshes of dimension >= 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -193,8 +193,8 @@ public:
 				p.vbo_center_->release();
 			}
 			rendering::MeshRender* render = md->get_render();
-			if (!render->is_primitive_uptodate(rendering::BUFFER_VOLUMES_VERTICES))
-				render->init_primitives(m,rendering::VOLUMES,p.vertex_position_.get());
+			if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+				render->init_primitives(m,rendering::VOLUMES_VERTICES,p.vertex_position_.get());
 			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 		}
 
@@ -252,8 +252,17 @@ protected:
 
 				if (p.param_flat_->vao_initialized())
 				{
+					rendering::VBO* vb = md->vbo(p.vertex_position_.get());
+					vb->bind();
+					float *buf = vb->lock_pointer();
+					for (int i=0;i<15;++i)
+						std::cout << " "<< *buf++;
+					std::cout << std::endl;
+					vb->release_pointer();
+					vb->release();
+
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_TRIANGLES, p.vertex_position_);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 
@@ -262,9 +271,18 @@ protected:
 
 			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
+				rendering::VBO* vb = md->vbo(p.vertex_position_.get());
+				vb->bind();
+				float *buf = vb->lock_pointer();
+				for (int i=0;i<15;++i)
+					std::cout << " "<< *buf++;
+				std::cout << std::endl;
+				vb->release_pointer();
+				vb->release();
+
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::BUFFER_POINTS);
+				md->draw(rendering::POINTS);
 				p.param_point_sprite_->release();
 			}
 
@@ -273,7 +291,7 @@ protected:
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::BUFFER_LINES);
+				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}
@@ -289,7 +307,7 @@ protected:
 				if (p.param_volumes_->vao_initialized())
 				{
 					p.param_volumes_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_VOLUMES_FACES, p.vertex_position_);
+					md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
 					p.param_volumes_->release();
 				}
 
@@ -301,7 +319,7 @@ protected:
 				if (p.param_volumes_->vao_initialized())
 				{
 					p.param_volumes_line_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::BUFFER_VOLUMES_EDGES);
+					md->draw(rendering::VOLUMES_EDGES);
 					p.param_volumes_line_->release();
 				}
 			}

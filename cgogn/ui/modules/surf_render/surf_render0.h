@@ -21,17 +21,21 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
-#define CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
+#ifndef CGOGN_MODULE_SURF_RENDER_H_
+#define CGOGN_MODULE_SURF_RENDER_H_
 
+#include <imgui/imgui.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
+#include <cgogn/ui/app.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/shaders/shader_vector_per_vertex.h>
+#include <cgogn/rendering/shaders/shader_bold_line.h>
+
+#include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
 
@@ -44,10 +48,9 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceRenderVector : public ViewModule
+class SurfRender : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension >= 2,
-				  "SurfaceRenderVector can only be used with meshes of dimension >= 2");
+	static_assert(mesh_traits<MESH>::dimension >= 2, "SurfRender can only be used with meshes of dimension >= 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -59,33 +62,28 @@ class SurfaceRenderVector : public ViewModule
 
 	struct Parameters
 	{
-		Parameters() : render_vectors_(true), vector_scale_factor_(1.0)
+		Parameters()
+			: vertex_position_(nullptr)
 		{
-			param_vector_per_vertex_ = rendering::ShaderVectorPerVertex::generate_param();
-			param_vector_per_vertex_->color_ = rendering::GLColor(1, 0, 0, 1);
+			param_edge_ = rendering::ShaderBoldLine::generate_param();
+			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
+			param_edge_->width_ = 1.0f;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
-		std::shared_ptr<Attribute<Vec3>> vertex_vector_;
-
-		std::unique_ptr<rendering::ShaderVectorPerVertex::Param> param_vector_per_vertex_;
-
-		bool render_vectors_;
-
-		float32 vector_scale_factor_;
-		float32 vector_base_size_;
+		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 	};
 
 public:
-	SurfaceRenderVector(const App& app)
-		: ViewModule(app, "SurfaceRenderVector (" + std::string{mesh_traits<MESH>::name} + ")"),
+	SurfRender(const App& app)
+		: ViewModule(app, "SurfRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 	}
 
-	~SurfaceRenderVector()
+	~SurfRender()
 	{
 	}
 
@@ -98,12 +96,18 @@ private:
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
+
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
+					Parameters& p = parameters_[v][m];
+// ????
+					v->request_update();
+				}));
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
-						if (p.vertex_position_.get() == attribute)
-							p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
+// ???
 						v->request_update();
 					}));
 		}
@@ -118,38 +122,35 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vector_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 2.0;
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
 
 		v.request_update();
-	}
 
-	void set_vertex_vector(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_vector)
-	{
-		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+//		rendering::VBO* vb = md->vbo(p.vertex_position_.get());
+//		vb->bind();
+//		float* f = vb->lock_pointer();
+//		for (int  i=0; i<30; ++i)
+//			std::cout << "  "<<*f++;
+//		std::cout << std::endl;
+//		vb->release_pointer();
+//		vb->release();
 
-		p.vertex_vector_ = vertex_vector;
-		if (p.vertex_vector_)
-			md->update_vbo(vertex_vector.get(), true);
-
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
-
-		v.request_update();
 	}
 
 protected:
+
 	void init() override
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-			mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh));
+			mesh_provider_, this, &SurfRender<MESH>::init_mesh));
 	}
+
 
 	void draw(View* view) override
 	{
@@ -160,12 +161,14 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vectors_ && p.param_vector_per_vertex_->vao_initialized())
+			if (p.param_edge_->vao_initialized())
 			{
-				p.param_vector_per_vertex_->length_ = p.vector_base_size_ * p.vector_scale_factor_;
-				p.param_vector_per_vertex_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_vector_per_vertex_->release();
+				p.param_edge_->bind(proj_matrix, view_matrix);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				md->draw(rendering::LINES);
+				glDisable(GL_BLEND);
+				p.param_edge_->release();
 			}
 		}
 	}
@@ -192,7 +195,8 @@ protected:
 
 		if (ImGui::ListBoxHeader("Mesh"))
 		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
+			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name)
+			{
 				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 					selected_mesh_ = m;
 			});
@@ -224,33 +228,11 @@ protected:
 					set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
 			}
 
-			if (ImGui::BeginCombo("Vector", p.vertex_vector_ ? p.vertex_vector_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_vector_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_vector(*selected_view_, *selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_vector_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##vector"))
-					set_vertex_vector(*selected_view_, *selected_mesh_, nullptr);
-			}
-
 			ImGui::Separator();
-			need_update |= ImGui::Checkbox("Render vectors", &p.render_vectors_);
-
-			ImGui::Separator();
-			ImGui::TextUnformatted("Vector parameters");
-			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(),
-											 ImGuiColorEditFlags_NoInputs);
-			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1, 5.0);
+			ImGui::TextUnformatted("Edges parameters");
+			need_update |=
+				ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
+			need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
 		}
 
 		ImGui::End();
@@ -273,4 +255,4 @@ private:
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
+#endif // CGOGN_MODULE_SURF_RENDER_H_

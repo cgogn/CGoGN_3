@@ -83,6 +83,8 @@ public:
 
 	inline void bind()
 	{
+		if (id_ >1)
+			std::cout << "BIND VAO "<< id_ << std::endl;
 		glBindVertexArray(id_);GL_ASSERT()
 	}
 
