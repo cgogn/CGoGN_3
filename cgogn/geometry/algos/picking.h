@@ -68,6 +68,17 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 										  value<Vec3>(m, vertex_position, vertices[2]), &intersection_point))
 				selected_per_thread[worker_index].emplace_back(f, intersection_point,
 															   (intersection_point - A).squaredNorm());
+		}else{
+			for (uint32 i=0;i+2<vertices.size();i++){
+				if (intersection_ray_triangle(
+					A, AB,
+					value<Vec3>(m, vertex_position, vertices[0]),
+					value<Vec3>(m, vertex_position, vertices[i+1]),
+					value<Vec3>(m, vertex_position, vertices[i+2]),
+					&intersection_point
+				))
+					selected_per_thread[worker_index].emplace_back(f, intersection_point, (intersection_point - A).squaredNorm());
+			}
 		}
 		// else
 		// {

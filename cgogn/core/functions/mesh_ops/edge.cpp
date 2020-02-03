@@ -222,7 +222,6 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	Dart d = e.dart;
 	do
 	{
-		m.nb_darts_per_level_[m.current_level_] += 2;
 		m.set_edge_id(phi1(map, d), m.edge_id(d));
 		m.set_edge_id(phi3(map, d), m.edge_id(d));
 		m.set_edge_id(phi2(map, d), m.edge_id(phi<12>(map, d)));
@@ -230,11 +229,9 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 		m.set_face_id(phi3(map, d), m.face_id(d));
 		m.set_face_id(phi2(map, d), m.face_id(phi<12>(map, d)));
 		m.set_dart_level(phi1(map, d), m.current_level_);
-		// m.set_dart_level(phi3(map, d), m.current_level_);
 		m.set_dart_level(phi2(map, d), m.current_level_);
 		d = phi<23>(map, d);
 	} while (d != e.dart);
-
 	if (set_indices)
 	{
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
@@ -264,13 +261,14 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				{
 					it = phi1(map, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != d);
-				copy_index<CPH3::CMAP::Face>(m, phi1(map, d), it);
+				
+				copy_index<CPH3::CMAP::Face>(map, phi1(map, d), it);
 				it = phi2(map, d);
 				do
 				{
 					it = phi1(map, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
-				copy_index<CPH3::CMAP::Face>(m, phi2(map, d), it);
+				copy_index<CPH3::CMAP::Face>(map, phi2(map, d), it);
 				d = phi<23>(map, d);
 			} while (d != e.dart);
 		}
@@ -286,13 +284,13 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 					{
 						it = phi1(map, it);
 					} while (m.dart_level(it) < m.current_level_ - 1 && it != d);
-					copy_index<CPH3::CMAP::Volume>(m, phi1(map, d), it);
+					copy_index<CPH3::CMAP::Volume>(map, phi1(map, d), it);
 					it = phi2(map, d);
 					do
 					{
 						it = phi1(map, it);
 					} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
-					copy_index<CPH3::CMAP::Volume>(m, phi2(map, d), it);
+					copy_index<CPH3::CMAP::Volume>(map, phi2(map, d), it);
 				}
 				d = phi<23>(map, d);
 			} while (d != e.dart);
