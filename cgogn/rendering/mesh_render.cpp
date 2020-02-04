@@ -45,6 +45,8 @@ MeshRender::~MeshRender()
 
 void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
+	std::cout << "MeshRender::draw "<< prim << std::endl;
+
 	uint32 prim_buffer = (prim<SIZE_BUFFER) ? prim : prim-(SIZE_BUFFER+1);
 	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
 	if (nb_indices == 0)
@@ -62,21 +64,11 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		glDrawElements(GL_LINES, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
 		break;
-	case LINES_TB:
-		indices_buffers_[LINES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/2);
-		indices_buffers_[LINES]->release_tb();
-		break;
 	case TRIANGLES:
-		std::cout << *indices_buffers_[prim]<<std::endl;
+//		std::cout << *indices_buffers_[prim]<<std::endl;
 		indices_buffers_[prim]->bind();
 		glDrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
-		break;
-	case TRIANGLES_TB:
-		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/3);
-		indices_buffers_[TRIANGLES]->release_tb();
 		break;
 	case VOLUMES_EDGES:
 		indices_buffers_[prim]->bind_tb(binding_point);
@@ -93,6 +85,17 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		glDrawArrays(GL_POINTS, 0, nb_indices/2);
 		indices_buffers_[prim]->release_tb();
 		break;
+	case LINES_TB:
+		indices_buffers_[LINES]->bind_tb(binding_point);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/2);
+		indices_buffers_[LINES]->release_tb();
+		break;
+	case TRIANGLES_TB:
+		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/3);
+		indices_buffers_[TRIANGLES]->release_tb();
+		break;
+
 	default:
 		break;
 	}

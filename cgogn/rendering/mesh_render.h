@@ -333,6 +333,8 @@ public:
 	inline void init_primitives(const MESH& m, DrawingType prim,
 								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
+		std::cout << "MeshRender::init_primitives "<< prim<< std::endl;
+
 		//
 		if (prim>=SIZE_BUFFER)
 			prim = DrawingType(prim + POINTS - POINTS_TB);
@@ -340,7 +342,6 @@ public:
 		auto func_update_ebo = [&] (DrawingType pr, const std::vector<uint32>& table ) -> void
 		{
 			indices_buffers_uptodate_[pr] = true;
-//			nb_indices_[pr] = uint32(table.size());
 			if (!table.empty())
 			{
 				if (!indices_buffers_[pr]->is_created())
@@ -349,7 +350,7 @@ public:
 			}
 		};
 
-		auto start_timer = std::chrono::high_resolution_clock::now();
+//		auto start_timer = std::chrono::high_resolution_clock::now();
 
 		std::vector<uint32> table_indices;
 		table_indices.reserve(1024u);
@@ -397,10 +398,10 @@ public:
 			break;
 		}
 
-		auto end_timer = std::chrono::high_resolution_clock::now();
+//		auto end_timer = std::chrono::high_resolution_clock::now();
 
-		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
-		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
+//		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
+//		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
 
 	}
 

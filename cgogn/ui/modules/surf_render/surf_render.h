@@ -116,6 +116,7 @@ public:
 		: ViewModule(app, "SurfRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
+		std::cout << "SurfRender::SurfRender"<< std::endl;
 	}
 
 	~SurfRender()
@@ -125,6 +126,7 @@ public:
 private:
 	void init_mesh(MESH* m)
 	{
+		std::cout << "SurfRender::init_mesh"<< std::endl;
 		for (View* v : linked_views_)
 		{
 			parameters_[v][m];
@@ -153,6 +155,7 @@ private:
 public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
+		std::cout << "SurfRender::set_vertex_position"<< std::endl;
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
@@ -165,9 +168,9 @@ public:
 		auto* VP = md->vbo(p.vertex_position_.get());
 		std::cout << *VP << std::endl;
 
-		md->init_primitives(rendering::POINTS);
-		md->init_primitives(rendering::LINES);
-		md->init_primitives(rendering::TRIANGLES);
+//		md->init_primitives(rendering::POINTS);
+//		md->init_primitives(rendering::LINES);
+//		md->init_primitives(rendering::TRIANGLES);
 
 //		std::cout << "CENTER ENGINE"<< std::endl;
 //
@@ -178,8 +181,7 @@ public:
 		p.param_edge_->set_vbos(VP);
 		p.param_flat_->set_vbos(VP);
 
-		glfwMakeCurrent();
-		compute_center_engine_->compute(VP,nullptr,nullptr);
+//		compute_center_engine_->compute(VP,nullptr,nullptr);
 
 		v.request_update();
 	}
@@ -205,6 +207,7 @@ protected:
 
 	void init() override
 	{
+		std::cout << "SurfRender::init"<< std::endl;
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
@@ -215,7 +218,7 @@ protected:
 
 	void draw(View* view) override
 	{
-
+std::cout << "SurfRender::draw"<< std::endl;
 		for (auto& [m, p] : parameters_[view])
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
@@ -235,7 +238,7 @@ protected:
 				{
 std::cout << "DRAW FLAT "<<std::endl;
 auto* VP = md->vbo(p.vertex_position_.get());
-std::cout << *VP << std::endl;
+//std::cout << *VP << std::endl;
 					p.param_flat_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
@@ -246,9 +249,9 @@ std::cout << *VP << std::endl;
 
 			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
-				std::cout << "DRAW POINT "<<std::endl;
-				auto* VP = md->vbo(p.vertex_position_.get());
-				std::cout << *VP << std::endl;
+//				std::cout << "DRAW POINT "<<std::endl;
+//				auto* VP = md->vbo(p.vertex_position_.get());
+//				std::cout << *VP << std::endl;
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
@@ -257,9 +260,9 @@ std::cout << *VP << std::endl;
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
 			{
-				std::cout << "DRAW LINE "<<std::endl;
-				auto* VP = md->vbo(p.vertex_position_.get());
-				std::cout << *VP << std::endl;
+//				std::cout << "DRAW LINE "<<std::endl;
+//				auto* VP = md->vbo(p.vertex_position_.get());
+//				std::cout << *VP << std::endl;
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

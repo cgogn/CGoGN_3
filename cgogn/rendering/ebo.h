@@ -65,7 +65,9 @@ public:
 
 	inline ~EBO()
 	{
+		std::cout << "DELETE EBO "<< id_ << std::endl;
 		glDeleteBuffers(1, &id_);GL_ASSERT()
+		id_ = 0;
 	}
 
 	inline void bind()
@@ -76,11 +78,13 @@ public:
 
 	inline void release()
 	{
+		std::cout << "RELEASE EBO "<< id_ << std::endl;
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT()
 	}
 
 	inline GLint bind_tb(GLint unit)
 	{
+		std::cout << "BIND EBO "<< id_;
 		if (id_tb_==0)
 		{
 			glGenTextures(1,&id_tb_);
@@ -89,6 +93,7 @@ public:
 			glBindTexture(GL_TEXTURE_BUFFER,0);
 			GL_ASSERT()
 		}
+		std::cout << " AS TB "<< id_tb_ << std::endl;
 
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);GL_ASSERT()
@@ -134,7 +139,7 @@ public:
 	 */
 	inline GLuint* lock_pointer()
 	{
-		this->bind();
+//		this->bind();
 		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
 	}
 
@@ -143,9 +148,9 @@ public:
 	 */
 	inline void release_pointer()
 	{
-		this->bind();
+//		this->bind();
 		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-		this->release();
+//		this->release();
 		GL_ASSERT()
 	}
 
@@ -176,16 +181,17 @@ public:
 
 inline std::ostream& operator<<(std::ostream& out, EBO& ebo)
 {
+	std::cout <<"Debug EBO "<< ebo.id()<<std::endl;
 	ebo.bind();
 	uint32* f = ebo.lock_pointer();
-	std::cout <<"Debug EBO "<< ebo.id()<<std::endl;
 	for (int i=0; i<10; ++i)
 	{
 		std::cout << *f++<<" / ";
 	}
-	std::cout << std::endl<< "-------------------" << std::endl;
+	std::cout << std::endl;
 	ebo.release_pointer();
 	ebo.release();
+	std::cout <<"-----end Debug EBO------" << std::endl;
 	return out;
 }
 

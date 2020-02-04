@@ -151,24 +151,32 @@ public:
 		return id_;
 	}
 
-	inline void start_use()
-	{
-		glUseProgram(id_); GL_ASSERT()
-	}
+//	inline void start_use()
+//	{
+//		glUseProgram(id_); GL_ASSERT()
+//	}
 
-	inline void stop_use()
+//	inline void stop_use()
+//	{
+//		glUseProgram(0); GL_ASSERT()
+//	}
+
+
+	inline std::string name() const
 	{
-		glUseProgram(0); GL_ASSERT()
+		return std::string(typeid(*this).name());
 	}
 
 	inline void bind()
 	{
 		glUseProgram(id_); GL_ASSERT()
+		std::cout << "Start using "<< this->name()<< std::endl;
 	}
 
 	inline void release()
 	{
 		glUseProgram(0); GL_ASSERT()
+		std::cout << "Stop using "<< this->name()<< std::endl;
 	}
 
 	inline GLint uniform_location(const GLchar* str) const

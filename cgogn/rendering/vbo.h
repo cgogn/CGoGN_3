@@ -54,13 +54,15 @@ public:
 		nb_vectors_(0),
 		vector_dimension_(vec_dim)
 	{
-		glGenBuffers(1, &id_);
+		glGenBuffers(1, &id_);GL_ASSERT()
+		std::cout << "CREATE VBO "<< id_ << std::endl;
 	}
 
 	inline ~VBO()
 	{
-		glDeleteBuffers(1, &id_);
+		glDeleteBuffers(1, &id_);GL_ASSERT()
 		id_ = 0;
+		std::cout << " VBO DELETE"<< id_ << std::endl;
 	}
 
 	inline void set_name(const std::string& name)
@@ -76,12 +78,12 @@ public:
 	inline void bind()
 	{
 		std::cout << "BIND VBO "<< id_ << std::endl;
-		glBindBuffer(GL_ARRAY_BUFFER, id_);
+		glBindBuffer(GL_ARRAY_BUFFER, id_);GL_ASSERT()
 	}
 
 	inline void release()
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);GL_ASSERT()
 	}
 
 
@@ -187,9 +189,10 @@ public:
 
 inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 {
+	std::cout <<"DEBUG VBO "<< vbo.id() << " : "<<vbo.name()<<std::endl;
 	vbo.bind();
 	float* f = vbo.lock_pointer();
-	std::cout <<"VBO "<< vbo.name()<<std::endl;
+
 	for (int i=0; i<5; ++i)
 	{
 		for (int j=0; j<vbo.vector_dimension(); ++j)
@@ -198,7 +201,7 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 		}
 		std::cout << std::endl;
 	}
-	std::cout<< "-------------------" << std::endl;
+	std::cout<< "----------end vbo debug-----------" << std::endl;
 	vbo.release_pointer();
 	vbo.release();
 	return out;
