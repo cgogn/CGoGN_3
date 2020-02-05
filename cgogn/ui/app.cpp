@@ -85,9 +85,9 @@ App::App()
 
 	ImGui::StyleColorsDark();
 
-//	ImGuiStyle& style = ImGui::GetStyle();
-//	style.WindowRounding = 0.0f;
-//	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.WindowRounding = 0.0f;
+	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
 	ImFont* font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);

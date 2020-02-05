@@ -36,7 +36,7 @@ const GLColor ShaderParam::color_spec_default = GLColor(1, 1, 1, 1);
 const GLColor ShaderParam::color_line_default = GLColor(1, 1, 0, 1);
 const GLColor ShaderParam::color_point_default = GLColor(1, 1, 1, 1);
 
-void Shader::compile(const std::string& src)
+void Shader::compile(const std::string& src, const std::string& prg_name)
 {
 	const char* csrc = src.c_str();
 	glShaderSource(id_, 1, &csrc, nullptr);
@@ -55,7 +55,7 @@ void Shader::compile(const std::string& src)
 
 		std::cerr << "----------------------------------------" << std::endl
 				  << "compilation de "
-				  << "msg"
+				  << prg_name
 				  << " : " << std::endl
 				  << infoLog << std::endl
 				  << "--------" << std::endl;
@@ -146,11 +146,12 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
+	std::cout << "Compilation Shader "<<name()<<std::endl;
 	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src);
+	vert_shader_->compile(vert_src, name());
 
 	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src);
+	frag_shader_->compile(frag_src, name());
 
 	glAttachShader(id_, vert_shader_->shaderId());
 	glAttachShader(id_, frag_shader_->shaderId());
@@ -179,14 +180,16 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src)
 {
+	std::cout << "Compilation Shader "<<name()<<std::endl;
+
 	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src);
+	vert_shader_->compile(vert_src, name());
 
 	geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-	geom_shader_->compile(geom_src);
+	geom_shader_->compile(geom_src, name());
 
 	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src);
+	frag_shader_->compile(frag_src, name());
 
 	glAttachShader(id_, vert_shader_->shaderId());
 	glAttachShader(id_, geom_shader_->shaderId());

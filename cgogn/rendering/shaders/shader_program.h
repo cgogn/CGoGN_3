@@ -31,6 +31,7 @@
 #include <iostream>
 #include <memory>
 
+
 #define DECLARE_SHADER_CLASS(NAME)                                                                                     \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
@@ -47,7 +48,8 @@
 				ShaderProgram::register_instance(instance_);                                                           \
 			}                                                                                                          \
 			return std::make_unique<Param>(instance_);                                                                 \
-		}                                                                                                              \
+		}    \
+		inline std::string name() const override { return CGOGN_STR(##NAME);} \
                                                                                                                        \
 	protected:                                                                                                         \
 		Shader##NAME();                                                                                                \
@@ -100,7 +102,7 @@ public:
 		return id_;
 	}
 
-	void compile(const std::string& src);
+	void compile(const std::string& src, const std::string& prg_name);
 };
 
 class CGOGN_RENDERING_EXPORT ShaderProgram
@@ -162,10 +164,7 @@ public:
 //	}
 
 
-	inline std::string name() const
-	{
-		return std::string(typeid(*this).name());
-	}
+	virtual std::string name() const =0;
 
 	inline void bind()
 	{
@@ -295,13 +294,13 @@ public:
 	void load3_bind(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src);
+		vert_shader_->compile(vert_src, name());
 
 		geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-		geom_shader_->compile(geom_src);
+		geom_shader_->compile(geom_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src);
+		frag_shader_->compile(frag_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, geom_shader_->shaderId());
@@ -345,10 +344,10 @@ public:
 	void load2_bind(const std::string& vert_src, const std::string& frag_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src);
+		vert_shader_->compile(vert_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src);
+		frag_shader_->compile(frag_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
@@ -389,7 +388,7 @@ public:
 	void load_tfb1_bind(const std::string& vert_src, const std::vector<std::string>& tf_outs, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src);
+		vert_shader_->compile(vert_src,name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 //		glAttachShader(id_, frag_shader_->shaderId());
