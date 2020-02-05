@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(VectorPerVertex)
+DECLARE_SHADER_CLASS(VectorPerVertex,CGOGN_STR(VectorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamVectorPerVertex : public ShaderParam
 {

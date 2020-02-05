@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Frame2d)
+DECLARE_SHADER_CLASS(Frame2d,CGOGN_STR(Frame2d))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFrame2d : public ShaderParam
 {

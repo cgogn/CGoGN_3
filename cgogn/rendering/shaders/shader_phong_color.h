@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColor)
+DECLARE_SHADER_CLASS(PhongColor,CGOGN_STR(PhongColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColor : public ShaderParam
 {

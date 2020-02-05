@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPointColor)
+DECLARE_SHADER_CLASS(RoundPointColor,CGOGN_STR(RoundPointColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamRoundPointColor : public ShaderParam
 {

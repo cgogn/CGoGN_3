@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ExplodeVolumesLine)
+DECLARE_SHADER_CLASS(ExplodeVolumesLine,CGOGN_STR(ExplodeVolumesLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
