@@ -131,8 +131,8 @@ private:
 		{
 			parameters_[v][m];
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-			if (vertex_position)
-				set_vertex_position(*v, *m, vertex_position);
+//			if (vertex_position)
+//				set_vertex_position(*v, *m, vertex_position);
 
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {

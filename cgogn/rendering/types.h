@@ -125,7 +125,8 @@ static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
 	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
 };
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
+#ifdef PIPO
 #define GL_ASSERT() \
 	{ GLenum err = glGetError(); \
 	if (err != GL_NO_ERROR) \
