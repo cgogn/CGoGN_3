@@ -39,8 +39,8 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeCenter1)
-DECLARE_SHADER_CLASS(ComputeCenter2)
+DECLARE_SHADER_CLASS(ComputeCenter1,CGOGN_STR(ComputeCenter1))
+DECLARE_SHADER_CLASS(ComputeCenter2,CGOGN_STR(ComputeCenter2))
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter1 : public ShaderParam
 {

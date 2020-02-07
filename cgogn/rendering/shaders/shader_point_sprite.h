@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PointSprite)
+DECLARE_SHADER_CLASS(PointSprite,CGOGN_STR(PointSprite))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSprite : public ShaderParam
 {
@@ -70,7 +70,7 @@ public:
 	}
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColor)
+DECLARE_SHADER_CLASS(PointSpriteColor,CGOGN_STR(PointSpriteColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 {
@@ -106,7 +106,7 @@ public:
 	}
 };
 
-DECLARE_SHADER_CLASS(PointSpriteSize)
+DECLARE_SHADER_CLASS(PointSpriteSize,CGOGN_STR(PointSpriteSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 {
@@ -143,7 +143,7 @@ public:
 	}
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColorSize)
+DECLARE_SHADER_CLASS(PointSpriteColorSize,CGOGN_STR(PointSpriteColorSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColorSize : public ShaderParam
 {

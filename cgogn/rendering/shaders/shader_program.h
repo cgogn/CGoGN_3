@@ -32,7 +32,7 @@
 #include <memory>
 
 
-#define DECLARE_SHADER_CLASS(NAME)                                                                                     \
+#define DECLARE_SHADER_CLASS(NAME,STRNA)                                                                                     \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
 	{                                                                                                                  \
@@ -49,8 +49,8 @@
 			}                                                                                                          \
 			return std::make_unique<Param>(instance_);                                                                 \
 		}    \
-		inline std::string name() const override { return CGOGN_STR(##NAME);} \
-                                                                                                                       \
+		inline std::string name() const override { return STRNA;} \
+																													   \
 	protected:                                                                                                         \
 		Shader##NAME();                                                                                                \
 		Shader##NAME(const Shader##NAME&) = delete;                                                                    \

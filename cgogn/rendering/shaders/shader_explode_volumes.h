@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes)
+DECLARE_SHADER_CLASS(ExplodeVolumes,CGOGN_STR(ExplodeVolumes))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {

@@ -36,7 +36,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(TEX2VBO)
+DECLARE_SHADER_CLASS(TEX2VBO,CGOGN_STR(TEX2VBO))
 
 class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
 {

@@ -32,7 +32,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ColorPerVertex)
+DECLARE_SHADER_CLASS(ColorPerVertex,CGOGN_STR(ColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamColorPerVertex : public ShaderParam
 {

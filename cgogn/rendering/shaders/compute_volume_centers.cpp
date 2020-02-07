@@ -55,7 +55,7 @@ static const char* fragment_shader_source1 =
 		void main()
 		{
 			frag_out = P;
-		};
+		}
 		)";
 
 ShaderComputeCenter1* ShaderComputeCenter1::instance_ = nullptr;

@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Pick)
+DECLARE_SHADER_CLASS(Pick,CGOGN_STR(Pick))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPick : public ShaderParam
 {

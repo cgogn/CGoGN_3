@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(SimpleColor)
+DECLARE_SHADER_CLASS(SimpleColor,CGOGN_STR(SimpleColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamSimpleColor : public ShaderParam
 {
