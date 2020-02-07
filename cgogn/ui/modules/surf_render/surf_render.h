@@ -118,6 +118,7 @@ public:
 		{
 			md->update_vbo(vertex_position.get(), true);
 			p.param_flat_->set_vbos({md->vbo(p.vertex_position_.get())});
+			p.param_flat_->set_name("VAO_Flat_"+md->vbo(p.vertex_position_.get())->name());
 
 		}
 		auto* VP = md->vbo(p.vertex_position_.get());

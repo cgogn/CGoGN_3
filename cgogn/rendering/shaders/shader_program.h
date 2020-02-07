@@ -478,6 +478,11 @@ public:
 		return shader_;
 	}
 
+	inline void set_name(const std::string& name)
+	{
+		vao_->set_name(name);
+	}
+
 	/**
 	 * @brief bind the shader set uniforms & matrices, bind vao
 	 * @param proj projection matrix

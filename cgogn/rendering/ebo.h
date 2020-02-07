@@ -44,6 +44,7 @@ protected:
 	GLuint id_;
 	GLuint id_tb_;
 	std::size_t nb_;
+	std::string name_;
 
 public:
 	inline EBO() :
@@ -55,6 +56,7 @@ public:
 	inline void create()
 	{
 		glGenBuffers(1, &id_);GL_ASSERT()
+		gl_debug_name(GL_BUFFER,id_,"EBO_XXX");
 		std::cout << "EBO CREATION: "<< id_<<std::endl;
 	}
 
@@ -176,6 +178,18 @@ public:
 	{
 		return id_;
 	}
+
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+		gl_debug_name(GL_BUFFER,id_,"VBO_"+name_);
+	}
+
+	inline const std::string& name() const
+	{
+		return name_;
+	}
+
 };
 
 

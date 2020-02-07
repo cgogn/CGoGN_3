@@ -86,6 +86,8 @@ endif(NOT MSVC)
 if (${CGOGN_USE_PARALLEL_GLIBCXX})
 	set(CGOGN_USE_OPENMP "ON")
 endif()
+option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
+
 
 #### Continuous integration options
 option(CGOGN_WITH_GPROF "Builds the project for performance analysis with gprof" OFF)

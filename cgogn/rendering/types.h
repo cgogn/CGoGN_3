@@ -125,8 +125,7 @@ static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
 	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
 };
 
-//#ifndef NDEBUG
-#ifdef PIPO
+#ifndef NDEBUG
 #define GL_ASSERT() \
 	{ GLenum err = glGetError(); \
 	if (err != GL_NO_ERROR) \
@@ -135,6 +134,15 @@ static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
 #else
 	#define GL_ASSERT()
 #endif
+
+
+inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
+{
+	#ifdef CGOGN_GL43_DEBUG_MODE
+	glObjectLabel(type, id, name.size(), name.c_str());
+	#endif
+}
+
 
 } // namespace rendering
 

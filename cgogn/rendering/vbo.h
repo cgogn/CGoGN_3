@@ -55,6 +55,7 @@ public:
 		vector_dimension_(vec_dim)
 	{
 		glGenBuffers(1, &id_);GL_ASSERT()
+		gl_debug_name(GL_BUFFER,id_,"VBO_XXX");
 		std::cout << "CREATE VBO "<< id_ << std::endl;
 	}
 
@@ -68,6 +69,7 @@ public:
 	inline void set_name(const std::string& name)
 	{
 		name_ = name;
+		gl_debug_name(GL_BUFFER,id_,"VBO_"+name_);
 	}
 
 	inline const std::string& name() const

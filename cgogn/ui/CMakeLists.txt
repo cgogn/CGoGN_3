@@ -7,7 +7,6 @@ find_package(cgogn_rendering REQUIRED)
 find_package(ImGUI REQUIRED)
 find_package(synapse REQUIRED)
 
-option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
 
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::ui ALIAS ${PROJECT_NAME})

@@ -66,12 +66,6 @@ public:
 	{
 	}
 
-//	inline void set_vbos(VBO* vbo_pos, VBO* vbo_norm)
-//	{
-//		bind_vao();
-//		associate_vbos(vbo_pos, vbo_norm);
-//		release_vao();
-//	}
 };
 
 } // namespace rendering

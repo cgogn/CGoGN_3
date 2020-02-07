@@ -74,6 +74,29 @@ enum DrawingType : uint32
 	INDEX_VOLUMES_TB
 };
 
+static std::vector<std::string> primitives_names = {
+"POINTS",
+"LINES",
+"TRIANGLES",
+"VOLUMES_FACES",
+"VOLUMES_EDGES",
+"VOLUMES_VERTICES",
+"INDEX_EDGES",
+"INDEX_FACES",
+"INDEX_VOLUMES",
+"SIZE_BUFFER",
+"POINTS_TB",
+"LINES_TB",
+"TRIANGLES_TB",
+"VOLUMES_FACES_TB",
+"VOLUMES_EDGES_TB",
+"VOLUMES_VERTICES_TB",
+"INDEX_EDGES_TB",
+"INDEX_FACES_TB",
+"INDEX_VOLUMES_TB"
+};
+
+
 class CGOGN_RENDERING_EXPORT MeshRender
 {
 protected:
@@ -347,6 +370,7 @@ public:
 				if (!indices_buffers_[pr]->is_created())
 					indices_buffers_[pr]->create();
 				indices_buffers_[pr]->allocate(table.data(), table.size());
+				indices_buffers_[pr]->set_name("EBO_"+primitives_names[pr]);
 			}
 		};
 
@@ -376,12 +400,12 @@ public:
 			break;
 		case TRIANGLES:
 		case INDEX_FACES:
-			func_update_ebo(INDEX_FACES,table_indices_emb);
 			if (position == nullptr)
 				init_triangles(m, table_indices, table_indices_emb);
 			else
 				init_ear_triangles(m, table_indices, table_indices_emb, position);
 			func_update_ebo(TRIANGLES,table_indices);
+			func_update_ebo(INDEX_FACES,table_indices_emb);
 			break;
 
 		case VOLUMES_VERTICES:

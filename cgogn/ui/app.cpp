@@ -99,12 +99,10 @@ inline void enable_gl43_debug_mode(bool show_notif=true)
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	if (show_notif)
-		glDebugMessageCallback(cgogn_gl_debug_msg<TRUE>, nullptr);
+		glDebugMessageCallback(cgogn_gl_debug_msg<true>, nullptr);
 	else
-		glDebugMessageCallback(cgogn_gl_debug_msg<TRUE>, nullptr);
+		glDebugMessageCallback(cgogn_gl_debug_msg<true>, nullptr);
 }
-
-
 
 #endif
 

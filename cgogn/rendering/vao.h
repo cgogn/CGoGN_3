@@ -62,6 +62,7 @@ public:
 		if (is_created())
 			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
+		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
 		GL_ASSERT()
 	}
 
@@ -69,6 +70,7 @@ public:
 	{
 		nb_ = std::get<1>(params[0]).size();
 		glGenVertexArrays(1, &id_);
+		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
 		glBindVertexArray(id_);
 		for (const auto& p : params)
 		{
@@ -92,6 +94,18 @@ public:
 		std::cout << "RELEASE VAO "<< std::endl;
 		glBindVertexArray(0);GL_ASSERT()
 	}
+
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_"+name_);
+	}
+
+	inline const std::string& name() const
+	{
+		return name_;
+	}
+
 };
 
 } // namespace rendering
