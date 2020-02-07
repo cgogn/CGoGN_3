@@ -62,12 +62,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
 };
 
 DECLARE_SHADER_CLASS(PointSpriteColor,CGOGN_STR(PointSpriteColor))
@@ -98,12 +92,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col);
-		release_vao();
-	}
+
 };
 
 DECLARE_SHADER_CLASS(PointSpriteSize,CGOGN_STR(PointSpriteSize))
@@ -135,12 +124,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_size)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_size);
-		release_vao();
-	}
 };
 
 DECLARE_SHADER_CLASS(PointSpriteColorSize,CGOGN_STR(PointSpriteColorSize))
@@ -170,12 +153,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col, VBO* vbo_size)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col, vbo_size);
-		release_vao();
-	}
 };
 
 } // namespace rendering

@@ -56,12 +56,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_position, VBO* vbo_vector)
-	{
-		bind_vao();
-		associate_vbos(vbo_position, vbo_vector);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

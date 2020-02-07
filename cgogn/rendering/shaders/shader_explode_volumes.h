@@ -64,11 +64,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_center)
-	{
-		vbo_pos_ = vbo_pos;
-		vbo_center_ = vbo_center;
-	}
+
 };
 
 } // namespace rendering

@@ -54,13 +54,9 @@ public:
 	using LocalShader = ShaderComputeCenter1;
 
 	ShaderParamComputeCenter1(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
 	{}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		vbo_pos_ = vbo_pos;
-	}
 };
 
 

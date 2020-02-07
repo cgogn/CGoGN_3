@@ -197,13 +197,14 @@ public:
 			render->init_primitives(m,rendering::VOLUMES_VERTICES,p.vertex_position_.get());
 		compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		auto* vp = md->vbo(p.vertex_position_.get());
+		p.param_point_sprite_->set_vbos({vp});
+		p.param_edge_->set_vbos({vp});
+		p.param_flat_->set_vbos({vp});
+		p.param_phong_->set_vbos({vp, md->vbo(p.vertex_normal_.get())});
+		p.param_scalar_per_vertex_->set_vbos({vp, md->vbo(p.vertex_scalar_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}
@@ -217,9 +218,9 @@ public:
 		if (p.vertex_normal_)
 			md->update_vbo(vertex_normal.get(), true);
 
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		p.param_phong_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}
@@ -245,9 +246,9 @@ public:
 			p.param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
 		}
 
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		p.param_scalar_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}

@@ -492,37 +492,11 @@ public:
 	 */
 	void release();
 
-	template <typename T1>
-	bool internal_associate_vbos(GLuint attrib1, T1* p1)
-	{
-		if (p1)
-		{
-			p1->associate(attrib1);
-			return true;
-		}
-		else
-			return false;
-	}
-
-	template <typename T1, typename... Ts>
-	bool internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
-	{
-		if (p1)
-		{
-			p1->associate(attrib1);
-			return internal_associate_vbos(attrib1 + 1u, pn...);
-		}
-		else
-			return false;
-	}
-
-	template <typename... Ts>
-	auto associate_vbos(Ts... pn) -> std::enable_if_t<std::conjunction_v<std::is_same<VBO*, Ts>...>>
-	{
-		vao_initialized_ = internal_associate_vbos(1u, pn...);
-		if (!vao_initialized_)
-			vao_->create();
-	}
+	/**
+	 * @brief set vbos into the vao
+	 * @param vbos
+	 */
+	void set_vbos(const std::vector<VBO*>& vbos);
 };
 
 } // namespace rendering

@@ -123,7 +123,7 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 {
 	param1_->vbo_pos_ = pos;
 	param1_->bind();
-	glDrawArrays(GL_LINES, 0, 0);
+//	glDrawArrays(GL_LINES, 0, 0);
 	param1_->release();
 
 //	int32 h = (centers->size()+1023)/1024;

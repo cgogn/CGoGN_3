@@ -198,11 +198,12 @@ public:
 			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 		}
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_volumes_->set_vbos(md->vbo(p.vertex_position_.get()),p.vbo_center_);
-		p.param_volumes_line_->set_vbos(md->vbo(p.vertex_position_.get()),p.vbo_center_);
+		auto* vp = md->vbo(p.vertex_position_.get())
+		p.param_point_sprite_->set_vbos({vp});
+		p.param_edge_->set_vbos({vp});
+		p.param_flat_->set_vbos({vp});
+		p.param_volumes_->set_vbos({vp,p.vbo_center_});
+		p.param_volumes_line_->set_vbos({vp,p.vbo_center_});
 
 		v.request_update();
 	}

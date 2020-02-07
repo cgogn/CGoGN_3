@@ -122,7 +122,7 @@ public:
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
 
 		v.request_update();
 	}
@@ -136,7 +136,7 @@ public:
 		if (p.vertex_vector_)
 			md->update_vbo(vertex_vector.get(), true);
 
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
 
 		v.request_update();
 	}

@@ -43,12 +43,14 @@ static void glfw_error_callback(int error, const char* description)
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
 }
 
-#define GL43_DEBUG_MODE 1
 
-
-#ifdef GL43_DEBUG_MODE
+#ifdef CGOGN_GL43_DEBUG_MODE
+template<bool NOTIF>
 static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*)
 {
+	if (!NOTIF && severity==GL_DEBUG_SEVERITY_NOTIFICATION)
+		return;
+
 	static std::map<GLenum,std::string> gl_dbg_str = {
 			{GL_DEBUG_SOURCE_API,"Calls to the OpenGL API"},
 			{GL_DEBUG_SOURCE_WINDOW_SYSTEM,"Calls to a window-system API"},
@@ -66,10 +68,6 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 			{GL_DEBUG_TYPE_POP_GROUP,"POP_GROUP"},
 			{GL_DEBUG_TYPE_OTHER,"OTHER_ERROR"}};
 
-//		GL_DEBUG_SEVERITY_HIGH,"All OpenGL Errors, shader compilation/linking errors, or highly-dangerous undefined behavior"},
-//					{GL_DEBUG_SEVERITY_MEDIUM,"Major performance warnings, shader compilation/linking warnings, or the use of deprecated functionality"},
-//					{GL_DEBUG_SEVERITY_LOW,"Redundant state change performance warning, or unimportant undefined behavior"},
-//					{GL_DEBUG_SEVERITY_NOTIFICATION,"Anything that isn't an error or performance issue"}
 	switch(severity)
 	{
 		case GL_DEBUG_SEVERITY_HIGH:
@@ -92,7 +90,22 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 	std::cerr << message << std::endl;
 	std::cerr << "==========================================================" << std::endl;
 	std::cerr << "\033[m" << std::endl;
+
+
 }
+
+inline void enable_gl43_debug_mode(bool show_notif=true)
+{
+	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+	if (show_notif)
+		glDebugMessageCallback(cgogn_gl_debug_msg<TRUE>, nullptr);
+	else
+		glDebugMessageCallback(cgogn_gl_debug_msg<TRUE>, nullptr);
+}
+
+
+
 #endif
 
 
@@ -135,7 +148,7 @@ App::App()
 
 	// GL 3.3 + GLSL 150 + Core Profile
 	const char* glsl_version = "#version 150";
-#ifdef GL43_DEBUG_MODE
+#ifdef CGOGN_GL43_DEBUG_MODE
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 #else
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -155,10 +168,8 @@ App::App()
 	if (err)
 		std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
 
-#ifdef GL43_DEBUG_MODE
-	glEnable(GL_DEBUG_OUTPUT);
-	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-	glDebugMessageCallback(cgogn_gl_debug_msg, nullptr);
+#ifdef CGOGN_GL43_DEBUG_MODE
+	enable_gl43_debug_mode();
 #endif
 
 

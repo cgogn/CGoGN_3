@@ -376,12 +376,12 @@ public:
 			break;
 		case TRIANGLES:
 		case INDEX_FACES:
+			func_update_ebo(INDEX_FACES,table_indices_emb);
 			if (position == nullptr)
 				init_triangles(m, table_indices, table_indices_emb);
 			else
 				init_ear_triangles(m, table_indices, table_indices_emb, position);
 			func_update_ebo(TRIANGLES,table_indices);
-			func_update_ebo(INDEX_FACES,table_indices_emb);
 			break;
 
 		case VOLUMES_VERTICES:

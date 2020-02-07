@@ -236,10 +236,11 @@ DisplayListDrawer::Renderer::Renderer(DisplayListDrawer* dr) : drawer_data_(dr)
 	param_rp_ = ShaderRoundPointColor::generate_param();
 	param_ps_ = ShaderPointSpriteColor::generate_param();
 
-	param_cpv_->set_vbos(dr->vbo_pos_.get(), dr->vbo_col_.get());
-	param_bl_->set_vbos(dr->vbo_pos_.get(), dr->vbo_col_.get());
-	param_rp_->set_vbos(dr->vbo_pos_.get(), dr->vbo_col_.get());
-	param_ps_->set_vbos(dr->vbo_pos_.get(), dr->vbo_col_.get());
+	std::vector<VBO*> vbos = {dr->vbo_pos_.get(), dr->vbo_col_.get()};
+	param_cpv_->set_vbos(vbos);
+	param_bl_->set_vbos(vbos);
+	param_rp_->set_vbos(vbos);
+	param_ps_->set_vbos(vbos);
 }
 
 DisplayListDrawer::Renderer::~Renderer()

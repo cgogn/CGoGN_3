@@ -363,6 +363,29 @@ void ShaderParam::release()
 	shader_->release();  GL_ASSERT()
 }
 
+void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
+{
+	if (!vao_initialized_)
+		vao_->create();
+
+	bind_vao();
+	GLuint attrib = 1u;
+	for (auto* v : vbos)
+	{
+		if (v)
+			v->associate(attrib++);
+		 else
+		{
+			vao_initialized_ = false;
+			break;
+		}
+	}
+
+	release_vao();
+
+}
+
+
 } // namespace rendering
 
 } // namespace cgogn

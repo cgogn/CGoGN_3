@@ -45,10 +45,10 @@ TopoDrawer::~TopoDrawer()
 TopoDrawer::Renderer::Renderer(TopoDrawer* tr) : topo_drawer_data_(tr)
 {
 	param_bl_ = ShaderBoldLineColor::generate_param();
-	param_bl_->set_vbos(tr->vbo_darts_.get(), tr->vbo_color_darts_.get());
+	param_bl_->set_vbos({tr->vbo_darts_.get(), tr->vbo_color_darts_.get()});
 
 	param_bl2_ = ShaderBoldLine::generate_param();
-	param_bl2_->set_vbos(tr->vbo_relations_.get());
+	param_bl2_->set_vbos({tr->vbo_relations_.get()});
 	param_bl2_->color_ = tr->phi2_color_;
 
 	param_rp_ = ShaderRoundPointColor::generate_param();

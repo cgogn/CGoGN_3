@@ -63,13 +63,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(std::shared_ptr<VBO> vbo_pos, std::shared_ptr<VBO> vbo_norm, std::shared_ptr<VBO> vbo_color)
-	{
-		vbo_pos_ = vbo_pos;
-		vbo_norm_ = vbo_norm;
-		vbo_color_ = vbo_color;
-	}
-
 };
 } // namespace rendering
 } // namespace cgogn

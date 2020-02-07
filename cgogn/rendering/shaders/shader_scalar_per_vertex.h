@@ -72,12 +72,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_scalar)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_scalar);
-		release_vao();
-	}
+
 };
 
 DECLARE_SHADER_CLASS(ScalarPerVertexGouraud,CGOGN_STR(ScalarPerVertexGouraud))
@@ -111,12 +106,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_normal, VBO* vbo_scalar)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_normal, vbo_scalar);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

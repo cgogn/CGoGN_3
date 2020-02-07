@@ -7,7 +7,7 @@ find_package(cgogn_rendering REQUIRED)
 find_package(ImGUI REQUIRED)
 find_package(synapse REQUIRED)
 
-option(GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
+option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
 
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::ui ALIAS ${PROJECT_NAME})
@@ -60,8 +60,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::rendering ImGUI synapse)
 
-if (GL43_DEBUG_MODE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "-DGL43_DEBUG_MODE=1")
+if (CGOGN_GL43_DEBUG_MODE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "-DCGOGN_GL43_DEBUG_MODE=1")
 endif()
 
 # Write out cgogn_ui_export.h to the current binary directory

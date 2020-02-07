@@ -58,15 +58,8 @@ public:
 	ShaderParamTEX2VBO(LocalShader* sh)
 		: ShaderParam(sh), TUin_(-1)
 	{}
-	 //
 	int32_t TUin_;
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
 };
 
 
