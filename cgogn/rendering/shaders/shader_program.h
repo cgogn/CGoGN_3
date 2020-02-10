@@ -166,6 +166,11 @@ public:
 
 	virtual std::string name() const =0;
 
+	inline uint32 nb_uniforms() const
+	{
+		return uniforms_.size();
+	}
+
 	inline void bind()
 	{
 		glUseProgram(id_); GL_ASSERT()

@@ -156,7 +156,7 @@ public:
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
 		// glBindBuffer(GL_ARRAY_BUFFER, id_);
-		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);GL_ASSERT()
+		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb*2), src);GL_ASSERT()
 		// glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 

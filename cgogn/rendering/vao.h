@@ -63,6 +63,7 @@ public:
 			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
 		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
+		std::cout << "CREATE VAO "<< id_ << std::endl;
 		GL_ASSERT()
 	}
 
@@ -72,6 +73,7 @@ public:
 		glGenVertexArrays(1, &id_);
 		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
 		glBindVertexArray(id_);
+		std::cout << "CREATE VAO "<< id_ << std::endl;
 		for (const auto& p : params)
 		{
 				glBindBuffer(GL_ARRAY_BUFFER, std::get<1>(p).id());

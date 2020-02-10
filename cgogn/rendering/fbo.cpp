@@ -32,6 +32,7 @@ namespace rendering
 FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 {
 	glGenFramebuffers(1, &id_);GL_ASSERT()
+	std::cout << "CREATE FBO "<< id_ << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, id_);GL_ASSERT()
 	GLenum att = GL_COLOR_ATTACHMENT0;
 	for (auto* t : textures)

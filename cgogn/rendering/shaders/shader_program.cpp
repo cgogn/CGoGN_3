@@ -365,6 +365,11 @@ void ShaderParam::release()
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
+	if (vbos.size() != shader_->nb_uniforms())
+	{
+		std::cerr << "WARNING WRONG NUMBER OF UNIFORMS"<<std::endl;
+	}
+
 	if (!vao_initialized_)
 		vao_->create();
 
