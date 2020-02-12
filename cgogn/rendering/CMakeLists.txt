@@ -109,10 +109,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} cgogn::core ImGUI)
 
-if (CGOGN_GL43_DEBUG_MODE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "-DCGOGN_GL43_DEBUG_MODE=1")
-endif()
-
 # Write out cgogn_rendering_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 

@@ -35,7 +35,6 @@ MeshRender::MeshRender()
 	{
 		indices_buffers_[i] = std::make_unique<EBO>();
 		indices_buffers_uptodate_[i] = false;
-//		nb_indices_[i] = 0;
 	}
 }
 
@@ -45,8 +44,6 @@ MeshRender::~MeshRender()
 
 void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
-	std::cout << "MeshRender::draw "<< prim << std::endl;
-
 	uint32 prim_buffer = (prim<SIZE_BUFFER) ? prim : prim-(SIZE_BUFFER+1);
 	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
 	if (nb_indices == 0)
@@ -65,7 +62,6 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		indices_buffers_[prim]->release();
 		break;
 	case TRIANGLES:
-//		std::cout << *indices_buffers_[prim]<<std::endl;
 		indices_buffers_[prim]->bind();
 		glDrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_INT, nullptr);
 		indices_buffers_[prim]->release();
@@ -99,7 +95,7 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 	default:
 		break;
 	}
-	GL_ASSERT()
+	
 }
 
 

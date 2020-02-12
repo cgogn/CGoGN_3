@@ -31,7 +31,7 @@
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
-#include <cgogn/ui/modules/surf_render/surf_render.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 #include <cgogn/ui/modules/topo_render/topo_render.h>
 #include <cgogn/ui/modules/surf_render/surf_render.h>
@@ -62,25 +62,18 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfRender<Mesh> sr(app);
-//	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
-//	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-//	cgogn::ui::Topo_Render<Mesh> tr(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::Topo_Render<Mesh> tr(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
-//	cgogn::ui::View* v2 = app.add_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-//	v1->link_module(&tr);
-//	v1->link_module(&srv);
-
-//	v2->link_module(&mp);
-//	v2->link_module(&sr);
-//	v2->link_module(&tr);
-//	v2->link_module(&srv);
-
+	v1->link_module(&tr);
+	v1->link_module(&srv);
 
 
 	Mesh* m = mp.load_surface_from_file(filename);
@@ -95,15 +88,15 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-//	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
-//	sr.set_vertex_normal(*v1, *m, vertex_normal);
+	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
-//	srv.set_vertex_position(*v1, *m, vertex_position);
-//	srv.set_vertex_vector(*v1, *m, vertex_normal);
+	srv.set_vertex_position(*v1, *m, vertex_position);
+	srv.set_vertex_vector(*v1, *m, vertex_normal);
 
-//	tr.set_vertex_position(*v1, *m, vertex_position);
+	tr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

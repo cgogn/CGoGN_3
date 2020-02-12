@@ -310,7 +310,7 @@ void TopoDrawer::update2D(const MESH& m,
 	vbo_relations_->allocate(nbvec, 3);
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
 	vbo_relations_->release();
-	GL_ASSERT()
+	
 }
 
 template <typename MESH>
@@ -442,7 +442,7 @@ void TopoDrawer::update3D(const MESH& m,
 	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
 	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
 
-	GL_ASSERT()
+	
 }
 
 template <typename MESH, typename CELL>
@@ -465,7 +465,7 @@ void TopoDrawer::update_colors(const MESH& m,
 	vbo_color_darts_->bind();
 	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
-	GL_ASSERT()
+	
 }
 
 

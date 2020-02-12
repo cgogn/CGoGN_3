@@ -89,12 +89,12 @@ public:
 
 	inline Shader(GLenum type)
 	{
-		id_ = glCreateShader(type);  GL_ASSERT()
+		id_ = glCreateShader(type);
 	}
 
 	inline ~Shader()
 	{
-		glDeleteShader(id_); GL_ASSERT()
+		glDeleteShader(id_);
 	}
 
 	inline GLuint shaderId() const
@@ -121,6 +121,7 @@ protected:
 	GLint unif_mv_matrix_;
 	GLint unif_projection_matrix_;
 	GLint unif_normal_matrix_;
+	uint32 nb_unif_matrix_;
 
 	std::vector<GLint> uniforms_;
 
@@ -155,12 +156,12 @@ public:
 
 //	inline void start_use()
 //	{
-//		glUseProgram(id_); GL_ASSERT()
+//		glUseProgram(id_);
 //	}
 
 //	inline void stop_use()
 //	{
-//		glUseProgram(0); GL_ASSERT()
+//		glUseProgram(0);
 //	}
 
 
@@ -168,29 +169,27 @@ public:
 
 	inline uint32 nb_uniforms() const
 	{
-		return uniforms_.size();
+		return uniforms_.size() - nb_unif_matrix_;
 	}
 
 	inline void bind()
 	{
-		glUseProgram(id_); GL_ASSERT()
-		std::cout << "Start using "<< this->name()<< std::endl;
+		glUseProgram(id_);
 	}
 
 	inline void release()
 	{
-		glUseProgram(0); GL_ASSERT()
-		std::cout << "Stop using "<< this->name()<< std::endl;
+		glUseProgram(0);
 	}
 
 	inline GLint uniform_location(const GLchar* str) const
 	{
-		return glGetUniformLocation(id_, str); GL_ASSERT()
+		return glGetUniformLocation(id_, str);
 	}
 
 	inline void add_uniform(const GLchar* str)
 	{
-		GLint u = glGetUniformLocation(id_, str); GL_ASSERT()
+		GLint u = glGetUniformLocation(id_, str);
 		if (u >= 0)
 			uniforms_.push_back(u);
 		else
@@ -213,12 +212,12 @@ public:
 
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
-		glBindAttribLocation(id_, attrib, str_var); GL_ASSERT()
+		glBindAttribLocation(id_, attrib, str_var);
 	}
 
 	inline void bind_attrib_location(GLuint attrib, const std::string& str_var)
 	{
-		glBindAttribLocation(id_, attrib, str_var.c_str()); GL_ASSERT()
+		glBindAttribLocation(id_, attrib, str_var.c_str());
 	}
 
 	template <typename T1>
@@ -247,31 +246,31 @@ public:
 
 	inline void set_uniform_value(std::size_t i, const float32 v)
 	{
-		glUniform1f(uniforms_[i], v); GL_ASSERT()
+		glUniform1f(uniforms_[i], v);
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec2& v)
 	{
-		glUniform2fv(uniforms_[i], 1, v.data()); GL_ASSERT()
+		glUniform2fv(uniforms_[i], 1, v.data());
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec3& v)
 	{
-		glUniform3fv(uniforms_[i], 1, v.data()); GL_ASSERT()
+		glUniform3fv(uniforms_[i], 1, v.data());
 	}
 	inline void set_uniform_value(std::size_t i, const GLVec4& v)
 	{
-		glUniform4fv(uniforms_[i], 1, v.data()); GL_ASSERT()
+		glUniform4fv(uniforms_[i], 1, v.data());
 	}
 	inline void set_uniform_value(std::size_t i, const int32 v)
 	{
-		glUniform1i(uniforms_[i], v); GL_ASSERT()
+		glUniform1i(uniforms_[i], v);
 	}
 	inline void set_uniform_value(std::size_t i, const uint32 v)
 	{
-		glUniform1ui(uniforms_[i], v); GL_ASSERT()
+		glUniform1ui(uniforms_[i], v);
 	}
 	inline void set_uniform_value(std::size_t i, const bool v)
 	{
-		glUniform1i(uniforms_[i], int32(v)); GL_ASSERT()
+		glUniform1i(uniforms_[i], int32(v));
 	}
 
 	template <typename T1>
@@ -340,9 +339,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT()
+
 		get_matrices_uniforms();
-		GL_ASSERT()
+
 	}
 
 	template <typename... Ts>
@@ -384,9 +383,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT()
+
 		get_matrices_uniforms();
-		GL_ASSERT()
+
 	}
 
 	template <typename... Ts>
@@ -433,9 +432,9 @@ public:
 			delete[] infoLog;
 		}
 
-		GL_ASSERT()
+
 		get_matrices_uniforms();
-		GL_ASSERT()
+
 	}
 };
 
@@ -470,12 +469,12 @@ public:
 
 	inline void bind_vao()
 	{
-		vao_->bind(); GL_ASSERT()
+		vao_->bind();
 	}
 
 	inline void release_vao()
 	{
-		vao_->release(); GL_ASSERT()
+		vao_->release();
 	}
 
 	inline ShaderProgram* get_shader()
@@ -506,7 +505,7 @@ public:
 	 * @brief set vbos into the vao
 	 * @param vbos
 	 */
-	void set_vbos(const std::vector<VBO*>& vbos);
+	virtual void set_vbos(const std::vector<VBO*>& vbos);
 };
 
 } // namespace rendering

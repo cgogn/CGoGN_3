@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SHALLOW_WATER_H_
 #define CGOGN_MODULE_SHALLOW_WATER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 
 #include <cgogn/core/functions/attributes.h>

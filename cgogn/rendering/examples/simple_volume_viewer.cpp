@@ -30,16 +30,15 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-//#include <cgogn/ui/modules/volume_render/volume_render.h>
-#include <cgogn/ui/modules/surf_render/surf_render.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
 
-//#include <cgogn/ui/modules/topo_render/topo_render.h>
-//#include <cgogn/geometry/algos/centroid.h>
-//#include <cgogn/geometry/functions/distance.h>
+#include <cgogn/ui/modules/topo_render/topo_render.h>
+#include <cgogn/geometry/algos/centroid.h>
+#include <cgogn/geometry/functions/distance.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
 
-using Mesh = cgogn::CMap2;
+using Mesh = cgogn::CMap3;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -54,7 +53,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc < 2)
 	{
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off"/*"tet/hand.tet"*/);
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
 	}
 	else
 		filename = std::string(argv[1]);
@@ -66,10 +65,8 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-//	cgogn::ui::Volume_Render<Mesh> vr(app);
-	cgogn::ui::SurfRender<Mesh> vr(app);
-
-//	cgogn::ui::Topo_Render<Mesh> tr(app);
+	cgogn::ui::Volume_Render<Mesh> vr(app);
+	cgogn::ui::Topo_Render<Mesh> tr(app);
 
 	app.init_modules();
 
@@ -80,7 +77,7 @@ int main(int argc, char** argv)
 
 	v1->link_module(&mp);
 	v1->link_module(&vr);
-//	v1->link_module(&tr);
+	v1->link_module(&tr);
 
 //	v2->link_module(&mp);
 //	v2->link_module(&vr);
@@ -93,8 +90,7 @@ int main(int argc, char** argv)
 //	v4->link_module(&tr);
 
 
-//	Mesh* m = mp.load_volume_from_file(filename);
-	Mesh* m = mp.load_surface_from_file(filename);
+	Mesh* m = mp.load_volume_from_file(filename);
 
 	if (!m)
 	{
@@ -103,15 +99,14 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-//	std::shared_ptr<Attribute<Vec3>> volume_center = cgogn::add_attribute<Vec3, Volume>(*m, "center");
+	std::shared_ptr<Attribute<Vec3>> volume_center = cgogn::add_attribute<Vec3, Volume>(*m, "center");
 
-//	cgogn::index_cells<Volume>(*m);
-//	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
+	cgogn::index_cells<Volume>(*m);
+	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
 
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
-	vr.set_vertex_position(*v1, *m, vertex_position);
-
+//	vr.set_vertex_position(*v1, *m, vertex_position);
 //	tr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();

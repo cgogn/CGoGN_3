@@ -51,13 +51,11 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		depth_ = false;
-		std::cout << "CREATE TEXTURE "<< id_ << std::endl;
-		GL_ASSERT()
 	}
 
 	inline ~Texture2D()
 	{
-		glDeleteTextures(1, &id_);GL_ASSERT()
+		glDeleteTextures(1, &id_);
 	}
 
 	inline GLuint id()
@@ -96,17 +94,17 @@ public:
 			alloc(img.width(), img.height(), GL_RGBA8, GL_RGBA, img.data());
 			break;
 		}
-		GL_ASSERT()
+		
 	}
 
 	inline void resize(GLsizei w, GLsizei h)
 	{
 		bind();
-		glTexImage2D(GL_TEXTURE_2D, 0, internal_, w, h, 0, external_, data_type_, nullptr);GL_ASSERT()
+		glTexImage2D(GL_TEXTURE_2D, 0, internal_, w, h, 0, external_, data_type_, nullptr);
 		width_ = w;
 		height_ = h;
 		release();
-		GL_ASSERT()
+		
 	}
 
 	inline GLsizei width() const
@@ -122,21 +120,21 @@ public:
 	inline void bind()
 	{
 		glBindTexture(GL_TEXTURE_2D, id_);
-		GL_ASSERT()
+		
 	}
 
 	inline GLint bind(GLint unit)
 	{
 		glActiveTexture(GL_TEXTURE0 + GLuint(unit));
 		glBindTexture(GL_TEXTURE_2D, id_);
-		GL_ASSERT()
+		
 		return unit;
 	}
 
 	inline static void release()
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
-		GL_ASSERT()
+		
 	}
 
 protected:

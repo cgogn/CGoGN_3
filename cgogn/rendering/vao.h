@@ -62,39 +62,32 @@ public:
 		if (is_created())
 			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
-		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
-		std::cout << "CREATE VAO "<< id_ << std::endl;
-		GL_ASSERT()
 	}
 
 	inline VAO(const std::vector<std::tuple<GLint, VBO, GLint>>& params)
 	{
 		nb_ = std::get<1>(params[0]).size();
 		glGenVertexArrays(1, &id_);
-		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_XXX");
 		glBindVertexArray(id_);
-		std::cout << "CREATE VAO "<< id_ << std::endl;
 		for (const auto& p : params)
 		{
-				glBindBuffer(GL_ARRAY_BUFFER, std::get<1>(p).id());
+			glBindBuffer(GL_ARRAY_BUFFER, std::get<1>(p).id());
 			GLuint vid = GLuint(std::get<0>(p));
 			glEnableVertexAttribArray(vid);
 			glVertexAttribPointer(vid, GLint(std::get<1>(p).vector_dimension()), GL_FLOAT, GL_FALSE, 0, nullptr);
 		}
 		glBindVertexArray(0);
-		GL_ASSERT()
+		
 	}
 
 	inline void bind()
 	{
-		std::cout << "BIND VAO "<< id_ << std::endl;
-		glBindVertexArray(id_);GL_ASSERT()
+		glBindVertexArray(id_);
 	}
 
 	static inline void release()
 	{
-		std::cout << "RELEASE VAO "<< std::endl;
-		glBindVertexArray(0);GL_ASSERT()
+		glBindVertexArray(0);
 	}
 
 	inline void set_name(const std::string& name)

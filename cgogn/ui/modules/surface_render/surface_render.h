@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SURFACE_RENDER_H_
 #define CGOGN_MODULE_SURFACE_RENDER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -195,7 +196,6 @@ public:
 		rendering::MeshRender* render = md->get_render();
 		if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
 			render->init_primitives(m,rendering::VOLUMES_VERTICES,p.vertex_position_.get());
-		compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 
 		auto* vp = md->vbo(p.vertex_position_.get());
 		p.param_point_sprite_->set_vbos({vp});
@@ -278,7 +278,6 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
-		compute_center_engine_ = std::make_unique<rendering::ComputeCenterEngine>();
 	}
 
 	void draw(View* view) override
@@ -515,7 +514,6 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
-	std::unique_ptr<rendering::ComputeCenterEngine> compute_center_engine_;
 
 };
 

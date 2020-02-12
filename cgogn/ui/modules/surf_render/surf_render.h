@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODULE_VOLUME_RENDER_H_
 #define CGOGN_MODULE_VOLUME_RENDER_H_
 
-#include <imgui/imgui.h>
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -142,7 +142,6 @@ protected:
 
 	void draw(View* view) override
 	{
-std::cout << "SurfRender::draw"<< std::endl;
 		for (auto& [m, p] : parameters_[view])
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
@@ -150,8 +149,6 @@ std::cout << "SurfRender::draw"<< std::endl;
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			std::cout << " PROJ MAT "<< std::endl<< proj_matrix<<std::endl;
-			std::cout << " VIEW MAT "<< std::endl<< view_matrix<<std::endl;
 
 			if (p.param_flat_->vao_initialized())
 			{

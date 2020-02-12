@@ -64,6 +64,11 @@ public:
 	{
 	}
 
+	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	{
+		vbo_pos_ = vbos[0];
+		vbo_center_ = vbos[1];
+	}
 
 };
 

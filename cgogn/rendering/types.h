@@ -27,11 +27,8 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
-// #include <Eigen/Core>
 #include <Eigen/Dense>
-// #include <Eigen/Eigen>
-// #include <Eigen/Geometry>
-// #include <Eigen/SVD>
+
 #include <map>
 #include <string>
 #include <iostream>
@@ -124,17 +121,6 @@ static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
 	{GL_STACK_UNDERFLOW,"GL_STACK_UNDERFLOW"},
 	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
 };
-
-#ifndef NDEBUG
-#define GL_ASSERT() \
-	{ GLenum err = glGetError(); \
-	if (err != GL_NO_ERROR) \
-		std::cerr<< GL_ERRORS_NAMES[err]<<" in "<< __FUNCTION__<< " line " << __LINE__ <<std::endl; \
-	assert(err == GL_NO_ERROR); }
-#else
-	#define GL_ASSERT()
-#endif
-
 
 inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
 {

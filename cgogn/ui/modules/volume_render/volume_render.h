@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODULE_VOLUME_RENDER_H_
 #define CGOGN_MODULE_VOLUME_RENDER_H_
 
-#include <imgui/imgui.h>
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -198,7 +198,7 @@ public:
 			compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),render,p.vbo_center_);
 		}
 
-		auto* vp = md->vbo(p.vertex_position_.get())
+		auto* vp = md->vbo(p.vertex_position_.get());
 		p.param_point_sprite_->set_vbos({vp});
 		p.param_edge_->set_vbos({vp});
 		p.param_flat_->set_vbos({vp});
@@ -253,15 +253,6 @@ protected:
 
 				if (p.param_flat_->vao_initialized())
 				{
-					rendering::VBO* vb = md->vbo(p.vertex_position_.get());
-					vb->bind();
-					float *buf = vb->lock_pointer();
-					for (int i=0;i<15;++i)
-						std::cout << " "<< *buf++;
-					std::cout << std::endl;
-					vb->release_pointer();
-					vb->release();
-
 					p.param_flat_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
@@ -272,15 +263,6 @@ protected:
 
 			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
-				rendering::VBO* vb = md->vbo(p.vertex_position_.get());
-				vb->bind();
-				float *buf = vb->lock_pointer();
-				for (int i=0;i<15;++i)
-					std::cout << " "<< *buf++;
-				std::cout << std::endl;
-				vb->release_pointer();
-				vb->release();
-
 				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
@@ -302,7 +284,6 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 				md->update_vbo(p.vertex_position_.get());
-//				md->set_primitives_dirty(rendering::BUFFER_VOLUMES_FACES);
 				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),md->get_render(),p.vbo_center_);
 
 				if (p.param_volumes_->vao_initialized())

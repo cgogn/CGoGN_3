@@ -54,16 +54,13 @@ public:
 		nb_vectors_(0),
 		vector_dimension_(vec_dim)
 	{
-		glGenBuffers(1, &id_);GL_ASSERT()
-		gl_debug_name(GL_BUFFER,id_,"VBO_XXX");
-		std::cout << "CREATE VBO "<< id_ << std::endl;
+		glGenBuffers(1, &id_);
 	}
 
 	inline ~VBO()
 	{
-		glDeleteBuffers(1, &id_);GL_ASSERT()
+		glDeleteBuffers(1, &id_);
 		id_ = 0;
-		std::cout << " VBO DELETE"<< id_ << std::endl;
 	}
 
 	inline void set_name(const std::string& name)
@@ -79,13 +76,12 @@ public:
 
 	inline void bind()
 	{
-		std::cout << "BIND VBO "<< id_ << std::endl;
-		glBindBuffer(GL_ARRAY_BUFFER, id_);GL_ASSERT()
+		glBindBuffer(GL_ARRAY_BUFFER, id_);
 	}
 
 	inline void release()
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, 0);GL_ASSERT()
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 
@@ -106,7 +102,7 @@ public:
 
 	inline static void release_tb()
 	{
-		glBindTexture(GL_TEXTURE_BUFFER,0);GL_ASSERT()
+		glBindTexture(GL_TEXTURE_BUFFER,0);
 	}
 
 	/**
@@ -117,7 +113,7 @@ public:
 	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
 		std::size_t total = nb_vectors * uint32(vector_dimension);
-		//		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
+		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
 		}
@@ -126,14 +122,12 @@ public:
 	}
 
 	/**
-	 * @brief get and lock pointer on buffer memory
+	 * @brief get and lock pointer on buffer memory (muste be bind)
 	 * @return the pointer
 	 */
 	inline float32* lock_pointer()
 	{
-		// this->bind();
-		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
-		// this->release();
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
 		return ptr;
 	}
 
@@ -142,9 +136,7 @@ public:
 	 */
 	inline void release_pointer()
 	{
-		// this->bind();
-		glUnmapBuffer(GL_ARRAY_BUFFER);GL_ASSERT()
-		// this->release();
+		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 
 	/**
@@ -155,9 +147,7 @@ public:
 	 */
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
-		// glBindBuffer(GL_ARRAY_BUFFER, id_);
-		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb*2), src);GL_ASSERT()
-		// glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
 	}
 
 	/**
@@ -185,7 +175,7 @@ public:
 		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4,
 							  reinterpret_cast<GLvoid*>(first * uint64(vector_dimension()) * 4u));
 		release();
-		GL_ASSERT()
+
 	}
 };
 

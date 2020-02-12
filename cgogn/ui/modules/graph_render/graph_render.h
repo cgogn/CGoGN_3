@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODULE_GRAPH_RENDER_H_
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
-#include<imgui/imgui.h>
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>

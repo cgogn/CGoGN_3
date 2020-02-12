@@ -121,34 +121,29 @@ ComputeCenterEngine::~ComputeCenterEngine()
 
 void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 {
+	int32 h = (centers->size()+1023)/1024;
+	fbo_->resize(1024,h);
+	fbo_->bind();
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0,0,0,0);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
+	glBlendFunc(GL_ONE,GL_ONE);
+	glPointSize(1.001f);
 	param1_->vbo_pos_ = pos;
+	param1_->height_tex_ = h;
 	param1_->bind();
-//	glDrawArrays(GL_LINES, 0, 0);
+	renderer->draw(VOLUMES_VERTICES);
 	param1_->release();
+	glDisable(GL_BLEND);
+	fbo_->release();
 
-//	int32 h = (centers->size()+1023)/1024;
-//	fbo_->resize(1024,h);
-//	fbo_->bind();
-//	glDisable(GL_DEPTH_TEST);
-//	glClearColor(0,0,0,0);
-//	glClear(GL_COLOR_BUFFER_BIT);
-//	glEnable(GL_BLEND);
-//	glBlendEquation(GL_FUNC_ADD);
-//	glBlendFunc(GL_ONE,GL_ONE);
-//	glPointSize(1.001f);
-//	param1_->vbo_pos_ = pos;
-//	param1_->height_tex_ = h;
-//	param1_->bind();
-//	renderer->draw(VOLUMES_VERTICES);
-//	param1_->release();
-//	glDisable(GL_BLEND);
-//	fbo_->release();
-
-//	glClearColor(0,0,0,0);
-//	tfb_->start(GL_POINTS,{centers});
-//	glDrawArrays(GL_POINTS,0,centers->size());
-//	tfb_->stop();
-//	glEnable(GL_DEPTH_TEST);
+	glClearColor(0,0,0,0);
+	tfb_->start(GL_POINTS,{centers});
+	glDrawArrays(GL_POINTS,0,centers->size());
+	tfb_->stop();
+	glEnable(GL_DEPTH_TEST);
 }
 
 

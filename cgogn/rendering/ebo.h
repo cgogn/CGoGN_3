@@ -55,9 +55,7 @@ public:
 
 	inline void create()
 	{
-		glGenBuffers(1, &id_);GL_ASSERT()
-		gl_debug_name(GL_BUFFER,id_,"EBO_XXX");
-		std::cout << "EBO CREATION: "<< id_<<std::endl;
+		glGenBuffers(1, &id_);
 	}
 
 	inline bool is_created()
@@ -67,38 +65,33 @@ public:
 
 	inline ~EBO()
 	{
-		std::cout << "DELETE EBO "<< id_ << std::endl;
-		glDeleteBuffers(1, &id_);GL_ASSERT()
+		glDeleteBuffers(1, &id_);
 		id_ = 0;
 	}
 
 	inline void bind()
 	{
-		std::cout << "BIND EBO "<< id_ << std::endl;
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);GL_ASSERT()
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 	}
 
 	inline void release()
 	{
-		std::cout << "RELEASE EBO "<< id_ << std::endl;
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT()
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	inline GLint bind_tb(GLint unit)
 	{
-		std::cout << "BIND EBO "<< id_;
 		if (id_tb_==0)
 		{
 			glGenTextures(1,&id_tb_);
 			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
 			glBindTexture(GL_TEXTURE_BUFFER,0);
-			GL_ASSERT()
+
 		}
-		std::cout << " AS TB "<< id_tb_ << std::endl;
 
 		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);GL_ASSERT()
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
 		return unit;
 	}
 
@@ -113,7 +106,7 @@ public:
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), nullptr, GL_STATIC_DRAW);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT()
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			nb_ = nb_ind;
 		}
 	}
@@ -124,36 +117,33 @@ public:
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(nb_ind * sizeof(GLuint)), indices, GL_STATIC_DRAW);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT()
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			nb_ = nb_ind;
 		}
 		else
 		{
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, GLsizeiptr(nb_ind * sizeof(GLuint)), indices);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);GL_ASSERT()
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
 	}
 
 	/**
-	 * @brief get and lock pointer on buffer memory
+	 * @brief get and lock pointer on buffer memory, you must bind before
 	 * @return  the pointer
 	 */
 	inline GLuint* lock_pointer()
 	{
-//		this->bind();
-		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
+		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_WRITE));
 	}
 
 	/**
-	 * @brief release_pointer
+	 * @brief release_pointer (must be binded)
 	 */
 	inline void release_pointer()
 	{
-//		this->bind();
 		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-//		this->release();
-		GL_ASSERT()
+
 	}
 
 	/**
@@ -166,7 +156,7 @@ public:
 	{
 		this->bind();
 		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
-		this->release();GL_ASSERT()
+		this->release();
 	}
 
 	uint32 size() const

@@ -102,7 +102,6 @@ class CGOGN_RENDERING_EXPORT MeshRender
 protected:
 	std::array<std::unique_ptr<EBO>, SIZE_BUFFER> indices_buffers_;
 	std::array<bool, SIZE_BUFFER> indices_buffers_uptodate_;
-//	std::array<uint32, SIZE_BUFFER> nb_indices_;
 
 public:
 	MeshRender();
@@ -130,22 +129,6 @@ protected:
 		});
 	}
 
-//	template <typename MESH>
-//	inline void init_lines(const MESH& m, std::vector<uint32>& table_indices)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 0)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Edge = typename mesh_traits<MESH>::Edge;
-//			foreach_cell(m, [&](Edge e) -> bool {
-//				foreach_incident_vertex(m, e, [&](Vertex v) -> bool {
-//					table_indices.push_back(index_of(m, v));
-//					return true;
-//				});
-//				return true;
-//			});
-//		}
-//	}
 
 	template <typename MESH>
 	inline void init_lines(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_edge)
@@ -347,18 +330,11 @@ protected:
 	}
 
 public:
-//	inline uint32 nb_indices(DrawingType prim) const
-//	{
-//		return nb_indices_[prim];
-//	}
 
 	template <typename MESH>
 	inline void init_primitives(const MESH& m, DrawingType prim,
 								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
-		std::cout << "MeshRender::init_primitives "<< prim<< std::endl;
-
-		//
 		if (prim>=SIZE_BUFFER)
 			prim = DrawingType(prim + POINTS - POINTS_TB);
 
@@ -374,7 +350,7 @@ public:
 			}
 		};
 
-//		auto start_timer = std::chrono::high_resolution_clock::now();
+		auto start_timer = std::chrono::high_resolution_clock::now();
 
 		std::vector<uint32> table_indices;
 		table_indices.reserve(1024u);
@@ -422,10 +398,9 @@ public:
 			break;
 		}
 
-//		auto end_timer = std::chrono::high_resolution_clock::now();
-
-//		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
-//		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
+		auto end_timer = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
+		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
 
 	}
 

@@ -53,26 +53,23 @@ public:
 		glGetIntegerv(GL_VIEWPORT, prev_viewport);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, id_);
 		glViewport(0, 0, tex_[0]->width(), tex_[0]->height());
-		std::cout << "FBO BIND "<< id_ <<" VP 0, 0, "<< tex_[0]->width() <<","<< tex_[0]->height() <<std::endl;
 	}
 
 	inline void release()
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_id_);
-		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);GL_ASSERT()
-
-		std::cout << "BACK TO FBO "<< prev_id_ <<" VP "<<prev_viewport[0] <<","<< prev_viewport[1] <<","<<  prev_viewport[2]  <<","<<  prev_viewport[3]<<std::endl;
+		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 	}
 
 
 	inline void bind_read()
 	{
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, id_);GL_ASSERT()
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, id_);
 	}
 
 	inline void release_read()
 	{
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);GL_ASSERT()
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
 	void resize(int w, int h);
