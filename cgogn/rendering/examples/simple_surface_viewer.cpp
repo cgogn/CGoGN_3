@@ -34,7 +34,6 @@
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 #include <cgogn/ui/modules/topo_render/topo_render.h>
-#include <cgogn/ui/modules/surf_render/surf_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -65,7 +64,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	cgogn::ui::Topo_Render<Mesh> tr(app);
+	cgogn::ui::TopoRender<Mesh> tr(app);
 
 	app.init_modules();
 

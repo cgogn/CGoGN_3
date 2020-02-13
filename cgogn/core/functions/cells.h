@@ -142,7 +142,7 @@ inline void init_cells_indexing(CMapBase& m)
 //////////////
 
 template <typename CELL, typename MESH>
-auto set_index(const MESH& m, CELL c, uint32_t index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+auto set_index(const MESH& m, CELL c,uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static const Orbit orbit = CELL::ORBIT;

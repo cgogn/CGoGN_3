@@ -121,7 +121,7 @@ protected:
 	GLint unif_mv_matrix_;
 	GLint unif_projection_matrix_;
 	GLint unif_normal_matrix_;
-	uint32 nb_unif_matrix_;
+	uint32 nb_attributes_ ;
 
 	std::vector<GLint> uniforms_;
 
@@ -167,9 +167,9 @@ public:
 
 	virtual std::string name() const =0;
 
-	inline uint32 nb_uniforms() const
+	inline uint32 nb_attributes() const
 	{
-		return uniforms_.size() - nb_unif_matrix_;
+		return nb_attributes_;
 	}
 
 	inline void bind()
@@ -311,6 +311,7 @@ public:
 		glAttachShader(id_, frag_shader_->shaderId());
 
 		//		set_locations();
+		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		glLinkProgram(id_);
@@ -356,6 +357,7 @@ public:
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
 
+		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		glLinkProgram(id_);
@@ -395,8 +397,8 @@ public:
 		vert_shader_->compile(vert_src,name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
-//		glAttachShader(id_, frag_shader_->shaderId());
 
+		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		if (!tf_outs.empty())
@@ -409,8 +411,6 @@ public:
 
 		glLinkProgram(id_);
 
-		// puis detache (?)
-//		glDetachShader(id_, frag_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
 		// Print log if needed
@@ -421,7 +421,6 @@ public:
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
 			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
-
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
 		{
@@ -431,7 +430,6 @@ public:
 			std::cerr << "Link message: " << infoLog << std::endl;
 			delete[] infoLog;
 		}
-
 
 		get_matrices_uniforms();
 

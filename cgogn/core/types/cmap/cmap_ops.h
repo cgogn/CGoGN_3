@@ -61,20 +61,22 @@ inline Dart add_dart(CMapBase& m)
 // CPH3 //
 //////////
 
-// inline Dart add_dart(CPH3& m)
-// {
-// 	Dart d = add_dart(static_cast<CPH3::CMAP&>(m));
-// 	m.nb_darts_per_level_[m.current_level_]++;
-// 	m.set_edge_id(d, 0u);
-// 	m.set_face_id(d, 0u);
-// 	m.set_dart_level(d, m.current_level_);
-
-// 	// update max level if needed
-// 	if (m.current_level_ > m.maximum_level_)
-// 		m.maximum_level_ = m.current_level_;
-
-// 	return d;
-// }
+inline Dart add_dart(CPH3& m)
+{
+	Dart d = add_dart(static_cast<CPH3::CMAP&>(m));
+	if(m.nb_darts_per_level_.size() < m.current_level_)
+		m.nb_darts_per_level_.resize(m.current_level_);
+	m.nb_darts_per_level_[m.current_level_]++;
+	m.set_edge_id(d, 0u);
+	m.set_face_id(d, 0u);
+	m.set_dart_level(d, m.current_level_);
+	
+	// update max level if needed
+	if (m.current_level_ > m.maximum_level_)
+		m.maximum_level_ = m.current_level_;
+	
+	return d;
+}
 
 /*****************************************************************************/
 

@@ -126,3 +126,30 @@ function(cgogn_list_subdirectory result current_directory)
 	endforeach()
 	set(${result} ${dirlist} PARENT_SCOPE)
 endfunction()
+
+############################################################################################
+
+function(APPS_COMPILATION)
+    set(options NONE)
+    set(oneValueArgs EXEC)
+    set(multiValueArgs SRC MODULES)
+    cmake_parse_arguments(COMPILATION_PREFIX "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    set(MODULES_LIST "")
+    foreach(mod ${COMPILATION_PREFIX_MODULES})
+        list(APPEND MODULES_LIST cgogn::${mod})
+    endforeach()
+
+    add_executable(${COMPILATION_PREFIX_EXEC})
+    target_sources(${COMPILATION_PREFIX_EXEC} PRIVATE ${COMPILATION_PREFIX_SRC})
+    target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS})
+
+    if(APPLE)
+    	if(NOT CARBON)
+        	find_library(CORE_FOUNDATION CoreFoundation)
+        	find_library(CARBON Carbon)
+		endif()
+        target_link_libraries(${COMPILATION_PREFIX_EXEC} ${CORE_FOUNDATION} ${CARBON})
+    endif()
+
+endfunction()

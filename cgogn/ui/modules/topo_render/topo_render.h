@@ -44,7 +44,7 @@ namespace ui
 {
 
 template <typename MESH>
-class Topo_Render : public ViewModule
+class TopoRender : public ViewModule
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "Topo_Render can only be used with meshes of dimension >= 2");
 
@@ -93,13 +93,13 @@ class Topo_Render : public ViewModule
 	};
 
 public:
-	Topo_Render(const App& app)
+	TopoRender(const App& app)
 		: ViewModule(app, "Topo_Render (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 	}
 
-	~Topo_Render()
+	~TopoRender()
 	{
 	}
 
@@ -153,7 +153,7 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-			mesh_provider_, this, &Topo_Render<MESH>::init_mesh));
+			mesh_provider_, this, &TopoRender<MESH>::init_mesh));
 	}
 
 	void draw(View* view) override

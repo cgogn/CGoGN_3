@@ -41,7 +41,6 @@
 #include <cgogn/rendering/shaders/shader_explode_volumes_line.h>
 #include <cgogn/rendering/shaders/compute_volume_centers.h>
 
-//#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>

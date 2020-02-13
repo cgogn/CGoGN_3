@@ -106,7 +106,9 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 
 }
 
-ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr)
+ShaderProgram::ShaderProgram() :
+	vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr),
+	nb_attributes_(0)
 {
 	id_ = glCreateProgram();
 }
@@ -253,21 +255,10 @@ void ShaderProgram::clean_all()
 
 void ShaderProgram::get_matrices_uniforms()
 {
-	unif_mvp_matrix_ = -1;
-	unif_mv_matrix_ = -1;
-	unif_projection_matrix_ = -1;
-	unif_normal_matrix_ = -1;
-
-	nb_unif_matrix_=0;
 	unif_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
-	if (unif_mvp_matrix_ != -1) nb_unif_matrix_++;
 	unif_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
-	if (unif_mv_matrix_ != -1) nb_unif_matrix_++;
 	unif_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
-	if (unif_projection_matrix_ != -1) nb_unif_matrix_++;
 	unif_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");
-	if (unif_normal_matrix_ != -1) nb_unif_matrix_++;
-
 }
 
 void ShaderProgram::set_matrices(const GLMat4d& proj, const GLMat4d& mv)
@@ -372,9 +363,9 @@ void ShaderParam::release()
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	if (vbos.size() != shader_->nb_uniforms())
+	if (vbos.size() != shader_->nb_attributes())
 	{
-		std::cerr << "WARNING WRONG NUMBER OF UNIFORMS"<<std::endl;
+		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES"<<std::endl;
 	}
 
 	if (!vao_initialized_)

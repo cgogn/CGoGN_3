@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc < 2)
 	{
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hex_dominant.meshb");
 	}
 	else
 		filename = std::string(argv[1]);
@@ -66,28 +66,30 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::Volume_Render<Mesh> vr(app);
-	cgogn::ui::Topo_Render<Mesh> tr(app);
+	cgogn::ui::TopoRender<Mesh> tr(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
-//	cgogn::ui::View* v2 = app.add_view();
-//	cgogn::ui::View* v3 = app.add_view();
-//	cgogn::ui::View* v4 = app.add_view();
+	cgogn::ui::View* v2 = app.add_view();
+	cgogn::ui::View* v3 = app.add_view();
+	cgogn::ui::View* v4 = app.add_view();
 
 	v1->link_module(&mp);
 	v1->link_module(&vr);
 	v1->link_module(&tr);
 
-//	v2->link_module(&mp);
-//	v2->link_module(&vr);
-//	v2->link_module(&tr);
-//	v3->link_module(&mp);
-//	v3->link_module(&vr);
-//	v3->link_module(&tr);
-//	v4->link_module(&mp);
-//	v4->link_module(&vr);
-//	v4->link_module(&tr);
+	// Comment synchroniser 2 valeurs de 2 modules differents
+
+	v2->link_module(&mp);
+	v2->link_module(&vr);
+	v2->link_module(&tr);
+	v3->link_module(&mp);
+	v3->link_module(&vr);
+	v3->link_module(&tr);
+	v4->link_module(&mp);
+	v4->link_module(&vr);
+	v4->link_module(&tr);
 
 
 	Mesh* m = mp.load_volume_from_file(filename);

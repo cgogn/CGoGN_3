@@ -40,12 +40,10 @@ uint32 CPH3::dart_level(Dart d) const
 
 void CPH3::set_dart_level(Dart d, uint32 l)
 {
-	(*dart_level_)[d.index] = l;
-}
-
-void CPH3::change_dart_level(Dart d, uint32 l)
-{
-	nb_darts_per_level_[dart_level(d)]--;
+	if(nb_darts_per_level_.size() > dart_level(d))
+		nb_darts_per_level_[dart_level(d)]--;
+	if(nb_darts_per_level_.size() < l)
+		nb_darts_per_level_.resize(l);
 	nb_darts_per_level_[l]++;
 	if (l > dart_level(d) && l > maximum_level_)
 		maximum_level_ = l;
@@ -147,9 +145,9 @@ bool CPH3::edge_is_subdivided(Dart d) const
 		return false;
 
 	Dart d1 = phi1(*this, d);
-	current_level_++;
-	Dart d1_l = phi1(*this, d);
-	current_level_--;
+	CPH3 m(*this);
+	m.current_level_++;
+	Dart d1_l = phi1(m, d);
 	if (d1 != d1_l)
 		return true;
 	else
@@ -185,26 +183,24 @@ uint32 CPH3::face_level(Dart d) const
 		fLevel = l < fLevel ? l : fLevel;
 	} while (it != d);
 
-	uint32 lsave = current_level_;
-	current_level_ = fLevel;
+	CPH3 m(*this);
+	m.current_level_ = fLevel;
 
 	uint32 nbSubd = 0;
 	it = old;
-	uint32 eId = edge_id(old);
-	uint32 init_dart_level = dart_level(it);
+	uint32 eId = m.edge_id(old);
+	uint32 init_dart_level = m.dart_level(it);
 	do
 	{
 		++nbSubd;
-		it = phi1(*this, it);
-	} while (edge_id(it) == eId && dart_level(it) != init_dart_level);
+		it = phi1(m, it);
+	} while (m.edge_id(it) == eId && m.dart_level(it) != init_dart_level);
 
 	while (nbSubd > 1)
 	{
 		nbSubd /= 2;
 		--fLevel;
 	}
-
-	current_level_ = lsave;
 
 	return fLevel;
 }
@@ -214,14 +210,13 @@ Dart CPH3::face_origin(Dart d) const
 	cgogn_message_assert(dart_level(d) <= current_level_, "Access to a dart introduced after current level");
 	Dart p = d;
 	uint32 pLevel = dart_level(p);
-	uint32 lsave = current_level_;
+	CPH3 m(*this);
 	do
 	{
-		current_level_ = pLevel;
-		p = face_oldest_dart(p);
-		pLevel = dart_level(p);
+		m.current_level_ = pLevel;
+		p = m.face_oldest_dart(p);
+		pLevel = m.dart_level(p);
 	} while (pLevel > 0);
-	current_level_ = lsave;
 	return p;
 }
 
@@ -281,10 +276,10 @@ bool CPH3::face_is_subdivided(Dart d) const
 		return false;
 
 	bool subd = false;
-	current_level_++;
-	if (dart_level(phi1(*this, d)) == current_level_ && edge_id(phi1(*this, d)) != edge_id(d))
+	CPH3 m(*this);
+	m.current_level_++;
+	if (m.dart_level(phi1(m, d)) == current_level_ && m.edge_id(phi1(m, d)) != m.edge_id(d))
 		subd = true;
-	current_level_--;
 	return subd;
 }
 
@@ -300,32 +295,26 @@ bool CPH3::face_is_subdivided_once(Dart d) const
 	bool subd = false;
 	bool subdOnce = true;
 	Dart fit = d;
-	// MRCmap3 m2(m, m.current_level() + 1), m3(m, m.current_level() + 2);
+	CPH3 m(*this),m2(*this);
+	m.current_level_ = current_level_ + 1;
+	m2.current_level_ = current_level_ + 2;
 	do
 	{
-		current_level_++;
-		if (dart_level(phi1(*this, fit)) == current_level_ && edge_id(phi1(*this, fit)) != edge_id(fit))
+		if (dart_level(phi1(m, fit)) == current_level_ && edge_id(phi1(m, fit)) != edge_id(fit))
 		{
 			subd = true;
-			current_level_++;
-			if (dart_level(phi1(*this, fit)) == current_level_ && edge_id(phi1(*this, fit)) != edge_id(fit))
+			if (dart_level(phi1(m2, fit)) == current_level_ && edge_id(phi1(m2, fit)) != edge_id(fit))
 				subdOnce = false;
-			current_level_--;
 		}
-		current_level_--;
 		++degree;
 		fit = phi1(*this, fit);
 	} while (subd && subdOnce && fit != d);
 
 	if (degree == 3 && subd)
 	{
-		current_level_++;
-		Dart cf = phi2(*this, phi1(*this, d));
-		current_level_++;
-		if (dart_level(phi1(*this, cf)) == current_level_ && edge_id(phi1(*this, cf)) != edge_id(cf))
+		Dart cf = phi2(m, phi1(m, d));
+		if (dart_level(phi1(m2, cf)) == current_level_ && edge_id(phi1(m2, cf)) != edge_id(cf))
 			subdOnce = false;
-		current_level_--;
-		current_level_--;
 	}
 
 	return subd && subdOnce;
@@ -358,8 +347,8 @@ uint32 CPH3::volume_level(Dart d) const
 		return true;
 	});
 
-	uint32 lsave = current_level_;
-	current_level_ = vLevel;
+	CPH3 m(*this);
+	m.current_level_ = vLevel;
 
 	uint32 nbSubd = 0;
 	Dart it = oldest;
@@ -367,7 +356,7 @@ uint32 CPH3::volume_level(Dart d) const
 	do
 	{
 		++nbSubd;
-		it = phi<121>(*this, it);
+		it = phi<121>(m, it);
 	} while (edge_id(it) == eId && lold != dart_level(it));
 
 	while (nbSubd > 1)
@@ -376,7 +365,6 @@ uint32 CPH3::volume_level(Dart d) const
 		--vLevel;
 	}
 
-	current_level_ = lsave;
 
 	return vLevel;
 }
@@ -437,11 +425,11 @@ bool CPH3::volume_is_subdivided(Dart d) const
 	});
 
 	bool subd = false;
-	current_level_++;
-	if (faceAreSubdivided && dart_level(phi<112>(*this, d)) == current_level_ &&
-		face_id(phi<112>(*this, d)) != face_id(d))
+	CPH3 m(*this);
+	m.current_level_++;
+	if (faceAreSubdivided && dart_level(phi<112>(m, d)) == current_level_ &&
+		face_id(phi<112>(m, d)) != face_id(d))
 		subd = true;
-	current_level_--;
 
 	return subd;
 }

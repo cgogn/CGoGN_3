@@ -89,8 +89,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_face.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.h"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.cpp"
-#        "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.h"
-#        "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

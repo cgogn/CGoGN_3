@@ -267,8 +267,8 @@ CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_ind
 		if (is_indexed<CPH3::CMAP::Edge>(m))
 		{
 			foreach_dart_of_orbit(m, CPH3::CMAP::Face2(f0), [&](Dart d) -> bool {
-				copy_index<CPH3::CMAP::Edge>(m, d, phi2(m, d));
-				copy_index<CPH3::CMAP::Edge>(m, phi3(m, d), d);
+				copy_index<CPH3::CMAP::Edge>(map, d, phi2(m, d));
+				copy_index<CPH3::CMAP::Edge>(map, phi3(m, d), d);
 				return true;
 			});
 		}
@@ -279,7 +279,7 @@ CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_ind
 			if (vlevel == m.current_level_)
 			{
 				foreach_dart_of_orbit(m, CPH3::CMAP::Face2(f0), [&](Dart d) -> bool {
-					copy_index<CPH3::CMAP::Volume>(m, d, phi2(m, d));
+					copy_index<CPH3::CMAP::Volume>(map, d, phi2(m, d));
 					return true;
 				});
 				set_index(m, CPH3::CMAP::Volume(f1), new_index<CPH3::CMAP::Volume>(m));
