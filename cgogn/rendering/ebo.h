@@ -148,14 +148,14 @@ public:
 
 	/**
 	 * @brief copy data
-	 * @param offset offset in bytes in the bufffer
-	 * @param nb number of bytes to copy
+	 * @param offset offset in GLuint in the bufffer
+	 * @param nb number of GLuint to copy
 	 * @param src source pointer
 	 */
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
 		this->bind();
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset*sizeof(GLuint), GLsizeiptr(nb)*sizeof(GLuint), src);
 		this->release();
 	}
 
