@@ -94,9 +94,16 @@ public:
 	void update2D(const MESH& m,
 				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
 
-	template <typename MESH>
-	void update3D(const MESH& m,
+	template <bool PICKABLE, typename MESH>
+	void update3D_vbo(const MESH& m,
 				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
+
+	template <typename MESH>
+	inline void update3D(const MESH& m,
+				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+	{
+		update3D_vbo<false>(m,position);
+	}
 
 
 	class CGOGN_RENDERING_EXPORT Renderer
@@ -313,8 +320,164 @@ void TopoDrawer::update2D(const MESH& m,
 	
 }
 
-template <typename MESH>
-void TopoDrawer::update3D(const MESH& m,
+//template <typename MESH>
+//void TopoDrawer::update3D_old(const MESH& m,
+//						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+//{
+//	auto start_timer = std::chrono::high_resolution_clock::now();
+
+//	using Vertex = typename mesh_traits<MESH>::Vertex;
+//	using Face = typename mesh_traits<MESH>::Face;
+//	using Volume = typename mesh_traits<MESH>::Volume;
+
+//	auto POSITION = [&m,position] (Vertex v) { return value<Vec3>(m, position, v); };
+
+
+//	Scalar opp_shrink_e = Scalar(1.0f - shrink_e_);
+//	Scalar opp_shrink_f = Scalar(1.0f - shrink_f_);
+//	Scalar opp_shrink_v = Scalar(1.0f - shrink_v_);
+
+//	darts_pos_.clear();
+//	darts_pos_.reserve(1024 * 1024);
+
+//	darts_id_.clear();
+//	darts_id_.reserve(1024 * 1024);
+
+//	std::vector<Vec3f> out_pos2;
+//	out_pos2.reserve(1024 * 1024);
+
+//	std::vector<Vec3f> out_pos3;
+//	out_pos3.reserve(1024 * 1024);
+
+//	std::vector<Vec3> local_vertices;
+//	local_vertices.reserve(256);
+
+//	std::vector<Dart> local_darts;
+//	local_darts.reserve(256);
+
+//	foreach_cell(m, [&](Volume v)
+//	{
+//		Vec3 center_vol = geometry::centroid<Vec3>(m, v, position);
+//		foreach_incident_face(m, v, [&](Face f)
+//		{
+//			local_vertices.clear();
+//			local_darts.clear();
+//			Vec3 center;
+//			center.setZero();
+//			uint32 count = 0u;
+//			foreach_incident_vertex(m, f, [&](Vertex v)
+//			{
+//				local_vertices.push_back(POSITION(v));
+//				local_darts.push_back(v.dart);
+//				center += POSITION(v);
+//				count++;
+//				return true;
+//			});
+//			center /= Scalar(count);
+
+//			// phi2 mid-edge: N -> 2N-1
+//			for (uint32 i = 0; i < count; ++i)
+//				local_vertices.push_back((local_vertices[i] + local_vertices[(i + 1) % count]) / Scalar(2.0));
+
+//			// phi3: 2N -> 3N-1
+//			for (uint32 i = 0; i < count; ++i)
+//				local_vertices.push_back(local_vertices[count + i] * shrink_f_ + center * (opp_shrink_f));
+
+//			// dart round point: 0 -> N-1
+//			for (uint32 i = 0; i < count; ++i)
+//				local_vertices[i] = local_vertices[i] * shrink_f_ + center * (opp_shrink_f);
+
+//			// dart other extremety: 3N -> 4N-1
+//			for (uint32 i = 0; i < count; ++i)
+//				local_vertices.push_back(local_vertices[i] * (opp_shrink_e) +
+//										 local_vertices[(i + 1) % count] * shrink_e_);
+
+//			// phi2/3 mid-dart: 4N -> 5N-1
+//			for (uint32 i = 0; i < count; ++i)
+//				local_vertices.push_back((local_vertices[i] + local_vertices[(2 * count + i + 1) % count]) /
+//										 Scalar(2.0));
+
+//			for (uint32 i = 0; i < count; ++i)
+//			{
+//				darts_id_.push_back(local_darts[i]);
+//				Vec3 P1 = (local_vertices[i] * shrink_v_) + (center_vol * opp_shrink_v);
+//				darts_pos_.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
+//				Vec3 P2 = (local_vertices[3 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
+//				darts_pos_.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
+
+//				const Vec3 P3 = (local_vertices[count + i] * shrink_v_) + (center_vol * opp_shrink_v);
+//				out_pos2.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
+//				const Vec3 P4 = (local_vertices[4 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
+//				out_pos2.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
+//				const Vec3& P5 = local_vertices[2 * count + i];
+//				out_pos3.push_back({float32(P5[0]), float32(P5[1]), float32(P5[2])});
+//				out_pos3.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
+//			}
+//			return true;
+//		});
+//		return true;
+//	});
+
+//	std::vector<Vec3f> darts_col;
+//	darts_col.resize(darts_pos_.size());
+//	for (auto& c : darts_col)
+//	{
+//		c[0] = dart_color_.x();
+//		c[1] = dart_color_.y();
+//		c[2] = dart_color_.z();
+//	}
+
+//	uint32 nbvec = uint32(darts_pos_.size());
+//	vbo_darts_->bind();
+//	vbo_darts_->allocate(nbvec, 3);
+//	vbo_darts_->copy_data(0, nbvec * 12, darts_pos_[0].data());
+//	vbo_darts_->release();
+
+//	vbo_color_darts_->bind();
+//	vbo_color_darts_->allocate(nbvec, 3);
+//	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
+//	vbo_color_darts_->release();
+
+//	vbo_relations_->bind();
+//	vbo_relations_->allocate(2 * nbvec, 3);
+
+//	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
+//	vbo_relations_->copy_data(nbvec * 12, nbvec * 12, out_pos3[0].data());
+//	vbo_relations_->release();
+
+//	auto end_timer = std::chrono::high_resolution_clock::now();
+//	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
+//	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
+
+	
+//}
+
+template <typename MESH, typename CELL>
+void TopoDrawer::update_colors(const MESH& m,
+							   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color)
+{
+	std::vector<Vec3f> darts_col;
+	darts_col.reserve(2 * darts_id_.size());
+	//	darts_col.clear();
+
+	for (Dart d : darts_id_)
+	{
+		const Vec3& col = value<Vec3>(m, color, CELL(d));
+		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
+		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
+	}
+
+	uint32 nbvec = darts_col.size();
+	vbo_color_darts_->allocate(nbvec, 3);
+	vbo_color_darts_->bind();
+	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
+	vbo_color_darts_->release();
+	
+}
+
+
+template <bool PICKABLE, typename MESH>
+void TopoDrawer::update3D_vbo(const MESH& m,
 						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 {
 	auto start_timer = std::chrono::high_resolution_clock::now();
@@ -325,43 +488,59 @@ void TopoDrawer::update3D(const MESH& m,
 
 	auto POSITION = [&m,position] (Vertex v) { return value<Vec3>(m, position, v); };
 
-
 	Scalar opp_shrink_e = Scalar(1.0f - shrink_e_);
 	Scalar opp_shrink_f = Scalar(1.0f - shrink_f_);
 	Scalar opp_shrink_v = Scalar(1.0f - shrink_v_);
 
-	darts_pos_.clear();
-	darts_pos_.reserve(1024 * 1024);
+	uint32 nbw = thread_pool()->nb_workers();
 
-	darts_id_.clear();
-	darts_id_.reserve(1024 * 1024);
+	std::vector<std::vector<Vec3f>> thdarts_pos(nbw);
+	for(auto& v: thdarts_pos)
+		v.reserve(1024 * 1024);
 
-	std::vector<Vec3f> out_pos2;
-	out_pos2.reserve(1024 * 1024);
+	std::vector<std::vector<Vec3f>> thout_pos2(nbw);
+	for(auto& v: thout_pos2)
+		v.reserve(1024 * 1024);
 
-	std::vector<Vec3f> out_pos3;
-	out_pos3.reserve(1024 * 1024);
+	std::vector<std::vector<Vec3f>> thout_pos3(nbw);
+	for(auto& v: thout_pos3)
+		v.reserve(1024 * 1024);
 
-	std::vector<Vec3> local_vertices;
-	local_vertices.reserve(256);
+	std::vector<std::vector<Vec3>> thlocal_vertices(nbw);
+	for(auto& v: thlocal_vertices)
+		v.reserve(256);
 
-	std::vector<Dart> local_darts;
-	local_darts.reserve(256);
-
-	foreach_cell(m, [&](Volume v)
+	std::vector<std::vector<Dart>> thlocal_darts(nbw);
+	std::vector<std::vector<Dart>> thdarts_id(nbw);
+	if (PICKABLE)
 	{
+		for(auto& v: thlocal_darts)
+			v.reserve(256);
+		for(auto& v: thdarts_id)
+			v.reserve(1024*1024);
+	}
+
+	parallel_foreach_cell(m, [&](Volume v)
+	{
+		uint32 worker_index = current_worker_index();
+
+		auto& local_vertices = thlocal_vertices[worker_index];
+		auto& local_darts = thlocal_darts[worker_index];
+
 		Vec3 center_vol = geometry::centroid<Vec3>(m, v, position);
 		foreach_incident_face(m, v, [&](Face f)
 		{
 			local_vertices.clear();
-			local_darts.clear();
+			if (PICKABLE)
+				local_darts.clear();
 			Vec3 center;
 			center.setZero();
 			uint32 count = 0u;
 			foreach_incident_vertex(m, f, [&](Vertex v)
 			{
 				local_vertices.push_back(POSITION(v));
-				local_darts.push_back(v.dart);
+				if (PICKABLE)
+					local_darts.push_back(v.dart);
 				center += POSITION(v);
 				count++;
 				return true;
@@ -390,40 +569,56 @@ void TopoDrawer::update3D(const MESH& m,
 				local_vertices.push_back((local_vertices[i] + local_vertices[(2 * count + i + 1) % count]) /
 										 Scalar(2.0));
 
+			auto& darts_id = thdarts_id[worker_index];
+			auto& darts_pos = thdarts_pos[worker_index];
+			auto& out_pos2 = thout_pos2[worker_index];
+			auto& out_pos3 = thout_pos3[worker_index];
 			for (uint32 i = 0; i < count; ++i)
 			{
-				darts_id_.push_back(local_darts[i]);
+				if (PICKABLE)
+					darts_id.push_back(local_darts[i]);
 				Vec3 P1 = (local_vertices[i] * shrink_v_) + (center_vol * opp_shrink_v);
-				darts_pos_.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
+				darts_pos.emplace_back(float32(P1[0]), float32(P1[1]), float32(P1[2]));
 				Vec3 P2 = (local_vertices[3 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
-				darts_pos_.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
+				darts_pos.emplace_back(float32(P2[0]), float32(P2[1]), float32(P2[2]));
 
 				const Vec3 P3 = (local_vertices[count + i] * shrink_v_) + (center_vol * opp_shrink_v);
-				out_pos2.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
+				out_pos2.emplace_back(float32(P3[0]), float32(P3[1]), float32(P3[2]));
 				const Vec3 P4 = (local_vertices[4 * count + i] * shrink_v_) + (center_vol * opp_shrink_v);
-				out_pos2.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
+				out_pos2.emplace_back(float32(P4[0]), float32(P4[1]), float32(P4[2]));
 				const Vec3& P5 = local_vertices[2 * count + i];
-				out_pos3.push_back({float32(P5[0]), float32(P5[1]), float32(P5[2])});
-				out_pos3.push_back({float32(P4[0]), float32(P4[1]), float32(P4[2])});
+				out_pos3.emplace_back(float32(P5[0]), float32(P5[1]), float32(P5[2]));
+				out_pos3.emplace_back(float32(P4[0]), float32(P4[1]), float32(P4[2]));
 			}
 			return true;
 		});
 		return true;
 	});
 
-	std::vector<Vec3f> darts_col;
-	darts_col.resize(darts_pos_.size());
-	for (auto& c : darts_col)
+	uint32 nbvec = 0;
+	for (const auto& dp: thdarts_pos)
+		nbvec += dp.size();
+
+	if (PICKABLE)
 	{
-		c[0] = dart_color_.x();
-		c[1] = dart_color_.y();
-		c[2] = dart_color_.z();
+		darts_pos_.reserve(nbvec);
+		for (const auto& dp: thdarts_pos)
+			darts_pos_.insert(darts_pos_.end(),dp.begin(),dp.end());
 	}
 
-	uint32 nbvec = uint32(darts_pos_.size());
+	std::vector<Vec3f> darts_col(nbvec,
+		{dart_color_.x(),dart_color_.y(),dart_color_.z()});
+
 	vbo_darts_->bind();
 	vbo_darts_->allocate(nbvec, 3);
-	vbo_darts_->copy_data(0, nbvec * 12, darts_pos_[0].data());
+	uint32 beg = 0;
+	for (const auto& dp: thdarts_pos)
+		if (!dp.empty())
+		{
+
+			vbo_darts_->copy_data(beg * 12, dp.size() * 12, dp[0].data());
+			beg += dp.size();
+		}
 	vbo_darts_->release();
 
 	vbo_color_darts_->bind();
@@ -433,42 +628,27 @@ void TopoDrawer::update3D(const MESH& m,
 
 	vbo_relations_->bind();
 	vbo_relations_->allocate(2 * nbvec, 3);
+	beg = 0;
+	for (const auto& op2: thout_pos2)
+		if (!op2.empty())
+		{
+			vbo_relations_->copy_data(beg * 12, op2.size() * 12, op2[0].data());
+			beg += op2.size();
+		}
+	for (const auto& op3: thout_pos3)
+		if (!op3.empty())
+		{
+			vbo_relations_->copy_data(beg * 12, op3.size() * 12, op3[0].data());
+			beg += op3.size();
+		}
 
-	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
-	vbo_relations_->copy_data(nbvec * 12, nbvec * 12, out_pos3[0].data());
 	vbo_relations_->release();
 
 	auto end_timer = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
 	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
 
-	
 }
-
-template <typename MESH, typename CELL>
-void TopoDrawer::update_colors(const MESH& m,
-							   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color)
-{
-	std::vector<Vec3f> darts_col;
-	darts_col.reserve(2 * darts_id_.size());
-	//	darts_col.clear();
-
-	for (Dart d : darts_id_)
-	{
-		const Vec3& col = value<Vec3>(m, color, CELL(d));
-		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
-		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
-	}
-
-	uint32 nbvec = darts_col.size();
-	vbo_color_darts_->allocate(nbvec, 3);
-	vbo_color_darts_->bind();
-	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
-	vbo_color_darts_->release();
-	
-}
-
-
 
 } // namespace rendering
 
