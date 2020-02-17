@@ -25,7 +25,8 @@
 
 #include <iostream>
 
-#include <cgogn/rendering/shaders/shader_phong_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -33,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderPhongColorPerFace* ShaderPhongColorPerFace::instance_ = nullptr;
+ShaderPhongScalarPerFace* ShaderPhongScalarPerFace::instance_ = nullptr;
 
 static const char* vertex_shader_source =
 R"(
@@ -52,6 +53,9 @@ uniform samplerBuffer color_face;
 out vec3 Po;
 out vec3 No;
 flat out vec3 Col;
+
+//_insert_colormap_funcion_here
+
 void main()
 {
 	int ind_v = int(texelFetch(tri_indices,3*gl_InstanceID+gl_VertexID).r);
@@ -104,24 +108,28 @@ void main()
 )";
 
 
-ShaderPhongColorPerFace::ShaderPhongColorPerFace()
+ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
-	load2_bind(vertex_shader_source, fragment_shader_source);
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	load2_bind(v_src,fragment_shader_source);
+
 	add_uniforms("tri_indices", "face_emb",
-				 "position_vertex", "normal_vertex", "color_face",
+				 "position_vertex", "normal_vertex", "scalar_face",
 				 "light_position", "ambiant_color",
 				 "spec_color", "spec_coef", "double_side");
 }
 
-void ShaderParamPhongColorPerFace::set_uniforms()
+void ShaderParamPhongScalarPerFace::set_uniforms()
 {
 	if (vbo_pos_)
 		shader_->set_uniforms_values(10,11,
 						vbo_pos_->bind_tb(12),
 						vbo_norm_->bind_tb(13),
-						vbo_color_->bind_tb(14),
+						vbo_scalar_->bind_tb(14),
 						light_position_,ambiant_color_,
 						specular_color_,specular_coef_,double_side_);
+
 }
 
 } // namespace rendering

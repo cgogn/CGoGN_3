@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,41 +32,42 @@ namespace cgogn
 
 namespace rendering
 {
+DECLARE_SHADER_CLASS(PhongScalarPerFace,CGOGN_STR(PhongScalarPerFace))
 
-DECLARE_SHADER_CLASS(FlatColorPerFace,CGOGN_STR(FlatColorPerFace))
-
-class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
+protected:
 	void set_uniforms() override;
+
 public:
 	VBO* vbo_pos_;
-	VBO* vbo_color_;
-	GLColor ambiant_color_;
+	VBO* vbo_norm_;
+	VBO* vbo_scalar_; // perface
 	GLVec3 light_position_;
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
 	bool double_side_;
 
+	using ShaderType = ShaderPhongScalarPerFace;
 
-	using LocalShader = ShaderFlatColorPerFace;
-
-	ShaderParamFlatColorPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
-		  light_position_(10, 100, 1000), double_side_(true)
-	{
-	}
-
-	inline ~ShaderParamFlatColorPerFace() override
+	ShaderParamPhongScalarPerFace(ShaderType* sh)
+		: ShaderParam(sh),
+		  vbo_pos_(nullptr),
+		  vbo_norm_(nullptr),
+		  vbo_scalar_(nullptr),
+		  light_position_(), ambiant_color_(), specular_color_(),
+		  specular_coef_(), double_side_()
 	{
 	}
 
 	inline void set_vbos(const std::vector<VBO*>& vbos) override
 	{
 		vbo_pos_ = vbos[0];
-		vbo_color_ = vbos[1];
+		vbo_norm_ = vbos[1];
+		vbo_scalar_ = vbos[2];
 	}
 };
-
 } // namespace rendering
-
 } // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif

@@ -21,7 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shaders/shader_flat_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -29,9 +30,9 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderFlatColorPerFace* ShaderFlatColorPerFace::instance_ = nullptr;
+ShaderFlatScalarPerFace* ShaderFlatScalarPerFace::instance_ = nullptr;
 
-ShaderFlatColorPerFace::ShaderFlatColorPerFace()
+ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 {
 	const char* vertex_shader_source =
 			R"(
@@ -41,15 +42,18 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 			uniform usamplerBuffer tri_ind;
 			uniform usamplerBuffer tri_emb;
 			uniform samplerBuffer pos_vertex;
-			uniform samplerBuffer color_tri;
+			uniform samplerBuffer scalar_tri;
 			out vec3 A;
 			flat out vec3 N;
 			flat out color;
+
+			//_insert_colormap_funcion_here
+
 			void main()
 			{
 				int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
 				int color_ind = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
-				color = texelFetch(color_tri, color_i).rgb;
+				color = scalar2color(texelFetch(scalar_tri, ind_c).r);
 				int vid = gl_VertexID;
 				int ind_a = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
 				A = model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb)).rgb;
@@ -86,17 +90,19 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 		}
 		)";
 
-	load2_bind(vertex_shader_source, fragment_shader_source, "");
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	load2_bind(v_src, fragment_shader_source, "");
 
-	add_uniforms("tri_ind","tri_emb", "pos_vertex", "color_tri", "ambiant_color", "light_position", "double_side");
+	add_uniforms("tri_ind","tri_emb", "pos_vertex","scalar_tri","ambiant_color", "light_position", "double_side");
 }
 
 
-void ShaderParamFlatColorPerFace::set_uniforms()
+void ShaderParamFlatScalarPerFace::set_uniforms()
 {
 	if (vbo_pos_)
 		shader_->set_uniforms_values(10,11,
-						vbo_pos_->bind_tb(12), vbo_color_->bind_tb(13),
+						vbo_pos_->bind_tb(12),vbo_scalar_->bind_tb(13),
 						ambiant_color_,light_position_,double_side_);
 }
 

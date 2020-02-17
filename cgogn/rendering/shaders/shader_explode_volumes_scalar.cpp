@@ -22,8 +22,8 @@
  *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_explode_volumes_scalar.h>
-
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
+
 namespace cgogn
 {
 

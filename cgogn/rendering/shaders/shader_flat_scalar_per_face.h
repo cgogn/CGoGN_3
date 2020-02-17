@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_FACE_H_
+#define CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,35 +33,35 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColorPerFace,CGOGN_STR(FlatColorPerFace))
+DECLARE_SHADER_CLASS(FlatScalarPerFace,CGOGN_STR(FlatScalarPerFace))
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerFace : public ShaderParam
 {
 	void set_uniforms() override;
 public:
 	VBO* vbo_pos_;
-	VBO* vbo_color_;
+	VBO* vbo_scalar_;
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
 
 
-	using LocalShader = ShaderFlatColorPerFace;
+	using LocalShader = ShaderFlatScalarPerFace;
 
-	ShaderParamFlatColorPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
+	ShaderParamFlatScalarPerFace(LocalShader* sh)
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_scalar_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
 		  light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
-	inline ~ShaderParamFlatColorPerFace() override
+	inline ~ShaderParamFlatScalarPerFace() override
 	{
 	}
 
 	inline void set_vbos(const std::vector<VBO*>& vbos) override
 	{
 		vbo_pos_ = vbos[0];
-		vbo_color_ = vbos[1];
+		vbo_scalar_ = vbos[1];
 	}
 };
 
@@ -69,4 +69,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif

@@ -26,43 +26,47 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/ebo.h>
 
 namespace cgogn
 {
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColorPerFace)
+DECLARE_SHADER_CLASS(PhongColorPerFace,CGOGN_STR(PhongColorPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
 {
 protected:
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(10,11, // tb bind by draw call
-									vbo_pos_->bind_tb(20),vbo_norm_->bind_tb(21),vbo_color_->bind_tb(22),
-									light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
-	}
+	void set_uniforms() override;
 
 public:
+	VBO* vbo_pos_;
+	VBO* vbo_norm_;
+	VBO* vbo_color_; // perface
 	GLVec3 light_position_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
 	bool double_side_;
 
-	std::shared_ptr<VBO> vbo_pos_;
-	std::shared_ptr<VBO> vbo_norm_;
-	std::shared_ptr<VBO> vbo_color_; // perface
-
 	using ShaderType = ShaderPhongColorPerFace;
 
 	ShaderParamPhongColorPerFace(ShaderType* sh)
-		: ShaderParam(sh), light_position_(), ambiant_color_(), specular_color_(), specular_coef_(), double_side_()
+		: ShaderParam(sh),
+		  vbo_pos_(nullptr),
+		  vbo_norm_(nullptr),
+		  vbo_color_(nullptr),
+		  light_position_(), ambiant_color_(), specular_color_(),
+		  specular_coef_(), double_side_()
 	{
 	}
 
+	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	{
+		vbo_pos_ = vbos[0];
+		vbo_norm_ = vbos[1];
+		vbo_color_ = vbos[2];
+	}
 };
 } // namespace rendering
 } // namespace cgogn
