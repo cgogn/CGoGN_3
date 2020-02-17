@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,17 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
-#define CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
+#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
+#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo.h>
-#include <cgogn/rendering/ebo.h>
-#include <cgogn/rendering/fbo.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/transform_feedback.h>
 
 namespace cgogn
 {
@@ -39,65 +33,58 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1,CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2,CGOGN_STR(ComputeNormal2))
-
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
+enum ColorMap : int32
 {
-protected:
+	BWR = 0,
+	CWR,
+	BCGYR,
+	BGR
+};
+
+
+DECLARE_SHADER_CLASS(ExplodeVolumesScalar,CGOGN_STR(ExplodeVolumesScalar))
+
+class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderParam
+{
 	void set_uniforms() override;
 
 public:
+	GLVec3 light_pos_;
+	float32 explode_;
 	VBO* vbo_pos_;
-	int32 height_tex_;
+	VBO* vbo_center_;
+	VBO* vbo_scalar_vol_;
+	GLVec4 plane_clip_;
+	GLVec4 plane_clip2_;
+	int32 color_map_;
+	int32 expansion_;
+	float32 min_value_;
+	float32 max_value_;
 
-	using LocalShader = ShaderComputeNormal1;
+	using LocalShader = ShaderExplodeVolumesScalar;
 
-	ShaderParamComputeNormal1(LocalShader* sh)
-		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
-	{}
+	ShaderParamExplodeVolumesScalar(LocalShader* sh)
+		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
+		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_scalar_vol_(nullptr),
+		  plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0),
+		  color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f)
+	{
+	}
 
+	inline ~ShaderParamExplodeVolumesScalar() override
+	{
+	}
+
+	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	{
+		vbo_pos_ = vbos[0];
+		vbo_center_ = vbos[1];
+		vbo_scalar_vol_ = vbos[2];
+	}
 };
 
-
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal2 : public ShaderParam
-{
-protected:
-	void set_uniforms() override;
-
-public:
-	Texture2D* tex_;
-
-	using LocalShader = ShaderComputeNormal2;
-
-	ShaderParamComputeNormal2(LocalShader* sh)
-		: ShaderParam(sh)
-	{}
-};
-
-
-using TFB_ComputeNormal = TransformFeedback<ShaderComputeNormal2>;
-
-
-class ComputeNormalEngine
-{
-	Texture2D* tex_;
-	FBO* fbo_;
-	std::unique_ptr<ShaderComputeNormal1::Param> param1_;
-	std::unique_ptr<ShaderComputeNormal2::Param> param2_;
-	TFB_ComputeNormal* tfb_;
-
-public:
-	ComputeNormalEngine();
-
-	~ComputeNormalEngine();
-
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
-
-};
-
-}
-}
-
+} // namespace rendering
+} // namespace cgogn
 
 #endif

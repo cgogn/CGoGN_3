@@ -21,17 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
-#define CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
+#ifndef CGOGN_RENDERING_SHADERS_FLAT_H_
+#define CGOGN_RENDERING_SHADERS_FLAT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo.h>
-#include <cgogn/rendering/ebo.h>
-#include <cgogn/rendering/fbo.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/transform_feedback.h>
 
 namespace cgogn
 {
@@ -39,65 +33,38 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1,CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2,CGOGN_STR(ComputeNormal2))
+DECLARE_SHADER_CLASS(Flat,CGOGN_STR(Flat))
 
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
 {
-protected:
-	void set_uniforms() override;
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_position_, double_side_);
+	}
 
 public:
-	VBO* vbo_pos_;
-	int32 height_tex_;
+	GLColor front_color_;
+	GLColor back_color_;
+	GLColor ambiant_color_;
+	GLVec3 light_position_;
+	bool double_side_;
 
-	using LocalShader = ShaderComputeNormal1;
+	using LocalShader = ShaderFlat;
 
-	ShaderParamComputeNormal1(LocalShader* sh)
-		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
-	{}
+	ShaderParamFlat(LocalShader* sh)
+		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
+		  ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
+
+	inline ~ShaderParamFlat() override
+	{
+	}
 
 };
 
+} // namespace rendering
 
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal2 : public ShaderParam
-{
-protected:
-	void set_uniforms() override;
+} // namespace cgogn
 
-public:
-	Texture2D* tex_;
-
-	using LocalShader = ShaderComputeNormal2;
-
-	ShaderParamComputeNormal2(LocalShader* sh)
-		: ShaderParam(sh)
-	{}
-};
-
-
-using TFB_ComputeNormal = TransformFeedback<ShaderComputeNormal2>;
-
-
-class ComputeNormalEngine
-{
-	Texture2D* tex_;
-	FBO* fbo_;
-	std::unique_ptr<ShaderComputeNormal1::Param> param1_;
-	std::unique_ptr<ShaderComputeNormal2::Param> param2_;
-	TFB_ComputeNormal* tfb_;
-
-public:
-	ComputeNormalEngine();
-
-	~ComputeNormalEngine();
-
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
-
-};
-
-}
-}
-
-
-#endif
+#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

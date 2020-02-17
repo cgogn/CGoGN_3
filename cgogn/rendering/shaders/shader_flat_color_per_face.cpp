@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,17 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
-#define CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo.h>
-#include <cgogn/rendering/ebo.h>
-#include <cgogn/rendering/fbo.h>
-#include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/transform_feedback.h>
+#include <cgogn/rendering/shaders/shader_flat.h>
 
 namespace cgogn
 {
@@ -39,65 +29,48 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1,CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2,CGOGN_STR(ComputeNormal2))
+ShaderFlat* ShaderFlat::instance_ = nullptr;
 
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
+ShaderFlat::ShaderFlat()
 {
-protected:
-	void set_uniforms() override;
+	const char* vertex_shader_source = "#version 150\n"
+									   "in vec3 vertex_pos;\n"
+									   "uniform mat4 projection_matrix;\n"
+									   "uniform mat4 model_view_matrix;\n"
+									   "out vec3 pos;\n"
+									   "void main()\n"
+									   "{\n"
+									   "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
+									   "	pos = pos4.xyz;"
+									   "   gl_Position = projection_matrix * pos4;\n"
+									   "}\n";
 
-public:
-	VBO* vbo_pos_;
-	int32 height_tex_;
+	const char* fragment_shader_source =
+		"#version 150\n"
+		"out vec4 fragColor;\n"
+		"uniform vec4 front_color;\n"
+		"uniform vec4 back_color;\n"
+		"uniform vec4 ambiant_color;\n"
+		"uniform vec3 light_position;\n"
+		"uniform bool double_side;\n"
+		"in vec3 pos;\n"
+		"void main()\n"
+		"{\n"
+		"	vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));\n"
+		"	vec3 L = normalize(light_position-pos);\n"
+		"	float lambert = dot(N,L);\n"
+		"	if (gl_FrontFacing)\n"
+		"		fragColor = vec4(ambiant_color.rgb+lambert*front_color.rgb, front_color.a);\n"
+		"	else\n"
+		"		if (!double_side) discard;\n"
+		"		else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);\n"
+		"}\n";
 
-	using LocalShader = ShaderComputeNormal1;
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos");
 
-	ShaderParamComputeNormal1(LocalShader* sh)
-		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
-	{}
-
-};
-
-
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal2 : public ShaderParam
-{
-protected:
-	void set_uniforms() override;
-
-public:
-	Texture2D* tex_;
-
-	using LocalShader = ShaderComputeNormal2;
-
-	ShaderParamComputeNormal2(LocalShader* sh)
-		: ShaderParam(sh)
-	{}
-};
-
-
-using TFB_ComputeNormal = TransformFeedback<ShaderComputeNormal2>;
-
-
-class ComputeNormalEngine
-{
-	Texture2D* tex_;
-	FBO* fbo_;
-	std::unique_ptr<ShaderComputeNormal1::Param> param1_;
-	std::unique_ptr<ShaderComputeNormal2::Param> param2_;
-	TFB_ComputeNormal* tfb_;
-
-public:
-	ComputeNormalEngine();
-
-	~ComputeNormalEngine();
-
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
-
-};
-
-}
+	add_uniforms("front_color", "back_color", "ambiant_color", "light_position", "double_side");
 }
 
+} // namespace rendering
 
-#endif
+} // namespace cgogn

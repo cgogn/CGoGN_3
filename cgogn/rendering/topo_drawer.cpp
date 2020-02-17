@@ -30,7 +30,7 @@ namespace rendering
 {
 
 TopoDrawer::TopoDrawer()
-	: dart_color_(1, 1, 1, 1), phi2_color_(1, 0, 0, 1), phi3_color_(1, 1, 0, 1), shrink_v_(0.6f), shrink_f_(0.85f),
+	: dart_color_(1, 1, 1, 1), phi2_color_(1, 0, 0, 1), phi3_color_(1, 1, 0, 1), shrink_v_(0.8f), shrink_f_(0.85f),
 	  shrink_e_(0.95f)
 {
 	vbo_darts_ = std::make_unique<VBO>(3);

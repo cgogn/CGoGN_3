@@ -45,8 +45,6 @@ public:
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-//	std::shared_ptr<VBO> vbo_pos_;
-//	std::shared_ptr<VBO> vbo_center_;
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 

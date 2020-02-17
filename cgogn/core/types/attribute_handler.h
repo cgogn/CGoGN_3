@@ -1,6 +1,6 @@
 /*******************************************************************************
- * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
- * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ * CGoGN                                                                        *
+ * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -21,53 +21,38 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_UTILS_TUPLES_H_
-#define CGOGN_CORE_UTILS_TUPLES_H_
+#ifndef CGOGN_CORE_ATTRIBUTE_HANDLER_H_
+#define CGOGN_CORE_ATTRIBUTE_HANDLER_H_
 
-#include <tuple>
+#include <memory>
+#include <cgogn/core/functions/attributes.h>
 
 namespace cgogn
 {
 
-template <typename V, typename T>
-struct is_in_tuple;
-
-template <typename V, typename T0, typename... T>
-struct is_in_tuple<V, std::tuple<T0, T...>>
+template< typename CELL, typename T, template<typename> class ATT, typename MESH>
+class AttributeHandler
 {
-	static const bool value = is_in_tuple<V, std::tuple<T...>>::value;
+	MESH *m_;
+	std::shared_ptr<ATT<T>> attrib_;
+public:
+	AttributeHandler(MESH* m, const std::shared_ptr<ATT<T>>& att):
+		m_(m), attrib_(att) {}
+
+	AttributeHandler(const AttributeHandler&) = delete;
+	AttributeHandler(AttributeHandler&&) = delete;
+
+	inline T& operator [](CELL c) { return cgogn::value<T>(*m_, attrib_.get(), c); }
+	inline const T& operator [](CELL c) const { return cgogn::value<T>(*m_, attrib_.get(), c); }
 };
 
-template <typename V, typename... T>
-struct is_in_tuple<V, std::tuple<V, T...>>
+template< typename CELL, typename T, template<typename> class ATT, typename MESH>
+inline AttributeHandler<CELL,T,ATT,MESH> attribute_handler(MESH* m, const std::shared_ptr<ATT<T>>& att)
 {
-	static const bool value = true;
-};
+	return AttributeHandler<CELL,T,ATT,MESH>(m,att);
+}
 
-template <typename V>
-struct is_in_tuple<V, std::tuple<>>
-{
-	static const bool value = false;
-};
-
-template <typename V, typename T>
-inline constexpr bool is_in_tuple_v = is_in_tuple<V,T>::value;
-
-template <class T, class Tuple>
-struct tuple_type_index;
-
-template <class T, class... Types>
-struct tuple_type_index<T, std::tuple<T, Types...>>
-{
-	static const std::size_t value = 0;
-};
-
-template <class T, class U, class... Types>
-struct tuple_type_index<T, std::tuple<U, Types...>>
-{
-	static const std::size_t value = 1 + tuple_type_index<T, std::tuple<Types...>>::value;
-};
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_UTILS_TUPLES_H_
+#endif // CGOGN_CORE_TYPES_CELLS_SET_H_
