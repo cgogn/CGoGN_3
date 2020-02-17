@@ -33,34 +33,34 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Flat,CGOGN_STR(Flat))
+DECLARE_SHADER_CLASS(FlatColorPerFaceColorPerFace,CGOGN_STR(FlatColorPerFace))
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_position_, double_side_);
-	}
-
+	inline void set_uniforms() override;
 public:
-	GLColor front_color_;
-	GLColor back_color_;
+	VBO* vbo_pos_;
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
 
-	using LocalShader = ShaderFlat;
 
-	ShaderParamFlat(LocalShader* sh)
-		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
-		  ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
+	using LocalShader = ShaderFlatColorPerFace;
+
+	ShaderParamFlatColorPerFace(LocalShader* sh)
+		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
+		  light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
-	inline ~ShaderParamFlat() override
+	inline ~ShaderParamFlatColorPerFace() override
 	{
 	}
 
+	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	{
+		vbo_pos_ = vbos[0];
+	}
 };
 
 } // namespace rendering
