@@ -144,12 +144,7 @@ function(APPS_COMPILATION)
     target_sources(${COMPILATION_PREFIX_EXEC} PRIVATE ${COMPILATION_PREFIX_SRC})
     target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS})
 
-    if(APPLE)
-    	if(NOT CARBON)
-        	find_library(CORE_FOUNDATION CoreFoundation)
-        	find_library(CARBON Carbon)
-		endif()
-        target_link_libraries(${COMPILATION_PREFIX_EXEC} ${CORE_FOUNDATION} ${CARBON})
+    target_link_libraries(${COMPILATION_PREFIX_EXEC} ${CORE_FOUNDATION} ${CARBON})
     endif()
 
 endfunction()

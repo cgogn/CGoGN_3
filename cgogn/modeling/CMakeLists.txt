@@ -12,8 +12,7 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+target_sources(${PROJECT_NAME}	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/decimation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
@@ -35,7 +34,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry)
+target_link_libraries(${PROJECT_NAME} ) #cgogn::core cgogn::geometry)
 
 # Write out cgogn_modeling_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})

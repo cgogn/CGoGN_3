@@ -152,6 +152,12 @@ include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+if(APPLE)
+	find_library(CORE_FOUNDATION CoreFoundation)
+	find_library(CARBON Carbon)
+endif()
+
+
 
 if(CGOGN_BUILD_TESTS)
 	include(cmake/googletest.cmake)

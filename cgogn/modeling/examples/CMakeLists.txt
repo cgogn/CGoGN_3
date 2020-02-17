@@ -17,8 +17,8 @@ set(APPS_LIST
     )
 
 foreach(app ${APPS_LIST})
-    apps_compilation(EXEC ${app}
-        SRC ${app}.cpp
-        MODULES ui io rendering modeling)
+    apps_compilation(EXEC "${app}"
+        SRC "${app}.cpp"
+        MODULES "ui io rendering modeling")
 endforeach()
 
