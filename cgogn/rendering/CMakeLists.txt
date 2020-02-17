@@ -68,7 +68,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.h"
+                "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.h"
+                "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_texture.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_texture.cpp"
@@ -91,6 +93,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.h"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.h"
+
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

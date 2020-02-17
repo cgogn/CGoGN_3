@@ -95,14 +95,14 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 
 }
 
-inline void enable_gl43_debug_mode(bool show_notif=true)
+inline void enable_gl43_debug_mode(bool show_notif=false)
 {
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	if (show_notif)
 		glDebugMessageCallback(cgogn_gl_debug_msg<true>, nullptr);
 	else
-		glDebugMessageCallback(cgogn_gl_debug_msg<true>, nullptr);
+		glDebugMessageCallback(cgogn_gl_debug_msg<false>, nullptr);
 }
 
 #endif

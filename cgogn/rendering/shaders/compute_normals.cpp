@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shaders/texture_to_vbo.h>
+#include <cgogn/rendering/shaders/compute_normals.h>
 
 namespace cgogn
 {
@@ -29,32 +29,128 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderTEX2VBO* ShaderTEX2VBO::instance_ = nullptr;
+static const char* vertex_shader_source1 =
+		R"(
+		#version 330
+		uniform usamplerBuffer tri_ind;
+		uniform samplerBuffer pos_vertex;
+		uniform float inv_h;
+		out vec3 N;
+		void main()
+		{
+			vec2 d = vec2(1.0/1024.0,inv_h);
+			int vid = gl_VertexID;
+			int ind_a = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			vec3 A = texelFetch(pos_vertex, ind_a).rgb;
+			vid  = (vide+1)%3
+			int ind_b = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
+			vid  = (vide+1)%3
+			int ind_c = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			vec3 C = texelFetch(pos_vertex, ind_c).rgb;
+			N = cross(C-A,B-A);
+			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(float(ind_a%1024u),float(ind_a/1024u));
+			gl_Position = vec4(coord_N,0,1);
+		}
+		)";
 
-ShaderTEX2VBO::ShaderTEX2VBO()
+static const char* fragment_shader_source1 =
+		R"(
+		#version 330
+		out vec3 frag_out;
+		in vec3 N;
+		void main()
+		{
+			frag_out = N;
+		}
+		)";
+
+ShaderComputeNormal1* ShaderComputeNormal1::instance_ = nullptr;
+
+ShaderComputeNormal1::ShaderComputeNormal1()
 {
-	const char* vertex_shader_source =
-			R"(
-			#version 330
-			uniform sampler2D TUin;
-			uniform bool normalization;
-			out vec3 vbo_out;
+	load2_bind(vertex_shader_source1, fragment_shader_source1);
+	add_uniforms("tri_ind","pos_vertex","inv_h");
+}
 
-			void main()
-			{
-				int w = textureSize(TUn,0).x;
-				ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
-				if (normalization)
-					vbo_out = normalize(texelFetch(TUn,icoord,0).rgb);
-				else
-					vbo_out = texelFetch(TUn,icoord,0).rgb;
-			}
-			)";
+void ShaderParamComputeNormal1::set_uniforms()
+{
+	if (vbo_pos_)
+		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f/float(height_tex_));
+}
 
 
-	load_tfb1_bind(vertex_shader_source, {"vbo_out"});
+static const char* vertex_shader_source2 =
+		R"(
+		#version 330
+		uniform sampler2D tex_normals;
+		out vec3 vbo_out;
+		const int w = 1024;
+		void main()
+		{
+			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
+			vec3 N = texelFetch(tex_normals,icoord,0).rgb;
+			vbo_out = normalize(N);
+		}
+		)";
 
-	add_uniforms("TUin","normalization");
+
+ShaderComputeNormal2* ShaderComputeNormal2::instance_ = nullptr;
+
+ShaderComputeNormal2::ShaderComputeNormal2()
+{
+	load_tfb1_bind(vertex_shader_source2, {"vbo_out"});
+	add_uniforms("tex_normals");
+}
+void ShaderParamComputeNormal2::set_uniforms()
+{
+	shader_->set_uniforms_values(tex_->bind(0));
+}
+
+
+
+ComputeNormalEngine::ComputeNormalEngine()
+{
+	param1_ = ShaderComputeNormal1::generate_param();
+	param2_ = ShaderComputeNormal2::generate_param();
+	param2_->tex_ = new Texture2D();
+	param2_->tex_->alloc(0,0,GL_RGB32F,GL_RGB,nullptr,GL_FLOAT);
+	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_},false, nullptr);
+	tfb_ = new TFB_ComputeNormal(*(param2_.get()));
+}
+
+ComputeNormalEngine::~ComputeNormalEngine()
+{
+	delete param2_->tex_;
+	delete tfb_;
+	delete fbo_;
+}
+
+void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
+{
+	int32 h = (centers->size()+1023)/1024;
+	fbo_->resize(1024,h);
+	fbo_->bind();
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0,0,0,0);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
+	glBlendFunc(GL_ONE,GL_ONE);
+	glPointSize(1.001f);
+	param1_->vbo_pos_ = pos;
+	param1_->height_tex_ = h;
+	param1_->bind();
+	renderer->draw(VOLUMES_VERTICES);
+	param1_->release();
+	glDisable(GL_BLEND);
+	fbo_->release();
+
+	glClearColor(0,0,0,0);
+	tfb_->start(GL_POINTS,{centers});
+	glDrawArrays(GL_POINTS,0,centers->size());
+	tfb_->stop();
+	glEnable(GL_DEPTH_TEST);
 }
 
 } // namespace rendering

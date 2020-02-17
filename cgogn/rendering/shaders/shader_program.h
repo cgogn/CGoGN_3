@@ -282,7 +282,7 @@ public:
 	template <typename T1, typename... Ts>
 	void set_uniforms_values(T1 p1, Ts... pn)
 	{
-		set_uniform_value(uniforms_.size() - 1 - sizeof...(pn), p1);
+		set_uniform_value(uniforms_.size() - 1 - sizeof...(Ts), p1);
 		set_uniforms_values(pn...);
 	}
 
