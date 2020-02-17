@@ -22,7 +22,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_TRANSFORM_FEEDBACKH_
+#ifndef CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
 #define CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
 
 #include<vector>
@@ -47,7 +47,7 @@ class CGOGN_RENDERING_EXPORT TransformFeedback
 	void internal_start(GLenum prim, const std::vector<VBO*>& vbos)
 	{
 		glEnable(GL_RASTERIZER_DISCARD);
-		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, id_);
+//		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, id_);
 		for (GLuint i = 0; i < vbos.size(); ++i)
 			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, i, vbos[i]->id());
 		glBeginTransformFeedback(prim);
@@ -57,7 +57,7 @@ public:
 	inline TransformFeedback(typename SHADER::Param& param):
 		prg_param_(param)
 	{
-		glCreateTransformFeedbacks(1,&id_);
+//		glCreateTransformFeedbacks(1,&id_);
 	}
 
 
@@ -80,7 +80,8 @@ public:
 	inline void stop()
 	{
 		glEndTransformFeedback();
-		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK,0);
+		glFlush();
+//		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK,0);
 		glDisable(GL_RASTERIZER_DISCARD);
 		prg_param_.release();
 	}

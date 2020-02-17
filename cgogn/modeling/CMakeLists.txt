@@ -34,7 +34,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${PROJECT_NAME} ) #cgogn::core cgogn::geometry)
+target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry)
 
 # Write out cgogn_modeling_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})

@@ -79,7 +79,7 @@ class Volume_Render : public ViewModule
 			: vertex_position_(nullptr),volume_center_(nullptr),vbo_volume_center_(nullptr),
 			  render_topo_(false), render_vertices_(false), render_edges_(false), render_faces_(false),
 			  render_volumes_b_(true),render_volumes_(1), render_volumes_line_(true),
-			  auto_update_scalar_min_max_(true),gpu_center_(true),edge_blending_(true)
+			  auto_update_scalar_min_max_(true),gpu_center_(false),edge_blending_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -145,7 +145,7 @@ class Volume_Render : public ViewModule
 public:
 	Volume_Render(const App& app)
 		: ViewModule(app, "Volume_Render (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_view_(app.current_view()), selected_mesh_(nullptr)
+		  selected_view_(app.current_view()), selected_mesh_(nullptr), compute_center_engine_(nullptr)
 	{
 	}
 
@@ -337,7 +337,7 @@ protected:
 
 			if (p.render_volumes_b_)
 			{
-				md->update_vbo(p.vertex_position_.get());
+//				md->update_vbo(p.vertex_position_.get());
 				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()),md->get_render(),p.vbo_center_);
 
 				if (p.render_volumes_==1)
@@ -352,7 +352,7 @@ protected:
 
 				if (p.render_volumes_==2 && p.volume_scalar_)
 				{
-					md->update_vbo(p.volume_scalar_.get());
+//					md->update_vbo(p.volume_scalar_.get());
 					if (p.param_volumes_scalar_->vao_initialized())
 					{
 						p.param_volumes_scalar_->bind(proj_matrix, view_matrix);
@@ -363,7 +363,7 @@ protected:
 
 				if (p.render_volumes_==3 && p.volume_color_)
 				{
-					md->update_vbo(p.volume_color_.get());
+//					md->update_vbo(p.volume_color_.get());
 					if (p.param_volumes_color_->vao_initialized())
 					{
 						p.param_volumes_color_->bind(proj_matrix, view_matrix);

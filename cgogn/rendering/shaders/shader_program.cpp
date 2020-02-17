@@ -180,52 +180,6 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 
 }
 
-void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src)
-{
-	std::cout << "Compilation Shader "<<name()<<std::endl;
-
-	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src, name());
-
-	geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-	geom_shader_->compile(geom_src, name());
-
-	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src, name());
-
-	glAttachShader(id_, vert_shader_->shaderId());
-	glAttachShader(id_, geom_shader_->shaderId());
-	glAttachShader(id_, frag_shader_->shaderId());
-
-	glLinkProgram(id_);
-
-	// puis detache (?)
-	glDetachShader(id_, frag_shader_->shaderId());
-	glDetachShader(id_, geom_shader_->shaderId());
-	glDetachShader(id_, vert_shader_->shaderId());
-
-	// Print log if needed
-	GLint infologLength = 0;
-	glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
-	if (infologLength != GL_TRUE)
-		std::cerr << "PB GL_LINK_STATUS" << std::endl;
-	glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
-	if (infologLength != GL_TRUE)
-		std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
-
-	glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-	if (infologLength > 1)
-	{
-		char* infoLog = new char[infologLength];
-		int charsWritten = 0;
-		glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-		std::cerr << "Link message: " << infoLog << std::endl;
-		delete[] infoLog;
-	}
-
-	get_matrices_uniforms();
-
-}
 
 std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
 

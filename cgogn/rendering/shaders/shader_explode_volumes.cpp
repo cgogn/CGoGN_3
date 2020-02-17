@@ -44,6 +44,7 @@ static const char* vertex_shader_source =
 		uniform vec4 plane_clip2;
 
 		out vec3 Po;
+
 		void main()
 		{
 			int ind_v = int(texelFetch(tri_indices,4*gl_InstanceID+gl_VertexID).r);
@@ -81,7 +82,7 @@ static const char* fragment_shader_source =
 			vec3 L = normalize(light_position-Po);
 			float lambert = 0.2+0.8*(max(0.0,dot(N,L)));
 			frag_out = vec4(lambert * color.rgb, color.a);
-		};
+		}
 		)";
 
 ShaderExplodeVolumes* ShaderExplodeVolumes::instance_ = nullptr;

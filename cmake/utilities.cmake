@@ -135,16 +135,13 @@ function(APPS_COMPILATION)
     set(multiValueArgs SRC MODULES)
     cmake_parse_arguments(COMPILATION_PREFIX "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    set(MODULES_LIST "")
-    foreach(mod ${COMPILATION_PREFIX_MODULES})
-        list(APPEND MODULES_LIST cgogn::${mod})
+	set(MODULES_LIST "")
+	foreach(mod ${COMPILATION_PREFIX_MODULES})
+		list(APPEND MODULES_LIST cgogn::${mod})
     endforeach()
 
     add_executable(${COMPILATION_PREFIX_EXEC})
     target_sources(${COMPILATION_PREFIX_EXEC} PRIVATE ${COMPILATION_PREFIX_SRC})
-    target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS})
-
-    target_link_libraries(${COMPILATION_PREFIX_EXEC} ${CORE_FOUNDATION} ${CARBON})
-    endif()
+	target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS} ${CORE_FOUNDATION} ${CARBON})
 
 endfunction()

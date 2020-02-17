@@ -138,6 +138,9 @@ App::App()
 		}
 	}
 #endif
+	std::cout << "Windows \033[41m\033[37m console \033[42m color \033[42m mode "<< std::endl;
+	std::cout << "\033[40m \033[91m YEEHHH \033[92m YEEHHH \033[93m YEEHHH \033[96m YEEHHH \033[95m YEEHHH "<< "\033[m" << std::endl;
+
 
 	tlq_ = boost::synapse::create_thread_local_queue();
 

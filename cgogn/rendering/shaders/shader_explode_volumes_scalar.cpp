@@ -88,7 +88,7 @@ static const char* fragment_shader_source =
 			vec3 L = normalize(light_position-Po);
 			float lambert = 0.2+0.8*(max(0.0,dot(N,L)));
 			frag_out = lambert * color;
-		};
+		}
 		)";
 
 ShaderExplodeVolumesScalar* ShaderExplodeVolumesScalar::instance_ = nullptr;

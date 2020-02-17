@@ -321,14 +321,15 @@ public:
 		glDetachShader(id_, geom_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
+		glValidateProgram(id_);
 		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+			std::cerr << "PB GL_LINK_STATUS load3_bind " << name() << std::endl;
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+			std::cerr << "PB GL_VALIDATE_STATUS load3_bind " << name() << std::endl;
 
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
@@ -366,14 +367,15 @@ public:
 		glDetachShader(id_, frag_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
+		glValidateProgram(id_);
 		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+			std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+			std::cerr << "PB GL_VALIDATE_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
 
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
@@ -413,14 +415,15 @@ public:
 
 		glDetachShader(id_, vert_shader_->shaderId());
 
+		glValidateProgram(id_);
 		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+			std::cerr << "PB GL_LINK_STATUS load_tfb1_bind " << name() << std::endl;
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+			std::cerr << "PB GL_VALIDATE_STATUS load_tfb1_bind " << name() << std::endl;
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
 		{
