@@ -56,24 +56,12 @@ if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
 		  ${CMAKE_CURRENT_BINARY_DIR}/stage/${CMAKE_INSTALL_LIBDIR})
 endif()
 
+
 ### External Templates
 option(CGOGN_EXTERNAL_TEMPLATES "Use external templates to reduce compile time" OFF)
 
-### C++ 11/14/17
-set(CGOGN_CPP_STD "17" CACHE STRING "The version of the c++ standard to use.")
-if (NOT MSVC)
-	set_property(CACHE CGOGN_CPP_STD PROPERTY STRINGS "11" "14" "17") # drop down list with cmake-gui
-endif(NOT MSVC)
-
-
-if (CGOGN_CPP_STD STREQUAL "11")
-	set(CMAKE_CXX_STANDARD 11)
-elseif(CGOGN_CPP_STD STREQUAL "14")
-	set(CMAKE_CXX_STANDARD 14)
-else(CGOGN_CPP_STD STREQUAL "17")
-	set(CMAKE_CXX_STANDARD 17)
-endif(CGOGN_CPP_STD STREQUAL "11")
-
+### C++ 17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -98,6 +86,8 @@ endif(NOT MSVC)
 if (${CGOGN_USE_PARALLEL_GLIBCXX})
 	set(CGOGN_USE_OPENMP "ON")
 endif()
+option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
+
 
 #### Continuous integration options
 option(CGOGN_WITH_GPROF "Builds the project for performance analysis with gprof" OFF)
@@ -161,6 +151,12 @@ endif()
 include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+if(APPLE)
+	find_library(CORE_FOUNDATION CoreFoundation)
+	find_library(CARBON Carbon)
+endif()
+
 
 
 if(CGOGN_BUILD_TESTS)

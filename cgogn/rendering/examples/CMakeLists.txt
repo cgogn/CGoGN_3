@@ -54,10 +54,6 @@ if(APPLE)
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(simple_surface_viewer 
-		${CORE_FOUNDATION}
-		${CARBON}
-	)
 	target_link_libraries(simple_volume_viewer 
 		${CORE_FOUNDATION}
 		${CARBON}
@@ -67,3 +63,5 @@ if(APPLE)
 		${CARBON}
 	)
 endif()
+
+

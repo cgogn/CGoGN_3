@@ -51,7 +51,7 @@ namespace cgogn
 template <typename CELL, typename MESH>
 std::string cell_name(const MESH& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	return mesh_traits<MESH>::cell_names[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
 }
 
@@ -69,7 +69,7 @@ std::string cell_name(const MESH& m)
 template <typename CELL, typename MESH>
 uint32 nb_cells(const MESH& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	uint32 result = 0;
 	foreach_cell(m, [&](CELL) -> bool {
 		++result;

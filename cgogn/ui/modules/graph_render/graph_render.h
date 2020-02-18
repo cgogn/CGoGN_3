@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_GRAPH_RENDER_H_
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -144,9 +145,9 @@ public:
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_point_sprite_->set_vbos({md->vbo(p.vertex_position_.get())});
+		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
+		p.param_edge_->set_vbos({md->vbo(p.vertex_position_.get())});
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -161,7 +162,7 @@ public:
 		if (p.vertex_radius_)
 			md->update_vbo(vertex_radius.get(), true);
 
-		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
+		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
 
 		for (View* v : linked_views_)
 			v->request_update();

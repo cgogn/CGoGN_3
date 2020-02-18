@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SURFACE_RENDER_H_
 #define CGOGN_MODULE_SURFACE_RENDER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -36,6 +37,9 @@
 #include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
+
+#include <cgogn/rendering/shaders/compute_volume_centers.h>
+
 
 #include <cgogn/geometry/algos/length.h>
 
@@ -58,9 +62,12 @@ class SurfaceRender : public ViewModule
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
+
 
 	struct Parameters
 	{
@@ -103,6 +110,9 @@ class SurfaceRender : public ViewModule
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 		std::shared_ptr<Attribute<Scalar>> vertex_scalar_;
+
+		std::unique_ptr<rendering::VBO> vbo_volume_center_;
+		rendering::VBO* vbo_center_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
@@ -176,19 +186,25 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
+		p.vbo_center_ = nullptr;
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		rendering::MeshRender* render = md->get_render();
+		if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+			render->init_primitives(m,rendering::VOLUMES_VERTICES,p.vertex_position_.get());
+
+		auto* vp = md->vbo(p.vertex_position_.get());
+		p.param_point_sprite_->set_vbos({vp});
+		p.param_edge_->set_vbos({vp});
+		p.param_flat_->set_vbos({vp});
+		p.param_phong_->set_vbos({vp, md->vbo(p.vertex_normal_.get())});
+		p.param_scalar_per_vertex_->set_vbos({vp, md->vbo(p.vertex_scalar_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}
@@ -202,9 +218,9 @@ public:
 		if (p.vertex_normal_)
 			md->update_vbo(vertex_normal.get(), true);
 
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		p.param_phong_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}
@@ -230,9 +246,9 @@ public:
 			p.param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
 		}
 
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		p.param_scalar_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get())});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
+													 md->vbo(p.vertex_scalar_.get())});
 
 		v.request_update();
 	}
@@ -281,25 +297,25 @@ protected:
 				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_gouraud_->release();
 				}
 				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_->release();
 				}
 				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
 				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 
@@ -498,6 +514,7 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
+
 };
 
 } // namespace ui

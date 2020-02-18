@@ -59,22 +59,27 @@ struct MeshData
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshData);
 
+	rendering::MeshRender* get_render()
+	{
+		return &render_;
+	}
+
 	void init(const MESH* m)
 	{
 		mesh_ = m;
 		update_nb_cells();
 	}
 
-	void draw(rendering::DrawingType primitive)
+	void draw(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
 		if (!render_.is_primitive_uptodate(primitive))
-			render_.init_primitives(*mesh_, primitive);
+			render_.init_primitives(*mesh_, primitive, position.get());
 		render_.draw(primitive);
 	}
 
-	void init_primitives(rendering::DrawingType primitive)
+	void init_primitives(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
-		render_.init_primitives(*mesh_, primitive);
+		render_.init_primitives(*mesh_, primitive, position.get());
 	}
 
 	void set_primitives_dirty(rendering::DrawingType primitive)
@@ -138,8 +143,11 @@ public:
 	}
 
 	template <typename T>
-	void update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
+	rendering::VBO* update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
 	{
+		if ( attribute == nullptr)
+			return  nullptr;
+
 		rendering::VBO* v = vbo(attribute);
 		if (!v && create_if_needed)
 		{
@@ -148,7 +156,9 @@ public:
 		}
 		if (v)
 			rendering::update_vbo<T>(attribute, v);
+		return v;
 	}
+
 
 	template <typename CELL, typename FUNC>
 	void foreach_cells_set(const FUNC& f)

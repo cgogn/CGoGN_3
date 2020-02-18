@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColor)
+DECLARE_SHADER_CLASS(FlatColor,CGOGN_STR(FlatColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatColor : public ShaderParam
 {
@@ -58,12 +58,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_color)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_color);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

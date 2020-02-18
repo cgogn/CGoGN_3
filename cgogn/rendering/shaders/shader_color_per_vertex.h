@@ -32,7 +32,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ColorPerVertex)
+DECLARE_SHADER_CLASS(ColorPerVertex,CGOGN_STR(ColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamColorPerVertex : public ShaderParam
 {
@@ -47,12 +47,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col);
-		release_vao();
-	}
 };
 
 } // namespace rendering

@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(SimpleColor)
+DECLARE_SHADER_CLASS(SimpleColor,CGOGN_STR(SimpleColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamSimpleColor : public ShaderParam
 {
@@ -56,12 +56,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

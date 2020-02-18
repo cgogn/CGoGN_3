@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PointSprite)
+DECLARE_SHADER_CLASS(PointSprite,CGOGN_STR(PointSprite))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSprite : public ShaderParam
 {
@@ -50,6 +50,16 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		ambiant_color_ = std::get<1>(a);
+		light_pos_ = std::get<2>(a);
+	}
+
 	using LocalShader = ShaderPointSprite;
 
 	ShaderParamPointSprite(LocalShader* sh)
@@ -62,15 +72,9 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColor)
+DECLARE_SHADER_CLASS(PointSpriteColor,CGOGN_STR(PointSpriteColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 {
@@ -98,15 +102,10 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col);
-		release_vao();
-	}
+
 };
 
-DECLARE_SHADER_CLASS(PointSpriteSize)
+DECLARE_SHADER_CLASS(PointSpriteSize,CGOGN_STR(PointSpriteSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 {
@@ -135,15 +134,9 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_size)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_size);
-		release_vao();
-	}
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColorSize)
+DECLARE_SHADER_CLASS(PointSpriteColorSize,CGOGN_STR(PointSpriteColorSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColorSize : public ShaderParam
 {
@@ -170,12 +163,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col, VBO* vbo_size)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col, vbo_size);
-		release_vao();
-	}
 };
 
 } // namespace rendering
