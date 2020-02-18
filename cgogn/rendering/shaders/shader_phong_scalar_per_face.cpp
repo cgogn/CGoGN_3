@@ -48,7 +48,7 @@ uniform usamplerBuffer face_emb;
 
 uniform samplerBuffer position_vertex;
 uniform samplerBuffer normal_vertex;
-uniform samplerBuffer color_face;
+uniform samplerBuffer scalar_face;
 
 out vec3 Po;
 out vec3 No;
@@ -63,7 +63,7 @@ void main()
 
 	vec3 normal_in = texelFetch(normal_vertex, ind_v).rgb;
 	vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
-	Col = texelFetch(color_face, emb).rgb;;
+	Col = scalar2color(texelFetch(scalar_face, emb).r);
 
 	No = normalMatrix * normal_in;
 	vec4 Po4 = viewMatrix * vec4(position_in,1);
@@ -75,16 +75,14 @@ void main()
 static const char* fragment_shader_source =
 R"(
 #version 330
-precision highp float;
 in vec3 Po;
 in vec3 No;
-in flat vec3 Col;
-
+flat in vec3 Col;
 out vec3 frag_out;
 
 uniform vec3 light_pos;
-uniform vec4 spec_color;
 uniform vec4 ambiant_color;
+uniform vec4 spec_color;
 uniform float spec_coef;
 uniform bool double_side;
 
@@ -103,7 +101,7 @@ void main()
 	vec3 E = normalize(-Po);
 	vec3 R = reflect(-L, N);
 	float spec = pow( max(dot(R,E), 0.0), spec_coef);
-	frag_out = ambiant_color + lamb*Col + spec*spec_color;
+	frag_out = ambiant_color.rgb + lamb*Col + spec*spec_color.rgb;
 }
 )";
 
@@ -116,7 +114,7 @@ ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 
 	add_uniforms("tri_indices", "face_emb",
 				 "position_vertex", "normal_vertex", "scalar_face",
-				 "light_position", "ambiant_color",
+				 "light_pos", "ambiant_color",
 				 "spec_color", "spec_coef", "double_side");
 }
 

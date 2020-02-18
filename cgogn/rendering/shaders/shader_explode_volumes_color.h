@@ -39,19 +39,29 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesColor : public ShaderParam
 	void set_uniforms() override;
 
 public:
-	GLVec3 light_pos_;
-	float32 explode_;
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 	VBO* vbo_color_vol_;
+	GLVec3 light_pos_;
+	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		explode_ = std::get<0>(a);
+		light_pos_ = std::get<1>(a);
+		plane_clip_ = std::get<2>(a);
+		plane_clip2_ = std::get<3>(a);
+	}
 
 	using LocalShader = ShaderExplodeVolumesColor;
 
 	ShaderParamExplodeVolumesColor(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
-		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_color_vol_(nullptr),
+		: ShaderParam(sh),vbo_pos_(nullptr),vbo_center_(nullptr),vbo_color_vol_(nullptr),
+		  light_pos_(10, 100, 1000), explode_(0.8f),
 		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}

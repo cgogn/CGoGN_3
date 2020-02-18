@@ -46,6 +46,16 @@ public:
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		explode_ = std::get<1>(a);
+		plane_clip_ = std::get<2>(a);
+		plane_clip2_ = std::get<3>(a);
+	}
+
 
 	using LocalShader = ShaderExplodeVolumesLine;
 

@@ -50,6 +50,16 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		ambiant_color_ = std::get<1>(a);
+		light_pos_ = std::get<2>(a);
+	}
+
 	using LocalShader = ShaderPointSprite;
 
 	ShaderParamPointSprite(LocalShader* sh)

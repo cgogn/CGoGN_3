@@ -45,20 +45,35 @@ protected:
 	}
 
 public:
-	GLVec3 light_position_;
+
 	GLColor front_color_;
 	GLColor back_color_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
+	GLVec3 light_position_;
 	bool double_side_;
+
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		front_color_ = std::get<0>(a);
+		back_color_ = std::get<1>(a);
+		ambiant_color_ = std::get<2>(a);
+		specular_color_ = std::get<3>(a);
+		specular_coef_ = std::get<4>(a);
+		light_position_ = std::get<5>(a);
+		double_side_ = std::get<6>(a);
+	}
 
 	using ShaderType = ShaderPhong;
 
 	ShaderParamPhong(ShaderType* sh)
-		: ShaderParam(sh), light_position_(10, 100, 1000), front_color_(color_front_default),
+		: ShaderParam(sh), front_color_(color_front_default),
 		  back_color_(color_back_default), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1),
-		  specular_coef_(250), double_side_(true)
+		  specular_coef_(250), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 

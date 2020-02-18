@@ -48,6 +48,7 @@ public:
 	GLColor color_;
 	float sz_;
 
+
 	ShaderParamFrame2d(LocalShader* sh) : ShaderParam(sh), color_(color_line_default), sz_(3.0f)
 	{
 	}

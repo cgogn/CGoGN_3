@@ -41,12 +41,23 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 
 public:
 	GLColor color_;
-	GLVec3 light_pos_;
 	float32 explode_;
+	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		explode_ = std::get<1>(a);
+		light_pos_ = std::get<2>(a);
+		plane_clip_ = std::get<3>(a);
+		plane_clip2_ = std::get<4>(a);
+	}
 
 
 	using LocalShader = ShaderExplodeVolumes;

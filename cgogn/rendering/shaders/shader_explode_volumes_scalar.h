@@ -49,17 +49,32 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderPara
 	void set_uniforms() override;
 
 public:
-	GLVec3 light_pos_;
-	float32 explode_;
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 	VBO* vbo_scalar_vol_;
+	float32 explode_;
+	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 	int32 color_map_;
 	int32 expansion_;
 	float32 min_value_;
 	float32 max_value_;
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		explode_ = std::get<0>(a);
+		light_pos_ = std::get<1>(a);
+		plane_clip_ = std::get<2>(a);
+		plane_clip2_ = std::get<3>(a);
+		color_map_ = std::get<4>(a);
+		expansion_ = std::get<5>(a);
+		min_value_ = std::get<6>(a);
+		max_value_ = std::get<7>(a);
+	}
+
 
 	using LocalShader = ShaderExplodeVolumesScalar;
 

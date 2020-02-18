@@ -43,11 +43,23 @@ public:
 	VBO* vbo_pos_;
 	VBO* vbo_norm_;
 	VBO* vbo_scalar_; // perface
-	GLVec3 light_position_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
+	GLVec3 light_position_;
 	bool double_side_;
+
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		ambiant_color_ = std::get<0>(a);
+		specular_color_ = std::get<1>(a);
+		specular_coef_ = std::get<2>(a);
+		light_position_ = std::get<3>(a);
+		double_side_ = std::get<4>(a);
+	}
 
 	using ShaderType = ShaderPhongScalarPerFace;
 
@@ -56,8 +68,8 @@ public:
 		  vbo_pos_(nullptr),
 		  vbo_norm_(nullptr),
 		  vbo_scalar_(nullptr),
-		  light_position_(), ambiant_color_(), specular_color_(),
-		  specular_coef_(), double_side_()
+		  ambiant_color_(), specular_color_(), specular_coef_(),
+		  light_position_(), double_side_()
 	{
 	}
 

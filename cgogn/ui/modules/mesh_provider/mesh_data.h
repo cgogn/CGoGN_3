@@ -143,8 +143,11 @@ public:
 	}
 
 	template <typename T>
-	void update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
+	rendering::VBO* update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
 	{
+		if ( attribute == nullptr)
+			return  nullptr;
+
 		rendering::VBO* v = vbo(attribute);
 		if (!v && create_if_needed)
 		{
@@ -153,7 +156,9 @@ public:
 		}
 		if (v)
 			rendering::update_vbo<T>(attribute, v);
+		return v;
 	}
+
 
 	template <typename CELL, typename FUNC>
 	void foreach_cells_set(const FUNC& f)

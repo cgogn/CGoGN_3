@@ -193,7 +193,7 @@ public:
 		if (u >= 0)
 			uniforms_.push_back(u);
 		else
-			std::cerr << "Warning uniform " << str << " does not exist in shader" << std::endl;
+			std::cerr << "Warning uniform " << str << " does not exist in shader " <<name()<< std::endl;
 	}
 
 	template <typename T1>

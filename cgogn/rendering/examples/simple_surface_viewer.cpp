@@ -24,7 +24,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/types/attribute_handler.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
@@ -42,6 +42,7 @@ using Mesh = cgogn::CMap2;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -84,6 +85,25 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
+
+	std::shared_ptr<Attribute<Vec3>> face_col = cgogn::add_attribute<Vec3, Face>(*m, "color");
+	std::shared_ptr<Attribute<Scalar>> face_wgt = cgogn::add_attribute<Scalar, Face>(*m, "weight");
+
+	auto color_handler = cgogn::attribute_handler<Face>(m,face_col);
+	auto scalar_handler = cgogn::attribute_handler<Face>(m,face_wgt);
+
+
+	cgogn::index_cells<Face>(*m);
+	cgogn::foreach_cell(*m, [&](Face f) -> bool
+	{
+		Vec3 c(0,0,0);
+		c[rand()%3] = 1;
+		color_handler[f] = c;
+		scalar_handler[f] = double(rand())/RAND_MAX;
+		return true;
+	});
+
+
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 

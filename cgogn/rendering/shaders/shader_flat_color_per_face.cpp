@@ -44,23 +44,22 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 			uniform samplerBuffer color_tri;
 			out vec3 A;
 			flat out vec3 N;
-			flat out color;
+			flat out vec3 color;
 			void main()
 			{
 				int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
-				int color_ind = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
-				color = texelFetch(color_tri, color_i).rgb;
+				int i_c = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
+				color = texelFetch(color_tri, i_c).rgb;
 				int vid = gl_VertexID;
 				int ind_a = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-				A = model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb)).rgb;
-				vid  = (vid+1)%3
+				A = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb,1.0)).xyz;
+				vid  = (vid+1)%3;
 				int ind_b = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-				vec3 B = model_view_matrix * vec4(texelFetch(pos_vertex, (ind_b)).rgb)).rgb;
-				vid  = (vid+1)%3
+				vec3 B = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_b).rgb,1.0)).xyz;
+				vid  = (vid+1)%3;
 				int ind_c = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-				vec3 C = model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb)).rgb;
-				N = normalize(cross(C-A,B-A));
-				vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(float(ind_a%1024u),float(ind_a/1024u));
+				vec3 C = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb,1.0)).xyz;
+				N = normalize(cross(B-A,C-A));
 				gl_Position = projection_matrix*vec4(A,1);
 			}
 			)";
@@ -76,11 +75,11 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 		flat in vec3 color;
 		void main()
 		{
-			vec3 No = normalize(cross(N);
+			vec3 No = normalize(N);
 			vec3 L = normalize(light_position-A);
 			float lambert = dot(No,L);
 			if (double_side || gl_FrontFacing)
-				fragColor = ambiant_color.rgb+lambert*color);
+				fragColor = ambiant_color.rgb+lambert*color;
 			else
 				discard;
 		}

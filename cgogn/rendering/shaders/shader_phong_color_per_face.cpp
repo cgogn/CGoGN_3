@@ -74,7 +74,7 @@ R"(
 precision highp float;
 in vec3 Po;
 in vec3 No;
-in flat vec3 Col;
+flat in vec3 Col;
 
 out vec3 frag_out;
 
@@ -88,7 +88,7 @@ void main()
 {
 	vec3 N = normalize(No);
 	vec3 L = normalize(light_pos-Po);
-	if (gl_FrontFacing==false)
+	if (!gl_FrontFacing)
 	{
 		if (!double_side)
 			discard;
@@ -99,7 +99,7 @@ void main()
 	vec3 E = normalize(-Po);
 	vec3 R = reflect(-L, N);
 	float spec = pow( max(dot(R,E), 0.0), spec_coef);
-	frag_out = ambiant_color + lamb*Col + spec*spec_color;
+	frag_out = ambiant_color.rgb + lamb*Col + spec*spec_color.rgb;
 }
 )";
 
@@ -109,7 +109,7 @@ ShaderPhongColorPerFace::ShaderPhongColorPerFace()
 	load2_bind(vertex_shader_source, fragment_shader_source);
 	add_uniforms("tri_indices", "face_emb",
 				 "position_vertex", "normal_vertex", "color_face",
-				 "light_position", "ambiant_color",
+				 "light_pos", "ambiant_color",
 				 "spec_color", "spec_coef", "double_side");
 }
 

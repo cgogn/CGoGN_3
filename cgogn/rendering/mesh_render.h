@@ -112,12 +112,12 @@ public:
 
 	inline bool is_primitive_uptodate(DrawingType prim)
 	{
-		return indices_buffers_uptodate_[prim];
+		return indices_buffers_uptodate_[prim%SIZE_BUFFER];
 	}
 
 	inline void set_primitive_dirty(DrawingType prim)
 	{
-		indices_buffers_uptodate_[prim] = false;
+		indices_buffers_uptodate_[prim%SIZE_BUFFER] = false;
 	}
 
 protected:

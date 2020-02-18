@@ -49,6 +49,19 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		front_color_ = std::get<0>(a);
+		back_color_ = std::get<1>(a);
+		ambiant_color_ = std::get<2>(a);
+		light_position_ = std::get<3>(a);
+		double_side_ = std::get<4>(a);
+	}
+
+
 	using LocalShader = ShaderFlat;
 
 	ShaderParamFlat(LocalShader* sh)
