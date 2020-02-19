@@ -96,8 +96,8 @@ bool imgui_colormap_interface(rendering::shader_funcion::color_map::Uniforms& cm
 	need_update |= ImGui::RadioButton((std::string("BCGYR##")+label).c_str(), &cm.color_map_, 2);ImGui::SameLine();
 	need_update |= ImGui::RadioButton((std::string("BCR##")+label).c_str(), &cm.color_map_, 3);
 	need_update |= ImGui::SliderInt((std::string("expansion##")+label).c_str(), &(cm.expansion_), -2, 2);
-	need_update |= ImGui::SliderFloat((std::string("min##")+label).c_str(), &(cm.min_value_), 0.0, 1.0);
-	need_update |= ImGui::SliderFloat((std::string("mi$q$$$$$n##")+label).c_str(), &(cm.max_value_), 0.0, 1.0);
+	need_update |= ImGui::InputFloat((std::string("min##")+label).c_str(), &(cm.min_value_));
+	need_update |= ImGui::InputFloat((std::string("max##")+label).c_str(), &(cm.max_value_));
 	ImGui::EndGroup();
 	return need_update;
 }
