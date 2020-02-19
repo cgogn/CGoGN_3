@@ -29,6 +29,7 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/tools.h>
 
 
 #include <cgogn/core/types/mesh_traits.h>
@@ -502,16 +503,7 @@ protected:
 					{
 						set_volume_scalar(*selected_view_, *selected_mesh_, p.volume_scalar_);
 					});
-					ImGui::TextUnformatted("ColorMAP:");
-					ImGui::BeginGroup();
-					need_update |= ImGui::RadioButton("BWR", &(p.param_volumes_scalar_->cm_.color_map_),0);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("CWR", &p.param_volumes_scalar_->cm_.color_map_, 1);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("BCGYR", &p.param_volumes_scalar_->cm_.color_map_, 2);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("BCR", &p.param_volumes_scalar_->cm_.color_map_, 3);
-					need_update |= ImGui::SliderInt("expansion", &(p.param_volumes_scalar_->cm_.expansion_), -2, 2);
-					need_update |= ImGui::SliderFloat("min##colormap", &(p.param_volumes_scalar_->cm_.min_value_), 0.0, 1.0);
-					need_update |= ImGui::SliderFloat("max##colormap", &(p.param_volumes_scalar_->cm_.max_value_), 0.0, 1.0);
-					ImGui::EndGroup();
+					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_,"vol_scal");
 				}
 
 				if (p.render_volumes_==3)

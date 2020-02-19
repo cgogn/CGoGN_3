@@ -21,6 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
+#include<cgogn/rendering/shaders/shader_function_color_maps.h>
+
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 
@@ -446,58 +448,6 @@ private:
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
-
-
-/**
- * @brief generate combo for attribute selection
- * @param m mesh
- * @param att attribute
- * @param f code to execute when combo selection change
- */
-template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m,
-					std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& att,
-					const std::string& label,
-					const FUNC& f)
-{
-	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-
-	std::string selected_attrib = att ? att->name() : "-- select --";
-	bool changed=false;
-	if (ImGui::BeginCombo(label.c_str(), selected_attrib.c_str()))
-	{
-		foreach_attribute<T,CELL>(m,
-				  [&](const std::shared_ptr<Attribute>& attribute)
-		{
-			bool is_selected = attribute == att;
-			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-			{
-				if (att != attribute)
-					changed = true;
-				att = attribute;
-			}
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-		});
-		ImGui::EndCombo();
-	}
-
-	if (att)
-	{
-		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-		if (ImGui::Button((std::string("X##")+label).c_str()))
-		{
-			att.reset();
-			changed = true;
-		}
-	}
-
-	if (changed)
-		f();
-
-}
-
 
 
 

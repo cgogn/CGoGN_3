@@ -28,6 +28,8 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
+#include <cgogn/ui/tools.h>
+
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -570,6 +572,7 @@ protected:
 			break;
 			case Flat_scalar_per_face:
 				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_spf->double_side_));
+				need_update |= imgui_colormap_interface(p.param_flat_spf->cm_,"flat_spf");
 			break;
 			case Flat_color_per_face:
 				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_cpf->double_side_));
@@ -586,11 +589,10 @@ protected:
 					ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
 				need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
 			break;
-			case Phong_scalar_per_face:
-				need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_spf->double_side_));
-			break;
 			case Phong_color_per_face:
 				need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_cpf->double_side_));
+			case Phong_scalar_per_face:
+				need_update |= imgui_colormap_interface(p.param_phong_spf->cm_,"sphong_spf");
 			break;
 			default:
 			break;
