@@ -92,9 +92,16 @@ static const char* fragment_shader_source =
 ShaderPhong::ShaderPhong()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal");
-	add_uniforms("light_position", "front_color", "back_color", "ambiant_color", "spec_color", "spec_coef",
-				 "double_side");
+	add_uniforms("light_position", "front_color", "back_color", "ambiant_color",
+				 "spec_color", "spec_coef", "double_side");
 }
+
+void ShaderParamPhong::set_uniforms()
+{
+	shader_->set_uniforms_values(light_position_, front_color_, back_color_, ambiant_color_,
+								 specular_color_, specular_coef_, double_side_);
+}
+
 
 } // namespace rendering
 

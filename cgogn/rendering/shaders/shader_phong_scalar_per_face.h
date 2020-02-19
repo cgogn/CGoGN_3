@@ -26,6 +26,8 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
+
 
 namespace cgogn
 {
@@ -48,6 +50,7 @@ public:
 	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
+	shader_funcion::color_map::Uniforms cm_;
 
 
 	template<typename ...Args>
@@ -73,12 +76,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
-	{
-		vbo_pos_ = vbos[0];
-		vbo_norm_ = vbos[1];
-		vbo_scalar_ = vbos[2];
-	}
+	void set_vbos(const std::vector<VBO*>& vbos) override;
 };
 } // namespace rendering
 } // namespace cgogn

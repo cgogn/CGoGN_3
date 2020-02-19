@@ -109,13 +109,17 @@ void main()
 ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_map::source());
 	load2_bind(v_src,fragment_shader_source);
 
 	add_uniforms("tri_indices", "face_emb",
 				 "position_vertex", "normal_vertex", "scalar_face",
 				 "light_pos", "ambiant_color",
-				 "spec_color", "spec_coef", "double_side");
+				 "spec_color", "spec_coef", "double_side",
+				 shader_funcion::color_map::name[0],
+				 shader_funcion::color_map::name[1],
+				 shader_funcion::color_map::name[2],
+				 shader_funcion::color_map::name[3]);
 }
 
 void ShaderParamPhongScalarPerFace::set_uniforms()
@@ -126,8 +130,17 @@ void ShaderParamPhongScalarPerFace::set_uniforms()
 						vbo_norm_->bind_tb(13),
 						vbo_scalar_->bind_tb(14),
 						light_position_,ambiant_color_,
-						specular_color_,specular_coef_,double_side_);
+						specular_color_,specular_coef_,double_side_,
+						cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
 
+}
+
+void ShaderParamPhongScalarPerFace::set_vbos(const std::vector<VBO*>& vbos)
+{
+	vbo_pos_ = vbos[0];
+	vbo_norm_ = vbos[1];
+	vbo_scalar_ = vbos[2];
+	vao_initialized_ = vbos[0]!=nullptr && vbos[1]!=nullptr && vbos[2]!=nullptr;
 }
 
 } // namespace rendering

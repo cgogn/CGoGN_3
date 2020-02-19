@@ -133,6 +133,7 @@ class SurfaceRender : public ViewModule
 			param_flat_->set_vbos({vbo_vertex_position_});
 			param_flat_spf->set_vbos({vbo_vertex_position_,vbo_face_scalar_});
 			param_flat_cpf->set_vbos({vbo_vertex_position_,vbo_face_color_});
+			std::cout<< "VBOS: "<< vbo_vertex_position_ << " / " <<vbo_vertex_normal_ << std::endl;
 			param_phong_->set_vbos({vbo_vertex_position_, vbo_vertex_normal_});
 			param_phong_spf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_scalar_});
 			param_phong_cpf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_color_});
@@ -140,6 +141,7 @@ class SurfaceRender : public ViewModule
 
 		inline void update_normal()
 		{
+			std::cout<< "VBOS: "<< vbo_vertex_position_ << " / " <<vbo_vertex_normal_ << std::endl;
 			param_phong_->set_vbos({vbo_vertex_position_, vbo_vertex_normal_});
 			param_phong_spf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_scalar_});
 			param_phong_cpf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_color_});
@@ -262,6 +264,10 @@ public:
 
 		p.update_position();
 
+		bool inited = p.param_phong_->vao_initialized();
+		std::cout <<"set_vertex_position " << std::boolalpha << inited <<std::endl;
+
+
 		v.request_update();
 	}
 
@@ -273,6 +279,10 @@ public:
 		p.vertex_normal_ = vertex_normal;
 		p.vbo_vertex_normal_ = md->update_vbo(vertex_normal.get(), true);
 		p.update_normal();
+
+
+		bool inited = p.param_phong_->vao_initialized();
+		std::cout <<"set_vertex_normal " << std::boolalpha << inited <<std::endl;
 
 		v.request_update();
 	}
@@ -290,6 +300,8 @@ public:
 		p.face_scalar_ = face_scal;
 		p.vbo_face_scalar_ = md->update_vbo(face_scal.get(), true);
 		p.update_face_scalar();
+		bool inited = p.param_flat_spf->vao_initialized();
+		std::cout <<"set_face_scalar " << std::boolalpha << inited <<std::endl;
 		v.request_update();
 	}
 
@@ -346,7 +358,6 @@ protected:
 
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1.0f, 2.0f);
-
 			switch (p.render_faces_style_)
 			{
 			case Flat:
@@ -392,12 +403,16 @@ protected:
 //			break;
 
 			case Phong:
-				if (p.param_phong_->vao_initialized())
+			{
+				bool inited = p.param_phong_->vao_initialized();
+				std::cout <<"draw " << std::boolalpha << inited <<std::endl;
+				if (inited)
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
+			}
 			break;
 			case Phong_scalar_per_face:
 				if (p.param_phong_spf->vao_initialized())
@@ -527,16 +542,18 @@ protected:
 
 			ImGui::BeginGroup();
 			ImGui::TextUnformatted("Faces");
-			need_update |= ImGui::RadioButton("Flat", &p.render_faces_style_,1);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Scalar/Vertex", &p.render_faces_style_, 2);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Color/Vertex", &p.render_faces_style_, 3);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Scalar/Face", &p.render_faces_style_, 4);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Color/Face", &p.render_faces_style_, 5);
-			need_update |= ImGui::RadioButton("Phong", &p.render_faces_style_,6);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Scalar/Vertex", &p.render_faces_style_, 7);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Color/Vertex", &p.render_faces_style_, 8);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Scalar/Face", &p.render_faces_style_, 9);ImGui::SameLine();
-			need_update |= ImGui::RadioButton("Color/Face", &p.render_faces_style_,10);
+			ImGui::TextUnformatted("Flat:");
+			need_update |= ImGui::RadioButton("Simple##Flat", &p.render_faces_style_,1);
+			need_update |= ImGui::RadioButton("Scalar/Vertex##Flat", &p.render_faces_style_, 2);ImGui::SameLine();
+			need_update |= ImGui::RadioButton("Color/Vertex##Flat", &p.render_faces_style_, 3);
+			need_update |= ImGui::RadioButton("Scalar/Face##Flat", &p.render_faces_style_, 4);ImGui::SameLine();
+			need_update |= ImGui::RadioButton("Color/Face##Flat", &p.render_faces_style_, 5);
+			ImGui::TextUnformatted("Phong:");
+			need_update |= ImGui::RadioButton("Simple##Phong", &p.render_faces_style_,6);
+			need_update |= ImGui::RadioButton("Scalar/Vertex##Phong", &p.render_faces_style_, 7);ImGui::SameLine();
+			need_update |= ImGui::RadioButton("Color/Vertex##Phong", &p.render_faces_style_, 8);
+			need_update |= ImGui::RadioButton("Scalar/Face##Phong", &p.render_faces_style_, 9);ImGui::SameLine();
+			need_update |= ImGui::RadioButton("Color/Face##Phong", &p.render_faces_style_,10);
 			ImGui::EndGroup();
 
 			switch(p.render_faces_style_)

@@ -121,8 +121,18 @@ void ShaderParamPhongColorPerFace::set_uniforms()
 						vbo_norm_->bind_tb(13),
 						vbo_color_->bind_tb(14),
 						light_position_,ambiant_color_,
-						specular_color_,specular_coef_,double_side_);
+						specular_color_,specular_coef_,
+									 double_side_);
 }
+
+void ShaderParamPhongColorPerFace::set_vbos(const std::vector<VBO*>& vbos)
+{
+	vbo_pos_ = vbos[0];
+	vbo_norm_ = vbos[1];
+	vbo_color_ = vbos[2];
+	vao_initialized_ = vbos[0]!=nullptr && vbos[1]!=nullptr && vbos[2]!=nullptr;
+}
+
 
 } // namespace rendering
 } // namespace cgogn

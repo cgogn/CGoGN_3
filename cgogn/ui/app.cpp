@@ -338,7 +338,7 @@ App::App()
 				that->show_demo_ = !that->show_demo_;
 			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
 			{
-				that->interface_scaling_ += 0.1f;
+				that->interface_scaling_ += 0.5f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
 			}
 			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)

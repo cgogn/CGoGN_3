@@ -346,7 +346,8 @@ public:
 								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
 		if (prim>=SIZE_BUFFER)
-			prim = DrawingType(prim + POINTS - POINTS_TB);
+			prim = DrawingType(prim%SIZE_BUFFER);
+		indices_buffers_uptodate_[prim] = true;
 
 		auto func_update_ebo = [&] (DrawingType pr, const TablesIndices& table ) -> void
 		{

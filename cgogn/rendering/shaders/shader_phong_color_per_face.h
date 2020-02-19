@@ -67,18 +67,11 @@ public:
 		: ShaderParam(sh),
 		  vbo_pos_(nullptr),
 		  vbo_norm_(nullptr),
-		  vbo_color_(nullptr),
-		  ambiant_color_(), specular_color_(),
-		  specular_coef_(), light_position_(), double_side_()
+		  vbo_color_(nullptr)
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
-	{
-		vbo_pos_ = vbos[0];
-		vbo_norm_ = vbos[1];
-		vbo_color_ = vbos[2];
-	}
+	void set_vbos(const std::vector<VBO*>& vbos) override;
 };
 } // namespace rendering
 } // namespace cgogn

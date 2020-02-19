@@ -26,6 +26,8 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
+
 
 namespace cgogn
 {
@@ -56,10 +58,7 @@ public:
 	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-	int32 color_map_;
-	int32 expansion_;
-	float32 min_value_;
-	float32 max_value_;
+	shader_funcion::color_map::Uniforms cm_;
 
 	template<typename ...Args>
 	void fill(Args&&... args)
@@ -69,10 +68,10 @@ public:
 		light_pos_ = std::get<1>(a);
 		plane_clip_ = std::get<2>(a);
 		plane_clip2_ = std::get<3>(a);
-		color_map_ = std::get<4>(a);
-		expansion_ = std::get<5>(a);
-		min_value_ = std::get<6>(a);
-		max_value_ = std::get<7>(a);
+		cm_.color_map_ = 0;
+		cm_.expansion_ = 0;
+		cm_.min_value_ = 0;
+		cm_.max_value_ = 1;
 	}
 
 
@@ -82,8 +81,7 @@ public:
 		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
 		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_scalar_vol_(nullptr),
 		  plane_clip_(0, 0, 0, 0),
-		  plane_clip2_(0, 0, 0, 0),
-		  color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f)
+		  plane_clip2_(0, 0, 0, 0)
 	{
 	}
 

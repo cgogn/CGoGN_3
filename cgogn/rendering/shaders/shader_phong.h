@@ -38,11 +38,7 @@ DECLARE_SHADER_CLASS(Phong,CGOGN_STR(Phong))
 class CGOGN_RENDERING_EXPORT ShaderParamPhong : public ShaderParam
 {
 protected:
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(light_position_, front_color_, back_color_, ambiant_color_, specular_color_,
-									 specular_coef_, double_side_);
-	}
+	void set_uniforms() override;
 
 public:
 

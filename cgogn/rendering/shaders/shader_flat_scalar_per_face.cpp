@@ -51,8 +51,8 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 
 			void main()
 			{
-				int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
-				int i_col = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
+				int tri = int(texelFetch(tri_ind, gl_InstanceID).r);
+				int i_col = int(texelFetch(tri_emb, gl_InstanceID).r);
 				color = scalar2color(texelFetch(scalar_tri, i_col).r);
 				int vid = gl_VertexID;
 				int tid = 3*gl_InstanceID;
@@ -84,17 +84,22 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 			vec3 L = normalize(light_position-A);
 			float lambert = dot(No,L);
 			if (double_side || gl_FrontFacing)
-				fragColor = ambiant_color.rgb+lambert*color;
+				fragColor = ambiant_color.rgb + lambert*color;
 			else
 				discard;
 		}
 		)";
 
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_map::source());
 	load2_bind(v_src, fragment_shader_source, "");
 
-	add_uniforms("tri_ind","tri_emb", "pos_vertex","scalar_tri","ambiant_color", "light_position", "double_side");
+	add_uniforms("tri_ind","tri_emb", "pos_vertex","scalar_tri","ambiant_color",
+				 "light_position", "double_side",
+				 shader_funcion::color_map::name[0],
+				 shader_funcion::color_map::name[1],
+				 shader_funcion::color_map::name[2],
+				 shader_funcion::color_map::name[3]);
 }
 
 
@@ -103,9 +108,16 @@ void ShaderParamFlatScalarPerFace::set_uniforms()
 	if (vbo_pos_)
 		shader_->set_uniforms_values(10,11,
 						vbo_pos_->bind_tb(12),vbo_scalar_->bind_tb(13),
-						ambiant_color_,light_position_,double_side_);
+						ambiant_color_,light_position_,double_side_,
+						cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
 }
 
+void  ShaderParamFlatScalarPerFace::set_vbos(const std::vector<VBO*>& vbos)
+{
+	vbo_pos_ = vbos[0];
+	vbo_scalar_ = vbos[1];
+	vao_initialized_ = vbos[0]!=nullptr && vbos[1]!=nullptr;
+}
 
 } // namespace rendering
 

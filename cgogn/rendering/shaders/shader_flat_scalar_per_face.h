@@ -26,6 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -44,6 +45,7 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
+	shader_funcion::color_map::Uniforms cm_;
 
 	template<typename ...Args>
 	void fill(Args&&... args)
@@ -52,6 +54,10 @@ public:
 		ambiant_color_ = std::get<0>(a);
 		light_position_ = std::get<1>(a);
 		double_side_ = std::get<2>(a);
+		cm_.color_map_ = 0;
+		cm_.expansion_ = 0;
+		cm_.min_value_ = 0.0f;
+		cm_.max_value_ = 1.0f;
 	}
 
 	using LocalShader = ShaderFlatScalarPerFace;
@@ -66,11 +72,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
-	{
-		vbo_pos_ = vbos[0];
-		vbo_scalar_ = vbos[1];
-	}
+	void set_vbos(const std::vector<VBO*>& vbos) override;
 };
 
 } // namespace rendering

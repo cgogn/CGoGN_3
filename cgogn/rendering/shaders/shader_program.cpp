@@ -291,7 +291,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(fa
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();
-	vao_initialized_ = true;
+	vao_initialized_ = false;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
@@ -322,9 +322,8 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES"<<std::endl;
 	}
 
-	if (!vao_initialized_)
-		vao_->create();
 
+	vao_initialized_ = true;
 	bind_vao();
 	GLuint attrib = 1u;
 	for (auto* v : vbos)
@@ -334,12 +333,9 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		 else
 		{
 			vao_initialized_ = false;
-			break;
 		}
 	}
-
 	release_vao();
-
 }
 
 

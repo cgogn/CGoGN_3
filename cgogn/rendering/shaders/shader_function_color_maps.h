@@ -35,8 +35,9 @@ namespace rendering
 namespace shader_funcion
 {
 
-
-inline std::string color_maps_shader_source()
+namespace color_map
+{
+inline std::string source()
 {
 	return std::string(R"(
 	const float M_PI = 3.1415926535897932384626433832795;
@@ -132,8 +133,28 @@ inline std::string color_maps_shader_source()
 
 	)");
 }
+
+
+	struct Uniforms
+	{
+		int color_map_;
+		int expansion_;
+		float min_value_;
+		float max_value_;
+		Uniforms():
+			color_map_(0),
+			expansion_(0),
+			min_value_(0),
+			max_value_(1)
+		{}
+	};
+
+static const char* name[] = {"color_map", "expansion", "min_value", "max_value"};
+
 }
 
+
+}
 } // namespace rendering
 } // namespace cgogn
 

@@ -70,6 +70,7 @@ public:
 	{
 		vbo_pos_ = vbos[0];
 		vbo_color_ = vbos[1];
+		vao_initialized_ = true;
 	}
 };
 

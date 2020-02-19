@@ -504,13 +504,13 @@ protected:
 					});
 					ImGui::TextUnformatted("ColorMAP:");
 					ImGui::BeginGroup();
-					need_update |= ImGui::RadioButton("BWR", &(p.param_volumes_scalar_->color_map_),0);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("CWR", &p.param_volumes_scalar_->color_map_, 1);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("BCGYR", &p.param_volumes_scalar_->color_map_, 2);ImGui::SameLine();
-					need_update |= ImGui::RadioButton("BCR", &p.param_volumes_scalar_->color_map_, 3);
-					need_update |= ImGui::SliderInt("expansion", &(p.param_volumes_scalar_->expansion_), -2, 2);
-					need_update |= ImGui::SliderFloat("min##colormap", &(p.param_volumes_scalar_->min_value_), 0.0, 1.0);
-					need_update |= ImGui::SliderFloat("max##colormap", &(p.param_volumes_scalar_->max_value_), 0.0, 1.0);
+					need_update |= ImGui::RadioButton("BWR", &(p.param_volumes_scalar_->cm_.color_map_),0);ImGui::SameLine();
+					need_update |= ImGui::RadioButton("CWR", &p.param_volumes_scalar_->cm_.color_map_, 1);ImGui::SameLine();
+					need_update |= ImGui::RadioButton("BCGYR", &p.param_volumes_scalar_->cm_.color_map_, 2);ImGui::SameLine();
+					need_update |= ImGui::RadioButton("BCR", &p.param_volumes_scalar_->cm_.color_map_, 3);
+					need_update |= ImGui::SliderInt("expansion", &(p.param_volumes_scalar_->cm_.expansion_), -2, 2);
+					need_update |= ImGui::SliderFloat("min##colormap", &(p.param_volumes_scalar_->cm_.min_value_), 0.0, 1.0);
+					need_update |= ImGui::SliderFloat("max##colormap", &(p.param_volumes_scalar_->cm_.max_value_), 0.0, 1.0);
 					ImGui::EndGroup();
 				}
 
