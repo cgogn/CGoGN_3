@@ -166,7 +166,7 @@ void WallPaper::set_local_position(float x, float y, float w, float h, bool fron
 WallPaper::Renderer::Renderer(WallPaper* wp) : wall_paper_data_(wp)
 {
 	param_texture_ = ShaderTexture::generate_param();
-	param_texture_->set_vbos(wp->vbo_pos_.get(), wp->vbo_tc_.get());
+	param_texture_->set_vbos({wp->vbo_pos_.get(), wp->vbo_tc_.get()});
 	param_texture_->texture_ = wp->texture_.get();
 }
 

@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Texture)
+DECLARE_SHADER_CLASS(Texture,CGOGN_STR(Textures))
 
 class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
 {
@@ -57,12 +57,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_tc)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_tc);
-		release_vao();
-	}
 };
 
 } // namespace rendering

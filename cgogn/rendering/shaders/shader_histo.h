@@ -34,7 +34,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(Histo)
+DECLARE_SHADER_CLASS(Histo,CGOGN_STR(Histo))
 
 class CGOGN_RENDERING_EXPORT ShaderParamHisto : public ShaderParam
 {

@@ -77,6 +77,7 @@ public:
 			glVertexAttribPointer(vid, GLint(std::get<1>(p).vector_dimension()), GL_FLOAT, GL_FALSE, 0, nullptr);
 		}
 		glBindVertexArray(0);
+		
 	}
 
 	inline void bind()
@@ -88,6 +89,18 @@ public:
 	{
 		glBindVertexArray(0);
 	}
+
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_"+name_);
+	}
+
+	inline const std::string& name() const
+	{
+		return name_;
+	}
+
 };
 
 } // namespace rendering

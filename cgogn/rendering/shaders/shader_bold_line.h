@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(BoldLine)
+DECLARE_SHADER_CLASS(BoldLine,CGOGN_STR(BoldLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 {
@@ -47,13 +47,24 @@ class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 public:
 	GLColor color_;
 	float32 width_;
+	bool blending_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		width_ = std::get<1>(a);
+		blending_ = std::get<2>(a);
+	}
 
 	using LocalShader = ShaderBoldLine;
 
 	ShaderParamBoldLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), width_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), color_(color_line_default), width_(2),blending_(true),
+		plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
@@ -61,12 +72,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

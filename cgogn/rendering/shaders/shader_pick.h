@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Pick)
+DECLARE_SHADER_CLASS(Pick,CGOGN_STR(Pick))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPick : public ShaderParam
 {
@@ -52,12 +52,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
 };
 
 } // namespace rendering

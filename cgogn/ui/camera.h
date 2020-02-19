@@ -141,11 +141,10 @@ public:
 
 	inline rendering::GLMat4d projection_matrix_d() const
 	{
-		//		Transfo3d tr = frame_ * Eigen::Translation3d(-pivot_shift_);
-		//		float64 d = focal_distance_ - (tr.translation()/*frame_.translation()-pivot_shift_*/).z();
 		float64 d = focal_distance_ - frame_.translation().z();
-		float64 znear = std::max(0.001, d - 2.0 * scene_radius_);
+		float64 znear = std::max(0.1, d - 2.0 * scene_radius_);
 		float64 zfar = d + 2.0 * scene_radius_;
+
 		proj_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : orthographic(znear, zfar));
 		return proj_;
 	}

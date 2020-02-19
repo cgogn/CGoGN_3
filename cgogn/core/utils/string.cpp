@@ -73,13 +73,16 @@ std::string filename_from_path(const std::string& s)
 	using char_t = std::string::value_type;
 	char_t sep = '/';
 
-#ifdef _WIN32
-	sep = '\\';
-#endif
-
-	const std::size_t i = s.rfind(sep, s.length());
+	std::size_t i = s.rfind(sep, s.length());
 	if (i != std::string::npos)
 		return (s.substr(i + 1, s.length() - i));
+
+#ifdef _WIN32
+	sep = '\\';
+	i = s.rfind(sep, s.length());
+	if (i != std::string::npos)
+		return (s.substr(i + 1, s.length() - i));
+#endif
 
 	return ("");
 }

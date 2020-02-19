@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
- * Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -95,7 +95,6 @@ int main(int argc, char** argv)
 	cgogn::index_cells<Mesh::Volume>(*m);
 	cgogn::index_cells<Mesh::Edge>(*m);
 	cgogn::index_cells<Mesh::Face>(*m);
-
 
 	mrsr.set_vertex_position(*v1, *cph1, position);
 	mrsr.set_vertex_position(*v1, *cph2, nullptr);

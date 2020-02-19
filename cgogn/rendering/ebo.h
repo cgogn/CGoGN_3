@@ -28,7 +28,8 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
-
+#include <cgogn/rendering/types.h>
+#include <iostream>
 #include <string>
 
 namespace cgogn
@@ -41,12 +42,16 @@ class CGOGN_RENDERING_EXPORT EBO
 {
 protected:
 	GLuint id_;
+	GLuint id_tb_;
 	std::size_t nb_;
+	std::string name_;
 
 public:
-	inline EBO() : id_(0), nb_(0)
-	{
-	}
+	inline EBO() :
+		id_(0),
+		id_tb_(0),
+		nb_(0)
+	{}
 
 	inline void create()
 	{
@@ -61,6 +66,7 @@ public:
 	inline ~EBO()
 	{
 		glDeleteBuffers(1, &id_);
+		id_ = 0;
 	}
 
 	inline void bind()
@@ -71,6 +77,27 @@ public:
 	inline void release()
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	inline GLint bind_tb(GLint unit)
+	{
+		if (id_tb_==0)
+		{
+			glGenTextures(1,&id_tb_);
+			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
+			glBindTexture(GL_TEXTURE_BUFFER,0);
+
+		}
+
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
+		return unit;
+	}
+
+	inline static void release_tb()
+	{
+		glBindTexture(GL_TEXTURE_BUFFER,0);
 	}
 
 	inline void allocate(std::size_t nb_ind)
@@ -84,7 +111,7 @@ public:
 		}
 	}
 
-	inline void allocate(GLuint* indices, std::size_t nb_ind)
+	inline void allocate(const GLuint* indices, std::size_t nb_ind)
 	{
 		if (nb_ind != nb_) // only allocate when > ?
 		{
@@ -102,35 +129,33 @@ public:
 	}
 
 	/**
-	 * @brief get and lock pointer on buffer memory
+	 * @brief get and lock pointer on buffer memory, you must bind before
 	 * @return  the pointer
 	 */
 	inline GLuint* lock_pointer()
 	{
-		this->bind();
-		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
+		return reinterpret_cast<GLuint*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_WRITE));
 	}
 
 	/**
-	 * @brief release_pointer
+	 * @brief release_pointer (must be binded)
 	 */
 	inline void release_pointer()
 	{
-		this->bind();
 		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-		this->release();
+
 	}
 
 	/**
 	 * @brief copy data
-	 * @param offset offset in bytes in the bufffer
-	 * @param nb number of bytes to copy
+	 * @param offset offset in GLuint in the bufffer
+	 * @param nb number of GLuint to copy
 	 * @param src source pointer
 	 */
 	inline void copy_data(uint32 offset, std::size_t nb, const void* src)
 	{
 		this->bind();
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset*sizeof(GLuint), GLsizeiptr(nb)*sizeof(GLuint), src);
 		this->release();
 	}
 
@@ -143,7 +168,36 @@ public:
 	{
 		return id_;
 	}
+
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+		gl_debug_name(GL_BUFFER,id_,"VBO_"+name_);
+	}
+
+	inline const std::string& name() const
+	{
+		return name_;
+	}
+
 };
+
+
+inline std::ostream& operator<<(std::ostream& out, EBO& ebo)
+{
+	std::cout <<"Debug EBO "<< ebo.id()<<std::endl;
+	ebo.bind();
+	uint32* f = ebo.lock_pointer();
+	for (int i=0; i<10; ++i)
+	{
+		std::cout << *f++<<" / ";
+	}
+	std::cout << std::endl;
+	ebo.release_pointer();
+	ebo.release();
+	std::cout <<"-----end Debug EBO------" << std::endl;
+	return out;
+}
 
 } // namespace rendering
 

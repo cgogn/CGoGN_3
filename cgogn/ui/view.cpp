@@ -1,6 +1,6 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -230,10 +230,10 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	xs = GLint(double(x - x_offset_) / double(width_) * viewport_width_);
 	ys = GLint(double(height_ - (y - y_offset_)) / double(height_) * viewport_height_);
 
-	fbo_->bind();
+	fbo_->bind_read();
 	glReadBuffer(GL_DEPTH_ATTACHMENT);
 	glReadPixels(xs, ys, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, z);
-	fbo_->release();
+	fbo_->release_read();
 
 	if (*z >= 1.0f)
 		return false;

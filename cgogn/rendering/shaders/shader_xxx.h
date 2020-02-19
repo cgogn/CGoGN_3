@@ -89,12 +89,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		vbo_pos->associate(ShaderProgram::ATTRIB_POS);
-		release_vao();
-	}
 };
 
 } // namespace rendering
