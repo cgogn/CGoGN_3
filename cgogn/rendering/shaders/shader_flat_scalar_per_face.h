@@ -45,7 +45,7 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
-	shader_funcion::color_map::Uniforms cm_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
 	template<typename ...Args>
 	void fill(Args&&... args)
@@ -60,19 +60,20 @@ public:
 		cm_.max_value_ = 1.0f;
 	}
 
-	using LocalShader = ShaderFlatScalarPerFace;
+    using LocalShader = ShaderFlatScalarPerFace;
 
-	ShaderParamFlatScalarPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), vbo_scalar_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
-		  light_position_(10, 100, 1000), double_side_(true)
-	{
-	}
+    ShaderParamFlatScalarPerFace(LocalShader *sh)
+        : ShaderParam(sh)
+        , vbo_pos_(nullptr)
+        , vbo_scalar_(nullptr)
+        , ambiant_color_(0.05f, 0.05f, 0.05f, 1)
+        , light_position_(10, 100, 1000)
+        , double_side_(true)
+    {}
 
-	inline ~ShaderParamFlatScalarPerFace() override
-	{
-	}
+    inline ~ShaderParamFlatScalarPerFace() override {}
 
-	void set_vbos(const std::vector<VBO*>& vbos) override;
+    void set_vbos(const std::vector<VBO*>& vbos) override;
 };
 
 } // namespace rendering

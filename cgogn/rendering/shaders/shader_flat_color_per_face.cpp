@@ -99,6 +99,12 @@ void ShaderParamFlatColorPerFace::set_uniforms()
 						ambiant_color_,light_position_,double_side_);
 }
 
+void ShaderParamFlatColorPerFace::set_vbos(const std::vector<VBO*>& vbos)
+{
+	vbo_pos_ = vbos[0];
+	vbo_color_ = vbos[1];
+	vao_initialized_ = vbos[0]!=nullptr && vbos[1]!=nullptr;
+}
 
 } // namespace rendering
 

@@ -452,9 +452,12 @@ protected:
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-			imgui_combo_attribute<Vertex,Vec3>(*selected_mesh_,p.vertex_position_, "Position Attribute", [&] ()
+			imgui_combo_attribute<Vertex,Vec3>(*selected_mesh_,
+											   p.vertex_position_,
+											   "Position Attribute",
+											   [&] (const decltype(p.vertex_position_)& att)
 			{
-				set_vertex_position(*selected_view_, *selected_mesh_, p.vertex_position_);
+				set_vertex_position(*selected_view_, *selected_mesh_, att);
 			});
 
 
@@ -499,9 +502,12 @@ protected:
 				{
 					ImGui::Separator();
 
-					imgui_combo_attribute<Volume,Scalar>(*selected_mesh_,p.volume_scalar_, "Vol. Scalar Attribute", [&] ()
+					imgui_combo_attribute<Volume,Scalar>(*selected_mesh_,
+														 p.volume_scalar_,
+														 "Vol. Scalar Attribute",
+														 [&] (const decltype(p.volume_scalar_)& att)
 					{
-						set_volume_scalar(*selected_view_, *selected_mesh_, p.volume_scalar_);
+						set_volume_scalar(*selected_view_, *selected_mesh_, att);
 					});
 					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_,"vol_scal");
 				}
@@ -509,9 +515,12 @@ protected:
 				if (p.render_volumes_==3)
 				{
 					ImGui::Separator();
-					imgui_combo_attribute<Volume,Vec3>(*selected_mesh_,p.volume_color_, "Vol. Color Attribute", [&] ()
+					imgui_combo_attribute<Volume,Vec3>(*selected_mesh_,
+													   p.volume_color_,
+													   "Vol. Color Attribute",
+													   [&] (const decltype(p.volume_color_)& att)
 					{
-						set_volume_color(*selected_view_, *selected_mesh_, p.volume_color_);
+						set_volume_color(*selected_view_, *selected_mesh_, att);
 					});
 				}
 

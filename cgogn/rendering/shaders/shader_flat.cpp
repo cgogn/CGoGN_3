@@ -33,40 +33,43 @@ ShaderFlat* ShaderFlat::instance_ = nullptr;
 
 ShaderFlat::ShaderFlat()
 {
-	const char* vertex_shader_source = "#version 150\n"
-									   "in vec3 vertex_pos;\n"
-									   "uniform mat4 projection_matrix;\n"
-									   "uniform mat4 model_view_matrix;\n"
-									   "out vec3 pos;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
-									   "	pos = pos4.xyz;"
-									   "   gl_Position = projection_matrix * pos4;\n"
-									   "}\n";
+    const char *vertex_shader_source =
+        R"(#version 150
+    in vec3 vertex_pos;
+    uniform mat4 projection_matrix;
+    uniform mat4 model_view_matrix;
+    out vec3 pos;
+    void main()
+    {
+    vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);
+    pos = pos4.xyz;
+      gl_Position = projection_matrix * pos4;
+    };
+    )";
 
-	const char* fragment_shader_source =
-		"#version 150\n"
-		"out vec4 fragColor;\n"
-		"uniform vec4 front_color;\n"
-		"uniform vec4 back_color;\n"
-		"uniform vec4 ambiant_color;\n"
-		"uniform vec3 light_position;\n"
-		"uniform bool double_side;\n"
-		"in vec3 pos;\n"
-		"void main()\n"
-		"{\n"
-		"	vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));\n"
-		"	vec3 L = normalize(light_position-pos);\n"
-		"	float lambert = dot(N,L);\n"
-		"	if (gl_FrontFacing)\n"
-		"		fragColor = vec4(ambiant_color.rgb+lambert*front_color.rgb, front_color.a);\n"
-		"	else\n"
-		"		if (!double_side) discard;\n"
-		"		else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);\n"
-		"}\n";
+    const char *fragment_shader_source =
+        R"(#version 150
+    out vec4 fragColor;
+    uniform vec4 front_color;
+    uniform vec4 back_color;
+    uniform vec4 ambiant_color;
+    uniform vec3 light_position;
+    uniform bool double_side;
+    in vec3 pos;
+    void main()
+    {
+        vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+        vec3 L = normalize(light_position-pos);
+        float lambert = dot(N,L);
+        if (gl_FrontFacing)
+            fragColor = vec4(ambiant_color.rgb+lambert*front_color.rgb, front_color.a);
+        else
+            if (!double_side) discard;
+            else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);
+    };
+    )";
 
-	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos");
+    load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos");
 
 	add_uniforms("front_color", "back_color", "ambiant_color", "light_position", "double_side");
 }

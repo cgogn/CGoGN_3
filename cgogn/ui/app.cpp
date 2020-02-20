@@ -38,6 +38,9 @@ namespace cgogn
 namespace ui
 {
 
+uint32 label_uuid=0;
+
+
 static void glfw_error_callback(int error, const char* description)
 {
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
@@ -85,8 +88,7 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 	}
 
 	std::cerr << "================== DEBUG OPENGL ==========================" <<std::endl;
-	std::cerr << gl_dbg_str[type] <<std::endl;
-	std::cerr << "ID "<< id<< std::endl;
+	std::cerr << gl_dbg_str[source] <<std::endl;
 	std::cerr << gl_dbg_str[type] <<std::endl;
 	std::cerr << message << std::endl;
 	std::cerr << "==========================================================" << std::endl;
@@ -489,6 +491,8 @@ int App::launch()
 			fps_ = 50 / (now - time_last_50_frames_);
 			time_last_50_frames_ = now;
 		}
+
+		label_uuid = 0;
 
 		boost::synapse::poll(*tlq_);
 

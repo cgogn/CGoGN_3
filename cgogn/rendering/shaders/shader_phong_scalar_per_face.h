@@ -50,7 +50,7 @@ public:
 	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
-	shader_funcion::color_map::Uniforms cm_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
 
 	template<typename ...Args>

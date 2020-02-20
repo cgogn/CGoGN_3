@@ -322,8 +322,9 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES"<<std::endl;
 	}
 
-
 	vao_initialized_ = true;
+	shader_->bind();
+
 	bind_vao();
 	GLuint attrib = 1u;
 	for (auto* v : vbos)
@@ -336,6 +337,7 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		}
 	}
 	release_vao();
+	shader_->release();
 }
 
 

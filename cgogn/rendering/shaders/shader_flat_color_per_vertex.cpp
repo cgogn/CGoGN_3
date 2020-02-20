@@ -21,13 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
-
+#include <cgogn/rendering/shaders/shader_flat_color_per_vertex.h>
 
 namespace cgogn
 {
@@ -35,69 +29,51 @@ namespace cgogn
 namespace rendering
 {
 
-enum ColorMap : int32
+const char *vertex_shader_source =
+    R"(#version 150
+in vec3 vertex_pos;
+in vec3 vertex_color;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+out vec3 pos;
+out vec3 color;
+void main()
 {
-	BWR = 0,
-	CWR,
-	BCGYR,
-	BGR
+    vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);
+    pos = pos4.xyz;
+    gl_Position = projection_matrix * pos4;
 };
+)";
 
-
-DECLARE_SHADER_CLASS(ExplodeVolumesScalar,CGOGN_STR(ExplodeVolumesScalar))
-
-class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderParam
+const char *fragment_shader_source =
+    R"(#version 150
+out vec3 fragColor;
+uniform vec4 ambiant_color;
+uniform vec3 light_position;
+uniform bool double_side;
+in vec3 pos;
+in vec3 color;
+void main()
 {
-	void set_uniforms() override;
-
-public:
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
-	VBO* vbo_scalar_vol_;
-	float32 explode_;
-	GLVec3 light_pos_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-	shader_funcion::ColorMap::Uniforms cm_;
-
-	template<typename ...Args>
-	void fill(Args&&... args)
-	{
-		auto a = std::forward_as_tuple(args...);
-		explode_ = std::get<0>(a);
-		light_pos_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
-		cm_.color_map_ = 0;
-		cm_.expansion_ = 0;
-		cm_.min_value_ = 0;
-		cm_.max_value_ = 1;
-	}
-
-
-	using LocalShader = ShaderExplodeVolumesScalar;
-
-	ShaderParamExplodeVolumesScalar(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
-		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_scalar_vol_(nullptr),
-		  plane_clip_(0, 0, 0, 0),
-		  plane_clip2_(0, 0, 0, 0)
-	{
-	}
-
-	inline ~ShaderParamExplodeVolumesScalar() override
-	{
-	}
-
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
-	{
-		vbo_pos_ = vbos[0];
-		vbo_center_ = vbos[1];
-		vbo_scalar_vol_ = vbos[2];
-	}
+    vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+    vec3 L = normalize(light_position-pos);
+    float lambert = dot(N,L);
+    if (!gl_FrontFacing && !double_side)
+         discard;
+    else
+        fragColor = ambiant_color.rgb + lambert*color.rgb;
 };
+)";
+
+ShaderFlatColorPerVertex *ShaderFlatColorPerVertex::instance_ = nullptr;
+
+ShaderFlatColorPerVertex::ShaderFlatColorPerVertex()
+{
+    load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos");
+
+    add_uniforms("ambiant_color", "light_position", "double_side");
+}
 
 } // namespace rendering
-} // namespace cgogn
 
-#endif
+} // namespace cgogn

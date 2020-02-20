@@ -36,6 +36,20 @@ namespace cgogn
 {
 namespace ui
 {
+// RAZ on every frame
+extern uint32 label_uuid;
+
+std::string unique()
+{
+	std::string label("####");
+	auto i = 6u;
+	label[--i] = '0'+label_uuid%64u;
+	auto l = label_uuid++/64u;
+	label[--i] = '0'+l%64u;
+	l /= 10;
+	label[--i] = '0'+l%64u;
+	return label;
+}
 
 /**
  * @brief generate combo for attribute selection
@@ -52,7 +66,6 @@ inline void imgui_combo_attribute(const MESH& m,
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	std::string selected_attrib = att ? att->name() : "-- select --";
-	bool changed=false;
 	if (ImGui::BeginCombo(label.c_str(), selected_attrib.c_str()))
 	{
 		foreach_attribute<T,CELL>(m,
@@ -60,11 +73,7 @@ inline void imgui_combo_attribute(const MESH& m,
 		{
 			bool is_selected = attribute == att;
 			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-			{
-				if (att != attribute)
-					changed = true;
-				att = attribute;
-			}
+				f(attribute);
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		});
@@ -76,20 +85,14 @@ inline void imgui_combo_attribute(const MESH& m,
 		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 		if (ImGui::Button((std::string("X##")+label).c_str()))
-		{
-			att.reset();
-			changed = true;
-		}
+			f(nullptr);
 	}
 
-	if (changed)
-		f();
 }
 
-bool imgui_colormap_interface(rendering::shader_funcion::color_map::Uniforms& cm, const std::string& label)
+bool imgui_colormap_interface(rendering::shader_funcion::ColorMap::Uniforms& cm, const std::string& label)
 {
 	bool need_update = false;
-	ImGui::TextUnformatted("ColorMAP:");
 	ImGui::BeginGroup();
 	need_update |= ImGui::RadioButton((std::string("BWR##")+label).c_str(), &(cm.color_map_),0);ImGui::SameLine();
 	need_update |= ImGui::RadioButton((std::string("CWR##")+label).c_str(), &cm.color_map_, 1);ImGui::SameLine();

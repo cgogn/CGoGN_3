@@ -115,7 +115,6 @@ ShaderPhongColorPerFace::ShaderPhongColorPerFace()
 
 void ShaderParamPhongColorPerFace::set_uniforms()
 {
-	if (vbo_pos_)
 		shader_->set_uniforms_values(10,11,
 						vbo_pos_->bind_tb(12),
 						vbo_norm_->bind_tb(13),

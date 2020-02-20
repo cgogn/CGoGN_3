@@ -96,14 +96,14 @@ ShaderExplodeVolumesScalar* ShaderExplodeVolumesScalar::instance_ = nullptr;
 ShaderExplodeVolumesScalar::ShaderExplodeVolumesScalar()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_map::source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source);
 	add_uniforms("tri_indices", "pos_vertex", "center_volume","scalar_volume",
 				"light_position", "explode", "plane_clip", "plane_clip2",
-				shader_funcion::color_map::name[0],
-				shader_funcion::color_map::name[1],
-				shader_funcion::color_map::name[2],
-				shader_funcion::color_map::name[3]);
+				shader_funcion::ColorMap::name[0],
+				shader_funcion::ColorMap::name[1],
+				shader_funcion::ColorMap::name[2],
+				shader_funcion::ColorMap::name[3]);
 }
 
 void ShaderParamExplodeVolumesScalar::set_uniforms()

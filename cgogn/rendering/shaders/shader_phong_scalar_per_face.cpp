@@ -109,17 +109,17 @@ void main()
 ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_map::source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::ColorMap::source);
 	load2_bind(v_src,fragment_shader_source);
 
 	add_uniforms("tri_indices", "face_emb",
 				 "position_vertex", "normal_vertex", "scalar_face",
 				 "light_pos", "ambiant_color",
 				 "spec_color", "spec_coef", "double_side",
-				 shader_funcion::color_map::name[0],
-				 shader_funcion::color_map::name[1],
-				 shader_funcion::color_map::name[2],
-				 shader_funcion::color_map::name[3]);
+				 shader_funcion::ColorMap::name[0],
+				 shader_funcion::ColorMap::name[1],
+				 shader_funcion::ColorMap::name[2],
+				 shader_funcion::ColorMap::name[3]);
 }
 
 void ShaderParamPhongScalarPerFace::set_uniforms()

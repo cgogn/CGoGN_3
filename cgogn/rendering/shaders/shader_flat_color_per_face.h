@@ -66,12 +66,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
-	{
-		vbo_pos_ = vbos[0];
-		vbo_color_ = vbos[1];
-		vao_initialized_ = true;
-	}
+	void set_vbos(const std::vector<VBO*>& vbos) override;
 };
 
 } // namespace rendering

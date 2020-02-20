@@ -22,7 +22,6 @@
  *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -30,12 +29,8 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderFlatScalarPerFace* ShaderFlatScalarPerFace::instance_ = nullptr;
-
-ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
-{
-	const char* vertex_shader_source =
-			R"(
+static const char *vertex_shader_source =
+    R"(
 			#version 330
 			uniform mat4 projection_matrix;
 			uniform mat4 model_view_matrix;
@@ -69,8 +64,8 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 			}
 			)";
 
-	const char* fragment_shader_source =
-		R"(#version 330
+static const char *fragment_shader_source =
+    R"(#version 330
 		out vec3 fragColor;
 		uniform vec4 ambiant_color;
 		uniform vec3 light_position;
@@ -90,16 +85,20 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 		}
 		)";
 
+ShaderFlatScalarPerFace *ShaderFlatScalarPerFace::instance_ = nullptr;
+
+ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
+{
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_map::source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source, "");
 
 	add_uniforms("tri_ind","tri_emb", "pos_vertex","scalar_tri","ambiant_color",
 				 "light_position", "double_side",
-				 shader_funcion::color_map::name[0],
-				 shader_funcion::color_map::name[1],
-				 shader_funcion::color_map::name[2],
-				 shader_funcion::color_map::name[3]);
+				 shader_funcion::ColorMap::name[0],
+				 shader_funcion::ColorMap::name[1],
+				 shader_funcion::ColorMap::name[2],
+				 shader_funcion::ColorMap::name[3]);
 }
 
 
