@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,17 +21,12 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
-#define CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/ebo.h>
-#include <cgogn/rendering/fbo.h>
-#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/transform_feedback.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/vbo.h>
 
 namespace cgogn
 {
@@ -39,71 +34,47 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1, CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2, CGOGN_STR(ComputeNormal2))
+DECLARE_SHADER_CLASS(PhongScalarPerVertex, CGOGN_STR(PhongScalarPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerVertex : public ShaderParam
 {
 protected:
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_pos_;
-	int32 height_tex_;
+	GLColor front_color_;
+	GLColor back_color_;
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
+	GLVec3 light_position_;
+	bool double_side_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
-	using LocalShader = ShaderComputeNormal1;
-
-	ShaderParamComputeNormal1(LocalShader* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-	}
-};
-
-class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal2 : public ShaderParam
-{
-protected:
-	void set_uniforms() override;
-
-public:
-	Texture2D* tex_;
-
-	using LocalShader = ShaderComputeNormal2;
-
-	ShaderParamComputeNormal2(LocalShader* sh) : ShaderParam(sh)
-	{
-	}
-};
-
-using TFB_ComputeNormal = TransformFeedback<ShaderComputeNormal2>;
-
-class ComputeNormalEngine
-{
-	static ComputeNormalEngine* instance_;
-	Texture2D* tex_;
-	FBO* fbo_;
-	std::unique_ptr<ShaderComputeNormal1::Param> param1_;
-	std::unique_ptr<ShaderComputeNormal2::Param> param2_;
-	TFB_ComputeNormal* tfb_;
-
-	ComputeNormalEngine();
-
-	~ComputeNormalEngine();
-
-public:
-	ComputeNormalEngine(const ComputeNormalEngine&) = delete;
-
-	inline static ComputeNormalEngine* generate()
-	{
-		if (!instance_)
-		{
-			instance_ = new ComputeNormalEngine();
-		}
-		return instance_;
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
 	}
 
-	void compute(VBO* pos, MeshRender* renderer, VBO* normals);
+	using ShaderType = ShaderPhongScalarPerVertex;
+
+	ShaderParamPhongScalarPerVertex(ShaderType* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
+
+	inline ~ShaderParamPhongScalarPerVertex() override
+	{
+	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_PHONG_H_

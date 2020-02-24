@@ -44,7 +44,7 @@ MeshRender::~MeshRender()
 
 void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
-	uint32 prim_buffer = (prim<SIZE_BUFFER) ? prim : prim-(SIZE_BUFFER+1);
+	uint32 prim_buffer = (prim < SIZE_BUFFER) ? prim : prim - (SIZE_BUFFER + 1);
 	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
 	if (nb_indices == 0)
 		return;
@@ -68,40 +68,44 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		break;
 	case VOLUMES_EDGES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/3);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 3);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_FACES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/4);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 4);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_VERTICES:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArrays(GL_POINTS, 0, nb_indices/2);
+		glDrawArrays(GL_POINTS, 0, nb_indices / 2);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case LINES_TB:
 		indices_buffers_[LINES]->bind_tb(binding_point);
-		indices_buffers_[INDEX_EDGES]->bind_tb(binding_point+1);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/2);
+		indices_buffers_[INDEX_EDGES]->bind_tb(binding_point + 1);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 2);
 		indices_buffers_[INDEX_EDGES]->release_tb();
 		indices_buffers_[LINES]->release_tb();
 		break;
 	case TRIANGLES_TB:
 		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
-		indices_buffers_[INDEX_FACES]->bind_tb(binding_point+1);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/3);
+		indices_buffers_[INDEX_FACES]->bind_tb(binding_point + 1);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 3);
 		indices_buffers_[INDEX_FACES]->release_tb();
+		indices_buffers_[TRIANGLES]->release_tb();
+		break;
+
+	case TRIANGLES_TB_POINTS:
+		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
+		glDrawArraysInstanced(GL_POINTS, 0, 3, nb_indices / 3);
 		indices_buffers_[TRIANGLES]->release_tb();
 		break;
 
 	default:
 		break;
 	}
-	
 }
-
 
 } // namespace rendering
 

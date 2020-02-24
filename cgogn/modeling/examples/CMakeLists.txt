@@ -10,9 +10,9 @@ find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_modeling REQUIRED)
 
 set(APPS_LIST
-    modeling
-    tubular_mesh
-    deformation
+#    modeling
+#    tubular_mesh
+#    deformation
 #    mr_volume
     )
 

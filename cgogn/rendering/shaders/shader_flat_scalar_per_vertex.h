@@ -38,37 +38,31 @@ DECLARE_SHADER_CLASS(FlatScalarPerVertex, CGOGN_STR(FlatScalarPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerVertex : public ShaderParam
 {
-    void set_uniforms() override;
+	void set_uniforms() override;
 
 public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
-    shader_funcion::ColorMap::Uniforms cm_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
-    template<typename... Args>
-    void fill(Args &&... args)
-    {
-        auto a = std::forward_as_tuple(args...);
-        ambiant_color_ = std::get<0>(a);
-        light_position_ = std::get<1>(a);
-        double_side_ = std::get<2>(a);
-        cm_.color_map_ = 0;
-        cm_.expansion_ = 0;
-        cm_.min_value_ = 0.0f;
-        cm_.max_value_ = 1.0f;
-    }
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		ambiant_color_ = pp.ambiant_color_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
+	}
 
-    using LocalShader = ShaderFlatScalarPerVertex;
+	using LocalShader = ShaderFlatScalarPerVertex;
 
-    ShaderParamFlatScalarPerVertex(LocalShader *sh)
-        : ShaderParam(sh)
-        , ambiant_color_(0.05f, 0.05f, 0.05f, 1)
-        , light_position_(10, 100, 1000)
-        , double_side_(true)
-    {}
+	ShaderParamFlatScalarPerVertex(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
 
-    inline ~ShaderParamFlatScalarPerVertex() override {}
+	inline ~ShaderParamFlatScalarPerVertex() override
+	{
+	}
 };
 
 } // namespace rendering

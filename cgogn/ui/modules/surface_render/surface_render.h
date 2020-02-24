@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN                                                                        *
  * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
  *                                                                              *
@@ -27,9 +27,8 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/view.h>
 #include <cgogn/ui/tools.h>
-
+#include <cgogn/ui/view.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -40,15 +39,21 @@
 #include <cgogn/rendering/shaders/shader_flat_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_vertex.h>
+#include <cgogn/rendering/shaders/shader_no_illum.h>
+#include <cgogn/rendering/shaders/shader_no_illum_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_no_illum_color_per_vertex.h>
+#include <cgogn/rendering/shaders/shader_no_illum_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_no_illum_scalar_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_phong_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_phong_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_phong_scalar_per_vertex.h>
 
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
 
-#include <cgogn/rendering/shaders/compute_volume_centers.h>
-
+#include <cgogn/rendering/shaders/compute_normals.h>
 
 #include <cgogn/geometry/algos/length.h>
 
@@ -59,198 +64,260 @@
 namespace cgogn
 {
 
-namespace rendering
-{
-
-static GLColor WHITE{1,1,1,1};
-static GLColor BLACK{0,0,0,1};
-static GLColor BLUE{0,0.69f,0.83f,1};
-static GLColor GREEN{0,1,0.5f,1};
-static GLColor GREY1{0.1f,0.1f,0.1f,1};
-static GLColor YELLOW{0.1f,0.1f,0.1f,1};
-static GLColor ORANGE{1,0.5f,0,1};
-
-template <class SHADER, typename ...Args>
-std::unique_ptr< typename SHADER::Param> generate_shader_param(Args&& ...args)
-{
-	std::unique_ptr< typename SHADER::Param> p = SHADER::generate_param();
-	p->fill(args...);
-	return p;
-}
-
-}
-
-
 namespace ui
 {
 
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension >= 2, "SurfaceRender can only be used with meshes of dimension >= 2");
+	static_assert(mesh_traits<MESH>::dimension == 2, "SurfaceRender can only be used with meshes of dimension = 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 	using Volume = typename mesh_traits<MESH>::Volume;
 
-    using Vec3 = geometry::Vec3;
-    using Scalar = geometry::Scalar;
+	using Vec3 = geometry::Vec3;
+	using Scalar = geometry::Scalar;
 
-    enum RenderFaceStyle : int32 {
-        Nonoe = 0,
-        Flat,
-        Flat_scalar_per_vertex,
-        Flat_color_per_vertex,
-        Flat_scalar_per_face,
-        Flat_color_per_face,
-        Phong,
-        Phong_scalar_per_vertex,
-        Phong_color_per_vertex,
-        Phong_scalar_per_face,
-        Phong_color_per_face
-    };
+	enum RenderStyle : int32
+	{
+		None = -1,
+		Points,
+		Lines,
+		NoIllum,
+		NoIllum_scalar_per_vertex,
+		NoIllum_color_per_vertex,
+		NoIllum_scalar_per_face,
+		NoIllum_color_per_face,
+		Flat,
+		Flat_scalar_per_vertex,
+		Flat_color_per_vertex,
+		Flat_scalar_per_face,
+		Flat_color_per_face,
+		Phong,
+		Phong_scalar_per_vertex,
+		Phong_color_per_vertex,
+		Phong_scalar_per_face,
+		Phong_color_per_face,
+	};
 
-    int32 d = geometry::vector_traits<Scalar>::SIZE;
+	constexpr bool is_per_face(RenderStyle rs)
+	{
+		return ((rs > 1) && ((rs % 5) < 2));
+	}
 
-    struct Parameters
-    {
-        inline Parameters()
-            : vertex_position_(nullptr)
-            , vbo_vertex_position_(nullptr)
-            , vertex_normal_(nullptr)
-            , vbo_vertex_normal_(nullptr)
-            , vertex_scalar_(nullptr)
-            , vbo_vertex_scalar_(nullptr)
-            , vertex_color_(nullptr)
-            , vbo_vertex_color_(nullptr)
-            , face_scalar_(nullptr)
-            , vbo_face_scalar_(nullptr)
-            , face_color_(nullptr)
-            , vbo_face_color_(nullptr)
-            , render_vertices_(false)
-            , render_faces_style_(1)
-            , vertex_scale_factor_(1.0)
-            , auto_update_scalar_min_max_(true)
-        {
-            rendering::GLVec3 LightPosition{10, 100, 1000};
-            using namespace rendering;
-            param_point_sprite_ = generate_shader_param<ShaderPointSprite>(ORANGE,
-                                                                           GREY1,
-                                                                           LightPosition);
-            param_edge_ = generate_shader_param<ShaderBoldLine>(WHITE, 2.0f, true);
-            param_flat_ = generate_shader_param<ShaderFlat>(BLUE, GREEN, GREY1, LightPosition, true);
-            param_flat_spv = generate_shader_param<ShaderFlatScalarPerFace>(GREY1,
-                                                                            LightPosition,
-                                                                            true);
-            param_flat_cpv = generate_shader_param<ShaderFlatColorPerVertex>(GREY1,
-                                                                             LightPosition,
-                                                                             true);
-            param_flat_spf = generate_shader_param<ShaderFlatScalarPerVertex>(GREY1,
-                                                                              LightPosition,
-                                                                              true);
-            param_flat_cpf = generate_shader_param<ShaderFlatColorPerFace>(GREY1,
-                                                                           LightPosition,
-                                                                           true);
-            param_phong_ = generate_shader_param<ShaderPhong>(BLUE,
-                                                              GREEN,
-                                                              GREY1,
-                                                              WHITE,
-                                                              250.0f,
-                                                              LightPosition,
-                                                              true);
-            param_phong_spf = generate_shader_param<ShaderPhongScalarPerFace>(GREY1,
-                                                                              WHITE,
-                                                                              250.0f,
-                                                                              LightPosition,
-                                                                              true);
-            param_phong_cpf = generate_shader_param<ShaderPhongColorPerFace>(GREY1,
-                                                                             WHITE,
-                                                                             250.0f,
-                                                                             LightPosition,
-                                                                             true);
-        }
+	enum VBOContent : int32
+	{
+		Position = 0,
+		Normal,
+		Scalar_per_vertex,
+		Vec3_per_vertex,
+		Scalar_per_face,
+		Vec3_per_face,
+	};
 
-        inline void update_position()
-        {
-            param_point_sprite_->set_vbos({vbo_vertex_position_});
-            param_edge_->set_vbos({vbo_vertex_position_});
-            param_flat_->set_vbos({vbo_vertex_position_});
-            param_flat_spf->set_vbos({vbo_vertex_position_,vbo_face_scalar_});
-			param_flat_cpf->set_vbos({vbo_vertex_position_,vbo_face_color_});
-			std::cout<< "VBOS: "<< vbo_vertex_position_ << " / " <<vbo_vertex_normal_ << std::endl;
-            param_phong_->set_vbos({vbo_vertex_position_, vbo_vertex_normal_});
-            param_phong_spf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_, vbo_face_scalar_});
-            param_phong_cpf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_, vbo_face_color_});
-        }
+	using ILRenderStyles = std::initializer_list<RenderStyle>;
+	using ILVBOContents = std::initializer_list<VBOContent>;
+	// Lists if style which contain each VBO
+	static constexpr ILRenderStyles style_with_position = {Points,
+														   Lines,
+														   NoIllum,
+														   NoIllum_scalar_per_vertex,
+														   NoIllum_color_per_vertex,
+														   NoIllum_scalar_per_face,
+														   NoIllum_color_per_face,
+														   Flat,
+														   Flat_scalar_per_vertex,
+														   Flat_color_per_vertex,
+														   Flat_scalar_per_face,
+														   Flat_color_per_face,
+														   Phong,
+														   Phong_scalar_per_vertex,
+														   Phong_color_per_vertex,
+														   Phong_scalar_per_face,
+														   Phong_color_per_face};
 
-        inline void update_normal()
-        {
-            std::cout << "VBOS: " << vbo_vertex_position_ << " / " << vbo_vertex_normal_
-                      << std::endl;
-            param_phong_->set_vbos({vbo_vertex_position_, vbo_vertex_normal_});
-			param_phong_spf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_scalar_});
-            param_phong_cpf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_, vbo_face_color_});
-        }
+	static constexpr ILRenderStyles style_with_normals = {Phong, Phong_scalar_per_vertex, Phong_color_per_vertex,
+														  Phong_scalar_per_face, Phong_color_per_face};
+	static constexpr ILRenderStyles style_with_scalar_per_vertex = {NoIllum_scalar_per_vertex, Flat_scalar_per_vertex,
+																	Phong_scalar_per_vertex};
+	static constexpr ILRenderStyles style_with_color_per_vertex = {NoIllum_color_per_vertex, Flat_color_per_vertex,
+																   Phong_color_per_vertex};
+	static constexpr ILRenderStyles style_with_scalar_per_face = {NoIllum_scalar_per_face, Flat_scalar_per_face,
+																  Phong_scalar_per_face};
+	static constexpr ILRenderStyles style_with_color_per_face = {NoIllum_color_per_face, Flat_color_per_face,
+																 Phong_color_per_face};
 
-        inline void update_face_scalar()
-        {
-			param_flat_spf->set_vbos({vbo_vertex_position_,vbo_face_scalar_});
-			param_phong_spf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_scalar_});
-		}
+	static constexpr std::array<ILRenderStyles, 6> style_with_vbo = {
+		style_with_position,		 style_with_normals,		 style_with_scalar_per_vertex,
+		style_with_color_per_vertex, style_with_scalar_per_face, style_with_color_per_face};
 
-		inline void update_face_color()
+	// List of VBOs used in each style
+	static constexpr ILVBOContents vbo_of_NoIllum = {Position};
+	static constexpr ILVBOContents vbo_of_NoIllum_scalar_per_vertex = {Position, Scalar_per_vertex};
+	static constexpr ILVBOContents vbo_of_NoIllum_color_per_vertex = {Position, Vec3_per_vertex};
+	static constexpr ILVBOContents vbo_of_NoIllum_scalar_per_face = {Position, Scalar_per_face};
+	static constexpr ILVBOContents vbo_of_NoIllum_color_per_face = {Position, Vec3_per_face};
+
+	static constexpr ILVBOContents vbo_of_Phong = {Position, Normal};
+	static constexpr ILVBOContents vbo_of_Phong_scalar_per_vertex = {Position, Normal, Scalar_per_vertex};
+	static constexpr ILVBOContents vbo_of_Phong_color_per_vertex = {Position, Normal, Vec3_per_vertex};
+	static constexpr ILVBOContents vbo_of_Phong_scalar_per_face = {Position, Normal, Scalar_per_face};
+	static constexpr ILVBOContents vbo_of_Phong_color_per_face = {Position, Normal, Vec3_per_face};
+
+	static constexpr ILVBOContents vbo_of_Points = {Position};
+
+	static constexpr std::array<ILVBOContents, 17> vbos_of_styles = {vbo_of_Points,
+																	 vbo_of_Points,
+																	 vbo_of_NoIllum,
+																	 vbo_of_NoIllum_scalar_per_vertex,
+																	 vbo_of_NoIllum_color_per_vertex,
+																	 vbo_of_NoIllum_scalar_per_face,
+																	 vbo_of_NoIllum_color_per_face,
+																	 vbo_of_NoIllum,
+																	 vbo_of_NoIllum_scalar_per_vertex,
+																	 vbo_of_NoIllum_color_per_vertex,
+																	 vbo_of_NoIllum_scalar_per_face,
+																	 vbo_of_NoIllum_color_per_face,
+																	 vbo_of_Phong,
+																	 vbo_of_Phong_scalar_per_vertex,
+																	 vbo_of_Phong_color_per_vertex,
+																	 vbo_of_Phong_scalar_per_face,
+																	 vbo_of_Phong_color_per_face};
+
+	using Shader_types =
+		std::tuple<rendering::ShaderPointSprite, rendering::ShaderBoldLine, rendering::ShaderNoIllum,
+				   rendering::ShaderNoIllumScalarPerVertex, rendering::ShaderNoIllumColorPerVertex,
+				   rendering::ShaderNoIllumScalarPerFace, rendering::ShaderNoIllumColorPerFace, rendering::ShaderFlat,
+				   rendering::ShaderFlatScalarPerVertex, rendering::ShaderFlatColorPerVertex,
+				   rendering::ShaderFlatScalarPerFace, rendering::ShaderFlatColorPerFace, rendering::ShaderPhong,
+				   rendering::ShaderPhongScalarPerVertex, rendering::ShaderPhongColorPerVertex,
+				   rendering::ShaderPhongScalarPerFace, rendering::ShaderPhongColorPerFace>;
+
+	template <int N>
+	using type_of_param = typename std::tuple_element_t<N, Shader_types>::Param;
+
+	template <int N>
+	using type_of_shader = std::tuple_element_t<N, Shader_types>;
+
+	struct Parameters
+	{
+
+		/**
+		 * Function to generates SHADER::Params and copy data from pp
+		 */
+		template <int FIRST, int LAST>
+		auto gen_params(const rendering::PossibleParameters& pp) -> std::enable_if_t<(FIRST >= LAST)>
 		{
-			param_flat_cpf->set_vbos({vbo_vertex_position_,vbo_face_color_});
-			param_phong_cpf->set_vbos({vbo_vertex_position_, vbo_vertex_normal_,vbo_face_color_});
+			params_[LAST] = type_of_shader<LAST>::generate_param();
+			params_[LAST]->pick_parameters(pp);
 		}
 
+		template <int FIRST, int LAST>
+		auto gen_params(const rendering::PossibleParameters& pp) -> std::enable_if_t<(FIRST < LAST)>
+		{
+			params_[FIRST] = type_of_shader<FIRST>::generate_param();
+			params_[FIRST]->pick_parameters(pp);
+			gen_params<FIRST + 1, LAST>(pp);
+		}
+
+		inline Parameters()
+			: vbo_normal_(nullptr), render_vertices_(false), render_edges_(false), render_faces_(true),
+			  render_faces_style_(Flat), vertex_scale_factor_(1.0), auto_update_scalar_min_max_(true)
+		{
+			static rendering::GLColor WHITE{1, 1, 1, 1};
+			static rendering::GLColor BLACK{0, 0, 0, 1};
+			static rendering::GLColor BLUE{0, 0.69f, 0.83f, 1};
+			static rendering::GLColor GREEN{0, 1, 0.5f, 1};
+			static rendering::GLColor GREY1{0.1f, 0.1f, 0.1f, 1};
+			static rendering::GLColor YELLOW{0.1f, 0.1f, 0.1f, 1};
+			static rendering::GLColor ORANGE{1, 0.5f, 0, 1};
+
+			rendering::PossibleParameters pp = {ORANGE,							  // color
+												GREY1,							  // ambiant
+												BLUE,							  // front
+												GREEN,							  // back
+												WHITE,							  // spec
+												250.0f,							  // spec coef
+												rendering::GLVec3(10, 100, 1000), // Light position
+												true,							  // double side
+												2.0f,							  // width
+												1.0f,							  // size
+												0.9f,
+												true,
+												rendering::GLVec4(0, 0, 0, 0),
+												rendering::GLVec4(0, 0, 0, 0)};
+			for (auto& v : vbo_cache_)
+				v = nullptr;
+
+			gen_params<Points, Points>(pp);
+			pp.color_ = WHITE;
+			gen_params<Lines, Lines>(pp);
+			pp.color_ = GREEN;
+			gen_params<NoIllum, Phong_color_per_face>(pp);
+		}
+
+		inline void update_param_using(VBOContent r)
+		{
+			std::vector<rendering::VBO*> uv;
+			uv.reserve(4);
+			for (const auto& st : style_with_vbo[r])
+			{
+				uv.clear();
+				for (auto v : vbos_of_styles[st])
+					uv.push_back(vbo_cache_[v]);
+				params_[st]->set_vbos(uv);
+			}
+		}
+
+		inline void update_param_using_V2(VBOContent r)
+		{
+			std::vector<rendering::VBO*> uv;
+			uv.reserve(4);
+			for (RenderStyle rs = Points)
+				for (const auto& st : style_with_vbo[r])
+				{
+					uv.clear();
+					for (auto v : vbos_of_styles[st])
+						uv.push_back(vbo_cache_[v]);
+					params_[st]->set_vbos(uv);
+				}
+		}
+
+		template <int32 RS>
+		type_of_param<RS>& param_typed()
+		{
+			return *static_cast<type_of_param<RS>*>(params_[RS].get());
+		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
-		rendering::VBO* vbo_vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
-		rendering::VBO* vbo_vertex_normal_;
-
-		std::shared_ptr<Attribute<Vec3>> vertex_color_;
-		rendering::VBO* vbo_vertex_color_;
 		std::shared_ptr<Attribute<Scalar>> vertex_scalar_;
-		rendering::VBO* vbo_vertex_scalar_;
-
-		std::shared_ptr<Attribute<Vec3>> face_color_;
-		rendering::VBO* vbo_face_color_;
 		std::shared_ptr<Attribute<Scalar>> face_scalar_;
-		rendering::VBO* vbo_face_scalar_;
-
-		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
-        std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
-        std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
-        std::unique_ptr<rendering::ShaderFlatScalarPerVertex::Param> param_flat_spv;
-        std::unique_ptr<rendering::ShaderFlatColorPerVertex::Param> param_flat_cpv;
-        std::unique_ptr<rendering::ShaderFlatScalarPerFace::Param> param_flat_spf;
-        std::unique_ptr<rendering::ShaderFlatColorPerFace::Param> param_flat_cpf;
-        std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
-		std::unique_ptr<rendering::ShaderPhongColorPerFace::Param> param_phong_cpf;
-		std::unique_ptr<rendering::ShaderPhongScalarPerFace::Param> param_phong_spf;
-
-//		std::unique_ptr<rendering::ShaderScalarPerVertex::Param> param_scalar_per_vertex_;
-//		std::unique_ptr<rendering::ShaderScalarPerVertexGouraud::Param> param_scalar_per_vertex_gouraud_;
+		std::shared_ptr<Attribute<Vec3>> vertex_color_;
+		std::shared_ptr<Attribute<Vec3>> face_color_;
+		std::unique_ptr<rendering::VBO> vbo_normal_;
+		std::array<rendering::VBO*, 6> vbo_cache_;
+		std::array<std::unique_ptr<rendering::ShaderParam>, 18> params_;
 
 		bool render_vertices_;
 		bool render_edges_;
-        bool render_faces_;
-        bool render_faces_smooth_;
-        int32 render_faces_style_;
+		bool render_faces_;
+		bool render_faces_smooth_;
+		RenderStyle render_faces_style_;
 
-        float32 vertex_scale_factor_;
-        float32 vertex_base_size_;
+		float32 vertex_scale_factor_;
+		float32 vertex_base_size_;
 
-        bool auto_update_scalar_min_max_;
-    };
+		bool auto_update_scalar_min_max_;
+	};
 
 public:
 	SurfaceRender(const App& app)
@@ -297,10 +364,7 @@ private:
 						v->request_update();
 					}));
 		}
-    }
-
-
-
+	}
 
 public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
@@ -313,14 +377,9 @@ public:
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
-			p.vbo_vertex_position_ = md->update_vbo(vertex_position.get(), true);
+			p.vbo_cache_[Position] = md->update_vbo(vertex_position.get(), true);
 		}
-
-		p.update_position();
-
-		bool inited = p.param_phong_->vao_initialized();
-		std::cout <<"set_vertex_position " << std::boolalpha << inited <<std::endl;
-
+		p.update_param_using(Position);
 
 		v.request_update();
 	}
@@ -331,71 +390,79 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_normal_ = vertex_normal;
-		p.vbo_vertex_normal_ = md->update_vbo(vertex_normal.get(), true);
-		p.update_normal();
-        v.request_update();
-    }
+		p.vbo_cache_[Normal] = md->update_vbo(vertex_normal.get(), true);
+		if ((p.vbo_cache_[Normal] == nullptr) && (p.vbo_cache_[Position] != nullptr))
+		{
+			if (p.vbo_normal_ == nullptr)
+				p.vbo_normal_ = std::make_unique<rendering::VBO>();
+			p.vbo_cache_[Normal] = p.vbo_normal_.get();
+			p.vbo_cache_[Normal]->bind();
+			p.vbo_cache_[Normal]->allocate(p.vbo_cache_[Position]->size(), 3);
+			p.vbo_cache_[Normal]->release();
+			compute_normal_engine->compute(p.vbo_cache_[Position], md->get_render(), p.vbo_cache_[Normal]);
 
-    void set_vetex_scalar(View &v,
-                          const MESH &m,
-                          const std::shared_ptr<Attribute<Scalar>> &vertex_scal)
-    {
-        Parameters &p = parameters_[&v][&m];
-        MeshData<MESH> *md = mesh_provider_->mesh_data(&m);
-        p.vertex_scalar_ = vertex_scal;
-        p.vbo_vertex_scalar_ = md->update_vbo(vertex_scal.get(), true);
-        p.update_vertex_scalar();
-        bool inited = p.param_flat_spf->vao_initialized();
-        v.request_update();
-    }
+			std::cout << *(p.vbo_cache_[Normal]) << std::endl;
+		}
+		p.update_param_using(Normal);
+		v.request_update();
+	}
 
-    void set_vertex_color(View &v, const MESH &m, const std::shared_ptr<Attribute<Vec3>> &vertex_col)
-    {
-        Parameters &p = parameters_[&v][&m];
-        MeshData<MESH> *md = mesh_provider_->mesh_data(&m);
-        p.vertex_color_ = vertex_col;
-        p.vbo_vertex_color_ = md->update_vbo(vertex_col.get(), true);
-        p.update_vertex_color();
-        v.request_update();
-    }
+	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scal)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		p.vertex_scalar_ = vertex_scal;
+		p.vbo_cache_[Scalar_per_vertex] = md->update_vbo(vertex_scal.get(), true);
+		p.update_param_using(Scalar_per_vertex);
+		v.request_update();
+	}
 
+	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_col)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		p.vertex_color_ = vertex_col;
+		p.vbo_cache_[Vec3_per_vertex] = md->update_vbo(vertex_col.get(), true);
+		p.update_param_using(Vec3_per_vertex);
+		v.request_update();
+	}
 
 	void set_face_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& face_scal)
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 		p.face_scalar_ = face_scal;
-		p.vbo_face_scalar_ = md->update_vbo(face_scal.get(), true);
-		p.update_face_scalar();
-        v.request_update();
-    }
+		p.vbo_cache_[Scalar_per_face] = md->update_vbo(face_scal.get(), true);
+		p.update_param_using(Scalar_per_face);
+		v.request_update();
+	}
 
-    void set_face_color(View &v, const MESH &m, const std::shared_ptr<Attribute<Vec3>> &face_col)
-    {
-        Parameters& p = parameters_[&v][&m];
+	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_col)
+	{
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 		p.face_color_ = face_col;
-		p.vbo_face_color_ = md->update_vbo(face_col.get(), true);
-		p.update_face_color();
-        v.request_update();
-    }
+		p.vbo_cache_[Vec3_per_face] = md->update_vbo(face_col.get(), true);
+		p.update_param_using(Vec3_per_face);
+		v.request_update();
+	}
 
 protected:
-    void update_scalar_min_max_values(Parameters &p)
-    {
-//		Scalar min = std::numeric_limits<float64>::max();
-//		Scalar max = std::numeric_limits<float64>::lowest();
-//		for (const Scalar& v : *p.vertex_scalar_)
-//		{
-//			if (v < min)
-//				min = v;
-//			if (v > max)
-//				max = v;
-//		}
-//		p.param_scalar_per_vertex_->min_value_ = min;
-//		p.param_scalar_per_vertex_->max_value_ = max;
-//		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
-//		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
+	void update_scalar_min_max_values(Parameters& p)
+	{
+		//		Scalar min = std::numeric_limits<float64>::max();
+		//		Scalar max = std::numeric_limits<float64>::lowest();
+		//		for (const Scalar& v : *p.vertex_scalar_)
+		//		{
+		//			if (v < min)
+		//				min = v;
+		//			if (v > max)
+		//				max = v;
+		//		}
+		//		p.param_scalar_per_vertex_->min_value_ = min;
+		//		p.param_scalar_per_vertex_->max_value_ = max;
+		//		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
+		//		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
 	}
 
 	void init() override
@@ -405,125 +472,61 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
+
+		compute_normal_engine = rendering::ComputeNormalEngine::generate();
 	}
 
 	void draw(View* view) override
 	{
-		for (auto& [m, p] : parameters_[view])
-//		for (auto& c : parameters_[view])
+		auto& ps = parameters_[view];
+		for (auto& [m, p] : ps)
+		//		for (auto& c : parameters_[view])
 		{
-//			MESH* m = c.first;
-//			Parameters& p = c.second;
+			//			MESH* m = c.first;
+			//			Parameters& p = c.second;
 
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			glEnable(GL_POLYGON_OFFSET_FILL);
-			glPolygonOffset(1.0f, 2.0f);
-			switch (p.render_faces_style_)
+			if (p.render_faces_)
 			{
-			case Flat:
-				if (p.param_flat_->vao_initialized())
+				RenderStyle rs = p.render_faces_style_;
+				rendering::ShaderParam* param = p.params_[rs].get();
+				if (param->vao_initialized())
 				{
-					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_flat_->release();
+					glEnable(GL_POLYGON_OFFSET_FILL);
+					glPolygonOffset(1.0f, 2.0f);
+					param->bind(proj_matrix, view_matrix);
+
+					if (is_per_face(rs))
+						md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+					else
+						md->draw(rendering::TRIANGLES, p.vertex_position_);
+
+					glDisable(GL_POLYGON_OFFSET_FILL);
+					param->release();
 				}
-			break;
-			case Flat_scalar_per_face:
-				if (p.param_flat_spf->vao_initialized())
-				{
-					p.param_flat_spf->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
-					p.param_flat_spf->release();
-				}
-			break;
-
-			case Flat_color_per_face:
-				if (p.param_flat_cpf->vao_initialized())
-				{
-					p.param_flat_cpf->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
-					p.param_flat_cpf->release();
-                }
-                break;
-            case Flat_scalar_per_vertex:
-                if (p.param_flat_spv->vao_initialized()) {
-                    p.param_flat_spv->bind(proj_matrix, view_matrix);
-                    md->draw(rendering::TRIANGLES, p.vertex_position_);
-                    p.param_flat_spv->release();
-                }
-                break;
-            case Flat_color_per_vertex:
-                if (p.param_flat_spv->vao_initialized()) {
-                    p.param_flat_spv->bind(proj_matrix, view_matrix);
-                    md->draw(rendering::TRIANGLES, p.vertex_position_);
-                    p.param_flat_spv->release();
-                }
-                break;
-
-            case Phong: {
-                bool inited = p.param_phong_->vao_initialized();
-                std::cout <<"draw " << std::boolalpha << inited <<std::endl;
-				if (inited)
-				{
-					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_phong_->release();
-                }
-            } break;
-            case Phong_scalar_per_face:
-                if (p.param_phong_spf->vao_initialized())
-				{
-					p.param_phong_spf->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
-					p.param_phong_spf->release();
-				}
-			break;
-
-			case Phong_color_per_face:
-				if (p.param_phong_cpf->vao_initialized())
-				{
-					p.param_phong_cpf->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
-					p.param_phong_cpf->release();
-                }
-                break;
-            case Phong_scalar_per_vertex:
-                if (p.param_phong_spv->vao_initialized()) {
-                    p.param_phong_spv->bind(proj_matrix, view_matrix);
-                    md->draw(rendering::TRIANGLES, p.vertex_position_);
-                    p.param_phong_spv->release();
-                }
-                break;
-            case Phong_color_per_vertex:
-                if (p.param_phong_spv->vao_initialized()) {
-                    p.param_phong_spv->bind(proj_matrix, view_matrix);
-                    md->draw(rendering::TRIANGLES, p.vertex_position_);
-                    p.param_phong_spv->release();
-                }
-                break;
-            }
-            glDisable(GL_POLYGON_OFFSET_FILL);
-
-            if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			}
+			rendering::ShaderParam* param = p.params_[Points].get();
+			if (p.render_vertices_ && param->vao_initialized())
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
+				p.param_typed<Points>().size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				param->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
+				param->release();
 			}
 
-			if (p.render_edges_ && p.param_edge_->vao_initialized())
+			param = p.params_[Lines].get();
+			if (p.render_edges_ && param->vao_initialized())
 			{
-				p.param_edge_->bind(proj_matrix, view_matrix);
+				param->bind(proj_matrix, view_matrix);
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
-				p.param_edge_->release();
+				param->release();
 			}
 		}
 	}
@@ -561,147 +564,216 @@ protected:
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
+												[&](const decltype(p.vertex_position_)& att) {
+													set_vertex_position(*selected_view_, *selected_mesh_, att);
+												});
 
-			imgui_combo_attribute<Vertex,Vec3>(*selected_mesh_,
-											   p.vertex_position_,
-											   "Position",
-											   [&] (const decltype(p.vertex_position_)& att )
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_normal_, "Normal",
+												[&](const decltype(p.vertex_normal_)& att) {
+													set_vertex_normal(*selected_view_, *selected_mesh_, att);
+												});
+
+			imgui_combo_attribute<Vertex, Scalar>(*selected_mesh_, p.vertex_scalar_, "Vertex Scalar",
+												  [&](const decltype(p.vertex_scalar_)& att) {
+													  set_vertex_scalar(*selected_view_, *selected_mesh_, att);
+												  });
+
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, p.vertex_color_, "Vertex Color",
+				[&](const decltype(p.vertex_color_)& att) { set_vertex_color(*selected_view_, *selected_mesh_, att); });
+
+			imgui_combo_attribute<Face, Scalar>(
+				*selected_mesh_, p.face_scalar_, "Face Scalar",
+				[&](const decltype(p.face_scalar_)& att) { set_face_scalar(*selected_view_, *selected_mesh_, att); });
+
+			imgui_combo_attribute<Face, Vec3>(
+				*selected_mesh_, p.face_color_, "Face Color",
+				[&](const decltype(p.face_color_)& att) { set_face_color(*selected_view_, *selected_mesh_, att); });
+
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
+			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+
+			ImGui::BeginGroup();
+			ImGui::TextUnformatted("Faces");
+
+			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
+			if (p.render_faces_)
 			{
-				set_vertex_position(*selected_view_, *selected_mesh_, att);
-			});
+				int32* ptr_style = reinterpret_cast<int32*>(&p.render_faces_style_);
 
-			imgui_combo_attribute<Vertex,Vec3>(*selected_mesh_,
-											   p.vertex_normal_,
-											   "Normal",
-											   [&] (const decltype(p.vertex_normal_)& att)
-			{
-				set_vertex_normal(*selected_view_, *selected_mesh_, att);
-			});
+				ImGui::TextUnformatted("NoIllum:");
+				need_update |= ImGui::RadioButton("Simple##NoIllum", ptr_style, NoIllum);
+				need_update |= ImGui::RadioButton("Scalar/Vertex##NoIllum", ptr_style, NoIllum_scalar_per_vertex);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Vertex##NoIllum", ptr_style, NoIllum_color_per_vertex);
+				need_update |= ImGui::RadioButton("Scalar/Face##NoIllum", ptr_style, NoIllum_scalar_per_face);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Face##NoIllum", ptr_style, NoIllum_color_per_face);
+				ImGui::TextUnformatted("Flat:");
+				need_update |= ImGui::RadioButton("Simple##Flat", ptr_style, Flat);
+				need_update |= ImGui::RadioButton("Scalar/Vertex##Flat", ptr_style, Flat_scalar_per_vertex);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Vertex##Flat", ptr_style, Flat_color_per_vertex);
+				need_update |= ImGui::RadioButton("Scalar/Face##Flat", ptr_style, Flat_scalar_per_face);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Face##Flat", ptr_style, Flat_color_per_face);
+				ImGui::TextUnformatted("Phong:");
+				need_update |= ImGui::RadioButton("Simple##Phong", ptr_style, Phong);
+				need_update |= ImGui::RadioButton("Scalar/Vertex##Phong", ptr_style, Phong_scalar_per_vertex);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Vertex##Phong", ptr_style, Phong_color_per_vertex);
+				need_update |= ImGui::RadioButton("Scalar/Face##Phong", ptr_style, Phong_scalar_per_face);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Color/Face##Phong", ptr_style, Phong_color_per_face);
+				ImGui::EndGroup();
 
-			imgui_combo_attribute<Vertex,Scalar>(*selected_mesh_,
-												 p.vertex_scalar_,
-												 "Vertex Scalar",
-												 [&] (const decltype(p.vertex_scalar_)& att)
-			{
-//				set_vertex_scalar(*selected_view_, *selected_mesh_, att);
-			});
+				switch (p.render_faces_style_)
+				{
+				case NoIllum: {
+					auto& param = p.param_typed<NoIllum>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("NoIllum parameters");
+					need_update |=
+						ImGui::ColorEdit3("color##no_illum", param.color_.data(), ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::Checkbox("double side##no_illum", &(param.double_side_));
+				}
+				break;
+				case NoIllum_scalar_per_vertex: {
+					auto& param = p.param_typed<NoIllum_scalar_per_vertex>();
+					need_update |= ImGui::Checkbox("double side##no_illum", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "no_illum_spv");
+					break;
+				}
+				case NoIllum_color_per_vertex:
 
-			imgui_combo_attribute<Vertex,Vec3>(*selected_mesh_,
-											   p.vertex_color_,
-											   "Vertex Color",
-											   [&] (const decltype(p.vertex_color_)& att)
-			{
-//				set_vertex_color(*selected_view_, *selected_mesh_, att);
-			});
+					need_update |= ImGui::Checkbox("double side##no_illum",
+												   &(p.param_typed<NoIllum_color_per_vertex>().double_side_));
+					break;
 
-			imgui_combo_attribute<Face,Scalar>(*selected_mesh_,
-											   p.face_scalar_,
-											   "Face Scalar",
-											   [&] (const decltype(p.face_scalar_)& att)
-			{
-				set_face_scalar(*selected_view_, *selected_mesh_,att);
-			});
+				case NoIllum_scalar_per_face: {
+					auto& param = p.param_typed<NoIllum_scalar_per_face>();
+					need_update |= ImGui::Checkbox("double side##no_illum", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "no_illum_spf");
+					break;
+				}
+				case NoIllum_color_per_face:
+					need_update |= ImGui::Checkbox("double side##no_illum",
+												   &(p.param_typed<NoIllum_color_per_face>().double_side_));
+					break;
 
-            imgui_combo_attribute<Face, Vec3>(*selected_mesh_,
-                                              p.face_color_,
-                                              "Face Color",
-                                              [&](const decltype(p.face_color_) &att) {
-                                                  set_face_color(*selected_view_,
-                                                                 *selected_mesh_,
-                                                                 att);
-                                              });
+				case Flat: {
+					auto& param = p.param_typed<Flat>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Flat parameters");
+					need_update |=
+						ImGui::ColorEdit3("front color##flat", param.front_color_.data(), ImGuiColorEditFlags_NoInputs);
+					if (param.double_side_)
+						need_update |= ImGui::ColorEdit3("back color##flat", param.back_color_.data(),
+														 ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::Checkbox("double side##flat", &(param.double_side_));
+				}
+				break;
+				case Flat_scalar_per_vertex: {
+					auto& param = p.param_typed<Flat_scalar_per_vertex>();
+					need_update |= ImGui::Checkbox("double side##flat", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "flat_spv");
+					break;
+				}
+				case Flat_color_per_vertex:
 
-            ImGui::Separator();
-            need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-            need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+					need_update |=
+						ImGui::Checkbox("double side##flat", &(p.param_typed<Flat_color_per_vertex>().double_side_));
+					break;
 
-            ImGui::BeginGroup();
-            ImGui::TextUnformatted("Faces");
+				case Flat_scalar_per_face: {
+					auto& param = p.param_typed<Flat_scalar_per_face>();
+					need_update |= ImGui::Checkbox("double side##flat", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "flat_spf");
+					break;
+				}
+				case Flat_color_per_face:
+					need_update |=
+						ImGui::Checkbox("double side##flat", &(p.param_typed<Flat_color_per_face>().double_side_));
+					break;
 
-            need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
-            need_update |= ImGui::Checkbox("Smooth", &p.render_faces_smooth_);
-
-            ImGui::TextUnformatted("Flat:");
-            need_update |= ImGui::RadioButton("Simple##Flat", &p.render_faces_style_, 1);
-            need_update |= ImGui::RadioButton("Scalar/Vertex##Flat", &p.render_faces_style_, 2);
-            ImGui::SameLine();
-            need_update |= ImGui::RadioButton("Color/Vertex##Flat", &p.render_faces_style_, 3);
-            need_update |= ImGui::RadioButton("Scalar/Face##Flat", &p.render_faces_style_, 4);
-            ImGui::SameLine();
-            need_update |= ImGui::RadioButton("Color/Face##Flat", &p.render_faces_style_, 5);
-			ImGui::TextUnformatted("Phong:");
-			need_update |= ImGui::RadioButton("Simple##Phong", &p.render_faces_style_,6);
-			need_update |= ImGui::RadioButton("Scalar/Vertex##Phong", &p.render_faces_style_, 7);ImGui::SameLine();
-            need_update |= ImGui::RadioButton("Color/Vertex##Phong", &p.render_faces_style_, 8);
-            need_update |= ImGui::RadioButton("Scalar/Face##Phong", &p.render_faces_style_, 9);
-            ImGui::SameLine();
-            need_update |= ImGui::RadioButton("Color/Face##Phong", &p.render_faces_style_, 10);
-            ImGui::EndGroup();
-
-            switch (p.render_faces_style_) {
-            case Flat:
-                ImGui::Separator();
-                ImGui::TextUnformatted("Flat parameters");
-                need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-				if (p.param_flat_->double_side_)
-					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
+				case Phong: {
+					auto& param = p.param_typed<Phong>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Phong parameters");
+					need_update |= ImGui::ColorEdit3("front color##phong", param.front_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
-			break;
-			case Flat_scalar_per_face:
-				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_spf->double_side_));
-				need_update |= imgui_colormap_interface(p.param_flat_spf->cm_,"flat_spf");
-			break;
-			case Flat_color_per_face:
-				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_cpf->double_side_));
-			break;
-			case Phong:
+					if (param.double_side_)
+						need_update |= ImGui::ColorEdit3("back color##phong", param.back_color_.data(),
+														 ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
+					need_update |= ImGui::Checkbox("double side##phong", &(param.double_side_));
+					break;
+				}
+
+				case Phong_color_per_face: {
+					auto& param = p.param_typed<Phong_color_per_face>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Phong parameters");
+					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
+					need_update |= ImGui::Checkbox("double side##phong", &(param.double_side_));
+					break;
+				}
+
+				case Phong_scalar_per_face: {
+					auto& param = p.param_typed<Phong_scalar_per_face>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Phong parameters");
+					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
+					need_update |= ImGui::Checkbox("double side##phong", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "phong_spf");
+					break;
+				}
+				case Phong_color_per_vertex: {
+					auto& param = p.param_typed<Phong_color_per_vertex>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Phong parameters");
+					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
+					need_update |= ImGui::Checkbox("double side##phong", &(param.double_side_));
+					break;
+				}
+
+				case Phong_scalar_per_vertex: {
+					auto& param = p.param_typed<Phong_scalar_per_vertex>();
+					ImGui::Separator();
+					ImGui::TextUnformatted("Phong parameters");
+					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
+					need_update |= ImGui::Checkbox("double side##phong", &(param.double_side_));
+					need_update |= imgui_colormap_interface(param.cm_, "phong_spf");
+					break;
+				}
+
+				default:
+					break;
+				}
+			}
+
+			if (p.render_edges_)
+			{
+				auto& param = p.param_typed<Lines>();
 				ImGui::Separator();
-				ImGui::TextUnformatted("Phong parameters");
-				need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-				if (p.param_phong_->double_side_)
-					need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-				need_update |=
-					ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
-				need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
-			break;
-			case Phong_color_per_face:
-				need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_cpf->double_side_));
-			case Phong_scalar_per_face:
-				need_update |= imgui_colormap_interface(p.param_phong_spf->cm_,"sphong_spf");
-                break;
-            default:
-                break;
-            }
+				ImGui::TextUnformatted("Edges parameters");
+				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("width##edges", &(param.width_), 1.0f, 10.0f);
+			}
 
-            if (p.render_edges_) {
-                ImGui::Separator();
-                ImGui::TextUnformatted("Edges parameters");
-                need_update |= ImGui::ColorEdit3("color##edges",
-                                                 p.param_edge_->color_.data(),
-                                                 ImGuiColorEditFlags_NoInputs);
-                need_update |= ImGui::SliderFloat("width##edges",
-                                                  &(p.param_edge_->width_),
-                                                  1.0f,
-                                                  10.0f);
-            }
+			if (p.render_vertices_)
+			{
+				auto& param = p.param_typed<Points>();
+				ImGui::Separator();
+				ImGui::TextUnformatted("Vertices parameters");
+				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+			}
+		}
 
-            if (p.render_vertices_) {
-                ImGui::Separator();
-                ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-                need_update |= ImGui::SliderFloat("size##vertices",
-                                                  &(p.vertex_scale_factor_),
-                                                  0.1,
-                                                  2.0);
-            }
-        }
-
-        ImGui::End();
+		ImGui::End();
 
 		if (need_update)
 			for (View* v : linked_views_)
@@ -715,7 +787,7 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
-
+	rendering::ComputeNormalEngine* compute_normal_engine;
 };
 
 } // namespace ui

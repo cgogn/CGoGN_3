@@ -29,7 +29,7 @@ namespace cgogn
 namespace rendering
 {
 static const char* vertex_shader_source1 =
-		R"(
+	R"(
 		#version 330
 		uniform usamplerBuffer vertex_volume;
 		uniform samplerBuffer pos_vertex;
@@ -48,7 +48,7 @@ static const char* vertex_shader_source1 =
 		)";
 
 static const char* fragment_shader_source1 =
-		R"(
+	R"(
 		#version 330
 		out vec4 frag_out;
 		in vec4 P;
@@ -63,18 +63,17 @@ ShaderComputeCenter1* ShaderComputeCenter1::instance_ = nullptr;
 ShaderComputeCenter1::ShaderComputeCenter1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
-	add_uniforms("vertex_volume","pos_vertex","inv_h");
+	add_uniforms("vertex_volume", "pos_vertex", "inv_h");
 }
 
 void ShaderParamComputeCenter1::set_uniforms()
 {
 	if (vbo_pos_)
-		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), 1.0f/float(height_tex_));
+		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), 1.0f / float(height_tex_));
 }
 
-
 static const char* vertex_shader_source2 =
-		R"(
+	R"(
 		#version 330
 		uniform sampler2D tex_centers;
 		out vec3 vbo_out;
@@ -86,7 +85,6 @@ static const char* vertex_shader_source2 =
 			vbo_out = P4.xyz/P4.w;
 		}
 		)";
-
 
 ShaderComputeCenter2* ShaderComputeCenter2::instance_ = nullptr;
 
@@ -100,15 +98,15 @@ void ShaderParamComputeCenter2::set_uniforms()
 	shader_->set_uniforms_values(tex_->bind(0));
 }
 
-
+// ComputeCenterEngine* ComputeCenterEngine::instance_ = nullptr;
 
 ComputeCenterEngine::ComputeCenterEngine()
 {
 	param1_ = ShaderComputeCenter1::generate_param();
 	param2_ = ShaderComputeCenter2::generate_param();
 	param2_->tex_ = new Texture2D();
-	param2_->tex_->alloc(0,0,GL_RGBA32F,GL_RGBA,nullptr,GL_FLOAT);
-	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_},false, nullptr);
+	param2_->tex_->alloc(0, 0, GL_RGBA32F, GL_RGBA, nullptr, GL_FLOAT);
+	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_}, false, nullptr);
 	tfb_ = new TFB_ComputeCenter(*(param2_.get()));
 }
 
@@ -121,15 +119,15 @@ ComputeCenterEngine::~ComputeCenterEngine()
 
 void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 {
-	int32 h = (centers->size()+1023)/1024;
-	fbo_->resize(1024,h);
+	int32 h = (centers->size() + 1023) / 1024;
+	fbo_->resize(1024, h);
 	fbo_->bind();
 	glDisable(GL_DEPTH_TEST);
-	glClearColor(0,0,0,0);
+	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
-	glBlendFunc(GL_ONE,GL_ONE);
+	glBlendFunc(GL_ONE, GL_ONE);
 	glPointSize(1.001f);
 	param1_->vbo_pos_ = pos;
 	param1_->height_tex_ = h;
@@ -139,14 +137,12 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 	glDisable(GL_BLEND);
 	fbo_->release();
 
-	glClearColor(0,0,0,0);
-	tfb_->start(GL_POINTS,{centers});
-	glDrawArrays(GL_POINTS,0,centers->size());
+	glClearColor(0, 0, 0, 0);
+	tfb_->start(GL_POINTS, {centers});
+	glDrawArrays(GL_POINTS, 0, centers->size());
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
 }
-
-
 
 } // namespace rendering
 

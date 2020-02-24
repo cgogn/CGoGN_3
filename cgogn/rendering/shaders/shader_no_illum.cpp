@@ -21,11 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
-#define CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
+#include <iostream>
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_no_illum.h>
 
 namespace cgogn
 {
@@ -33,34 +31,42 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(SimpleColor,CGOGN_STR(SimpleColor))
-
-class CGOGN_RENDERING_EXPORT ShaderParamSimpleColor : public ShaderParam
+static char const* vertex_shader_source_ = R"(#version 330
+in vec3 vertex_pos;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+void main()
 {
-protected:
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(color_);
-	}
+	gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
+}
+)";
 
-public:
-	GLColor color_;
+static char const* fragment_shader_source_ = R"(#version 330
+uniform bool double_side;
+uniform vec4 color;
+out vec4 fragColor;
 
-	using ShaderType = ShaderSimpleColor;
+void main()
+{
+if (double_side || gl_FrontFacing)
+	fragColor = color;
+else
+	discard;
+}
+)";
 
-	ShaderParamSimpleColor(ShaderType* sh) : ShaderParam(sh), color_(color_line_default)
-	{
-	}
+ShaderNoIllum* ShaderNoIllum::instance_ = nullptr;
 
-	inline ~ShaderParamSimpleColor() override
-	{
-	}
+ShaderNoIllum::ShaderNoIllum()
+{
+	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_pos");
+	add_uniforms("color", "double_side");
+}
 
-
-};
+void ShaderParamNoIllum::set_uniforms()
+{
+	shader_->set_uniforms_values(color_, double_side_);
+}
 
 } // namespace rendering
-
 } // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_

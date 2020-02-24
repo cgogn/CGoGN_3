@@ -30,7 +30,7 @@ namespace rendering
 {
 
 static const char* vertex_shader_source1 =
-		R"(
+	R"(
 		#version 330
 		uniform usamplerBuffer tri_ind;
 		uniform samplerBuffer pos_vertex;
@@ -40,28 +40,28 @@ static const char* vertex_shader_source1 =
 		{
 			vec2 d = vec2(1.0/1024.0,inv_h);
 			int vid = gl_VertexID;
-			int ind_a = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
 			vec3 A = texelFetch(pos_vertex, ind_a).rgb;
-			vid  = (vide+1)%3
-			int ind_b = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			vid  = (vid+1)%3;
+			int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
 			vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
-			vid  = (vide+1)%3
-			int ind_c = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
+			vid  = (vid+1)%3;
+			int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
 			vec3 C = texelFetch(pos_vertex, ind_c).rgb;
 			N = cross(C-A,B-A);
-			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(float(ind_a%1024u),float(ind_a/1024u));
+			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(float(ind_a%1024),float(ind_a/1024));
 			gl_Position = vec4(coord_N,0,1);
 		}
 		)";
 
 static const char* fragment_shader_source1 =
-		R"(
+	R"(
 		#version 330
 		out vec3 frag_out;
 		in vec3 N;
 		void main()
 		{
-			frag_out = N;
+			frag_out = vec3(0,0,1)+0.0001*N;
 		}
 		)";
 
@@ -70,18 +70,17 @@ ShaderComputeNormal1* ShaderComputeNormal1::instance_ = nullptr;
 ShaderComputeNormal1::ShaderComputeNormal1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
-	add_uniforms("tri_ind","pos_vertex","inv_h");
+	add_uniforms("tri_ind", "pos_vertex", "inv_h");
 }
 
 void ShaderParamComputeNormal1::set_uniforms()
 {
 	if (vbo_pos_)
-		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f/float(height_tex_));
+		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f / float(height_tex_));
 }
 
-
 static const char* vertex_shader_source2 =
-		R"(
+	R"(
 		#version 330
 		uniform sampler2D tex_normals;
 		out vec3 vbo_out;
@@ -90,10 +89,9 @@ static const char* vertex_shader_source2 =
 		{
 			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
 			vec3 N = texelFetch(tex_normals,icoord,0).rgb;
-			vbo_out = normalize(N);
+			vbo_out = normalize(N)*0.00001+ vec3(0,0,1);
 		}
 		)";
-
 
 ShaderComputeNormal2* ShaderComputeNormal2::instance_ = nullptr;
 
@@ -107,15 +105,15 @@ void ShaderParamComputeNormal2::set_uniforms()
 	shader_->set_uniforms_values(tex_->bind(0));
 }
 
-
+ComputeNormalEngine* ComputeNormalEngine::instance_ = nullptr;
 
 ComputeNormalEngine::ComputeNormalEngine()
 {
 	param1_ = ShaderComputeNormal1::generate_param();
 	param2_ = ShaderComputeNormal2::generate_param();
 	param2_->tex_ = new Texture2D();
-	param2_->tex_->alloc(0,0,GL_RGB32F,GL_RGB,nullptr,GL_FLOAT);
-	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_},false, nullptr);
+	param2_->tex_->alloc(0, 0, GL_RGB32F, GL_RGB, nullptr, GL_FLOAT);
+	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_}, false, nullptr);
 	tfb_ = new TFB_ComputeNormal(*(param2_.get()));
 }
 
@@ -126,29 +124,34 @@ ComputeNormalEngine::~ComputeNormalEngine()
 	delete fbo_;
 }
 
-void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
+void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 {
-	int32 h = (centers->size()+1023)/1024;
-	fbo_->resize(1024,h);
+	int32 h = (normals->size() + 1023) / 1024;
+	fbo_->resize(1024, h);
 	fbo_->bind();
 	glDisable(GL_DEPTH_TEST);
-	glClearColor(0,0,0,0);
+	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
-	glBlendFunc(GL_ONE,GL_ONE);
+	glBlendFunc(GL_ONE, GL_ONE);
 	glPointSize(1.001f);
 	param1_->vbo_pos_ = pos;
 	param1_->height_tex_ = h;
 	param1_->bind();
-	renderer->draw(VOLUMES_VERTICES);
+
+	EBO* ebo = renderer->get_EBO(TRIANGLES);
+	ebo->bind_tb(10);
+	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
+	ebo->release_tb();
+
 	param1_->release();
 	glDisable(GL_BLEND);
 	fbo_->release();
 
-	glClearColor(0,0,0,0);
-	tfb_->start(GL_POINTS,{centers});
-	glDrawArrays(GL_POINTS,0,centers->size());
+	glClearColor(0, 0, 0, 0);
+	tfb_->start(GL_POINTS, {normals});
+	glDrawArrays(GL_POINTS, 0, normals->size());
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
 }

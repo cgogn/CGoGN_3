@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ExplodeVolumesColor,CGOGN_STR(ExplodeVolumesColor))
+DECLARE_SHADER_CLASS(ExplodeVolumesColor, CGOGN_STR(ExplodeVolumesColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesColor : public ShaderParam
 {
@@ -47,22 +47,19 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		explode_ = std::get<0>(a);
-		light_pos_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
+		explode_ = pp.explode_;
+		light_pos_ = pp.light_position_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
 
 	using LocalShader = ShaderExplodeVolumesColor;
 
 	ShaderParamExplodeVolumesColor(LocalShader* sh)
-		: ShaderParam(sh),vbo_pos_(nullptr),vbo_center_(nullptr),vbo_color_vol_(nullptr),
-		  light_pos_(10, 100, 1000), explode_(0.8f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_center_(nullptr), vbo_color_vol_(nullptr), light_pos_(10, 100, 1000),
+		  explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 

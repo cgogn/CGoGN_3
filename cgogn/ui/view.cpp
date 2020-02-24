@@ -150,7 +150,9 @@ void View::draw()
 		GLenum idbuf = GL_COLOR_ATTACHMENT0;
 		glDrawBuffers(1, &idbuf);
 		for (ViewModule* m : linked_view_modules_)
+		{
 			m->draw(this);
+		}
 		fbo_->release();
 		glDisable(GL_DEPTH_TEST);
 		need_redraw_ = false;

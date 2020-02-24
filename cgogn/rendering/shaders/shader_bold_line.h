@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(BoldLine,CGOGN_STR(BoldLine))
+DECLARE_SHADER_CLASS(BoldLine, CGOGN_STR(BoldLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 {
@@ -51,28 +51,26 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		color_ = std::get<0>(a);
-		width_ = std::get<1>(a);
-		blending_ = std::get<2>(a);
+		color_ = pp.color_;
+		width_ = pp.width_;
+		blending_ = pp.blending_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
 
 	using LocalShader = ShaderBoldLine;
 
 	ShaderParamBoldLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), width_(2),blending_(true),
-		plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), color_(color_line_default), width_(2), blending_(true), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
 	inline ~ShaderParamBoldLine() override
 	{
 	}
-
-
 };
 
 } // namespace rendering

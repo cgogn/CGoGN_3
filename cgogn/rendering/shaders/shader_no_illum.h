@@ -21,9 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
+#ifndef CGOGN_RENDERING_SHADERS_NO_ILLUM_H_
+#define CGOGN_RENDERING_SHADERS_NO_ILLUM_H_
 
-#include <cgogn/rendering/shaders/shader_simple_color.h>
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -31,33 +33,36 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderSimpleColor* ShaderSimpleColor::instance_ = nullptr;
+DECLARE_SHADER_CLASS(NoIllum, CGOGN_STR(NoIllum))
 
-ShaderSimpleColor::ShaderSimpleColor()
+class CGOGN_RENDERING_EXPORT ShaderParamNoIllum : public ShaderParam
 {
-	const char* vertex_shader_source_ =
-		"#version 150\n"
-		"in vec3 vertex_pos;\n"
-		"uniform mat4 projection_matrix;\n"
-		"uniform mat4 model_view_matrix;\n"
-		"void main()\n"
-		"{\n"
-		"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-		"}\n";
+protected:
+	void set_uniforms() override;
 
-	const char* fragment_shader_source_ = "#version 150\n"
-										  "out vec4 fragColor;\n"
-										  "uniform vec4 color;\n"
-										  "void main()\n"
-										  "{\n"
-										  "   fragColor = color;\n"
-										  "}\n";
+public:
+	GLColor color_;
+	bool double_side_;
 
-	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_pos");
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		color_ = pp.color_;
+		double_side_ = pp.double_side_;
+	}
 
-	add_uniforms("color");
-}
+	using ShaderType = ShaderNoIllum;
+
+	ShaderParamNoIllum(ShaderType* sh) : ShaderParam(sh), color_(color_line_default)
+	{
+	}
+
+	inline ~ShaderParamNoIllum() override
+	{
+	}
+};
 
 } // namespace rendering
 
 } // namespace cgogn
+
+#endif

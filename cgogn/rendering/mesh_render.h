@@ -27,14 +27,14 @@
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/core/utils/numerics.h>
 
- #include <cgogn/geometry/algos/ear_triangulation.h>
+#include <cgogn/geometry/algos/ear_triangulation.h>
 
 #include <memory>
 
@@ -73,31 +73,20 @@ enum DrawingType : uint32
 	VOLUMES_VERTICES_TB,
 	INDEX_EDGES_TB,
 	INDEX_FACES_TB,
-	INDEX_VOLUMES_TB
+	INDEX_VOLUMES_TB,
+	TRIANGLES_TB_POINTS
 };
 
-static std::vector<std::string> primitives_names = {
-"POINTS",
-"LINES",
-"TRIANGLES",
-"VOLUMES_FACES",
-"VOLUMES_EDGES",
-"VOLUMES_VERTICES",
-"INDEX_EDGES",
-"INDEX_FACES",
-"INDEX_VOLUMES",
-"SIZE_BUFFER",
-"POINTS_TB",
-"LINES_TB",
-"TRIANGLES_TB",
-"VOLUMES_FACES_TB",
-"VOLUMES_EDGES_TB",
-"VOLUMES_VERTICES_TB",
-"INDEX_EDGES_TB",
-"INDEX_FACES_TB",
-"INDEX_VOLUMES_TB"
-};
-
+static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
+													"TRIANGLES",		"VOLUMES_FACES",
+													"VOLUMES_EDGES",	"VOLUMES_VERTICES",
+													"INDEX_EDGES",		"INDEX_FACES",
+													"INDEX_VOLUMES",	"SIZE_BUFFER",
+													"POINTS_TB",		"LINES_TB",
+													"TRIANGLES_TB",		"VOLUMES_FACES_TB",
+													"VOLUMES_EDGES_TB", "VOLUMES_VERTICES_TB",
+													"INDEX_EDGES_TB",	"INDEX_FACES_TB",
+													"INDEX_VOLUMES_TB"};
 
 class CGOGN_RENDERING_EXPORT MeshRender
 {
@@ -112,12 +101,17 @@ public:
 
 	inline bool is_primitive_uptodate(DrawingType prim)
 	{
-		return indices_buffers_uptodate_[prim%SIZE_BUFFER];
+		return indices_buffers_uptodate_[prim % SIZE_BUFFER];
 	}
 
 	inline void set_primitive_dirty(DrawingType prim)
 	{
-		indices_buffers_uptodate_[prim%SIZE_BUFFER] = false;
+		indices_buffers_uptodate_[prim % SIZE_BUFFER] = false;
+	}
+
+	inline EBO* get_EBO(DrawingType prim)
+	{
+		return indices_buffers_[prim % SIZE_BUFFER].get();
 	}
 
 protected:
@@ -125,13 +119,11 @@ protected:
 	inline void init_points(const MESH& m, TablesIndices& table_indices)
 	{
 		using Vertex = typename mesh_traits<MESH>::Vertex;
-		parallel_foreach_cell(m, [&](Vertex v) -> bool
-		{
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			table_indices[current_worker_index()].push_back(index_of(m, v));
 			return true;
 		});
 	}
-
 
 	template <bool EMB, typename MESH>
 	inline void init_lines(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_edge)
@@ -140,24 +132,21 @@ protected:
 		{
 			using Vertex = typename mesh_traits<MESH>::Vertex;
 			using Edge = typename mesh_traits<MESH>::Edge;
-			std::vector<uint32> i_e(thread_pool()->nb_workers(),0);
-			parallel_foreach_cell(m, [&](Edge e) -> bool
-			{
+			std::vector<uint32> i_e(thread_pool()->nb_workers(), 0);
+			parallel_foreach_cell(m, [&](Edge e) -> bool {
 				uint32 worker_index = current_worker_index();
-				foreach_incident_vertex(m, e, [&](Vertex v) -> bool
-				{
+				foreach_incident_vertex(m, e, [&](Vertex v) -> bool {
 					table_indices[worker_index].push_back(index_of(m, v));
 					return true;
 				});
 				if (EMB)
-					table_emb_edge[worker_index].push_back(index_of(m,e));
+					table_emb_edge[worker_index].push_back(index_of(m, e));
 				else
 					table_emb_edge[worker_index].push_back(i_e[worker_index]++);
 				return true;
 			});
 		}
 	}
-
 
 	template <bool EMB, typename MESH>
 	inline void init_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face)
@@ -167,14 +156,13 @@ protected:
 			using Vertex = typename mesh_traits<MESH>::Vertex;
 			using Face = typename mesh_traits<MESH>::Face;
 			std::vector<std::vector<Vertex>> vvertices(thread_pool()->nb_workers());
-			for (auto& v:vvertices)
+			for (auto& v : vvertices)
 				v.reserve(32u);
-			std::vector<uint32> i_f(thread_pool()->nb_workers(),0);
-			parallel_foreach_cell(m, [&](Face f) -> bool
-			{
+			std::vector<uint32> i_f(thread_pool()->nb_workers(), 0);
+			parallel_foreach_cell(m, [&](Face f) -> bool {
 				uint32 worker_index = current_worker_index();
 				if (EMB)
-					i_f[worker_index] = index_of(m,f);
+					i_f[worker_index] = index_of(m, f);
 				auto& vertices = vvertices[worker_index];
 				vertices.clear();
 				incident_vertices(m, f, vertices);
@@ -193,9 +181,9 @@ protected:
 		}
 	}
 
-	template <bool EMB,typename MESH>
+	template <bool EMB, typename MESH>
 	inline void init_ear_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face,
-				   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+								   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 1)
 		{
@@ -203,16 +191,15 @@ protected:
 			using Face = typename mesh_traits<MESH>::Face;
 
 			std::vector<std::vector<Vertex>> vvertices(thread_pool()->nb_workers());
-			for (auto& v:vvertices)
+			for (auto& v : vvertices)
 				v.reserve(32u);
-			std::vector<uint32> i_f(thread_pool()->nb_workers(),0);
-			parallel_foreach_cell(m, [&](Face f) -> bool
-			{
+			std::vector<uint32> i_f(thread_pool()->nb_workers(), 0);
+			parallel_foreach_cell(m, [&](Face f) -> bool {
 				uint32 worker_index = current_worker_index();
 				if (EMB)
-					i_f[worker_index] = index_of(m,f);
+					i_f[worker_index] = index_of(m, f);
 				auto& tif = table_indices[worker_index];
-				if (codegree(m,f)==3)
+				if (codegree(m, f) == 3)
 				{
 					auto& vertices = vvertices[worker_index];
 					vertices.clear();
@@ -225,11 +212,8 @@ protected:
 				}
 				else
 				{
-					cgogn::geometry::append_ear_triangulation(m, f, position, tif,
-					  [&] ()
-					  {
-						  table_emb_face[worker_index].push_back(i_f[worker_index]);
-					  });
+					cgogn::geometry::append_ear_triangulation(
+						m, f, position, tif, [&]() { table_emb_face[worker_index].push_back(i_f[worker_index]); });
 				}
 				if (!EMB)
 					i_f[worker_index]++;
@@ -238,37 +222,34 @@ protected:
 		}
 	}
 
+	//	template <bool EMB, typename MESH>
+	//	inline void init_faces_centers(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>&
+	// table_emb_edge)
+	//	{
+	//		if constexpr (mesh_traits<MESH>::dimension > 0)
+	//		{
+	//			using Vertex = typename mesh_traits<MESH>::Vertex;
+	//			using Face = typename mesh_traits<MESH>::Edge;
+	//			uint32 last = 0;
+	//			bool emb = is_indexed<Face>(m);
+	//			foreach_cell(m, [&](Face f) -> bool
+	//			{
+	//				foreach_incident_vertex(m, f, [&](Vertex v) -> bool
+	//				{
+	//					table_indices.push_back(index_of(m, v));
+	//					table_indices.push_back(emb ? index_of(m,f) : last);
+	//					return true;
+	//				});
+	//				return true;
+	//				++last;
+	//			});
+	//		}
+	//	}
 
-//	template <bool EMB, typename MESH>
-//	inline void init_faces_centers(const MESH& m, std::vector<uint32>& table_indices, std::vector<uint32>& table_emb_edge)
-//	{
-//		if constexpr (mesh_traits<MESH>::dimension > 0)
-//		{
-//			using Vertex = typename mesh_traits<MESH>::Vertex;
-//			using Face = typename mesh_traits<MESH>::Edge;
-//			uint32 last = 0;
-//			bool emb = is_indexed<Face>(m);
-//			foreach_cell(m, [&](Face f) -> bool
-//			{
-//				foreach_incident_vertex(m, f, [&](Vertex v) -> bool
-//				{
-//					table_indices.push_back(index_of(m, v));
-//					table_indices.push_back(emb ? index_of(m,f) : last);
-//					return true;
-//				});
-//				return true;
-//				++last;
-//			});
-//		}
-//	}
-
-	template <bool EMB,typename MESH>
-	inline void init_volumes(const MESH& m,
-							 TablesIndices& table_indices_f,
-							 TablesIndices& table_indices_e,
-							 TablesIndices& table_indices_v,
-							 TablesIndices& table_emb_vol,
-			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+	template <bool EMB, typename MESH>
+	inline void init_volumes(const MESH& m, TablesIndices& table_indices_f, TablesIndices& table_indices_e,
+							 TablesIndices& table_indices_v, TablesIndices& table_emb_vol,
+							 const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
 
 		if constexpr (mesh_traits<MESH>::dimension >= 2)
@@ -279,24 +260,22 @@ protected:
 			using Volume = typename mesh_traits<MESH>::Volume;
 
 			std::vector<std::vector<Vertex>> vvertices(thread_pool()->nb_workers());
-			for (auto& v:vvertices)
+			for (auto& v : vvertices)
 				v.reserve(32u);
-			std::vector<uint32> i_vol(thread_pool()->nb_workers(),0);
-			parallel_foreach_cell(m, [&](Volume vol) -> bool
-			{
+			std::vector<uint32> i_vol(thread_pool()->nb_workers(), 0);
+			parallel_foreach_cell(m, [&](Volume vol) -> bool {
 				uint32 worker_index = current_worker_index();
 				auto& ivol = i_vol[worker_index];
 
 				if (EMB)
-					ivol = index_of(m,vol);
+					ivol = index_of(m, vol);
 				auto& vertices = vvertices[worker_index];
-				foreach_incident_face(m, vol, [&](Face f)-> bool
-				{
+				foreach_incident_face(m, vol, [&](Face f) -> bool {
 					auto& tif = table_indices_f[worker_index];
-					if (codegree(m,f)==3)
+					if (codegree(m, f) == 3)
 					{
 						vertices.clear();
-						incident_vertices(m, f, vertices);	
+						incident_vertices(m, f, vertices);
 						tif.push_back(index_of(m, vertices[0]));
 						tif.push_back(index_of(m, vertices[1]));
 						tif.push_back(index_of(m, vertices[2]));
@@ -304,14 +283,12 @@ protected:
 					}
 					else
 					{
-						cgogn::geometry::append_ear_triangulation(m, f, position, tif,
-								[&] () { tif.push_back(ivol); });
+						cgogn::geometry::append_ear_triangulation(m, f, position, tif, [&]() { tif.push_back(ivol); });
 					}
 					return true;
 				});
 
-				foreach_incident_edge(m, vol, [&](Edge e)-> bool
-				{
+				foreach_incident_edge(m, vol, [&](Edge e) -> bool {
 					vertices.clear();
 					incident_vertices(m, e, vertices);
 					auto& ted = table_indices_e[worker_index];
@@ -321,8 +298,7 @@ protected:
 					return true;
 				});
 
-				foreach_incident_vertex(m, vol, [&](Vertex v)-> bool
-				{
+				foreach_incident_vertex(m, vol, [&](Vertex v) -> bool {
 					auto& tv = table_indices_v[worker_index];
 					tv.push_back(index_of(m, v));
 					tv.push_back(ivol);
@@ -340,23 +316,22 @@ protected:
 	}
 
 public:
-
 	template <typename MESH>
-	inline void init_primitives(const MESH& m, DrawingType prim,
-								const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
+	inline void init_primitives(
+		const MESH& m, DrawingType prim,
+		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
-		if (prim>=SIZE_BUFFER)
-			prim = DrawingType(prim%SIZE_BUFFER);
+		if (prim >= SIZE_BUFFER)
+			prim = DrawingType(prim % SIZE_BUFFER);
 		indices_buffers_uptodate_[prim] = true;
 
-		auto func_update_ebo = [&] (DrawingType pr, const TablesIndices& table ) -> void
-		{
+		auto func_update_ebo = [&](DrawingType pr, const TablesIndices& table) -> void {
 			uint32 total_size = 0;
 			for (const auto& t : table)
 				total_size += t.size();
 
 			indices_buffers_uptodate_[pr] = true;
-			if (total_size>0)
+			if (total_size > 0)
 			{
 				if (!indices_buffers_[pr]->is_created())
 					indices_buffers_[pr]->create();
@@ -368,18 +343,17 @@ public:
 					indices_buffers_[pr]->copy_data(beg, t.size(), t.data());
 					beg += t.size();
 				}
-				indices_buffers_[pr]->set_name("EBO_"+primitives_names[pr]);
+				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
 			}
 		};
 
-		auto func_update_ebo2 = [&] (DrawingType pr1, const TablesIndices& table1) -> void
-		{
+		auto func_update_ebo2 = [&](DrawingType pr1, const TablesIndices& table1) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
 				total_size1 += t.size();
 
 			indices_buffers_uptodate_[pr1] = true;
-			if (total_size1>0)
+			if (total_size1 > 0)
 			{
 				if (!indices_buffers_[pr1]->is_created())
 					indices_buffers_[pr1]->create();
@@ -391,19 +365,17 @@ public:
 				for (const auto& t : table1)
 				{
 					for (uint32 i : t)
-						*ptr++ = i+beg;
-					beg += t.empty()?0:t.back()+1;
+						*ptr++ = i + beg;
+					beg += t.empty() ? 0 : t.back() + 1;
 				}
-				indices_buffers_[pr1]->set_name("EBO_"+primitives_names[pr1]);
+				indices_buffers_[pr1]->set_name("EBO_" + primitives_names[pr1]);
 				indices_buffers_[pr1]->release_pointer();
 				indices_buffers_[pr1]->release();
 			}
 		};
 
-
-		auto func_update_ebo3 = [&] (DrawingType pr1, const TablesIndices& table1,
-				const TablesIndices& table2, uint32 interv) -> void
-		{
+		auto func_update_ebo3 = [&](DrawingType pr1, const TablesIndices& table1, const TablesIndices& table2,
+									uint32 interv) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
 				total_size1 += t.size();
@@ -421,24 +393,21 @@ public:
 
 				uint32 beg = 0;
 				uint32 nb = table1.size();
-				for (int j = 0; j<nb; ++j)
+				for (int j = 0; j < nb; ++j)
 				{
 					const auto& t1 = table1[j];
 					uint32 sz = t1.size();
-					for (uint32 k = 0; k<sz; ++k)
-						*ptr1++ = (k%interv == interv-1) ? t1[k]+beg : t1[k];
+					for (uint32 k = 0; k < sz; ++k)
+						*ptr1++ = (k % interv == interv - 1) ? t1[k] + beg : t1[k];
 
-					beg += table2[j].empty() ? 0 : table2[j].back()+1;
+					beg += table2[j].empty() ? 0 : table2[j].back() + 1;
 				}
 
-				indices_buffers_[pr1]->set_name("EBO_"+primitives_names[pr1]);
+				indices_buffers_[pr1]->set_name("EBO_" + primitives_names[pr1]);
 				indices_buffers_[pr1]->release_pointer();
 				indices_buffers_[pr1]->release();
-
 			}
 		};
-
-
 
 		auto start_timer = std::chrono::high_resolution_clock::now();
 
@@ -460,27 +429,25 @@ public:
 		for (auto& t : table_indices_v)
 			t.reserve(1024u);
 
-
-
 		switch (prim)
 		{
 		case POINTS:
 			init_points(m, table_indices);
-			func_update_ebo(POINTS,table_indices);
+			func_update_ebo(POINTS, table_indices);
 			break;
 		case LINES:
 		case INDEX_EDGES:
 			if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
 			{
-				init_lines<true>(m, table_indices,table_indices_emb);
-				func_update_ebo(INDEX_EDGES,table_indices_emb);
+				init_lines<true>(m, table_indices, table_indices_emb);
+				func_update_ebo(INDEX_EDGES, table_indices_emb);
 			}
 			else
 			{
-				init_lines<false>(m, table_indices,table_indices_emb);
-				func_update_ebo2(INDEX_EDGES,table_indices_emb);
+				init_lines<false>(m, table_indices, table_indices_emb);
+				func_update_ebo2(INDEX_EDGES, table_indices_emb);
 			}
-			func_update_ebo(LINES,table_indices);
+			func_update_ebo(LINES, table_indices);
 			break;
 		case TRIANGLES:
 		case INDEX_FACES:
@@ -492,7 +459,7 @@ public:
 						init_triangles<true>(m, table_indices, table_indices_emb);
 					else
 						init_ear_triangles<true>(m, table_indices, table_indices_emb, position);
-					func_update_ebo(INDEX_FACES,table_indices_emb);
+					func_update_ebo(INDEX_FACES, table_indices_emb);
 				}
 				else
 				{
@@ -500,9 +467,9 @@ public:
 						init_triangles<false>(m, table_indices, table_indices_emb);
 					else
 						init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
-					func_update_ebo2(INDEX_FACES,table_indices_emb);
+					func_update_ebo2(INDEX_FACES, table_indices_emb);
 				}
-				func_update_ebo(TRIANGLES,table_indices);
+				func_update_ebo(TRIANGLES, table_indices);
 			}
 			break;
 
@@ -514,18 +481,19 @@ public:
 			{
 				if (is_indexed<typename mesh_traits<MESH>::Volume>(m))
 				{
-					init_volumes<true>(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
-					func_update_ebo(VOLUMES_FACES,table_indices);
-					func_update_ebo(VOLUMES_EDGES,table_indices_e);
-					func_update_ebo(VOLUMES_VERTICES,table_indices_v);
+					init_volumes<true>(m, table_indices, table_indices_e, table_indices_v, table_indices_emb, position);
+					func_update_ebo(VOLUMES_FACES, table_indices);
+					func_update_ebo(VOLUMES_EDGES, table_indices_e);
+					func_update_ebo(VOLUMES_VERTICES, table_indices_v);
 					func_update_ebo2(INDEX_VOLUMES, table_indices_emb);
 				}
 				else
 				{
-					init_volumes<false>(m, table_indices, table_indices_e,table_indices_v, table_indices_emb, position);
-					func_update_ebo3(VOLUMES_FACES,table_indices,table_indices_emb,4);
-					func_update_ebo3(VOLUMES_EDGES,table_indices_e,table_indices_emb,3);
-					func_update_ebo3(VOLUMES_VERTICES,table_indices_v,table_indices_emb,2);
+					init_volumes<false>(m, table_indices, table_indices_e, table_indices_v, table_indices_emb,
+										position);
+					func_update_ebo3(VOLUMES_FACES, table_indices, table_indices_emb, 4);
+					func_update_ebo3(VOLUMES_EDGES, table_indices_e, table_indices_emb, 3);
+					func_update_ebo3(VOLUMES_VERTICES, table_indices_v, table_indices_emb, 2);
 					func_update_ebo2(INDEX_VOLUMES, table_indices_emb);
 				}
 			}
@@ -536,12 +504,11 @@ public:
 		}
 
 		auto end_timer = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
-		std::cout << "init primitive "<<prim<< " in "<< elapsed_seconds.count() << std::endl;
-
+		std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
+		std::cout << "init primitive " << prim << " in " << elapsed_seconds.count() << std::endl;
 	}
 
-	void draw(DrawingType prim, GLint binding_point=10);
+	void draw(DrawingType prim, GLint binding_point = 10);
 
 	inline void bind_ebo_tb(DrawingType prim, GLint binding_point)
 	{
@@ -550,9 +517,6 @@ public:
 		else
 			indices_buffers_[prim]->bind_tb(binding_point);
 	}
-
-
-
 };
 
 } // namespace rendering

@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes,CGOGN_STR(ExplodeVolumes))
+DECLARE_SHADER_CLASS(ExplodeVolumes, CGOGN_STR(ExplodeVolumes))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {
@@ -48,24 +48,20 @@ public:
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		color_ = std::get<0>(a);
-		explode_ = std::get<1>(a);
-		light_pos_ = std::get<2>(a);
-		plane_clip_ = std::get<3>(a);
-		plane_clip2_ = std::get<4>(a);
+		color_ = pp.color_;
+		explode_ = pp.explode_;
+		light_pos_ = pp.light_position_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
-
 
 	using LocalShader = ShaderExplodeVolumes;
 
 	inline ShaderParamExplodeVolumes(LocalShader* sh)
 		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0),
-		  vbo_pos_(nullptr), vbo_center_(nullptr)
+		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0), vbo_pos_(nullptr), vbo_center_(nullptr)
 	{
 	}
 
@@ -78,7 +74,6 @@ public:
 		vbo_pos_ = vbos[0];
 		vbo_center_ = vbos[1];
 	}
-
 };
 
 } // namespace rendering

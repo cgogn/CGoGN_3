@@ -63,7 +63,7 @@ namespace rendering
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
 	std::unique_ptr<VBO> vbo_grid_;
-	std::unique_ptr<ShaderSimpleColor::Param> param_grid_;
+	std::unique_ptr<ShaderNoIllum::Param> param_grid_;
 
 	static const uint32 nb_grid_ = 10;
 	static const uint32 nb_grid_ind_ = 4 * (nb_grid_ + 1);
@@ -114,7 +114,7 @@ protected:
 	 * Shader
 	 */
 	std::unique_ptr<ShaderBoldLine::Param> param_bl_;
-	std::unique_ptr<ShaderSimpleColor::Param> param_sc_;
+	std::unique_ptr<ShaderNoIllum::Param> param_sc_;
 
 	/**
 	 * the selectd axis, highlighted

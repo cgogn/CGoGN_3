@@ -25,9 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -43,8 +42,7 @@ enum ColorMap : int32
 	BGR
 };
 
-
-DECLARE_SHADER_CLASS(ExplodeVolumesScalar,CGOGN_STR(ExplodeVolumesScalar))
+DECLARE_SHADER_CLASS(ExplodeVolumesScalar, CGOGN_STR(ExplodeVolumesScalar))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderParam
 {
@@ -60,28 +58,19 @@ public:
 	GLVec4 plane_clip2_;
 	shader_funcion::ColorMap::Uniforms cm_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		explode_ = std::get<0>(a);
-		light_pos_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
-		cm_.color_map_ = 0;
-		cm_.expansion_ = 0;
-		cm_.min_value_ = 0;
-		cm_.max_value_ = 1;
+		explode_ = pp.explode_;
+		light_pos_ = pp.light_position_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
-
 
 	using LocalShader = ShaderExplodeVolumesScalar;
 
 	ShaderParamExplodeVolumesScalar(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
-		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_scalar_vol_(nullptr),
-		  plane_clip_(0, 0, 0, 0),
-		  plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f), vbo_pos_(nullptr), vbo_center_(nullptr),
+		  vbo_scalar_vol_(nullptr), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 

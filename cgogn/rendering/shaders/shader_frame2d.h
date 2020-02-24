@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Frame2d,CGOGN_STR(Frame2d))
+DECLARE_SHADER_CLASS(Frame2d, CGOGN_STR(Frame2d))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFrame2d : public ShaderParam
 {
@@ -46,8 +46,13 @@ class CGOGN_RENDERING_EXPORT ShaderParamFrame2d : public ShaderParam
 public:
 	using LocalShader = ShaderFrame2d;
 	GLColor color_;
-	float sz_;
+	float32 sz_;
 
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		color_ = pp.color_;
+		sz_ = pp.size_;
+	}
 
 	ShaderParamFrame2d(LocalShader* sh) : ShaderParam(sh), color_(color_line_default), sz_(3.0f)
 	{

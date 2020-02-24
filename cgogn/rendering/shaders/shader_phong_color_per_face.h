@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColorPerFace,CGOGN_STR(PhongColorPerFace))
+DECLARE_SHADER_CLASS(PhongColorPerFace, CGOGN_STR(PhongColorPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
 {
@@ -49,25 +49,18 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
-
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		specular_color_ = std::get<1>(a);
-		specular_coef_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
 	}
-
 	using ShaderType = ShaderPhongColorPerFace;
 
 	ShaderParamPhongColorPerFace(ShaderType* sh)
-		: ShaderParam(sh),
-		  vbo_pos_(nullptr),
-		  vbo_norm_(nullptr),
-		  vbo_color_(nullptr)
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_norm_(nullptr), vbo_color_(nullptr)
 	{
 	}
 

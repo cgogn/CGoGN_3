@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FSTexture,CGOGN_STR(FSTexture))
+DECLARE_SHADER_CLASS(FSTexture, CGOGN_STR(FSTexture))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFSTexture : public ShaderParam
 {
@@ -47,6 +47,10 @@ public:
 	Texture2D* texture_;
 	GLint unit_;
 	GLfloat alpha_;
+
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+	}
 
 	using LocalShader = ShaderFSTexture;
 

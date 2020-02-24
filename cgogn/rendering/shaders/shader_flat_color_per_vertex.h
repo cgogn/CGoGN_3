@@ -37,36 +37,30 @@ DECLARE_SHADER_CLASS(FlatColorPerVertex, CGOGN_STR(FlatColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerVertex : public ShaderParam
 {
-    inline void set_uniforms() override
-    {
-        shader_->set_uniforms_values(ambiant_color_, light_position_, double_side_);
-    }
+	void set_uniforms() override;
 
 public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
 
-
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-        auto a = std::forward_as_tuple(args...);
-        ambiant_color_ = std::get<0>(a);
-        light_position_ = std::get<1>(a);
-        double_side_ = std::get<2>(a);
-    }
+		ambiant_color_ = pp.ambiant_color_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
+	}
 
-    using LocalShader = ShaderFlatColorPerVertex;
+	using LocalShader = ShaderFlatColorPerVertex;
 
-    ShaderParamFlatColorPerVertex(LocalShader *sh)
-        : ShaderParam(sh)
-        , ambiant_color_(0.05f, 0.05f, 0.05f, 1)
-        , light_position_(10, 100, 1000)
-        , double_side_(true)
-    {}
+	ShaderParamFlatColorPerVertex(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
 
-    inline ~ShaderParamFlatColorPerVertex() override {}
+	inline ~ShaderParamFlatColorPerVertex() override
+	{
+	}
 };
 
 } // namespace rendering

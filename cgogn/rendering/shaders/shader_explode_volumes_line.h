@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ExplodeVolumesLine,CGOGN_STR(ExplodeVolumesLine))
+DECLARE_SHADER_CLASS(ExplodeVolumesLine, CGOGN_STR(ExplodeVolumesLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
@@ -46,16 +46,13 @@ public:
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		color_ = std::get<0>(a);
-		explode_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
+		color_ = pp.color_;
+		explode_ = pp.explode_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
-
 
 	using LocalShader = ShaderExplodeVolumesLine;
 
@@ -74,7 +71,6 @@ public:
 		vbo_pos_ = vbos[0];
 		vbo_center_ = vbos[1];
 	}
-
 };
 
 } // namespace rendering

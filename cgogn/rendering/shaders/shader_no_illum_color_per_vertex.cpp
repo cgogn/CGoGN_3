@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,11 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_no_illum_color_per_vertex.h>
 
 namespace cgogn
 {
@@ -33,43 +29,48 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColorPerFace, CGOGN_STR(FlatColorPerFace))
+static char const* vertex_shader_source =
+	R"(#version 330
+	in vec3 vertex_pos;
+	in vec3 vertex_color;
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+	out vec3 color;
+	void main()
+	{
+		gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
+		color = vertex_color;
+	};
+	)";
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
+static char const* fragment_shader_source =
+	R"(#version 330
+	out vec3 fragColor;
+	in vec3 color;
+	uniform bool double_side;
+
+	void main()
+	{
+		if (gl_FrontFacing || double_side)
+			fragColor = color;
+		else
+			discard;
+	};
+	)";
+
+ShaderNoIllumColorPerVertex* ShaderNoIllumColorPerVertex::instance_ = nullptr;
+
+ShaderNoIllumColorPerVertex::ShaderNoIllumColorPerVertex()
 {
-	void set_uniforms() override;
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_color");
+	add_uniforms("double_side");
+}
 
-public:
-	VBO* vbo_pos_;
-	VBO* vbo_color_;
-	GLColor ambiant_color_;
-	GLVec3 light_position_;
-	bool double_side_;
-
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
-
-	using LocalShader = ShaderFlatColorPerFace;
-
-	ShaderParamFlatColorPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000),
-		  double_side_(true)
-	{
-	}
-
-	inline ~ShaderParamFlatColorPerFace() override
-	{
-	}
-
-	void set_vbos(const std::vector<VBO*>& vbos) override;
-};
+void ShaderParamNoIllumColorPerVertex::set_uniforms()
+{
+	shader_->set_uniforms_values(double_side_);
+}
 
 } // namespace rendering
 
 } // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

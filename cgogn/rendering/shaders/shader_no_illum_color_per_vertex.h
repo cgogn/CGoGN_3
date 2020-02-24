@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_PER_FACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_NO_ILLUM_COLOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_NO_ILLUM_COLOR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,34 +33,29 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatPerFace,CGOGN_STR(FlatPerFace))
+DECLARE_SHADER_CLASS(NoIllumColorPerVertex, CGOGN_STR(NoIllumColorPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlatPerFace : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamNoIllumColorPerVertex : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(light_direction_,);
-	}
+	void set_uniforms() override;
 
 public:
-    int32_t tri_indices;
-    int32_t positions;
-    int32_t colors;
-	GLVec3 light_direction_;
+	bool double_side_;
 
-	using LocalShader = ShaderFlatPerFace;
-
-	ShaderParamFlatPerFace(ShaderFlatPerFace* sh)
-		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
-		  light_direction(10, 100, 1000)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-        light_direction.normalize();
+		double_side_ = pp.double_side_;
 	}
 
-	inline ~ShaderParamFlatPerFace() override
+	using LocalShader = ShaderNoIllumColorPerVertex;
+
+	ShaderParamNoIllumColorPerVertex(LocalShader* sh) : ShaderParam(sh), double_side_(true)
 	{
 	}
 
+	inline ~ShaderParamNoIllumColorPerVertex() override
+	{
+	}
 };
 
 } // namespace rendering

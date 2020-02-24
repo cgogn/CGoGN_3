@@ -54,9 +54,7 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 		glGetShaderInfoLog(id_, infologLength, &charsWritten, infoLog);
 
 		std::cerr << "----------------------------------------" << std::endl
-				  << "compilation de "
-				  << prg_name
-				  << " : " << std::endl
+				  << "compilation de " << prg_name << " : " << std::endl
 				  << infoLog << std::endl
 				  << "--------" << std::endl;
 
@@ -103,12 +101,9 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 		}
 		std::cerr << "----------------------------------------" << std::endl;
 	}
-
 }
 
-ShaderProgram::ShaderProgram() :
-	vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr),
-	nb_attributes_(0)
+ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr), nb_attributes_(0)
 {
 	id_ = glCreateProgram();
 }
@@ -143,12 +138,11 @@ ShaderProgram::~ShaderProgram()
 		delete frag_shader_;
 
 	glDeleteProgram(id_);
-
 }
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
-	std::cout << "Compilation Shader "<<name()<<std::endl;
+	std::cout << "Compilation Shader " << name() << std::endl;
 	vert_shader_ = new Shader(GL_VERTEX_SHADER);
 	vert_shader_->compile(vert_src, name());
 
@@ -177,9 +171,7 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	}
 
 	get_matrices_uniforms();
-
 }
-
 
 std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
 
@@ -317,10 +309,7 @@ void ShaderParam::release()
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	if (vbos.size() != shader_->nb_attributes())
-	{
-		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES"<<std::endl;
-	}
+	assert(vbos.size() == shader_->nb_attributes());
 
 	vao_initialized_ = true;
 	shader_->bind();
@@ -331,7 +320,7 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 	{
 		if (v)
 			v->associate(attrib++);
-		 else
+		else
 		{
 			vao_initialized_ = false;
 		}
@@ -340,6 +329,9 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 	shader_->release();
 }
 
+void ShaderParam::pick_parameters(const PossibleParameters&)
+{
+}
 
 } // namespace rendering
 
