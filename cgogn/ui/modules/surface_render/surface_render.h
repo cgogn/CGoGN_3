@@ -275,19 +275,7 @@ class SurfaceRender : public ViewModule
 			}
 		}
 
-		inline void update_param_using_V2(VBOContent r)
-		{
-			std::vector<rendering::VBO*> uv;
-			uv.reserve(4);
-			for (RenderStyle rs = Points)
-				for (const auto& st : style_with_vbo[r])
-				{
-					uv.clear();
-					for (auto v : vbos_of_styles[st])
-						uv.push_back(vbo_cache_[v]);
-					params_[st]->set_vbos(uv);
-				}
-		}
+
 
 		template <int32 RS>
 		type_of_param<RS>& param_typed()
@@ -512,7 +500,7 @@ protected:
 			rendering::ShaderParam* param = p.params_[Points].get();
 			if (p.render_vertices_ && param->vao_initialized())
 			{
-				p.param_typed<Points>().size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.template param_typed<Points>().size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				param->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
 				param->release();
@@ -632,7 +620,7 @@ protected:
 				switch (p.render_faces_style_)
 				{
 				case NoIllum: {
-					auto& param = p.param_typed<NoIllum>();
+					auto& param = p.template param_typed<NoIllum>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("NoIllum parameters");
 					need_update |=
@@ -641,7 +629,7 @@ protected:
 				}
 				break;
 				case NoIllum_scalar_per_vertex: {
-					auto& param = p.param_typed<NoIllum_scalar_per_vertex>();
+					auto& param = p.template param_typed<NoIllum_scalar_per_vertex>();
 					need_update |= ImGui::Checkbox("double side##no_illum", &(param.double_side_));
 					need_update |= imgui_colormap_interface(param.cm_, "no_illum_spv");
 					break;
@@ -649,22 +637,22 @@ protected:
 				case NoIllum_color_per_vertex:
 
 					need_update |= ImGui::Checkbox("double side##no_illum",
-												   &(p.param_typed<NoIllum_color_per_vertex>().double_side_));
+												   &(p.template param_typed<NoIllum_color_per_vertex>().double_side_));
 					break;
 
 				case NoIllum_scalar_per_face: {
-					auto& param = p.param_typed<NoIllum_scalar_per_face>();
+					auto& param = p.template param_typed<NoIllum_scalar_per_face>();
 					need_update |= ImGui::Checkbox("double side##no_illum", &(param.double_side_));
 					need_update |= imgui_colormap_interface(param.cm_, "no_illum_spf");
 					break;
 				}
 				case NoIllum_color_per_face:
 					need_update |= ImGui::Checkbox("double side##no_illum",
-												   &(p.param_typed<NoIllum_color_per_face>().double_side_));
+												   &(p.template param_typed<NoIllum_color_per_face>().double_side_));
 					break;
 
 				case Flat: {
-					auto& param = p.param_typed<Flat>();
+					auto& param = p.template param_typed<Flat>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Flat parameters");
 					need_update |=
@@ -676,7 +664,7 @@ protected:
 				}
 				break;
 				case Flat_scalar_per_vertex: {
-					auto& param = p.param_typed<Flat_scalar_per_vertex>();
+					auto& param = p.template param_typed<Flat_scalar_per_vertex>();
 					need_update |= ImGui::Checkbox("double side##flat", &(param.double_side_));
 					need_update |= imgui_colormap_interface(param.cm_, "flat_spv");
 					break;
@@ -684,22 +672,22 @@ protected:
 				case Flat_color_per_vertex:
 
 					need_update |=
-						ImGui::Checkbox("double side##flat", &(p.param_typed<Flat_color_per_vertex>().double_side_));
+						ImGui::Checkbox("double side##flat", &(p.template param_typed<Flat_color_per_vertex>().double_side_));
 					break;
 
 				case Flat_scalar_per_face: {
-					auto& param = p.param_typed<Flat_scalar_per_face>();
+					auto& param = p.template param_typed<Flat_scalar_per_face>();
 					need_update |= ImGui::Checkbox("double side##flat", &(param.double_side_));
 					need_update |= imgui_colormap_interface(param.cm_, "flat_spf");
 					break;
 				}
 				case Flat_color_per_face:
 					need_update |=
-						ImGui::Checkbox("double side##flat", &(p.param_typed<Flat_color_per_face>().double_side_));
+						ImGui::Checkbox("double side##flat", &(p.template param_typed<Flat_color_per_face>().double_side_));
 					break;
 
 				case Phong: {
-					auto& param = p.param_typed<Phong>();
+					auto& param = p.template param_typed<Phong>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::ColorEdit3("front color##phong", param.front_color_.data(),
@@ -713,7 +701,7 @@ protected:
 				}
 
 				case Phong_color_per_face: {
-					auto& param = p.param_typed<Phong_color_per_face>();
+					auto& param = p.template param_typed<Phong_color_per_face>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
@@ -722,7 +710,7 @@ protected:
 				}
 
 				case Phong_scalar_per_face: {
-					auto& param = p.param_typed<Phong_scalar_per_face>();
+					auto& param = p.template param_typed<Phong_scalar_per_face>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
@@ -731,7 +719,7 @@ protected:
 					break;
 				}
 				case Phong_color_per_vertex: {
-					auto& param = p.param_typed<Phong_color_per_vertex>();
+					auto& param = p.template param_typed<Phong_color_per_vertex>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
@@ -740,7 +728,7 @@ protected:
 				}
 
 				case Phong_scalar_per_vertex: {
-					auto& param = p.param_typed<Phong_scalar_per_vertex>();
+					auto& param = p.template param_typed<Phong_scalar_per_vertex>();
 					ImGui::Separator();
 					ImGui::TextUnformatted("Phong parameters");
 					need_update |= ImGui::SliderFloat("spec##phong", &(param.specular_coef_), 10.0f, 1000.0f);
@@ -756,7 +744,7 @@ protected:
 
 			if (p.render_edges_)
 			{
-				auto& param = p.param_typed<Lines>();
+				auto& param = p.template param_typed<Lines>();
 				ImGui::Separator();
 				ImGui::TextUnformatted("Edges parameters");
 				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
@@ -765,7 +753,7 @@ protected:
 
 			if (p.render_vertices_)
 			{
-				auto& param = p.param_typed<Points>();
+				auto& param = p.template param_typed<Points>();
 				ImGui::Separator();
 				ImGui::TextUnformatted("Vertices parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
