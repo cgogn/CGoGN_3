@@ -30,7 +30,7 @@ namespace rendering
 {
 
 static const char* vertex_shader_source =
-		R"(
+	R"(
 		#version 330
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
@@ -72,7 +72,7 @@ static const char* vertex_shader_source =
 		)";
 
 static const char* fragment_shader_source =
-		R"(
+	R"(
 		#version 330
 		out vec3 frag_out;
 		uniform vec3 light_position;
@@ -89,19 +89,25 @@ static const char* fragment_shader_source =
 
 ShaderExplodeVolumesColor* ShaderExplodeVolumesColor::instance_ = nullptr;
 
-
 ShaderExplodeVolumesColor::ShaderExplodeVolumesColor()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("tri_indices", "pos_vertex", "center_volume","color_volume",
-				"light_position", "explode", "plane_clip", "plane_clip2");
+	add_uniforms("tri_indices", "pos_vertex", "center_volume", "color_volume", "light_position", "explode",
+				 "plane_clip", "plane_clip2");
 }
 
 void ShaderParamExplodeVolumesColor::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11),
-						vbo_center_->bind_tb(12),vbo_color_vol_->bind_tb(13),
-						light_pos_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), vbo_center_->bind_tb(12), vbo_color_vol_->bind_tb(13),
+								 light_pos_, explode_, plane_clip_, plane_clip2_);
+}
+
+void ShaderParamExplodeVolumesColor::set_vbos(const std::vector<VBO*>& vbos)
+{
+	vbo_pos_ = vbos[0];
+	vbo_center_ = vbos[1];
+	vbo_color_vol_ = vbos[2];
+	vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr && vbos[2] != nullptr;
 }
 
 } // namespace rendering

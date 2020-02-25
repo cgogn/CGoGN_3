@@ -120,13 +120,16 @@ static std::map<GLenum, std::string> GL_ERRORS_NAMES = {
 	{GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
 	{GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
 	{GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"}};
-
+#ifdef CGOGN_GL43_DEBUG_MODE
 inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
 {
-#ifdef CGOGN_GL43_DEBUG_MODE
 	glObjectLabel(type, id, name.length(), name.c_str());
-#endif
 }
+#else
+inline void gl_debug_name(GLenum, GLuint, const std::string&)
+{
+}
+#endif
 
 } // namespace rendering
 

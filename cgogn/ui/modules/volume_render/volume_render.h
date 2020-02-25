@@ -57,6 +57,15 @@ namespace ui
 template <typename MESH>
 class Volume_Render : public ViewModule
 {
+
+	enum RenderVolStyle : int32
+	{
+		NoAttribute = 1,
+		ScalarPerVol,
+		ColorPerVol
+
+	};
+
 	static_assert(mesh_traits<MESH>::dimension >= 2, "Volume_Render can only be used with meshes of dimension >= 2");
 
 	template <typename T>
@@ -73,9 +82,9 @@ class Volume_Render : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), volume_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false),
-			  render_vertices_(false), render_edges_(false), render_faces_(false), render_volumes_b_(true),
-			  render_volumes_(1), render_volumes_line_(true), auto_update_scalar_min_max_(true), gpu_center_(false),
-			  edge_blending_(true)
+			  render_vertices_(false), render_edges_(true), render_faces_(false), render_volumes_b_(true),
+			  render_volumes_style(1), render_volumes_line_(true), auto_update_scalar_min_max_(true),
+			  gpu_center_(false), edge_blending_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -129,7 +138,7 @@ class Volume_Render : public ViewModule
 		bool render_edges_;
 		bool render_faces_;
 		bool render_volumes_b_;
-		int render_volumes_;
+		int render_volumes_style;
 		bool render_volumes_line_;
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -345,7 +354,7 @@ protected:
 				//				md->update_vbo(p.vertex_position_.get());
 				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()), md->get_render(), p.vbo_center_);
 
-				if (p.render_volumes_ == 1)
+				if (p.render_volumes_style == NoAttribute)
 				{
 					if (p.param_volumes_->vao_initialized())
 					{
@@ -355,7 +364,7 @@ protected:
 					}
 				}
 
-				if (p.render_volumes_ == 2 && p.volume_scalar_)
+				if (p.render_volumes_style == ScalarPerVol && p.volume_scalar_)
 				{
 					if (p.param_volumes_scalar_->vao_initialized())
 					{
@@ -365,7 +374,7 @@ protected:
 					}
 				}
 
-				if (p.render_volumes_ == 3 && p.volume_color_)
+				if (p.render_volumes_style == ColorPerVol && p.volume_color_)
 				{
 					if (p.param_volumes_color_->vao_initialized())
 					{
@@ -466,13 +475,15 @@ protected:
 			need_update |= ImGui::Checkbox("Volumes##b", &p.render_volumes_b_);
 			if (p.render_volumes_b_)
 			{
+				int32* ptrVS = reinterpret_cast<int32*>(&p.render_volumes_style);
+
 				ImGui::TextUnformatted("Attribute:");
 				ImGui::BeginGroup();
-				need_update |= ImGui::RadioButton("None", &p.render_volumes_, 1);
+				need_update |= ImGui::RadioButton("None", ptrVS, 1);
 				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Scalar", &p.render_volumes_, 2);
+				need_update |= ImGui::RadioButton("Scalar", ptrVS, 2);
 				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Color", &p.render_volumes_, 3);
+				need_update |= ImGui::RadioButton("Color", ptrVS, 3);
 				ImGui::EndGroup();
 				need_update |= ImGui::Checkbox("VolumesLine", &p.render_volumes_line_);
 				ImGui::TextUnformatted("Volume parameters");
@@ -490,13 +501,13 @@ protected:
 					need_update = true;
 				}
 
-				if (p.render_volumes_ == 1)
+				if (p.render_volumes_style == 1)
 				{
 					ImGui::Separator();
 					need_update |= ImGui::ColorEdit3("color##volume", p.param_volumes_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
 				}
-				if (p.render_volumes_ == 2)
+				if (p.render_volumes_style == 2)
 				{
 					ImGui::Separator();
 
@@ -507,7 +518,7 @@ protected:
 					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_, "vol_scal");
 				}
 
-				if (p.render_volumes_ == 3)
+				if (p.render_volumes_style == 3)
 				{
 					ImGui::Separator();
 					imgui_combo_attribute<Volume, Vec3>(*selected_mesh_, p.volume_color_, "Vol. Color Attribute",
