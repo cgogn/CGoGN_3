@@ -73,6 +73,7 @@ public:
 	{
 		vbo_pos_ = vbos[0];
 		vbo_center_ = vbos[1];
+		vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr;
 	}
 };
 

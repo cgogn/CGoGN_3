@@ -21,8 +21,6 @@
  *                                                                              *
  *******************************************************************************/
 
-#include<cgogn/rendering/shaders/shader_function_color_maps.h>
-
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 

@@ -353,7 +353,6 @@ protected:
 
 				if (p.render_volumes_==2 && p.volume_scalar_)
 				{
-//					md->update_vbo(p.volume_scalar_.get());
 					if (p.param_volumes_scalar_->vao_initialized())
 					{
 						p.param_volumes_scalar_->bind(proj_matrix, view_matrix);
@@ -364,7 +363,6 @@ protected:
 
 				if (p.render_volumes_==3 && p.volume_color_)
 				{
-//					md->update_vbo(p.volume_color_.get());
 					if (p.param_volumes_color_->vao_initialized())
 					{
 						p.param_volumes_color_->bind(proj_matrix, view_matrix);

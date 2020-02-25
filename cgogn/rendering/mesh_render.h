@@ -73,8 +73,7 @@ enum DrawingType : uint32
 	VOLUMES_VERTICES_TB,
 	INDEX_EDGES_TB,
 	INDEX_FACES_TB,
-	INDEX_VOLUMES_TB,
-	TRIANGLES_TB_POINTS
+	INDEX_VOLUMES_TB
 };
 
 static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
