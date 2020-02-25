@@ -89,7 +89,7 @@ static const char* vertex_shader_source2 =
 		{
 			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
 			vec3 N = texelFetch(tex_normals,icoord,0).rgb;
-			vbo_out = normalize(N)*0.00001+ vec3(0,0,1);
+			vbo_out = normalize(N)*0.00001+ vec3(1,1,1);
 		}
 		)";
 
@@ -144,7 +144,6 @@ void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 	ebo->bind_tb(10);
 	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
 	ebo->release_tb();
-
 	param1_->release();
 	glDisable(GL_BLEND);
 	fbo_->release();
@@ -154,6 +153,8 @@ void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 	glDrawArrays(GL_POINTS, 0, normals->size());
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
+
+	std::cout << *normals << std::endl;
 }
 
 } // namespace rendering

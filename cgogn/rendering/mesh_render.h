@@ -109,6 +109,12 @@ public:
 		indices_buffers_uptodate_[prim % SIZE_BUFFER] = false;
 	}
 
+	inline void set_all_dirty()
+	{
+		for (int32 p = POINTS; p < SIZE_BUFFER; ++p)
+			indices_buffers_uptodate_[p] = false;
+	}
+
 	inline EBO* get_EBO(DrawingType prim)
 	{
 		return indices_buffers_[prim % SIZE_BUFFER].get();

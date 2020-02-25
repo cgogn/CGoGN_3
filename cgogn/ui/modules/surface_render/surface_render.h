@@ -70,7 +70,7 @@ namespace ui
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "SurfaceRender can only be used with meshes of dimension = 2");
+	static_assert(mesh_traits<MESH>::dimension >= 2, "SurfaceRender can only be used with meshes of dimension >= 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -274,8 +274,6 @@ class SurfaceRender : public ViewModule
 				params_[st]->set_vbos(uv);
 			}
 		}
-
-
 
 		template <int32 RS>
 		type_of_param<RS>& param_typed()
@@ -671,8 +669,8 @@ protected:
 				}
 				case Flat_color_per_vertex:
 
-					need_update |=
-						ImGui::Checkbox("double side##flat", &(p.template param_typed<Flat_color_per_vertex>().double_side_));
+					need_update |= ImGui::Checkbox("double side##flat",
+												   &(p.template param_typed<Flat_color_per_vertex>().double_side_));
 					break;
 
 				case Flat_scalar_per_face: {
@@ -682,8 +680,8 @@ protected:
 					break;
 				}
 				case Flat_color_per_face:
-					need_update |=
-						ImGui::Checkbox("double side##flat", &(p.template param_typed<Flat_color_per_face>().double_side_));
+					need_update |= ImGui::Checkbox("double side##flat",
+												   &(p.template param_typed<Flat_color_per_face>().double_side_));
 					break;
 
 				case Phong: {
