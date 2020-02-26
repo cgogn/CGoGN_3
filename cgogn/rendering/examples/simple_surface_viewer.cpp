@@ -75,7 +75,6 @@ int main(int argc, char** argv)
 	v1->link_module(&tr);
 	v1->link_module(&srv);
 
-
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
 	{
@@ -118,7 +117,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	//	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	//		sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, nullptr);

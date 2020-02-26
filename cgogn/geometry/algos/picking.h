@@ -69,7 +69,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 				selected_per_thread[worker_index].emplace_back(f, intersection_point,
 															   (intersection_point - A).squaredNorm());
 		}else{
-			for (uint32 i=0;i+2<vertices.size();i++){
+			for (uint32 i=0;i+2<uint32(vertices.size());i++){
 				if (intersection_ray_triangle(
 					A, AB,
 					value<Vec3>(m, vertex_position, vertices[0]),
@@ -85,7 +85,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		// 	std::vector<uint32>& ear_indices = ear_indices_per_thread[worker_index];
 		// 	ear_indices.clear();
 		// 	append_ear_triangulation(m, f, position, ear_indices);
-		// 	for (std::size_t i = 0; i < ear_indices.size(); i += 3)
+		// 	for (std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 		// 	{
 		// 		const VEC3& p1 = position[ear_indices[i]];
 		// 		const VEC3& p2 = position[ear_indices[i+1]];
@@ -93,7 +93,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		// 		if (intersection_ray_triangle(A, AB, p1, p2, p3, &intersection_point))
 		// 		{
 		// 			selected_per_thread[worker_index].push_back({ f, intersection_point, (intersection_point -
-		// A).squaredNorm() }); 			i = ear_indices.size();
+		// A).squaredNorm() }); 			i = uint32(ear_indices.size());
 		// 		}
 		// 	}
 		// }
@@ -126,7 +126,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 
 	CellMarkerStore<MESH, Vertex> cm(m);
 	result.clear();
-	result.reserve(selected_faces.size());
+	result.reserve(uint32(selected_faces.size()));
 	for (const auto& sf : selected_faces)
 	{
 		Scalar min_d2 = std::numeric_limits<Scalar>::max();
@@ -166,7 +166,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 
 	CellMarkerStore<MESH, Edge> cm(m);
 	result.clear();
-	result.reserve(selected_faces.size());
+	result.reserve(uint32(selected_faces.size()));
 	for (const auto& sf : selected_faces)
 	{
 		Scalar min_d2 = std::numeric_limits<Scalar>::max();
@@ -205,7 +205,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 	std::vector<SelectedFace> selected_faces = internal::picking(m, vertex_position, A, B);
 
 	result.clear();
-	result.reserve(selected_faces.size());
+	result.reserve(uint32(selected_faces.size()));
 	for (const auto& sf : selected_faces)
 		result.push_back(std::get<0>(sf));
 }

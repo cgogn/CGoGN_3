@@ -274,7 +274,7 @@ auto edgePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector
 	}
 
 	// pour savoir si c'est le premier appel ou le rappel pour la deuxieme partie des r-points
-	bool first_call = p_point.size() == 0;
+	bool first_call = uint32(p_point.size()) == 0;
 
 	// p-points : ajouter les extremités de l'arete (sauf si c'est le deuxième appel
 	if (first_call) {
@@ -341,7 +341,7 @@ auto edgePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector
 
 	// Sinon, faire la meme chose dans l'autre sens (si ce n'est pas déjà fait)
 	// pour avoir les r/s-points de l'autre coté de l'arete
-	if (q_point.size() != 0 && first_call) {
+	if (uint32(q_point.size()) != 0 && first_call) {
 		edgePointMask(m,phi2(m,d), p_point, q_point, r_point, s_point);
 	}
 }
@@ -423,7 +423,7 @@ auto volumePointRule(const MESH& m,
 -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>,Vec3>
 {
 	static const float _W_ = 1.f/16;
-	if (q_point.size() == 0) {
+	if (uint32(q_point.size()) == 0) {
 		return (1.f/8)*sum<MESH>(m,p_point,attribute);
 	}
 	else {
@@ -438,7 +438,7 @@ auto facePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::ve
 -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>,Vec3>
 {
 	static const float _W_ = 1.f/16;
-	if (q_point.size() == 0) {
+	if (uint32(q_point.size()) == 0) {
 		return (1.f/4)*sum<MESH>(m,p_point,attribute);
 	}
 	else {
@@ -458,7 +458,7 @@ auto edgePointRule(const MESH& m,const std::vector<Dart> &p_point, const std::ve
 -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>,Vec3>
 {
 	static const float _W_ = 1.f/16;
-	int N = q_point.size()/2;
+	int N = uint32(q_point.size())/2;
 	float w1 = 1.f/2;
 	if (N == 0) {
 		return w1*sum<MESH>(m,p_point,attribute);

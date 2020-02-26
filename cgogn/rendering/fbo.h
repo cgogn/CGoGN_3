@@ -81,7 +81,7 @@ public:
 
 	inline std::size_t nb_textures()
 	{
-		return tex_.size();
+		return uint32(tex_.size());
 	}
 
 	inline GLint width() const

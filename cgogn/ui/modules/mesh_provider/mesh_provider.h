@@ -347,7 +347,7 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (result.size())
+			if (uint32(result.size()))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
 					load_graph_from_file(result[0]);

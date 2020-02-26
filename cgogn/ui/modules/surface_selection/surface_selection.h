@@ -86,17 +86,17 @@ class SurfaceSelection : public ViewModule
 			  selecting_cell_(VertexSelect), selection_method_(SingleCell)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_point_sprite_->set_vbos({&selected_vertices_vbo_});
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_edge_->width_ = 2.0f;
 			param_edge_->set_vbos({&selected_edges_vbo_});
 
 			param_flat_ = rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65);
-			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_flat_->double_side_ = true;
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_flat_->set_vbos({&selected_faces_vbo_});
@@ -479,7 +479,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -549,7 +549,7 @@ protected:
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 				}
 				else if (p.selecting_cell_ == EdgeSelect)
 				{

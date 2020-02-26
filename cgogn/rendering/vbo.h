@@ -111,7 +111,7 @@ public:
 		std::size_t total = nb_vectors * uint32(vector_dimension);
 		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_DYNAMIC_DRAW);
 		}
 		nb_vectors_ = nb_vectors;
 		vector_dimension_ = vector_dimension;

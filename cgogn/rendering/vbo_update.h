@@ -57,7 +57,7 @@ template <typename VEC,
 void update_vbo(const std::vector<VEC>& vector, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
-	uint32 nb_elements = uint32(vector.size());
+	uint32 nb_elements = uint32(uint32(vector.size()));
 
 	std::cout << "update VBO from std::vector" << std::endl;
 	std::cout << "  element_size: " << element_size << std::endl;
@@ -82,7 +82,7 @@ void update_vbo(const std::vector<VEC>& vector, VBO* vbo, const FUNC& convert)
 
 	using OutputType = func_return_type<FUNC>;
 	static const std::size_t output_type_size = geometry::vector_traits<OutputType>::SIZE;
-	uint32 nb_elements = uint32(vector.size());
+	uint32 nb_elements = uint32(uint32(vector.size()));
 
 	vbo->bind();
 	vbo->allocate(nb_elements, output_type_size);
@@ -219,7 +219,7 @@ void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo)
 	vbo->allocate(nb_chunks * chunk_size, element_size);
 	std::vector<const void*> chunk_pointers = attribute->chunk_pointers();
 	uint32 vbo_chunk_byte_size = chunk_size * element_size * uint32(sizeof(float32));
-	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
+	for (uint32 i = 0, size = uint32(uint32(chunk_pointers.size())); i < size; ++i)
 		vbo->copy_data(i * vbo_chunk_byte_size, vbo_chunk_byte_size, chunk_pointers[i]);
 	vbo->release();
 }
@@ -246,7 +246,7 @@ void update_vbo(const ChunkArray<VEC>* attribute, VBO* vbo, const FUNC& convert)
 	vbo->allocate(nb_elements, output_type_size);
 	std::vector<const void*> chunk_pointers = attribute->chunk_pointers();
 	OutputType* dst = reinterpret_cast<OutputType*>(vbo->lock_pointer());
-	for (uint32 i = 0, size = uint32(chunk_pointers.size()); i < size; ++i)
+	for (uint32 i = 0, size = uint32(uint32(chunk_pointers.size())); i < size; ++i)
 	{
 		const VEC* chunk = static_cast<const VEC*>(chunk_pointers[i]);
 		for (uint32 j = 0; j < chunk_size && i * chunk_size + j < nb_elements; ++j)

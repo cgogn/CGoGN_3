@@ -262,10 +262,10 @@ App::App()
 			return;
 		}
 
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
+		ImGui::GetIO().MousePos = ImVec2(float(cx), float(cy));
 
-		int32 px = std::floor(cx);
-		int32 py = std::floor(cy);
+		int32 px = int32(std::floor(cx));
+		int32 py = int32(std::floor(cy));
 
 		for (const auto& v : that->views_)
 		{
@@ -413,10 +413,10 @@ void App::set_window_title(const std::string& name)
 
 View* App::add_view()
 {
-	if (views_.size() < 4)
+	if (uint32(views_.size()) < 4)
 	{
 		glfwMakeContextCurrent(window_);
-		views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(views_.size())));
+		views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(uint32(views_.size()))));
 		adapt_views_geometry();
 		return views_.back().get();
 	}
@@ -441,7 +441,7 @@ void App::close_event()
 
 void App::adapt_views_geometry()
 {
-	switch (views_.size())
+	switch (uint32(views_.size()))
 	{
 	case 1:
 		views_[0]->set_view_ratio(0, 0, 1, 1);
@@ -501,13 +501,13 @@ int App::launch()
 		for (const auto& v : views_)
 		{
 			v->draw();
-			if (views_.size() > 1)
+			if (uint32(views_.size()) > 1)
 			{
 				if (v.get() == current_view_)
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
 				else
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
-				param_frame_->draw(v->viewport_width(), v->viewport_height());
+				param_frame_->draw(float(v->viewport_width()), float(v->viewport_height()));
 			}
 		}
 

@@ -330,7 +330,7 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
 					if (p.vertex_position_)
-						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						p.vertex_base_size_ = uint32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
@@ -338,7 +338,8 @@ private:
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
-							p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+							p.vertex_base_size_ =
+								uint32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 						v->request_update();
 					}));
 			mesh_connections_[m].push_back(
@@ -755,7 +756,7 @@ protected:
 				ImGui::Separator();
 				ImGui::TextUnformatted("Vertices parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 			}
 		}
 

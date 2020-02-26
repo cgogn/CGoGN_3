@@ -86,7 +86,7 @@ public:
 
 	uint32 nb_buffers()
 	{
-		return buffers_.size();
+		return uint32(buffers_.size());
 	}
 };
 

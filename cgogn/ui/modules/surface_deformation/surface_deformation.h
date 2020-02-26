@@ -178,7 +178,7 @@ private:
 			Scalar& weight = value<Scalar>(*m, p.edge_weight_, e);
 			for (Scalar a : angles)
 				weight += std::tan(M_PI_2 - a);
-			weight /= angles.size();
+			weight /= uint32(angles.size());
 			return true;
 		});
 
@@ -595,7 +595,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];

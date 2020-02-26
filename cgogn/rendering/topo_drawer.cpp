@@ -171,7 +171,7 @@ Dart TopoDrawer::pick(const Vec3& A, const Vec3& B, const Vec4& plane, Vec3* dp1
 
 	std::size_t isel = INVALID_INDEX;
 
-	for (std::size_t i = 0, nb_d = darts_id_.size(); i < nb_d; ++i)
+	for (std::size_t i = 0, nb_d = uint32(darts_id_.size()); i < nb_d; ++i)
 	{
 		const Vec3& PP = darts_pos_[2 * i].cast<Scalar>();
 		const Vec3& QQ = darts_pos_[2 * i + 1].cast<Scalar>();
@@ -223,7 +223,7 @@ Dart TopoDrawer::pick(const Vec3& A, const Vec3& B, const Vec4& plane1, const Ve
 
 	std::size_t isel = INVALID_INDEX;
 
-	for (std::size_t i = 0, nb_d = darts_id_.size(); i < nb_d; ++i)
+	for (std::size_t i = 0, nb_d = uint32(darts_id_.size()); i < nb_d; ++i)
 	{
 		const Vec3& PP = darts_pos_[2 * i].cast<Scalar>();
 		const Vec3& QQ = darts_pos_[2 * i + 1].cast<Scalar>();

@@ -119,7 +119,7 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vector_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 2.0;
+			p.vector_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 2.0);
 			md->update_vbo(vertex_position.get(), true);
 		}
 
@@ -202,7 +202,7 @@ protected:
 
 		if (selected_view_ && selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
@@ -251,7 +251,7 @@ protected:
 			ImGui::TextUnformatted("Vector parameters");
 			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(),
 											 ImGuiColorEditFlags_NoInputs);
-			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1, 5.0);
+			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1f, 5.0f);
 		}
 
 		ImGui::End();

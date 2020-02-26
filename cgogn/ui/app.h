@@ -61,7 +61,10 @@ public:
 	void set_window_size(int32 w, int32 h);
 	void set_window_title(const std::string& name);
 
-	static inline float64 fps() { return fps_; }
+	static inline float64 fps()
+	{
+		return fps_;
+	}
 
 	View* add_view();
 	inline View* current_view() const
@@ -118,7 +121,7 @@ private:
 	int32 framebuffer_width_;
 	int32 framebuffer_height_;
 
-	float64 interface_scaling_;
+	float32 interface_scaling_;
 	float64 time_last_50_frames_;
 	static float64 fps_;
 	bool show_imgui_;

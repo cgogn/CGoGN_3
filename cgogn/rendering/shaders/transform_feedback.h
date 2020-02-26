@@ -48,7 +48,7 @@ class CGOGN_RENDERING_EXPORT TransformFeedback
 	{
 		glEnable(GL_RASTERIZER_DISCARD);
 //		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, id_);
-		for (GLuint i = 0; i < vbos.size(); ++i)
+		for (GLuint i = 0; i < uint32(vbos.size()); ++i)
 			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, i, vbos[i]->id());
 		glBeginTransformFeedback(prim);
 	}

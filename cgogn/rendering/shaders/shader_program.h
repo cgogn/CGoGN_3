@@ -293,13 +293,13 @@ public:
 	template <typename T1>
 	void set_uniforms_values(T1 p1)
 	{
-		set_uniform_value(uniforms_.size() - 1, p1);
+		set_uniform_value(uint32(uniforms_.size()) - 1, p1);
 	}
 
 	template <typename T1, typename... Ts>
 	void set_uniforms_values(T1 p1, Ts... pn)
 	{
-		set_uniform_value(uniforms_.size() - 1 - sizeof...(Ts), p1);
+		set_uniform_value(uint32(uniforms_.size()) - 1 - sizeof...(Ts), p1);
 		set_uniforms_values(pn...);
 	}
 
@@ -421,7 +421,7 @@ public:
 			std::vector<const char*> tfo;
 			for (const auto& t : tf_outs)
 				tfo.push_back(t.c_str());
-			glTransformFeedbackVaryings(id_, GLsizei(tf_outs.size()), tfo.data(), GL_SEPARATE_ATTRIBS);
+			glTransformFeedbackVaryings(id_, GLsizei(uint32(tf_outs.size())), tfo.data(), GL_SEPARATE_ATTRIBS);
 		}
 
 		glLinkProgram(id_);

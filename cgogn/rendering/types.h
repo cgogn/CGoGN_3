@@ -123,7 +123,7 @@ static std::map<GLenum, std::string> GL_ERRORS_NAMES = {
 #ifdef CGOGN_GL43_DEBUG_MODE
 inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
 {
-	glObjectLabel(type, id, name.length(), name.c_str());
+	glObjectLabel(type, id, GLsizei(name.length()), name.c_str());
 }
 #else
 inline void gl_debug_name(GLenum, GLuint, const std::string&)

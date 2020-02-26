@@ -136,7 +136,7 @@ void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& posi
 			{
 				ear_indices.clear();
 				cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-				for (std::size_t i = 0; i < ear_indices.size(); i += 3)
+				for (std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 				{
 					const VEC3& P1 = position[ear_indices[i]];
 					const VEC3& P2 = position[ear_indices[i + 1]];
@@ -150,7 +150,7 @@ void VolumeTransparencyDrawer::update_face(const MAP& m, const VERTEX_ATTR& posi
 		});
 	});
 
-	uint32 nbvec = uint32(out_pos.size());
+	uint32 nbvec = uint32(uint32(out_pos.size()));
 
 	vbo_pos_->allocate(nbvec, 3);
 	vbo_pos_->bind();

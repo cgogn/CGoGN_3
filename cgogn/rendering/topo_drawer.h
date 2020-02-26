@@ -284,7 +284,7 @@ void TopoDrawer::update2D(const MESH& m, const typename mesh_traits<MESH>::templ
 	});
 
 	std::vector<Vec3f> darts_col;
-	darts_col.resize(darts_pos_.size());
+	darts_col.resize(uint32(darts_pos_.size()));
 	for (auto& c : darts_col)
 	{
 		c[0] = dart_color_.x();
@@ -292,7 +292,7 @@ void TopoDrawer::update2D(const MESH& m, const typename mesh_traits<MESH>::templ
 		c[2] = dart_color_.z();
 	}
 
-	uint32 nbvec = std::uint32_t(darts_pos_.size());
+	uint32 nbvec = std::uint32_t(uint32(darts_pos_.size()));
 
 	vbo_darts_->bind();
 	vbo_darts_->allocate(nbvec, 3);
@@ -408,7 +408,7 @@ void TopoDrawer::update2D(const MESH& m, const typename mesh_traits<MESH>::templ
 //	});
 
 //	std::vector<Vec3f> darts_col;
-//	darts_col.resize(darts_pos_.size());
+//	darts_col.resize(uint32(darts_pos_.size()));
 //	for (auto& c : darts_col)
 //	{
 //		c[0] = dart_color_.x();
@@ -416,7 +416,7 @@ void TopoDrawer::update2D(const MESH& m, const typename mesh_traits<MESH>::templ
 //		c[2] = dart_color_.z();
 //	}
 
-//	uint32 nbvec = uint32(darts_pos_.size());
+//	uint32 nbvec = uint32(uint32(darts_pos_.size()));
 //	vbo_darts_->bind();
 //	vbo_darts_->allocate(nbvec, 3);
 //	vbo_darts_->copy_data(0, nbvec * 12, darts_pos_[0].data());
@@ -445,7 +445,7 @@ void TopoDrawer::update_colors(const MESH& m,
 							   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color)
 {
 	std::vector<Vec3f> darts_col;
-	darts_col.reserve(2 * darts_id_.size());
+	darts_col.reserve(2 * uint32(darts_id_.size()));
 	//	darts_col.clear();
 
 	for (Dart d : darts_id_)
@@ -455,7 +455,7 @@ void TopoDrawer::update_colors(const MESH& m,
 		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
 	}
 
-	uint32 nbvec = darts_col.size();
+	uint32 nbvec = uint32(darts_col.size());
 	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
 	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
@@ -580,7 +580,7 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 
 	uint32 nbvec = 0;
 	for (const auto& dp : thdarts_pos)
-		nbvec += dp.size();
+		nbvec += uint32(dp.size());
 
 	if (PICKABLE)
 	{
@@ -598,8 +598,8 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 		if (!dp.empty())
 		{
 
-			vbo_darts_->copy_data(beg * 12, dp.size() * 12, dp[0].data());
-			beg += dp.size();
+			vbo_darts_->copy_data(beg * 12, uint32(dp.size()) * 12, dp[0].data());
+			beg += uint32(dp.size());
 		}
 	vbo_darts_->release();
 

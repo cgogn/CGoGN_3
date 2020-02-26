@@ -66,12 +66,12 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 		while (!sserr.eof())
 		{
 			std::size_t a = 0;
-			while ((a < line.size()) && (line[a] >= '0') && (line[a] <= '9'))
+			while ((a < uint32(line.size())) && (line[a] >= '0') && (line[a] <= '9'))
 				a++;
 			std::size_t b = a + 1;
-			while ((b < line.size()) && (line[b] >= '0') && (line[b] <= '9'))
+			while ((b < uint32(line.size())) && (line[b] >= '0') && (line[b] <= '9'))
 				b++;
-			if (b < line.size())
+			if (b < uint32(line.size()))
 			{
 				int ln = std::stoi(line.substr(a + 1, b - a - 1));
 				error_lines.push_back(ln);
@@ -309,7 +309,7 @@ void ShaderParam::release()
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	assert(vbos.size() == shader_->nb_attributes());
+	assert(uint32(vbos.size()) == shader_->nb_attributes());
 
 	vao_initialized_ = true;
 	shader_->bind();

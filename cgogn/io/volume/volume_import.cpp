@@ -50,7 +50,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 	uint32 vol_emb = 0u;
 
 	// for each volume of table
-	for (uint32 i = 0u, end = volume_data.volumes_types_.size(); i < end; ++i)
+	for (uint32 i = 0u, end = uint32(volume_data.volumes_types_.size()); i < end; ++i)
 	{
 		Volume vol;
 		const VolumeType vol_type = volume_data.volumes_types_[i];

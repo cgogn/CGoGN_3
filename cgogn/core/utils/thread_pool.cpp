@@ -77,7 +77,7 @@ ThreadPool::ThreadPool() : stop_(false)
 
 ThreadPool::~ThreadPool()
 {
-	nb_working_workers_ = uint32(workers_.size());
+	nb_working_workers_ = uint32(uint32(workers_.size()));
 	condition_running_.notify_all();
 
 	{
@@ -97,9 +97,9 @@ ThreadPool::~ThreadPool()
 void ThreadPool::set_nb_workers(uint32 nb)
 {
 	if (nb == 0xffffffff)
-		nb_working_workers_ = uint32(workers_.size());
+		nb_working_workers_ = uint32(uint32(workers_.size()));
 	else
-		nb_working_workers_ = std::min(uint32(workers_.size()), nb);
+		nb_working_workers_ = std::min(uint32(uint32(workers_.size())), nb);
 
 	condition_running_.notify_all();
 
