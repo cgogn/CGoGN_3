@@ -386,6 +386,9 @@ public:
 			p.vbo_cache_[Normal]->bind();
 			p.vbo_cache_[Normal]->allocate(p.vbo_cache_[Position]->size(), 3);
 			p.vbo_cache_[Normal]->release();
+			rendering::MeshRender* mr = md->get_render();
+			if (!mr->is_primitive_uptodate(rendering::TRIANGLES))
+				mr->init_primitives(m,rendering::TRIANGLES,p.vertex_position_.get());
 			compute_normal_engine->compute(p.vbo_cache_[Position], md->get_render(), p.vbo_cache_[Normal]);
 
 			std::cout << *(p.vbo_cache_[Normal]) << std::endl;
@@ -437,6 +440,7 @@ public:
 protected:
 	void update_scalar_min_max_values(Parameters& p)
 	{
+		unused_parameters(p);
 		//		Scalar min = std::numeric_limits<float64>::max();
 		//		Scalar max = std::numeric_limits<float64>::lowest();
 		//		for (const Scalar& v : *p.vertex_scalar_)

@@ -268,7 +268,7 @@ protected:
 	{
 		if (selected_mesh_ && view->shift_pressed())
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+//			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (p.vertex_position_)
@@ -431,7 +431,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+//			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
@@ -502,16 +502,16 @@ protected:
 					set_vertex_position(*selected_mesh_, nullptr);
 
 				ImGui::Separator();
+				int * ptr_sel_cell = reinterpret_cast<int*>(&p.selecting_cell_);
+				need_update |= ImGui::RadioButton("Vertex", ptr_sel_cell, VertexSelect);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Edge", ptr_sel_cell, EdgeSelect);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Face", ptr_sel_cell, FaceSelect);
 
-				need_update |= ImGui::RadioButton("Vertex", (int*)(&p.selecting_cell_), VertexSelect);
+				ImGui::RadioButton("Single", reinterpret_cast<int*>(&p.selection_method_), SingleCell);
 				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Edge", (int*)(&p.selecting_cell_), EdgeSelect);
-				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Face", (int*)(&p.selecting_cell_), FaceSelect);
-
-				ImGui::RadioButton("Single", (int*)(&p.selection_method_), SingleCell);
-				ImGui::SameLine();
-				ImGui::RadioButton("Sphere", (int*)(&p.selection_method_), WithinSphere);
+				ImGui::RadioButton("Sphere", reinterpret_cast<int*>(&p.selection_method_), WithinSphere);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);

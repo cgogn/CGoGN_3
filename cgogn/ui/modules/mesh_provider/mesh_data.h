@@ -77,7 +77,7 @@ struct MeshData
 		render_.draw(primitive);
 	}
 
-	void init_primitives(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
+	void zinit_pinit_primitivesrimitives(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
 		render_.init_primitives(*mesh_, primitive, position.get());
 	}
@@ -191,6 +191,8 @@ private:
 	{
 		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = {(internal_rebuild_cells_sets_of_type<T>(), 0)...};
+		unused_parameters(a);
+		// TOOO CHECK
 	}
 
 public:

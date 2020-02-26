@@ -76,6 +76,11 @@ enum DrawingType : uint32
 	INDEX_VOLUMES_TB
 };
 
+
+inline DrawingType& operator++(DrawingType& d)
+{
+	return  ++d;
+}
 static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
 													"TRIANGLES",		"VOLUMES_FACES",
 													"VOLUMES_EDGES",	"VOLUMES_VERTICES",
@@ -110,7 +115,7 @@ public:
 
 	inline void set_all_dirty()
 	{
-		for (int32 p = POINTS; p < SIZE_BUFFER; ++p)
+		for (DrawingType p = POINTS; p < SIZE_BUFFER; ++p)
 			indices_buffers_uptodate_[p] = false;
 	}
 
@@ -398,7 +403,7 @@ public:
 
 				uint32 beg = 0;
 				uint32 nb = table1.size();
-				for (int j = 0; j < nb; ++j)
+				for (uint32 j = 0; j < nb; ++j)
 				{
 					const auto& t1 = table1[j];
 					uint32 sz = uint32(t1.size());

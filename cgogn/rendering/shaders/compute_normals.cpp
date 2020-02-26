@@ -32,43 +32,37 @@ namespace rendering
 static const char* vertex_shader_source1 =
 	R"(
 		#version 330
-//		uniform usamplerBuffer tri_ind;
-//		uniform samplerBuffer pos_vertex;
-//		uniform float inv_h;
+		uniform usamplerBuffer tri_ind;
+		uniform samplerBuffer pos_vertex;
+		uniform float inv_h;
 		out vec3 N;
 		void main()
 		{
-				vec2 p = vec2(gl_VertexID%2, gl_VertexID/2);
-				N = vec3(p,0);
-				p = 2.0*p - 1.0;
-				gl_Position = vec4(p,0,0);
+			int vid = gl_VertexID;
+			int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+			vec3 A = texelFetch(pos_vertex, ind_a).rgb;
+			vid = (vid+1)%3;
+			int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+			vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
+			vid  = (vid+1)%3;
+			int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+			vec3 C = texelFetch(pos_vertex, ind_c).rgb;
 
-
-//			vec2 d = vec2(1.0/16.0,inv_h);
-//			int vid = gl_VertexID;
-//			int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-//			vec3 A = texelFetch(pos_vertex, ind_a).rgb;
-//			vid  = (vid+1)%3;
-//			int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-//			vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
-//			vid  = (vid+1)%3;
-//			int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-//			vec3 C = texelFetch(pos_vertex, ind_c).rgb;
-//			N = cross(C-A,B-A);
-//			uint ind_f = uint(ind_a%2);
-//			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(float(ind_f%16u),float(ind_f/16u));
-//			gl_Position = vec4(vec2(-0.9999,-0.9999)+0.00001*coord_N,0,1);
+			vec2 d = vec2(1.0/1024.0 , inv_h);
+			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(ind_a%1024,ind_a/1024);
+			gl_Position = vec4(coord_N,0,1);
+			N = cross(C-A,B-A);
 		}
 		)";
 
 static const char* fragment_shader_source1 =
 	R"(
 		#version 330
-		out vec3 frag_out;
+		out vec4 frag_out;
 		in vec3 N;
 		void main()
 		{
-			frag_out = N;
+			frag_out = vec4(N,1);
 		}
 		)";
 
@@ -77,12 +71,12 @@ ShaderComputeNormal1* ShaderComputeNormal1::instance_ = nullptr;
 ShaderComputeNormal1::ShaderComputeNormal1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
-	//	add_uniforms("tri_ind", "pos_vertex", "inv_h");
+		add_uniforms("tri_ind", "pos_vertex", "inv_h");
 }
 
 void ShaderParamComputeNormal1::set_uniforms()
 {
-	//	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f / float(height_tex_));
+	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f / float(height_tex_));
 }
 
 static const char* vertex_shader_source2 =
@@ -90,7 +84,7 @@ static const char* vertex_shader_source2 =
 		#version 330
 		uniform sampler2D tex_normals;
 		out vec3 vbo_out;
-		const int w = 16;
+		const int w = 64;
 		void main()
 		{
 			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
@@ -133,26 +127,24 @@ ComputeNormalEngine::~ComputeNormalEngine()
 
 void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 {
-	int32 h = (normals->size() + 15) / 16;
-	//	fbo_->resize(16, h);
-	fbo_->resize(64, 64);
+	int32 h = (normals->size() + 1023) / 1024;
+	fbo_->resize(1024, h);
 	fbo_->bind();
 	glDisable(GL_DEPTH_TEST);
-	glClearColor(0.9, 0.9, 0, 0);
+	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
-	//	glEnable(GL_BLEND);
-	//	glBlendEquation(GL_FUNC_ADD);
-	//	glBlendFunc(GL_ONE, GL_ONE);
+	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
+	glBlendFunc(GL_ONE, GL_ONE);
 	param1_->vbo_pos_ = pos;
 	param1_->height_tex_ = h;
 	param1_->bind();
-	glPointSize(1.00f);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	//	EBO* ebo = renderer->get_EBO(TRIANGLES);
-	//	ebo->bind_tb(10);
-	//	glPointSize(1.001f);
-	//	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
-	//	ebo->release_tb();
+	EBO* ebo = renderer->get_EBO(TRIANGLES);
+	ebo->bind_tb(10);
+	glPointSize(1.01f);
+	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
+	std::cout << ebo->size() << std::endl;
+	ebo->release_tb();
 	param1_->release();
 	glDisable(GL_BLEND);
 	fbo_->release();

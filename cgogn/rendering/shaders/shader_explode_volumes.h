@@ -41,8 +41,8 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 
 public:
 	GLColor color_;
-	float32 explode_;
 	GLVec3 light_pos_;
+	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 	VBO* vbo_pos_;
