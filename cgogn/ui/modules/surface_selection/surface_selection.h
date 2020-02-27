@@ -431,8 +431,6 @@ protected:
 	{
 		for (auto& [m, p] : parameters_)
 		{
-			//			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 

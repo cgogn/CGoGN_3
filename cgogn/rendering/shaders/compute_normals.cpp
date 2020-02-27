@@ -35,6 +35,7 @@ static const char* vertex_shader_source1 =
 		uniform usamplerBuffer tri_ind;
 		uniform samplerBuffer pos_vertex;
 		uniform float inv_h;
+
 		flat out vec3 N;
 		void main()
 		{
