@@ -76,6 +76,17 @@ enum DrawingType : uint32
 	INDEX_VOLUMES_TB
 };
 
+inline DrawingType& operator++(DrawingType& d)
+{
+	++*reinterpret_cast<int32*>(&d);
+	return d;
+}
+
+inline int32* operator&(DrawingType& d)
+{
+	return reinterpret_cast<int*>(&d);
+}
+
 static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
 													"TRIANGLES",		"VOLUMES_FACES",
 													"VOLUMES_EDGES",	"VOLUMES_VERTICES",
@@ -110,7 +121,7 @@ public:
 
 	inline void set_all_dirty()
 	{
-		for (int32 p = POINTS; p < SIZE_BUFFER; ++p)
+		for (DrawingType p = POINTS; p < SIZE_BUFFER; ++p)
 			indices_buffers_uptodate_[p] = false;
 	}
 
@@ -326,6 +337,8 @@ public:
 		const MESH& m, DrawingType prim,
 		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
+		unused_parameters(position); // for constexpr case dim<2 !
+
 		if (prim >= SIZE_BUFFER)
 			prim = DrawingType(prim % SIZE_BUFFER);
 		indices_buffers_uptodate_[prim] = true;
@@ -397,8 +410,8 @@ public:
 				uint32* ptr1 = indices_buffers_[pr1]->lock_pointer();
 
 				uint32 beg = 0;
-				uint32 nb = table1.size();
-				for (int j = 0; j < nb; ++j)
+				uint32 nb = uint32(table1.size());
+				for (uint32 j = 0; j < nb; ++j)
 				{
 					const auto& t1 = table1[j];
 					uint32 sz = uint32(t1.size());

@@ -614,14 +614,14 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 	for (const auto& op2 : thout_pos2)
 		if (!op2.empty())
 		{
-			vbo_relations_->copy_data(beg * 12, op2.size() * 12, op2[0].data());
-			beg += op2.size();
+			vbo_relations_->copy_data(beg * 12, uint32(op2.size()) * 12, op2[0].data());
+			beg += uint32(op2.size());
 		}
 	for (const auto& op3 : thout_pos3)
 		if (!op3.empty())
 		{
-			vbo_relations_->copy_data(beg * 12, op3.size() * 12, op3[0].data());
-			beg += op3.size();
+			vbo_relations_->copy_data(beg * 12, uint32(op3.size()) * 12, op3[0].data());
+			beg += uint32(op3.size());
 		}
 
 	vbo_relations_->release();

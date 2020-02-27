@@ -550,6 +550,7 @@ protected:
 
 	void key_release_event(View* view, int32 key_code) override
 	{
+		unused_parameters(view);
 		if (key_code == GLFW_KEY_D)
 		{
 			if (dragging_)

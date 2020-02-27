@@ -104,7 +104,7 @@ private:
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
-							p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
+							p.vector_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2);
 						v->request_update();
 					}));
 		}

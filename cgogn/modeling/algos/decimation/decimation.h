@@ -59,7 +59,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	auto edge_cost = [&](Edge e) -> Scalar { return geometry::length(m, e, vertex_position); };
 
 	foreach_cell(m, [&](Edge e) -> bool {
-		update_edge_queue(m, e, edge_queue, edge_queue_info.get(), edge_cost);
+		update_edge_queue(m, e, edge_queue, edge_queue_info.get(), edge_cost); // TODO: REMOVE F@#! WARNING
 		return true;
 	});
 

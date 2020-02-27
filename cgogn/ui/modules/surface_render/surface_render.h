@@ -67,6 +67,33 @@ namespace cgogn
 namespace ui
 {
 
+enum SurfaceRenderStyle : int32
+{
+	None = -1,
+	Points,
+	Lines,
+	NoIllum,
+	NoIllum_scalar_per_vertex,
+	NoIllum_color_per_vertex,
+	NoIllum_scalar_per_face,
+	NoIllum_color_per_face,
+	Flat,
+	Flat_scalar_per_vertex,
+	Flat_color_per_vertex,
+	Flat_scalar_per_face,
+	Flat_color_per_face,
+	Phong,
+	Phong_scalar_per_vertex,
+	Phong_color_per_vertex,
+	Phong_scalar_per_face,
+	Phong_color_per_face,
+};
+inline SurfaceRenderStyle& operator++(SurfaceRenderStyle& d)
+{
+	++*reinterpret_cast<int32*>(&d);
+	return d;
+}
+
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
@@ -84,29 +111,7 @@ class SurfaceRender : public ViewModule
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
-	enum RenderStyle : int32
-	{
-		None = -1,
-		Points,
-		Lines,
-		NoIllum,
-		NoIllum_scalar_per_vertex,
-		NoIllum_color_per_vertex,
-		NoIllum_scalar_per_face,
-		NoIllum_color_per_face,
-		Flat,
-		Flat_scalar_per_vertex,
-		Flat_color_per_vertex,
-		Flat_scalar_per_face,
-		Flat_color_per_face,
-		Phong,
-		Phong_scalar_per_vertex,
-		Phong_color_per_vertex,
-		Phong_scalar_per_face,
-		Phong_color_per_face,
-	};
-
-	constexpr bool is_per_face(RenderStyle rs)
+	constexpr bool is_per_face(SurfaceRenderStyle rs)
 	{
 		return ((rs > 1) && ((rs % 5) < 2));
 	}
@@ -121,55 +126,58 @@ class SurfaceRender : public ViewModule
 		Vec3_per_face,
 	};
 
-	using ILRenderStyles = std::initializer_list<RenderStyle>;
+	using ILSurfaceRenderStyles = std::initializer_list<SurfaceRenderStyle>;
 	using ILVBOContents = std::initializer_list<VBOContent>;
 	// Lists if style which contain each VBO
-	static constexpr ILRenderStyles style_with_position = {Points,
-														   Lines,
-														   NoIllum,
-														   NoIllum_scalar_per_vertex,
-														   NoIllum_color_per_vertex,
-														   NoIllum_scalar_per_face,
-														   NoIllum_color_per_face,
-														   Flat,
-														   Flat_scalar_per_vertex,
-														   Flat_color_per_vertex,
-														   Flat_scalar_per_face,
-														   Flat_color_per_face,
-														   Phong,
-														   Phong_scalar_per_vertex,
-														   Phong_color_per_vertex,
-														   Phong_scalar_per_face,
-														   Phong_color_per_face};
+	static constexpr ILSurfaceRenderStyles style_with_position = {Points,
+																  Lines,
+																  NoIllum,
+																  NoIllum_scalar_per_vertex,
+																  NoIllum_color_per_vertex,
+																  NoIllum_scalar_per_face,
+																  NoIllum_color_per_face,
+																  Flat,
+																  Flat_scalar_per_vertex,
+																  Flat_color_per_vertex,
+																  Flat_scalar_per_face,
+																  Flat_color_per_face,
+																  Phong,
+																  Phong_scalar_per_vertex,
+																  Phong_color_per_vertex,
+																  Phong_scalar_per_face,
+																  Phong_color_per_face};
 
-	static constexpr ILRenderStyles style_with_normals = {Phong, Phong_scalar_per_vertex, Phong_color_per_vertex,
-														  Phong_scalar_per_face, Phong_color_per_face};
-	static constexpr ILRenderStyles style_with_scalar_per_vertex = {NoIllum_scalar_per_vertex, Flat_scalar_per_vertex,
-																	Phong_scalar_per_vertex};
-	static constexpr ILRenderStyles style_with_color_per_vertex = {NoIllum_color_per_vertex, Flat_color_per_vertex,
-																   Phong_color_per_vertex};
-	static constexpr ILRenderStyles style_with_scalar_per_face = {NoIllum_scalar_per_face, Flat_scalar_per_face,
-																  Phong_scalar_per_face};
-	static constexpr ILRenderStyles style_with_color_per_face = {NoIllum_color_per_face, Flat_color_per_face,
-																 Phong_color_per_face};
+	static constexpr ILSurfaceRenderStyles style_with_normals = {Phong, Phong_scalar_per_vertex, Phong_color_per_vertex,
+																 Phong_scalar_per_face, Phong_color_per_face};
+	static constexpr ILSurfaceRenderStyles style_with_scalar_per_vertex = {
+		NoIllum_scalar_per_vertex, Flat_scalar_per_vertex, Phong_scalar_per_vertex};
+	static constexpr ILSurfaceRenderStyles style_with_color_per_vertex = {
+		NoIllum_color_per_vertex, Flat_color_per_vertex, Phong_color_per_vertex};
+	static constexpr ILSurfaceRenderStyles style_with_scalar_per_face = {NoIllum_scalar_per_face, Flat_scalar_per_face,
+																		 Phong_scalar_per_face};
+	static constexpr ILSurfaceRenderStyles style_with_color_per_face = {NoIllum_color_per_face, Flat_color_per_face,
+																		Phong_color_per_face};
 
-	static constexpr std::array<ILRenderStyles, 6> style_with_vbo = {
+	static constexpr std::array<ILSurfaceRenderStyles, 6> style_with_vbo = {
 		style_with_position,		 style_with_normals,		 style_with_scalar_per_vertex,
 		style_with_color_per_vertex, style_with_scalar_per_face, style_with_color_per_face};
 
 	// List of VBOs used in each style
+	// NoIllum & Flat
 	static constexpr ILVBOContents vbo_of_NoIllum = {Position};
 	static constexpr ILVBOContents vbo_of_NoIllum_scalar_per_vertex = {Position, Scalar_per_vertex};
 	static constexpr ILVBOContents vbo_of_NoIllum_color_per_vertex = {Position, Vec3_per_vertex};
 	static constexpr ILVBOContents vbo_of_NoIllum_scalar_per_face = {Position, Scalar_per_face};
 	static constexpr ILVBOContents vbo_of_NoIllum_color_per_face = {Position, Vec3_per_face};
 
+	// for phong
 	static constexpr ILVBOContents vbo_of_Phong = {Position, Normal};
 	static constexpr ILVBOContents vbo_of_Phong_scalar_per_vertex = {Position, Normal, Scalar_per_vertex};
 	static constexpr ILVBOContents vbo_of_Phong_color_per_vertex = {Position, Normal, Vec3_per_vertex};
 	static constexpr ILVBOContents vbo_of_Phong_scalar_per_face = {Position, Normal, Scalar_per_face};
 	static constexpr ILVBOContents vbo_of_Phong_color_per_face = {Position, Normal, Vec3_per_face};
 
+	// for points and edges
 	static constexpr ILVBOContents vbo_of_Points = {Position};
 
 	static constexpr std::array<ILVBOContents, 17> vbos_of_styles = {vbo_of_Points,
@@ -231,11 +239,11 @@ class SurfaceRender : public ViewModule
 			  render_faces_style_(Flat), vertex_scale_factor_(1.0), auto_update_scalar_min_max_(true)
 		{
 			static rendering::GLColor WHITE{1, 1, 1, 1};
-			static rendering::GLColor BLACK{0, 0, 0, 1};
+			//			static rendering::GLColor BLACK{0, 0, 0, 1};
 			static rendering::GLColor BLUE{0, 0.69f, 0.83f, 1};
 			static rendering::GLColor GREEN{0, 1, 0.5f, 1};
 			static rendering::GLColor GREY1{0.1f, 0.1f, 0.1f, 1};
-			static rendering::GLColor YELLOW{0.1f, 0.1f, 0.1f, 1};
+			//			static rendering::GLColor YELLOW{0.1f, 0.1f, 0.1f, 1};
 			static rendering::GLColor ORANGE{1, 0.5f, 0, 1};
 
 			rendering::PossibleParameters pp = {ORANGE,							  // color
@@ -297,7 +305,7 @@ class SurfaceRender : public ViewModule
 		bool render_edges_;
 		bool render_faces_;
 		bool render_faces_smooth_;
-		RenderStyle render_faces_style_;
+		SurfaceRenderStyle render_faces_style_;
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -330,7 +338,7 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
 					if (p.vertex_position_)
-						p.vertex_base_size_ = uint32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
@@ -339,7 +347,7 @@ private:
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
 							p.vertex_base_size_ =
-								uint32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 						v->request_update();
 					}));
 			mesh_connections_[m].push_back(
@@ -363,7 +371,7 @@ public:
 
 		if (p.vertex_position_)
 		{
-			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
 			p.vbo_cache_[Position] = md->update_vbo(vertex_position.get(), true);
 		}
 		p.update_param_using(Position);
@@ -386,10 +394,12 @@ public:
 			p.vbo_cache_[Normal]->bind();
 			p.vbo_cache_[Normal]->allocate(p.vbo_cache_[Position]->size(), 3);
 			p.vbo_cache_[Normal]->release();
+			rendering::MeshRender* mr = md->get_render();
+			if (!mr->is_primitive_uptodate(rendering::TRIANGLES))
+				mr->init_primitives(m, rendering::TRIANGLES, p.vertex_position_.get());
 			compute_normal_engine->compute(p.vbo_cache_[Position], md->get_render(), p.vbo_cache_[Normal]);
-
-			std::cout << *(p.vbo_cache_[Normal]) << std::endl;
 		}
+		std::cout << *(p.vbo_cache_[Normal]) << std::endl;
 		p.update_param_using(Normal);
 		v.request_update();
 	}
@@ -437,6 +447,7 @@ public:
 protected:
 	void update_scalar_min_max_values(Parameters& p)
 	{
+		unused_parameters(p);
 		//		Scalar min = std::numeric_limits<float64>::max();
 		//		Scalar max = std::numeric_limits<float64>::lowest();
 		//		for (const Scalar& v : *p.vertex_scalar_)
@@ -479,7 +490,7 @@ protected:
 
 			if (p.render_faces_)
 			{
-				RenderStyle rs = p.render_faces_style_;
+				SurfaceRenderStyle rs = p.render_faces_style_;
 				rendering::ShaderParam* param = p.params_[rs].get();
 				if (param->vao_initialized())
 				{

@@ -13,6 +13,7 @@ foreach(p
 	CMP0048 # version
 	CMP0054 # CMake 3.1
 	CMP0072 # opengl
+        CMP0092 # remove /W3 by default in MSVC
 )
 	if(POLICY ${p})
 		cmake_policy(SET ${p} NEW)
@@ -157,7 +158,10 @@ if(APPLE)
 	find_library(CARBON Carbon)
 endif()
 
-
+if(MSVC)
+  string(REGEX REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  string(REGEX REPLACE "-W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+endif()
 
 if(CGOGN_BUILD_TESTS)
 	include(cmake/googletest.cmake)

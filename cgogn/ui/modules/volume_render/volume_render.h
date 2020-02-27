@@ -175,7 +175,7 @@ private:
 					{
 						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 						p.update_topo(*m);
-						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
 						rendering::MeshRender* render = md->get_render();
 						render->set_all_dirty();
 						if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
@@ -196,7 +196,7 @@ private:
 						if (p.vertex_position_.get() == attribute)
 						{
 							p.update_topo(*m);
-							p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0;
+							p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
 						}
 						v->request_update();
 					}));
@@ -206,7 +206,7 @@ private:
 			p.param_volumes_color_->explode_ = p.param_volumes_->explode_;
 			if (p.render_topo_)
 			{
-				p.topo_drawer_->shrink_v_ = std::min(1.0, p.param_volumes_->explode_ + 0.02);
+				p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
 				p.update_topo(*selected_mesh_);
 			}
 			v->request_update();
@@ -257,7 +257,7 @@ public:
 		{
 			p.update_topo(m);
 
-			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
 			md->update_vbo(vertex_position.get(), true);
 
 			p.volume_center_ = cgogn::get_attribute<Vec3, Volume>(m, "center");
@@ -495,7 +495,7 @@ protected:
 					p.param_volumes_color_->explode_ = p.param_volumes_->explode_;
 					if (p.render_topo_)
 					{
-						p.topo_drawer_->shrink_v_ = std::min(1.0, p.param_volumes_->explode_ + 0.02);
+						p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
 						p.update_topo(*selected_mesh_);
 					}
 					need_update = true;
@@ -549,7 +549,7 @@ protected:
 				ImGui::TextUnformatted("Vertices parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 			}
 
 			if (p.render_edges_)

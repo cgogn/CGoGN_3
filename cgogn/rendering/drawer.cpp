@@ -100,7 +100,7 @@ void DisplayListDrawer::end()
 
 void DisplayListDrawer::vertex3ff(float32 x, float32 y, float32 z)
 {
-	if (uint32(data_pos_.size()) == uint32(data_col_.size()))
+	if (data_pos_.size() == data_col_.size())
 	{
 		if (data_col_.empty())
 			data_col_.push_back(GLVec3{1.0f, 1.0f, 1.0f});
@@ -112,7 +112,7 @@ void DisplayListDrawer::vertex3ff(float32 x, float32 y, float32 z)
 
 void DisplayListDrawer::color3ff(float32 r, float32 g, float32 b)
 {
-	if (uint32(data_pos_.size()) == uint32(data_col_.size()))
+	if (data_pos_.size() == data_col_.size())
 		data_col_.push_back(GLVec3{r, g, b});
 	else
 		data_col_.back() = GLVec3{r, g, b};
@@ -120,7 +120,7 @@ void DisplayListDrawer::color3ff(float32 r, float32 g, float32 b)
 
 void DisplayListDrawer::end_list()
 {
-	uint32 nb_elts = uint32(uint32(data_pos_.size()));
+	uint32 nb_elts = uint32(data_pos_.size());
 
 	if (nb_elts == 0)
 		return;

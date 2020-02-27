@@ -68,16 +68,16 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 										  value<Vec3>(m, vertex_position, vertices[2]), &intersection_point))
 				selected_per_thread[worker_index].emplace_back(f, intersection_point,
 															   (intersection_point - A).squaredNorm());
-		}else{
-			for (uint32 i=0;i+2<uint32(vertices.size());i++){
-				if (intersection_ray_triangle(
-					A, AB,
-					value<Vec3>(m, vertex_position, vertices[0]),
-					value<Vec3>(m, vertex_position, vertices[i+1]),
-					value<Vec3>(m, vertex_position, vertices[i+2]),
-					&intersection_point
-				))
-					selected_per_thread[worker_index].emplace_back(f, intersection_point, (intersection_point - A).squaredNorm());
+		}
+		else
+		{
+			for (uint32 i = 0; i + 2 < uint32(vertices.size()); i++)
+			{
+				if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
+											  value<Vec3>(m, vertex_position, vertices[i + 1]),
+											  value<Vec3>(m, vertex_position, vertices[i + 2]), &intersection_point))
+					selected_per_thread[worker_index].emplace_back(f, intersection_point,
+																   (intersection_point - A).squaredNorm());
 			}
 		}
 		// else
@@ -126,7 +126,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 
 	CellMarkerStore<MESH, Vertex> cm(m);
 	result.clear();
-	result.reserve(uint32(selected_faces.size()));
+	result.reserve(selected_faces.size());
 	for (const auto& sf : selected_faces)
 	{
 		Scalar min_d2 = std::numeric_limits<Scalar>::max();
@@ -166,7 +166,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 
 	CellMarkerStore<MESH, Edge> cm(m);
 	result.clear();
-	result.reserve(uint32(selected_faces.size()));
+	result.reserve(selected_faces.size());
 	for (const auto& sf : selected_faces)
 	{
 		Scalar min_d2 = std::numeric_limits<Scalar>::max();
@@ -205,7 +205,7 @@ void picking(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 	std::vector<SelectedFace> selected_faces = internal::picking(m, vertex_position, A, B);
 
 	result.clear();
-	result.reserve(uint32(selected_faces.size()));
+	result.reserve(selected_faces.size());
 	for (const auto& sf : selected_faces)
 		result.push_back(std::get<0>(sf));
 }

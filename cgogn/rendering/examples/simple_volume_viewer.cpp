@@ -40,18 +40,18 @@
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using Mesh = cgogn::CMap3;
-
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
-using Volume = typename cgogn::mesh_traits<Mesh>::Volume;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
-
 int main(int argc, char** argv)
 {
+
+	using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+	using Volume = typename cgogn::mesh_traits<Mesh>::Volume;
+
+	using Vec3 = cgogn::geometry::Vec3;
+	using Scalar = cgogn::geometry::Scalar;
+
 	std::string filename;
 	if (argc < 2)
 	{
@@ -76,11 +76,9 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&vr);
 
-
 	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&mp);
 	v2->link_module(&vr);
-
 
 	Mesh* m = mp.load_volume_from_file(filename);
 
@@ -95,33 +93,30 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Scalar>> volume_scal = cgogn::add_attribute<Scalar, Volume>(*m, "scal");
 	std::shared_ptr<Attribute<Vec3>> volume_color = cgogn::add_attribute<Vec3, Volume>(*m, "color");
 
-// example of convenient functions for nice old-cgogn2 syntax
-//	auto color_handler = [m,&volume_color] (Volume v) -> Vec3&
-//			{ return cgogn::value<Vec3>(*m, volume_color, v); };
-//	auto scalar_handler = [m,&volume_scal] (Volume v) -> Scalar&
-//			{ return cgogn::value<Scalar>(*m, volume_scal, v); };
+	// example of convenient functions for nice old-cgogn2 syntax
+	//	auto color_handler = [m,&volume_color] (Volume v) -> Vec3&
+	//			{ return cgogn::value<Vec3>(*m, volume_color, v); };
+	//	auto scalar_handler = [m,&volume_scal] (Volume v) -> Scalar&
+	//			{ return cgogn::value<Scalar>(*m, volume_scal, v); };
 
-	auto color_handler = cgogn::attribute_handler<Volume>(m,volume_color);
-	auto scalar_handler = cgogn::attribute_handler<Volume>(m,volume_scal);
-
+	auto color_handler = cgogn::attribute_handler<Volume>(m, volume_color);
+	auto scalar_handler = cgogn::attribute_handler<Volume>(m, volume_scal);
 
 	cgogn::index_cells<Volume>(*m);
-	cgogn::foreach_cell(*m, [&](Volume v) -> bool
-	{
-		Vec3 c(0,0,0);
-		c[rand()%3] = 1;
+	cgogn::foreach_cell(*m, [&](Volume v) -> bool {
+		Vec3 c(0, 0, 0);
+		c[rand() % 3] = 1;
 		color_handler[v] = c;
-		scalar_handler[v] = double(rand())/RAND_MAX;
+		scalar_handler[v] = double(rand()) / RAND_MAX;
 		return true;
 	});
 
-	cgogn::geometry::compute_centroid<Vec3,Volume>(*m,vertex_position.get(),volume_center.get());
-
+	cgogn::geometry::compute_centroid<Vec3, Volume>(*m, vertex_position.get(), volume_center.get());
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
-//	vr.set_vertex_position(*v1, *m, vertex_position);
-//	vr.set_volume_scalar(*v1, *m, volume_scal);
-//	vr.set_volume_color(*v1, *m, volume_color);
+	//	vr.set_vertex_position(*v1, *m, vertex_position);
+	//	vr.set_volume_scalar(*v1, *m, volume_scal);
+	//	vr.set_volume_color(*v1, *m, volume_color);
 
 	return app.launch();
 }

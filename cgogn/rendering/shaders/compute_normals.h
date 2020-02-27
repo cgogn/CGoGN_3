@@ -86,20 +86,15 @@ class ComputeNormalEngine
 
 	ComputeNormalEngine();
 
-	~ComputeNormalEngine();
-
 public:
-	ComputeNormalEngine(const ComputeNormalEngine&) = delete;
-
 	inline static ComputeNormalEngine* generate()
 	{
-		if (!instance_)
-		{
+		if (instance_ == nullptr)
 			instance_ = new ComputeNormalEngine();
-		}
 		return instance_;
 	}
 
+	~ComputeNormalEngine();
 	void compute(VBO* pos, MeshRender* renderer, VBO* normals);
 };
 

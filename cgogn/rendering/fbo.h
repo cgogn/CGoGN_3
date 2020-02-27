@@ -61,7 +61,6 @@ public:
 		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 	}
 
-
 	inline void bind_read()
 	{
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, id_);
@@ -79,7 +78,7 @@ public:
 		return tex_[i];
 	}
 
-	inline std::size_t nb_textures()
+	inline int32 nb_textures()
 	{
 		return uint32(tex_.size());
 	}

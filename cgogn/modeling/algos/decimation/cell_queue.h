@@ -41,10 +41,11 @@ class CellQueue
 {
 public:
 	using Self = CellQueue<CELL>;
+	using EdgeCrit = std::multimap<cgogn::float64, CELL>;
 
 	struct CellQueueInfo
 	{
-		typename std::multimap<cgogn::float32, CELL>::const_iterator it_;
+		typename EdgeCrit::const_iterator it_;
 		bool valid_;
 		CellQueueInfo() : valid_(false)
 		{
@@ -58,16 +59,16 @@ public:
 	{
 	}
 
-	std::multimap<cgogn::float32, CELL> cells_;
+	// set to 64 bit to avoid converesion warning, can be 32 but need cast on insertion
+	std::multimap<cgogn::float64, CELL> cells_;
 
 	class const_iterator
 	{
 	public:
 		const Self* const queue_ptr_;
-		typename std::multimap<cgogn::float32, CELL>::const_iterator cell_it_;
+		typename EdgeCrit::const_iterator cell_it_;
 
-		inline const_iterator(const Self* trav, typename std::multimap<cgogn::float32, CELL>::const_iterator it)
-			: queue_ptr_(trav), cell_it_(it)
+		inline const_iterator(const Self* trav, typename EdgeCrit::const_iterator it) : queue_ptr_(trav), cell_it_(it)
 		{
 		}
 		inline const_iterator(const const_iterator& it) : queue_ptr_(it.queue_ptr_), cell_it_(it.cell_it_)

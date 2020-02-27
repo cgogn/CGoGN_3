@@ -119,7 +119,7 @@ private:
 						if (p.vertex_base_size_ == 0.0)
 						{
 							MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-							p.vertex_base_size_ = (md->bb_max_ - md->bb_min_).norm() / 20.0;
+							p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20);
 						}
 					}
 
@@ -300,7 +300,7 @@ protected:
 				{
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 				}
 			}
 		}

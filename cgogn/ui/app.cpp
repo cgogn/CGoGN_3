@@ -50,6 +50,7 @@ template <bool NOTIF>
 static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 										const GLchar* message, const void*)
 {
+	unused_parameters(id,length); // id not revelant
 	if (!NOTIF && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
 		return;
 
@@ -192,7 +193,7 @@ App::App()
 	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
-	ImFont* font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
+	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
 
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
@@ -315,6 +316,7 @@ App::App()
 	});
 
 	glfwSetKeyCallback(window_, [](GLFWwindow* wi, int k, int s, int a, int m) {
+		unused_parameters(s);
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
 		that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
@@ -558,7 +560,8 @@ int App::launch()
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
 
-			ImGuiID dockIdLeft, dockIdBottom;
+			ImGuiID dockIdLeft=0;
+			ImGuiID dockIdBottom=0;
 			static bool first_render = true;
 
 			if (first_render)

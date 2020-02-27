@@ -52,8 +52,8 @@ public:
 	VBO* vbo_pos_;
 	VBO* vbo_center_;
 	VBO* vbo_scalar_vol_;
-	float32 explode_;
 	GLVec3 light_pos_;
+	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 	shader_funcion::ColorMap::Uniforms cm_;
@@ -69,8 +69,8 @@ public:
 	using LocalShader = ShaderExplodeVolumesScalar;
 
 	ShaderParamExplodeVolumesScalar(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f), vbo_pos_(nullptr), vbo_center_(nullptr),
-		  vbo_scalar_vol_(nullptr), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_center_(nullptr),
+		  vbo_scalar_vol_(nullptr), light_pos_(10, 100, 1000), explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 

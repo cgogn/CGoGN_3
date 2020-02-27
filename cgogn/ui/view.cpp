@@ -113,7 +113,7 @@ void View::mouse_move_event(int32 x, int32 y)
 void View::mouse_wheel_event(float64 dx, float64 dy)
 {
 	for (ViewModule* m : linked_view_modules_)
-		m->mouse_wheel_event(this, dx, dy);
+		m->mouse_wheel_event(this, int32(dx), int32(dy));
 
 	GLViewer::mouse_wheel_event(dx, dy);
 }

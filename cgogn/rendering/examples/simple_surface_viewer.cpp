@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	//		sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, nullptr);

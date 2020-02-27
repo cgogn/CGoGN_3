@@ -48,7 +48,7 @@ public:
 	GLint unit_;
 	GLfloat alpha_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
+	inline void pick_parameters(const PossibleParameters&) override
 	{
 	}
 

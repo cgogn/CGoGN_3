@@ -182,18 +182,35 @@ public:
 
 inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 {
+	auto vd = vbo.vector_dimension();
+
 	std::cout << "DEBUG VBO " << vbo.id() << " : " << vbo.name() << std::endl;
+	std::cout << " :  " << vbo.size() << " vec of dim " << vd << std::endl;
 	vbo.bind();
 	float* f = vbo.lock_pointer_read();
 
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
-		for (int j = 0; j < vbo.vector_dimension(); ++j)
+		for (int j = 0; j < vd; ++j)
 		{
-			std::cout << *f++ << " ; ";
+			std::cout << *f++ << " , ";
 		}
 		std::cout << std::endl;
 	}
+
+	std::cout << " . . . . " << std::endl;
+
+	*f += vbo.size() * vd - 20 * vd;
+
+	for (int i = 0; i < 10; ++i)
+	{
+		for (int j = 0; j < vd; ++j)
+		{
+			std::cout << *f++ << " , ";
+		}
+		std::cout << std::endl;
+	}
+
 	std::cout << "----------end vbo debug-----------" << std::endl;
 	vbo.release_pointer();
 	vbo.release();

@@ -151,7 +151,7 @@ public:
 	template <class FUNC>
 	void execute_all(const FUNC&& f)
 	{
-		// nb_working_workers_ = uint32(uint32(workers_.size()));
+		// nb_working_workers_ = uint32(workers_.size());
 		// condition_running_.notify_all();
 
 		std::vector<std::future<void>> futures;
@@ -179,7 +179,7 @@ public:
 	 */
 	inline uint32 max_nb_workers() const
 	{
-		return uint32(uint32(workers_.size()));
+		return uint32(workers_.size());
 	}
 
 	/**
