@@ -184,13 +184,25 @@ public:
 
 inline std::ostream& operator<<(std::ostream& out, EBO& ebo)
 {
-	std::cout << "Debug EBO " << ebo.id() << std::endl;
+	const int NB = 10;
+	std::cout << "Debug EBO " << ebo.id() << " : " << ebo.name();
+	std::cout << " ( " << ebo.size() << " indices) " << std::endl;
 	ebo.bind();
 	uint32* f = ebo.lock_pointer_read();
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < NB; ++i)
 	{
 		std::cout << *f++ << " / ";
 	}
+
+	std::cout << std::endl << " . . . . " << std::endl;
+
+	f += ebo.size() - 2 * NB;
+
+	for (int i = 0; i < NB; ++i)
+	{
+		std::cout << *f++ << " / ";
+	}
+
 	std::cout << std::endl;
 	ebo.release_pointer();
 	ebo.release();

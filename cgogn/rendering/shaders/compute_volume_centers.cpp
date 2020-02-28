@@ -1,4 +1,4 @@
-	/*********************************************************000000**********************
+/*********************************************************000000**********************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -119,6 +119,10 @@ ComputeCenterEngine::~ComputeCenterEngine()
 
 void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 {
+	std::cout << *pos << std::endl;
+	std::cout << *centers << std::endl;
+	std::cout << *renderer->get_EBO(VOLUMES_VERTICES) << std::endl;
+
 	int32 h = (centers->size() + 1023) / 1024;
 	fbo_->resize(1024, h);
 	fbo_->bind();
@@ -142,6 +146,8 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 	glDrawArrays(GL_POINTS, 0, centers->size());
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
+
+	std::cout << *centers << std::endl;
 }
 
 } // namespace rendering

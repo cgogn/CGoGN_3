@@ -76,9 +76,9 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&vr);
 
-	cgogn::ui::View* v2 = app.add_view();
-	v2->link_module(&mp);
-	v2->link_module(&vr);
+	//	cgogn::ui::View* v2 = app.add_view();
+	//	v2->link_module(&mp);
+	//	v2->link_module(&vr);
 
 	Mesh* m = mp.load_volume_from_file(filename);
 
