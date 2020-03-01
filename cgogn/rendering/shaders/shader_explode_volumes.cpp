@@ -30,7 +30,7 @@ namespace rendering
 {
 
 static const char* vertex_shader_source =
-		R"(
+	R"(
 		#version 330
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
@@ -70,7 +70,7 @@ static const char* vertex_shader_source =
 		)";
 
 static const char* fragment_shader_source =
-		R"(
+	R"(
 		#version 330
 		out vec4 frag_out;
 		uniform vec4 color;
@@ -87,20 +87,33 @@ static const char* fragment_shader_source =
 
 ShaderExplodeVolumes* ShaderExplodeVolumes::instance_ = nullptr;
 
-
 ShaderExplodeVolumes::ShaderExplodeVolumes()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("tri_indices", "pos_vertex", "center_volume",
-				"color", "light_position", "explode", "plane_clip", "plane_clip2");
+	add_uniforms("tri_indices", "pos_vertex", "center_volume", "color", "light_position", "explode", "plane_clip",
+				 "plane_clip2");
+	this->nb_attributes_ = 2; // 2 sampleBuffers
 }
 
 void ShaderParamExplodeVolumes::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), vbo_center_->bind_tb(12),
-								color_, light_pos_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, vbos_[POS]->bind_tb(11), vbos_[CENTER]->bind_tb(12), color_, light_pos_, explode_,
+								 plane_clip_, plane_clip2_);
 }
 
+// void ShaderParamExplodeVolumes::set_vbos(const std::vector<VBO*>& vbos)
+//{
+//	assert(vbos.size() == vbos_.size());
+//	for (std::size_t i = 0; i < vbos_.size(); ++i)
+//		vbos_[i] = vbos[i];
+//	set_vbos_tb(vbos);
+//}
+
+// void ShaderParamExplodeVolumes::set_vbo(GLuint att, VBO* vbo)
+//{
+//	vbos_[att - 1] = vbo; // warning attributes begin at 1 !
+//	set_vbo_tb(att, vbo);
+//}
 
 } // namespace rendering
 } // namespace cgogn

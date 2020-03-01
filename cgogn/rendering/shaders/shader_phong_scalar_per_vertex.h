@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PhongScalarPerVertex, CGOGN_STR(PhongScalarPerVertex))
+DECLARE_SHADER_CLASS(PhongScalarPerVertex, false, CGOGN_STR(PhongScalarPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerVertex : public ShaderParam
 {

@@ -1,4 +1,4 @@
-﻿	/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -25,13 +25,13 @@
 #define CGOGN_RENDERING_SHADERS_COMPUTER_VOLUME_CENTERS_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo.h>
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/fbo.h>
+#include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 #include <cgogn/rendering/shaders/transform_feedback.h>
+#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/vbo.h>
 
 namespace cgogn
 {
@@ -39,8 +39,8 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeCenter1,CGOGN_STR(ComputeCenter1))
-DECLARE_SHADER_CLASS(ComputeCenter2,CGOGN_STR(ComputeCenter2))
+DECLARE_SHADER_CLASS(ComputeCenter1, true, CGOGN_STR(ComputeCenter1))
+DECLARE_SHADER_CLASS(ComputeCenter2, false, CGOGN_STR(ComputeCenter2))
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter1 : public ShaderParam
 {
@@ -53,12 +53,10 @@ public:
 
 	using LocalShader = ShaderComputeCenter1;
 
-	ShaderParamComputeCenter1(LocalShader* sh)
-		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
-	{}
-
+	ShaderParamComputeCenter1(LocalShader* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+	{
+	}
 };
-
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter2 : public ShaderParam
 {
@@ -70,14 +68,12 @@ public:
 
 	using LocalShader = ShaderComputeCenter2;
 
-	ShaderParamComputeCenter2(LocalShader* sh)
-		: ShaderParam(sh)
-	{}
+	ShaderParamComputeCenter2(LocalShader* sh) : ShaderParam(sh)
+	{
+	}
 };
 
-
 using TFB_ComputeCenter = TransformFeedback<ShaderComputeCenter2>;
-
 
 class ComputeCenterEngine
 {
@@ -92,12 +88,17 @@ public:
 
 	~ComputeCenterEngine();
 
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
+	template <typename MESH, typename ATT>
+	inline void check_primitives(rendering::MeshRender* render, const MESH& m, const ATT* vert_pos)
+	{
+		if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+			render->init_primitives(m, rendering::VOLUMES_VERTICES, vert_pos);
+	}
 
+	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
 };
 
-}
-}
-
+} // namespace rendering
+} // namespace cgogn
 
 #endif

@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(NoIllum, CGOGN_STR(NoIllum))
+DECLARE_SHADER_CLASS(NoIllum, false, CGOGN_STR(NoIllum))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllum : public ShaderParam
 {

@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPoint,CGOGN_STR(RoundPoint))
+DECLARE_SHADER_CLASS(RoundPoint, false, CGOGN_STR(RoundPoint))
 
 class CGOGN_RENDERING_EXPORT ShaderParamRoundPoint : public ShaderParam
 {

@@ -283,7 +283,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(fa
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();
-	vao_initialized_ = false;
+	vao_initialized_ = 0;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
@@ -307,24 +307,81 @@ void ShaderParam::release()
 	shader_->release();
 }
 
+VBO** ShaderParam::vbo_tb(uint32 i)
+{
+	unused_parameters(i);
+	return nullptr;
+}
+
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	assert(uint32(vbos.size()) == shader_->nb_attributes());
+	if (shader_->use_tb())
+	{
+		vao_initialized_ = 0;
+		uint32 m = 1;
 
-	vao_initialized_ = true;
+		for (std::size_t i = 0; i < vbos.size(); ++i)
+		{
+			*vbo_tb(i) = vbos[i];
+			if (vbos[i])
+				vao_initialized_ += m;
+			m *= 2u;
+		}
+		return;
+	}
+	// else ...
+
+	assert(uint32(vbos.size()) <= shader_->nb_attributes());
+
+	vao_initialized_ = 0;
 	shader_->bind();
 
 	bind_vao();
 	GLuint attrib = 1u;
+	uint32 m = 1;
 	for (auto* v : vbos)
 	{
 		if (v)
-			v->associate(attrib++);
-		else
 		{
-			vao_initialized_ = false;
+			vao_initialized_ |= m;
+			v->associate(attrib);
 		}
+		attrib++;
+		m *= 2u;
 	}
+	release_vao();
+	shader_->release();
+}
+
+void ShaderParam::set_vbo(GLuint att, VBO* vbo)
+{
+	if (shader_->use_tb())
+	{
+		--att; // warning attributes begin at 1 !
+		*vbo_tb(att) = vbo;
+		if (vbo)
+			vao_initialized_ |= 1u << (att);
+		else
+			vao_initialized_ &= ~(1u << (att));
+
+		return;
+	}
+
+	assert(att <= shader_->nb_attributes());
+
+	shader_->bind();
+	bind_vao();
+
+	if (vbo)
+	{
+		vbo->associate(att);
+		vao_initialized_ |= 1u << (att - 1u);
+	}
+	else
+	{
+		vao_initialized_ &= ~(1u << (att - 1u));
+	}
+
 	release_vao();
 	shader_->release();
 }

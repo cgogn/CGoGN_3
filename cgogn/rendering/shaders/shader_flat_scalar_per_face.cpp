@@ -96,21 +96,15 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 	add_uniforms("tri_ind", "tri_emb", "pos_vertex", "scalar_tri", "ambiant_color", "light_position", "double_side",
 				 shader_funcion::ColorMap::name[0], shader_funcion::ColorMap::name[1],
 				 shader_funcion::ColorMap::name[2], shader_funcion::ColorMap::name[3]);
+	this->nb_attributes_ = 2;
 }
 
 void ShaderParamFlatScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_)
-		shader_->set_uniforms_values(10, 11, vbo_pos_->bind_tb(12), vbo_scalar_->bind_tb(13), ambiant_color_,
-									 light_position_, double_side_, cm_.color_map_, cm_.expansion_, cm_.min_value_,
-									 cm_.max_value_);
-}
-
-void ShaderParamFlatScalarPerFace::set_vbos(const std::vector<VBO*>& vbos)
-{
-	vbo_pos_ = vbos[0];
-	vbo_scalar_ = vbos[1];
-	vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr;
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	shader_->set_uniforms_values(10, 11, 12, 13, ambiant_color_, light_position_, double_side_, cm_.color_map_,
+								 cm_.expansion_, cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering

@@ -86,19 +86,14 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 	load2_bind(vertex_shader_source, fragment_shader_source, "");
 
 	add_uniforms("tri_ind", "face_emb", "pos_vertex", "color_face", "ambiant_color", "light_position", "double_side");
+	this->nb_attributes_ = 2;
 }
 
 void ShaderParamFlatColorPerFace::set_uniforms()
 {
-	shader_->set_uniforms_values(10, 11, vbo_pos_->bind_tb(12), vbo_color_->bind_tb(13), ambiant_color_,
-								 light_position_, double_side_);
-}
-
-void ShaderParamFlatColorPerFace::set_vbos(const std::vector<VBO*>& vbos)
-{
-	vbo_pos_ = vbos[0];
-	vbo_color_ = vbos[1];
-	vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr;
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	shader_->set_uniforms_values(10, 11, 12, 13, ambiant_color_, light_position_, double_side_);
 }
 
 } // namespace rendering

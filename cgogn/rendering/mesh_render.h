@@ -64,7 +64,6 @@ enum DrawingType : uint32
 	INDEX_FACES,
 	INDEX_VOLUMES,
 
-	SIZE_BUFFER,
 	POINTS_TB,
 	LINES_TB,
 	TRIANGLES_TB,
@@ -75,6 +74,8 @@ enum DrawingType : uint32
 	INDEX_FACES_TB,
 	INDEX_VOLUMES_TB
 };
+
+static const uint32 SIZE_BUFFER = uint32(POINTS_TB);
 
 inline DrawingType& operator++(DrawingType& d)
 {

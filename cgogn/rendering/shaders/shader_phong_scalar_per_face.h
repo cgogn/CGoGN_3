@@ -33,7 +33,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongScalarPerFace, CGOGN_STR(PhongScalarPerFace))
+DECLARE_SHADER_CLASS(PhongScalarPerFace, true, CGOGN_STR(PhongScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
@@ -41,9 +41,7 @@ protected:
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_norm_;
-	VBO* vbo_scalar_; // perface
+	std::array<VBO*, 3> vbos_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
@@ -62,12 +60,15 @@ public:
 	using ShaderType = ShaderPhongScalarPerFace;
 
 	ShaderParamPhongScalarPerFace(ShaderType* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), vbo_norm_(nullptr), vbo_scalar_(nullptr), ambiant_color_(),
-		  specular_color_(), specular_coef_(), light_position_(), double_side_()
+		: ShaderParam(sh), ambiant_color_(), specular_color_(), specular_coef_(), light_position_(), double_side_()
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
-
-	void set_vbos(const std::vector<VBO*>& vbos) override;
+	inline VBO** vbo_tb(uint32 i) override
+	{
+		return &vbos_[i];
+	}
 };
 } // namespace rendering
 } // namespace cgogn

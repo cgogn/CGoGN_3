@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(NoIllumColorPerVertex, CGOGN_STR(NoIllumColorPerVertex))
+DECLARE_SHADER_CLASS(NoIllumColorPerVertex, false, CGOGN_STR(NoIllumColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllumColorPerVertex : public ShaderParam
 {

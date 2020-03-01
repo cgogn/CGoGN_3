@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Text,CGOGN_STR(Text))
+DECLARE_SHADER_CLASS(Text, false, CGOGN_STR(Text))
 
 class CGOGN_RENDERING_EXPORT ShaderParamText : public ShaderParam
 {

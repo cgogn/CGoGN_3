@@ -34,15 +34,14 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(NoIllumScalarPerFace, CGOGN_STR(NoIllumScalarPerFace))
+DECLARE_SHADER_CLASS(NoIllumScalarPerFace, true, CGOGN_STR(NoIllumScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllumScalarPerFace : public ShaderParam
 {
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_scalar_;
+	std::array<VBO*, 2> vbos_;
 	bool double_side_;
 	shader_funcion::ColorMap::Uniforms cm_;
 
@@ -53,15 +52,20 @@ public:
 
 	using LocalShader = ShaderNoIllumScalarPerFace;
 
-	ShaderParamNoIllumScalarPerFace(LocalShader* sh) : ShaderParam(sh), vbo_pos_(nullptr), vbo_scalar_(nullptr)
+	ShaderParamNoIllumScalarPerFace(LocalShader* sh) : ShaderParam(sh)
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
 	inline ~ShaderParamNoIllumScalarPerFace() override
 	{
 	}
 
-	void set_vbos(const std::vector<VBO*>& vbos) override;
+	inline VBO** vbo_tb(uint32 i) override
+	{
+		return &vbos_[i];
+	}
 };
 
 } // namespace rendering

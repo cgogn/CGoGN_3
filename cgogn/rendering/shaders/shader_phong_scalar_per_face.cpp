@@ -111,22 +111,16 @@ ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 				 "ambiant_color", "spec_color", "spec_coef", "double_side", shader_funcion::ColorMap::name[0],
 				 shader_funcion::ColorMap::name[1], shader_funcion::ColorMap::name[2],
 				 shader_funcion::ColorMap::name[3]);
+	this->nb_attributes_ = 3;
 }
 
 void ShaderParamPhongScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_)
-		shader_->set_uniforms_values(10, 11, vbo_pos_->bind_tb(12), vbo_norm_->bind_tb(13), vbo_scalar_->bind_tb(14),
-									 light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_,
-									 cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
-}
-
-void ShaderParamPhongScalarPerFace::set_vbos(const std::vector<VBO*>& vbos)
-{
-	vbo_pos_ = vbos[0];
-	vbo_norm_ = vbos[1];
-	vbo_scalar_ = vbos[2];
-	vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr && vbos[2] != nullptr;
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	vbos_[2]->bind_tb(14);
+	shader_->set_uniforms_values(10, 11, 12, 13, 14, light_position_, ambiant_color_, specular_color_, specular_coef_,
+								 double_side_, cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering

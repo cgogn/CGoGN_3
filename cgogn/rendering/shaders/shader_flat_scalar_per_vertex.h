@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatScalarPerVertex, CGOGN_STR(FlatScalarPerVertex))
+DECLARE_SHADER_CLASS(FlatScalarPerVertex, false, CGOGN_STR(FlatScalarPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerVertex : public ShaderParam
 {

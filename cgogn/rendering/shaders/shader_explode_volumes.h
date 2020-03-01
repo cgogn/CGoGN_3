@@ -33,20 +33,25 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ExplodeVolumes, CGOGN_STR(ExplodeVolumes))
+DECLARE_SHADER_CLASS(ExplodeVolumes, true, CGOGN_STR(ExplodeVolumes))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {
 	void set_uniforms() override;
 
+	enum VBONAme : int32
+	{
+		POS = 0,
+		CENTER
+	};
+
 public:
+	std::array<VBO*, 2> vbos_;
 	GLColor color_;
 	GLVec3 light_pos_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
 
 	inline void pick_parameters(const PossibleParameters& pp) override
 	{
@@ -61,19 +66,21 @@ public:
 
 	inline ShaderParamExplodeVolumes(LocalShader* sh)
 		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0), vbo_pos_(nullptr), vbo_center_(nullptr)
+		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
 	inline ~ShaderParamExplodeVolumes() override
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	//	void set_vbos(const std::vector<VBO*>& vbos) override;
+	//	void set_vbo(GLuint att, VBO* vbo) override;
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_center_ = vbos[1];
-		vao_initialized_ = vbos[0] != nullptr && vbos[1] != nullptr;
+		return &vbos_[i];
 	}
 };
 

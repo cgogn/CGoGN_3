@@ -29,7 +29,7 @@ namespace cgogn
 namespace rendering
 {
 static const char* vertex_shader_source =
-		R"(
+	R"(
 		#version 330
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
@@ -67,7 +67,7 @@ static const char* vertex_shader_source =
 		)";
 
 static const char* fragment_shader_source =
-		R"(#version 330
+	R"(#version 330
 		uniform vec4 color;
 		out vec4 frag_out;
 		void main()
@@ -81,14 +81,14 @@ ShaderExplodeVolumesLine* ShaderExplodeVolumesLine::instance_ = nullptr;
 ShaderExplodeVolumesLine::ShaderExplodeVolumesLine()
 {
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("edge_indices", "pos_vertex", "center_volume",
-				 "color", "explode", "plane_clip", "plane_clip2");
+	add_uniforms("edge_indices", "pos_vertex", "center_volume", "color", "explode", "plane_clip", "plane_clip2");
+	this->nb_attributes_ = 2;
 }
 
 void ShaderParamExplodeVolumesLine::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), vbo_center_->bind_tb(12),
-								 color_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, vbos_[POS]->bind_tb(11), vbos_[CENTER]->bind_tb(12), color_, explode_, plane_clip_,
+								 plane_clip2_);
 }
 
 } // namespace rendering

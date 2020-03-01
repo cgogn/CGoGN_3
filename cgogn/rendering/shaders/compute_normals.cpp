@@ -29,41 +29,40 @@ namespace cgogn
 namespace rendering
 {
 
-static const char* vertex_shader_source1 =
-	R"(
-		#version 330
-		uniform usamplerBuffer tri_ind;
-		uniform samplerBuffer pos_vertex;
-		uniform float inv_h;
+static const char* vertex_shader_source1 = R"(
+#version 330
+uniform usamplerBuffer tri_ind;
+uniform samplerBuffer pos_vertex;
+uniform float inv_h;
 
-		flat out vec3 N;
-		void main()
-		{
-			int vid = gl_VertexID;
-			int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-			vec3 A = texelFetch(pos_vertex, ind_a).rgb;
-			vid = (vid+1)%3;
-			int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-			vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
-			vid  = (vid+1)%3;
-			int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
-			vec3 C = texelFetch(pos_vertex, ind_c).rgb;
+flat out vec3 N;
+void main()
+{
+	int vid = gl_VertexID;
+	int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	vec3 A = texelFetch(pos_vertex, ind_a).rgb;
+	vid = (vid+1)%3;
+	int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	vec3 B = texelFetch(pos_vertex, (ind_b)).rgb;
+	vid  = (vid+1)%3;
+	int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	vec3 C = texelFetch(pos_vertex, ind_c).rgb;
 
-			vec2 d = vec2(1.0/1024.0 , inv_h);
-			vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(ind_a%1024,ind_a/1024);
-			gl_Position = vec4(coord_N,0,1);
-			N = normalize(cross(B-A,C-A));
-		}
-		)";
+	vec2 d = vec2(1.0/1024.0 , inv_h);
+	vec2 coord_N = (-1.0+d) + 2.0 * d * vec2(ind_a%1024,ind_a/1024);
+	gl_Position = vec4(coord_N,0,1);
+	N = cross(B-A,C-A);
+}
+)";
 
 static const char* fragment_shader_source1 =
 	R"(
 		#version 330
-		out vec4 frag_out;
+		out vec3 frag_out;
 		flat in vec3 N;
 		void main()
 		{
-			frag_out = vec4(N,1);
+			frag_out = N;
 		}
 		)";
 
@@ -73,11 +72,13 @@ ShaderComputeNormal1::ShaderComputeNormal1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
 	add_uniforms("tri_ind", "pos_vertex", "inv_h");
+	this->nb_attributes_ = 1;
 }
 
 void ShaderParamComputeNormal1::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11), 1.0f / float(height_tex_));
+	vbo_pos_->bind_tb(11);
+	shader_->set_uniforms_values(10, 11, 1.0f / float(height_tex_));
 }
 
 static const char* vertex_shader_source2 =
@@ -140,10 +141,10 @@ void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 	param1_->height_tex_ = h;
 	param1_->bind();
 	EBO* ebo = renderer->get_EBO(TRIANGLES);
+	std::cout << *ebo << std::endl;
 	ebo->bind_tb(10);
 	glPointSize(1.01f);
 	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
-	std::cout << ebo->size() << std::endl;
 	ebo->release_tb();
 	param1_->release();
 	glDisable(GL_BLEND);
@@ -154,6 +155,7 @@ void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 	glDrawArrays(GL_POINTS, 0, normals->size());
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
+	std::cout << *normals << std::endl;
 }
 
 } // namespace rendering

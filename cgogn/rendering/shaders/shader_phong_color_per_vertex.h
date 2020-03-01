@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PhongColorPerVertex, CGOGN_STR(PhongColorPerVertex))
+DECLARE_SHADER_CLASS(PhongColorPerVertex, false, CGOGN_STR(PhongColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
 {

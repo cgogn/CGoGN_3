@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PointSprite,CGOGN_STR(PointSprite))
+DECLARE_SHADER_CLASS(PointSprite, false, CGOGN_STR(PointSprite))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSprite : public ShaderParam
 {
@@ -50,8 +50,7 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-
-	template<typename ...Args>
+	template <typename... Args>
 	void fill(Args&&... args)
 	{
 		auto a = std::forward_as_tuple(args...);
@@ -71,10 +70,9 @@ public:
 	inline ~ShaderParamPointSprite() override
 	{
 	}
-
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColor,CGOGN_STR(PointSpriteColor))
+DECLARE_SHADER_CLASS(PointSpriteColor, false, CGOGN_STR(PointSpriteColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 {
@@ -101,11 +99,9 @@ public:
 	inline ~ShaderParamPointSpriteColor() override
 	{
 	}
-
-
 };
 
-DECLARE_SHADER_CLASS(PointSpriteSize,CGOGN_STR(PointSpriteSize))
+DECLARE_SHADER_CLASS(PointSpriteSize, false, CGOGN_STR(PointSpriteSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 {
@@ -133,10 +129,9 @@ public:
 	inline ~ShaderParamPointSpriteSize() override
 	{
 	}
-
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColorSize,CGOGN_STR(PointSpriteColorSize))
+DECLARE_SHADER_CLASS(PointSpriteColorSize, false, CGOGN_STR(PointSpriteColorSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColorSize : public ShaderParam
 {
@@ -162,7 +157,6 @@ public:
 	inline ~ShaderParamPointSpriteColorSize() override
 	{
 	}
-
 };
 
 } // namespace rendering

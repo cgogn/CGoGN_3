@@ -24,14 +24,14 @@
 #ifndef CGOGN_RENDERING_SHADERS_SHADERPROGRAM_H_
 #define CGOGN_RENDERING_SHADERS_SHADERPROGRAM_H_
 
+#include <array>
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/types.h>
 #include <cgogn/rendering/vao.h>
-
 #include <iostream>
 #include <memory>
 
-#define DECLARE_SHADER_CLASS(NAME, STRNA)                                                                              \
+#define DECLARE_SHADER_CLASS(NAME, TB, STRNA)                                                                          \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
 	{                                                                                                                  \
@@ -51,6 +51,10 @@
 		inline std::string name() const override                                                                       \
 		{                                                                                                              \
 			return STRNA;                                                                                              \
+		}                                                                                                              \
+		inline bool use_tb() const override                                                                            \
+		{                                                                                                              \
+			return TB;                                                                                                 \
 		}                                                                                                              \
 																													   \
 	protected:                                                                                                         \
@@ -185,6 +189,8 @@ public:
 	//	}
 
 	virtual std::string name() const = 0;
+
+	virtual bool use_tb() const = 0;
 
 	inline uint32 nb_attributes() const
 	{
@@ -456,7 +462,7 @@ class CGOGN_RENDERING_EXPORT ShaderParam
 protected:
 	ShaderProgram* shader_;
 	std::unique_ptr<VAO> vao_;
-	bool vao_initialized_;
+	uint32 vao_initialized_;
 
 	virtual void set_uniforms() = 0;
 
@@ -474,13 +480,47 @@ public:
 
 	virtual void pick_parameters(const PossibleParameters&);
 
+	virtual VBO** vbo_tb(uint32 i);
+
 	inline virtual ~ShaderParam()
 	{
 	}
 
 	inline bool vao_initialized() const
 	{
-		return vao_initialized_;
+		return vao_initialized_ >= (1u << shader_->nb_attributes()) - 1;
+	}
+
+	template <typename ARRAY_VBO>
+	inline void set_vbos_tb(ARRAY_VBO& vbos_tb, const std::vector<VBO*>& vbos)
+	{
+		assert(vbos.size() == vbos_.size());
+		for (std::size_t i = 0; i < vbos_.size(); ++i)
+			vbos_tb[i] = vbos[i];
+
+		vao_initialized_ = 0;
+		uint32 m = 1;
+		for (VBO* v : vbos)
+		{
+			if (v)
+				vao_initialized_ += m;
+			m *= 2u;
+		}
+	}
+
+	template <typename ARRAY_VBO>
+	inline void set_vbo_tb(ARRAY_VBO vbo_tb, GLuint att, VBO* vbo)
+	{
+		--att; // warning attributes begin at 1 !
+		vbos_tb[att] = vbo;
+		if (vbo)
+		{
+			vao_initialized_ |= 1u << (att);
+		}
+		else
+		{
+			vao_initialized_ &= ~(1u << (att));
+		}
 	}
 
 	inline void bind_vao()
@@ -519,9 +559,15 @@ public:
 
 	/**
 	 * @brief set vbos into the vao
-	 * @param vbos
+	 * @param all vbos in order of attribs
 	 */
 	virtual void set_vbos(const std::vector<VBO*>& vbos);
+
+	/**
+	 * @brief set one vbo into the vao
+	 * @param attrib_id,vbo
+	 */
+	virtual void set_vbo(GLuint att, VBO* vbo);
 };
 
 } // namespace rendering

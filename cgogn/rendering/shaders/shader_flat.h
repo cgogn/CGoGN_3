@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Flat, CGOGN_STR(Flat))
+DECLARE_SHADER_CLASS(Flat, false, CGOGN_STR(Flat))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
 {

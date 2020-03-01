@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 
 	cgogn::geometry::compute_centroid<Vec3, Volume>(*m, vertex_position.get(), volume_center.get());
 
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
+	//	mp.set_mesh_bb_vertex_position(m, vertex_position);
 	//	vr.set_vertex_position(*v1, *m, vertex_position);
 	//	vr.set_volume_scalar(*v1, *m, volume_scal);
 	//	vr.set_volume_color(*v1, *m, volume_color);

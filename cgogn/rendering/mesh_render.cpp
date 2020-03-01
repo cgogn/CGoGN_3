@@ -67,16 +67,19 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		indices_buffers_[prim]->release();
 		break;
 	case VOLUMES_EDGES:
+	case VOLUMES_EDGES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
 		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 3);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_FACES:
+	case VOLUMES_FACES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 4);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_VERTICES:
+	case VOLUMES_VERTICES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
 		glDrawArrays(GL_POINTS, 0, nb_indices / 2);
 		indices_buffers_[prim]->release_tb();
@@ -90,7 +93,7 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		break;
 	case TRIANGLES_TB:
 		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
-									 indices_buffers_[INDEX_FACES]->bind_tb(binding_point + 1);
+		indices_buffers_[INDEX_FACES]->bind_tb(binding_point + 1);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 3);
 		indices_buffers_[INDEX_FACES]->release_tb();
 		indices_buffers_[TRIANGLES]->release_tb();

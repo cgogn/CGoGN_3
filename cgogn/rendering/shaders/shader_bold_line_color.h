@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(BoldLineColor, CGOGN_STR(BoldLineColor))
+DECLARE_SHADER_CLASS(BoldLineColor, false, CGOGN_STR(BoldLineColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLineColor : public ShaderParam
 {

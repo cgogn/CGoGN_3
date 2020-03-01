@@ -64,6 +64,7 @@ ShaderComputeCenter1::ShaderComputeCenter1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
 	add_uniforms("vertex_volume", "pos_vertex", "inv_h");
+	this->nb_attributes_ = 1;
 }
 
 void ShaderParamComputeCenter1::set_uniforms()
@@ -119,10 +120,6 @@ ComputeCenterEngine::~ComputeCenterEngine()
 
 void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 {
-	std::cout << *pos << std::endl;
-	std::cout << *centers << std::endl;
-	std::cout << *renderer->get_EBO(VOLUMES_VERTICES) << std::endl;
-
 	int32 h = (centers->size() + 1023) / 1024;
 	fbo_->resize(1024, h);
 	fbo_->bind();
@@ -147,7 +144,7 @@ void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
 	tfb_->stop();
 	glEnable(GL_DEPTH_TEST);
 
-	std::cout << *centers << std::endl;
+	std::cout << "centers computed" << std::endl;
 }
 
 } // namespace rendering

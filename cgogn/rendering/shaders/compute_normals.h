@@ -39,8 +39,8 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1, CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2, CGOGN_STR(ComputeNormal2))
+DECLARE_SHADER_CLASS(ComputeNormal1, true, CGOGN_STR(ComputeNormal1))
+DECLARE_SHADER_CLASS(ComputeNormal2, false, CGOGN_STR(ComputeNormal2))
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
 {

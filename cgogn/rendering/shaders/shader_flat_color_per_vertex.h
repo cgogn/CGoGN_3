@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColorPerVertex, CGOGN_STR(FlatColorPerVertex))
+DECLARE_SHADER_CLASS(FlatColorPerVertex, false, CGOGN_STR(FlatColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerVertex : public ShaderParam
 {

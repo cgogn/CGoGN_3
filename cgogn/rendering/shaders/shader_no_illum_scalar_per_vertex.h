@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(NoIllumScalarPerVertex, CGOGN_STR(NoIllumScalarPerVertex))
+DECLARE_SHADER_CLASS(NoIllumScalarPerVertex, false, CGOGN_STR(NoIllumScalarPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllumScalarPerVertex : public ShaderParam
 {
