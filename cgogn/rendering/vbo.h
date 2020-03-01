@@ -189,8 +189,8 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 	std::cout << "DEBUG VBO " << vbo.id() << " : " << vbo.name();
 	std::cout << " ( " << vbo.size() << " vec of dim " << vd << " ) " << std::endl;
 	vbo.bind();
-	float* f = vbo.lock_pointer_read();
-
+	float* ff = vbo.lock_pointer_read();
+	float* f = ff;
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
@@ -202,13 +202,13 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 
 	std::cout << " . . . . " << std::endl;
 
-	f += vbo.size() * vd - 2 * NB * vd;
+	f = ff + vbo.size() - NB * vd;
 
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
 		{
-			std::cout << *f++ << " , ";
+			std::cout << *f++ << ", ";
 		}
 		std::cout << std::endl;
 	}

@@ -44,7 +44,7 @@ MeshRender::~MeshRender()
 
 void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
-	uint32 prim_buffer = (prim < SIZE_BUFFER) ? prim : prim - (SIZE_BUFFER + 1);
+	uint32 prim_buffer = prim % SIZE_BUFFER;
 	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
 	if (nb_indices == 0)
 		return;

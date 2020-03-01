@@ -35,7 +35,7 @@ uniform usamplerBuffer tri_ind;
 uniform samplerBuffer pos_vertex;
 uniform float inv_h;
 
-flat out vec3 N;
+out vec3 N;
 void main()
 {
 	int vid = gl_VertexID;
@@ -59,7 +59,7 @@ static const char* fragment_shader_source1 =
 	R"(
 		#version 330
 		out vec3 frag_out;
-		flat in vec3 N;
+		in vec3 N;
 		void main()
 		{
 			frag_out = N;
@@ -86,7 +86,7 @@ static const char* vertex_shader_source2 =
 		#version 330
 		uniform sampler2D tex_normals;
 		out vec3 vbo_out;
-		const int w = 64;
+		const int w = 1024;
 		void main()
 		{
 			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
@@ -114,7 +114,7 @@ ComputeNormalEngine::ComputeNormalEngine()
 	param1_ = ShaderComputeNormal1::generate_param();
 	param2_ = ShaderComputeNormal2::generate_param();
 	param2_->tex_ = new Texture2D();
-	param2_->tex_->alloc(0, 0, GL_RGBA32F, GL_RGBA, nullptr, GL_FLOAT);
+	param2_->tex_->alloc(0, 0, GL_RGB32F, GL_RGB, nullptr, GL_FLOAT);
 	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_}, false, nullptr);
 	tfb_ = new TFB_ComputeNormal(*(param2_.get()));
 }
@@ -143,14 +143,13 @@ void ComputeNormalEngine::compute(VBO* pos, MeshRender* renderer, VBO* normals)
 	EBO* ebo = renderer->get_EBO(TRIANGLES);
 	std::cout << *ebo << std::endl;
 	ebo->bind_tb(10);
-	glPointSize(1.01f);
-	glDrawArraysInstanced(GL_POINTS, 0, 3, int32(ebo->size()) / 3);
+	glPointSize(1.0001f);
+	glDrawArraysInstanced(GL_POINTS, 0, 3, ebo->size() / 3);
 	ebo->release_tb();
 	param1_->release();
 	glDisable(GL_BLEND);
 	fbo_->release();
 
-	glClearColor(0, 0, 0, 0);
 	tfb_->start(GL_POINTS, {normals});
 	glDrawArrays(GL_POINTS, 0, normals->size());
 	tfb_->stop();
