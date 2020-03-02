@@ -96,8 +96,9 @@ class Volume_Render : public ViewModule
 		Parameters()
 			: vertex_position_(nullptr), volume_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false),
 			  render_vertices_(false), render_edges_(true), render_faces_(false), render_volumes_b_(true),
-			  render_volumes_style(ExplodeVolumes), render_volumes_line_(true), auto_update_scalar_min_max_(true),
-			  gpu_center_(false), edge_blending_(true), centers_dirty_(true), topo_dirty_(true)
+			  render_volumes_style(ExplodeVolumes), render_volumes_line_(true), vertex_scale_factor_(1.0),
+			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false), edge_blending_(true),
+			  centers_dirty_(true), topo_dirty_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -426,8 +427,6 @@ protected:
 					{
 						p.param_volumes_->bind(proj_matrix, view_matrix);
 						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
-						std::cout << "draw VOLUMES_FACES "
-								  << md->get_render()->get_EBO(rendering::VOLUMES_FACES)->size() << std::endl;
 						p.param_volumes_->release();
 					}
 				}
@@ -539,8 +538,46 @@ protected:
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
+			if (p.render_vertices_)
+			{
+				ImGui::SameLine();
+				ImGui::TextUnformatted(" > ");
+				ImGui::SameLine();
+				ImGui::BeginGroup();
+				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+				ImGui::EndGroup();
+			}
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+			if (p.render_edges_)
+			{
+				ImGui::SameLine();
+				ImGui::TextUnformatted(" > ");
+				ImGui::SameLine();
+				ImGui::BeginGroup();
+				need_update |= ImGui::Checkbox("Blending", &p.edge_blending_);
+				ImGui::SameLine();
+				need_update |= ImGui::ColorEdit3("edge color##edges", p.param_edge_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+				need_update |= ImGui::SliderFloat("##width_edges", &(p.param_edge_->width_), 1.0f, 10.0f);
+				ImGui::EndGroup();
+			}
 			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
+			if (p.render_faces_)
+			{
+				ImGui::SameLine();
+				ImGui::TextUnformatted(" > ");
+				ImGui::SameLine();
+				ImGui::BeginGroup();
+				need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
+												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+				if (p.param_flat_->double_side_)
+					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
+													 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
+				ImGui::EndGroup();
+			}
 
 			need_update |= ImGui::Checkbox("Volumes##b", &p.render_volumes_b_);
 			if (p.render_volumes_b_)
@@ -555,8 +592,27 @@ protected:
 				ImGui::SameLine();
 				need_update |= ImGui::RadioButton("Color", ptrVS, ExplodeVolumeColor);
 				ImGui::EndGroup();
-				need_update |= ImGui::Checkbox("VolumesLine", &p.render_volumes_line_);
-				ImGui::TextUnformatted("Volume parameters");
+
+				switch (p.render_volumes_style)
+				{
+				case ExplodeVolumes:
+					need_update |= ImGui::ColorEdit3("color##volume", p.param_volumes_->color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+					break;
+				case ExplodeVolumeScalar:
+					imgui_combo_attribute<Volume, Scalar>(*selected_mesh_, p.volume_scalar_, "Vol. Scalar Attribute",
+														  [&](const decltype(p.volume_scalar_)& att) {
+															  set_volume_scalar(*selected_view_, *selected_mesh_, att);
+														  });
+					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_, "vol_scal");
+					break;
+				case ExplodeVolumeColor:
+					imgui_combo_attribute<Volume, Vec3>(*selected_mesh_, p.volume_color_, "Vol. Color Attribute",
+														[&](const decltype(p.volume_color_)& att) {
+															set_volume_color(*selected_view_, *selected_mesh_, att);
+														});
+					break;
+				}
 
 				if (ImGui::SliderFloat("explode", &(p.param_volumes_->explode_), 0.01f, 1.0f))
 				{
@@ -571,35 +627,10 @@ protected:
 					need_update = true;
 				}
 
-				if (p.render_volumes_style == 1)
-				{
-					ImGui::Separator();
-					need_update |= ImGui::ColorEdit3("color##volume", p.param_volumes_->color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-				}
-				if (p.render_volumes_style == 2)
-				{
-					ImGui::Separator();
-
-					imgui_combo_attribute<Volume, Scalar>(*selected_mesh_, p.volume_scalar_, "Vol. Scalar Attribute",
-														  [&](const decltype(p.volume_scalar_)& att) {
-															  set_volume_scalar(*selected_view_, *selected_mesh_, att);
-														  });
-					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_, "vol_scal");
-				}
-
-				if (p.render_volumes_style == 3)
-				{
-					ImGui::Separator();
-					imgui_combo_attribute<Volume, Vec3>(*selected_mesh_, p.volume_color_, "Vol. Color Attribute",
-														[&](const decltype(p.volume_color_)& att) {
-															set_volume_color(*selected_view_, *selected_mesh_, att);
-														});
-				}
-
+				ImGui::Separator();
+				need_update |= ImGui::Checkbox("VolumesLine", &p.render_volumes_line_);
 				if (p.render_volumes_line_)
 				{
-					ImGui::Separator();
 					ImGui::TextUnformatted("Volume line parameters");
 					need_update |= ImGui::ColorEdit3("color##volume_line", p.param_volumes_line_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
@@ -609,39 +640,13 @@ protected:
 				if (ImGui::Checkbox("Topo", &p.render_topo_))
 				{
 					need_update = true;
+					if (p.render_topo_)
+					{
+						p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
+						p.topo_dirty_ = true;
+					}
 					p.update_topo(*selected_mesh_);
 				}
-			}
-
-			if (p.render_vertices_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
-			}
-
-			if (p.render_edges_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Edges parameters");
-				need_update |= ImGui::Checkbox("Blendinh", &p.edge_blending_);
-				need_update |=
-					ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
-			}
-
-			if (p.render_faces_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Flat parameters");
-				need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-				if (p.param_flat_->double_side_)
-					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
 			}
 
 			if (p.render_topo_)

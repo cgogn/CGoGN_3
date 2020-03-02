@@ -144,18 +144,22 @@ void View::draw()
 
 	if (need_redraw_)
 	{
-		fbo_->bind();
-		glEnable(GL_DEPTH_TEST);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		GLenum idbuf = GL_COLOR_ATTACHMENT0;
-		glDrawBuffers(1, &idbuf);
-		for (ViewModule* m : linked_view_modules_)
+		if (fbo_->width() * fbo_->height() > 0)
 		{
-			m->draw(this);
+
+			fbo_->bind();
+			glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			GLenum idbuf = GL_COLOR_ATTACHMENT0;
+			glDrawBuffers(1, &idbuf);
+			for (ViewModule* m : linked_view_modules_)
+			{
+				m->draw(this);
+			}
+			fbo_->release();
+			glDisable(GL_DEPTH_TEST);
+			need_redraw_ = false;
 		}
-		fbo_->release();
-		glDisable(GL_DEPTH_TEST);
-		need_redraw_ = false;
 	}
 
 	param_fst_->draw();
