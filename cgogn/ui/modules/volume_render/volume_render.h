@@ -283,7 +283,7 @@ private:
 			if (p.vbo_cache_[Centers] == nullptr)
 			{
 				p.vbo_volume_center_ = std::make_unique<rendering::VBO>();
-				auto* centers = vbo_volume_center_.get();
+				auto* centers = p.vbo_volume_center_.get();
 				p.vbo_cache_[Centers] = centers;
 				centers->bind();
 				uint32 mi = is_indexed<Volume>(m) ? m.attribute_containers_[Volume::ORBIT].maximum_index()
@@ -294,7 +294,7 @@ private:
 		}
 
 		auto* render = md->get_render();
-		compute_center_engine_->check_primitives(render, m, p.vertex_position_.get());
+		compute_center_engine_->check_primitives(render, *(md->mesh_), p.vertex_position_.get());
 		compute_center_engine_->compute(p.vbo_cache_[Positions], render, p.vbo_cache_[Centers]);
 		p.update_centers_params();
 	}

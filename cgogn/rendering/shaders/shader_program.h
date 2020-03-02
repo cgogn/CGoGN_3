@@ -494,8 +494,8 @@ public:
 	template <typename ARRAY_VBO>
 	inline void set_vbos_tb(ARRAY_VBO& vbos_tb, const std::vector<VBO*>& vbos)
 	{
-		assert(vbos.size() == vbos_.size());
-		for (std::size_t i = 0; i < vbos_.size(); ++i)
+		assert(vbos.size() == vbos_tb.size());
+		for (std::size_t i = 0; i < vbos.size(); ++i)
 			vbos_tb[i] = vbos[i];
 
 		vao_initialized_ = 0;
@@ -512,7 +512,7 @@ public:
 	inline void set_vbo_tb(ARRAY_VBO vbo_tb, GLuint att, VBO* vbo)
 	{
 		--att; // warning attributes begin at 1 !
-		vbos_tb[att] = vbo;
+		vbo_tb[att] = vbo;
 		if (vbo)
 		{
 			vao_initialized_ |= 1u << (att);
