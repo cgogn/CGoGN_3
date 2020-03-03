@@ -252,6 +252,7 @@ protected:
 			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(),
 											 ImGuiColorEditFlags_NoInputs);
 			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1f, 5.0f);
+			need_update |= ImGui::SliderFloat("width##vectors", &(p.param_vector_per_vertex_->width_), 3.0f, 10.0f);
 		}
 
 		ImGui::End();

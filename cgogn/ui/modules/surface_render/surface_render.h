@@ -52,6 +52,7 @@
 
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
+#include <cgogn/rendering/topo_drawer.h>
 
 #include <cgogn/rendering/shaders/compute_normals.h>
 
@@ -203,8 +204,9 @@ class SurfaceRender : public ViewModule
 		}
 
 		inline Parameters()
-			: vbo_normal_(nullptr), render_vertices_(false), render_edges_(false), render_faces_(true),
-			  render_faces_style_(RS_Flat), vertex_scale_factor_(1.0), auto_update_scalar_min_max_(true)
+			: vbo_normal_(nullptr), render_topo_(false), render_vertices_(false), render_edges_(false),
+			  render_faces_(true), render_faces_style_(RS_Flat), vertex_scale_factor_(1.0),
+			  auto_update_scalar_min_max_(true)
 		{
 			static rendering::GLColor WHITE{1, 1, 1, 1};
 			//			static rendering::GLColor BLACK{0, 0, 0, 1};
@@ -228,14 +230,18 @@ class SurfaceRender : public ViewModule
 												true,
 												rendering::GLVec4(0, 0, 0, 0),
 												rendering::GLVec4(0, 0, 0, 0)};
-			for (auto& v : vbo_cache_)
-				v = nullptr;
 
 			gen_params<RS_Points, RS_Points>(pp);
 			pp.color_ = WHITE;
 			gen_params<RS_Lines, RS_Lines>(pp);
 			pp.color_ = GREEN;
 			gen_params<RS_NoIllum, RS_Phong_color_per_face>(pp);
+
+			for (auto& v : vbo_cache_)
+				v = nullptr;
+
+			topo_drawer_ = std::make_unique<rendering::TopoDrawer>();
+			topo_renderer_ = topo_drawer_->generate_renderer();
 		}
 
 		inline void update_param_using(VBOContent v)
@@ -271,6 +277,13 @@ class SurfaceRender : public ViewModule
 			return *static_cast<type_of_param<RS>*>(params_[RS].get());
 		}
 
+		inline void update_topo(const MESH& m)
+		{
+			if (render_topo_ && vertex_position_)
+				topo_drawer_->update2D(m, vertex_position_.get());
+			topo_dirty_ = false;
+		}
+
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
@@ -282,7 +295,11 @@ class SurfaceRender : public ViewModule
 		std::unique_ptr<rendering::VBO> vbo_normal_;
 		std::array<rendering::VBO*, 6> vbo_cache_;
 		std::array<std::unique_ptr<rendering::ShaderParam>, 18> params_;
+		/// topo
+		std::unique_ptr<rendering::TopoDrawer> topo_drawer_;
+		std::unique_ptr<rendering::TopoDrawer::Renderer> topo_renderer_;
 
+		bool render_topo_;
 		bool render_vertices_;
 		bool render_edges_;
 		bool render_faces_;
@@ -293,6 +310,8 @@ class SurfaceRender : public ViewModule
 		float32 vertex_base_size_;
 
 		bool auto_update_scalar_min_max_;
+
+		bool topo_dirty_;
 	};
 
 public:
@@ -320,7 +339,10 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
 					if (p.vertex_position_)
-						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+					{
+						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
+						p.topo_dirty_ = true;
+					}
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
@@ -328,8 +350,11 @@ private:
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
+						{
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							p.topo_dirty_ = true;
+						}
 						v->request_update();
 					}));
 			mesh_connections_[m].push_back(
@@ -353,10 +378,12 @@ public:
 
 		if (p.vertex_position_)
 		{
+			//			p.update_topo(m);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
 			p.vbo_cache_[VBO_Position] = md->update_vbo(vertex_position.get(), true);
 		}
 		p.update_param_using(VBO_Position);
+		p.topo_dirty_ = true;
 
 		v.request_update();
 	}
@@ -507,6 +534,13 @@ protected:
 				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
 				param->release();
+			}
+
+			if (p.render_topo_)
+			{
+				if (p.topo_dirty_)
+					p.update_topo(*m);
+				p.topo_renderer_->draw(proj_matrix, view_matrix);
 			}
 		}
 	}
@@ -749,6 +783,28 @@ protected:
 				ImGui::TextUnformatted("Vertices parameters");
 				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+			}
+
+			ImGui::Separator();
+			if (ImGui::Checkbox("Topo", &p.render_topo_))
+			{
+				need_update = true;
+				if (p.render_topo_)
+				{
+					ImGui::Separator();
+					ImGui::TextUnformatted("Topo parameters");
+					need_update |= ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+					need_update |= ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+					if (ImGui::SliderFloat("explodeEdges", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f))
+						p.topo_dirty_ = true;
+
+					if (ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f))
+						p.topo_dirty_ = true;
+				}
 			}
 		}
 

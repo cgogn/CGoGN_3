@@ -31,47 +31,99 @@ namespace rendering
 
 ShaderVectorPerVertex* ShaderVectorPerVertex::instance_ = nullptr;
 
+static const char* vertex_shader_source = R"(
+#version 150
+in vec3 vertex_pos;
+in vec3 vertex_vector;
+uniform float length;
+out vec3 end_vector;
+void main()
+{
+	end_vector = vertex_pos + length*vertex_vector;
+	gl_Position =  vec4(vertex_pos,1.0);
+};
+)";
+
+static const char* geometry_shader_source = R"(
+#version 330
+layout (points) in;
+layout (triangle_strip, max_vertices=6) out;
+in vec3 end_vector[];
+out vec3 color_f;
+//out vec3 N;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+uniform vec2 lineWidths;
+uniform vec4 lineColor;
+void main()
+{
+	vec4 A = model_view_matrix * gl_in[0].gl_Position;
+	vec4 B = model_view_matrix * vec4(end_vector[0],1);
+	float nearZ = 1.0;
+	if (projection_matrix[2][2] !=  1.0)
+		nearZ = - projection_matrix[3][2] / (projection_matrix[2][2] - 1.0);
+	if ((A.z < nearZ) || (B.z < nearZ))
+	{
+		if (A.z >= nearZ)
+			A = B + (A-B)*(nearZ-B.z)/(A.z-B.z);
+		if (B.z >= nearZ)
+			B = A + (B-A)*(nearZ-A.z)/(B.z-A.z);
+
+		A = projection_matrix*A;
+		B = projection_matrix*B;
+		A = A/A.w;
+		B = B/B.w;
+		vec2 U2 = normalize(vec2(lineWidths[1],lineWidths[0])*(B.xy - A.xy));
+		vec2 LWCorr =lineWidths * max(abs(U2.x),abs(U2.y));
+		vec3 U = vec3(0.5*LWCorr*U2,0.0);
+		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);
+		vec3 color3 = lineColor.rgb;
+		vec3 color3b = 0.25*lineColor.rgb;
+		color_f = color3b;
+		gl_Position = vec4(A.xyz-V, 1.0);
+		EmitVertex();
+		color_f = color3b;
+		gl_Position = vec4(B.xyz-V, 1.0);
+		EmitVertex();
+		color_f = color3;
+		gl_Position = vec4(A.xyz-U, 1.0);
+		EmitVertex();
+		color_f = color3;
+		gl_Position = vec4(B.xyz+U, 1.0);
+		EmitVertex();
+		color_f = color3b;
+		gl_Position = vec4(A.xyz+V, 1.0);
+		EmitVertex();
+		color_f = color3b;
+		gl_Position = vec4(B.xyz+V, 1.0);
+		EmitVertex();
+		EndPrimitive();
+	}
+};
+)";
+
+static const char* fragment_shader_source = R"(
+#version 330
+in vec3 color_f;
+out vec3 fragColor;
+void main()
+{
+   fragColor = color_f;
+};
+)";
+
 ShaderVectorPerVertex::ShaderVectorPerVertex()
 {
-	const char* vertex_shader_source = "#version 150\n"
-									   "in vec3 vertex_pos;\n"
-									   "in vec3 vertex_vector;\n"
-									   "out vec3 vector;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	vector = vertex_vector;\n"
-									   "	gl_Position = vec4(vertex_pos,1.0);\n"
-									   "}\n";
-
-	const char* fragment_shader_source = "#version 150\n"
-										 "uniform vec4 color;\n"
-										 "out vec4 fragColor;\n"
-										 "void main()\n"
-										 "{\n"
-										 "	fragColor = color;\n"
-										 "}\n";
-
-	const char* geometry_shader_source =
-		"#version 150\n"
-		"layout(points) in;\n"
-		"layout(line_strip,max_vertices=2) out;\n"
-		"in vec3 vector[];\n"
-		"uniform mat4 projection_matrix;\n"
-		"uniform mat4 model_view_matrix;\n"
-		"uniform float length;\n"
-		"void main()\n"
-		"{\n"
-		"	gl_Position = projection_matrix * model_view_matrix * gl_in[0].gl_Position;\n"
-		"	EmitVertex();\n"
-		"	vec4 end_point = gl_in[0].gl_Position + vec4(length * vector[0], 0.0);\n"
-		"	gl_Position = projection_matrix * model_view_matrix * end_point;\n"
-		"	EmitVertex();\n"
-		"	EndPrimitive();\n"
-		"}\n";
-
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_pos", "vertex_vector");
+	add_uniforms("lineColor", "lineWidths", "length");
+}
 
-	add_uniforms("color", "length");
+void ShaderParamVectorPerVertex::set_uniforms()
+{
+	int viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
+	shader_->set_uniforms_values(color_, wd, length_);
 }
 
 } // namespace rendering

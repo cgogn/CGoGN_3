@@ -330,7 +330,7 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.update_topo(m);
+			//			p.update_topo(m);
 
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
 
@@ -652,7 +652,7 @@ protected:
 			if (p.render_topo_)
 			{
 				ImGui::Separator();
-				ImGui::TextUnformatted("Volume parameters");
+				ImGui::TextUnformatted("Topo parameters");
 				need_update |=
 					ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |=

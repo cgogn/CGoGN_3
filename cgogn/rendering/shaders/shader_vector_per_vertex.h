@@ -37,26 +37,29 @@ DECLARE_SHADER_CLASS(VectorPerVertex, false, CGOGN_STR(VectorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamVectorPerVertex : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(color_, length_);
-	}
+	void set_uniforms() override;
 
 public:
 	GLColor color_;
 	float32 length_;
+	float32 width_;
+
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		color_ = pp.color_;
+		width_ = pp.width_;
+	}
 
 	using LocalShader = ShaderVectorPerVertex;
 
-	ShaderParamVectorPerVertex(LocalShader* sh) : ShaderParam(sh), color_(color_line_default), length_(1.0f)
+	ShaderParamVectorPerVertex(LocalShader* sh)
+		: ShaderParam(sh), color_(color_line_default), length_(1.0f), width_(2.0f)
 	{
 	}
 
 	inline ~ShaderParamVectorPerVertex() override
 	{
 	}
-
-
 };
 
 } // namespace rendering
