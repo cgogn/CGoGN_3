@@ -38,6 +38,7 @@
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/cmap/dart_marker.h>
 
 namespace cgogn
 {
@@ -161,35 +162,57 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol)
 {
-	if (is_indexed<CMap2::Vertex>(m))
-	{
-		foreach_incident_vertex(m, vol, [&](CMap2::Vertex v) -> bool {
-			set_index(m, v, new_index<CMap2::Vertex>(m));
-			return true;
-		});
-	}
-	if (is_indexed<CMap2::HalfEdge>(m))
-	{
-		foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-			set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-			set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
-			return true;
-		});
-	}
-	if (is_indexed<CMap2::Edge>(m))
-	{
-		foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-			set_index(m, e, new_index<CMap2::Edge>(m));
-			return true;
-		});
-	}
-	if (is_indexed<CMap2::Face>(m))
-	{
-		foreach_incident_face(m, vol, [&](CMap2::Face f) -> bool {
-			set_index(m, f, new_index<CMap2::Face>(m));
-			return true;
-		});
-	}
+	DartMarkerStore<CMap2> vertex_marker(m);
+	DartMarkerStore<CMap2> edge_marker(m);
+	DartMarkerStore<CMap2> face_marker(m);
+	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
+		if (is_indexed<CMap2::Vertex>(m))
+		{
+			if (!vertex_marker.is_marked(d))
+			{
+				CMap2::Vertex v(d);
+				foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+					vertex_marker.mark(d);
+					return true;
+				});
+				set_index(m, v, new_index<CMap2::Vertex>(m));
+				return true;
+			}
+		}
+		if (is_indexed<CMap2::Edge>(m) || is_indexed<CMap2::HalfEdge>(m))
+		{
+			if (!edge_marker.is_marked(d))
+			{
+				CMap2::Edge e(d);
+				foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
+					edge_marker.mark(d);
+					return true;
+				});
+				if (is_indexed<CMap2::Edge>(m))
+					set_index(m, e, new_index<CMap2::Edge>(m));
+				if (is_indexed<CMap2::HalfEdge>(m))
+				{
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+				}
+				return true;
+			}
+		}
+		if (is_indexed<CMap2::Face>(m))
+		{
+			if (!vertex_marker.is_marked(d))
+			{
+				CMap2::Face f(d);
+				foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
+					face_marker.mark(d);
+					return true;
+				});
+				set_index(m, f, new_index<CMap2::Vertex>(m));
+				return true;
+			}
+		}
+		return true;
+	});
 	if (is_indexed<CMap2::Volume>(m))
 		set_index(m, vol, new_index<CMap2::Volume>(m));
 }
