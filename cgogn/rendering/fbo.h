@@ -95,6 +95,7 @@ public:
 protected:
 	GLuint id_;
 	GLuint depth_render_buffer_;
+	Texture2D* depth_tex_;
 	std::vector<Texture2D*> tex_;
 };
 

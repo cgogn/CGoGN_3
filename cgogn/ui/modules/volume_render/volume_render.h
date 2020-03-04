@@ -27,8 +27,6 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/tools.h>
-#include <cgogn/ui/view.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -47,6 +45,8 @@
 #include <boost/synapse/connect.hpp>
 
 #include <unordered_map>
+#include <cgogn/ui/tools.h>
+#include <cgogn/ui/view.h>
 
 namespace cgogn
 {
@@ -97,7 +97,7 @@ class Volume_Render : public ViewModule
 			: vertex_position_(nullptr), volume_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false),
 			  render_vertices_(false), render_edges_(true), render_faces_(false), render_volumes_b_(true),
 			  render_volumes_style(ExplodeVolumes), render_volumes_line_(true), vertex_scale_factor_(1.0),
-			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false), edge_blending_(true),
+			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false),
 			  centers_dirty_(true), topo_dirty_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
@@ -208,7 +208,6 @@ class Volume_Render : public ViewModule
 		float32 vertex_base_size_;
 		bool auto_update_scalar_min_max_;
 		bool gpu_center_;
-		bool edge_blending_;
 
 		bool centers_dirty_;
 		bool topo_dirty_;
@@ -467,13 +466,7 @@ protected:
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
-				if (p.edge_blending_)
-				{
-					glEnable(GL_BLEND);
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				}
 				md->draw(rendering::LINES);
-				glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}
 
@@ -556,11 +549,10 @@ protected:
 				ImGui::TextUnformatted(" > ");
 				ImGui::SameLine();
 				ImGui::BeginGroup();
-				need_update |= ImGui::Checkbox("Blending", &p.edge_blending_);
-				ImGui::SameLine();
 				need_update |= ImGui::ColorEdit3("edge color##edges", p.param_edge_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 				need_update |= ImGui::SliderFloat("##width_edges", &(p.param_edge_->width_), 1.0f, 10.0f);
+				need_update |= ImGui::SliderFloat("##lighted_edges", &(p.param_edge_->lighted_), 0.0f, 1.0f);
 				ImGui::EndGroup();
 			}
 			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
@@ -673,7 +665,6 @@ protected:
 			}
 		}
 
-		ImGui::End();
 
 		if (need_update)
 			for (View* v : linked_views_)

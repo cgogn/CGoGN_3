@@ -27,6 +27,7 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/tools.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -101,174 +102,46 @@ protected:
 		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		//		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-				{
-					selected_mesh_ = m;
-					selected_vertex_position_.reset();
-					selected_vertex_normal_.reset();
-					selected_vertex_kmax_.reset();
-					selected_vertex_kmin_.reset();
-					selected_vertex_Kmax_.reset();
-					selected_vertex_Kmin_.reset();
-					selected_vertex_Knormal_.reset();
-				}
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			selected_vertex_position_.reset();
+			selected_vertex_normal_.reset();
+			selected_vertex_kmax_.reset();
+			selected_vertex_kmin_.reset();
+			selected_vertex_Kmax_.reset();
+			selected_vertex_Kmin_.reset();
+			selected_vertex_Knormal_.reset();
+		});
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_position_, "Position",
+				[&](const decltype(selected_vertex_position_)& att) { selected_vertex_position_ = att; });
 
-			std::string selected_vertex_position_name_ =
-				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
-			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_position_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_position_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_position_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##position"))
-					selected_vertex_position_.reset();
-			}
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_normal_, "Normal",
+				[&](const decltype(selected_vertex_normal_)& att) { selected_vertex_normal_ = att; });
 
-			std::string selected_vertex_normal_name_ =
-				selected_vertex_normal_ ? selected_vertex_normal_->name() : "-- select --";
-			if (ImGui::BeginCombo("Normal", selected_vertex_normal_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_normal_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_normal_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_normal_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##normal"))
-					selected_vertex_normal_.reset();
-			}
+			imgui_combo_attribute<Vertex, Scalar>(
+				*selected_mesh_, selected_vertex_kmax_, "kmax",
+				[&](const decltype(selected_vertex_kmax_)& att) { selected_vertex_kmax_ = att; });
 
-			std::string selected_vertex_kmax_name_ =
-				selected_vertex_kmax_ ? selected_vertex_kmax_->name() : "-- select --";
-			if (ImGui::BeginCombo("kmax", selected_vertex_kmax_name_.c_str()))
-			{
-				foreach_attribute<Scalar, Vertex>(*selected_mesh_,
-												  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
-													  bool is_selected = attribute == selected_vertex_kmax_;
-													  if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														  selected_vertex_kmax_ = attribute;
-													  if (is_selected)
-														  ImGui::SetItemDefaultFocus();
-												  });
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_kmax_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##kmax"))
-					selected_vertex_kmax_.reset();
-			}
+			imgui_combo_attribute<Vertex, Scalar>(
+				*selected_mesh_, selected_vertex_kmin_, "kmin",
+				[&](const decltype(selected_vertex_kmin_)& att) { selected_vertex_kmin_ = att; });
 
-			std::string selected_vertex_kmin_name_ =
-				selected_vertex_kmin_ ? selected_vertex_kmin_->name() : "-- select --";
-			if (ImGui::BeginCombo("kmin", selected_vertex_kmin_name_.c_str()))
-			{
-				foreach_attribute<Scalar, Vertex>(*selected_mesh_,
-												  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
-													  bool is_selected = attribute == selected_vertex_kmin_;
-													  if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														  selected_vertex_kmin_ = attribute;
-													  if (is_selected)
-														  ImGui::SetItemDefaultFocus();
-												  });
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_kmin_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##kmin"))
-					selected_vertex_kmin_.reset();
-			}
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_Kmax_, "Kmax",
+				[&](const decltype(selected_vertex_Kmax_)& att) { selected_vertex_Kmax_ = att; });
 
-			std::string selected_vertex_Kmax_name_ =
-				selected_vertex_Kmax_ ? selected_vertex_Kmax_->name() : "-- select --";
-			if (ImGui::BeginCombo("Kmax", selected_vertex_Kmax_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_Kmax_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_Kmax_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_Kmax_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##Kmax"))
-					selected_vertex_Kmax_.reset();
-			}
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_Kmin_, "Kmin",
+				[&](const decltype(selected_vertex_Kmin_)& att) { selected_vertex_Kmin_ = att; });
 
-			std::string selected_vertex_Kmin_name_ =
-				selected_vertex_Kmin_ ? selected_vertex_Kmin_->name() : "-- select --";
-			if (ImGui::BeginCombo("Kmin", selected_vertex_Kmin_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_Kmin_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_Kmin_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_Kmin_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##Kmin"))
-					selected_vertex_Kmin_.reset();
-			}
-
-			std::string selected_vertex_Knormal_name_ =
-				selected_vertex_Knormal_ ? selected_vertex_Knormal_->name() : "-- select --";
-			if (ImGui::BeginCombo("Knormal", selected_vertex_Knormal_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_Knormal_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_Knormal_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_Knormal_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##Knormal"))
-					selected_vertex_Knormal_.reset();
-			}
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_Knormal_, "Knormal",
+				[&](const decltype(selected_vertex_Knormal_)& att) { selected_vertex_Knormal_ = att; });
 
 			if (selected_vertex_position_)
 			{
@@ -312,7 +185,7 @@ protected:
 			}
 		}
 
-		ImGui::End();
+		//		ImGui::End();
 	}
 
 private:

@@ -232,6 +232,11 @@ public:
 			f(m.get(), name);
 	}
 
+	inline int32 number_of_meshes()
+	{
+		return meshes_.size();
+	}
+
 	std::string mesh_name(const MESH* m) const
 	{
 		auto it =

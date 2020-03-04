@@ -49,12 +49,10 @@ static const char* geometry_shader_source = R"(
 layout (points) in;
 layout (triangle_strip, max_vertices=6) out;
 in vec3 end_vector[];
-out vec3 color_f;
-//out vec3 N;
+out vec3 N;
 uniform mat4 projection_matrix;
 uniform mat4 model_view_matrix;
 uniform vec2 lineWidths;
-uniform vec4 lineColor;
 void main()
 {
 	vec4 A = model_view_matrix * gl_in[0].gl_Position;
@@ -69,6 +67,10 @@ void main()
 		if (B.z >= nearZ)
 			B = A + (B-A)*(nearZ-A.z)/(B.z-A.z);
 
+		vec3 AB = B.xyz/B.w - A.xyz/A.w;
+		vec3 Nl = normalize(cross(AB,vec3(0,0,1)));
+		vec3 Nm = normalize(cross(Nl,AB));
+
 		A = projection_matrix*A;
 		B = projection_matrix*B;
 		A = A/A.w;
@@ -77,24 +79,23 @@ void main()
 		vec2 LWCorr =lineWidths * max(abs(U2.x),abs(U2.y));
 		vec3 U = vec3(0.5*LWCorr*U2,0.0);
 		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);
-		vec3 color3 = lineColor.rgb;
-		vec3 color3b = 0.25*lineColor.rgb;
-		color_f = color3b;
+
+		N = Nl;
 		gl_Position = vec4(A.xyz-V, 1.0);
 		EmitVertex();
-		color_f = color3b;
+		N = Nl;
 		gl_Position = vec4(B.xyz-V, 1.0);
 		EmitVertex();
-		color_f = color3;
+		N = Nm;
 		gl_Position = vec4(A.xyz-U, 1.0);
 		EmitVertex();
-		color_f = color3;
+		N = Nm;
 		gl_Position = vec4(B.xyz+U, 1.0);
 		EmitVertex();
-		color_f = color3b;
+		N = -Nl;
 		gl_Position = vec4(A.xyz+V, 1.0);
 		EmitVertex();
-		color_f = color3b;
+		N = -Nl;
 		gl_Position = vec4(B.xyz+V, 1.0);
 		EmitVertex();
 		EndPrimitive();
@@ -104,18 +105,22 @@ void main()
 
 static const char* fragment_shader_source = R"(
 #version 330
-in vec3 color_f;
+in vec3 N;
 out vec3 fragColor;
+uniform vec4 lineColor;
+uniform float lighted;
 void main()
 {
-   fragColor = color_f;
+	const vec3 light_dir = normalize(vec3(10,100,1000));
+	float lambert = (1.0-lighted) + lighted*max(0.0,dot(N,light_dir));
+	fragColor = lineColor.rgb * lambert;
 };
 )";
 
 ShaderVectorPerVertex::ShaderVectorPerVertex()
 {
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_pos", "vertex_vector");
-	add_uniforms("lineColor", "lineWidths", "length");
+	add_uniforms("lineColor", "lineWidths", "length", "lighted");
 }
 
 void ShaderParamVectorPerVertex::set_uniforms()
@@ -123,7 +128,7 @@ void ShaderParamVectorPerVertex::set_uniforms()
 	int viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
-	shader_->set_uniforms_values(color_, wd, length_);
+	shader_->set_uniforms_values(color_, wd, length_, lighted_);
 }
 
 } // namespace rendering

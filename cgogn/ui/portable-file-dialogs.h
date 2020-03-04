@@ -1032,6 +1032,7 @@ private:
 	std::map<int, button> m_mappings;
 };
 
+
 class open_file : public internal::file_dialog
 {
 public:

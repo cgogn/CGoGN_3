@@ -66,7 +66,7 @@ protected:
 	void draw();
 
 public:
-	const std::string& name()
+	const std::string& name() const
 	{
 		return name_;
 	}

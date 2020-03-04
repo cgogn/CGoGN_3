@@ -31,6 +31,10 @@
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/view.h>
 
 namespace cgogn
 {
@@ -117,6 +121,42 @@ bool imgui_colormap_interface(rendering::shader_funcion::ColorMap::Uniforms& cm,
 	ImGui::EndGroup();
 	return need_update;
 }
+
+template<typename MP, typename MESH, typename FUNC>
+bool imgui_mesh_selector(MP* mp, const MESH* selected, const FUNC& f )
+{
+	if (ImGui::ListBoxHeader("Mesh",mp->number_of_meshes()))
+	{
+		mp->foreach_mesh([&](MESH* m, const std::string& name) {
+			if (ImGui::Selectable(name.c_str(), m == selected))
+				f(m);
+		});
+		ImGui::ListBoxFooter();
+		return true;
+	}
+	return false;
+}
+
+
+template <typename FUNC>
+bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& f)
+{
+	if (ImGui::BeginCombo("View", selected->name().c_str()))
+	{
+		for (View* v :vm->linked_views())
+		{
+			bool is_selected = v == selected;
+			if (ImGui::Selectable(v->name().c_str(), is_selected))
+				f(v);
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+		return true;
+	}
+	return false;
+}
+
 
 }
 }

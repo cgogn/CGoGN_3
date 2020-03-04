@@ -43,11 +43,13 @@ public:
 	GLColor color_;
 	float32 length_;
 	float32 width_;
+	float32 lighted_;
 
 	inline void pick_parameters(const PossibleParameters& pp) override
 	{
 		color_ = pp.color_;
 		width_ = pp.width_;
+		lighted_ = pp.lighted_;
 	}
 
 	using LocalShader = ShaderVectorPerVertex;

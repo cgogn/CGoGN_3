@@ -41,13 +41,13 @@ class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 		int viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
 		GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
+		shader_->set_uniforms_values(color_, wd, lighted_, plane_clip_, plane_clip2_);
 	}
 
 public:
 	GLColor color_;
 	float32 width_;
-	bool blending_;
+	float32 lighted_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
@@ -55,7 +55,7 @@ public:
 	{
 		color_ = pp.color_;
 		width_ = pp.width_;
-		blending_ = pp.blending_;
+		lighted_ = pp.lighted_;
 		plane_clip_ = pp.plane_clip_;
 		plane_clip2_ = pp.plane_clip2_;
 	}
@@ -63,7 +63,7 @@ public:
 	using LocalShader = ShaderBoldLine;
 
 	ShaderParamBoldLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), width_(2), blending_(true), plane_clip_(0, 0, 0, 0),
+		: ShaderParam(sh), color_(color_line_default), width_(3.0f), lighted_(0.5f), plane_clip_(0, 0, 0, 0),
 		  plane_clip2_(0, 0, 0, 0)
 	{
 	}

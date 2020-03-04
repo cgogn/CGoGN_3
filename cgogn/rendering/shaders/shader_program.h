@@ -96,7 +96,7 @@ struct PossibleParameters
 	float32 width_;
 	float32 size_;
 	float32 explode_;
-	bool blending_;
+	float32 lighted_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 };

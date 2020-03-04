@@ -178,27 +178,8 @@ protected:
 		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		//		ImGui::SetWindowSize({0, 0});
 
-		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
-		{
-			for (View* v : linked_views_)
-			{
-				bool is_selected = v == selected_view_;
-				if (ImGui::Selectable(v->name().c_str(), is_selected))
-					selected_view_ = v;
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
 
 		if (selected_view_ && selected_mesh_)
 		{
@@ -252,10 +233,11 @@ protected:
 			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(),
 											 ImGuiColorEditFlags_NoInputs);
 			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1f, 5.0f);
-			need_update |= ImGui::SliderFloat("width##vectors", &(p.param_vector_per_vertex_->width_), 3.0f, 10.0f);
+			need_update |= ImGui::SliderFloat("width##vectors", &(p.param_vector_per_vertex_->width_), 1.5f, 9.0f);
+			need_update |= ImGui::SliderFloat("##lighted_edges", &(p.param_vector_per_vertex_->lighted_), 0.0f, 1.0f);
 		}
 
-		ImGui::End();
+		//		ImGui::End();
 
 		if (need_update)
 			for (View* v : linked_views_)

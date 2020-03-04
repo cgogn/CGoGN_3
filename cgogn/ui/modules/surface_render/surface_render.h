@@ -227,7 +227,7 @@ class SurfaceRender : public ViewModule
 												5.0f,							  // width
 												1.0f,							  // size
 												0.9f,
-												true,
+												0.5f,
 												rendering::GLVec4(0, 0, 0, 0),
 												rendering::GLVec4(0, 0, 0, 0)};
 
@@ -550,30 +550,8 @@ protected:
 	{
 		bool need_update = false;
 
-		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		//		ImGui::SetWindowSize({0, 0});
-
-		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
-		{
-			for (View* v : linked_views_)
-			{
-				bool is_selected = v == selected_view_;
-				if (ImGui::Selectable(v->name().c_str(), is_selected))
-					selected_view_ = v;
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
 
 		if (selected_view_ && selected_mesh_)
 		{
@@ -608,14 +586,40 @@ protected:
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 
-			ImGui::BeginGroup();
-			ImGui::TextUnformatted("Faces");
+			if (p.render_vertices_)
+			{
+				ImGui::Indent();
+				auto& param = p.template param_typed<RS_Points>();
+				ImGui::Separator();
+				ImGui::TextUnformatted("Vertices parameters");
+				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+				ImGui::Unindent();
+			}
+
+			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+			if (p.render_edges_)
+			{
+				ImGui::Indent();
+				auto& param = p.template param_typed<RS_Lines>();
+				ImGui::Separator();
+				ImGui::TextUnformatted("Edges parameters");
+				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
+				if (ImGui::SliderFloat("width##edges", &(param.width_), 1.5f, 9.0f))
+				{
+					p.lw_ = param.width_;
+					need_update = true;
+				}
+				need_update |=
+					ImGui::SliderFloat("##lighted_edges", &(p.template param_typed<RS_Lines>().lighted_), 0.0f, 1.0f);
+				ImGui::Unindent();
+			}
 
 			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
 			if (p.render_faces_)
 			{
+				ImGui::Indent();
 				int32* ptr_style = reinterpret_cast<int32*>(&p.render_faces_style_);
 
 				ImGui::TextUnformatted("NoIllum:");
@@ -642,7 +646,6 @@ protected:
 				need_update |= ImGui::RadioButton("Scalar/Face##Phong", ptr_style, RS_Phong_scalar_per_face);
 				ImGui::SameLine();
 				need_update |= ImGui::RadioButton("Color/Face##Phong", ptr_style, RS_Phong_color_per_face);
-				ImGui::EndGroup();
 
 				switch (p.render_faces_style_)
 				{
@@ -766,28 +769,7 @@ protected:
 				default:
 					break;
 				}
-			}
-
-			if (p.render_edges_)
-			{
-				auto& param = p.template param_typed<RS_Lines>();
-				ImGui::Separator();
-				ImGui::TextUnformatted("Edges parameters");
-				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
-				if (ImGui::SliderFloat("width##edges", &(param.width_), 3.0f, 15.0f))
-				{
-					p.lw_ = param.width_;
-					need_update = true;
-				}
-			}
-
-			if (p.render_vertices_)
-			{
-				auto& param = p.template param_typed<RS_Points>();
-				ImGui::Separator();
-				ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", param.color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+				ImGui::Unindent();
 			}
 
 			ImGui::Separator();
@@ -813,7 +795,7 @@ protected:
 			}
 		}
 
-		ImGui::End();
+		//		ImGui::End();
 
 		if (need_update)
 			for (View* v : linked_views_)

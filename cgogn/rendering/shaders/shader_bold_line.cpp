@@ -118,6 +118,8 @@ uniform vec4 lineColor;
 in vec4 posi_clip;
 in vec3 N;
 out vec3 fragColor;
+uniform float lighted;
+
 void main()
 {
 	const vec3 light_dir = normalize(vec3(10,100,1000));
@@ -126,7 +128,7 @@ void main()
 	float d2 = dot(plane_clip2,posi_clip);
 	if ((d>0.0)||(d2>0.0))  discard;
 
-	float lambert = 0.5 + 0.5*max(0.0,dot(N,light_dir));
+	float lambert = (1.0-lighted) + lighted*max(0.0,dot(N,light_dir));
 	fragColor = lineColor.rgb * lambert;
 };
 )";
@@ -134,7 +136,7 @@ void main()
 ShaderBoldLine::ShaderBoldLine()
 {
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_pos");
-	add_uniforms("lineColor", "lineWidths", "plane_clip", "plane_clip2");
+	add_uniforms("lineColor", "lineWidths", "lighted", "plane_clip", "plane_clip2");
 }
 
 } // namespace rendering

@@ -583,6 +583,7 @@ int App::launch()
 				if (ImGui::CollapsingHeader(m->name().c_str()))
 					m->interface();
 			}
+			ImGui::End();
 			if (first_render)
 				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);
 
