@@ -50,7 +50,7 @@ template <bool NOTIF>
 static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 										const GLchar* message, const void*)
 {
-	unused_parameters(id,length); // id not revelant
+	unused_parameters(id, length); // id not revelant
 	if (!NOTIF && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
 		return;
 
@@ -560,8 +560,8 @@ int App::launch()
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
 
-			ImGuiID dockIdLeft=0;
-			ImGuiID dockIdBottom=0;
+			ImGuiID dockIdLeft = 0;
+			ImGuiID dockIdBottom = 0;
 			static bool first_render = true;
 
 			if (first_render)
@@ -576,12 +576,15 @@ int App::launch()
 				ImGui::DockBuilderFinish(dockspace_id);
 			}
 
+			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::SetWindowSize({0, 0});
 			for (Module* m : modules_)
 			{
-				m->interface();
-				if (first_render)
-					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
+				if (ImGui::CollapsingHeader(m->name().c_str()))
+					m->interface();
 			}
+			if (first_render)
+				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);
 
 			ImGui::End();
 

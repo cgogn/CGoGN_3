@@ -381,9 +381,9 @@ protected:
 	{
 		if (show_mesh_inspector_)
 		{
-			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
-			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-			ImGui::SetWindowSize({0, 0});
+			//			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
+			//			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			//			ImGui::SetWindowSize({0, 0});
 
 			if (ImGui::ListBoxHeader("Mesh"))
 			{
@@ -446,8 +446,6 @@ private:
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
-
-
 
 } // namespace ui
 

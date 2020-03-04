@@ -98,8 +98,8 @@ protected:
 
 	void interface() override
 	{
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
+		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		//		ImGui::SetWindowSize({0, 0});
 
 		if (ImGui::ListBoxHeader("Mesh"))
 		{

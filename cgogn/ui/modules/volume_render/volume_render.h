@@ -498,8 +498,8 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
+		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		//		ImGui::SetWindowSize({0, 0});
 		std::stringstream ss;
 		ss << std::setw(6) << std::fixed << std::setprecision(2) << App::fps();
 		std::string str_fps = ss.str() + " fps";

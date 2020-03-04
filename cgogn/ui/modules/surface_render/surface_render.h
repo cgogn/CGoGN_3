@@ -205,7 +205,7 @@ class SurfaceRender : public ViewModule
 
 		inline Parameters()
 			: vbo_normal_(nullptr), render_topo_(false), render_vertices_(false), render_edges_(false),
-			  render_faces_(true), render_faces_style_(RS_Flat), vertex_scale_factor_(1.0),
+			  render_faces_(true), render_faces_style_(RS_Flat), vertex_scale_factor_(1.0), lw_(5.0f),
 			  auto_update_scalar_min_max_(true)
 		{
 			static rendering::GLColor WHITE{1, 1, 1, 1};
@@ -224,7 +224,7 @@ class SurfaceRender : public ViewModule
 												250.0f,							  // spec coef
 												rendering::GLVec3(10, 100, 1000), // Light position
 												true,							  // double side
-												2.0f,							  // width
+												5.0f,							  // width
 												1.0f,							  // size
 												0.9f,
 												true,
@@ -308,6 +308,7 @@ class SurfaceRender : public ViewModule
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
+		float32 lw_;
 
 		bool auto_update_scalar_min_max_;
 
@@ -500,12 +501,12 @@ protected:
 			if (p.render_faces_)
 			{
 				SurfaceRenderStyle rs = p.render_faces_style_;
-				rendering::ShaderParam* param = p.params_[rs].get();
-				if (param->vao_initialized())
+				//				rendering::ShaderParam* param = p.params_[rs].get();
+				if (p.params_[rs]->vao_initialized())
 				{
 					glEnable(GL_POLYGON_OFFSET_FILL);
-					glPolygonOffset(1.0f, 2.0f);
-					param->bind(proj_matrix, view_matrix);
+					glPolygonOffset(p.lw_ / 5.0f, p.lw_ / 3.0f);
+					p.params_[rs]->bind(proj_matrix, view_matrix);
 
 					if (is_per_face(rs))
 						md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -513,27 +514,27 @@ protected:
 						md->draw(rendering::TRIANGLES, p.vertex_position_);
 
 					glDisable(GL_POLYGON_OFFSET_FILL);
-					param->release();
+					p.params_[rs]->release();
 				}
 			}
-			rendering::ShaderParam* param = p.params_[RS_Points].get();
-			if (p.render_vertices_ && param->vao_initialized())
+			//			rendering::ShaderParam* param = p.params_[RS_Points].get();
+			if (p.render_vertices_ && p.params_[RS_Points]->vao_initialized())
 			{
 				p.template param_typed<RS_Points>().size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				param->bind(proj_matrix, view_matrix);
+				p.params_[RS_Points]->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
-				param->release();
+				p.params_[RS_Points]->release();
 			}
 
-			param = p.params_[RS_Lines].get();
-			if (p.render_edges_ && param->vao_initialized())
+			//			param = p.params_[RS_Lines];
+			if (p.render_edges_ && p.params_[RS_Lines]->vao_initialized())
 			{
-				param->bind(proj_matrix, view_matrix);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				p.params_[RS_Lines]->bind(proj_matrix, view_matrix);
+				//				glEnable(GL_BLEND);
+				//				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				md->draw(rendering::LINES);
-				glDisable(GL_BLEND);
-				param->release();
+				//				glDisable(GL_BLEND);
+				p.params_[RS_Lines]->release();
 			}
 
 			if (p.render_topo_)
@@ -549,8 +550,8 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
+		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		//		ImGui::SetWindowSize({0, 0});
 
 		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
 		{
@@ -773,7 +774,11 @@ protected:
 				ImGui::Separator();
 				ImGui::TextUnformatted("Edges parameters");
 				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##edges", &(param.width_), 1.0f, 10.0f);
+				if (ImGui::SliderFloat("width##edges", &(param.width_), 3.0f, 15.0f))
+				{
+					p.lw_ = param.width_;
+					need_update = true;
+				}
 			}
 
 			if (p.render_vertices_)

@@ -48,12 +48,11 @@ static const char* geometry_shader_source = R"(
 #version 330
 layout (lines) in;
 layout (triangle_strip, max_vertices=6) out;
-out vec4 color_f;
+out vec3 N;
 out vec4 posi_clip;
 uniform mat4 projection_matrix;
 uniform mat4 model_view_matrix;
 uniform vec2 lineWidths;
-uniform vec4 lineColor;
 void main()
 {
 	vec4 A = model_view_matrix * gl_in[0].gl_Position;
@@ -68,37 +67,42 @@ void main()
 		if (B.z >= nearZ)
 			B = A + (B-A)*(nearZ-A.z)/(B.z-A.z);
 
+		vec3 AB = B.xyz/B.w - A.xyz/A.w;
+		vec3 Nl = normalize(cross(AB,vec3(0,0,1)));
+		vec3 Nm = normalize(cross(Nl,AB));
+
 		A = projection_matrix*A;
 		B = projection_matrix*B;
 		A = A/A.w;
 		B = B/B.w;
+
+
 		vec2 U2 = normalize(vec2(lineWidths[1],lineWidths[0])*(B.xy - A.xy));
 		vec2 LWCorr =lineWidths * max(abs(U2.x),abs(U2.y));
 		vec3 U = vec3(0.5*LWCorr*U2,0.0);
 		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);
-		vec3 color3 = lineColor.rgb;
-		color_f = vec4(color3,0.0);
 		posi_clip = gl_in[0].gl_Position;
+		N = Nl;
 		gl_Position = vec4(A.xyz-V, 1.0);
 		EmitVertex();
-		color_f = vec4(color3,0.0);
 		posi_clip = gl_in[1].gl_Position;
+		N = Nl;
 		gl_Position = vec4(B.xyz-V, 1.0);
 		EmitVertex();
-		color_f = vec4(color3,1.0);
 		posi_clip = gl_in[0].gl_Position;
+		N = Nm;
 		gl_Position = vec4(A.xyz-U, 1.0);
 		EmitVertex();
-		color_f = vec4(color3,1.0);
 		posi_clip = gl_in[1].gl_Position;
+		N = Nm;
 		gl_Position = vec4(B.xyz+U, 1.0);
 		EmitVertex();
-		color_f = vec4(color3,0.0);
 		posi_clip = gl_in[0].gl_Position;
+		N = -Nl;
 		gl_Position = vec4(A.xyz+V, 1.0);
 		EmitVertex();
-		color_f = vec4(color3,0.0);
 		posi_clip = gl_in[1].gl_Position;
+		N = -Nl;
 		gl_Position = vec4(B.xyz+V, 1.0);
 		EmitVertex();
 		EndPrimitive();
@@ -110,15 +114,20 @@ static const char* fragment_shader_source = R"(
 #version 330
 uniform vec4 plane_clip;
 uniform vec4 plane_clip2;
-in vec4 color_f;
+uniform vec4 lineColor;
 in vec4 posi_clip;
-out vec4 fragColor;
+in vec3 N;
+out vec3 fragColor;
 void main()
 {
+	const vec3 light_dir = normalize(vec3(10,100,1000));
+
 	float d = dot(plane_clip,posi_clip);
 	float d2 = dot(plane_clip2,posi_clip);
 	if ((d>0.0)||(d2>0.0))  discard;
-   fragColor = color_f;
+
+	float lambert = 0.5 + 0.5*max(0.0,dot(N,light_dir));
+	fragColor = lineColor.rgb * lambert;
 };
 )";
 
