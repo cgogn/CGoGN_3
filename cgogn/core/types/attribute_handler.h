@@ -62,4 +62,4 @@ inline AttributeHandler<CELL, T, ATT, MESH> attribute_handler(MESH* m, const std
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CELLS_SET_H_
+#endif // CGOGN_CORE_ATTRIBUTE_HANDLER_H_

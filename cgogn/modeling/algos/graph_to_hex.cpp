@@ -97,7 +97,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 		return false;
 	}
 	else
-		std::cout << "graph_to_hex (/): intersection cores built" << std::endl;
+		std::cout << "graph_to_hex (/): contact surfaces built" << std::endl;
 
 	okay = create_intersection_frames(g, gAttribs, m2, m2Attribs);
 	if (!okay)
@@ -200,14 +200,14 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 		}
 		if (is_indexed<CMap2::Face>(m))
 		{
-			if (!vertex_marker.is_marked(d))
+			if (!face_marker.is_marked(d))
 			{
 				CMap2::Face f(d);
 				foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
 					face_marker.mark(d);
 					return true;
 				});
-				set_index(m, f, new_index<CMap2::Vertex>(m));
+				set_index(m, f, new_index<CMap2::Face>(m));
 				return true;
 			}
 		}
@@ -270,6 +270,74 @@ void shift_frame(Mat3& frame, uint32 nb_shifts)
 		frame.col(0) = R;
 		frame.col(1) = S;
 	}
+}
+
+void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, Graph& g, GAttributes& gAttribs)
+{
+	// set the new phi1
+	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
+		Dart dd = phi2(m, phi_1(m, d));
+		(*(m.phi1_))[d.index] = dd;
+		return true;
+	});
+
+	// set the new phi_1
+	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
+		Dart prev = d;
+		Dart it = phi1(m, prev);
+		while (it != d)
+		{
+			prev = it;
+			it = phi1(m, prev);
+		}
+		(*(m.phi_1_))[d.index] = prev;
+		return true;
+	});
+
+	DartMarkerStore<CMap2> face_marker(m);
+	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
+		if (!face_marker.is_marked(d))
+		{
+			CMap2::Face f(d);
+			foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
+				face_marker.mark(d);
+				return true;
+			});
+			if (is_indexed<CMap2::Face>(m))
+				set_index(m, f, new_index<CMap2::Face>(m)); // give a new index to the face
+			// darts of the new face orbit are darts of the old dual vertex
+			// get the outgoing graph branch from the old dual vertex
+			Dart branch = value<Dart>(m, m2Attribs.dual_vertex_graph_branch, CMap2::Vertex(d));
+			// store the contact surface face on the outgoing branch
+			value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(branch)) = d;
+			return true;
+		}
+		return true;
+	});
+
+	DartMarkerStore<CMap2> vertex_marker(m);
+	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
+		if (!vertex_marker.is_marked(d))
+		{
+			CMap2::Vertex v(d);
+			Vec3 b;
+			uint32 nb = 0;
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				vertex_marker.mark(d);
+				// barycenter computation
+				// darts of the new vertex orbit are darts of the old dual face
+				b += value<Vec3>(m, m2Attribs.vertex_position, CMap2::Vertex(d));
+				++nb;
+				return true;
+			});
+			// should project on sphere or even do something smarter
+			b /= nb;										  // nb should always be 4
+			set_index(m, v, new_index<CMap2::Vertex>(m));	  // give a new index to the vertex
+			value<Vec3>(m, m2Attribs.vertex_position, v) = b; // set the position to the computed position
+			return true;
+		}
+		return true;
+	});
 }
 
 /*****************************************************************************/
@@ -342,7 +410,14 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 	m2Attribs.vertex_position = add_attribute<Vec3, CMap2::Vertex>(m2, "position");
 	if (!m2Attribs.vertex_position)
 	{
-		std::cout << "Failed to add position attribute to map2" << std::endl;
+		std::cout << "Failed to add vertex_position attribute to map2" << std::endl;
+		return false;
+	}
+
+	m2Attribs.dual_vertex_graph_branch = add_attribute<Dart, CMap2::Vertex>(m2, "graph_branch");
+	if (!m2Attribs.dual_vertex_graph_branch)
+	{
+		std::cout << "Failed to add dual_vertex_graph_branch attribute to map2" << std::endl;
 		return false;
 	}
 
@@ -390,7 +465,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 			build_contact_surface_3(g, gAttribs, m2, m2Attribs, v);
 			break;
 		default:
-			std::cout << "build_contact_surfaces: intersections of degree > 3 not managed yet" << std::endl;
+			build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
 			res = false;
 			break;
 		}
@@ -472,6 +547,15 @@ void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(d2)) = M[2];
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d0))) = Q[0];
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, d0))) = Q[1];
+}
+
+void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v)
+{
+	// compute the n points on the sphere
+	// generate Delaunay mesh from the n points
+	// store the graph branch on their respective delaunay vertex (m2Attribs.dual_vertex_graph_branch)
+	// modify connectivity until all vertices are valence 4
+	// call dualize_volume
 }
 
 /*****************************************************************************/

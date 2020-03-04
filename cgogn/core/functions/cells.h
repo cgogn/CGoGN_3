@@ -73,6 +73,10 @@ uint32 index_of(const CMapBase& m, CELL c)
 	return (*m.cells_indices_[orbit])[c.dart.index];
 }
 
+//////////
+// CPH3 //
+//////////
+
 template <typename CELL>
 inline uint32 index_of(const CPH3& m, CELL c)
 {
