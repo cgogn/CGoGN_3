@@ -881,6 +881,100 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 	return true;
 }
 
+
+/*****************************************************************************/
+/* utils				                                                     */
+/*****************************************************************************/
+
+bool dijkstra_topo(CMap2& m2, Cmap2std::shared_ptr<CMap2::Attribute<Dart>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
+{
+
+}
+
+bool convex_hull(const Graph& g, GAttributes& gAttribs, Graph::Vertex v, CMap2& m2, M2Attributes& m2Attribs)
+{
+	/// Brute force bête et méchant
+	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+	std::vector<Vec3> Ppos;
+	std::vector<Dart> Pdart;
+	std::vector<uint> Pid;
+
+	g.foreach_dart_of_orbit(v, [&] (Dart d) -> bool
+	{
+		Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(g.alpha0(d)));
+		project_on_sphere(p, center, radius);
+		Ppos.push_back(p);
+		Pdart.push_back(d);
+
+		return true;
+	});
+
+	std::vector<Vec3i> triangles;
+
+	if(Ppos.length == 3)
+	{
+		triangles.push_back({0, 1, 2});
+		triangles.push_back({0, 2, 1});
+	}
+	else
+	{
+		for(uint32 i = 0; i < Ppos.size() - 2; ++i)
+		{
+			for(uint32 j = 0; j < Ppos.size() - 1; ++j)
+			{
+				for(uint32 k = 0; k < Ppos.size(); ++k)
+				{
+					Vec3 t0 = Ppos[j] - Ppos[i];
+					Vec3 t1 = Ppos[k] - Ppos[i];
+					Vec3 n = t0.cross(t1);
+					int sign = 0;
+
+					for(uint32 m = 0; m < Ppos.size(); ++m)
+					{
+						if(m == i || m == j || m == k)
+							continue;
+
+						Vec3 v = Ppos[m] - Ppos[i];
+						Scalar d = v.dot(n);
+
+						if(!sign)
+							sign = (d < 0? -1: 1);
+						else
+						{
+							if(sign != (d < 0? -1 :1))
+							{
+								sign = 0;
+								break;
+							}
+						}
+					}
+				
+					switch(sign)
+					{
+						case 1:
+							triangles.push_back({j, i, k});
+							break;
+						case -1:
+							triangles.push_back({i, j, k});
+							break;
+						default:
+							break;
+					}
+				}	
+			}	
+		}
+	}
+
+
+
+	// auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
+
+
+
+	return true;
+}
+
+
 } // namespace modeling
 
 } // namespace cgogn
