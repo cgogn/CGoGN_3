@@ -41,7 +41,7 @@ void main()
 {
 	end_vector = vertex_pos + length*vertex_vector;
 	gl_Position =  vec4(vertex_pos,1.0);
-};
+}
 )";
 
 static const char* geometry_shader_source = R"(
@@ -100,7 +100,7 @@ void main()
 		EmitVertex();
 		EndPrimitive();
 	}
-};
+}
 )";
 
 static const char* fragment_shader_source = R"(
@@ -114,7 +114,7 @@ void main()
 	const vec3 light_dir = normalize(vec3(10,100,1000));
 	float lambert = (1.0-lighted) + lighted*max(0.0,dot(N,light_dir));
 	fragColor = lineColor.rgb * lambert;
-};
+}
 )";
 
 ShaderVectorPerVertex::ShaderVectorPerVertex()

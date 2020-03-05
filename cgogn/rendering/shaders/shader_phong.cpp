@@ -50,7 +50,7 @@ static const char* vertex_shader_source =
 		LightDir = light_position - Position;
 		EyeVector = -Position;
 		gl_Position = projection_matrix * model_view_matrix * vec4 (vertex_pos, 1.0);
-	};
+	}
 	)";
 
 static const char* fragment_shader_source =
@@ -85,7 +85,7 @@ static const char* fragment_shader_source =
 		float specular = pow( max(dot(R, E), 0.0), spec_coef );
 		finalColor += spec_color * specular;
 		frag_color=vec4(finalColor.rgb,1.0);
-	};
+	}
 	)";
 
 ShaderPhong::ShaderPhong()

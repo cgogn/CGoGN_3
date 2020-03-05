@@ -56,7 +56,7 @@ void main()
 	EyeVector = -Position;
 	color = scalar2color(vertex_scalar);
 	gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos, 1.0);
-};
+}
 )";
 
 static const char* fragment_shader_source = R"(#version 150
@@ -87,7 +87,7 @@ void main()
 	float specular = pow(max(dot(R, E), 0.0), spec_coef);
 	finalColor += spec_color.rgb * specular;
 	frag_color = finalColor;
-};
+}
 )";
 
 ShaderPhongScalarPerVertex* ShaderPhongScalarPerVertex::instance_ = nullptr;

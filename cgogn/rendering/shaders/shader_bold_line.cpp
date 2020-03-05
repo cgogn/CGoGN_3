@@ -41,7 +41,7 @@ in vec3 vertex_pos;
 void main()
 {
 	gl_Position =  vec4(vertex_pos,1.0);
-};
+}
 )";
 
 static const char* geometry_shader_source = R"(
@@ -128,7 +128,7 @@ void main()
 
 	float lambert = (1.0-lighted) + lighted*max(0.0,Nz); // Nz = dot(N,0,0,1)
 	fragColor = lineColor.rgb * lambert;
-};
+}
 )";
 
 ShaderBoldLine::ShaderBoldLine()

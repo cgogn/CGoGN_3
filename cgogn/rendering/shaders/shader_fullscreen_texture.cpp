@@ -40,7 +40,7 @@ vec2 p = 2.0*vec2(gl_VertexID%2, gl_VertexID/2);
 tc = p;
 p = 2.0*p - 1.0;
   gl_Position = vec4(p,0.0,1.0);
-};
+}
 )";
 
 static const char* fragment_shader_source = R"(
@@ -52,8 +52,8 @@ in vec2 tc;
 void main()
 {
 	frag_color = vec4(texture(texture_unit,tc).rgb,alpha);
-};
-										 )";
+}
+)";
 ShaderFSTexture::ShaderFSTexture()
 {
 

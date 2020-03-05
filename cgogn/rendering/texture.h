@@ -32,6 +32,8 @@
 #include <cgogn/rendering/types.h>
 
 #include <string>
+#include <tuple>
+#include <vector>
 
 namespace cgogn
 {
@@ -52,11 +54,11 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
-	inline Texture2D(const std::vector<std::pair<GLenum,GLint>>&params)  : internal_(0), external_(0), data_type_(0), width_(0), height_(0), depth_(false)
+	inline Texture2D(const std::vector<std::pair<GLenum,GLint>>& params)  : internal_(0), external_(0), data_type_(0), width_(0), height_(0), depth_(false)
 	{
 		glGenTextures(1, &id_);
 		glBindTexture(GL_TEXTURE_2D, id_);
-		for (auto [p,v] : params)
+		for (const auto& [p,v] : params)
 			glTexParameteri(GL_TEXTURE_2D, p, v);
 	}
 

@@ -42,7 +42,7 @@ void main()
     pos = pos4.xyz;
 	color = vertex_color;
     gl_Position = projection_matrix * pos4;
-};
+}
 )";
 
 static const char* fragment_shader_source = R"(#version 150
@@ -61,7 +61,7 @@ void main()
          discard;
     else
         fragColor = ambiant_color.rgb + lambert*color.rgb;
-};
+}
 )";
 
 ShaderFlatColorPerVertex* ShaderFlatColorPerVertex::instance_ = nullptr;

@@ -56,7 +56,7 @@ ShaderPhongColorPerVertex::ShaderPhongColorPerVertex()
 			vec4 P4 = model_view_matrix * vec4 (vertex_pos, 1.0);
 			P = P4.xyz;
 			gl_Position = projection_matrix * P4;
-		};
+		}
 		)";
 
 	static const char* fragment_shader_source =
@@ -91,7 +91,7 @@ ShaderPhongColorPerVertex::ShaderPhongColorPerVertex()
 			float specular = pow( max(dot(R, E), 0.0), spec_coef );
 			finalColor += spec_color.rgb * specular;
 			frag_color = finalColor;
-		};
+		}
 		)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_color");

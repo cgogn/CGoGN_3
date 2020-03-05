@@ -71,7 +71,7 @@ void main()
 	tc = p;
 	p = 2.0*p - 1.0;
 	gl_Position = vec4(p,0.0,1.0);
-};
+}
 )";
 
 static const char* fragment_shader_source1 =
@@ -95,7 +95,7 @@ void main()
 	E.x += texelSize.x;
 	float h = abs(texture(TU,E).r - texture(TU,W).r);
 	frag_out = step(0.5, v+h);
-};
+}
 )";
 
 ShaderSobel::ShaderSobel()
@@ -128,7 +128,7 @@ void main()
 	p -= texelSizeDir;
 	n+= texelSizeDir;
 	frag_out = v + 0.06136 * (texture(TU,p).r+texture(TU,n).r);
-};
+}
 )";
 ShaderBlur::ShaderBlur()
 {
@@ -155,7 +155,7 @@ out vec3 frag_out;
 void main()
 {
 	frag_out = (1.0-0.000001*texture(TU_mask,tc).r)*texture(TU_blur,tc).r*color.rgb;
-};
+}
 )";
 
 ShaderColorize::ShaderColorize()

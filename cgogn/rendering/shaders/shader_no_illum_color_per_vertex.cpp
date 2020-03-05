@@ -40,7 +40,7 @@ static char const* vertex_shader_source =
 	{
 		gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
 		color = vertex_color;
-	};
+	}
 	)";
 
 static char const* fragment_shader_source =
@@ -55,7 +55,7 @@ static char const* fragment_shader_source =
 			fragColor = color;
 		else
 			discard;
-	};
+	}
 	)";
 
 ShaderNoIllumColorPerVertex* ShaderNoIllumColorPerVertex::instance_ = nullptr;

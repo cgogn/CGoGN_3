@@ -46,7 +46,7 @@ void main()
     pos = pos4.xyz;
 	color = scalar2color(vertex_scalar);
 	gl_Position = projection_matrix * pos4;
-};
+}
 )";
 
 static const char* fragment_shader_source = R"(#version 150
@@ -60,7 +60,7 @@ void main()
 		fragColor = color;
 	else
 		discard;
-};
+}
 )";
 
 ShaderNoIllumScalarPerVertex* ShaderNoIllumScalarPerVertex::instance_ = nullptr;

@@ -39,7 +39,7 @@ void main()
 vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);
 pos = pos4.xyz;
   gl_Position = projection_matrix * pos4;
-};
+}
 )";
 
 const char* fragment_shader_source =
@@ -61,7 +61,7 @@ void main()
 	else
 		if (!double_side) discard;
 		else fragColor = vec4(ambiant_color.rgb+lambert*back_color.rgb, back_color.a);
-};
+}
 )";
 
 ShaderFlat* ShaderFlat::instance_ = nullptr;

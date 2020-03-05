@@ -132,7 +132,7 @@ class SurfaceRender : public ViewModule
 	// using ILSurfaceRenderStyles = std::initializer_list<SurfaceRenderStyle>;
 	using ILSurfaceRenderStyles = std::vector<SurfaceRenderStyle>;
 
-	static constexpr ILSurfaceRenderStyles style_with_vbo(VBOContent v)
+	static  ILSurfaceRenderStyles style_with_vbo(VBOContent v)
 	{
 		switch (v)
 		{
