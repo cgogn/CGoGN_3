@@ -55,6 +55,14 @@ public:
 		glViewport(0, 0, tex_[0]->width(), tex_[0]->height());
 	}
 
+	/**
+	 * do no save prceeding fbo & viewport
+	 */
+	inline void bind_no_release()
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, id_);
+	}
+
 	inline void release()
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_id_);

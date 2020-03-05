@@ -44,9 +44,9 @@
 
 #include <boost/synapse/connect.hpp>
 
-#include <unordered_map>
 #include <cgogn/ui/tools.h>
 #include <cgogn/ui/view.h>
+#include <unordered_map>
 
 namespace cgogn
 {
@@ -97,8 +97,8 @@ class Volume_Render : public ViewModule
 			: vertex_position_(nullptr), volume_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false),
 			  render_vertices_(false), render_edges_(true), render_faces_(false), render_volumes_b_(true),
 			  render_volumes_style(ExplodeVolumes), render_volumes_line_(true), vertex_scale_factor_(1.0),
-			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false),
-			  centers_dirty_(true), topo_dirty_(true)
+			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false), centers_dirty_(true),
+			  topo_dirty_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -651,6 +651,7 @@ protected:
 					ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |=
 					ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("width##topo", &(p.topo_renderer_->width_), 1.0f, 5.0f);
 				if (ImGui::SliderFloat("explodeEdges", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f))
 				{
 					need_update = true;
@@ -664,7 +665,6 @@ protected:
 				}
 			}
 		}
-
 
 		if (need_update)
 			for (View* v : linked_views_)

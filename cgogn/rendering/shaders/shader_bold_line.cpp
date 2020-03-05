@@ -48,7 +48,7 @@ static const char* geometry_shader_source = R"(
 #version 330
 layout (lines) in;
 layout (triangle_strip, max_vertices=6) out;
-out vec3 N;
+out float Nz;
 out vec4 posi_clip;
 uniform mat4 projection_matrix;
 uniform mat4 model_view_matrix;
@@ -82,27 +82,27 @@ void main()
 		vec3 U = vec3(0.5*LWCorr*U2,0.0);
 		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);
 		posi_clip = gl_in[0].gl_Position;
-		N = Nl;
+		Nz = Nl.z;
 		gl_Position = vec4(A.xyz-V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
-		N = Nl;
+		Nz = Nl.z;
 		gl_Position = vec4(B.xyz-V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[0].gl_Position;
-		N = Nm;
+		Nz = Nm.z;
 		gl_Position = vec4(A.xyz-U, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
-		N = Nm;
+		Nz = Nm.z;
 		gl_Position = vec4(B.xyz+U, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[0].gl_Position;
-		N = -Nl;
+		Nz = -Nl.z;
 		gl_Position = vec4(A.xyz+V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
-		N = -Nl;
+		Nz = -Nl.z;
 		gl_Position = vec4(B.xyz+V, 1.0);
 		EmitVertex();
 		EndPrimitive();
@@ -116,19 +116,17 @@ uniform vec4 plane_clip;
 uniform vec4 plane_clip2;
 uniform vec4 lineColor;
 in vec4 posi_clip;
-in vec3 N;
+in float Nz;
 out vec3 fragColor;
 uniform float lighted;
 
 void main()
 {
-	const vec3 light_dir = normalize(vec3(10,100,1000));
-
 	float d = dot(plane_clip,posi_clip);
 	float d2 = dot(plane_clip2,posi_clip);
 	if ((d>0.0)||(d2>0.0))  discard;
 
-	float lambert = (1.0-lighted) + lighted*max(0.0,dot(N,light_dir));
+	float lambert = (1.0-lighted) + lighted*max(0.0,Nz); // Nz = dot(N,0,0,1)
 	fragColor = lineColor.rgb * lambert;
 };
 )";

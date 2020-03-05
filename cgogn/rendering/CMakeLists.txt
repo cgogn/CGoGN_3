@@ -112,6 +112,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.h"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.cpp"
 
 )
 

@@ -55,6 +55,7 @@
 #include <cgogn/rendering/topo_drawer.h>
 
 #include <cgogn/rendering/shaders/compute_normals.h>
+#include <cgogn/rendering/shaders/outliner.h>
 
 #include <cgogn/geometry/algos/length.h>
 
@@ -213,8 +214,8 @@ class SurfaceRender : public ViewModule
 			static rendering::GLColor BLUE{0, 0.69f, 0.83f, 1};
 			static rendering::GLColor GREEN{0, 1, 0.5f, 1};
 			static rendering::GLColor GREY1{0.1f, 0.1f, 0.1f, 1};
-			//			static rendering::GLColor YELLOW{0.1f, 0.1f, 0.1f, 1};
-			static rendering::GLColor ORANGE{1, 0.5f, 0, 1};
+			//			static rendering::GLColor YELLOW{0.9f, 0.9f, 0.1f, 1};
+			static rendering::GLColor ORANGE{0.9f, 0.5f, 0, 1};
 
 			rendering::PossibleParameters pp = {ORANGE,							  // color
 												GREY1,							  // ambiant
@@ -223,7 +224,7 @@ class SurfaceRender : public ViewModule
 												WHITE,							  // spec
 												250.0f,							  // spec coef
 												rendering::GLVec3(10, 100, 1000), // Light position
-												true,							  // double side
+												false,							  // double side
 												5.0f,							  // width
 												1.0f,							  // size
 												0.9f,
@@ -231,10 +232,11 @@ class SurfaceRender : public ViewModule
 												rendering::GLVec4(0, 0, 0, 0),
 												rendering::GLVec4(0, 0, 0, 0)};
 
+			pp.color_ = ORANGE;
 			gen_params<RS_Points, RS_Points>(pp);
 			pp.color_ = WHITE;
 			gen_params<RS_Lines, RS_Lines>(pp);
-			pp.color_ = GREEN;
+			pp.color_ = BLUE;
 			gen_params<RS_NoIllum, RS_Phong_color_per_face>(pp);
 
 			for (auto& v : vbo_cache_)
@@ -482,17 +484,14 @@ protected:
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
 
 		compute_normal_engine = rendering::ComputeNormalEngine::generate();
+		outline_engine = rendering::OutLiner::generate();
 	}
 
 	void draw(View* view) override
 	{
 		auto& ps = parameters_[view];
 		for (auto& [m, p] : ps)
-		//		for (auto& c : parameters_[view])
 		{
-			//			MESH* m = c.first;
-			//			Parameters& p = c.second;
-
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
@@ -543,6 +542,14 @@ protected:
 					p.update_topo(*m);
 				p.topo_renderer_->draw(proj_matrix, view_matrix);
 			}
+
+			if (md->outlined_ > 0)
+			{
+				rendering::GLColor col{0.9f, 0.9f, 0.1f, 1};
+				col *= float(md->outlined_) / 20.0;
+				outline_engine->draw(p.vbo_cache_[VBO_Position], md->get_render(), proj_matrix, view_matrix, col);
+				md->outlined_--;
+			}
 		}
 	}
 
@@ -551,7 +558,10 @@ protected:
 		bool need_update = false;
 
 		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_provider_->mesh_data(m)->outlined_ = 60;
+		});
 
 		if (selected_view_ && selected_mesh_)
 		{
@@ -773,33 +783,31 @@ protected:
 			}
 
 			ImGui::Separator();
-			if (ImGui::Checkbox("Topo", &p.render_topo_))
+			ImGui::Checkbox("Topo", &p.render_topo_);
+
+			if (p.render_topo_)
 			{
-				need_update = true;
-				if (p.render_topo_)
-				{
-					ImGui::Separator();
-					ImGui::TextUnformatted("Topo parameters");
-					need_update |= ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-					if (ImGui::SliderFloat("explodeEdges", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f))
-						p.topo_dirty_ = true;
+				ImGui::Separator();
+				ImGui::TextUnformatted("Topo parameters");
+				need_update |=
+					ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |=
+					ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("explodeEdges", &(p.topo_renderer_->width_), 1.0f, 5.0f);
+				if (ImGui::SliderFloat("width##topo", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f))
+					p.topo_dirty_ = true;
 
-					if (ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f))
-						p.topo_dirty_ = true;
-				}
+				if (ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f))
+					p.topo_dirty_ = true;
 			}
+			need_update |= p.topo_dirty_;
+
+			//		ImGui::End();
+
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
 		}
-
-		//		ImGui::End();
-
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
 	}
 
 private:
@@ -810,6 +818,7 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 	rendering::ComputeNormalEngine* compute_normal_engine;
+	rendering::OutLiner* outline_engine;
 };
 
 } // namespace ui

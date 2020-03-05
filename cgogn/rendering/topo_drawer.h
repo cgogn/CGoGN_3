@@ -115,6 +115,7 @@ public:
 		Renderer(TopoDrawer* tr);
 
 	public:
+		float width_;
 		~Renderer();
 
 		/**
@@ -123,7 +124,7 @@ public:
 		 * @param modelview model-view matrix
 		 * @param with_blending
 		 */
-		void draw(const GLMat4& projection, const GLMat4& modelview, bool with_blending = true);
+		void draw(const GLMat4& projection, const GLMat4& modelview);
 
 		void set_clipping_plane(const GLVec4& p);
 

@@ -42,7 +42,7 @@ TopoDrawer::~TopoDrawer()
 {
 }
 
-TopoDrawer::Renderer::Renderer(TopoDrawer* tr) : topo_drawer_data_(tr)
+TopoDrawer::Renderer::Renderer(TopoDrawer* tr) : topo_drawer_data_(tr), width_(2.0f)
 {
 	param_bl_ = ShaderBoldLineColor::generate_param();
 	param_bl_->set_vbos({tr->vbo_darts_.get(), tr->vbo_color_darts_.get()});
@@ -63,29 +63,19 @@ TopoDrawer::Renderer::~Renderer()
 {
 }
 
-void TopoDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& modelview, bool with_blending)
+void TopoDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& modelview)
 {
-	float32 lw = 2.0f;
-	if (with_blending)
-	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		lw = 3.0f;
-	}
-
-	param_bl_->width_ = lw;
-	param_bl2_->width_ = lw;
-	param_rp_->size_ = 2.0f * lw;
+	param_bl_->width_ = width_;
+	param_bl2_->width_ = width_;
+	param_rp_->size_ = 2.0f * width_;
 
 	param_bl_->bind(projection, modelview);
-	
+
 	glDrawArrays(GL_LINES, 0, topo_drawer_data_->vbo_darts_->size());
-	
+
 	param_bl_->release();
-	
 
 	param_rp_->bind(projection, modelview);
-	
 
 	glDrawArrays(GL_POINTS, 0, topo_drawer_data_->vbo_darts_->size() / 2);
 	param_rp_->release();
@@ -102,9 +92,6 @@ void TopoDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& modelvie
 		glDrawArrays(GL_LINES, topo_drawer_data_->vbo_darts_->size(), topo_drawer_data_->vbo_darts_->size());
 		param_bl2_->release();
 	}
-
-	if (with_blending)
-		glDisable(GL_BLEND);
 }
 
 void TopoDrawer::Renderer::set_clipping_plane(const GLVec4& p)
@@ -145,7 +132,6 @@ void TopoDrawer::update_color(Dart d, const GLColor& rgb)
 		vbo_color_darts_->release();
 	}
 }
-
 
 void TopoDrawer::update_color(Dart d, const Vec3& rgb)
 {
@@ -274,7 +260,6 @@ Dart TopoDrawer::pick(const Vec3& A, const Vec3& B, const Vec4& plane1, const Ve
 	return Dart(INVALID_INDEX);
 }
 
-
 Dart TopoDrawer::pick(const Vec3& A, const Vec3& B, const Vec4& plane, float32 thickness, Vec3* dp1, Vec3* dp2)
 {
 	Vec4 p1 = plane;
@@ -283,15 +268,6 @@ Dart TopoDrawer::pick(const Vec3& A, const Vec3& B, const Vec4& plane, float32 t
 	p2[3] -= thickness / 2.0f;
 	return pick(A, B, p1, p2, dp1, dp2);
 }
-
-
-
-
-
-
-
-
-
 
 } // namespace rendering
 
