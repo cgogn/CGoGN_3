@@ -33,6 +33,30 @@ namespace cgogn
 namespace rendering
 {
 
+DECLARE_SHADER_CLASS(Axis, false, CGOGN_STR(Axis))
+
+class CGOGN_RENDERING_EXPORT ShaderParamAxis : public ShaderParam
+{
+	void set_uniforms() override;
+
+public:
+	int selected_;
+
+	inline void pick_parameters(const PossibleParameters&) override
+	{
+	}
+
+	using LocalShader = ShaderAxis;
+
+	ShaderParamAxis(LocalShader* sh) : ShaderParam(sh), selected_(4)
+	{
+	}
+
+	inline ~ShaderParamAxis() override
+	{
+	}
+};
+
 DECLARE_SHADER_CLASS(Rings, false, CGOGN_STR(Rings))
 
 class CGOGN_RENDERING_EXPORT ShaderParamRings : public ShaderParam

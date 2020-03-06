@@ -87,6 +87,57 @@ void ShaderParamRings::set_uniforms()
 	shader_->set_uniform_value(0, selected_);
 }
 
+ShaderAxis* ShaderAxis::instance_ = nullptr;
+
+static const char* vertex_shader_source2 =
+	R"(
+#version 330
+uniform int selected;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+
+out vec2 lc;
+out vec3 color;
+void main()
+{
+
+	vec3 P = vec3(0,0,0);
+	No[gl_InstanceID] = 1.0;
+	if (selected == gl_InstanceID)
+		color = vec3(1,1,0);
+	else
+		color = P;
+
+	gl_Position = projection_matrix * model_view_matrix * vec4(P,1);
+}
+)";
+
+static const char* fragment_shader_source2 =
+	R"(
+#version 330
+in vec2 lc;
+in vec3 color;
+out vec3 frag_out;
+void main()
+{
+	float d = dot(lc,lc);
+	if (d>1 || d<0.64)
+		discard;
+	frag_out = color;
+}
+)";
+
+ShaderAxis::ShaderAxis()
+{
+	load2_bind(vertex_shader_source, fragment_shader_source);
+	add_uniforms("selected");
+}
+
+void ShaderParamAxis::set_uniforms()
+{
+	shader_->set_uniform_value(0, selected_);
+}
+
 FrameManipDrawer* FrameManipDrawer::instance_ = nullptr;
 
 FrameManipDrawer::FrameManipDrawer()

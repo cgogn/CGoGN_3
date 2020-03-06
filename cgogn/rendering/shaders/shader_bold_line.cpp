@@ -53,6 +53,7 @@ out vec4 posi_clip;
 uniform mat4 projection_matrix;
 uniform mat4 model_view_matrix;
 uniform vec2 lineWidths;
+
 void main()
 {
 	vec4 A = model_view_matrix * gl_in[0].gl_Position;
@@ -60,6 +61,8 @@ void main()
 	float nearZ = 1.0;
 	if (projection_matrix[2][2] !=  1.0)
 		nearZ = - projection_matrix[3][2] / (projection_matrix[2][2] - 1.0);
+	float farZ = - projection_matrix[3][2] / (projection_matrix[2][2] + 1.0);
+
 	if ((A.z < nearZ) || (B.z < nearZ))
 	{
 		if (A.z >= nearZ)
@@ -73,40 +76,46 @@ void main()
 		if (Nm.z<0)
 			Nm *= -1.0;
 
+		float dd = (-farZ + nearZ) / 20.0;
+		A.z += dd;
+		B.z += dd;
 
 		A = projection_matrix*A;
 		B = projection_matrix*B;
-		A = A/A.w;
-		B = B/B.w;
+
+//		A = A/A.w;xxx
+//		B = B/B.w;
 
 
 		vec2 U2 = normalize(vec2(lineWidths[1],lineWidths[0])*(B.xy - A.xy));
-		vec2 LWCorr =lineWidths * max(abs(U2.x),abs(U2.y));
-		vec3 U = vec3(0.5*LWCorr*U2,0.0);
-		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);
+		vec2 LWCorr = 2.0 * dd * lineWidths * max(abs(U2.x),abs(U2.y));
+
+
+		vec4 U = vec4(0.5*LWCorr*U2,0,0);
+		vec4 V = vec4(LWCorr*vec2(U2[1], -U2[0]), 0,0);
 		posi_clip = gl_in[0].gl_Position;
 		Nz = Nl.z;
-		gl_Position = vec4(A.xyz-V, 1.0);
+		gl_Position = A-V;//vec4(A.xyz-V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
 		Nz = Nl.z;
-		gl_Position = vec4(B.xyz-V, 1.0);
+		gl_Position = B-V; //vec4(B.xyz-V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[0].gl_Position;
 		Nz = Nm.z;
-		gl_Position = vec4(A.xyz-U, 1.0);
+		gl_Position = A-U;//vec4(A.xyz-U, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
 		Nz = Nm.z;
-		gl_Position = vec4(B.xyz+U, 1.0);
+		gl_Position = B+U;//vec4(B.xyz+U, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[0].gl_Position;
 		Nz = -Nl.z;
-		gl_Position = vec4(A.xyz+V, 1.0);
+		gl_Position = A+V;//vec4(A.xyz+V, 1.0);
 		EmitVertex();
 		posi_clip = gl_in[1].gl_Position;
 		Nz = -Nl.z;
-		gl_Position = vec4(B.xyz+V, 1.0);
+		gl_Position = B+V;//vec4(B.xyz+V, 1.0);
 		EmitVertex();
 		EndPrimitive();
 	}

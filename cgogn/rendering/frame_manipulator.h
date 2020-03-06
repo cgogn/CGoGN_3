@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_FRAMEMANIPULATOR_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/rendering/shaders/frame_manip_drawer.h>h>
+#include <cgogn/rendering/shaders/frame_manip_drawer.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_no_illum.h>
 #include <cgogn/rendering/types.h>
