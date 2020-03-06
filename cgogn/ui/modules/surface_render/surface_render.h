@@ -132,7 +132,7 @@ class SurfaceRender : public ViewModule
 	// using ILSurfaceRenderStyles = std::initializer_list<SurfaceRenderStyle>;
 	using ILSurfaceRenderStyles = std::vector<SurfaceRenderStyle>;
 
-	static  ILSurfaceRenderStyles style_with_vbo(VBOContent v)
+	static ILSurfaceRenderStyles style_with_vbo(VBOContent v)
 	{
 		switch (v)
 		{
@@ -489,6 +489,7 @@ protected:
 
 	void draw(View* view) override
 	{
+
 		auto& ps = parameters_[view];
 		for (auto& [m, p] : ps)
 		{
@@ -543,12 +544,12 @@ protected:
 				p.topo_renderer_->draw(proj_matrix, view_matrix);
 			}
 
-			if (md->outlined_ > 0)
+			float64 remain = md->outlined_until_ - App::frame_time_;
+			if (remain > 0)
 			{
 				rendering::GLColor col{0.9f, 0.9f, 0.1f, 1};
-				col *= float(md->outlined_) / 20.0;
+				col *= float(remain * 2);
 				outline_engine->draw(p.vbo_cache_[VBO_Position], md->get_render(), proj_matrix, view_matrix, col);
-				md->outlined_--;
 			}
 		}
 	}
@@ -560,7 +561,7 @@ protected:
 		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
-			mesh_provider_->mesh_data(m)->outlined_ = 60;
+			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_view_ && selected_mesh_)

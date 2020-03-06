@@ -42,6 +42,7 @@ const float32 FrameManipulator::ring_half_width = 0.08f;
 FrameManipulator::FrameManipulator()
 	: highlighted_(NONE), scale_rendering_(1.0f), trans_(0.0f, 0.0f, 0.0f), scale_(1.0f, 1.0f, 1.0f)
 {
+	fmd_ = FrameManipDrawer::generate();
 	rotations_.setIdentity();
 
 	for (uint32 i = 0; i < 11; ++i)
@@ -50,13 +51,13 @@ FrameManipulator::FrameManipulator()
 		locked_picking_axis_[i] = false;
 	}
 
-	vbo_frame_ = cgogn::make_unique<VBO>(3);
+	vbo_frame_ = std::make_unique<VBO>(3);
 
-	param_sc_ = ShaderSimpleColor::generate_param();
-	param_sc_->set_vbos(vbo_frame_.get());
+	param_sc_ = ShaderNoIllum::generate_param();
+	param_sc_->set_vbos({vbo_frame_.get()});
 
 	param_bl_ = ShaderBoldLine::generate_param();
-	param_bl_->set_vbos(vbo_frame_.get());
+	param_bl_->set_vbos({vbo_frame_.get()});
 
 	std::vector<GLVec3> points;
 	points.reserve(6 * nb_segments + 30);
@@ -120,9 +121,9 @@ FrameManipulator::FrameManipulator()
 	update_vbo(points, vbo_frame_.get());
 	set_length_axes();
 
-	vbo_grid_ = cgogn::make_unique<VBO>(3);
-	param_grid_ = ShaderSimpleColor::generate_param();
-	param_grid_->set_vbos(vbo_grid_.get());
+	vbo_grid_ = std::make_unique<VBO>(3);
+	param_grid_ = ShaderNoIllum::generate_param();
+	param_grid_->set_vbos({vbo_grid_.get()});
 	param_grid_->color_ = GLColor(1, 1, 1, 1);
 
 	points.clear();
@@ -184,6 +185,10 @@ float32 FrameManipulator::get_size()
 
 void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const GLMat4& view)
 {
+	fmd_->set_selected(1);
+	fmd_->draw(proj, view, transfo_render_frame());
+
+	return;
 	proj_mat_ = proj;
 	view_mat_ = view;
 	glGetIntegerv(GL_VIEWPORT, viewport_);
@@ -402,7 +407,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 	Vec3 origin(0.0, 0.0, 0.0);
 
 	// intersection possible between line and frame (10% margin)?
-	float32 dist2 = cgogn::geometry::squared_distance_line_point(P, Q, origin);
+	float32 dist2 = float32(cgogn::geometry::squared_distance_line_point(P, Q, origin));
 
 	float32 distMax = std::max(length_axes_[0], std::max(length_axes_[1], length_axes_[2]));
 	distMax *= 3.6f;
@@ -564,7 +569,7 @@ void FrameManipulator::translate(uint32 axis, float32 x)
 void FrameManipulator::set_length_axes()
 {
 	float32 avgScale = (scale_[0] + scale_[1] + scale_[2]) / 3.0f;
-
+	vbo_frame_->bind();
 	float32* positions = vbo_frame_->lock_pointer();
 	uint32 ind = 3 * (6 * nb_segments + 6 + 1);
 
@@ -900,7 +905,7 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 	dV.normalize();
 	Vec3 W = Vo.cross(dV);
 
-	float32 alpha = std::abs(W[2]);
+	float32 alpha = float32(std::abs(W[2]));
 
 	// which direction ?
 
@@ -908,13 +913,13 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 	//"<<projected_origin_[2]<< std::endl; 	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl; 	std::cout <<
 	//"Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl; 	std::cout << W << std::endl;
 	//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<<
-	//std::endl;
+	// std::endl;
 
 	if (axis_orientation_ != (W[2] > 0.0f))
 		alpha *= -1.0f;
 
 	//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] <<
-	//std::endl; 	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
+	// std::endl; 	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
 
 	return alpha / 100.0f;
 }
@@ -923,7 +928,7 @@ float32 FrameManipulator::distance_from_mouse(int dx, int dy)
 {
 	Vec3 dV(float32(dx), float32(dy), 0.0f);
 	Vec3 ax(projected_selected_axis_[0], projected_selected_axis_[1], projected_selected_axis_[2]);
-	float32 tr = dV.dot(ax);
+	float32 tr = float32(dV.dot(ax));
 
 	if (tr > 0)
 		tr = float32(dV.norm() / 100.0f);

@@ -141,7 +141,6 @@ void View::draw()
 
 	spin();
 	glViewport(viewport_x_offset_, viewport_y_offset_, viewport_width_, viewport_height_);
-
 	if (need_redraw_)
 	{
 		if (fbo_->width() * fbo_->height() > 0)

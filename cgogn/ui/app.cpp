@@ -38,6 +38,8 @@ namespace cgogn
 namespace ui
 {
 
+float64 App::frame_time_ = 0;
+
 uint32 label_uuid = 0;
 
 static void glfw_error_callback(int error, const char* description)
@@ -483,13 +485,6 @@ int App::launch()
 	int32 frame_counter = 0;
 	while (!glfwWindowShouldClose(window_))
 	{
-		if (++frame_counter == 50)
-		{
-			double now = glfwGetTime();
-			frame_counter = 0;
-			fps_ = 50 / (now - time_last_50_frames_);
-			time_last_50_frames_ = now;
-		}
 
 		label_uuid = 0;
 
@@ -498,8 +493,16 @@ int App::launch()
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		frame_time_ = glfwGetTime();
+		if (++frame_counter == 50)
+		{
+			double now = frame_time_;
+			frame_counter = 0;
+			fps_ = 50 / (now - time_last_50_frames_);
+			time_last_50_frames_ = now;
+		}
 
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (const auto& v : views_)
 		{
 			v->draw();

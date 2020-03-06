@@ -20,8 +20,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.h"
 		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.h"
+                "${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/fonte.qrc"
@@ -114,7 +114,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.h"
         "${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.cpp"
-
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
+        "${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

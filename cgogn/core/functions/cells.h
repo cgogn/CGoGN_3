@@ -73,8 +73,9 @@ uint32 index_of(const CMapBase& m, CELL c)
 	return (*m.cells_indices_[orbit])[c.dart.index];
 }
 
-template <typename CELL>
-inline uint32 index_of(const CPH3& m, CELL c)
+template <typename MRMAP,typename CELL>
+inline auto index_of(const MRMAP& m, CELL c)
+-> std::enable_if_t<std::is_convertible_v<MRMAP&, CPH3&>,uint32>
 {
 	static const Orbit orbit = CELL::ORBIT;
 

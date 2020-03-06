@@ -46,7 +46,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::TextDrawer::Renderer> text_rend_; // one by context,
  *
  * init:
- *  text_ = cgogn::make_unique<cgogn::rendering::TextDrawer>();
+ *  text_ = std::make_unique<cgogn::rendering::TextDrawer>();
  *  text_rend_ = text_->generate_renderer();
  *
  *  *text_ << pos << size << color << str; // add str at pos using size an color

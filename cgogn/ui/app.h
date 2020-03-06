@@ -66,6 +66,8 @@ public:
 		return fps_;
 	}
 
+	static float64 frame_time_;
+
 	View* add_view();
 	inline View* current_view() const
 	{

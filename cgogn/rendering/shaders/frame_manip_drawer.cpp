@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,11 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
-#define CGOGN_RENDERING_SHADERS_XXXX_H_
+#include <iostream>
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/frame_manip_drawer.h>
 
 namespace cgogn
 {
@@ -33,66 +31,80 @@ namespace cgogn
 namespace rendering
 {
 
-// forward
-class ShaderParamXXXX;
+ShaderRings* ShaderRings::instance_ = nullptr;
 
-class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
+static const char* vertex_shader_source =
+	R"(
+#version 330
+uniform int selected;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+uniform mat3 normal_matrix;
+out vec2 lc;
+out vec3 color;
+void main()
 {
-public:
-	using Self = ShaderXXXX;
-	using Param = ShaderParamXXXX;
-	friend Param;
+	lc = vec2(gl_VertexID%2,gl_VertexID/2)*2.0-1.0;
+	vec4 P = vec4(0,0,0,1);
+	P[(gl_InstanceID+1)%3] = lc.x;
+	P[(gl_InstanceID+2)%3] = lc.y;
 
-protected:
-	ShaderXXXX();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
+	vec3 No = vec3(0,0,0);
+	No[gl_InstanceID] = 1.0;
+	float lambert = 0.6;//abs((normal_matrix*No).z);
+	if (selected == gl_InstanceID)
+		color = (0.4+lambert) * vec3(1,1,0);
+	else
+		color = (0.4+lambert) * No;
 
-	void set_locations() override;
-	static Self* instance_;
+	gl_Position = projection_matrix * model_view_matrix * P;
+}
+)";
 
-public:
-	inline static std::unique_ptr<Param> generate_param()
-	{
-		if (!instance_)
-		{
-			instance_ = new Self();
-			ShaderProgram::register_instance(instance_);
-		}
-		return std::make_unique<Param>(instance_);
-	}
-};
-
-class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
+static const char* fragment_shader_source =
+	R"(
+#version 330
+in vec2 lc;
+in vec3 color;
+out vec3 frag_out;
+void main()
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
-	}
+	float d = dot(lc,lc);
+	if (d>1 || d<0.64)
+		discard;
+	frag_out = color;
+}
+)";
 
-public:
-	GLColor front_color_;
-	GLColor back_color_;
-	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
+ShaderRings::ShaderRings()
+{
+	load2_bind(vertex_shader_source, fragment_shader_source);
+	add_uniforms("selected");
+}
 
-	using LocalShader = ShaderXXXX;
+void ShaderParamRings::set_uniforms()
+{
+	shader_->set_uniform_value(0, selected_);
+}
 
-	ShaderParamXXXX(LocalShader* sh)
-		: ShaderParam(sh),
+FrameManipDrawer* FrameManipDrawer::instance_ = nullptr;
 
-		  light_pos_(10, 100, 1000), bf_culling_(false)
-	{
-	}
+FrameManipDrawer::FrameManipDrawer()
+{
+	param_rings_ = ShaderRings::generate_param();
+}
 
-	inline ~ShaderParamXXXX() override
-	{
-	}
+FrameManipDrawer::~FrameManipDrawer()
+{
+}
 
-};
+void FrameManipDrawer::draw(const GLMat4& projection, const GLMat4& view, const GLMat4& frame)
+{
+	param_rings_->bind(projection, view * frame);
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 3);
+	param_rings_->release();
+}
 
 } // namespace rendering
 
 } // namespace cgogn
-
-#endif

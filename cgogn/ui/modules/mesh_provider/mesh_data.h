@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr)
+	MeshData() : mesh_(nullptr), outlined_until_(0.0)
 	{
 	}
 
@@ -228,7 +228,7 @@ private:
 	CellsSets cells_sets_;
 
 public:
-	int32 outlined_;
+	float64 outlined_until_;
 };
 
 } // namespace ui

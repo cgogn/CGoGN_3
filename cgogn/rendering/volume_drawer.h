@@ -51,7 +51,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::VolumeDrawer::Renderer> volu_rend_; // one by context,
  *
  * init:
- *  volu_ = cgogn::make_unique<cgogn::rendering::VolumeDrawer>();
+ *  volu_ = std::make_unique<cgogn::rendering::VolumeDrawer>();
  *  volu_rend_ = volu_->generate_renderer();
  *  volu_->update_face(map_, vertex_position_);
  *  volu_->update_edge(map_, vertex_position_);

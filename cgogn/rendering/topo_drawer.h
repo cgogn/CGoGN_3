@@ -49,7 +49,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::TopoDrawer::Renderer> topo_rend_; // one by context,
  *
  * init:
- *  topo_ = cgogn::make_unique<cgogn::rendering::TopoDrawer>();
+ *  topo_ = std::make_unique<cgogn::rendering::TopoDrawer>();
  *  topo_rend_ = topo_->generate_renderer();
  *  topo_->update(map_,vertex_position_);
  *

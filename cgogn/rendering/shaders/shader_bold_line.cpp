@@ -69,7 +69,10 @@ void main()
 
 		vec3 AB = B.xyz/B.w - A.xyz/A.w;
 		vec3 Nl = normalize(cross(AB,vec3(0,0,1)));
-		vec3 Nm = normalize(cross(Nl,AB));
+		vec3 Nm = vec3(0,0,1);//normalize(cross(Nl,AB));
+		if (Nm.z<0)
+			Nm *= -1.0;
+
 
 		A = projection_matrix*A;
 		B = projection_matrix*B;
@@ -126,7 +129,7 @@ void main()
 	float d2 = dot(plane_clip2,posi_clip);
 	if ((d>0.0)||(d2>0.0))  discard;
 
-	float lambert = (1.0-lighted) + lighted*max(0.0,Nz); // Nz = dot(N,0,0,1)
+	float lambert = max(lighted,Nz); // Nz = dot(N,0,0,1)
 	fragColor = lineColor.rgb * lambert;
 }
 )";

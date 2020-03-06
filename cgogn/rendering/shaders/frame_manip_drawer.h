@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
-#define CGOGN_RENDERING_SHADERS_XXXX_H_
+#ifndef CGOGN_RENDERING_FRAME_MANIP_DRAWER_H_
+#define CGOGN_RENDERING_FRAME_MANIP_DRAWER_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,66 +33,56 @@ namespace cgogn
 namespace rendering
 {
 
-// forward
-class ShaderParamXXXX;
+DECLARE_SHADER_CLASS(Rings, false, CGOGN_STR(Rings))
 
-class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
+class CGOGN_RENDERING_EXPORT ShaderParamRings : public ShaderParam
 {
-public:
-	using Self = ShaderXXXX;
-	using Param = ShaderParamXXXX;
-	friend Param;
-
-protected:
-	ShaderXXXX();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
-
-	void set_locations() override;
-	static Self* instance_;
+	void set_uniforms() override;
 
 public:
-	inline static std::unique_ptr<Param> generate_param()
+	int selected_;
+
+	inline void pick_parameters(const PossibleParameters&) override
 	{
-		if (!instance_)
-		{
-			instance_ = new Self();
-			ShaderProgram::register_instance(instance_);
-		}
-		return std::make_unique<Param>(instance_);
+	}
+
+	using LocalShader = ShaderRings;
+
+	ShaderParamRings(LocalShader* sh) : ShaderParam(sh), selected_(4)
+	{
+	}
+
+	inline ~ShaderParamRings() override
+	{
 	}
 };
 
-class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
+class FrameManipDrawer
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
-	}
+	static FrameManipDrawer* instance_;
+	std::unique_ptr<ShaderRings::Param> param_rings_;
+
+	FrameManipDrawer();
 
 public:
-	GLColor front_color_;
-	GLColor back_color_;
-	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
-
-	using LocalShader = ShaderXXXX;
-
-	ShaderParamXXXX(LocalShader* sh)
-		: ShaderParam(sh),
-
-		  light_pos_(10, 100, 1000), bf_culling_(false)
+	inline static FrameManipDrawer* generate()
 	{
+		if (instance_ == nullptr)
+			instance_ = new FrameManipDrawer();
+		return instance_;
 	}
 
-	inline ~ShaderParamXXXX() override
+	inline void set_selected(int32 s)
 	{
+		param_rings_->selected_ = s;
 	}
 
+	~FrameManipDrawer();
+
+	void draw(const GLMat4& projection, const GLMat4& view, const GLMat4& frame);
 };
 
 } // namespace rendering
-
 } // namespace cgogn
 
 #endif
