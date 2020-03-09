@@ -81,10 +81,38 @@ public:
 	}
 };
 
+DECLARE_SHADER_CLASS(XYGrid, false, CGOGN_STR(XYGrid))
+
+class CGOGN_RENDERING_EXPORT ShaderParamXYGrid : public ShaderParam
+{
+	void set_uniforms() override;
+
+public:
+	float sc_;
+	int32 nb_;
+	GLColor color_;
+
+	inline void pick_parameters(const PossibleParameters&) override
+	{
+	}
+
+	using LocalShader = ShaderXYGrid;
+
+	ShaderParamXYGrid(LocalShader* sh) : ShaderParam(sh), sc_(1), nb_(4), color_(1, 1, 1, 1)
+	{
+	}
+
+	inline ~ShaderParamXYGrid() override
+	{
+	}
+};
+
 class FrameManipDrawer
 {
 	static FrameManipDrawer* instance_;
 	std::unique_ptr<ShaderRings::Param> param_rings_;
+	std::unique_ptr<ShaderAxis::Param> param_axis_;
+	std::unique_ptr<ShaderXYGrid::Param> param_grid_;
 
 	FrameManipDrawer();
 
@@ -96,14 +124,26 @@ public:
 		return instance_;
 	}
 
-	inline void set_selected(int32 s)
+	inline void set_axis_selected(int32 s)
+	{
+		param_axis_->selected_ = s;
+	}
+	inline void set_ring_selected(int32 s)
 	{
 		param_rings_->selected_ = s;
 	}
-
 	~FrameManipDrawer();
 
-	void draw(const GLMat4& projection, const GLMat4& view, const GLMat4& frame);
+	void draw_transla(const GLMat4& projection, const GLMat4& view, const GLMat4& frame);
+	void draw_rota(const GLMat4& projection, const GLMat4& view, const GLMat4& frame);
+	void draw_grid(const GLMat4& projection, const GLMat4& view, const GLMat4& frame, float32 scale = 5);
+
+	inline void draw(const GLMat4& projection, const GLMat4& view, const GLMat4& frame)
+	{
+		draw_transla(projection, view, frame);
+		draw_rota(projection, view, frame);
+		draw_grid(projection, view, frame);
+	}
 };
 
 } // namespace rendering

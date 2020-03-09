@@ -617,7 +617,7 @@ protected:
 				ImGui::Separator();
 				ImGui::TextUnformatted("Edges parameters");
 				need_update |= ImGui::ColorEdit3("color##edges", param.color_.data(), ImGuiColorEditFlags_NoInputs);
-				if (ImGui::SliderFloat("width##edges", &(param.width_), 1.5f, 9.0f))
+				if (ImGui::SliderFloat("width##edges", &(param.width_), 2.5f, 15.0f))
 				{
 					p.lw_ = param.width_;
 					need_update = true;

@@ -185,203 +185,21 @@ float32 FrameManipulator::get_size()
 
 void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const GLMat4& view)
 {
-	fmd_->set_selected(1);
-	fmd_->draw(proj, view, transfo_render_frame());
-
-	return;
-	proj_mat_ = proj;
-	view_mat_ = view;
-	glGetIntegerv(GL_VIEWPORT, viewport_);
-
-	GLMat4 tr_view = view * transfo_render_frame();
+	fmd_->set_axis_selected(highlighted_ - Xt);
+	fmd_->set_ring_selected(highlighted_ - Xr);
+	GLMat4 fr = transfo_render_frame();
 
 	if (frame)
 	{
-		if (!locked_axis_[Xr])
-		{
-			if (highlighted_ == Xr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(1, 0, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Yr])
-		{
-			if (highlighted_ == Yr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 1, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 2 * nb_segments + 2, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Zr])
-		{
-			if (highlighted_ == Zr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 0, 1, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 4 * nb_segments + 4, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Xt])
-		{
-			if (highlighted_ == Xt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(1, 0, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 14, 6);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Yt])
-		{
-			if (highlighted_ == Yt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 1, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 22, 6);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Zt])
-		{
-			if (highlighted_ == Zt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 0, 1, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 30, 6);
-			param_sc_->release();
-		}
-
-		if ((!locked_axis_[CENTER]) && (highlighted_ == CENTER))
-		{
-			param_bl_->width_ = 6.0;
-			param_bl_->color_ = GLColor(1, 1, 0, 1);
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 6, 6);
-			param_bl_->release();
-		}
-		else
-		{
-			if (!locked_axis_[Xs])
-			{
-				if (highlighted_ == Xs)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0.8f, 0, 0, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 6, 2);
-				param_bl_->release();
-			}
-
-			if (!locked_axis_[Ys])
-			{
-				if (highlighted_ == Ys)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0, 0.8f, 0, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 8, 2);
-				param_bl_->release();
-			}
-
-			if (!locked_axis_[Zs])
-			{
-				if (highlighted_ == Zs)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0, 0, 0.8f, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 10, 2);
-				param_bl_->release();
-			}
-		}
-
-		if (!locked_axis_[Xt])
-		{
-			if (highlighted_ == Xt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(1, 0, 0, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 12, 2);
-			param_bl_->release();
-		}
-
-		if (!locked_axis_[Yt])
-		{
-			if (highlighted_ == Yt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(0, 1, 0, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 20, 2);
-			param_bl_->release();
-		}
-
-		if (!locked_axis_[Zt])
-		{
-			if (highlighted_ == Zt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(0, 0, 1, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 28, 2);
-			param_bl_->release();
-		}
+		fmd_->draw_transla(proj, view, fr);
+		fmd_->draw_rota(proj, view, fr);
 	}
 	if (zplane)
-	{
-		param_grid_->bind(proj, tr_view);
-		glDrawArrays(GL_LINES, 0, nb_grid_ind_);
-		param_grid_->release();
-	}
+		fmd_->draw_grid(proj, view, fr);
+
+	proj_mat_ = proj;
+	view_mat_ = view;
+	glGetIntegerv(GL_VIEWPORT, viewport_);
 }
 
 void FrameManipulator::highlight(uint32 axis)

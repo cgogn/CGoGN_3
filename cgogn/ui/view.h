@@ -86,7 +86,14 @@ public:
 	void unlock_scene_bb();
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
+	virtual std::pair<rendering::GLVec3d, rendering::GLVec3d> pixel_ray(int32 x, int32 y) const override;
 	rendering::GLVec3d unproject(int32 x, int32 y, float64 z) const;
+
+	inline void stop_event()
+	{
+		event_stopped_ = true;
+	}
+
 	bool scene_bb_locked_;
 
 protected:
@@ -113,6 +120,7 @@ protected:
 	std::vector<ViewModule*> linked_view_modules_;
 	std::vector<ProviderModule*> linked_provider_modules_;
 
+	bool event_stopped_;
 	bool closing_;
 };
 

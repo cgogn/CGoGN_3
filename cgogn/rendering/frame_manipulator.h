@@ -361,9 +361,9 @@ void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 template <typename VEC3>
 void FrameManipulator::set_position(const VEC3& pos)
 {
-	trans_[0] = pos[0];
-	trans_[1] = pos[1];
-	trans_[2] = pos[2];
+	trans_[0] = GLfloat(pos[0]);
+	trans_[1] = GLfloat(pos[1]);
+	trans_[2] = GLfloat(pos[2]);
 }
 
 template <typename VEC3>

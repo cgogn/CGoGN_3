@@ -36,13 +36,7 @@ DECLARE_SHADER_CLASS(BoldLine, false, CGOGN_STR(BoldLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		int viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_, wd, lighted_, plane_clip_, plane_clip2_);
-	}
+	void set_uniforms() override;
 
 public:
 	GLColor color_;

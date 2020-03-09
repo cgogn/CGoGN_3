@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_VOLUME_RENDER_H_
 #define CGOGN_MODULE_VOLUME_RENDER_H_
 
+#include <GLFW/glfw3.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
@@ -218,7 +219,8 @@ class Volume_Render : public ViewModule
 public:
 	Volume_Render(const App& app)
 		: ViewModule(app, "Volume_Render (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_view_(app.current_view()), selected_mesh_(nullptr), compute_center_engine_(nullptr)
+		  selected_view_(app.current_view()), selected_mesh_(nullptr), compute_center_engine_(nullptr),
+		  frame_manip_(nullptr), show_frame_manip_(false), manipullating_frame_(false)
 	{
 	}
 
@@ -491,7 +493,7 @@ protected:
 			{
 				frame_manip_->draw(true, true, proj_matrix, view_matrix);
 				//				*mousePressEvent : *frame_manip_->pick(event->x(), event->y(), P, Q); // P,Q computed
-				//ray 				*mouseReleaseEvent : *frame_manip_->release(); 				*mouseMouseEvent:
+				// ray 				*mouseReleaseEvent : *frame_manip_->release(); 				*mouseMouseEvent:
 			}
 		}
 	}
@@ -685,6 +687,54 @@ protected:
 				v->request_update();
 	}
 
+	inline void key_press_event(View* view, int32 key_code) override
+	{
+		if (key_code == GLFW_KEY_F)
+		{
+			manipullating_frame_ = true;
+		}
+	}
+
+	inline void key_release_event(View* view, int32 key_code) override
+	{
+		if (key_code == GLFW_KEY_F)
+		{
+			manipullating_frame_ = false;
+			view->stop_event();
+		}
+	}
+	inline void mouse_press_event(View* view, int32 button, int32 x, int32 y) override
+	{
+		if (manipullating_frame_)
+		{
+			auto [P, Q] = view->pixel_ray(x, y);
+			frame_manip_->pick(x, y, P, Q); // P,Q computed ray
+			view->stop_event();
+			view->request_update();
+		}
+	}
+	inline void mouse_release_event(View* view, int32 button, int32 x, int32 y) override
+	{
+		unused_parameters(view, button, x, y);
+		if (manipullating_frame_)
+		{
+			frame_manip_->release();
+			view->stop_event();
+			view->request_update();
+		}
+	}
+
+	inline void mouse_move_event(View* view, int32 buttons, int32 x, int32 y) override
+	{
+		unused_parameters(view, buttons);
+		if (manipullating_frame_ && buttons & 3)
+		{
+			frame_manip_->drag(buttons & 2, x, y);
+			view->stop_event();
+			view->request_update();
+		}
+	}
+
 private:
 	View* selected_view_;
 	const MESH* selected_mesh_;
@@ -696,6 +746,7 @@ private:
 	std::unique_ptr<rendering::ComputeCenterEngine> compute_center_engine_;
 	std::unique_ptr<rendering::FrameManipulator> frame_manip_;
 	bool show_frame_manip_;
+	bool manipullating_frame_;
 };
 
 } // namespace ui

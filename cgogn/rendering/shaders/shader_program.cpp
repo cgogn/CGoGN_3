@@ -247,7 +247,7 @@ void ShaderProgram::set_matrices(const GLMat4& proj, const GLMat4& mv)
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
-		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
+		GLMat3 normal_matrix = t.linear().matrix().inverse().transpose().cast<float32>();
 		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
