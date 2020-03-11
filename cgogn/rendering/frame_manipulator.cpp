@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/rendering/frame_manipulator.h>
 #include <cgogn/rendering/vbo_update.h>
@@ -39,11 +39,8 @@ namespace rendering
 
 const float32 FrameManipulator::ring_half_width = 0.08f;
 
-FrameManipulator::FrameManipulator():
-		highlighted_(NONE),
-		scale_rendering_(1.0f),
-		trans_(0.0f, 0.0f, 0.0f),
-		scale_(1.0f, 1.0f, 1.0f)
+FrameManipulator::FrameManipulator()
+	: highlighted_(NONE), scale_rendering_(1.0f), trans_(0.0f, 0.0f, 0.0f), scale_(1.0f, 1.0f, 1.0f)
 {
 	rotations_.setIdentity();
 
@@ -108,7 +105,7 @@ FrameManipulator::FrameManipulator():
 	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
 	points.push_back(GLVec3(0.03f, 0.7f, 0.0f));
 	points.push_back(GLVec3(0.0f, 0.7f, -0.03f));
-	points.push_back(GLVec3(-0.03f,0.7f, 0.0f));
+	points.push_back(GLVec3(-0.03f, 0.7f, 0.0f));
 	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
 
 	points.push_back(GLVec3(0.0f, 0.0f, 0.27f));
@@ -201,7 +198,7 @@ void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const G
 				param_sc_->color_ = GLColor(1, 1, 0, 1);
 			else
 				param_sc_->color_ = GLColor(1, 0, 0, 1);
-			param_sc_->bind(proj,tr_view);
+			param_sc_->bind(proj, tr_view);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * nb_segments + 2);
 			param_sc_->release();
 		}
@@ -212,7 +209,7 @@ void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const G
 				param_sc_->color_ = GLColor(1, 1, 0, 1);
 			else
 				param_sc_->color_ = GLColor(0, 1, 0, 1);
-			param_sc_->bind(proj,tr_view);
+			param_sc_->bind(proj, tr_view);
 			glDrawArrays(GL_TRIANGLE_STRIP, 2 * nb_segments + 2, 2 * nb_segments + 2);
 			param_sc_->release();
 		}
@@ -223,7 +220,7 @@ void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const G
 				param_sc_->color_ = GLColor(1, 1, 0, 1);
 			else
 				param_sc_->color_ = GLColor(0, 0, 1, 1);
-			param_sc_->bind(proj,tr_view);
+			param_sc_->bind(proj, tr_view);
 			glDrawArrays(GL_TRIANGLE_STRIP, 4 * nb_segments + 4, 2 * nb_segments + 2);
 			param_sc_->release();
 		}
@@ -409,7 +406,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 
 	float32 distMax = std::max(length_axes_[0], std::max(length_axes_[1], length_axes_[2]));
 	distMax *= 3.6f;
-	distMax= std::max(distMax, 1.0f + ring_half_width);
+	distMax = std::max(distMax, 1.0f + ring_half_width);
 
 	if (dist2 > distMax * distMax)
 		return NONE;
@@ -468,7 +465,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 		if (inter)
 			dist_target[5] = Qz.norm() - 1.0;
 
-		if (std::abs(dist_target[5]) <  ring_half_width)
+		if (std::abs(dist_target[5]) < ring_half_width)
 			dist_cam[5] = (P - Qz).squaredNorm();
 	}
 
@@ -533,7 +530,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 	Scalar min_val = dist_cam[0];
 	for (uint32 i = 1; i < 9; ++i)
 	{
-		if  (dist_cam[i] < min_val)
+		if (dist_cam[i] < min_val)
 		{
 			min_val = dist_cam[i];
 			min_index = i;
@@ -710,30 +707,30 @@ void FrameManipulator::set_transformation(const GLMat4&)
 	// TODO E.S.: parameter is not used. It seems wrong.
 	set_position(rotations_.block<3, 1>(0, 3).eval());
 
-//	col = rotations_.column(0);
-//	QVector3D Rx(	col[0], col[1], col[2]);
-//	col = rotations_.column(1);
-//	QVector3D Ry(	col[0], col[1], col[2]);
-//	col = rotations_.column(2);
-//	QVector3D Rz(	col[0], col[1], col[2]);
+	//	col = rotations_.column(0);
+	//	QVector3D Rx(	col[0], col[1], col[2]);
+	//	col = rotations_.column(1);
+	//	QVector3D Ry(	col[0], col[1], col[2]);
+	//	col = rotations_.column(2);
+	//	QVector3D Rz(	col[0], col[1], col[2]);
 
-//	set_scale(QVector3D(float32(Rx.length()), float32(Ry.length()), float32(Rz.length())));
+	//	set_scale(QVector3D(float32(Rx.length()), float32(Ry.length()), float32(Rz.length())));
 
-//	col[3] = 0.0f;
-//	col[0] = Rx[0];
-//	col[1] = Rx[1];
-//	col[2] = Rx[2];
-//	rotations_.setColumn(0,col);
+	//	col[3] = 0.0f;
+	//	col[0] = Rx[0];
+	//	col[1] = Rx[1];
+	//	col[2] = Rx[2];
+	//	rotations_.setColumn(0,col);
 
-//	col[0] = Ry[0];
-//	col[1] = Ry[1];
-//	col[2] = Ry[2];
-//	rotations_.setColumn(0,col);
+	//	col[0] = Ry[0];
+	//	col[1] = Ry[1];
+	//	col[2] = Ry[2];
+	//	rotations_.setColumn(0,col);
 
-//	col[0] = Rz[0];
-//	col[1] = Rz[1];
-//	col[2] = Rz[2];
-//	rotations_.setColumn(0,col);
+	//	col[0] = Rz[0];
+	//	col[1] = Rz[1];
+	//	col[2] = Rz[2];
+	//	rotations_.setColumn(0,col);
 }
 
 void FrameManipulator::lock(uint32 axis)
@@ -896,8 +893,8 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 {
 	Vec3 Vo(float32(x) - projected_origin_[0], float32(viewport_[3] - y) - projected_origin_[1], 0.0f);
 	Vec3 dV(float32(dx), float32(dy), 0.0f);
-//	Vec3 W = Vo.cross(dV);
-//	W.normalize();
+	//	Vec3 W = Vo.cross(dV);
+	//	W.normalize();
 
 	Vo.normalize();
 	dV.normalize();
@@ -907,17 +904,17 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 
 	// which direction ?
 
-//	std::cout << "projected_origin_ "<< projected_origin_[0]<<", "<<projected_origin_[1]<<", "<<projected_origin_[2]<< std::endl;
-//	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl;
-//	std::cout << "Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl;
-//	std::cout << W << std::endl;
-//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<< std::endl;
+	//	std::cout << "projected_origin_ "<< projected_origin_[0]<<", "<<projected_origin_[1]<<",
+	//"<<projected_origin_[2]<< std::endl; 	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl; 	std::cout <<
+	//"Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl; 	std::cout << W << std::endl;
+	//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<<
+	//std::endl;
 
 	if (axis_orientation_ != (W[2] > 0.0f))
 		alpha *= -1.0f;
 
-//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] << std::endl;
-//	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
+	//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] <<
+	//std::endl; 	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
 
 	return alpha / 100.0f;
 }
@@ -932,7 +929,7 @@ float32 FrameManipulator::distance_from_mouse(int dx, int dy)
 		tr = float32(dV.norm() / 100.0f);
 	else
 		tr = float32(dV.norm() / -100.0f);
-	
+
 	return tr;
 }
 
@@ -1007,20 +1004,22 @@ void FrameManipulator::drag(bool local, int x, int y)
 			float angle = angle_from_mouse(x, y, x - beg_X_, beg_Y_ - y);
 			rotate(highlighted_, angle);
 		}
-		else rotate_in_screen(x - beg_X_, beg_Y_ - y);
+		else
+			rotate_in_screen(x - beg_X_, beg_Y_ - y);
 	}
 	// translation selected
 	else if (translation_axis(highlighted_))
 	{
 		if (local)
 		{
-			float dist =  distance_from_mouse(x - beg_X_, beg_Y_ - y);
+			float dist = distance_from_mouse(x - beg_X_, beg_Y_ - y);
 			translate(highlighted_, dist);
 		}
-		else translate_in_screen(x - beg_X_, beg_Y_ - y);
+		else
+			translate_in_screen(x - beg_X_, beg_Y_ - y);
 	}
 	// scale selected
-	else if (scale_axis(highlighted_) )
+	else if (scale_axis(highlighted_))
 	{
 		float sc = scale_from_mouse(x - beg_X_, beg_Y_ - y);
 		scale(highlighted_, sc);

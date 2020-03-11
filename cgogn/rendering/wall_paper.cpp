@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/rendering/wall_paper.h>
 
@@ -58,28 +58,20 @@ void WallPaper::init(const GLImage& img)
 	set_full_screen(false);
 }
 
-WallPaper::WallPaper(const GLImage& img):
-	vbo_pos_(nullptr),
-	vbo_tc_(nullptr),
-	texture_(nullptr)
+WallPaper::WallPaper(const GLImage& img) : vbo_pos_(nullptr), vbo_tc_(nullptr), texture_(nullptr)
 {
 	init(img);
 }
 
-WallPaper::WallPaper(const GLColor& col) :
-	vbo_pos_(nullptr),
-	vbo_tc_(nullptr),
-	texture_(nullptr)
+WallPaper::WallPaper(const GLColor& col) : vbo_pos_(nullptr), vbo_tc_(nullptr), texture_(nullptr)
 {
 	GLImage img(1, 1, 3);
 	img.set_pixel(0, 0, col);
 	init(img);
 }
 
-WallPaper::WallPaper(const GLColor& col_tl, const GLColor& col_tr, const GLColor& col_bl, const GLColor& col_br) :
-	vbo_pos_(nullptr),
-	vbo_tc_(nullptr),
-	texture_(nullptr)
+WallPaper::WallPaper(const GLColor& col_tl, const GLColor& col_tr, const GLColor& col_bl, const GLColor& col_br)
+	: vbo_pos_(nullptr), vbo_tc_(nullptr), texture_(nullptr)
 {
 	GLImage img(2, 2, 3);
 	img.set_pixel(0, 1, col_bl);
@@ -90,7 +82,8 @@ WallPaper::WallPaper(const GLColor& col_tl, const GLColor& col_tr, const GLColor
 }
 
 WallPaper::~WallPaper()
-{}
+{
+}
 
 void WallPaper::set_full_screen(bool front)
 {
@@ -100,17 +93,17 @@ void WallPaper::set_full_screen(bool front)
 
 	float32* ptr_pos = vbo_pos_->lock_pointer();
 	*ptr_pos++ = -1.0f;
-	*ptr_pos++ =  1.0f;
-	*ptr_pos++ =  depth;
-	*ptr_pos++ =  1.0f;
-	*ptr_pos++ =  1.0f;
-	*ptr_pos++ =  depth;
-	*ptr_pos++ =  1.0f;
+	*ptr_pos++ = 1.0f;
+	*ptr_pos++ = depth;
+	*ptr_pos++ = 1.0f;
+	*ptr_pos++ = 1.0f;
+	*ptr_pos++ = depth;
+	*ptr_pos++ = 1.0f;
 	*ptr_pos++ = -1.0f;
-	*ptr_pos++ =  depth;
+	*ptr_pos++ = depth;
 	*ptr_pos++ = -1.0f;
 	*ptr_pos++ = -1.0f;
-	*ptr_pos++ =  depth;
+	*ptr_pos++ = depth;
 	vbo_pos_->release_pointer();
 }
 
@@ -170,16 +163,16 @@ void WallPaper::set_local_position(float x, float y, float w, float h, bool fron
 	vbo_pos_->release_pointer();
 }
 
-WallPaper::Renderer::Renderer(WallPaper* wp) :
-	wall_paper_data_(wp)
+WallPaper::Renderer::Renderer(WallPaper* wp) : wall_paper_data_(wp)
 {
 	param_texture_ = ShaderTexture::generate_param();
-	param_texture_->set_vbos(wp->vbo_pos_.get(), wp->vbo_tc_.get());
+	param_texture_->set_vbos({wp->vbo_pos_.get(), wp->vbo_tc_.get()});
 	param_texture_->texture_ = wp->texture_.get();
 }
 
 WallPaper::Renderer::~Renderer()
-{}
+{
+}
 
 void WallPaper::Renderer::draw()
 {

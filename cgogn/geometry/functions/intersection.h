@@ -1,33 +1,33 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_GEOMETRY_FUNCTIONS_INTERSECTION_H_
 #define CGOGN_GEOMETRY_FUNCTIONS_INTERSECTION_H_
 
 #include <cgogn/core/utils/numerics.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/inclusion.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <cmath>
 
@@ -45,10 +45,8 @@ enum Intersection
 	FACE_INTERSECTION
 };
 
-bool intersection_ray_triangle(
-	const Vec3& P, const Vec3& Dir,
-	const Vec3& Ta, const Vec3& Tb, const Vec3& Tc,
-	Vec3* inter = nullptr)
+bool intersection_ray_triangle(const Vec3& P, const Vec3& Dir, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc,
+							   Vec3* inter = nullptr)
 {
 	Vec3 u = Ta - P;
 	Vec3 v = Tb - P;
@@ -62,17 +60,26 @@ bool intersection_ray_triangle(
 	uint32 nn = 0;
 	uint32 nz = 0;
 
-	if (x > Scalar(0)) ++np;
-	else if (x < Scalar(0)) ++nn;
-	else ++nz;
+	if (x > Scalar(0))
+		++np;
+	else if (x < Scalar(0))
+		++nn;
+	else
+		++nz;
 
-	if (y > Scalar(0)) ++np;
-	else if (y < Scalar(0)) ++nn;
-	else ++nz;
+	if (y > Scalar(0))
+		++np;
+	else if (y < Scalar(0))
+		++nn;
+	else
+		++nz;
 
-	if (z > Scalar(0)) ++np;
-	else if (z < Scalar(0)) ++nn;
-	else ++nz;
+	if (z > Scalar(0))
+		++np;
+	else if (z < Scalar(0))
+		++nn;
+	else
+		++nz;
 
 	// line intersect the triangle
 	if (((np != 0) && (nn != 0)) || (nz == 3))
@@ -101,11 +108,7 @@ bool intersection_ray_triangle(
  * \param[in] p2 second point of the segment
  * \param[out] alpha ratio of the segment inside the sphere
  */
-bool intersection_sphere_segment(
-	const Vec3& center,
-	Scalar radius,
-	const Vec3& p1,	const Vec3& p2,
-	Scalar& alpha)
+bool intersection_sphere_segment(const Vec3& center, Scalar radius, const Vec3& p1, const Vec3& p2, Scalar& alpha)
 {
 	if (in_sphere(p1, center, radius) && !in_sphere(p2, center, radius))
 	{
@@ -120,18 +123,13 @@ bool intersection_sphere_segment(
 	return false;
 }
 
-Intersection intersection_segment_segment(
-	const Vec3& PA,
-	const Vec3& PB,
-	const Vec3& QA,
-	const Vec3& QB,
-	Vec3& Inter)
+Intersection intersection_segment_segment(const Vec3& PA, const Vec3& PB, const Vec3& QA, const Vec3& QB, Vec3& Inter)
 {
 	Vec3 vp1p2 = PB - PA;
 	Vec3 vq1q2 = QB - QA;
 	Vec3 vp1q1 = QA - PA;
-	
-    Scalar delta = vp1p2[0] * vq1q2[1] - vp1p2[1] * vq1q2[0];
+
+	Scalar delta = vp1p2[0] * vq1q2[1] - vp1p2[1] * vq1q2[0];
 	Scalar coeff = vp1q1[0] * vq1q2[1] - vp1q1[1] * vq1q2[0];
 
 	if (delta == 0) // parallel
@@ -148,15 +146,14 @@ Intersection intersection_segment_segment(
 			return NO_INTERSECTION;
 	}
 	else
-		Inter = Vec3((PA[0] * delta + vp1p2[0] * coeff) / delta, (PA[1] * delta + vp1p2[1] * coeff) / delta, (PA[2] * delta + vp1p2[2] * coeff) / delta);
+		Inter = Vec3((PA[0] * delta + vp1p2[0] * coeff) / delta, (PA[1] * delta + vp1p2[1] * coeff) / delta,
+					 (PA[2] * delta + vp1p2[2] * coeff) / delta);
 
 	// test if inter point is outside the edges
-	if (
-		(Inter[0] < PA[0] && Inter[0] < PB[0]) || (Inter[0] > PA[0] && Inter[0] > PB[0]) ||
+	if ((Inter[0] < PA[0] && Inter[0] < PB[0]) || (Inter[0] > PA[0] && Inter[0] > PB[0]) ||
 		(Inter[0] < QA[0] && Inter[0] < QB[0]) || (Inter[0] > QA[0] && Inter[0] > QB[0]) ||
 		(Inter[1] < PA[1] && Inter[1] < PB[1]) || (Inter[1] > PA[1] && Inter[1] > PB[1]) ||
-		(Inter[1] < QA[1] && Inter[1] < QB[1]) || (Inter[1] > QA[1] && Inter[1] > QB[1])
-	)
+		(Inter[1] < QA[1] && Inter[1] < QB[1]) || (Inter[1] > QA[1] && Inter[1] > QB[1]))
 		return NO_INTERSECTION;
 
 	if (PA.isApprox(Inter) || PB.isApprox(Inter) || QA.isApprox(Inter) || QB.isApprox(Inter))
@@ -165,9 +162,8 @@ Intersection intersection_segment_segment(
 	return EDGE_INTERSECTION;
 }
 
-bool intersection_line_plane(const Vec3& point_line, const Vec3& dir_line,
-							 const Vec3& point_plane, const Vec3& normal_plane,
-							 Vec3* inter = nullptr)
+bool intersection_line_plane(const Vec3& point_line, const Vec3& dir_line, const Vec3& point_plane,
+							 const Vec3& normal_plane, Vec3* inter = nullptr)
 {
 	const Scalar PRECISION = std::numeric_limits<Scalar>::epsilon();
 

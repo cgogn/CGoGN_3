@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -28,11 +28,11 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/shallow_water/shallow_water.h>
+#include <cgogn/ui/modules/surface_deformation/surface_deformation.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
-#include <cgogn/ui/modules/shallow_water/shallow_water.h>
-
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
+#include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
 using namespace cgogn::numerics;
 
@@ -47,6 +47,15 @@ using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
+	std::string filename;
+	if (argc < 2)
+	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
+	}
+	else
+		filename = std::string(argv[1]);
+
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
@@ -56,15 +65,31 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
 	cgogn::ui::ShallowWater<Mesh> sw(app);
 
 	cgogn::ui::View* v1 = app.current_view();
+	cgogn::ui::View* v2 = app.add_view();
+
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
-	v1->link_module(&sw);
+
+	v2->link_module(&mp);
+	v2->link_module(&sr);
+	v2->link_module(&ss);
+	v2->link_module(&sd);
 
 	app.init_modules();
+
+	Mesh* domain = mp.load_surface_from_file(filename);
+	if (!domain)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
+	sw.set_domain(domain);
 
 	return app.launch();
 }
