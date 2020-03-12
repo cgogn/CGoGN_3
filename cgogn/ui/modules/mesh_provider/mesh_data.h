@@ -99,6 +99,10 @@ public:
 	void update_nb_cells()
 	{
 		internal_update_nb_cells(typename mesh_traits<MESH>::Cells{});
+		std::cout << "update_nb_cells" << " / ";
+		for (uint32 i : nb_cells_)
+			std::cout << i << ";";
+		std::cout << std::endl;
 	}
 
 	template <typename CELL>

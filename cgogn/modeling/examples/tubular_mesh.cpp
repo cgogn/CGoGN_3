@@ -94,12 +94,14 @@ int main(int argc, char** argv)
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
 	{
-		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position =
-			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
 		// vr.set_vertex_position(*v1, *v, vertex_position);
 
+		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
 		mps.emit_connectivity_changed(s);
-		mpv.emit_connectivity_changed(v);
+		mps.emit_attribute_changed(s, vertex_position.get());
+
+		// mpv.emit_connectivity_changed(v);
 	}
 
 	return app.launch();
