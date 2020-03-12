@@ -1072,10 +1072,53 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 /* utils				                                                     */
 /*****************************************************************************/
 
-// bool dijkstra_topo(CMap2& m2, std::shared_ptr<CMap2::Attribute<Dart>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
-// {
-//  return false;
-// }
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
+{
+	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
+				value<CMap2::Vertex>(m2, previous, v) = CMap2::Vertex(INVALID_INDEX);
+				value<uint>(m2, dist, v) = UINT_MAX;
+				return true;
+			});
+
+	// CellMarkerStore<m2, CMap2::Vertex> visited(m2);
+	DartMarker visited(m2);
+
+	std::vector<CMap2::Vertex> vertices = {v0};
+	CMap2::Vertex v_act; 
+	uint32 dist_act;
+	while(vertices.size())
+	{
+		v_act = vertices[vertices.size() - 1];
+		vertices.pop_back();
+		dist_act = value<uint>(m2, dist, v) + 1;
+
+		std::vector<CMap2::Vertex> neighbors;
+		foreach_dart_of_orbit(m2, v_act, [&](Dart d) -> bool {
+			if(!visited.is_marked(d))
+				{ 
+					Dart d2 = phi2(m2, d);
+					visited.mark(d);
+					visited.mark(d2);
+
+					dist_2 = value<uint>(m2, dist, CMap2::Vertex(d2));
+					if(dist_2 < dist_act)
+					{
+						value<uint>(m2, dist, CMap2::Vertex(d2))
+						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2))
+						neighbors.push_back(CMap2::Vertex(d2));
+					}
+				}
+
+			return true;
+		});
+
+
+		vertices.insert(vertices.begin(), neighbors.begin(), neighbors.end());
+
+	}
+
+	return false;
+}
 
 Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data)
 {
@@ -1423,6 +1466,10 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 
 			auto pair = candidate_vertices_pairs[0].first;
 			cut_face(m2, pair.first, pair.first);
+		}
+		else
+		{
+
 		}
 
 		valence_3.clear();
