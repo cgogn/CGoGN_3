@@ -1112,54 +1112,53 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 /* utils				                                                     */
 /*****************************************************************************/
 
-// bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
-// {
-// 	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
-// 				value<CMap2::Vertex>(m2, previous, v) = CMap2::Vertex(INVALID_INDEX);
-// 				value<uint>(m2, dist, v) = UINT_MAX;
-// 				return true;
-// 			});
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
+{
+	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
+				value<CMap2::Vertex>(m2, previous, v) = CMap2::Vertex();
+				value<uint>(m2, dist, v) = UINT_MAX;
+				return true;
+			});
 
-// 	// CellMarkerStore<m2, CMap2::Vertex> visited(m2);
-// 	DartMarker visited(m2);
+	DartMarker visited(m2);
 
-// 	std::vector<CMap2::Vertex> vertices = {v0};
-// 	value<uint>(m2, dist, v0) = 0;
-// 	CMap2::Vertex v_act; 
-// 	uint32 dist_act;
-// 	while(vertices.size())
-// 	{
-// 		v_act = vertices[vertices.size() - 1];
-// 		vertices.pop_back();
-// 		dist_act = value<uint>(m2, dist, v) + 1;
+	std::vector<CMap2::Vertex> vertices = {v0};
+	value<uint>(m2, dist, v0) = 0;
+	CMap2::Vertex v_act; 
+	uint32 dist_act;
+	while(vertices.size())
+	{
+		v_act = vertices[vertices.size() - 1];
+		vertices.pop_back();
+		dist_act = value<uint>(m2, dist, v) + 1;
 
-// 		std::vector<CMap2::Vertex> neighbors;
-// 		foreach_dart_of_orbit(m2, v_act, [&](Dart d) -> bool {
-// 			if(!visited.is_marked(d))
-// 				{ 
-// 					Dart d2 = phi2(m2, d);
-// 					visited.mark(d);
-// 					visited.mark(d2);
+		std::vector<CMap2::Vertex> neighbors;
+		foreach_dart_of_orbit(m2, v_act, [&](Dart d) -> bool {
+			if(!visited.is_marked(d))
+				{ 
+					Dart d2 = phi2(m2, d);
+					visited.mark(d);
+					visited.mark(d2);
 
-// 					dist_2 = value<uint>(m2, dist, CMap2::Vertex(d2));
-// 					if(dist_2 < dist_act)
-// 					{
-// 						value<uint>(m2, dist, CMap2::Vertex(d2))
-// 						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2))
-// 						neighbors.push_back(CMap2::Vertex(d2));
-// 					}
-// 				}
+					uint32 dist_2 = value<uint>(m2, dist, CMap2::Vertex(d2));
+					if(dist_2 < dist_act)
+					{
+						value<uint>(m2, dist, CMap2::Vertex(d2))
+						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2))
+						neighbors.push_back(CMap2::Vertex(d2));
+					}
+				}
 
-// 			return true;
-// 		});
+			return true;
+		});
 
 
-// 		vertices.insert(vertices.begin(), neighbors.begin(), neighbors.end());
+		vertices.insert(vertices.begin(), neighbors.begin(), neighbors.end());
 
-// 	}
+	}
 
-// 	return false;
-// }
+	return false;
+}
 
 Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data)
 {
@@ -1384,7 +1383,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 			uint32 nb_v3s = 0;
 			verts_3.clear();
 			foreach_incident_vertex(m2, f, [&](CMap2::Vertex v) -> bool {
-				if(value<uint32>(m2, vertex_valence, v)) 
+				if(value<uint32>(m2, vertex_valence, v) == 3) 
 					verts_3.push_back(v);
 
 				return true;
@@ -1411,12 +1410,49 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 		}
 		else
 		{
-			// std:vector<uint32> 
+			uint32 max_path_length = 0;
+			std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> max_previous;
+			std::shared_ptr<CMap2::Attribute<uint>> max_dist;
+			std::pair<CMap2::Vertex, CMap2::Vertex> max_shortest_path;
+			for(CMap2::Vertex v : valence_3)
+			{
+				std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous = add_attribute<CMap2::Vertex, CMap2::Vertex>(m2, "previous");;
+				std::shared_ptr<CMap2::Attribute<uint>> dist = add_attribute<uint, CMap2::Vertex>(m2, "dist");;
+				
+				dijkstra_topo(m2, v, previous, dist);
+
+				uint32 curr_min = UINT32_MAX;
+				CMap2::Vertex curr_min_vert;
+				for(CMap2::Vertex v2 : valence_3)
+				{
+					if(index_of<CMap2::Vertex>(m2, v) == index_of<CMap2::Vertex>(m2, v2))
+						continue;
+					
+					if(value<uint>(m2, dist, CMap2::Vertex(v2)) < curr_min)
+					{
+						curr_min = value<uint>(m2, dist, CMap2::Vertex(v2));
+						curr_min_vert = v2
+					}
+				}	
+				// value<CMap2::Vertex>(m2, previous, curr_min_vertex);
+				if(curr_min > max_path_length)
+				{
+					remove_attribute<Vertex>(m, max_previous);
+					remove_attribute<Vertex>(m, max_dist);
+
+					max_previous = previous;
+					max_dist = dist;
+					max_shortest_path = {v, curr_min_vert};
+					max_path_length = curr_min;
+				}
+
+			}
+
 		}
 
 		valence_3.clear();
 		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
-			if(value<uint32>(m2, vertex_valence, v)) 
+			if(value<uint32>(m2, vertex_valence, v) == 3) 
 				valence_3.push_back(v);
 			return true;
 		});
