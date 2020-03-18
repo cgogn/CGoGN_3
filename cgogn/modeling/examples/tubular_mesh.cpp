@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
-	cgogn::ui::VolumeRender<Volume> vr(app);
+	// cgogn::ui::VolumeRender<Volume> vr(app);
 
 	app.init_modules();
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
 	v1->link_module(&gr);
 	v1->link_module(&sr);
-	v1->link_module(&vr);
+	// v1->link_module(&vr);
 
 	Graph* g = mpg.load_graph_from_file(filename);
 	if (!g)
@@ -94,12 +94,14 @@ int main(int argc, char** argv)
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
 	{
-		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position =
-			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
-		vr.set_vertex_position(*v1, *v, vertex_position);
+		// vr.set_vertex_position(*v1, *v, vertex_position);
 
+		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
 		mps.emit_connectivity_changed(s);
-		mpv.emit_connectivity_changed(v);
+		mps.emit_attribute_changed(s, vertex_position.get());
+
+		// mpv.emit_connectivity_changed(v);
 	}
 
 	return app.launch();

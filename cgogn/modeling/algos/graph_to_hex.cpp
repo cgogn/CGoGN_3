@@ -39,6 +39,10 @@
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/mesh_views/cell_cache.h>
+#include <cgogn/io/surface/surface_import.h>
+
+#include <cgogn/geometry/functions/angle.h>
 
 namespace cgogn
 {
@@ -98,7 +102,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): contact surfaces built" << std::endl;
-
+/*
 	okay = create_intersection_frames(g, gAttribs, m2, m2Attribs);
 	if (!okay)
 	{
@@ -152,7 +156,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
-
+*/
 	return okay;
 }
 
@@ -175,7 +179,8 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 					vertex_marker.mark(d);
 					return true;
 				});
-				set_index(m, v, new_index<CMap2::Vertex>(m));
+				if (index_of<CMap2::Vertex>(m, v) == INVALID_INDEX)
+					set_index(m, v, new_index<CMap2::Vertex>(m));
 				return true;
 			}
 		}
@@ -189,11 +194,14 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 					return true;
 				});
 				if (is_indexed<CMap2::Edge>(m))
-					set_index(m, e, new_index<CMap2::Edge>(m));
+					if (index_of<CMap2::Edge>(m, e) == INVALID_INDEX)
+						set_index(m, e, new_index<CMap2::Edge>(m));
 				if (is_indexed<CMap2::HalfEdge>(m))
 				{
-					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+					if (index_of<CMap2::HalfEdge>(m, CMap2::HalfEdge(e.dart)) == INVALID_INDEX)
+						set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					if (index_of<CMap2::HalfEdge>(m, CMap2::HalfEdge(phi2(m, e.dart))) == INVALID_INDEX)
+						set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
 				}
 				return true;
 			}
@@ -207,14 +215,16 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 					face_marker.mark(d);
 					return true;
 				});
-				set_index(m, f, new_index<CMap2::Face>(m));
+				if (index_of<CMap2::Face>(m, f) == INVALID_INDEX)
+					set_index(m, f, new_index<CMap2::Face>(m));
 				return true;
 			}
 		}
 		return true;
 	});
 	if (is_indexed<CMap2::Volume>(m))
-		set_index(m, vol, new_index<CMap2::Volume>(m));
+		if (index_of<CMap2::Volume>(m, vol) == INVALID_INDEX)
+			set_index(m, vol, new_index<CMap2::Volume>(m));
 }
 
 void sew_volumes(CMap3& m, Dart d0, Dart d1)
@@ -272,7 +282,7 @@ void shift_frame(Mat3& frame, uint32 nb_shifts)
 	}
 }
 
-void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, Graph& g, GAttributes& gAttribs)
+void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs)
 {
 	// set the new phi1
 	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
@@ -283,14 +293,8 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, Graph&
 
 	// set the new phi_1
 	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
-		Dart prev = d;
-		Dart it = phi1(m, prev);
-		while (it != d)
-		{
-			prev = it;
-			it = phi1(m, prev);
-		}
-		(*(m.phi_1_))[d.index] = prev;
+		Dart next = phi1(m, d);
+		(*(m.phi_1_))[next.index] = d;
 		return true;
 	});
 
@@ -466,7 +470,6 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 			break;
 		default:
 			build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
-			res = false;
 			break;
 		}
 		return res;
@@ -556,6 +559,125 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 	// store the graph branch on their respective delaunay vertex (m2Attribs.dual_vertex_graph_branch)
 	// modify connectivity until all vertices are valence 4
 	// call dualize_volume
+
+		/// Brute force bête et méchant
+
+	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v);
+
+	std::vector<Vec3> Ppos;
+	std::vector<Dart> Pdart;
+	std::vector<uint32> Pid;
+
+	cgogn::io::SurfaceImportData surface_data;
+
+	foreach_dart_of_orbit(g, v, [&](Dart d) -> bool{
+		Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
+		project_on_sphere(p, center, radius);
+		uint32 vertex_id = new_index<CMap2::Vertex>(m2);
+		Ppos.push_back(p);
+		Pid.push_back(vertex_id);
+		(*m2Attribs.vertex_position)[vertex_id] = p;
+		(*m2Attribs.dual_vertex_graph_branch)[vertex_id] = d;
+		surface_data.vertices_id_.push_back(vertex_id);
+		return true;
+	});
+
+	std::cout << "vertex ids " << Pid.size() << std::endl;
+	std::cout << Pid[0] << " " << Pid[1] << " " << Pid[2] << " " << Pid[3] << std::endl;
+
+
+	std::vector<uint32> indices;
+	for(uint32 i = 0; i < Ppos.size() - 2; ++i)
+	{
+		for(uint32 j = i + 1; j < Ppos.size() - 1; ++j)
+		{
+			for(uint32 k = j + 1; k < Ppos.size(); ++k)
+			{
+				Vec3 t0 = Ppos[j] - Ppos[i];
+				Vec3 t1 = Ppos[k] - Ppos[i];
+				Vec3 n = t0.cross(t1);
+				int sign = 0;
+
+				for(uint32 m = 0; m < Ppos.size(); ++m)
+				{
+					if(m == i || m == j || m == k)
+						continue;
+
+					Vec3 v = Ppos[m] - Ppos[i];
+					Scalar d = v.dot(n);
+
+					if(!sign)
+						sign = (d < 0? -1: 1);
+					else
+					{
+						if(sign != (d < 0? -1 :1))
+						{
+							sign = 0;
+							break;
+						}
+					}
+				}
+
+				if(sign != 0)
+				{
+					if(sign == 1)
+					{
+						indices.push_back(Pid[j]);
+						indices.push_back(Pid[i]);
+						indices.push_back(Pid[k]);
+					}
+					else
+					{
+						indices.push_back(Pid[i]);
+						indices.push_back(Pid[j]);
+						indices.push_back(Pid[k]);
+					}
+					std::cout << "face " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
+					// indices = (sign == 1)? ({Pid[j], Pid[i], Pid[k]}) : ({Pid[i], Pid[j], Pid[k]});
+					surface_data.faces_nb_vertices_.push_back(3);
+					surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
+												indices.end());
+					indices.clear();
+				}
+				// switch(sign)
+				// {
+				// 	case 1:
+				// 		indices = {Pid[j], Pid[i], Pid[k]};
+				// 		surface_data.faces_nb_vertices_.push_back(3);
+				// 		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
+				// 								indices.end());
+				// 		break;
+				// 	case -1:
+				// 		indices = {Pid[i], Pid[j], Pid[k]};
+				// 		surface_data.faces_nb_vertices_.push_back(3);
+				// 		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
+				// 								indices.end());
+				// 		break;
+				// 	default:
+				// 		break;
+				// }
+			}
+		}
+	}
+
+	Dart vol_dart = convex_hull(m2, surface_data);
+	index_volume_cells(m2, CMap2::Volume(vol_dart));
+
+	dump_map_darts(m2);
+	std::cout << "convex hull data calculated: " <<
+		nb_cells<CMap2::Vertex>(m2) << " " <<
+		nb_cells<CMap2::Edge>(m2) << " " <<
+		nb_cells<CMap2::Face>(m2) << std::endl;
+	
+	//vol_dart = remesh(m2, vol_dart, m2Attribs);
+	//dualize_volume(m2, CMap2::Volume(vol_dart), m2Attribs, g, gAttribs);
+
+	dump_map_darts(m2);
+	std::cout << "convex hull data calculated: " <<
+		nb_cells<CMap2::Vertex>(m2) << " " <<
+		nb_cells<CMap2::Edge>(m2) << " " <<
+		nb_cells<CMap2::Face>(m2) << std::endl;
 }
 
 /*****************************************************************************/
@@ -983,6 +1105,365 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 		}
 	}
 	return true;
+}
+
+
+/*****************************************************************************/
+/* utils				                                                     */
+/*****************************************************************************/
+
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint32>> dist)
+{
+	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
+				value<CMap2::Vertex>(m2, previous, v) = CMap2::Vertex();
+				value<uint32>(m2, dist, v) = UINT_MAX;
+				return true;
+			});
+
+	DartMarker visited(m2);
+
+	std::vector<CMap2::Vertex> vertices = {v0};
+	value<uint32>(m2, dist, v0) = 0;
+	CMap2::Vertex v_act; 
+	uint32 dist_act;
+	while(vertices.size())
+	{
+		v_act = vertices[vertices.size() - 1];
+		vertices.pop_back();
+		dist_act = value<uint32>(m2, dist, v_act) + 1;
+
+		std::vector<CMap2::Vertex> neighbors;
+		foreach_dart_of_orbit(m2, v_act, [&](Dart d) -> bool {
+			if(!visited.is_marked(d))
+				{ 
+					Dart d2 = phi2(m2, d);
+					visited.mark(d);
+					visited.mark(d2);
+
+					uint32 dist_2 = value<uint32>(m2, dist, CMap2::Vertex(d2));
+					if(dist_2 < dist_act)
+					{
+						value<uint32>(m2, dist, CMap2::Vertex(d2));
+						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2));
+						neighbors.push_back(CMap2::Vertex(d2));
+					}
+				}
+
+			return true;
+		});
+
+
+		vertices.insert(vertices.begin(), neighbors.begin(), neighbors.end());
+
+	}
+
+	return false;
+}
+
+Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data)
+{
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, CMap2::Vertex>(m2, "__darts_per_vertex");
+
+	uint32 faces_vertex_index = 0u;
+	std::vector<uint32> vertices_buffer;
+	vertices_buffer.reserve(16u);
+
+	Dart volume_dart;
+	std::vector<Dart> all_darts;
+	for (uint32 i = 0u, end = surface_data.faces_nb_vertices_.size(); i < end; ++i)
+	{
+		uint32 nbv = surface_data.faces_nb_vertices_[i];
+
+		vertices_buffer.clear();
+
+		for (uint32 j = 0u; j < nbv; ++j)
+		{
+			uint32 idx = surface_data.faces_vertex_indices_[faces_vertex_index++];
+			vertices_buffer.push_back(idx);
+		}
+
+		if (nbv > 2u)
+		{
+			CMap1::Face f = add_face(static_cast<CMap1&>(m2), nbv, false);
+			Dart d = f.dart;
+			for (uint32 j = 0u; j < nbv; ++j)
+			{
+				all_darts.push_back(d);
+				const uint32 vertex_index = vertices_buffer[j];
+				set_index<CMap2::Vertex>(m2, d, vertex_index);
+				(*darts_per_vertex)[vertex_index].push_back(d);
+				d = phi1(m2, d);
+			}
+		}
+	}
+
+	for (Dart d : all_darts)
+	{
+		if (phi2(m2, d) == d)
+		{
+			uint32 vertex_index = index_of(m2, CMap2::Vertex(d));
+
+			const std::vector<Dart>& next_vertex_darts =
+				value<std::vector<Dart>>(m2, darts_per_vertex, CMap2::Vertex(phi1(m2, d)));
+			bool phi2_found = false;
+
+			for (auto it = next_vertex_darts.begin(); it != next_vertex_darts.end() && !phi2_found; ++it)
+			{
+				if (index_of(m2, CMap2::Vertex(phi1(m2, *it))) == vertex_index)
+				{
+					if (phi2(m2, *it) == *it)
+					{
+						phi2_sew(m2, d, *it);
+						phi2_found = true;
+					}
+				}
+			}
+		}
+	}
+
+	remove_attribute<CMap2::Vertex>(m2, darts_per_vertex);
+	return all_darts[0];
+}
+
+Vec3 slerp(Vec3 A, Vec3 B, Scalar alpha, bool in)
+{
+	Scalar phi = geometry::angle(A, B) - (in? 0 : 2*M_PI);
+	Scalar s0 = std::sin(phi*(1-alpha));
+	Scalar s1 = std::sin(phi*alpha);
+	Scalar s2 = std::sin(phi);
+	Vec3 sl = A * (s0 / s2);
+	sl += B * (s1 / s2);
+	return sl;
+}
+
+
+Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C)
+{
+	Vec3 sB = slerp(A, B, 0.01, true);
+	Vec3 sC = slerp(A, C, 0.01, true);
+	Vec3 AB = sB - A;
+	Vec3 AC = sC - A;
+	return geometry::angle(AB, AC);
+}
+
+Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs)
+{
+	Dart ed0 = e.dart;
+	Dart ed1 = phi2(m2, ed0);
+
+	Vec3 A = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(ed0));
+	Vec3 B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(ed1));
+	Vec3 C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, ed0)));
+
+	Scalar a0 = angle_on_sphere(A, B, C);
+	C = B;
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, ed1)));
+	a0 += angle_on_sphere(A, B, C);
+
+	A = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(ed1));
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(ed0));
+	C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, ed1)));
+
+	Scalar a1 = angle_on_sphere(A, B, C);
+	C = B;
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, ed0)));
+	a1 += angle_on_sphere(A, B, C);
+
+	return std::max(a0, a1);
+}
+
+Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs)
+{
+	Vec3 A = value<Vec3>(m2, m2Attribs.vertex_position, v0);
+	Vec3 B = value<Vec3>(m2, m2Attribs.vertex_position, v1);
+	Vec3 C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v0.dart)));
+	Scalar a0 = angle_on_sphere(A, B, C);
+	
+	C = B;
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v1.dart)));
+	Scalar a1 = angle_on_sphere(A, B, C);
+
+	A = value<Vec3>(m2, m2Attribs.vertex_position, v1);
+	B = value<Vec3>(m2, m2Attribs.vertex_position, v0);
+	C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v1.dart)));
+
+	Scalar a2 = angle_on_sphere(A, B, C);
+	C = B;
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v0.dart)));
+	Scalar a3 = angle_on_sphere(A, B, C);
+
+	return std::min({a0, a1, a2, a3});
+}
+
+Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
+{
+	Dart vol_dart = vol.dart;
+	auto vertex_valence = add_attribute<uint32, CMap2::Vertex>(m2, "valence");
+
+	std::vector<CMap2::Vertex> valence_sup4;
+	std::vector<CMap2::Vertex> valence_3;
+
+	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+				uint32 valence = degree(m2, v);
+				if(valence == 3) valence_3.push_back(v);
+				if(valence > 4) valence_sup4.push_back(v);
+				value<uint32>(m2, vertex_valence, v) = valence;
+				return true;
+			});
+
+	if(valence_sup4.size())
+	{
+		auto edge_angle_max = add_attribute<Scalar, CMap2::Edge>(m2, "angle_max");
+
+		std::vector<CMap2::Edge> edges_n_n;
+		std::vector<CMap2::Edge> edges_n_4;
+		std::vector<CMap2::Edge> candidate_edges;
+
+		do
+		{
+			edges_n_n.clear();
+			edges_n_4.clear();
+			foreach_incident_edge(m2, vol, [&](CMap2::Edge e) -> bool {
+						auto vertices = incident_vertices(m2, e);
+
+						uint32 deg_0 = value<uint32>(m2, vertex_valence, vertices[0]);
+						uint32 deg_1 = value<uint32>(m2, vertex_valence, vertices[1]);
+						uint32 deg_min = deg_0 < deg_1 ? deg_0 : deg_1;
+
+						if(deg_min > 4)
+						{
+							edges_n_n.push_back(e);
+						}
+						else if(deg_min == 4 && deg_0 + deg_1 > 8)
+						{
+							edges_n_4.push_back(e);
+						}
+
+						return true;
+					});
+
+			candidate_edges = edges_n_n.size()? edges_n_n : edges_n_4;
+
+			for(CMap2::Edge e : candidate_edges)
+			{
+				value<Scalar>(m2, edge_angle_max, e) = edge_max_angle(m2, e, m2Attribs);
+			}
+
+			std::sort(candidate_edges.begin(), candidate_edges.end(), [&](CMap2::Edge e0, CMap2::Edge e1) -> bool
+			{
+				return value<Scalar>(m2, edge_angle_max, e0) > value<Scalar>(m2, edge_angle_max, e1);
+			});
+
+
+			CMap2::Edge prime_edge = candidate_edges[0];
+			auto neigh_vertices = incident_vertices(m2, prime_edge);
+
+			value<uint32>(m2, vertex_valence, neigh_vertices[0])--;
+			if(value<uint32>(m2, vertex_valence, neigh_vertices[0]) == 3)
+				valence_3.push_back(neigh_vertices[0]);
+			value<uint32>(m2, vertex_valence, neigh_vertices[1])--;
+			if(value<uint32>(m2, vertex_valence, neigh_vertices[1]) == 3)
+				valence_3.push_back(neigh_vertices[1]);
+
+			vol_dart = phi_1(m2, prime_edge.dart);
+			merge_incident_faces(m2, prime_edge, true);
+
+		} while (candidate_edges.size() > 1);
+		remove_attribute<CMap2::Edge>(m2, edge_angle_max);
+
+	}
+	
+	// std::vector<CMap2::Face> candidate_faces;
+	std::vector<std::pair<std::pair<CMap2::Vertex, CMap2::Vertex>, Scalar>> candidate_vertices_pairs;
+	// std::vector<Scalar> candidate_pairs_angle;
+	// candidate_faces.reserve(nb_cells<CMap2::Face>(m2));
+	while (valence_3.size())
+	{
+		std::vector<CMap2::Vertex> verts_3;
+		verts_3.reserve(10);
+		foreach_incident_face(m2, vol, [&](CMap2::Face f) -> bool {
+			uint32 nb_v3s = 0;
+			verts_3.clear();
+			foreach_incident_vertex(m2, f, [&](CMap2::Vertex v) -> bool {
+				if(value<uint32>(m2, vertex_valence, v) == 3) 
+					verts_3.push_back(v);
+
+				return true;
+			});
+
+			for(uint32 i = 0; i < verts_3.size() - 1; ++i)
+			{
+				for(uint32 j = i; j < verts_3.size(); ++j)
+				{
+					candidate_vertices_pairs.push_back({{verts_3[i], verts_3[j]}, min_cut_angle(m2, verts_3[i], verts_3[j], m2Attribs)});
+				}
+			}
+			return true;
+		});
+
+		if(candidate_vertices_pairs.size())
+		{
+			std::sort(candidate_vertices_pairs.begin(), candidate_vertices_pairs.end(), [&](auto pair0, auto pair1) -> bool
+			{
+				return pair0.second < pair1.second;
+			});
+
+			auto pair = candidate_vertices_pairs[0].first;
+			cut_face(m2, pair.first, pair.first);
+		}
+		else
+		{
+			uint32 max_path_length = 0;
+			std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> max_previous;
+			std::shared_ptr<CMap2::Attribute<uint32>> max_dist;
+			std::pair<CMap2::Vertex, CMap2::Vertex> max_shortest_path;
+			for(CMap2::Vertex v : valence_3)
+			{
+				std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous = add_attribute<CMap2::Vertex, CMap2::Vertex>(m2, "previous");;
+				std::shared_ptr<CMap2::Attribute<uint32>> dist = add_attribute<uint32, CMap2::Vertex>(m2, "dist");;
+				
+				dijkstra_topo(m2, v, previous, dist);
+
+				uint32 curr_min = UINT32_MAX;
+				CMap2::Vertex curr_min_vert;
+				for(CMap2::Vertex v2 : valence_3)
+				{
+					if(index_of<CMap2::Vertex>(m2, v) == index_of<CMap2::Vertex>(m2, v2))
+						continue;
+					
+					if(value<uint32>(m2, dist, CMap2::Vertex(v2)) < curr_min)
+					{
+						curr_min = value<uint32>(m2, dist, CMap2::Vertex(v2));
+						curr_min_vert = v2;
+					}
+				}	
+				// value<CMap2::Vertex>(m2, previous, curr_min_vertex);
+				if(curr_min > max_path_length)
+				{
+					remove_attribute<CMap2::Vertex>(m2, max_previous);
+					remove_attribute<CMap2::Vertex>(m2, max_dist);
+
+					max_previous = previous;
+					max_dist = dist;
+					max_shortest_path = {v, curr_min_vert};
+					max_path_length = curr_min;
+				}
+
+			}
+
+		}
+
+		valence_3.clear();
+		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+			if(value<uint32>(m2, vertex_valence, v) == 3) 
+				valence_3.push_back(v);
+			return true;
+		});
+	}
+
+
+	remove_attribute<CMap2::Vertex>(m2, vertex_valence);
+	return vol_dart;
 }
 
 } // namespace modeling

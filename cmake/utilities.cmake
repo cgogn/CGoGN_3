@@ -140,7 +140,7 @@ function(APPS_COMPILATION)
 		list(APPEND MODULES_LIST cgogn::${mod})
     endforeach()
 
-    add_executable(${COMPILATION_PREFIX_EXEC})
+    add_executable(${COMPILATION_PREFIX_EXEC} "")
     target_sources(${COMPILATION_PREFIX_EXEC} PRIVATE ${COMPILATION_PREFIX_SRC})
 	target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS} ${CORE_FOUNDATION} ${CARBON})
 

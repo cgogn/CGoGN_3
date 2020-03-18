@@ -26,7 +26,7 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn/io/surface/surface_import.h>
 namespace cgogn
 {
 
@@ -37,6 +37,7 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
+using Vec3i = geometry::Vec3i;
 using Scalar = geometry::Scalar;
 using Mat3 = geometry::Mat3;
 
@@ -76,7 +77,14 @@ Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<G
 Dart add_branch_section(CMap3& m3);
 void project_on_sphere(Vec3& P, const Vec3& C, Scalar R);
 void shift_frame(Mat3& frame, uint32 nb_shifts);
-void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, Graph& g, GAttributes& gAttribs);
+void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous, std::shared_ptr<CMap2::Attribute<uint32>> dist);
+Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data);
+Dart remesh(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs);
+Vec3 slerp(Vec3 A, Vec3 B, Scalar coef, bool in);
+Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C);
+Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs);
+Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs);
 
 /*****************************************************************************/
 /* data preparation                                                          */

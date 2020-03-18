@@ -108,7 +108,7 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 /* -------------------------- BUTTERFLY VOLUME MASKS -------------------------- */
 
 // Remplit les vecteurs de p/q-points pour le volume incident à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et le vecteur de q-points est vide après l'appel
 template <typename MESH>
 auto volumePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector<Dart> &q_point)
@@ -155,7 +155,7 @@ auto volumePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vect
 }
 
 // Remplit les vecteurs de p/q/r/s/t-points pour la face incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 template <typename MESH>
 auto facePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector<Dart> &q_point,
@@ -260,7 +260,7 @@ auto facePointMask(const MESH& m,Dart d, std::vector<Dart> &p_point, std::vector
 }
 
 // Remplit les vecteurs de p/q/r/s-points pour l'arete incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 // Attention, un appel récursif est fait (un seul)
 template<typename MESH>

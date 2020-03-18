@@ -152,6 +152,42 @@ void remove_face(CMap1& m, CMap1::Face f, bool set_indices)
 /*****************************************************************************/
 
 // template <typename MESH>
+// void
+// merge_incident_faces(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices)
+{
+	if(is_incident_to_boundary(m, e))
+		return;
+
+	Dart d0 = e.dart;
+	Dart d1 = phi2(m, d0);
+	Dart d_1 = phi_1(m, d0);
+
+	phi1_sew(m, phi_1(m, d0), d1);
+	phi1_sew(m, phi_1(m, d1), d0);
+
+	if(set_indices)
+	{
+		if(is_indexed<CMap2::Face>(m))
+			copy_index<CMap2::Face>(m, d_1, d0);
+	}
+
+	remove_face(static_cast<CMap1&>(m), CMap1::Face(d0), set_indices);
+	
+	return;
+}
+
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Edge
 // cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices =
 // true);
