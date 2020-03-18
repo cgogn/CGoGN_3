@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
-#define CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
+#ifndef CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
+#define CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -353,4 +353,4 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
+#endif // CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_

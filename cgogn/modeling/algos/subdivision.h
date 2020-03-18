@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
-#define CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
+#define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
@@ -107,4 +107,4 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#endif // CGOGN_MODELING_ALGOS_SUBDIVISION_H_
