@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPointColor)
+DECLARE_SHADER_CLASS(RoundPointColor,CGOGN_STR(RoundPointColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamRoundPointColor : public ShaderParam
 {
@@ -62,12 +62,7 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col);
-		release_vao();
-	}
+
 };
 
 } // namespace rendering

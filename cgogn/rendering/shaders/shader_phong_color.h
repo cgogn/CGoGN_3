@@ -32,7 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColor)
+DECLARE_SHADER_CLASS(PhongColor,CGOGN_STR(PhongColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColor : public ShaderParam
 {
@@ -43,11 +43,22 @@ protected:
 	}
 
 public:
-	GLVec3 light_position_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
+	GLVec3 light_position_;
 	bool double_side_;
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		ambiant_color_ = std::get<0>(a);
+		specular_color_ = std::get<1>(a);
+		specular_coef_ = std::get<2>(a);
+		light_position_ = std::get<3>(a);
+		double_side_ = std::get<4>(a);
+	}
 
 	using ShaderType = ShaderPhongColor;
 
@@ -56,12 +67,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_norm, VBO* vbo_color)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_norm, vbo_color);
-		release_vao();
-	}
 };
 } // namespace rendering
 } // namespace cgogn

@@ -27,12 +27,11 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
-// #include <Eigen/Core>
 #include <Eigen/Dense>
-// #include <Eigen/Eigen>
-// #include <Eigen/Geometry>
-// #include <Eigen/SVD>
 
+#include <GL/gl3w.h>
+#include <iostream>
+#include <map>
 #include <string>
 
 namespace cgogn
@@ -112,6 +111,22 @@ public:
 			*ptr++ = uint8(255 * col[i]);
 	}
 };
+
+static std::map<GLenum, std::string> GL_ERRORS_NAMES = {
+	{GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+	{GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+	{GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+	{GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+	{GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+	{GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+	{GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"}};
+
+inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
+{
+#ifdef CGOGN_GL43_DEBUG_MODE
+	glObjectLabel(type, id, name.length(), name.c_str());
+#endif
+}
 
 } // namespace rendering
 

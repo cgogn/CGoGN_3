@@ -40,6 +40,17 @@ struct CPH3
 	using AttributeGen = CMAP::AttributeGen;
 	using MarkAttribute = CMAP::MarkAttribute;
 
+	using Vertex = Cell<PHI21_PHI31>;
+	using Vertex2 = Cell<PHI21>;
+	using HalfEdge = Cell<DART>;
+	using Edge = Cell<PHI2_PHI3>;
+	using Edge2 = Cell<PHI2>;
+	using Face = Cell<PHI1_PHI3>;
+	using Face2 = Cell<PHI1>;
+	using Volume = Cell<PHI1_PHI2>;
+
+	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
+
 	CMAP& m_;
 
 	std::shared_ptr<Attribute<uint32>> dart_level_;
@@ -49,12 +60,11 @@ struct CPH3
 	std::vector<uint32>& nb_darts_per_level_;
 	uint32& maximum_level_;
 
-	mutable uint32 current_level_;
+	uint32 current_level_;
 
 	CPH3(CMAP& m)
-		: m_(m), current_level_(0),
-		  nb_darts_per_level_(m.get_attribute<std::vector<uint32>>("cph3_nb_darts_per_level")),
-		  maximum_level_(m.get_attribute<uint32>("cph3_maximum_level"))
+		: m_(m), nb_darts_per_level_(m.get_attribute<std::vector<uint32>>("cph3_nb_darts_per_level")),
+		  maximum_level_(m.get_attribute<uint32>("cph3_maximum_level")), current_level_(0)
 	{
 		dart_level_ = m_.darts_.get_attribute<uint32>("dart_level");
 		if (!dart_level_)
@@ -121,7 +131,6 @@ struct CPH3
 
 	uint32 dart_level(Dart d) const;
 	void set_dart_level(Dart d, uint32 l);
-	void change_dart_level(Dart d, uint32 l);
 
 	/***************************************************
 	 *             EDGE ID MANAGEMENT                  *

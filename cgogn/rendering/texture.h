@@ -94,6 +94,7 @@ public:
 			alloc(img.width(), img.height(), GL_RGBA8, GL_RGBA, img.data());
 			break;
 		}
+		
 	}
 
 	inline void resize(GLsizei w, GLsizei h)
@@ -103,6 +104,7 @@ public:
 		width_ = w;
 		height_ = h;
 		release();
+		
 	}
 
 	inline GLsizei width() const
@@ -118,18 +120,21 @@ public:
 	inline void bind()
 	{
 		glBindTexture(GL_TEXTURE_2D, id_);
+		
 	}
 
-	inline GLuint bind(GLuint unit)
+	inline GLint bind(GLint unit)
 	{
-		glActiveTexture(GL_TEXTURE0 + unit);
+		glActiveTexture(GL_TEXTURE0 + GLuint(unit));
 		glBindTexture(GL_TEXTURE_2D, id_);
+		
 		return unit;
 	}
 
 	inline static void release()
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
+		
 	}
 
 protected:

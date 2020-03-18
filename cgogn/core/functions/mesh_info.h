@@ -51,7 +51,7 @@ namespace cgogn
 template <typename CELL, typename MESH>
 std::string cell_name(const MESH& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	return mesh_traits<MESH>::cell_names[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
 }
 
@@ -69,7 +69,7 @@ std::string cell_name(const MESH& m)
 template <typename CELL, typename MESH>
 uint32 nb_cells(const MESH& m)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	uint32 result = 0;
 	foreach_cell(m, [&](CELL) -> bool {
 		++result;
@@ -177,8 +177,8 @@ uint32 codegree(const MESH& m, typename mesh_traits<MESH>::Volume v)
 // CMapBase //
 //////////////
 
-template <typename MESH, typename CELL, std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
-bool is_incident_to_boundary(const MESH& m, CELL c)
+template <typename MESH, typename CELL>
+auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, bool>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	bool result = false;

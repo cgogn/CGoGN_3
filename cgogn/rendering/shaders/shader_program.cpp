@@ -36,7 +36,7 @@ const GLColor ShaderParam::color_spec_default = GLColor(1, 1, 1, 1);
 const GLColor ShaderParam::color_line_default = GLColor(1, 1, 0, 1);
 const GLColor ShaderParam::color_point_default = GLColor(1, 1, 1, 1);
 
-void Shader::compile(const std::string& src)
+void Shader::compile(const std::string& src, const std::string& prg_name)
 {
 	const char* csrc = src.c_str();
 	glShaderSource(id_, 1, &csrc, nullptr);
@@ -54,9 +54,7 @@ void Shader::compile(const std::string& src)
 		glGetShaderInfoLog(id_, infologLength, &charsWritten, infoLog);
 
 		std::cerr << "----------------------------------------" << std::endl
-				  << "compilation de "
-				  << "msg"
-				  << " : " << std::endl
+				  << "compilation de " << prg_name << " : " << std::endl
 				  << infoLog << std::endl
 				  << "--------" << std::endl;
 
@@ -105,7 +103,7 @@ void Shader::compile(const std::string& src)
 	}
 }
 
-ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr)
+ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr), nb_attributes_(0)
 {
 	id_ = glCreateProgram();
 }
@@ -144,11 +142,12 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
+	std::cout << "Compilation Shader " << name() << std::endl;
 	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src);
+	vert_shader_->compile(vert_src, name());
 
 	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src);
+	frag_shader_->compile(frag_src, name());
 
 	glAttachShader(id_, vert_shader_->shaderId());
 	glAttachShader(id_, frag_shader_->shaderId());
@@ -161,50 +160,6 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 
 	// Print log if needed
 	int infologLength = 0;
-	glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-	if (infologLength > 1)
-	{
-		char* infoLog = new char[infologLength];
-		int charsWritten = 0;
-		glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-		std::cerr << "Link message: " << infoLog << std::endl;
-		delete[] infoLog;
-	}
-
-	get_matrices_uniforms();
-}
-
-void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src)
-{
-	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src);
-
-	geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-	geom_shader_->compile(geom_src);
-
-	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src);
-
-	glAttachShader(id_, vert_shader_->shaderId());
-	glAttachShader(id_, geom_shader_->shaderId());
-	glAttachShader(id_, frag_shader_->shaderId());
-
-	glLinkProgram(id_);
-
-	// puis detache (?)
-	glDetachShader(id_, frag_shader_->shaderId());
-	glDetachShader(id_, geom_shader_->shaderId());
-	glDetachShader(id_, vert_shader_->shaderId());
-
-	// Print log if needed
-	GLint infologLength = 0;
-	glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
-	if (infologLength != GL_TRUE)
-		std::cerr << "PB GL_LINK_STATUS" << std::endl;
-	glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
-	if (infologLength != GL_TRUE)
-		std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
-
 	glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 	if (infologLength > 1)
 	{
@@ -246,10 +201,6 @@ void ShaderProgram::clean_all()
 
 void ShaderProgram::get_matrices_uniforms()
 {
-	unif_mvp_matrix_ = -1;
-	unif_mv_matrix_ = -1;
-	unif_projection_matrix_ = -1;
-	unif_normal_matrix_ = -1;
 	unif_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
 	unif_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
 	unif_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
@@ -332,6 +283,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(fa
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();
+	vao_initialized_ = true;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
@@ -353,6 +305,33 @@ void ShaderParam::release()
 {
 	vao_->release();
 	shader_->release();
+}
+
+void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
+{
+	if (vbos.size() != shader_->nb_attributes())
+	{
+		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES" << std::endl;
+	}
+
+	if (!vao_initialized_)
+		vao_->create();
+
+	vao_initialized_ = true;
+	bind_vao();
+	GLuint attrib = 1u;
+	for (auto* v : vbos)
+	{
+		if (v)
+			v->associate(attrib++);
+		else
+		{
+			vao_initialized_ = false;
+			break;
+		}
+	}
+
+	release_vao();
 }
 
 } // namespace rendering

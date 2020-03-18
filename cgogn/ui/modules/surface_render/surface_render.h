@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France       *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SURFACE_RENDER_H_
 #define CGOGN_MODULE_SURFACE_RENDER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -58,6 +59,8 @@ class SurfaceRender : public ViewModule
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -182,13 +185,16 @@ public:
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_flat_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		auto* vp = md->vbo(p.vertex_position_.get());
+		auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* vs = md->vbo(p.vertex_scalar_.get());
+
+		p.param_point_sprite_->set_vbos({vp});
+		p.param_edge_->set_vbos({vp});
+		p.param_flat_->set_vbos({vp});
+		p.param_phong_->set_vbos({vp, vn});
+		p.param_scalar_per_vertex_->set_vbos({vp, vs});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
 
 		v.request_update();
 	}
@@ -202,9 +208,12 @@ public:
 		if (p.vertex_normal_)
 			md->update_vbo(vertex_normal.get(), true);
 
-		p.param_phong_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		auto* vp = md->vbo(p.vertex_position_.get());
+		auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* vs = md->vbo(p.vertex_scalar_.get());
+
+		p.param_phong_->set_vbos({vp, vn});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
 
 		v.request_update();
 	}
@@ -218,7 +227,6 @@ public:
 		if (p.vertex_scalar_)
 		{
 			md->update_vbo(vertex_scalar.get(), true);
-
 			if (p.auto_update_scalar_min_max_)
 				update_scalar_min_max_values(p);
 		}
@@ -230,9 +238,12 @@ public:
 			p.param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
 		}
 
-		p.param_scalar_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_scalar_.get()));
-		p.param_scalar_per_vertex_gouraud_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_normal_.get()),
-													 md->vbo(p.vertex_scalar_.get()));
+		auto* vp = md->vbo(p.vertex_position_.get());
+		auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* vs = md->vbo(p.vertex_scalar_.get());
+
+		p.param_scalar_per_vertex_->set_vbos({vp, vs});
+		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
 
 		v.request_update();
 	}
@@ -281,25 +292,25 @@ protected:
 				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_gouraud_->release();
 				}
 				else if (p.param_scalar_per_vertex_->vao_initialized())
 				{
 					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_scalar_per_vertex_->release();
 				}
 				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
 				{
 					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_phong_->release();
 				}
 				else if (p.param_flat_->vao_initialized())
 				{
 					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES);
+					md->draw(rendering::TRIANGLES, p.vertex_position_);
 					p.param_flat_->release();
 				}
 

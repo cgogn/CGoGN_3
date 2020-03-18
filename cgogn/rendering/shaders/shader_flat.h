@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Flat)
+DECLARE_SHADER_CLASS(Flat,CGOGN_STR(Flat))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
 {
@@ -49,6 +49,19 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		front_color_ = std::get<0>(a);
+		back_color_ = std::get<1>(a);
+		ambiant_color_ = std::get<2>(a);
+		light_position_ = std::get<3>(a);
+		double_side_ = std::get<4>(a);
+	}
+
+
 	using LocalShader = ShaderFlat;
 
 	ShaderParamFlat(LocalShader* sh)
@@ -61,12 +74,6 @@ public:
 	{
 	}
 
-	inline void set_vbos(VBO* vbo_pos)
-	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
-	}
 };
 
 } // namespace rendering

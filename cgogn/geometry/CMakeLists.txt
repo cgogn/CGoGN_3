@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/inclusion.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/normal.h"
+                "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/algos/angle.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/area.h"
@@ -30,7 +31,8 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
-		
+        "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )
 
@@ -47,6 +49,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}>
+	$<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 

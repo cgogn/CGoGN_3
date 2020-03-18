@@ -30,12 +30,21 @@
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
 
 #include <cgogn/modeling/algos/graph_to_hex.h>
 
 using Graph = cgogn::Graph;
 using Surface = cgogn::CMap2;
 using Volume = cgogn::CMap3;
+
+template <typename T>
+using SurfaceAttribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
+
+template <typename T>
+using VolumeAttribute = typename cgogn::mesh_traits<Volume>::Attribute<T>;
+
+using Vec3 = cgogn::geometry::Vec3;
 
 int main(int argc, char** argv)
 {
@@ -60,7 +69,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
-	cgogn::ui::SurfaceRender<Volume> vr(app);
+	cgogn::ui::VolumeRender<Volume> vr(app);
 
 	app.init_modules();
 
@@ -85,6 +94,10 @@ int main(int argc, char** argv)
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
 	{
+		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
+		vr.set_vertex_position(*v1, *v, vertex_position);
+
 		mps.emit_connectivity_changed(s);
 		mpv.emit_connectivity_changed(v);
 	}

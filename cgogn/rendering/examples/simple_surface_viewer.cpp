@@ -24,7 +24,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/types/attribute_handler.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
@@ -33,6 +33,7 @@
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/topo_render/topo_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -41,6 +42,7 @@ using Mesh = cgogn::CMap2;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -56,19 +58,21 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Simple viewer");
+	app.set_window_title("Simple surface viewer");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::TopoRender<Mesh> tr(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
+	v1->link_module(&tr);
 	v1->link_module(&srv);
 
 	Mesh* m = mp.load_surface_from_file(filename);
@@ -81,6 +85,21 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
+	std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
+	std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
+
+	auto color_handler = cgogn::attribute_handler<Face>(m, face_color);
+	auto scalar_handler = cgogn::attribute_handler<Face>(m, face_weight);
+
+	// cgogn::index_cells<Face>(*m);
+	cgogn::foreach_cell(*m, [&](Face f) -> bool {
+		Vec3 c(0, 0, 0);
+		c[rand() % 3] = 1;
+		color_handler[f] = c;
+		scalar_handler[f] = double(rand()) / RAND_MAX;
+		return true;
+	});
+
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
@@ -90,6 +109,8 @@ int main(int argc, char** argv)
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
 	srv.set_vertex_vector(*v1, *m, vertex_normal);
+
+	tr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

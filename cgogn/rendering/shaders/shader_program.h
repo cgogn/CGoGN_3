@@ -31,7 +31,8 @@
 #include <iostream>
 #include <memory>
 
-#define DECLARE_SHADER_CLASS(NAME)                                                                                     \
+
+#define DECLARE_SHADER_CLASS(NAME,STRNA)                                                                                     \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
 	{                                                                                                                  \
@@ -47,8 +48,9 @@
 				ShaderProgram::register_instance(instance_);                                                           \
 			}                                                                                                          \
 			return std::make_unique<Param>(instance_);                                                                 \
-		}                                                                                                              \
-                                                                                                                       \
+		}    \
+		inline std::string name() const override { return STRNA;} \
+																													   \
 	protected:                                                                                                         \
 		Shader##NAME();                                                                                                \
 		Shader##NAME(const Shader##NAME&) = delete;                                                                    \
@@ -100,7 +102,7 @@ public:
 		return id_;
 	}
 
-	void compile(const std::string& src);
+	void compile(const std::string& src, const std::string& prg_name);
 };
 
 class CGOGN_RENDERING_EXPORT ShaderProgram
@@ -119,6 +121,7 @@ protected:
 	GLint unif_mv_matrix_;
 	GLint unif_projection_matrix_;
 	GLint unif_normal_matrix_;
+	uint32 nb_attributes_ ;
 
 	std::vector<GLint> uniforms_;
 
@@ -151,14 +154,22 @@ public:
 		return id_;
 	}
 
-	inline void start_use()
-	{
-		glUseProgram(id_);
-	}
+//	inline void start_use()
+//	{
+//		glUseProgram(id_);
+//	}
 
-	inline void stop_use()
+//	inline void stop_use()
+//	{
+//		glUseProgram(0);
+//	}
+
+
+	virtual std::string name() const =0;
+
+	inline uint32 nb_attributes() const
 	{
-		glUseProgram(0);
+		return nb_attributes_;
 	}
 
 	inline void bind()
@@ -182,7 +193,7 @@ public:
 		if (u >= 0)
 			uniforms_.push_back(u);
 		else
-			std::cerr << "Warning uniform " << str << " does not exist in shader" << std::endl;
+			std::cerr << "Warning uniform " << str << " does not exist in shader " <<name()<< std::endl;
 	}
 
 	template <typename T1>
@@ -197,6 +208,7 @@ public:
 		add_uniform(p1);
 		add_uniforms(pn...);
 	}
+
 
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
@@ -219,6 +231,11 @@ public:
 	{
 		bind_attrib_location(attrib1, p1);
 		internal_bind_attrib_locations(attrib1 + 1, pn...);
+	}
+
+
+	void bind_attrib_locations()
+	{
 	}
 
 	template <typename... Ts>
@@ -265,7 +282,7 @@ public:
 	template <typename T1, typename... Ts>
 	void set_uniforms_values(T1 p1, Ts... pn)
 	{
-		set_uniform_value(uniforms_.size() - 1 - sizeof...(pn), p1);
+		set_uniform_value(uniforms_.size() - 1 - sizeof...(Ts), p1);
 		set_uniforms_values(pn...);
 	}
 
@@ -281,19 +298,20 @@ public:
 	void load3_bind(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src);
+		vert_shader_->compile(vert_src, name());
 
 		geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-		geom_shader_->compile(geom_src);
+		geom_shader_->compile(geom_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src);
+		frag_shader_->compile(frag_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, geom_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
 
 		//		set_locations();
+		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		glLinkProgram(id_);
@@ -303,14 +321,15 @@ public:
 		glDetachShader(id_, geom_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
+		glValidateProgram(id_);
 		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+			std::cerr << "PB GL_LINK_STATUS load3_bind " << name() << std::endl;
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+			std::cerr << "PB GL_VALIDATE_STATUS load3_bind " << name() << std::endl;
 
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
@@ -322,21 +341,24 @@ public:
 			delete[] infoLog;
 		}
 
+
 		get_matrices_uniforms();
+
 	}
 
 	template <typename... Ts>
 	void load2_bind(const std::string& vert_src, const std::string& frag_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src);
+		vert_shader_->compile(vert_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src);
+		frag_shader_->compile(frag_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
 
+		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		glLinkProgram(id_);
@@ -345,14 +367,15 @@ public:
 		glDetachShader(id_, frag_shader_->shaderId());
 		glDetachShader(id_, vert_shader_->shaderId());
 
+		glValidateProgram(id_);
 		// Print log if needed
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS" << std::endl;
+			std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
 		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS" << std::endl;
+			std::cerr << "PB GL_VALIDATE_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
 
 		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
 		if (infologLength > 1)
@@ -364,7 +387,55 @@ public:
 			delete[] infoLog;
 		}
 
+
 		get_matrices_uniforms();
+
+	}
+
+	template <typename... Ts>
+	void load_tfb1_bind(const std::string& vert_src, const std::vector<std::string>& tf_outs, Ts... pn)
+	{
+		vert_shader_ = new Shader(GL_VERTEX_SHADER);
+		vert_shader_->compile(vert_src,name());
+
+		glAttachShader(id_, vert_shader_->shaderId());
+
+		nb_attributes_ = sizeof...(Ts);
+		bind_attrib_locations(pn...);
+
+		if (!tf_outs.empty())
+		{
+			std::vector<const char*> tfo;
+			for (const auto& t: tf_outs)
+				tfo.push_back(t.c_str());
+			glTransformFeedbackVaryings(id_, GLsizei(tf_outs.size()), tfo.data(), GL_SEPARATE_ATTRIBS);
+		}
+
+		glLinkProgram(id_);
+
+		glDetachShader(id_, vert_shader_->shaderId());
+
+		glValidateProgram(id_);
+		// Print log if needed
+		GLint infologLength = 0;
+		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+		if (infologLength != GL_TRUE)
+			std::cerr << "PB GL_LINK_STATUS load_tfb1_bind " << name() << std::endl;
+		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+		if (infologLength != GL_TRUE)
+			std::cerr << "PB GL_VALIDATE_STATUS load_tfb1_bind " << name() << std::endl;
+		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+		if (infologLength > 1)
+		{
+			char* infoLog = new char[infologLength];
+			int charsWritten = 0;
+			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+			std::cerr << "Link message: " << infoLog << std::endl;
+			delete[] infoLog;
+		}
+
+		get_matrices_uniforms();
+
 	}
 };
 
@@ -412,6 +483,11 @@ public:
 		return shader_;
 	}
 
+	inline void set_name(const std::string& name)
+	{
+		vao_->set_name(name);
+	}
+
 	/**
 	 * @brief bind the shader set uniforms & matrices, bind vao
 	 * @param proj projection matrix
@@ -426,37 +502,11 @@ public:
 	 */
 	void release();
 
-	template <typename T1>
-	bool internal_associate_vbos(GLuint attrib1, T1* p1)
-	{
-		if (p1)
-		{
-			p1->associate(attrib1);
-			return true;
-		}
-		else
-			return false;
-	}
-
-	template <typename T1, typename... Ts>
-	bool internal_associate_vbos(GLuint attrib1, T1* p1, Ts... pn)
-	{
-		if (p1)
-		{
-			p1->associate(attrib1);
-			return internal_associate_vbos(attrib1 + 1u, pn...);
-		}
-		else
-			return false;
-	}
-
-	template <typename... Ts>
-	auto associate_vbos(Ts... pn) -> std::enable_if_t<std::conjunction_v<std::is_same<VBO*, Ts>...>>
-	{
-		vao_initialized_ = internal_associate_vbos(1u, pn...);
-		if (!vao_initialized_)
-			vao_->create();
-	}
+	/**
+	 * @brief set vbos into the vao
+	 * @param vbos
+	 */
+	virtual void set_vbos(const std::vector<VBO*>& vbos);
 };
 
 } // namespace rendering

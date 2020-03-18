@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SURFACE_SELECTION_H_
 #define CGOGN_MODULE_SURFACE_SELECTION_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -86,19 +87,19 @@ class SurfaceSelection : public ViewModule
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65);
-			param_point_sprite_->set_vbos(&selected_vertices_vbo_);
+			param_point_sprite_->set_vbos({&selected_vertices_vbo_});
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65);
 			param_edge_->width_ = 2.0f;
-			param_edge_->set_vbos(&selected_edges_vbo_);
+			param_edge_->set_vbos({&selected_edges_vbo_});
 
 			param_flat_ = rendering::ShaderFlat::generate_param();
 			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65);
 			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65);
 			param_flat_->double_side_ = true;
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
-			param_flat_->set_vbos(&selected_faces_vbo_);
+			param_flat_->set_vbos({&selected_faces_vbo_});
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -267,7 +268,7 @@ protected:
 	{
 		if (selected_mesh_ && view->shift_pressed())
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (p.vertex_position_)

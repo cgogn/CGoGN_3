@@ -61,20 +61,22 @@ inline Dart add_dart(CMapBase& m)
 // CPH3 //
 //////////
 
-// inline Dart add_dart(CPH3& m)
-// {
-// 	Dart d = add_dart(static_cast<CPH3::CMAP&>(m));
-// 	m.nb_darts_per_level_[m.current_level_]++;
-// 	m.set_edge_id(d, 0u);
-// 	m.set_face_id(d, 0u);
-// 	m.set_dart_level(d, m.current_level_);
-
-// 	// update max level if needed
-// 	if (m.current_level_ > m.maximum_level_)
-// 		m.maximum_level_ = m.current_level_;
-
-// 	return d;
-// }
+inline Dart add_dart(CPH3& m)
+{
+	Dart d = add_dart(static_cast<CPH3::CMAP&>(m));
+	if(m.nb_darts_per_level_.size() < m.current_level_)
+		m.nb_darts_per_level_.resize(m.current_level_);
+	m.nb_darts_per_level_[m.current_level_]++;
+	m.set_edge_id(d, 0u);
+	m.set_face_id(d, 0u);
+	m.set_dart_level(d, m.current_level_);
+	
+	// update max level if needed
+	if (m.current_level_ > m.maximum_level_)
+		m.maximum_level_ = m.current_level_;
+	
+	return d;
+}
 
 /*****************************************************************************/
 
@@ -144,37 +146,16 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
-// void set_index(MESH& m, CELL c, uint32 index);
-
-/*****************************************************************************/
-
-/////////////
-// GENERIC //
-/////////////
-
-template <typename CELL, typename MESH>
-void set_index(MESH& m, CELL c, uint32 index)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-		set_index<CELL>(m, d, index);
-		return true;
-	});
-}
-
-/*****************************************************************************/
-
-// template <typename CELL, typename MESH>
 // void copy_index(MESH& m, Dart dest, Dart src);
 
 /*****************************************************************************/
 
-/////////////
-// GENERIC //
-/////////////
+//////////////
+// CMapBase //
+//////////////
 
 template <typename CELL, typename MESH>
-inline void copy_index(MESH& m, Dart dest, Dart src)
+auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");

@@ -37,6 +37,25 @@ inline bool in_sphere(const Vec3& point, const Vec3& center, Scalar radius)
 	return (point - center).norm() < radius;
 }
 
+inline double triple_product(const Vec3& U, const Vec3& V, const Vec3& W)
+{
+	return U.dot(V.cross(W));
+}
+
+inline bool in_triangle(const Vec3& P, const Vec3& normal, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc)
+{
+	if (triple_product(P - Ta, Tb - Ta, normal) >= 0 || triple_product(P - Tb, Tc - Tb, normal) >= 0 ||
+		triple_product(P - Tc, Ta - Tc, normal) >= 0)
+		return false;
+
+	return true;
+}
+
+inline bool in_triangle(const Vec3& P, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc)
+{
+	return in_triangle(P, normal(Ta, Tb, Tc), Ta, Tb, Tc);
+}
+
 } // namespace geometry
 
 } // namespace cgogn

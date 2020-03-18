@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
 #define CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -122,7 +123,7 @@ public:
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
 
 		v.request_update();
 	}
@@ -136,7 +137,7 @@ public:
 		if (p.vertex_vector_)
 			md->update_vbo(vertex_vector.get(), true);
 
-		p.param_vector_per_vertex_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get()));
+		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
 
 		v.request_update();
 	}

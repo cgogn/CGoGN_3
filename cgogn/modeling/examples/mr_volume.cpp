@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
- * Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -33,6 +33,7 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/volume_mr_modeling/volume_mr_modeling.h>
+#include <cgogn/ui/modules/volume_selection/volume_selection.h>
 
 using MRMesh = cgogn::CPH3;
 using Mesh = cgogn::CPH3::CMAP;
@@ -63,6 +64,7 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::MeshProvider<MRMesh> mrmp(app);
 	cgogn::ui::SurfaceRender<MRMesh> mrsr(app);
+	cgogn::ui::VolumeSelection<MRMesh> vs(app);
 
 	cgogn::ui::VolumeMRModeling vmrm(app);
 
@@ -71,10 +73,12 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mrmp);
 	v1->link_module(&mrsr);
+	v1->link_module(&vs);
 
 	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&mrmp);
 	v2->link_module(&mrsr);
+	v2->link_module(&vs);
 
 	Mesh* m = mp.load_volume_from_file(filename);
 	if (!m)
@@ -88,8 +92,9 @@ int main(int argc, char** argv)
 	MRMesh* cph1 = vmrm.create_cph3(*m, mp.mesh_name(m));
 	MRMesh* cph2 = vmrm.create_cph3(*m, mp.mesh_name(m));
 
-	vmrm.subdivide(*cph1, position.get());
-	vmrm.subdivide(*cph1, position.get());
+	cgogn::index_cells<Mesh::Volume>(*m);
+	cgogn::index_cells<Mesh::Edge>(*m);
+	cgogn::index_cells<Mesh::Face>(*m);
 
 	mrsr.set_vertex_position(*v1, *cph1, position);
 	mrsr.set_vertex_position(*v1, *cph2, nullptr);

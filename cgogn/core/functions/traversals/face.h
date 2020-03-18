@@ -112,11 +112,11 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
 		{
 			DartMarkerStore<MESH> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				Face f(d);
 				if constexpr (mesh_traits<MESH>::dimension == 2) // faces can be boundary cells
 				{
 					if (!marker.is_marked(d) && !is_boundary(m, d))
 					{
+						Face f(d);
 						foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
 							marker.mark(d);
 							return true;
@@ -128,6 +128,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
 				{
 					if (!marker.is_marked(d))
 					{
+						Face f(d);
 						foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
 							marker.mark(d);
 							return true;

@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,7 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shaders/shader_flat_cpv.h>
+#ifndef CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_FACE_H_
+#define CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_FACE_H_
+
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -29,46 +33,48 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderFlatColor* ShaderFlatColor::instance_ = nullptr;
+DECLARE_SHADER_CLASS(FlatScalarPerFace,CGOGN_STR(FlatScalarPerFace))
 
-ShaderFlatColor::ShaderFlatColor()
+class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerFace : public ShaderParam
 {
-	const char* vertex_shader_source = "#version 150\n"
-									   "in vec3 vertex_pos;\n"
-									   "in vec3 vertex_col;\n"
-									   "uniform mat4 projection_matrix;\n"
-									   "uniform mat4 model_view_matrix;\n"
-									   "out vec3 pos;\n"
-									   "out vec3 col;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
-									   "	pos = pos4.xyz;\n"
-									   "	col = vertex_col;\n"
-									   "   gl_Position = projection_matrix * pos4;\n"
-									   "}\n";
+	void set_uniforms() override;
+public:
+	VBO* vbo_pos_;
+	VBO* vbo_scalar_;
+	GLColor ambiant_color_;
+	GLVec3 light_position_;
+	bool double_side_;
 
-	const char* fragment_shader_source = "#version 150\n"
-										 "out vec4 fragColor;\n"
-										 "uniform vec4 ambiant_color;\n"
-										 "uniform vec3 lightPosition;\n"
-										 "uniform bool cull_back_face;\n"
-										 "in vec3 pos;\n"
-										 "in vec3 col;\n"
-										 "void main()\n"
-										 "{\n"
-										 "	vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));\n"
-										 "	vec3 L = normalize(lightPosition-pos);\n"
-										 "	float lambert = dot(N,L);\n"
-										 "	if ((gl_FrontFacing==false) && cull_back_face) discard;\n"
-										 "	else fragColor = ambiant_color+vec4(lambert*col,1.0);\n"
-										 "}\n";
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		ambiant_color_ = std::get<0>(a);
+		light_position_ = std::get<1>(a);
+		double_side_ = std::get<2>(a);
+	}
 
-	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_col");
+	using LocalShader = ShaderFlatScalarPerFace;
 
-	add_uniforms("ambiant_color", "lightPosition", "cull_back_face");
-}
+	ShaderParamFlatScalarPerFace(LocalShader* sh)
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_scalar_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
+		  light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
+
+	inline ~ShaderParamFlatScalarPerFace() override
+	{
+	}
+
+	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	{
+		vbo_pos_ = vbos[0];
+		vbo_scalar_ = vbos[1];
+	}
+};
 
 } // namespace rendering
 
 } // namespace cgogn
+
+#endif
