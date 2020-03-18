@@ -567,7 +567,7 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 
 	std::vector<Vec3> Ppos;
 	std::vector<Dart> Pdart;
-	std::vector<uint> Pid;
+	std::vector<uint32> Pid;
 
 	cgogn::io::SurfaceImportData surface_data;
 
@@ -671,7 +671,7 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 		nb_cells<CMap2::Face>(m2) << std::endl;
 	
 	//vol_dart = remesh(m2, vol_dart, m2Attribs);
-	dualize_volume(m2, CMap2::Volume(vol_dart), m2Attribs, g, gAttribs);
+	//dualize_volume(m2, CMap2::Volume(vol_dart), m2Attribs, g, gAttribs);
 
 	dump_map_darts(m2);
 	std::cout << "convex hull data calculated: " <<
@@ -1112,25 +1112,25 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 /* utils				                                                     */
 /*****************************************************************************/
 
-bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint>> dist)
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous, std::shared_ptr<CMap2::Attribute<uint32>> dist)
 {
 	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
 				value<CMap2::Vertex>(m2, previous, v) = CMap2::Vertex();
-				value<uint>(m2, dist, v) = UINT_MAX;
+				value<uint32>(m2, dist, v) = UINT_MAX;
 				return true;
 			});
 
 	DartMarker visited(m2);
 
 	std::vector<CMap2::Vertex> vertices = {v0};
-	value<uint>(m2, dist, v0) = 0;
+	value<uint32>(m2, dist, v0) = 0;
 	CMap2::Vertex v_act; 
 	uint32 dist_act;
 	while(vertices.size())
 	{
 		v_act = vertices[vertices.size() - 1];
 		vertices.pop_back();
-		dist_act = value<uint>(m2, dist, v) + 1;
+		dist_act = value<uint32>(m2, dist, v_act) + 1;
 
 		std::vector<CMap2::Vertex> neighbors;
 		foreach_dart_of_orbit(m2, v_act, [&](Dart d) -> bool {
@@ -1140,11 +1140,11 @@ bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute
 					visited.mark(d);
 					visited.mark(d2);
 
-					uint32 dist_2 = value<uint>(m2, dist, CMap2::Vertex(d2));
+					uint32 dist_2 = value<uint32>(m2, dist, CMap2::Vertex(d2));
 					if(dist_2 < dist_act)
 					{
-						value<uint>(m2, dist, CMap2::Vertex(d2))
-						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2))
+						value<uint32>(m2, dist, CMap2::Vertex(d2));
+						value<CMap2::Vertex>(m2, previous, CMap2::Vertex(d2));
 						neighbors.push_back(CMap2::Vertex(d2));
 					}
 				}
@@ -1338,6 +1338,8 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 						{
 							edges_n_4.push_back(e);
 						}
+
+						return true;
 					});
 
 			candidate_edges = edges_n_n.size()? edges_n_n : edges_n_4;
@@ -1396,6 +1398,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 					candidate_vertices_pairs.push_back({{verts_3[i], verts_3[j]}, min_cut_angle(m2, verts_3[i], verts_3[j], m2Attribs)});
 				}
 			}
+			return true;
 		});
 
 		if(candidate_vertices_pairs.size())
@@ -1412,12 +1415,12 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 		{
 			uint32 max_path_length = 0;
 			std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> max_previous;
-			std::shared_ptr<CMap2::Attribute<uint>> max_dist;
+			std::shared_ptr<CMap2::Attribute<uint32>> max_dist;
 			std::pair<CMap2::Vertex, CMap2::Vertex> max_shortest_path;
 			for(CMap2::Vertex v : valence_3)
 			{
 				std::shared_ptr<CMap2::Attribute<CMap2::Vertex>> previous = add_attribute<CMap2::Vertex, CMap2::Vertex>(m2, "previous");;
-				std::shared_ptr<CMap2::Attribute<uint>> dist = add_attribute<uint, CMap2::Vertex>(m2, "dist");;
+				std::shared_ptr<CMap2::Attribute<uint32>> dist = add_attribute<uint32, CMap2::Vertex>(m2, "dist");;
 				
 				dijkstra_topo(m2, v, previous, dist);
 
@@ -1428,17 +1431,17 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 					if(index_of<CMap2::Vertex>(m2, v) == index_of<CMap2::Vertex>(m2, v2))
 						continue;
 					
-					if(value<uint>(m2, dist, CMap2::Vertex(v2)) < curr_min)
+					if(value<uint32>(m2, dist, CMap2::Vertex(v2)) < curr_min)
 					{
-						curr_min = value<uint>(m2, dist, CMap2::Vertex(v2));
-						curr_min_vert = v2
+						curr_min = value<uint32>(m2, dist, CMap2::Vertex(v2));
+						curr_min_vert = v2;
 					}
 				}	
 				// value<CMap2::Vertex>(m2, previous, curr_min_vertex);
 				if(curr_min > max_path_length)
 				{
-					remove_attribute<Vertex>(m, max_previous);
-					remove_attribute<Vertex>(m, max_dist);
+					remove_attribute<CMap2::Vertex>(m2, max_previous);
+					remove_attribute<CMap2::Vertex>(m2, max_dist);
 
 					max_previous = previous;
 					max_dist = dist;
