@@ -60,6 +60,7 @@ struct M2Attributes
 {
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position;
 	std::shared_ptr<CMap2::Attribute<Dart>> dual_vertex_graph_branch;
+	std::shared_ptr<CMap2::Attribute<Graph::Vertex>> volume_gvertex;
 	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
 	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
@@ -78,7 +79,8 @@ Dart add_branch_section(CMap3& m3);
 void project_on_sphere(Vec3& P, const Vec3& C, Scalar R);
 void shift_frame(Mat3& frame, uint32 nb_shifts);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
-bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous, std::shared_ptr<CMap2::Attribute<uint32>> dist);
+bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
+				   std::shared_ptr<CMap2::Attribute<uint32>> dist);
 Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data);
 Dart remesh(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs);
 Vec3 slerp(Vec3 A, Vec3 B, Scalar coef, bool in);
@@ -99,8 +101,10 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
 /*****************************************************************************/
 
 bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
-void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex v);
-void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::Vertex v);
+void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 Graph::Vertex v);
+void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 Graph::Vertex v);
 void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
