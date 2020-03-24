@@ -94,6 +94,13 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	else
 		std::cout << "graph_to_hex (/): added cmap2 attributes" << std::endl;
 
+	//foreach_cell(graph, )
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		if (degree(g, v) > 3)
+			std::cout << "n > 3: " << index_of(g, v) << std::endl;
+		return true;
+	});
+
 	okay = build_contact_surfaces(g, gAttribs, m2, m2Attribs);
 	if (!okay)
 	{
@@ -156,6 +163,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
+	
 	//dump_map_darts(m3);
 
 
@@ -1359,8 +1367,18 @@ Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations)
 	{
 		bary += readvec[i];
 	}
-
 	bary /= nb_pts;
+
+	Vec3 normal = {0, 0, 0};
+	for (uint32 i = 0; i < nb_pts; ++i)
+	{
+		normal += points[i].cross(points[(i + 1) % nb_pts]);
+	}
+	normal.normalize();
+
+	if (normal.dot(bary) < 0)
+		bary *= -1;
+
 	return bary;
 }
 
@@ -1373,12 +1391,12 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 	std::vector<CMap2::Vertex> valence_sup4;
 	std::vector<CMap2::Vertex> valence_3;
 
-		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
-		std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
-		return true;
-	});
+	//	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+	//	std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
+	//	return true;
+	//});
 
 	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 				uint32 valence = degree(m2, v);
