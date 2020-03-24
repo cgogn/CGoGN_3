@@ -330,21 +330,19 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const 
 		if (!vertex_marker.is_marked(d))
 		{
 			CMap2::Vertex v(d);
-			Vec3 b = Vec3(0, 0, 0);
-			uint32 nb = 0;
-			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+
+			std::vector<Vec3> points;
+			 foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 				vertex_marker.mark(d);
-				// barycenter computation
-				// darts of the new vertex orbit are darts of the old dual face
-				Vec3 t = value<Vec3>(m, m2Attribs.vertex_position, CMap2::Vertex(d));
-				b += value<Vec3>(m, m2Attribs.vertex_position, CMap2::Vertex(d));
-				++nb;
+				points.push_back(value<Vec3>(m, m2Attribs.vertex_position, CMap2::Vertex(d)) - center);
 				return true;
 			});
-			std::cout << "barycenter" << b << std::endl;
-			// should project on sphere or even do something smarter
-			 b /= nb;										  // nb should always be 4
-			project_on_sphere(b, center, radius); // nb should always be 4
+			Vec3 b;
+			 if (points.size() == 2)
+				 b = slerp(points[0], points[1], 0.5, true) + center;
+			 else
+				b = spherical_barycenter(points, 10) + center;
+
 			set_index(m, v, new_index<CMap2::Vertex>(m));	  // give a new index to the vertex
 			value<Vec3>(m, m2Attribs.vertex_position, v) = b; // set the position to the computed position
 			return true;
@@ -680,17 +678,17 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 
 	index_volume_cells(m2, CMap2::Volume(vol_dart));
 	value<Graph::Vertex>(m2, m2Attribs.volume_gvertex, CMap2::Volume(vol_dart)) = v;
-	foreach_incident_vertex(m2, CMap2::Volume(vol_dart), [&](CMap2::Vertex v) -> bool {
-		std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
-		return true;
-	});
-	//dump_map_darts(m2);
-	std::cout << "convex hull data calculated: " <<
-		nb_cells<CMap2::Vertex>(m2) << " " <<
-		nb_cells<CMap2::Edge>(m2) << " " <<
-		nb_cells<CMap2::Face>(m2) << std::endl;
+	//foreach_incident_vertex(m2, CMap2::Volume(vol_dart), [&](CMap2::Vertex v) -> bool {
+	//	std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
+	//	return true;
+	//});
+	////dump_map_darts(m2);
+	//std::cout << "convex hull data calculated: " <<
+	//	nb_cells<CMap2::Vertex>(m2) << " " <<
+	//	nb_cells<CMap2::Edge>(m2) << " " <<
+	//	nb_cells<CMap2::Face>(m2) << std::endl;
 	
 	vol_dart = remesh(m2, CMap2::Volume(vol_dart), m2Attribs);
 	dualize_volume(m2, CMap2::Volume(vol_dart), m2Attribs, g, gAttribs);
@@ -703,10 +701,10 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 
 
 	//dump_map_darts(m2);
-	std::cout << "dual data calculated: " <<
-		nb_cells<CMap2::Vertex>(m2) << " " <<
-		nb_cells<CMap2::Edge>(m2) << " " <<
-		nb_cells<CMap2::Face>(m2) << std::endl;
+	//std::cout << "dual data calculated: " <<
+	//	nb_cells<CMap2::Vertex>(m2) << " " <<
+	//	nb_cells<CMap2::Edge>(m2) << " " <<
+	//	nb_cells<CMap2::Face>(m2) << std::endl;
 }
 
 /*****************************************************************************/
@@ -1331,6 +1329,42 @@ Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes
 	return std::min({a0, a1, a2, a3});
 }
 
+Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations)
+{
+	uint32 nb_pts = points.size();
+	std::vector<Vec3> pts0(nb_pts);
+	std::vector<Vec3> pts1(nb_pts);
+
+	for (uint32 i = 0; i < nb_pts; ++i)
+		pts0[i] = points[i];
+
+	std::vector<Vec3> readvec = pts0;
+	std::vector<Vec3> writevec = pts1;
+	std::vector<Vec3> tempvec;
+
+	for (uint32 it = 0; it < iterations; ++it)
+	{
+		for (uint32 i = 0; i < nb_pts; ++i)
+		{
+			writevec[i] = slerp(readvec[i], readvec[(i + 1) % nb_pts], Scalar(0.5), true);
+		}
+
+		tempvec = writevec;
+		writevec = readvec;
+		readvec = tempvec;
+	}
+		
+	Vec3 bary = {0, 0, 0};
+	for (uint32 i = 0; i < nb_pts; ++i)
+	{
+		bary += readvec[i];
+	}
+
+	bary /= nb_pts;
+	return bary;
+}
+
+
 Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 {
 	Dart vol_dart = vol.dart;
@@ -1394,7 +1428,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 
 			std::sort(candidate_edges.begin(), candidate_edges.end(), [&](CMap2::Edge e0, CMap2::Edge e1) -> bool
 			{
-				return value<Scalar>(m2, edge_angle_max, e0) > value<Scalar>(m2, edge_angle_max, e1);
+				return value<Scalar>(m2, edge_angle_max, e0) < value<Scalar>(m2, edge_angle_max, e1);
 			});
 
 
@@ -1527,18 +1561,83 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 
 			if (!(path.size() % 2))
 			{
-				Dart d0 = path.front(); 
-				Dart d1 = phi1(m2, d0);
-				Dart d2 = phi_1(m2, d0);
-				// phi2(phi1(d0)) to start at the end
-				std::cout << index_of(m2, CMap2::Vertex(d0)) << " " << index_of(m2, CMap2::Vertex(d1)) << " "
-						  << index_of(m2, CMap2::Vertex(d2)) << std::endl;
-				vol_dart = cut_face(m2, CMap2::Vertex(d1), CMap2::Vertex(d2), true).dart;
-				value<uint32>(m2, vertex_valence, CMap2::Vertex(d1))++;
-				value<uint32>(m2, vertex_valence, CMap2::Vertex(d0))--;
+				std::vector<CMap2::Edge> first_edges;
+				first_edges.push_back(CMap2::Edge(phi_1(m2, path.front())));
+				first_edges.push_back(CMap2::Edge(phi2(m2, phi1(m2, path.front()))));
+				first_edges.push_back(CMap2::Edge(phi1(m2, path.back())));
+				first_edges.push_back(CMap2::Edge(phi2(m2, phi_1(m2, path.back()))));
 
-				merge_incident_faces(m2, CMap2::Edge(d2), true);
-				path.erase(path.begin());
+				std::vector<std::pair<Scalar, uint32>> angles;
+				angles.push_back({edge_max_angle(m2, first_edges[0], m2Attribs), 0});
+				angles.push_back({edge_max_angle(m2, first_edges[1], m2Attribs), 1});
+				angles.push_back({edge_max_angle(m2, first_edges[2], m2Attribs), 2});
+				angles.push_back({edge_max_angle(m2, first_edges[3], m2Attribs), 3});
+
+				std::sort(angles.begin(), angles.end(),
+						  [&](std::pair<Scalar, uint32> p0, std::pair<Scalar, uint32> p1) -> bool {
+							  return p0.first < p1.first;
+						  });
+
+				//std::cout << "angles: ";
+				//for (uint32 i = 0; i < 4; ++i)
+				//	std::cout << angles[i].first << " ";
+				//std::cout << std::endl;
+
+				//Dart v0, v1, e2;
+				CMap2::Vertex v0, v1;
+				CMap2::Edge e0;
+				switch (angles[0].second)
+				{
+				case 0:
+					v0 = CMap2::Vertex(phi1(m2, path.front()));
+					v1 = CMap2::Vertex(phi_1(m2, path.front()));
+					e0 = CMap2::Edge(v1.dart);
+					path.erase(path.begin());
+					break;
+				case 1:
+					v0 = CMap2::Vertex(phi2(m2, path.front()));
+					v1 = CMap2::Vertex(phi<211>(m2, path.front()));
+					e0 = CMap2::Edge(phi<21>(m2, path.front()));
+					path.erase(path.begin());
+					break;
+
+				case 2:
+					v0 = CMap2::Vertex(path.back());
+					v1 = CMap2::Vertex(phi<11>(m2, path.back()));
+					e0 = CMap2::Edge(phi1(m2, path.back()));
+					path.pop_back();
+					break;
+
+				case 3:
+					v0 = CMap2::Vertex(phi_1(m2, phi2(m2, path.back())));
+					v1 = CMap2::Vertex(phi<21>(m2, path.back()));
+					e0 = CMap2::Edge(v0.dart);
+					path.pop_back();
+					break;
+				default:
+					break;
+				}
+
+				 vol_dart = cut_face(m2, v0, v1, true).dart;
+				 merge_incident_faces(m2, e0, true);
+
+				//Dart d0 = path.front(); 
+				//
+				//Dart d1 = phi1(m2, d0);
+				//Dart d2 = phi_1(m2, d0);
+				//// phi2(phi1(d0)) to start at the end
+				////std::cout << index_of(m2, CMap2::Vertex(d0)) << " " << index_of(m2, CMap2::Vertex(d1)) << " "
+				////		  << index_of(m2, CMap2::Vertex(d2)) << std::endl;
+				//vol_dart = cut_face(m2, CMap2::Vertex(d1), CMap2::Vertex(d2), true).dart;
+				////value<uint32>(m2, vertex_valence, CMap2::Vertex(d1))++;
+				////value<uint32>(m2, vertex_valence, CMap2::Vertex(d0))--;
+
+				//merge_incident_faces(m2, CMap2::Edge(d2), true);
+				//path.erase(path.begin());
+
+
+
+				
 			}
 
 			for (uint32 i = 0; i < path.size(); ++i)
@@ -1563,20 +1662,20 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 		valence_3.clear();
 		std::cout << "vertices" << std::endl;
 		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
-			std::cout << v << " " << value<uint32>(m2, vertex_valence, v) << "/" << degree(m2, v) << std::endl;
+			//std::cout << v << " " << value<uint32>(m2, vertex_valence, v) << "/" << degree(m2, v) << std::endl;
 			if (degree(m2, v) == 3) 
 				valence_3.push_back(v);
 			return true;
 		});
 	}
 
-	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+	/*foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 		std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
 				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
 				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2]
 				  << std::endl;
 		return true;
-	});
+	});*/
 
 		
 

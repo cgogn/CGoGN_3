@@ -87,6 +87,7 @@ Vec3 slerp(Vec3 A, Vec3 B, Scalar coef, bool in);
 Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C);
 Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs);
 Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs);
+Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations);
 
 /*****************************************************************************/
 /* data preparation                                                          */
