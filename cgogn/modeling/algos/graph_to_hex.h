@@ -92,7 +92,7 @@ Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations);
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
-
+bool subdivide_graph(Graph& g);
 bool get_graph_data(const Graph& g, GData& gData);
 bool add_graph_attributes(Graph& g, GAttributes& gAttribs);
 bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
