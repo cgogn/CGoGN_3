@@ -43,7 +43,7 @@
 #include <cgogn/io/surface/surface_import.h>
 
 #include <cgogn/geometry/functions/angle.h>
-#include <cgogn\core\functions\mesh_ops\edge.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
 
 namespace cgogn
 {
@@ -147,33 +147,33 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	else
 		std::cout << "graph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
 
-	okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
-	if (!okay)
-	{
-		//std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
-		return false;
-	}
-	else
-		std::cout << "graph_to_hex (/): build_branch_sections completed" << std::endl;
+	//okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
+	//if (!okay)
+	//{
+	//	//std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
+	//	return false;
+	//}
+	//else
+	//	std::cout << "graph_to_hex (/): build_branch_sections completed" << std::endl;
 
-	okay = sew_branch_sections(m2, m2Attribs, m3);
-	if (!okay)
-	{
-		std::cout << "error graph_to_hex: sew_sections" << std::endl;
-		return false;
-	}
-	else
-		std::cout << "graph_to_hex (/): sew_sections completed" << std::endl;
+	//okay = sew_branch_sections(m2, m2Attribs, m3);
+	//if (!okay)
+	//{
+	//	std::cout << "error graph_to_hex: sew_sections" << std::endl;
+	//	return false;
+	//}
+	//else
+	//	std::cout << "graph_to_hex (/): sew_sections completed" << std::endl;
 
-	okay = set_volumes_geometry(m2, m2Attribs, m3);
-	if (!okay)
-	{
-		std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
-		return false;
-	}
-	else
-		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
-	
+	//okay = set_volumes_geometry(m2, m2Attribs, m3);
+	//if (!okay)
+	//{
+	//	std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
+	//	return false;
+	//}
+	//else
+	//	std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
+	//
 	//dump_map_darts(m3);
 
 
@@ -539,7 +539,7 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 
 	m2Attribs.dual_vertex_graph_branch = add_attribute<Dart, CMap2::Vertex>(m2, "graph_branch");
 	if (!m2Attribs.dual_vertex_graph_branch)
-	{
+	{ 
 		std::cout << "Failed to add dual_vertex_graph_branch attribute to map2" << std::endl;
 		return false;
 	}
@@ -582,20 +582,36 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs)
 {
 	bool res = true;
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		std::cout << "graph vertex :" << index_of(g, v) << std::endl;
+		value<Dart>(g, gAttribs.vertex_contact_surface, v) = Dart();
+		return true;
+	});
+
 	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		std::cout << "building surface " << index_of(g, v) << " / " << nb_cells<CMap2::Vertex>(m2) << " / "
+				  << nb_darts(m2) << std::endl; 
 		switch (degree(g, v))
 		{
 		case 1:
+			//std::cout << "building surface 1" << std::endl;
 			build_contact_surface_1(g, gAttribs, m2, m2Attribs, v);
+			//std::cout << "build surface 1" << std::endl;
 			break;
 		case 2:
+			//std::cout << "building surface 2 " << index_of(g, v) << std::endl;
 			build_contact_surface_2(g, gAttribs, m2, m2Attribs, v);
+			//std::cout << "build surface 2" << std::endl;
 			break;
 		case 3:
+			//std::cout << "building surface 3" << std::endl;
 			build_contact_surface_3(g, gAttribs, m2, m2Attribs, v);
+			//std::cout << "build surface 3" << std::endl;
 			break;
 		default:
+			//std::cout << "building surface n" << std::endl;
 			build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
+			//std::cout << "build surface n" << std::endl;
 			break;
 		}
 		return res;
@@ -817,6 +833,7 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 	//	nb_cells<CMap2::Vertex>(m2) << " " <<
 	//	nb_cells<CMap2::Edge>(m2) << " " <<
 	//	nb_cells<CMap2::Face>(m2) << std::endl;
+	return;
 }
 
 /*****************************************************************************/
@@ -1578,7 +1595,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 	// candidate_faces.reserve(nb_cells<CMap2::Face>(m2));
 
 	valence_3.clear();
-	std::cout << "vertices" << std::endl;
+	//std::cout << "vertices" << std::endl;
 	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 		//std::cout << v << " " << value<uint32>(m2, vertex_valence, v) << "/" << degree(m2, v) << std::endl;
 		if (degree(m2, v) == 3)
@@ -1782,7 +1799,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 		}
 
 		valence_3.clear();
-		std::cout << "vertices" << std::endl;
+		//std::cout << "vertices" << std::endl;
 		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 			//std::cout << v << " " << value<uint32>(m2, vertex_valence, v) << "/" << degree(m2, v) << std::endl;
 			if (degree(m2, v) == 3) 
