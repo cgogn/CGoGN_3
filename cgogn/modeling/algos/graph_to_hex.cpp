@@ -43,6 +43,7 @@
 #include <cgogn/io/surface/surface_import.h>
 
 #include <cgogn/geometry/functions/angle.h>
+#include <cgogn\core\functions\mesh_ops\edge.h>
 
 namespace cgogn
 {
@@ -61,6 +62,15 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	GData gData;
 	GAttributes gAttribs;
 	M2Attributes m2Attribs;
+
+	okay = subdivide_graph(g);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: subdivide_graph" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): sudivided graph" << std::endl;
 
 	okay = get_graph_data(g, gData);
 	std::cout << gData.intersections.size() << " inters" << std::endl;
@@ -93,6 +103,13 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): added cmap2 attributes" << std::endl;
+
+	//foreach_cell(graph, )
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		if (degree(g, v) > 3)
+			std::cout << "n > 3: " << index_of(g, v) << std::endl;
+		return true;
+	});
 
 	okay = build_contact_surfaces(g, gAttribs, m2, m2Attribs);
 	if (!okay)
@@ -133,7 +150,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
 	if (!okay)
 	{
-		std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
+		//std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
 		return false;
 	}
 	else
@@ -156,6 +173,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
+	
 	//dump_map_darts(m3);
 
 
@@ -354,6 +372,100 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const 
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
+
+bool subdivide_graph(Graph& g)
+{
+	auto vertex_position = get_attribute<Vec3, Graph::Vertex>(g, "position");
+	if (!vertex_position)
+	{
+		std::cout << "The graph has no vertex position attribute" << std::endl;
+		return false;
+	}
+
+	auto vertex_radius = get_attribute<Scalar, Graph::Vertex>(g, "radius");
+	if (!vertex_radius)
+	{
+		std::cout << "The graph has no vertex radius attribute" << std::endl;
+		return false;
+	}
+
+	CellCache<Graph> cache(g);
+	cache.template build<Graph::Edge>();
+
+	foreach_cell(cache, [&](Graph::Edge eg) -> bool {
+		const Vec3& P0 = value<Vec3>(g, vertex_position, Graph::Vertex(eg.dart));
+		const Vec3& Pn = value<Vec3>(g, vertex_position, Graph::Vertex(alpha0(g, eg.dart)));
+		const Scalar R0 = value<Scalar>(g, vertex_radius, Graph::Vertex(eg.dart));
+		const Scalar Rn = value<Scalar>(g, vertex_radius, Graph::Vertex(alpha0(g, eg.dart)));
+
+		//Graph::Vertex vg = cut_edge(g, eg, true);
+		//value<Vec3>(g, vertex_position, Graph::Vertex(vg.dart)) =(P0 + Pn)/2;
+		//value<Scalar>(g, vertex_radius, Graph::Vertex(vg.dart)) = (R0 + Rn) / 2;
+
+		Scalar avg_radius = (R0 + Rn) / 2;
+		Vec3 edge = Pn - P0;
+		Scalar D = edge.norm();
+		edge = edge.normalized();
+
+		uint32 n = D / avg_radius;
+		if (n > 1)
+		{
+			Scalar y = (Rn - R0) / D;
+			Scalar ratio = pow(Rn / R0, 1.0 / Scalar(n));
+
+			Scalar sum_ratio = 0;
+			Scalar alpha = 1;
+			std::vector<Scalar> ratios_sums;
+			for (uint32 i = 0; i < n; ++i)
+			{
+				sum_ratio += alpha;
+				ratios_sums.push_back(sum_ratio);
+				alpha *= ratio;
+			}
+			ratios_sums.pop_back();
+
+			Vec3 D0 = D / sum_ratio * edge;
+			std::vector<Vec3> Pi;
+			for (Scalar r : ratios_sums)
+			{
+				Pi.push_back(P0 + r * D0);
+			}
+
+			Dart d = eg.dart;
+			alpha = ratio * R0;
+			std::cout << "edge:" << eg << " " ;
+			std::cout << P0[0] << " " << P0[1] << " " << P0[2] << std::endl;
+			for (Vec3 P : Pi)
+			{
+
+				//for (uint32 i = 0; i < Pi.size() && i < 6; ++i)
+				//{
+				//	d = cut_edge(g, Graph::Edge(d), true).dart;
+				//	value<Vec3>(g, vertex_position, Graph::Vertex(d)) = Pi[i];
+				//	value<Scalar>(g, vertex_radius, Graph::Vertex(d)) = alpha;
+				//	alpha *= ratio;
+				//	d = alpha1(g, d);
+				//}
+
+
+				d = cut_edge(g, Graph::Edge(d), true).dart;
+					value<Vec3>(g, vertex_position, Graph::Vertex(d)) = P;
+					value<Scalar>(g, vertex_radius, Graph::Vertex(d)) = alpha;
+					alpha *= ratio;
+					d = alpha1(g, d);
+
+
+
+				std::cout << P[0] << " " << P[1] << " " << P[2] << std::endl;
+			}
+			std::cout << Pn[0] << " " << Pn[1] << " " << Pn[2] << std::endl;
+
+		}
+
+		return true;
+	});
+	return true;
+}
 
 bool get_graph_data(const Graph& g, GData& gData)
 {
@@ -1359,8 +1471,18 @@ Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations)
 	{
 		bary += readvec[i];
 	}
-
 	bary /= nb_pts;
+
+	Vec3 normal = {0, 0, 0};
+	for (uint32 i = 0; i < nb_pts; ++i)
+	{
+		normal += points[i].cross(points[(i + 1) % nb_pts]);
+	}
+	normal.normalize();
+
+	if (normal.dot(bary) < 0)
+		bary *= -1;
+
 	return bary;
 }
 
@@ -1373,12 +1495,12 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 	std::vector<CMap2::Vertex> valence_sup4;
 	std::vector<CMap2::Vertex> valence_3;
 
-		foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
-		std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
-				  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
-		return true;
-	});
+	//	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+	//	std::cout << "v3:" << v << " " << value<Vec3>(m2, m2Attribs.vertex_position, v)[0] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[1] << " "
+	//			  << value<Vec3>(m2, m2Attribs.vertex_position, v)[2] << std::endl;
+	//	return true;
+	//});
 
 	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 				uint32 valence = degree(m2, v);
