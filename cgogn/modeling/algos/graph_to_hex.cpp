@@ -63,14 +63,14 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	GAttributes gAttribs;
 	M2Attributes m2Attribs;
 
-	okay = subdivide_graph(g);
-	if (!okay)
-	{
-		std::cout << "error graph_to_hex: subdivide_graph" << std::endl;
-		return false;
-	}
-	else
-		std::cout << "graph_to_hex (/): sudivided graph" << std::endl;
+	//okay = subdivide_graph(g);
+	//if (!okay)
+	//{
+	//	std::cout << "error graph_to_hex: subdivide_graph" << std::endl;
+	//	return false;
+	//}
+	//else
+	//	std::cout << "graph_to_hex (/): sudivided graph" << std::endl;
 
 	okay = get_graph_data(g, gData);
 	std::cout << gData.intersections.size() << " inters" << std::endl;
