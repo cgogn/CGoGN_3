@@ -412,78 +412,166 @@ void extract_volume_surface(CMap3& m3, CMap2& m2)
 	remove_attribute<CMap3::Vertex>(m3, vertex_m2_embeddings);
 }
 
-void catmull_clark_approx(CMap2& m)
+void catmull_clark_approx(CMap2& m, uint32 iterations)
 {
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position = get_attribute<Vec3, CMap2::Vertex>(m, "position");
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_delta = add_attribute<Vec3, CMap2::Vertex>(m, "delta");
 	std::shared_ptr<CMap2::Attribute<Vec3>> incident_faces_mid = add_attribute<Vec3, CMap2::Vertex>(m, "incident_faces_mid");
 
-	CellCache<CMap2> cache_init_vertices(m);
-	cache_init_vertices.template build<CMap2::Vertex>();
+	for (uint32 i = 0; i < iterations; ++i)
+	{
+		CellCache<CMap2> cache_init_vertices(m);
+		cache_init_vertices.template build<CMap2::Vertex>();
+		CellCache<CMap2> cache_edge_vertices(m);
+		CellCache<CMap2> cache_face_vertices(m);
 
-	CellCache<CMap2> cache_edge_vertices(m);
-	CellCache<CMap2> cache_face_vertices(m);
+		cgogn::modeling::quadrangulate_all_faces(
+			m,
+			[&](CMap2::Vertex v) -> void {
+				cache_edge_vertices.add(v);
+				value<Vec3>(m, vertex_position, v) = {0, 0, 0};
+				value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
+				value<Vec3>(m, incident_faces_mid, v) = {0, 0, 0};
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_position, v) += 0.5 * value<Vec3>(m, vertex_position, v2);
+					value<Vec3>(m, vertex_delta, v) -= 0.25 * value<Vec3>(m, vertex_position, v2);
+					return true;
+				});
+			},
+			[&](CMap2::Vertex v) -> void {
+				cache_face_vertices.add(v);
+				value<Vec3>(m, vertex_position, v) = {0, 0, 0};
+				value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_position, v2);
+					return true;
+				});
+				value<Vec3>(m, vertex_position, v) /= degree(m, v);
 
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_delta, v2) += 0.25 * value<Vec3>(m, vertex_position, v);
+					value<Vec3>(m, incident_faces_mid, v2) += 0.5 * value<Vec3>(m, vertex_position, v);
+					return true;
+				});
+			});
 
-	cgogn::modeling::quadrangulate_all_faces(
-		m, 
-		[&](CMap2::Vertex v) -> void {
-			cache_edge_vertices.add(v);
-			value<Vec3>(m, vertex_position, v) = {0, 0, 0};
+		foreach_cell(cache_init_vertices, [&](CMap2::Vertex v) -> bool {
 			value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
-			value<Vec3>(m, incident_faces_mid, v) = {0, 0, 0};
+			Vec3 F = {0, 0, 0};
+			Vec3 R = {0, 0, 0};
+			Scalar n = 0;
 			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
-				value<Vec3>(m, vertex_position, v) += 0.5 * value<Vec3>(m, vertex_position, v2);
-				value<Vec3>(m, vertex_delta, v) -= 0.25 * value<Vec3>(m, vertex_position, v2);
+				F += value<Vec3>(m, incident_faces_mid, v2);
+				R += value<Vec3>(m, vertex_position, v2);
+				n += 1;
 				return true;
 			});
-		},
-		[&](CMap2::Vertex v) -> void {
-			cache_face_vertices.add(v);
-			value<Vec3>(m, vertex_position, v) = {0, 0, 0};
-			value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
-			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
-				value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_position, v2);
-				return true;
-			});
-			value<Vec3>(m, vertex_position, v) /= degree(m, v);
 
-			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
-				value<Vec3>(m, vertex_delta, v2) += 0.25 * value<Vec3>(m, vertex_position, v);
-				value<Vec3>(m, incident_faces_mid, v2) += 0.5 * value<Vec3>(m, vertex_position, v);
-				return true;
-			});
-		});
-
-
-	parallel_foreach_cell(cache_init_vertices, [&](CMap2::Vertex v) -> bool {
-		value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
-		Vec3 F = {0, 0, 0};
-		Vec3 R = {0, 0, 0};
-		Scalar n = 0;
-		foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool { 
-			F += value<Vec3>(m, incident_faces_mid, v2);
-			R += value<Vec3>(m, vertex_position, v2);
-			n += 1;
+			value<Vec3>(m, vertex_delta, v) = (-3 * n * value<Vec3>(m, vertex_position, v) + F + 2 * R) / (n * n);
 			return true;
 		});
 
-		value<Vec3>(m, vertex_delta, v) = (-3 * n * value<Vec3>(m, vertex_position, v) + F + 2 * R) / (n * n);
-		return true;
-	});
-
-	parallel_foreach_cell(m, [&](CMap2::Vertex v) -> bool {
-		value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_delta, v);
-		return true;
-	});
-	
+		foreach_cell(m, [&](CMap2::Vertex v) -> bool {
+			value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_delta, v);
+			return true;
+		});
+	}
 	remove_attribute<CMap2::Vertex>(m, vertex_delta);
 	remove_attribute<CMap2::Vertex>(m, incident_faces_mid);
 }
 
-void catmull_clark_inter(CMap2& m2)
+void catmull_clark_inter(CMap2& m, uint32 iterations)
 {
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position = get_attribute<Vec3, CMap2::Vertex>(m, "position");
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position2 = add_attribute<Vec3, CMap2::Vertex>(m, "position2");
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_delta = add_attribute<Vec3, CMap2::Vertex>(m, "delta");
+	std::shared_ptr<CMap2::Attribute<Vec3>> incident_faces_mid =
+		add_attribute<Vec3, CMap2::Vertex>(m, "incident_faces_mid");
+	std::shared_ptr<CMap2::Attribute<Vec3>> incident_init_mid =
+		add_attribute<Vec3, CMap2::Vertex>(m, "incident_init_mid");
 
+	for (uint32 i = 0; i < iterations; ++i)
+	{
+		CellCache<CMap2> cache_init_vertices(m);
+		cache_init_vertices.template build<CMap2::Vertex>();
+		CellCache<CMap2> cache_edge_vertices(m);
+		CellCache<CMap2> cache_face_vertices(m);
+
+		foreach_cell(m, [&](CMap2::Vertex v) -> bool {
+			value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
+			return true;
+		});
+
+		cgogn::modeling::quadrangulate_all_faces(
+			m,
+			[&](CMap2::Vertex v) -> void {
+				cache_edge_vertices.add(v);
+				value<Vec3>(m, vertex_position, v) = {0, 0, 0};
+				value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
+				value<Vec3>(m, incident_faces_mid, v) = {0, 0, 0};
+				value<Vec3>(m, incident_init_mid, v) = {0, 0, 0};
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_position, v) += 0.5 * value<Vec3>(m, vertex_position, v2);
+					return true;
+				});
+			},
+			[&](CMap2::Vertex v) -> void {
+				cache_face_vertices.add(v);
+				value<Vec3>(m, vertex_position, v) = {0, 0, 0};
+				value<Vec3>(m, vertex_delta, v) = {0, 0, 0};
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_position, v2);
+					return true;
+				});
+				value<Vec3>(m, vertex_position, v) /= degree(m, v);
+
+				foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+					value<Vec3>(m, vertex_delta, v2) += 0.25 * value<Vec3>(m, vertex_position, v);
+					value<Vec3>(m, incident_faces_mid, v2) += 0.5 * value<Vec3>(m, vertex_position, v);
+					return true;
+				});
+			});
+
+		foreach_cell(cache_init_vertices, [&](CMap2::Vertex v) -> bool {
+			value<Vec3>(m, incident_faces_mid, v) = {0, 0, 0};
+			Scalar n = 0;
+			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+				value<Vec3>(m, incident_faces_mid, v) += value<Vec3>(m, incident_faces_mid, v2);
+				n += 1;
+				return true;
+			});
+			value<Vec3>(m, incident_faces_mid, v) /= n;
+
+			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+				value<Vec3>(m, vertex_delta, v2) -= 0.25 * value<Vec3>(m, incident_faces_mid, v);
+				value<Vec3>(m, incident_init_mid, v2) += 0.5 * value<Vec3>(m, incident_faces_mid, v);
+				return true;
+			});
+			return true; 
+		});
+
+		foreach_cell(cache_face_vertices, [&](CMap2::Vertex v) -> bool {
+			value<Vec3>(m, vertex_delta, v);
+			Scalar n = 0;
+			foreach_adjacent_vertex_through_edge(m, v, [&](CMap2::Vertex v2) -> bool {
+				value<Vec3>(m, vertex_delta, v) -= 2 * value<Vec3>(m, incident_faces_mid, v2);
+				value<Vec3>(m, vertex_delta, v) -= value<Vec3>(m, incident_init_mid, v2);
+				n += 1;
+				return true;
+			});
+			value<Vec3>(m, vertex_delta, v) += 3 * n * value<Vec3>(m, vertex_position, v);
+			value<Vec3>(m, vertex_delta, v) /= n * n;
+			return true;
+		});
+
+		foreach_cell(m, [&](CMap2::Vertex v) -> bool {
+			value<Vec3>(m, vertex_position, v) += value<Vec3>(m, vertex_delta, v);
+			return true;
+		});
+	}
+	remove_attribute<CMap2::Vertex>(m, vertex_delta);
+	remove_attribute<CMap2::Vertex>(m, incident_faces_mid);
+	remove_attribute<CMap2::Vertex>(m, incident_init_mid);
 }
 
 /*****************************************************************************/

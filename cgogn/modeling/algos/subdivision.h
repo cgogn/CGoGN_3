@@ -121,7 +121,7 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 	CellCache<MESH> cache(m);
 	cache.template build<Edge>();
 
-	parallel_foreach_cell(cache, [&](Edge e) -> bool {
+	foreach_cell(cache, [&](Edge e) -> bool {
 		on_edge_cut(cut_edge(m, e));
 		return true;
 	});
@@ -140,7 +140,7 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	cut_all_edges(m, on_edge_cut);
 
-	parallel_foreach_cell(cache, [&](Face f) -> bool {
+	foreach_cell(cache, [&](Face f) -> bool {
 		on_face_cut(quadrangulate_face(m, f));
 		return true;
 	});
