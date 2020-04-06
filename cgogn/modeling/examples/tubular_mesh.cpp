@@ -117,6 +117,10 @@ int main(int argc, char** argv)
 
 
 		cgogn::modeling::extract_volume_surface(*v, *s2);
+		cgogn::modeling::catmull_clark_approx(*s2);
+		cgogn::modeling::catmull_clark_approx(*s2);
+		//cgogn::modeling::catmull_clark_approx(*s2);
+		//cgogn::modeling::catmull_clark_approx(*s2);
 		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s2 =
 			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s2, "position");
 		mps.emit_connectivity_changed(s2);
