@@ -93,6 +93,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	Surface* s = mps.add_mesh("contact");
+	Surface* s2 = mps.add_mesh("tubes_surface");
 	Volume* v = mpv.add_mesh("tubes");
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
@@ -114,6 +115,12 @@ int main(int argc, char** argv)
 		mpv.emit_connectivity_changed(v);
 		mpv.emit_attribute_changed(v, vertex_position_v.get());
 
+
+		cgogn::modeling::extract_volume_surface(*v, *s2);
+		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s2 =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s2, "position");
+		mps.emit_connectivity_changed(s2);
+		mps.emit_attribute_changed(s2, vertex_position_s2.get());
 	}
 
 	return app.launch();

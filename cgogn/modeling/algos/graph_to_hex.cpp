@@ -366,6 +366,52 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const 
 	});
 }
 
+void extract_volume_surface(CMap3& m3, CMap2& m2)
+{
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position3 = get_attribute<Vec3, CMap3::Vertex>(m3, "position");
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position2 = add_attribute<Vec3, CMap2::Vertex>(m2, "position");
+
+	auto vertex_m2_embeddings = cgogn::add_attribute<uint32, CMap3::Vertex>(m3, "vertex_m2_embeddings");
+	
+	cgogn::io::SurfaceImportData surface_data;
+
+	foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {
+		if (is_incident_to_boundary(m3, v3))
+		{
+			uint32 vertex_id = new_index<CMap2::Vertex>(m2);
+			value<uint32>(m3, vertex_m2_embeddings, v3) = vertex_id;
+			Vec3 p = value<Vec3>(m3, vertex_position3, v3);
+			(*vertex_position2)[vertex_id] = p;
+			surface_data.vertices_id_.push_back(vertex_id);
+		}
+		return true;
+	});
+
+	std::vector<uint32> indices;
+	indices.reserve(4);
+	foreach_cell(m3, [&](CMap3::Face f) -> bool {
+		if (is_incident_to_boundary(m3, f))
+		{
+			foreach_incident_vertex(m3, f, [&](CMap3::Vertex v3) -> bool {
+				uint32 vertex_id = value<uint32>(m3, vertex_m2_embeddings, v3);
+				indices.push_back(value<uint32>(m3, vertex_m2_embeddings, v3));
+				return true;
+			});
+
+			surface_data.faces_nb_vertices_.push_back(4);
+			surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
+													  indices.end());
+			indices.clear();
+		}
+		return true;
+	});
+
+	import_surface_data(m2, surface_data);
+
+	remove_attribute<CMap3::Vertex>(m3, vertex_m2_embeddings);
+}
+
+
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
@@ -744,23 +790,7 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 												indices.end());
 					indices.clear();
 				}
-				// switch(sign)
-				// {
-				// 	case 1:
-				// 		indices = {Pid[j], Pid[i], Pid[k]};
-				// 		surface_data.faces_nb_vertices_.push_back(3);
-				// 		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
-				// 								indices.end());
-				// 		break;
-				// 	case -1:
-				// 		indices = {Pid[i], Pid[j], Pid[k]};
-				// 		surface_data.faces_nb_vertices_.push_back(3);
-				// 		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
-				// 								indices.end());
-				// 		break;
-				// 	default:
-				// 		break;
-				// }
+
 			}
 		}
 	}

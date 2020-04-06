@@ -105,6 +105,10 @@ Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C);
 Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs);
 Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs);
 Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations);
+void extract_volume_surface(CMap3& m3, CMap2& m2);
+void catmull_clark_approx(CMap2& m2);
+void catmull_clark_inter(CMap2& m2);
+
 
 /*****************************************************************************/
 /* data preparation                                                          */
@@ -166,6 +170,8 @@ bool compute_maximum_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool a
 bool compute_mean_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_color);
 Scalar frame_frobenius(Mat3 frame);
 Vec3 get_quality_color(Scalar quality);
+
+
 
 } // namespace modeling
 } // namespace cgogn
