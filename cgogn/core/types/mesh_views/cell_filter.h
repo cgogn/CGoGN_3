@@ -69,7 +69,7 @@ public:
 
 	operator MESH&()
 	{
-		return m_;
+		return const_cast<MESH&>(m_);
 	}
 	operator const MESH&() const
 	{
