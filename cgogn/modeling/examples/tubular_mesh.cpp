@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
-	//cgogn::ui::VolumeRender<Volume> vr(app);
+	cgogn::ui::VolumeRender<Volume> vr(app);
 
 	app.init_modules();
 
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 
 	v1->link_module(&gr);
 	v1->link_module(&sr);
-	//v1->link_module(&vr);
+	v1->link_module(&vr);
 
 	Graph* g = mpg.load_graph_from_file(filename);
 	if (!g)
@@ -93,6 +93,8 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	Surface* s = mps.add_mesh("contact");
+	Surface* s2 = mps.add_mesh("tubes_surface_a");
+	Surface* s3 = mps.add_mesh("tubes_surface_i");
 	Volume* v = mpv.add_mesh("tubes");
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
@@ -107,13 +109,27 @@ int main(int argc, char** argv)
 		mps.emit_connectivity_changed(s);
 		mps.emit_attribute_changed(s, vertex_position_s.get());
 
-		//std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v =
-		//	cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
-		//vr.set_vertex_position(*v1, *v, vertex_position_v);
+		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
+		vr.set_vertex_position(*v1, *v, vertex_position_v);
 
-		//mpv.emit_connectivity_changed(v);
-		//mpv.emit_attribute_changed(v, vertex_position_v.get());
+		mpv.emit_connectivity_changed(v);
+		mpv.emit_attribute_changed(v, vertex_position_v.get());
 
+
+		cgogn::modeling::extract_volume_surface(*v, *s2);
+		cgogn::modeling::catmull_clark_approx(*s2, 5);
+		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s2 =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s2, "position");
+		mps.emit_connectivity_changed(s2);
+		mps.emit_attribute_changed(s2, vertex_position_s2.get());
+
+		cgogn::modeling::extract_volume_surface(*v, *s3);
+		cgogn::modeling::catmull_clark_inter(*s3, 5);
+		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s3 =
+			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s3, "position");
+		mps.emit_connectivity_changed(s3);
+		mps.emit_attribute_changed(s3, vertex_position_s3.get());
 	}
 
 	return app.launch();

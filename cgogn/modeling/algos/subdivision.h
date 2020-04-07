@@ -61,6 +61,28 @@ void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
 }
 
+CMap2::Vertex quadrangulate_face(CMap2& m, CMap2::Face f)
+{
+	cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	Dart d0 = phi1(m, f.dart);
+	Dart d1 = phi<11>(m, d0);
+
+	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
+	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
+
+	Dart x = phi2(m, phi_1(m, d0));
+	Dart dd = phi<1111>(m, x);
+	while (dd != x)
+	{
+		Dart next =phi<11>(m, dd);
+		cut_face(m, CMap2::Vertex(dd), CMap2::Vertex(phi1(m, x)));
+		dd = next;
+	}
+
+	return CMap2::Vertex(phi2(m, x));
+}
+
+
 /////////////
 // GENERIC //
 /////////////
@@ -101,6 +123,25 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 
 	foreach_cell(cache, [&](Edge e) -> bool {
 		on_edge_cut(cut_edge(m, e));
+		return true;
+	});
+}
+
+template <typename MESH, typename FUNC1, typename FUNC2>
+void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut)
+{
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
+	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	using Face = typename cgogn::mesh_traits<MESH>::Face;
+
+	CellCache<MESH> cache(m);
+	cache.template build<Edge>();
+	cache.template build<Face>();
+
+	cut_all_edges(m, on_edge_cut);
+
+	foreach_cell(cache, [&](Face f) -> bool {
+		on_face_cut(quadrangulate_face(m, f));
 		return true;
 	});
 }
