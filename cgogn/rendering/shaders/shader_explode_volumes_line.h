@@ -72,6 +72,10 @@ public:
 	{
 		vbo_pos_ = vbos[0];
 		vbo_center_ = vbos[1];
+		if (vbo_pos_ && vbo_center_)
+			vao_initialized_ = true;
+		else
+			vao_initialized_ = false;
 	}
 };
 

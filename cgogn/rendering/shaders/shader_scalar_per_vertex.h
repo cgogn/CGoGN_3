@@ -34,9 +34,9 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ScalarPerVertex, CGOGN_STR(ScalarPerVertex))
+DECLARE_SHADER_CLASS(FlatScalarPerVertex, CGOGN_STR(FlatScalarPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
@@ -53,22 +53,22 @@ public:
 	int32 nb_iso_levels_;
 	GLVec3 light_position_;
 
-	using LocalShader = ShaderScalarPerVertex;
+	using LocalShader = ShaderFlatScalarPerVertex;
 
-	ShaderParamScalarPerVertex(LocalShader* sh)
+	ShaderParamFlatScalarPerVertex(LocalShader* sh)
 		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
 		  nb_iso_levels_(10), light_position_(10, 100, 1000)
 	{
 	}
 
-	inline ~ShaderParamScalarPerVertex() override
+	inline ~ShaderParamFlatScalarPerVertex() override
 	{
 	}
 };
 
-DECLARE_SHADER_CLASS(ScalarPerVertexGouraud, CGOGN_STR(ScalarPerVertexGouraud))
+DECLARE_SHADER_CLASS(PhongScalarPerVertex, CGOGN_STR(PhongScalarPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertexGouraud : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
@@ -85,15 +85,15 @@ public:
 	int32 nb_iso_levels_;
 	GLVec3 light_position_;
 
-	using LocalShader = ShaderScalarPerVertexGouraud;
+	using LocalShader = ShaderPhongScalarPerVertex;
 
-	ShaderParamScalarPerVertexGouraud(LocalShader* sh)
+	ShaderParamPhongScalarPerVertex(LocalShader* sh)
 		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
 		  nb_iso_levels_(10), light_position_(10, 100, 1000)
 	{
 	}
 
-	inline ~ShaderParamScalarPerVertexGouraud() override
+	inline ~ShaderParamPhongScalarPerVertex() override
 	{
 	}
 };

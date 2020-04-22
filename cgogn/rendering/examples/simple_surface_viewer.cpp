@@ -24,8 +24,6 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/types/attribute_handler.h>
-
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
@@ -65,15 +63,15 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	cgogn::ui::TopoRender<Mesh> tr(app);
+	// cgogn::ui::TopoRender<Mesh> tr(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&tr);
 	v1->link_module(&srv);
+	// v1->link_module(&tr);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
@@ -88,15 +86,12 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
 	std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
 
-	auto color_handler = cgogn::attribute_handler<Face>(m, face_color);
-	auto scalar_handler = cgogn::attribute_handler<Face>(m, face_weight);
-
 	// cgogn::index_cells<Face>(*m);
 	cgogn::foreach_cell(*m, [&](Face f) -> bool {
 		Vec3 c(0, 0, 0);
 		c[rand() % 3] = 1;
-		color_handler[f] = c;
-		scalar_handler[f] = double(rand()) / RAND_MAX;
+		cgogn::value<Vec3>(*m, face_color, f) = c;
+		cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
 		return true;
 	});
 
@@ -108,9 +103,9 @@ int main(int argc, char** argv)
 	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
-	srv.set_vertex_vector(*v1, *m, vertex_normal);
+	// srv.set_vertex_vector(*v1, *m, vertex_normal);
 
-	tr.set_vertex_position(*v1, *m, vertex_position);
+	// tr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

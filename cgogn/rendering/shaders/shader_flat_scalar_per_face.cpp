@@ -22,7 +22,6 @@
  *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -34,43 +33,42 @@ ShaderFlatScalarPerFace* ShaderFlatScalarPerFace::instance_ = nullptr;
 
 ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 {
-	const char* vertex_shader_source =
-			R"(
-			#version 330
-			uniform mat4 projection_matrix;
-			uniform mat4 model_view_matrix;
-			uniform usamplerBuffer tri_ind;
-			uniform usamplerBuffer tri_emb;
-			uniform samplerBuffer pos_vertex;
-			uniform samplerBuffer scalar_tri;
-			out vec3 A;
-			flat out vec3 N;
-			flat out vec3 color;
+	const char* vertex_shader_source = R"(
+		#version 330
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform usamplerBuffer tri_ind;
+		uniform usamplerBuffer tri_emb;
+		uniform samplerBuffer pos_vertex;
+		uniform samplerBuffer scalar_tri;
+		out vec3 A;
+		flat out vec3 N;
+		flat out vec3 color;
 
-			//_insert_colormap_funcion_here
+		//_insert_colormap_funcion_here
 
-			void main()
-			{
-				int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
-				int i_col = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
-				color = scalar2color(texelFetch(scalar_tri, i_col).r);
-				int vid = gl_VertexID;
-				int tid = 3*gl_InstanceID;
-				int ind_a = int(texelFetch(tri_ind, tid+vid).r);
-				A = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb,1.0)).xyz;
-				vid  = (vid+1)%3;
-				int ind_b = int(texelFetch(tri_ind, tid+vid).r);
-				vec3 B = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_b).rgb,1.0)).xyz;
-				vid  = (vid+1)%3;
-				int ind_c = int(texelFetch(tri_ind, tid+vid).r);
-				vec3 C = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb,1.0)).xyz;
-				N = normalize(cross(B-A,C-A));
-				gl_Position = projection_matrix*vec4(A,1);
-			}
-			)";
+		void main()
+		{
+			int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
+			int i_col = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
+			color = scalar2color(texelFetch(scalar_tri, i_col).r);
+			int vid = gl_VertexID;
+			int tid = 3*gl_InstanceID;
+			int ind_a = int(texelFetch(tri_ind, tid+vid).r);
+			A = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb,1.0)).xyz;
+			vid  = (vid+1)%3;
+			int ind_b = int(texelFetch(tri_ind, tid+vid).r);
+			vec3 B = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_b).rgb,1.0)).xyz;
+			vid  = (vid+1)%3;
+			int ind_c = int(texelFetch(tri_ind, tid+vid).r);
+			vec3 C = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb,1.0)).xyz;
+			N = normalize(cross(B-A,C-A));
+			gl_Position = projection_matrix*vec4(A,1);
+		}
+	)";
 
-	const char* fragment_shader_source =
-		R"(#version 330
+	const char* fragment_shader_source = R"(
+		#version 330
 		out vec3 fragColor;
 		uniform vec4 ambiant_color;
 		uniform vec3 light_position;
@@ -78,6 +76,7 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 		in vec3 A;
 		flat in vec3 N;
 		flat in vec3 color;
+
 		void main()
 		{
 			vec3 No = normalize(N);
@@ -88,24 +87,22 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 			else
 				discard;
 		}
-		)";
+	)";
 
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::color_maps_shader_source());
+
 	load2_bind(v_src, fragment_shader_source, "");
-
-	add_uniforms("tri_ind","tri_emb", "pos_vertex","scalar_tri","ambiant_color", "light_position", "double_side");
+	add_uniforms("color_map", "expansion", "min_value", "max_value", "tri_ind", "tri_emb", "pos_vertex", "scalar_tri",
+				 "ambiant_color", "light_position", "double_side");
 }
-
 
 void ShaderParamFlatScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_)
-		shader_->set_uniforms_values(10,11,
-						vbo_pos_->bind_tb(12),vbo_scalar_->bind_tb(13),
-						ambiant_color_,light_position_,double_side_);
+	if (vbo_pos_ && vbo_scalar_)
+		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, 10, 11, vbo_pos_->bind_tb(12),
+									 vbo_scalar_->bind_tb(13), ambiant_color_, light_position_, double_side_);
 }
-
 
 } // namespace rendering
 

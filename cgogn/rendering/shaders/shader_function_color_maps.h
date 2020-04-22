@@ -123,10 +123,10 @@ inline std::string color_maps_shader_source()
 	vec3 scalar2color(float scalar)
 	{
 		float value = scale_expand_within_0_1(scale_and_clamp_to_0_1(
-					scalar,
-					min_value,
-					max_value),
-				expansion);
+				scalar,
+				min_value,
+				max_value),
+			expansion);
 		switch(color_map)
 		{
 			case 0 : return color_map_blue_white_red(value);
@@ -139,9 +139,11 @@ inline std::string color_maps_shader_source()
 
 	)");
 }
+
 } // namespace shader_funcion
 
 } // namespace rendering
+
 } // namespace cgogn
 
 #endif

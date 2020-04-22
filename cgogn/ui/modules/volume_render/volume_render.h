@@ -331,7 +331,7 @@ protected:
 			if (p.render_volumes_b_)
 			{
 				// md->update_vbo(p.vertex_position_.get());
-				compute_center_engine_->compute(md->vbo(p.vertex_position_.get()), md->mesh_render(), p.vbo_center_);
+				// compute_center_engine_->compute(md->vbo(p.vertex_position_.get()), md->mesh_render(), p.vbo_center_);
 
 				if (p.render_volumes_ == 1)
 				{

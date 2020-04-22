@@ -33,11 +33,12 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColorPerFace,CGOGN_STR(FlatColorPerFace))
+DECLARE_SHADER_CLASS(FlatColorPerFace, CGOGN_STR(FlatColorPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
 {
 	void set_uniforms() override;
+
 public:
 	VBO* vbo_pos_;
 	VBO* vbo_color_;
@@ -45,7 +46,7 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
-	template<typename ...Args>
+	template <typename... Args>
 	void fill(Args&&... args)
 	{
 		auto a = std::forward_as_tuple(args...);
@@ -57,8 +58,8 @@ public:
 	using LocalShader = ShaderFlatColorPerFace;
 
 	ShaderParamFlatColorPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
-		  light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), vbo_pos_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000),
+		  double_side_(true)
 	{
 	}
 
@@ -70,6 +71,10 @@ public:
 	{
 		vbo_pos_ = vbos[0];
 		vbo_color_ = vbos[1];
+		if (vbo_pos_ && vbo_color_)
+			vao_initialized_ = true;
+		else
+			vao_initialized_ = false;
 	}
 };
 
@@ -77,4 +82,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif // CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_

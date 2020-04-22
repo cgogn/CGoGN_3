@@ -31,8 +31,8 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderScalarPerVertex* ShaderScalarPerVertex::instance_ = nullptr;
-ShaderScalarPerVertexGouraud* ShaderScalarPerVertexGouraud::instance_ = nullptr;
+ShaderFlatScalarPerVertex* ShaderFlatScalarPerVertex::instance_ = nullptr;
+ShaderPhongScalarPerVertex* ShaderPhongScalarPerVertex::instance_ = nullptr;
 
 static const char* vertex_shader_source = "in vec3 vertex_pos;\n"
 										  "in float vertex_scalar;\n"
@@ -185,7 +185,7 @@ static const char* fragment_shader_source = "in vec3 pos_v;\n"
 											"		fragColor = lambert*color_v;\n"
 											"}\n";
 
-ShaderScalarPerVertex::ShaderScalarPerVertex()
+ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 {
 	std::string bs("#version 150\n#define WITH_NORMAL 0\n");
 
@@ -197,7 +197,7 @@ ShaderScalarPerVertex::ShaderScalarPerVertex()
 				 "light_position");
 }
 
-ShaderScalarPerVertexGouraud::ShaderScalarPerVertexGouraud()
+ShaderPhongScalarPerVertex::ShaderPhongScalarPerVertex()
 {
 	std::string bs("#version 150\n#define WITH_NORMAL 1\n");
 

@@ -448,48 +448,37 @@ private:
 };
 
 /**
- * @brief generate combo for attribute selection
+ * @brief generate combo box for attribute selection
  * @param m mesh
- * @param att attribute
- * @param f code to execute when combo selection change
+ * @param label label of the combo box
+ * @param selected_attribute current selected attribute
+ * @param on_change function to call with newly selected attribute
  */
 template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& att,
-						   const std::string& label, const FUNC& f)
+void imgui_combo_attribute(const MESH& m, const std::string& label,
+						   const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& selected_attribute,
+						   const FUNC& on_change)
 {
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
-	std::string selected_attrib = att ? att->name() : "-- select --";
-	bool changed = false;
-	if (ImGui::BeginCombo(label.c_str(), selected_attrib.c_str()))
+	if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
 	{
 		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
-			bool is_selected = attribute == att;
+			bool is_selected = attribute == selected_attribute;
 			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-			{
-				if (att != attribute)
-					changed = true;
-				att = attribute;
-			}
+				on_change(attribute);
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		});
 		ImGui::EndCombo();
 	}
-
-	if (att)
+	if (selected_attribute)
 	{
 		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-		if (ImGui::Button((std::string("X##") + label).c_str()))
-		{
-			att.reset();
-			changed = true;
-		}
+		if (ImGui::Button(("X##" + label).c_str()))
+			on_change(nullptr);
 	}
-
-	if (changed)
-		f();
 }
 
 } // namespace ui

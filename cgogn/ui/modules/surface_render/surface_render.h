@@ -34,6 +34,8 @@
 
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_flat.h>
+#include <cgogn/rendering/shaders/shader_flat_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
@@ -50,6 +52,18 @@ namespace cgogn
 namespace ui
 {
 
+enum AttributePerCell
+{
+	GLOBAL = 0,
+	PER_VERTEX,
+	PER_FACE
+};
+enum ColorType
+{
+	SCALAR = 0,
+	VECTOR
+};
+
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
@@ -60,6 +74,7 @@ class SurfaceRender : public ViewModule
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 	using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
@@ -68,9 +83,10 @@ class SurfaceRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_normal_(nullptr), vertex_scalar_(nullptr), render_vertices_(false),
-			  render_edges_(false), render_faces_(true), phong_shading_(false), vertex_scale_factor_(1.0),
-			  auto_update_scalar_min_max_(true)
+			: vertex_position_(nullptr), vertex_normal_(nullptr), vertex_scalar_(nullptr), vertex_color_(nullptr),
+			  face_scalar_(nullptr), face_color_(nullptr), render_vertices_(false), render_edges_(false),
+			  render_faces_(true), normal_per_cell_(PER_FACE), color_per_cell_(GLOBAL), color_type_(SCALAR),
+			  vertex_scale_factor_(1.0), auto_update_vertex_scalar_min_max_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -84,21 +100,30 @@ class SurfaceRender : public ViewModule
 			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
+			param_flat_color_per_face_ = rendering::ShaderFlatColorPerFace::generate_param();
+			param_flat_color_per_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+
+			param_flat_scalar_per_face_ = rendering::ShaderFlatScalarPerFace::generate_param();
+			param_flat_scalar_per_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+			param_flat_scalar_per_face_->min_value_ = 0.0f;
+			param_flat_scalar_per_face_->max_value_ = 1.0f;
+			param_flat_scalar_per_face_->color_map_ = rendering::BWR;
+
 			param_phong_ = rendering::ShaderPhong::generate_param();
 			param_phong_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
 			param_phong_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
 			param_phong_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_phong_->specular_coef_ = 250.0f;
 
-			param_scalar_per_vertex_ = rendering::ShaderScalarPerVertex::generate_param();
-			param_scalar_per_vertex_->min_value_ = 0.0f;
-			param_scalar_per_vertex_->max_value_ = 1.0f;
-			param_scalar_per_vertex_->color_map_ = rendering::BWR;
+			param_flat_scalar_per_vertex_ = rendering::ShaderFlatScalarPerVertex::generate_param();
+			param_flat_scalar_per_vertex_->min_value_ = 0.0f;
+			param_flat_scalar_per_vertex_->max_value_ = 1.0f;
+			param_flat_scalar_per_vertex_->color_map_ = rendering::BWR;
 
-			param_scalar_per_vertex_gouraud_ = rendering::ShaderScalarPerVertexGouraud::generate_param();
-			param_scalar_per_vertex_gouraud_->min_value_ = 0.0f;
-			param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
-			param_scalar_per_vertex_gouraud_->color_map_ = rendering::BWR;
+			param_phong_scalar_per_vertex_ = rendering::ShaderPhongScalarPerVertex::generate_param();
+			param_phong_scalar_per_vertex_->min_value_ = 0.0f;
+			param_phong_scalar_per_vertex_->max_value_ = 1.0f;
+			param_phong_scalar_per_vertex_->color_map_ = rendering::BWR;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -106,23 +131,36 @@ class SurfaceRender : public ViewModule
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 		std::shared_ptr<Attribute<Scalar>> vertex_scalar_;
+		std::shared_ptr<Attribute<Vec3>> vertex_color_;
+		std::shared_ptr<Attribute<Scalar>> face_scalar_;
+		std::shared_ptr<Attribute<Vec3>> face_color_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
+		std::unique_ptr<rendering::ShaderFlatScalarPerVertex::Param> param_flat_scalar_per_vertex_;
+		// std::unique_ptr<rendering::ShaderFlatColorPerVertex::Param> param_flat_color_per_vertex_;
+		std::unique_ptr<rendering::ShaderFlatScalarPerFace::Param> param_flat_scalar_per_face_;
+		std::unique_ptr<rendering::ShaderFlatColorPerFace::Param> param_flat_color_per_face_;
 		std::unique_ptr<rendering::ShaderPhong::Param> param_phong_;
-		std::unique_ptr<rendering::ShaderScalarPerVertex::Param> param_scalar_per_vertex_;
-		std::unique_ptr<rendering::ShaderScalarPerVertexGouraud::Param> param_scalar_per_vertex_gouraud_;
+		std::unique_ptr<rendering::ShaderPhongScalarPerVertex::Param> param_phong_scalar_per_vertex_;
+		// std::unique_ptr<rendering::ShaderPhongColorPerVertex::Param> param_phong_color_per_vertex_;
+		// std::unique_ptr<rendering::ShaderPhongScalarPerFace::Param> param_phong_scalar_per_face_;
+		// std::unique_ptr<rendering::ShaderPhongColorPerFace::Param> param_phong_color_per_face_;
 
 		bool render_vertices_;
 		bool render_edges_;
 		bool render_faces_;
-		bool phong_shading_;
+
+		AttributePerCell normal_per_cell_;
+		AttributePerCell color_per_cell_;
+		ColorType color_type_;
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
 
-		bool auto_update_scalar_min_max_;
+		bool auto_update_vertex_scalar_min_max_;
+		bool auto_update_face_scalar_min_max_;
 	};
 
 public:
@@ -165,8 +203,10 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Scalar>>(
 					m, [this, v, m](Attribute<Scalar>* attribute) {
 						Parameters& p = parameters_[v][m];
-						if (p.vertex_scalar_.get() == attribute && p.auto_update_scalar_min_max_)
-							update_scalar_min_max_values(p);
+						if (p.vertex_scalar_.get() == attribute && p.auto_update_vertex_scalar_min_max_)
+							update_vertex_scalar_min_max_values(p);
+						if (p.face_scalar_.get() == attribute && p.auto_update_face_scalar_min_max_)
+							update_face_scalar_min_max_values(p);
 						v->request_update();
 					}));
 		}
@@ -188,13 +228,17 @@ public:
 		auto* vp = md->vbo(p.vertex_position_.get());
 		auto* vn = md->vbo(p.vertex_normal_.get());
 		auto* vs = md->vbo(p.vertex_scalar_.get());
+		auto* fc = md->vbo(p.face_color_.get());
+		auto* fs = md->vbo(p.face_scalar_.get());
 
 		p.param_point_sprite_->set_vbos({vp});
 		p.param_edge_->set_vbos({vp});
 		p.param_flat_->set_vbos({vp});
+		p.param_flat_color_per_face_->set_vbos({vp, fc});
+		p.param_flat_scalar_per_face_->set_vbos({vp, fs});
 		p.param_phong_->set_vbos({vp, vn});
-		p.param_scalar_per_vertex_->set_vbos({vp, vs});
-		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
+		p.param_flat_scalar_per_vertex_->set_vbos({vp, vs});
+		p.param_phong_scalar_per_vertex_->set_vbos({vp, vn, vs});
 
 		v.request_update();
 	}
@@ -213,7 +257,7 @@ public:
 		auto* vs = md->vbo(p.vertex_scalar_.get());
 
 		p.param_phong_->set_vbos({vp, vn});
-		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
+		p.param_phong_scalar_per_vertex_->set_vbos({vp, vn, vs});
 
 		v.request_update();
 	}
@@ -227,29 +271,95 @@ public:
 		if (p.vertex_scalar_)
 		{
 			md->update_vbo(vertex_scalar.get(), true);
-			if (p.auto_update_scalar_min_max_)
-				update_scalar_min_max_values(p);
+			if (p.auto_update_vertex_scalar_min_max_)
+				update_vertex_scalar_min_max_values(p);
 		}
 		else
 		{
-			p.param_scalar_per_vertex_->min_value_ = 0.0f;
-			p.param_scalar_per_vertex_->max_value_ = 1.0f;
-			p.param_scalar_per_vertex_gouraud_->min_value_ = 0.0f;
-			p.param_scalar_per_vertex_gouraud_->max_value_ = 1.0f;
+			p.param_flat_scalar_per_vertex_->min_value_ = 0.0f;
+			p.param_flat_scalar_per_vertex_->max_value_ = 1.0f;
+			p.param_phong_scalar_per_vertex_->min_value_ = 0.0f;
+			p.param_phong_scalar_per_vertex_->max_value_ = 1.0f;
 		}
 
 		auto* vp = md->vbo(p.vertex_position_.get());
 		auto* vn = md->vbo(p.vertex_normal_.get());
 		auto* vs = md->vbo(p.vertex_scalar_.get());
 
-		p.param_scalar_per_vertex_->set_vbos({vp, vs});
-		p.param_scalar_per_vertex_gouraud_->set_vbos({vp, vn, vs});
+		p.param_flat_scalar_per_vertex_->set_vbos({vp, vs});
+		p.param_phong_scalar_per_vertex_->set_vbos({vp, vn, vs});
+
+		v.request_update();
+	}
+
+	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.vertex_color_ = vertex_color;
+		if (p.vertex_color_)
+			md->update_vbo(vertex_color.get(), true);
+
+		auto* vp = md->vbo(p.vertex_position_.get());
+		auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* vc = md->vbo(p.vertex_color_.get());
+
+		// p.param_flat_color_per_vertex_->set_vbos({vp, vc});
+		// p.param_phong_color_per_vertex_->set_vbos({vp, vn, vc});
+
+		v.request_update();
+	}
+
+	void set_face_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& face_scalar)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.face_scalar_ = face_scalar;
+		if (p.face_scalar_)
+		{
+			md->update_vbo(face_scalar.get(), true);
+			if (p.auto_update_face_scalar_min_max_)
+				update_face_scalar_min_max_values(p);
+		}
+		else
+		{
+			p.param_flat_scalar_per_face_->min_value_ = 0.0f;
+			p.param_flat_scalar_per_face_->max_value_ = 1.0f;
+		}
+
+		auto* vp = md->vbo(p.vertex_position_.get());
+		// auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* fs = md->vbo(p.face_scalar_.get());
+
+		p.param_flat_scalar_per_face_->set_vbos({vp, fs});
+		// p.param_phong_scalar_per_face_->set_vbos({vp, vn, fs});
+
+		v.request_update();
+	}
+
+	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		p.face_color_ = face_color;
+		if (p.face_color_)
+			md->update_vbo(face_color.get(), true);
+
+		auto* vp = md->vbo(p.vertex_position_.get());
+		// auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* fc = md->vbo(p.face_color_.get());
+
+		p.param_flat_color_per_face_->set_vbos({vp, fc});
+		// p.param_phong_color_per_face_->set_vbos({vp, vn, fc});
 
 		v.request_update();
 	}
 
 protected:
-	void update_scalar_min_max_values(Parameters& p)
+	void update_vertex_scalar_min_max_values(Parameters& p)
 	{
 		Scalar min = std::numeric_limits<float64>::max();
 		Scalar max = std::numeric_limits<float64>::lowest();
@@ -260,10 +370,25 @@ protected:
 			if (v > max)
 				max = v;
 		}
-		p.param_scalar_per_vertex_->min_value_ = min;
-		p.param_scalar_per_vertex_->max_value_ = max;
-		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
-		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
+		p.param_flat_scalar_per_vertex_->min_value_ = min;
+		p.param_flat_scalar_per_vertex_->max_value_ = max;
+		p.param_phong_scalar_per_vertex_->min_value_ = min;
+		p.param_phong_scalar_per_vertex_->max_value_ = max;
+	}
+
+	void update_face_scalar_min_max_values(Parameters& p)
+	{
+		Scalar min = std::numeric_limits<float64>::max();
+		Scalar max = std::numeric_limits<float64>::lowest();
+		for (const Scalar& v : *p.face_scalar_)
+		{
+			if (v < min)
+				min = v;
+			if (v > max)
+				max = v;
+		}
+		p.param_flat_scalar_per_face_->min_value_ = min;
+		p.param_flat_scalar_per_face_->max_value_ = max;
 	}
 
 	void init() override
@@ -289,40 +414,137 @@ protected:
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 2.0f);
 
-				if (p.param_scalar_per_vertex_gouraud_->vao_initialized())
+				switch (p.normal_per_cell_)
 				{
-					p.param_scalar_per_vertex_gouraud_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_scalar_per_vertex_gouraud_->release();
+				case PER_VERTEX: {
+					switch (p.color_per_cell_)
+					{
+					case GLOBAL: {
+						if (p.param_phong_->vao_initialized())
+						{
+							p.param_phong_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::TRIANGLES, p.vertex_position_);
+							p.param_phong_->release();
+						}
+					}
+					break;
+					case PER_VERTEX: {
+						switch (p.color_type_)
+						{
+						case SCALAR: {
+							if (p.param_phong_scalar_per_vertex_->vao_initialized())
+							{
+								p.param_phong_scalar_per_vertex_->bind(proj_matrix, view_matrix);
+								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								p.param_phong_scalar_per_vertex_->release();
+							}
+						}
+						break;
+						case VECTOR: {
+							// if (p.param_phong_color_per_vertex_->vao_initialized())
+							// {
+							// 	p.param_phong_color_per_vertex_->bind(proj_matrix, view_matrix);
+							// 	md->draw(rendering::TRIANGLES, p.vertex_position_);
+							// 	p.param_phong_color_per_vertex_->release();
+							// }
+						}
+						break;
+						}
+					}
+					break;
+					case PER_FACE: {
+						switch (p.color_type_)
+						{
+						case SCALAR: {
+							// if (p.param_phong_scalar_per_face_->vao_initialized())
+							// {
+							// 	p.param_phong_scalar_per_face_->bind(proj_matrix, view_matrix);
+							// 	md->draw(rendering::TRIANGLES, p.vertex_position_);
+							// 	p.param_phong_scalar_per_face_->release();
+							// }
+						}
+						break;
+						case VECTOR: {
+							// if (p.param_phong_color_per_face_->vao_initialized())
+							// {
+							// 	p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
+							// 	md->draw(rendering::TRIANGLES, p.vertex_position_);
+							// 	p.param_phong_color_per_face_->release();
+							// }
+						}
+						break;
+						}
+					}
+					break;
+					}
 				}
-				else if (p.param_scalar_per_vertex_->vao_initialized())
-				{
-					p.param_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_scalar_per_vertex_->release();
+				break;
+				case PER_FACE: {
+					switch (p.color_per_cell_)
+					{
+					case GLOBAL: {
+						if (p.param_flat_->vao_initialized())
+						{
+							p.param_flat_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::TRIANGLES, p.vertex_position_);
+							p.param_flat_->release();
+						}
+					}
+					break;
+					case PER_VERTEX: {
+						switch (p.color_type_)
+						{
+						case SCALAR: {
+							if (p.param_flat_scalar_per_vertex_->vao_initialized())
+							{
+								p.param_flat_scalar_per_vertex_->bind(proj_matrix, view_matrix);
+								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								p.param_flat_scalar_per_vertex_->release();
+							}
+						}
+						break;
+						case VECTOR: {
+							// if (p.param_flat_color_per_vertex_->vao_initialized())
+							// {
+							// 	p.param_flat_color_per_vertex_->bind(proj_matrix, view_matrix);
+							// 	md->draw(rendering::TRIANGLES, p.vertex_position_);
+							// 	p.param_flat_color_per_vertex_->release();
+							// }
+						}
+						break;
+						}
+					}
+					break;
+					case PER_FACE: {
+						switch (p.color_type_)
+						{
+						case SCALAR: {
+							if (p.param_flat_scalar_per_face_->vao_initialized())
+							{
+								p.param_flat_scalar_per_face_->bind(proj_matrix, view_matrix);
+								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								p.param_flat_scalar_per_face_->release();
+							}
+						}
+						break;
+						case VECTOR: {
+							if (p.param_flat_color_per_face_->vao_initialized())
+							{
+								p.param_flat_color_per_face_->bind(proj_matrix, view_matrix);
+								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								p.param_flat_color_per_face_->release();
+							}
+						}
+						break;
+						}
+					}
+					break;
+					}
 				}
-				else if (p.phong_shading_ && p.param_phong_->vao_initialized())
-				{
-					p.param_phong_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_phong_->release();
-				}
-				else if (p.param_flat_->vao_initialized())
-				{
-					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_flat_->release();
+				break;
 				}
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
-			}
-
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
-			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
 			}
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
@@ -333,6 +555,14 @@ protected:
 				md->draw(rendering::LINES);
 				glDisable(GL_BLEND);
 				p.param_edge_->release();
+			}
+
+			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			{
+				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->bind(proj_matrix, view_matrix);
+				md->draw(rendering::POINTS);
+				p.param_point_sprite_->release();
 			}
 		}
 	}
@@ -372,131 +602,176 @@ protected:
 
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(
-					*selected_mesh_, [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-						bool is_selected = attribute == p.vertex_position_;
-						if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-							set_vertex_position(*selected_view_, *selected_mesh_, attribute);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_position_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##position"))
-					set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
-			}
-
-			if (ImGui::BeginCombo("Normal", p.vertex_normal_ ? p.vertex_normal_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, "Position", p.vertex_position_,
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_normal_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_normal(*selected_view_, *selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
+													set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 												});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_normal_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##normal"))
-					set_vertex_normal(*selected_view_, *selected_mesh_, nullptr);
-			}
-
-			if (ImGui::BeginCombo("Scalar", p.vertex_scalar_ ? p.vertex_scalar_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Scalar, Vertex>(
-					*selected_mesh_, [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
-						bool is_selected = attribute == p.vertex_scalar_;
-						if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-							set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_scalar_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##scalar"))
-					set_vertex_scalar(*selected_view_, *selected_mesh_, nullptr);
-			}
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
-			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
-
-			if (p.render_faces_)
-			{
-				if (p.vertex_scalar_)
-				{
-					need_update |=
-						ImGui::InputFloat("Scalar min", &p.param_scalar_per_vertex_->min_value_, 0.01f, 1.0f, "%.3f");
-					need_update |=
-						ImGui::InputFloat("Scalar max", &p.param_scalar_per_vertex_->max_value_, 0.01f, 1.0f, "%.3f");
-					if (ImGui::Checkbox("Auto update min/max", &p.auto_update_scalar_min_max_))
-						if (p.auto_update_scalar_min_max_)
-							update_scalar_min_max_values(p);
-				}
-				else
-				{
-					if (p.vertex_normal_)
-					{
-						need_update |= ImGui::Checkbox("Phong shading", &p.phong_shading_);
-						if (p.phong_shading_)
-						{
-							ImGui::Separator();
-							ImGui::TextUnformatted("Phong parameters");
-							need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(),
-															 ImGuiColorEditFlags_NoInputs);
-							if (p.param_phong_->double_side_)
-								need_update |=
-									ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(),
-													  ImGuiColorEditFlags_NoInputs);
-							need_update |=
-								ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
-							need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
-						}
-					}
-
-					if (!p.phong_shading_)
-					{
-						ImGui::Separator();
-						ImGui::TextUnformatted("Flat parameters");
-						need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
-														 ImGuiColorEditFlags_NoInputs);
-						if (p.param_flat_->double_side_)
-							need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
-															 ImGuiColorEditFlags_NoInputs);
-						need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
-					}
-				}
-			}
-
-			if (p.render_edges_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Edges parameters");
-				need_update |=
-					ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
-			}
-
 			if (p.render_vertices_)
 			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Vertices parameters");
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
+				need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+				need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+			}
+
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+			if (p.render_edges_)
+			{
+				need_update |=
+					ImGui::ColorEdit3("Color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("Width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
+			}
+
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
+			if (p.render_faces_)
+			{
+				ImGui::TextUnformatted("Normals");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Per vertex##normal", p.normal_per_cell_ == PER_VERTEX))
+				{
+					p.normal_per_cell_ = PER_VERTEX;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per face##normal", p.normal_per_cell_ == PER_FACE))
+				{
+					p.normal_per_cell_ = PER_FACE;
+					need_update = true;
+				}
+				ImGui::EndGroup();
+
+				if (p.normal_per_cell_ == PER_VERTEX)
+				{
+					imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, "Attribute##normal", p.vertex_normal_,
+														[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+															set_vertex_normal(*selected_view_, *selected_mesh_,
+																			  attribute);
+														});
+				}
+				else if (p.normal_per_cell_ == PER_FACE)
+				{
+				}
+
+				ImGui::TextUnformatted("Colors");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Global##color", p.color_per_cell_ == GLOBAL))
+				{
+					p.color_per_cell_ = GLOBAL;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per vertex##color", p.color_per_cell_ == PER_VERTEX))
+				{
+					p.color_per_cell_ = PER_VERTEX;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per face##color", p.color_per_cell_ == PER_FACE))
+				{
+					p.color_per_cell_ = PER_FACE;
+					need_update = true;
+				}
+				ImGui::EndGroup();
+
+				if (p.color_per_cell_ == GLOBAL)
+				{
+					if (ImGui::ColorEdit3("Front color", p.param_flat_->front_color_.data(),
+										  ImGuiColorEditFlags_NoInputs))
+					{
+						p.param_phong_->front_color_ = p.param_flat_->front_color_;
+						need_update = true;
+					}
+					if (ImGui::ColorEdit3("Back color", p.param_flat_->back_color_.data(),
+										  ImGuiColorEditFlags_NoInputs))
+					{
+						p.param_phong_->back_color_ = p.param_flat_->back_color_;
+						need_update = true;
+					}
+				}
+				else if (p.color_per_cell_ == PER_VERTEX)
+				{
+					ImGui::BeginGroup();
+					if (ImGui::RadioButton("Scalar", p.color_type_ == SCALAR))
+					{
+						p.color_type_ = SCALAR;
+						need_update = true;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Vector", p.color_type_ == VECTOR))
+					{
+						p.color_type_ = VECTOR;
+						need_update = true;
+					}
+					ImGui::EndGroup();
+
+					if (p.color_type_ == SCALAR)
+					{
+						imgui_combo_attribute<Vertex, Scalar>(
+							*selected_mesh_, "Attribute##scalarvertexcolor", p.vertex_scalar_,
+							[&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
+								set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
+							});
+						need_update |= ImGui::InputFloat("Scalar min", &p.param_flat_scalar_per_vertex_->min_value_,
+														 0.01f, 1.0f, "%.3f");
+						need_update |= ImGui::InputFloat("Scalar max", &p.param_flat_scalar_per_vertex_->max_value_,
+														 0.01f, 1.0f, "%.3f");
+						if (ImGui::Checkbox("Auto update min/max", &p.auto_update_vertex_scalar_min_max_))
+							if (p.auto_update_vertex_scalar_min_max_)
+								update_vertex_scalar_min_max_values(p);
+					}
+					else if (p.color_type_ == VECTOR)
+					{
+						imgui_combo_attribute<Vertex, Vec3>(
+							*selected_mesh_, "Attribute##vectorvertexcolor", p.vertex_color_,
+							[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+								set_vertex_color(*selected_view_, *selected_mesh_, attribute);
+							});
+					}
+				}
+				else if (p.color_per_cell_ == PER_FACE)
+				{
+					ImGui::BeginGroup();
+					if (ImGui::RadioButton("Scalar", p.color_type_ == SCALAR))
+					{
+						p.color_type_ = SCALAR;
+						need_update = true;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Vector", p.color_type_ == VECTOR))
+					{
+						p.color_type_ = VECTOR;
+						need_update = true;
+					}
+					ImGui::EndGroup();
+
+					if (p.color_type_ == SCALAR)
+					{
+						imgui_combo_attribute<Face, Scalar>(
+							*selected_mesh_, "Attribute##scalarfacecolor", p.face_scalar_,
+							[&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
+								set_face_scalar(*selected_view_, *selected_mesh_, attribute);
+							});
+						need_update |= ImGui::InputFloat("Scalar min", &p.param_flat_scalar_per_face_->min_value_,
+														 0.01f, 1.0f, "%.3f");
+						need_update |= ImGui::InputFloat("Scalar max", &p.param_flat_scalar_per_face_->max_value_,
+														 0.01f, 1.0f, "%.3f");
+						if (ImGui::Checkbox("Auto update min/max", &p.auto_update_face_scalar_min_max_))
+							if (p.auto_update_face_scalar_min_max_)
+								update_face_scalar_min_max_values(p);
+					}
+					else if (p.color_type_ == VECTOR)
+					{
+						imgui_combo_attribute<Face, Vec3>(*selected_mesh_, "Attribute##vectorfacecolor", p.face_color_,
+														  [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+															  set_face_color(*selected_view_, *selected_mesh_,
+																			 attribute);
+														  });
+					}
+				}
 			}
 		}
 

@@ -68,8 +68,8 @@ class VolumeRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), volume_center_(), render_vertices_(true), render_edges_(true),
-			  render_volumes_(false), render_volume_lines_(true), vertex_scale_factor_(1.0)
+			: vertex_position_(nullptr), volume_center_(), render_vertices_(false), render_edges_(false),
+			  render_volumes_(true), render_volume_lines_(true), vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
@@ -79,8 +79,8 @@ class VolumeRender : public ViewModule
 			param_edge_->width_ = 1.0f;
 
 			param_volume_ = rendering::ShaderExplodeVolumes::generate_param();
-			param_volume_line_ = rendering::ShaderExplodeVolumesLine::generate_param();
 
+			param_volume_line_ = rendering::ShaderExplodeVolumesLine::generate_param();
 			param_volume_line_->explode_ = param_volume_->explode_;
 		}
 
