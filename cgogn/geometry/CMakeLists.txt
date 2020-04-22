@@ -19,19 +19,23 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/fitting.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/inclusion.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/intersection.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/normal.h"
-                "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/orientation.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/algos/angle.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/area.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/centroid.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/curvature.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/picking.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
 )

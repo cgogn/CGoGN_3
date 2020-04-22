@@ -73,9 +73,9 @@ class VolumeRender : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), volume_center_(nullptr), volume_color_(nullptr), volume_scalar_(nullptr),
-			  vbo_volume_center_(nullptr), render_topo_(false), render_vertices_(false), render_edges_(false),
-			  render_faces_(false), render_volumes_b_(true), render_volumes_(1), render_volumes_line_(true),
-			  auto_update_scalar_min_max_(true), gpu_center_(false), edge_blending_(true)
+			  vbo_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false), render_vertices_(false),
+			  render_edges_(false), render_faces_(false), render_volumes_b_(true), render_volumes_(1),
+			  render_volumes_line_(true), auto_update_scalar_min_max_(true), gpu_center_(false), edge_blending_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);

@@ -25,15 +25,13 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/types/attribute_handler.h>
-//#include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/volume_render/volume_render.h>
+#include <cgogn/ui/modules/volume_render/volume_render_new.h>
 
-//#include <cgogn/ui/modules/topo_render/topo_render.h>
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/distance.h>
 
@@ -80,7 +78,6 @@ int main(int argc, char** argv)
 	v2->link_module(&vr);
 
 	Mesh* m = mp.load_volume_from_file(filename);
-
 	if (!m)
 	{
 		std::cout << "File could not be loaded" << std::endl;
@@ -107,7 +104,8 @@ int main(int argc, char** argv)
 	cgogn::geometry::compute_centroid<Vec3, Volume>(*m, vertex_position.get(), volume_center.get());
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
-	//	vr.set_vertex_position(*v1, *m, vertex_position);
+
+	vr.set_vertex_position(*v1, *m, vertex_position);
 	//	vr.set_volume_scalar(*v1, *m, volume_scal);
 	//	vr.set_volume_color(*v1, *m, volume_color);
 

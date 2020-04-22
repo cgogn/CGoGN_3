@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C), IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -448,21 +448,26 @@ protected:
 				}
 				else
 				{
-					need_update |= ImGui::Checkbox("Phong shading", &p.phong_shading_);
-					if (p.phong_shading_)
+					if (p.vertex_normal_)
 					{
-						ImGui::Separator();
-						ImGui::TextUnformatted("Phong parameters");
-						need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(),
-														 ImGuiColorEditFlags_NoInputs);
-						if (p.param_phong_->double_side_)
-							need_update |= ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(),
+						need_update |= ImGui::Checkbox("Phong shading", &p.phong_shading_);
+						if (p.phong_shading_)
+						{
+							ImGui::Separator();
+							ImGui::TextUnformatted("Phong parameters");
+							need_update |= ImGui::ColorEdit3("front color##phong", p.param_phong_->front_color_.data(),
 															 ImGuiColorEditFlags_NoInputs);
-						need_update |=
-							ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
-						need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
+							if (p.param_phong_->double_side_)
+								need_update |=
+									ImGui::ColorEdit3("back color##phong", p.param_phong_->back_color_.data(),
+													  ImGuiColorEditFlags_NoInputs);
+							need_update |=
+								ImGui::SliderFloat("spec##phong", &(p.param_phong_->specular_coef_), 10.0f, 1000.0f);
+							need_update |= ImGui::Checkbox("double side##phong", &(p.param_phong_->double_side_));
+						}
 					}
-					else
+
+					if (!p.phong_shading_)
 					{
 						ImGui::Separator();
 						ImGui::TextUnformatted("Flat parameters");
