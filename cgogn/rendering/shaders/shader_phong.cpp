@@ -84,7 +84,7 @@ static const char* fragment_shader_source =
 	"	finalColor += currentColor*lambertTerm ;\n"
 	"	vec3 E = normalize(EyeVector);\n"
 	"	vec3 R = reflect(-L, N);\n"
-	"	float specular = pow( max(dot(R, E), 0.0), spec_coef );\n"
+	"	float specular = pow(max(dot(R, E), 0.0), spec_coef);\n"
 	"	finalColor += spec_color * specular;\n"
 	"	frag_color=vec4(finalColor.rgb,1.0);"
 	"}\n";
