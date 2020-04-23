@@ -37,46 +37,45 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 		#version 330
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
+
+		uniform usamplerBuffer vertex_ind;
 		uniform usamplerBuffer tri_ind;
-		uniform usamplerBuffer tri_emb;
 		uniform samplerBuffer pos_vertex;
 		uniform samplerBuffer color_tri;
-		out vec3 A;
-		flat out vec3 N;
+		
+		out vec3 pos;
 		flat out vec3 color;
+
 		void main()
 		{
-			int tri = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
-			int i_c = int(texelFetch(tri_emb, int(gl_InstanceID)).r);
-			color = texelFetch(color_tri, i_c).rgb;
-			int vid = gl_VertexID;
-			int ind_a = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-			A = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb,1.0)).xyz;
-			vid  = (vid+1)%3;
-			int ind_b = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-			vec3 B = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_b).rgb,1.0)).xyz;
-			vid  = (vid+1)%3;
-			int ind_c = int(texelFetch(tri_ind, 3*int(gl_InstanceID)+vid).r);
-			vec3 C = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb,1.0)).xyz;
-			N = normalize(cross(B-A,C-A));
-			gl_Position = projection_matrix*vec4(A,1);
+			int ind_v = int(texelFetch(vertex_ind, 3*gl_InstanceID+gl_VertexID).r);
+			vec3 position_in = texelFetch(pos_vertex, ind_v).rgb;
+
+			int ind_t = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
+			color = texelFetch(color_tri, ind_t).rgb;
+
+			vec4 pos4 = model_view_matrix * vec4(position_in,1.0);
+			pos = pos4.xyz;
+			gl_Position = projection_matrix * pos4;
 		}
 	)";
 
 	const char* fragment_shader_source = R"(
 		#version 330
-		out vec3 fragColor;
 		uniform vec4 ambiant_color;
 		uniform vec3 light_position;
 		uniform bool double_side;
-		in vec3 A;
-		flat in vec3 N;
+		
+		in vec3 pos;
 		flat in vec3 color;
+
+		out vec3 fragColor;
+
 		void main()
 		{
-			vec3 No = normalize(N);
-			vec3 L = normalize(light_position-A);
-			float lambert = dot(No,L);
+			vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+			vec3 L = normalize(light_position-pos);
+			float lambert = dot(N,L);
 			if (double_side || gl_FrontFacing)
 				fragColor = ambiant_color.rgb+lambert*color;
 			else
@@ -86,7 +85,7 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "");
 
-	add_uniforms("tri_ind", "tri_emb", "pos_vertex", "color_tri", "ambiant_color", "light_position", "double_side");
+	add_uniforms("vertex_ind", "tri_ind", "pos_vertex", "color_tri", "ambiant_color", "light_position", "double_side");
 }
 
 void ShaderParamFlatColorPerFace::set_uniforms()

@@ -263,7 +263,9 @@ protected:
 
 				if (EMB)
 					ivol = index_of(m, vol);
+
 				auto& vertices = vvertices[worker_index];
+
 				foreach_incident_face(m, vol, [&](Face f) -> bool {
 					auto& tif = table_indices_f[worker_index];
 					if (codegree(m, f) == 3)
@@ -276,9 +278,7 @@ protected:
 						tif.push_back(ivol);
 					}
 					else
-					{
-						cgogn::geometry::append_ear_triangulation(m, f, position, tif, [&]() { tif.push_back(ivol); });
-					}
+						geometry::append_ear_triangulation(m, f, position, tif, [&]() { tif.push_back(ivol); });
 					return true;
 				});
 
@@ -463,7 +463,6 @@ public:
 				func_update_ebo(TRIANGLES, table_indices);
 			}
 			break;
-
 		case VOLUMES_VERTICES:
 		case VOLUMES_EDGES:
 		case VOLUMES_FACES:
@@ -489,7 +488,6 @@ public:
 				}
 			}
 			break;
-
 		default:
 			break;
 		}

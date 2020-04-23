@@ -715,13 +715,20 @@ protected:
 							[&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
 								set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
 							});
-						need_update |= ImGui::InputFloat("Scalar min", &p.param_flat_scalar_per_vertex_->min_value_,
-														 0.01f, 1.0f, "%.3f");
-						need_update |= ImGui::InputFloat("Scalar max", &p.param_flat_scalar_per_vertex_->max_value_,
-														 0.01f, 1.0f, "%.3f");
-						if (ImGui::Checkbox("Auto update min/max", &p.auto_update_vertex_scalar_min_max_))
+						need_update |=
+							ImGui::InputFloat("Scalar min##vertexcolor", &p.param_flat_scalar_per_vertex_->min_value_,
+											  0.01f, 1.0f, "%.3f");
+						need_update |=
+							ImGui::InputFloat("Scalar max##vertexcolor", &p.param_flat_scalar_per_vertex_->max_value_,
+											  0.01f, 1.0f, "%.3f");
+						if (ImGui::Checkbox("Auto update min/max##vertexcolor", &p.auto_update_vertex_scalar_min_max_))
+						{
 							if (p.auto_update_vertex_scalar_min_max_)
+							{
 								update_vertex_scalar_min_max_values(p);
+								need_update = true;
+							}
+						}
 					}
 					else if (p.color_type_ == VECTOR)
 					{
@@ -755,13 +762,18 @@ protected:
 							[&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
 								set_face_scalar(*selected_view_, *selected_mesh_, attribute);
 							});
-						need_update |= ImGui::InputFloat("Scalar min", &p.param_flat_scalar_per_face_->min_value_,
-														 0.01f, 1.0f, "%.3f");
-						need_update |= ImGui::InputFloat("Scalar max", &p.param_flat_scalar_per_face_->max_value_,
-														 0.01f, 1.0f, "%.3f");
-						if (ImGui::Checkbox("Auto update min/max", &p.auto_update_face_scalar_min_max_))
+						need_update |= ImGui::InputFloat(
+							"Scalar min##facecolor", &p.param_flat_scalar_per_face_->min_value_, 0.01f, 1.0f, "%.3f");
+						need_update |= ImGui::InputFloat(
+							"Scalar max##facecolor", &p.param_flat_scalar_per_face_->max_value_, 0.01f, 1.0f, "%.3f");
+						if (ImGui::Checkbox("Auto update min/max##facecolor", &p.auto_update_face_scalar_min_max_))
+						{
 							if (p.auto_update_face_scalar_min_max_)
+							{
 								update_face_scalar_min_max_values(p);
+								need_update = true;
+							}
+						}
 					}
 					else if (p.color_type_ == VECTOR)
 					{
