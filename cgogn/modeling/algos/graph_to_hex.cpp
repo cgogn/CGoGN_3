@@ -43,8 +43,12 @@
 #include <cgogn/io/surface/surface_import.h>
 
 #include <cgogn/geometry/functions/angle.h>
+#include <cgogn/geometry/functions/intersection.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/modeling/algos/subdivision.h>
+
+#include <iostream>
+#include <fstream>
 
 namespace cgogn
 {
@@ -574,6 +578,45 @@ void catmull_clark_inter(CMap2& m, uint32 iterations)
 	remove_attribute<CMap2::Vertex>(m, incident_init_mid);
 }
 
+bool intersection_surface(const CMap2& m, const CMap2::Attribute<Vec3>* vertex_position, const Vec3& P, const Vec3& Dir,
+						  Vec3* inter)
+{
+	Scalar min_dist = std::numeric_limits<Scalar>::max();
+	Vec3 closest_inter;
+	bool found_point = false;
+
+	foreach_cell(m, [&](CMap2::Face f) -> bool { 
+		std::vector<CMap2::Vertex> vertices = incident_vertices(m, f);
+		if (vertices.size() > 2)
+		{
+			for (uint32 i = 2; i < vertices.size(); ++i)
+			{
+				Vec3 inter_t;
+				Vec3 a = value<Vec3>(m, vertex_position, vertices[0]);
+				Vec3 b = value<Vec3>(m, vertex_position, vertices[i - 1]);
+				Vec3 c = value<Vec3>(m, vertex_position, vertices[i]);
+				bool hit = cgogn::geometry::intersection_ray_triangle(P, Dir, a, b, c, &inter_t);
+				
+				if (hit && (inter_t - P).norm() < min_dist)
+				{
+					found_point = true;
+					min_dist = (inter_t - P).norm();
+					closest_inter = inter_t;
+					break;
+				}
+			}
+		}
+
+		return true; 
+	});
+
+	if (found_point)
+		*inter = closest_inter;
+
+	return found_point;
+}
+
+
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
@@ -609,41 +652,44 @@ bool subdivide_graph(Graph& g)
 		edge = edge.normalized();
 
 		uint32 n = D / avg_radius;
-		if (n > 1)
-		{
-			Scalar y = (Rn - R0) / D;
-			Scalar ratio = pow(Rn / R0, 1.0 / Scalar(n));
-
-			Scalar sum_ratio = 0;
-			Scalar alpha = 1;
-			std::vector<Scalar> ratios_sums;
-			for (uint32 i = 0; i < n; ++i)
+		//if (D > 2 * avg_radius)
+		//{
+		//	n = 2;
+			if (n > 1)
 			{
-				sum_ratio += alpha;
-				ratios_sums.push_back(sum_ratio);
-				alpha *= ratio;
-			}
-			ratios_sums.pop_back();
+				Scalar y = (Rn - R0) / D;
+				Scalar ratio = pow(Rn / R0, 1.0 / Scalar(n));
 
-			Vec3 D0 = D / sum_ratio * edge;
-			std::vector<Vec3> Pi;
-			for (Scalar r : ratios_sums)
-			{
-				Pi.push_back(P0 + r * D0);
-			}
+				Scalar sum_ratio = 0;
+				Scalar alpha = 1;
+				std::vector<Scalar> ratios_sums;
+				for (uint32 i = 0; i < n; ++i)
+				{
+					sum_ratio += alpha;
+					ratios_sums.push_back(sum_ratio);
+					alpha *= ratio;
+				}
+				ratios_sums.pop_back();
 
-			Dart d = eg.dart;
-			alpha = ratio * R0;
-			for (Vec3 P : Pi)
-			{
-				d = cut_edge(g, Graph::Edge(d), true).dart;
-				value<Vec3>(g, vertex_position, Graph::Vertex(d)) = P;
-				value<Scalar>(g, vertex_radius, Graph::Vertex(d)) = alpha;
-				alpha *= ratio;
-				d = alpha1(g, d);
-			}
-		}
+				Vec3 D0 = D / sum_ratio * edge;
+				std::vector<Vec3> Pi;
+				for (Scalar r : ratios_sums)
+				{
+					Pi.push_back(P0 + r * D0);
+				}
 
+				Dart d = eg.dart;
+				alpha = ratio * R0;
+				for (Vec3 P : Pi)
+				{
+					d = cut_edge(g, Graph::Edge(d), true).dart;
+					value<Vec3>(g, vertex_position, Graph::Vertex(d)) = P;
+					value<Scalar>(g, vertex_radius, Graph::Vertex(d)) = alpha;
+					alpha *= ratio;
+					d = alpha1(g, d);
+				}
+			}
+		//}
 		return true;
 	});
 	return true;
@@ -1224,7 +1270,7 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 	{
 		Scalar cos = UE.col(0).dot(U_.col(0));
 		Scalar angle = cos > 1 ? std::acos(1) : std::acos(cos);
-		Scalar angle_step = -angle / Scalar(nb_e);
+		Scalar angle_step = -angle / Scalar(nb_e + 1);
 
 		d_from = h_from_start.dart;
 		d_to = alpha0(g, d_from);
@@ -1247,7 +1293,7 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 			Graph::Vertex next_v_to(next_d_to);
 
 			U = value<Mat3>(g, gAttribs.halfedge_frame, next_h_from);
-			Eigen::AngleAxisd rot(angle_step * step, U.col(2));
+			Eigen::AngleAxisd rot(-angle_step * step, U.col(2));
 			U.col(0) = rot * U.col(0);
 			U.col(1) = U.col(2).cross(U.col(0));
 
@@ -1314,6 +1360,54 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 
 	return true;
 }
+
+//bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+//								   const CMap2& surface)
+//{
+//
+//	std::shared_ptr<CMap2::Attribute<Vec3>> surface_vertex_position =
+//		get_attribute<Vec3, CMap2::Vertex>(surface, "position");
+//
+//	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+//		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
+//
+//		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+//		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+//
+//		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v);
+//
+//		if (degree(g, v) < 3)
+//		{
+//			Graph::HalfEdge h(v.dart);
+//			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
+//			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
+//			Vec3 inter0, inter1, inter2, inter3;
+//			intersection_surface(surface, surface_vertex_position.get(), center, -frame.col(1), &inter0);
+//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(0), &inter1);
+//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(1), &inter2);
+//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(1), &inter3);
+//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
+//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
+//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
+//				center + frame.col(1) * radius;
+//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
+//		}
+//
+//		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
+//			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
+//			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
+//							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
+//			project_on_sphere(mid, center, radius);
+//			// mid = center + ((value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) - center) +
+//			//				  (value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]) - center));
+//			value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
+//			return true;
+//		});
+//		return true;
+//	});
+//
+//	return true;
+//}
 
 /*****************************************************************************/
 /* volume mesh generation                                                    */
@@ -2166,6 +2260,48 @@ Vec3 get_quality_color(Scalar quality)
 }
 
 
+void export_surface_off(CMap2& m2, std::string name)
+{
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position = get_attribute<Vec3, CMap2::Vertex>(m2, "position");
+	std::shared_ptr<CMap2::Attribute<uint32>> vertex_id = add_attribute<uint32 , CMap2::Vertex>(m2, "vertex_id");
+	std::cout << name << std::endl;
+	uint32 nb_vertices = nb_cells<CMap2::Vertex>(m2);
+	uint32 nb_faces = nb_cells<CMap2::Face>(m2);
+
+	std::ofstream out_file;
+	out_file.open(name);
+	out_file << "OFF\n";
+	out_file << nb_vertices << " " << nb_faces << " " << 0 << "\n";
+
+	uint32 id = 0;
+	foreach_cell(m2, [&](CMap2::Vertex v) -> bool {
+		Vec3 pos = value<Vec3>(m2, vertex_position, v);
+		value<uint32>(m2, vertex_id, v) = id++;
+		out_file << pos[0] << " " << pos[1] << " " << pos[2] << "\n";
+		return true;
+	});
+	//for (uint32 i = 0; i < nb_vertices; ++i)
+	//{
+	//	Vec3 pos = (*vertex_position)[i];
+	//	out_file << pos[0] << " " << pos[1] << " " << pos[2] << "\n";
+	//}
+
+	foreach_cell(m2, [&](CMap2::Face f) -> bool {
+		out_file << codegree(m2, f);
+		foreach_incident_vertex(m2, f, [&](CMap2::Vertex v) -> bool {
+			out_file << " " << value<uint32>(m2, vertex_id, v);
+			return true;
+		});
+		out_file << "\n";
+		return true;
+	});
+
+	remove_attribute<CMap2::Vertex>(m2, vertex_id);
+
+	out_file.close();
+}
+
 } // namespace modeling
 
 } // namespace cgogn
+

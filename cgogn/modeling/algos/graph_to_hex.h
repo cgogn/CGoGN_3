@@ -108,6 +108,9 @@ Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations);
 void extract_volume_surface(CMap3& m3, CMap2& m2);
 void catmull_clark_approx(CMap2& m2, uint32 iterations);
 void catmull_clark_inter(CMap2& m, uint32 iterations);
+bool intersection_surface(const CMap2& m, const CMap2::Attribute<Vec3>* vertex_position, const Vec3& P, const Vec3& Dir,
+						  Vec3* inter);
+void export_surface_off(CMap2& m2, std::string filename);
 
 /*****************************************************************************/
 /* data preparation                                                          */
@@ -148,6 +151,8 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 /*****************************************************************************/
 
 bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
+bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttributes& gAttribs, CMap2& m2,
+												M2Attributes& m2Attribs, const CMap2& surface);
 
 /*****************************************************************************/
 /* volume mesh generation                                                    */

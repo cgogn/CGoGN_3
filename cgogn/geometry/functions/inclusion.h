@@ -25,6 +25,7 @@
 #define CGOGN_GEOMETRY_FUNCTIONS_INCLUSION_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/functions/normal.h>
 
 namespace cgogn
 {
