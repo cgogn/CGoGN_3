@@ -142,7 +142,6 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
-	std::cout << "Compilation Shader " << name() << std::endl;
 	vert_shader_ = new Shader(GL_VERTEX_SHADER);
 	vert_shader_->compile(vert_src, name());
 

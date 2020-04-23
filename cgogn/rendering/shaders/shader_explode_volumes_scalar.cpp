@@ -47,7 +47,7 @@ static const char* vertex_shader_source =
 		flat out vec3 color;
 		out vec3 Po;
 
-//_insert_colormap_funcion_here
+//_insert_colormap_function_here
 
 		void main()
 		{
@@ -95,7 +95,7 @@ ShaderExplodeVolumesScalar* ShaderExplodeVolumesScalar::instance_ = nullptr;
 ShaderExplodeVolumesScalar::ShaderExplodeVolumesScalar()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_funcion::color_maps_shader_source());
 	load2_bind(v_src, fragment_shader_source);
 	add_uniforms("tri_indices", "pos_vertex", "center_volume", "scalar_volume", "light_position", "explode",
 				 "plane_clip", "plane_clip2", "color_map", "expansion", "min_value", "max_value");

@@ -31,8 +31,7 @@
 #include <iostream>
 #include <memory>
 
-
-#define DECLARE_SHADER_CLASS(NAME,STRNA)                                                                                     \
+#define DECLARE_SHADER_CLASS(NAME, STRNA)                                                                              \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
 	{                                                                                                                  \
@@ -48,9 +47,12 @@
 				ShaderProgram::register_instance(instance_);                                                           \
 			}                                                                                                          \
 			return std::make_unique<Param>(instance_);                                                                 \
-		}    \
-		inline std::string name() const override { return STRNA;} \
-																													   \
+		}                                                                                                              \
+		inline std::string name() const override                                                                       \
+		{                                                                                                              \
+			return STRNA;                                                                                              \
+		}                                                                                                              \
+                                                                                                                       \
 	protected:                                                                                                         \
 		Shader##NAME();                                                                                                \
 		Shader##NAME(const Shader##NAME&) = delete;                                                                    \
@@ -121,7 +123,7 @@ protected:
 	GLint unif_mv_matrix_;
 	GLint unif_projection_matrix_;
 	GLint unif_normal_matrix_;
-	uint32 nb_attributes_ ;
+	uint32 nb_attributes_;
 
 	std::vector<GLint> uniforms_;
 
@@ -154,18 +156,17 @@ public:
 		return id_;
 	}
 
-//	inline void start_use()
-//	{
-//		glUseProgram(id_);
-//	}
+	//	inline void start_use()
+	//	{
+	//		glUseProgram(id_);
+	//	}
 
-//	inline void stop_use()
-//	{
-//		glUseProgram(0);
-//	}
+	//	inline void stop_use()
+	//	{
+	//		glUseProgram(0);
+	//	}
 
-
-	virtual std::string name() const =0;
+	virtual std::string name() const = 0;
 
 	inline uint32 nb_attributes() const
 	{
@@ -193,7 +194,7 @@ public:
 		if (u >= 0)
 			uniforms_.push_back(u);
 		else
-			std::cerr << "Warning uniform " << str << " does not exist in shader " <<name()<< std::endl;
+			std::cerr << "Warning uniform " << str << " does not exist in shader " << name() << std::endl;
 	}
 
 	template <typename T1>
@@ -208,7 +209,6 @@ public:
 		add_uniform(p1);
 		add_uniforms(pn...);
 	}
-
 
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
@@ -232,7 +232,6 @@ public:
 		bind_attrib_location(attrib1, p1);
 		internal_bind_attrib_locations(attrib1 + 1, pn...);
 	}
-
 
 	void bind_attrib_locations()
 	{
@@ -327,23 +326,20 @@ public:
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
 			std::cerr << "PB GL_LINK_STATUS load3_bind " << name() << std::endl;
-		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS load3_bind " << name() << std::endl;
-
-		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-		if (infologLength > 1)
-		{
-			char* infoLog = new char[infologLength];
-			int charsWritten = 0;
-			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-			std::cerr << "Link message: " << infoLog << std::endl;
-			delete[] infoLog;
-		}
-
+		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_VALIDATE_STATUS load3_bind " << name() << std::endl;
+		// glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+		// if (infologLength > 1)
+		// {
+		// 	char* infoLog = new char[infologLength];
+		// 	int charsWritten = 0;
+		// 	glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+		// 	std::cerr << "Link message: " << infoLog << std::endl;
+		// 	delete[] infoLog;
+		// }
 
 		get_matrices_uniforms();
-
 	}
 
 	template <typename... Ts>
@@ -372,31 +368,28 @@ public:
 		GLint infologLength = 0;
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
-		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS load2_bind " << name() << " "<<infologLength<< std::endl;
-
-		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-		if (infologLength > 1)
-		{
-			char* infoLog = new char[infologLength];
-			int charsWritten = 0;
-			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-			std::cerr << "Link message: " << infoLog << std::endl;
-			delete[] infoLog;
-		}
-
+			std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " " << infologLength << std::endl;
+		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_VALIDATE_STATUS load2_bind " << name() << " " << infologLength << std::endl;
+		// glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+		// if (infologLength > 1)
+		// {
+		// 	char* infoLog = new char[infologLength];
+		// 	int charsWritten = 0;
+		// 	glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+		// 	std::cerr << "Link message: " << infoLog << std::endl;
+		// 	delete[] infoLog;
+		// }
 
 		get_matrices_uniforms();
-
 	}
 
 	template <typename... Ts>
 	void load_tfb1_bind(const std::string& vert_src, const std::vector<std::string>& tf_outs, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src,name());
+		vert_shader_->compile(vert_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 
@@ -406,7 +399,7 @@ public:
 		if (!tf_outs.empty())
 		{
 			std::vector<const char*> tfo;
-			for (const auto& t: tf_outs)
+			for (const auto& t : tf_outs)
 				tfo.push_back(t.c_str());
 			glTransformFeedbackVaryings(id_, GLsizei(tf_outs.size()), tfo.data(), GL_SEPARATE_ATTRIBS);
 		}
@@ -421,21 +414,20 @@ public:
 		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
 		if (infologLength != GL_TRUE)
 			std::cerr << "PB GL_LINK_STATUS load_tfb1_bind " << name() << std::endl;
-		glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_VALIDATE_STATUS load_tfb1_bind " << name() << std::endl;
-		glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-		if (infologLength > 1)
-		{
-			char* infoLog = new char[infologLength];
-			int charsWritten = 0;
-			glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-			std::cerr << "Link message: " << infoLog << std::endl;
-			delete[] infoLog;
-		}
+		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_VALIDATE_STATUS load_tfb1_bind " << name() << std::endl;
+		// glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+		// if (infologLength > 1)
+		// {
+		// 	char* infoLog = new char[infologLength];
+		// 	int charsWritten = 0;
+		// 	glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+		// 	std::cerr << "Link message: " << infoLog << std::endl;
+		// 	delete[] infoLog;
+		// }
 
 		get_matrices_uniforms();
-
 	}
 };
 

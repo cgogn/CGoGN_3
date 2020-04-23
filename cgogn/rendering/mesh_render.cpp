@@ -83,7 +83,9 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		break;
 	case LINES_TB:
 		indices_buffers_[LINES]->bind_tb(binding_point);
+		indices_buffers_[INDEX_EDGES]->bind_tb(binding_point + 1);
 		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 2);
+		indices_buffers_[INDEX_EDGES]->release_tb();
 		indices_buffers_[LINES]->release_tb();
 		break;
 	case TRIANGLES_TB:

@@ -21,10 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
-#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
@@ -32,7 +33,8 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongScalarPerFace,CGOGN_STR(PhongScalarPerFace))
+
+DECLARE_SHADER_CLASS(PhongScalarPerFace, CGOGN_STR(PhongScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
@@ -42,15 +44,18 @@ protected:
 public:
 	VBO* vbo_pos_;
 	VBO* vbo_norm_;
-	VBO* vbo_scalar_; // perface
+	VBO* vbo_scalar_;
+	ColorMap color_map_;
+	int32 expansion_;
+	float32 min_value_;
+	float32 max_value_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
 
-
-	template<typename ...Args>
+	template <typename... Args>
 	void fill(Args&&... args)
 	{
 		auto a = std::forward_as_tuple(args...);
@@ -64,12 +69,9 @@ public:
 	using ShaderType = ShaderPhongScalarPerFace;
 
 	ShaderParamPhongScalarPerFace(ShaderType* sh)
-		: ShaderParam(sh),
-		  vbo_pos_(nullptr),
-		  vbo_norm_(nullptr),
-		  vbo_scalar_(nullptr),
-		  ambiant_color_(), specular_color_(), specular_coef_(),
-		  light_position_(), double_side_()
+		: ShaderParam(sh), vbo_pos_(nullptr), vbo_norm_(nullptr), vbo_scalar_(nullptr), color_map_(BWR), expansion_(0),
+		  min_value_(.0f), max_value_(1.0f), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1),
+		  specular_coef_(250), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
@@ -78,8 +80,15 @@ public:
 		vbo_pos_ = vbos[0];
 		vbo_norm_ = vbos[1];
 		vbo_scalar_ = vbos[2];
+		if (vbo_pos_ && vbo_norm_ && vbo_scalar_)
+			vao_initialized_ = true;
+		else
+			vao_initialized_ = false;
 	}
 };
+
 } // namespace rendering
+
 } // namespace cgogn
-#endif
+
+#endif // CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_

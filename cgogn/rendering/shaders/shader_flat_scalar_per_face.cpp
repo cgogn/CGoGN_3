@@ -46,7 +46,7 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 		out vec3 pos;
 		flat out vec3 color;
 
-		//_insert_colormap_funcion_here
+		//_insert_colormap_function_here
 
 		void main()
 		{
@@ -86,7 +86,7 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 	)";
 
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_funcion::color_maps_shader_source());
 
 	load2_bind(v_src, fragment_shader_source, "");
 	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "pos_vertex",

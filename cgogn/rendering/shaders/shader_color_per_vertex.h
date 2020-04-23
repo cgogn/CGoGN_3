@@ -21,8 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
-#define CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
+#ifndef CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_
+
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
@@ -32,23 +33,54 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ColorPerVertex,CGOGN_STR(ColorPerVertex))
+DECLARE_SHADER_CLASS(FlatColorPerVertex, CGOGN_STR(FlatColorPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamColorPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
+		shader_->set_uniforms_values(light_position_);
 	}
 
 public:
-	using LocalShader = ShaderColorPerVertex;
+	GLVec3 light_position_;
 
-	ShaderParamColorPerVertex(LocalShader* sh) : ShaderParam(sh)
+	using LocalShader = ShaderFlatColorPerVertex;
+
+	ShaderParamFlatColorPerVertex(LocalShader* sh) : ShaderParam(sh), light_position_(10, 100, 1000)
 	{
 	}
 
+	inline ~ShaderParamFlatColorPerVertex() override
+	{
+	}
+};
+
+DECLARE_SHADER_CLASS(PhongColorPerVertex, CGOGN_STR(PhongColorPerVertex))
+
+class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
+{
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(light_position_);
+	}
+
+public:
+	GLVec3 light_position_;
+
+	using LocalShader = ShaderPhongColorPerVertex;
+
+	ShaderParamPhongColorPerVertex(LocalShader* sh) : ShaderParam(sh), light_position_(10, 100, 1000)
+	{
+	}
+
+	inline ~ShaderParamPhongColorPerVertex() override
+	{
+	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
-#endif // CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
+
+#endif // CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_

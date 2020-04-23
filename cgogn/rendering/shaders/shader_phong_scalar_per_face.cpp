@@ -26,7 +26,6 @@
 #include <iostream>
 
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -36,99 +35,93 @@ namespace rendering
 
 ShaderPhongScalarPerFace* ShaderPhongScalarPerFace::instance_ = nullptr;
 
-static const char* vertex_shader_source =
-R"(
-#version 330
-uniform mat4 projectionMatrix;
-uniform mat4 viewMatrix;
-uniform mat3 normalMatrix;
+static const char* vertex_shader_source = R"(
+	#version 330
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+	uniform mat3 normal_matrix;
 
-uniform usamplerBuffer tri_indices;
-uniform usamplerBuffer face_emb;
+	uniform usamplerBuffer vertex_ind;
+	uniform usamplerBuffer tri_ind;
 
-uniform samplerBuffer position_vertex;
-uniform samplerBuffer normal_vertex;
-uniform samplerBuffer scalar_face;
+	uniform samplerBuffer position_vertex;
+	uniform samplerBuffer normal_vertex;
+	uniform samplerBuffer scalar_face;
 
-out vec3 Po;
-out vec3 No;
-flat out vec3 Col;
+	out vec3 pos;
+	out vec3 normal;
+	flat out vec3 color;
 
-//_insert_colormap_funcion_here
+	//_insert_colormap_function_here
 
-void main()
-{
-	int ind_v = int(texelFetch(tri_indices,3*gl_InstanceID+gl_VertexID).r);
-	int emb = int(texelFetch(face_emb, gl_InstanceID).r);
-
-	vec3 normal_in = texelFetch(normal_vertex, ind_v).rgb;
-	vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
-	Col = scalar2color(texelFetch(scalar_face, emb).r);
-
-	No = normalMatrix * normal_in;
-	vec4 Po4 = viewMatrix * vec4(position_in,1);
-	Po = Po4.xyz;
-	gl_Position = projectionMatrix * Po4;
-}
-)";
-
-static const char* fragment_shader_source =
-R"(
-#version 330
-in vec3 Po;
-in vec3 No;
-flat in vec3 Col;
-out vec3 frag_out;
-
-uniform vec3 light_pos;
-uniform vec4 ambiant_color;
-uniform vec4 spec_color;
-uniform float spec_coef;
-uniform bool double_side;
-
-void main()
-{
-	vec3 N = normalize(No);
-	vec3 L = normalize(light_pos-Po);
-	if (gl_FrontFacing==false)
+	void main()
 	{
-		if (!double_side)
-			discard;
-		N *= -1.0;
-	}
+		int ind_v = int(texelFetch(vertex_ind, 3*gl_InstanceID+gl_VertexID).r);
+		int ind_t = int(texelFetch(tri_ind, gl_InstanceID).r);
 
-	float lamb = max(0.0,dot(N,L));
-	vec3 E = normalize(-Po);
-	vec3 R = reflect(-L, N);
-	float spec = pow( max(dot(R,E), 0.0), spec_coef);
-	frag_out = ambiant_color.rgb + lamb*Col + spec*spec_color.rgb;
-}
+		vec3 normal_in = texelFetch(normal_vertex, ind_v).rgb;
+		vec3 position_in = texelFetch(position_vertex, ind_v).rgb;
+		color = scalar2color(texelFetch(scalar_face, ind_t).r);
+
+		normal = normal_matrix * normal_in;
+		vec4 pos4 = model_view_matrix * vec4(position_in,1);
+		pos = pos4.xyz;
+		gl_Position = projection_matrix * pos4;
+	}
 )";
 
+static const char* fragment_shader_source = R"(
+	#version 330
+	uniform vec3 light_pos;
+	uniform vec4 ambiant_color;
+	uniform vec4 spec_color;
+	uniform float spec_coef;
+	uniform bool double_side;
+
+	in vec3 pos;
+	in vec3 normal;
+	flat in vec3 color;
+	
+	out vec3 frag_out;
+
+	void main()
+	{
+		vec3 N = normalize(normal);
+		vec3 L = normalize(light_pos-pos);
+		if (!gl_FrontFacing)
+		{
+			if (!double_side)
+				discard;
+			N *= -1.0;
+		}
+
+		float lambert = max(0.0, dot(N,L));
+		vec3 E = normalize(-pos);
+		vec3 R = reflect(-L, N);
+		float specular = pow(max(dot(R,E), 0.0), spec_coef);
+		frag_out = ambiant_color.rgb + lambert*color + specular*spec_color.rgb;
+	}
+)";
 
 ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
-	load2_bind(v_src,fragment_shader_source);
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_funcion::color_maps_shader_source());
+	load2_bind(v_src, fragment_shader_source);
 
-	add_uniforms("tri_indices", "face_emb",
-				 "position_vertex", "normal_vertex", "scalar_face",
-				 "light_pos", "ambiant_color",
-				 "spec_color", "spec_coef", "double_side");
+	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "position_vertex",
+				 "normal_vertex", "scalar_face", "light_pos", "ambiant_color", "spec_color", "spec_coef",
+				 "double_side");
 }
 
 void ShaderParamPhongScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_)
-		shader_->set_uniforms_values(10,11,
-						vbo_pos_->bind_tb(12),
-						vbo_norm_->bind_tb(13),
-						vbo_scalar_->bind_tb(14),
-						light_position_,ambiant_color_,
-						specular_color_,specular_coef_,double_side_);
-
+	if (vbo_pos_ && vbo_norm_ && vbo_scalar_)
+		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, 10, 11, vbo_pos_->bind_tb(12),
+									 vbo_norm_->bind_tb(13), vbo_scalar_->bind_tb(14), light_position_, ambiant_color_,
+									 specular_color_, specular_coef_, double_side_);
 }
 
 } // namespace rendering
+
 } // namespace cgogn
