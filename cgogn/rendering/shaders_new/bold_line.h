@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_BOLDLINE_H_
+#define CGOGN_RENDERING_SHADERS_BOLDLINE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,58 +32,50 @@ namespace cgogn
 
 namespace rendering
 {
+DECLARE_SHADER_CLASS(BoldLine,CGOGN_STR(BoldLine))
 
-DECLARE_SHADER_CLASS(PhongColorPerFace, CGOGN_STR(PhongColorPerFace))
-
-class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 {
-protected:
-	void set_uniforms() override;
+	inline void set_uniforms() override
+	{
+		int viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
+		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
+	}
 
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_norm_;
-	VBO* vbo_color_;
-	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
-	GLVec3 light_position_;
-	bool double_side_;
+	GLColor color_;
+	float32 width_;
+	bool blending_;
+	GLVec4 plane_clip_;
+	GLVec4 plane_clip2_;
 
-	template <typename... Args>
+	template<typename ...Args>
 	void fill(Args&&... args)
 	{
 		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		specular_color_ = std::get<1>(a);
-		specular_coef_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
+		color_ = std::get<0>(a);
+		width_ = std::get<1>(a);
+		blending_ = std::get<2>(a);
 	}
 
-	using ShaderType = ShaderPhongColorPerFace;
+	using LocalShader = ShaderBoldLine;
 
-	ShaderParamPhongColorPerFace(ShaderType* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), vbo_norm_(nullptr), vbo_color_(nullptr),
-		  ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
-		  light_position_(10, 100, 1000), double_side_(true)
+	ShaderParamBoldLine(LocalShader* sh)
+		: ShaderParam(sh), color_(color_line_default), width_(2),blending_(true),
+		plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline ~ShaderParamBoldLine() override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_norm_ = vbos[1];
-		vbo_color_ = vbos[2];
-		if (vbo_pos_ && vbo_norm_ && vbo_color_)
-			vao_initialized_ = true;
-		else
-			vao_initialized_ = false;
 	}
+
+
 };
 
 } // namespace rendering
-
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_
+#endif

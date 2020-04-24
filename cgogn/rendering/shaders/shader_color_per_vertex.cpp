@@ -34,67 +34,104 @@ namespace rendering
 ShaderFlatColorPerVertex* ShaderFlatColorPerVertex::instance_ = nullptr;
 ShaderPhongColorPerVertex* ShaderPhongColorPerVertex::instance_ = nullptr;
 
-static const char* vertex_shader_source = "in vec3 vertex_pos;\n"
-										  "in vec3 vertex_color;\n"
-										  "uniform mat4 projection_matrix;\n"
-										  "uniform mat4 model_view_matrix;\n"
-										  "out vec3 pos_v;\n"
-										  "out vec3 color_v;\n"
-										  "#if WITH_NORMAL==1\n"
-										  "uniform mat3 normal_matrix;\n"
-										  "in vec3 vertex_normal;\n"
-										  "out vec3 normal_v;\n"
-										  "#endif\n"
-										  "void main()\n"
-										  "{\n"
-										  "	color_v = vertex_color;\n"
-										  "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
-										  "	pos_v = pos4.xyz;\n"
-										  "#if WITH_NORMAL==1\n"
-										  "	normal_v = normal_matrix * vertex_normal;\n"
-										  "#endif\n"
-										  "   gl_Position = projection_matrix * pos4;\n"
-										  "}\n";
+static const char* vertex_shader_source = R"(
+	#version 150
 
-static const char* fragment_shader_source = "in vec3 pos_v;\n"
-											"in vec3 color_v;\n"
-											"#if WITH_NORMAL==1\n"
-											"in vec3 normal_v;\n"
-											"#endif\n"
-											"uniform vec3 light_position;\n"
-											"out vec3 fragColor;\n"
-											"void main()\n"
-											"{\n"
-											"#if WITH_NORMAL==1\n"
-											"	vec3 N = normal_v;\n"
-											"#else\n"
-											"	vec3 N = normalize(cross(dFdx(pos_v),dFdy(pos_v)));\n"
-											"#endif\n"
-											"	vec3 L = normalize(light_position-pos_v);\n"
-											"	float lambert = dot(N,L);\n"
-											"	fragColor = lambert*color_v;\n"
-											"}\n";
+	//_insert_defines_here
+
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+
+	in vec3 vertex_pos;
+	in vec3 vertex_color;
+
+	out vec3 pos;
+	out vec3 color;
+
+	#if WITH_NORMAL==1
+	uniform mat3 normal_matrix;
+	in vec3 vertex_normal;
+	out vec3 normal;
+	#endif
+
+	void main()
+	{
+		vec4 pos4 = model_view_matrix * vec4(vertex_pos, 1);
+		pos = pos4.xyz;
+		color = vertex_color;
+		#if WITH_NORMAL==1
+		normal = normal_matrix * vertex_normal;
+		#endif
+		gl_Position = projection_matrix * pos4;
+	}
+)";
+
+static const char* fragment_shader_source = R"(
+	#version 150
+
+	//_insert_defines_here
+
+	uniform vec3 light_pos;
+	uniform vec4 ambiant_color;
+	uniform bool double_side;
+
+	#if WITH_NORMAL==1
+	uniform vec4 spec_color;
+	uniform float spec_coef;
+	in vec3 normal;
+	#endif
+
+	in vec3 pos;
+	in vec3 color;
+
+	out vec3 frag_out;
+
+	void main()
+	{
+		#if WITH_NORMAL==1
+		vec3 N = normal;
+		#else
+		vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+		#endif
+		vec3 L = normalize(light_pos-pos);
+		if (!gl_FrontFacing)
+		{
+			if (!double_side)
+				discard;
+			N *= -1.0;
+		}
+		float lambert = max(0.0, dot(N,L));
+		#if WITH_NORMAL==1
+		vec3 E = normalize(-pos);
+		vec3 R = reflect(-L, N);
+		float specular = pow(max(dot(R,E), 0.0), spec_coef);
+		frag_out = ambiant_color.rgb + lambert*color + specular*spec_color.rgb;
+		#else
+		frag_out = ambiant_color.rgb + lambert*color;
+		#endif
+	}
+)";
 
 ShaderFlatColorPerVertex::ShaderFlatColorPerVertex()
 {
-	std::string bs("#version 150\n#define WITH_NORMAL 0\n");
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_defines_here"), "#define WITH_NORMAL 0\n");
+	std::string f_src(fragment_shader_source);
+	f_src.insert(f_src.find("//_insert_defines_here"), "#define WITH_NORMAL 0\n");
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
-
-	load2_bind(vs, fs, "vertex_pos", "vertex_color");
-	add_uniforms("light_position");
+	load2_bind(v_src, f_src, "vertex_pos", "vertex_color");
+	add_uniforms("light_pos", "ambiant_color", "double_side");
 }
 
 ShaderPhongColorPerVertex::ShaderPhongColorPerVertex()
 {
-	std::string bs("#version 150\n#define WITH_NORMAL 1\n");
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_defines_here"), "#define WITH_NORMAL 1\n");
+	std::string f_src(fragment_shader_source);
+	f_src.insert(f_src.find("//_insert_defines_here"), "#define WITH_NORMAL 1\n");
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
-
-	load2_bind(vs, fs, "vertex_pos", "vertex_normal", "vertex_color");
-	add_uniforms("light_position");
+	load2_bind(v_src, f_src, "vertex_pos", "vertex_normal", "vertex_color");
+	add_uniforms("light_pos", "ambiant_color", "spec_color", "spec_coef", "double_side");
 }
 
 } // namespace rendering

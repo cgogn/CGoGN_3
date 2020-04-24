@@ -38,6 +38,7 @@
 #include <cgogn/rendering/shaders/shader_flat_color_per_face.h>
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
+#include <cgogn/rendering/shaders/shader_phong_color_per_face.h>
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
@@ -130,6 +131,10 @@ class SurfaceRender : public ViewModule
 			param_phong_scalar_per_vertex_->color_map_ = rendering::BWR;
 
 			param_phong_color_per_vertex_ = rendering::ShaderPhongColorPerVertex::generate_param();
+			param_phong_color_per_vertex_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+
+			param_phong_color_per_face_ = rendering::ShaderPhongColorPerFace::generate_param();
+			param_phong_color_per_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 
 			param_phong_scalar_per_face_ = rendering::ShaderPhongScalarPerFace::generate_param();
 			param_phong_scalar_per_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
@@ -158,7 +163,7 @@ class SurfaceRender : public ViewModule
 		std::unique_ptr<rendering::ShaderPhongScalarPerVertex::Param> param_phong_scalar_per_vertex_;
 		std::unique_ptr<rendering::ShaderPhongColorPerVertex::Param> param_phong_color_per_vertex_;
 		std::unique_ptr<rendering::ShaderPhongScalarPerFace::Param> param_phong_scalar_per_face_;
-		// std::unique_ptr<rendering::ShaderPhongColorPerFace::Param> param_phong_color_per_face_;
+		std::unique_ptr<rendering::ShaderPhongColorPerFace::Param> param_phong_color_per_face_;
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -241,8 +246,8 @@ public:
 		auto* vn = md->vbo(p.vertex_normal_.get());
 		auto* vs = md->vbo(p.vertex_scalar_.get());
 		auto* vc = md->vbo(p.vertex_color_.get());
-		auto* fc = md->vbo(p.face_color_.get());
 		auto* fs = md->vbo(p.face_scalar_.get());
+		auto* fc = md->vbo(p.face_color_.get());
 
 		p.param_point_sprite_->set_vbos({vp});
 		p.param_edge_->set_vbos({vp});
@@ -255,6 +260,7 @@ public:
 		p.param_phong_scalar_per_vertex_->set_vbos({vp, vn, vs});
 		p.param_phong_color_per_vertex_->set_vbos({vp, vn, vc});
 		p.param_phong_scalar_per_face_->set_vbos({vp, vn, fs});
+		p.param_phong_color_per_face_->set_vbos({vp, vn, fc});
 
 		v.request_update();
 	}
@@ -273,11 +279,13 @@ public:
 		auto* vs = md->vbo(p.vertex_scalar_.get());
 		auto* vc = md->vbo(p.vertex_color_.get());
 		auto* fs = md->vbo(p.face_scalar_.get());
+		auto* fc = md->vbo(p.face_color_.get());
 
 		p.param_phong_->set_vbos({vp, vn});
 		p.param_phong_scalar_per_vertex_->set_vbos({vp, vn, vs});
 		p.param_phong_color_per_vertex_->set_vbos({vp, vn, vc});
 		p.param_phong_scalar_per_face_->set_vbos({vp, vn, fs});
+		p.param_phong_color_per_face_->set_vbos({vp, vn, fc});
 
 		v.request_update();
 	}
@@ -369,11 +377,11 @@ public:
 			md->update_vbo(face_color.get(), true);
 
 		auto* vp = md->vbo(p.vertex_position_.get());
-		// auto* vn = md->vbo(p.vertex_normal_.get());
+		auto* vn = md->vbo(p.vertex_normal_.get());
 		auto* fc = md->vbo(p.face_color_.get());
 
 		p.param_flat_color_per_face_->set_vbos({vp, fc});
-		// p.param_phong_color_per_face_->set_vbos({vp, vn, fc});
+		p.param_phong_color_per_face_->set_vbos({vp, vn, fc});
 
 		v.request_update();
 	}
@@ -487,12 +495,12 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							// if (p.param_phong_color_per_face_->vao_initialized())
-							// {
-							// 	p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
-							// 	md->draw(rendering::TRIANGLES, p.vertex_position_);
-							// 	p.param_phong_color_per_face_->release();
-							// }
+							if (p.param_phong_color_per_face_->vao_initialized())
+							{
+								p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
+								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								p.param_phong_color_per_face_->release();
+							}
 						}
 						break;
 						}

@@ -54,9 +54,10 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 			vec3 position_in = texelFetch(pos_vertex, ind_v).rgb;
 
 			int ind_t = int(texelFetch(tri_ind, int(gl_InstanceID)).r);
-			color = scalar2color(texelFetch(scalar_tri, ind_t).r);
+			float scalar = transform_value(texelFetch(scalar_tri, ind_t).r);
+			color = scalar2color(scalar);
 
-			vec4 pos4 = model_view_matrix * vec4(position_in,1.0);
+			vec4 pos4 = model_view_matrix * vec4(position_in, 1.0);
 			pos = pos4.xyz;
 			gl_Position = projection_matrix * pos4;
 		}
@@ -86,7 +87,7 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 	)";
 
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
 
 	load2_bind(v_src, fragment_shader_source, "");
 	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "pos_vertex",

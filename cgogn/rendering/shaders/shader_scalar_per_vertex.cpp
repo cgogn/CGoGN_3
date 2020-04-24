@@ -34,177 +34,131 @@ namespace rendering
 ShaderFlatScalarPerVertex* ShaderFlatScalarPerVertex::instance_ = nullptr;
 ShaderPhongScalarPerVertex* ShaderPhongScalarPerVertex::instance_ = nullptr;
 
-static const char* vertex_shader_source = "in vec3 vertex_pos;\n"
-										  "in float vertex_scalar;\n"
-										  "uniform mat4 projection_matrix;\n"
-										  "uniform mat4 model_view_matrix;\n"
-										  "uniform float min_value;\n"
-										  "uniform float max_value;\n"
-										  "uniform int color_map;\n"
-										  "uniform int expansion;\n"
-										  "out vec3 pos_v;\n"
-										  "out vec3 color_v;\n"
-										  "out float scalar_v;\n"
-										  "#if WITH_NORMAL==1\n"
-										  "uniform mat3 normal_matrix;\n"
-										  "in vec3 vertex_normal;\n"
-										  "out vec3 normal_v;\n"
-										  "#endif\n"
-										  "#define M_PI 3.1415926535897932384626433832795\n"
-										  "float scale_and_clamp_to_0_1(float x, float min, float max)\n"
-										  "{\n"
-										  "	float v = (x - min) / (max - min);\n"
-										  "	return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);\n"
-										  "}\n"
-										  "float scale_expand_within_0_1(float x, int n)\n"
-										  "{\n"
-										  "	for (int i = 1; i <= n; i++)\n"
-										  "		x = (1.0 - cos(M_PI * x)) / 2.0;\n"
-										  "	for (int i = -1; i >= n; i--)\n"
-										  "		x = acos(1.0 - 2.0 * x) / M_PI;\n"
-										  "	return x;\n"
-										  "}\n"
-										  "float scale_expand_towards_1(float x, int n)\n"
-										  "{\n"
-										  "	for (int i = 1; i <= n; i++)\n"
-										  "		x = sin(x * M_PI / 2.0);\n"
-										  "	for (int i = -1; i >= n; i--)\n"
-										  "		x = asin(x) * 2.0 / M_PI;\n"
-										  "	return x;\n"
-										  "}\n"
-										  "vec3 color_map_blue_white_red(float x)\n"
-										  "{\n"
-										  "	vec3 c = vec3(0);\n"
-										  "	if (x < 0.0)\n"
-										  "		c.b = 1.0;\n"
-										  "	else if (x < 0.5)\n"
-										  "	{\n"
-										  "		c.r = 2.0 * x;\n"
-										  "		c.g = 2.0 * x;\n"
-										  "		c.b = 1.0;\n"
-										  "	}\n"
-										  "	else if (x < 1.0)\n"
-										  "	{\n"
-										  "		c.r = 1.0;\n"
-										  "		c.g = 2.0 - 2.0 * x;\n"
-										  "		c.b = 2.0 - 2.0 * x;\n"
-										  "	}\n"
-										  "	else\n"
-										  "		c.r = 1.0;\n"
-										  "	return c;\n"
-										  "}\n"
-										  "vec3 color_map_cyan_white_red(float x)\n"
-										  "{\n"
-										  "	if (x < 0.0)\n"
-										  "		return vec3(0.0, 0.0, 1.0) ;\n"
-										  "	if (x < 0.5)\n"
-										  "		return vec3(2.0 * x, 1.0 , 1.0);\n"
-										  "	if (x < 1.0)\n"
-										  "		return vec3(1.0, 2.0 - 2.0 * x, 2.0 - 2.0 * x);\n"
-										  "	return vec3(1.0, 0.0, 0.0) ;\n"
-										  "}\n"
-										  "vec3 color_map_BCGYR(float x)\n"
-										  "{\n"
-										  "	if (x < 0.0)\n"
-										  "		return vec3(0.0, 0.0, 1.0) ;\n"
-										  "	if (x < 0.25)\n"
-										  "		return vec3(0.0, 4.0 * x, 1.0);\n"
-										  "	if (x < 0.5)\n"
-										  "		return vec3(0.0, 1.0 , 2.0 - 4.0 * x);\n"
-										  "	if (x < 0.75)\n"
-										  "		return vec3(4.0 * x - 2.0, 1.0, 0.0);\n"
-										  "	if (x < 1.0)\n"
-										  "		return vec3(1.0, 4.0 - 4.0 * x, 0.0);\n"
-										  "	return vec3(1.0, 0.0, 0.0) ;\n"
-										  "}\n"
-										  "vec3 color_map_blue_green_red(float x)\n"
-										  "{\n"
-										  "	if (x < 0.0)\n"
-										  "		return vec3(0.0, 0.0, 1.0) ;\n"
-										  "	if (x < 0.5)\n"
-										  "		return vec3(0.0, 2.0 * x, 1.0 - 2.0 * x);\n"
-										  "	if (x < 1.0)\n"
-										  "		return vec3(2.0 * x - 1.0, 2.0 - 2.0 * x, 0.0);\n"
-										  "	return vec3(1.0, 0.0, 0.0) ;\n"
-										  "}\n"
-										  "void main()\n"
-										  "{\n"
-										  "	float value =\n"
-										  "		scale_expand_within_0_1(\n"
-										  "			scale_and_clamp_to_0_1(\n"
-										  "				vertex_scalar,\n"
-										  "				min_value,\n"
-										  "				max_value\n"
-										  "			),\n"
-										  "			expansion\n"
-										  "		);\n"
-										  "	switch(color_map)\n"
-										  "	{\n"
-										  "		case 0 : color_v = color_map_blue_white_red(value); break;\n"
-										  "		case 1 : color_v = color_map_cyan_white_red(value); break;\n"
-										  "		case 2 : color_v = color_map_BCGYR(value); break;\n"
-										  "		case 3 : color_v = color_map_blue_green_red(value); break;\n"
-										  "	}\n"
-										  "	scalar_v = value;\n"
-										  "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
-										  "	pos_v = pos4.xyz;\n"
-										  "#if WITH_NORMAL==1\n"
-										  "	normal_v = normal_matrix * vertex_normal;\n"
-										  "#endif\n"
-										  "   gl_Position = projection_matrix * pos4;\n"
-										  "}\n";
+static const char* vertex_shader_source = R"(
+	#version 150
 
-static const char* fragment_shader_source = "in vec3 pos_v;\n"
-											"in vec3 color_v;\n"
-											"in float scalar_v;\n"
-											"#if WITH_NORMAL==1\n"
-											"in vec3 normal_v;\n"
-											"#endif\n"
-											"uniform vec3 light_position;\n"
-											"uniform bool show_iso_lines;\n"
-											"uniform int nb_iso_levels;\n"
-											"out vec3 fragColor;\n"
-											"void main()\n"
-											"{\n"
-											"#if WITH_NORMAL==1\n"
-											"	vec3 N = normal_v;\n"
-											"#else\n"
-											"	vec3 N = normalize(cross(dFdx(pos_v),dFdy(pos_v)));\n"
-											"#endif\n"
-											"	vec3 L = normalize(light_position-pos_v);\n"
-											"	float lambert = dot(N,L);\n"
-											"	if (show_iso_lines)\n"
-											"	{\n"
-											"		float s = scalar_v * float(nb_iso_levels);\n"
-											"		if (s - floor(s) < 0.05)\n"
-											"			fragColor = vec3(0.0);\n"
-											"		else\n"
-											"			fragColor = lambert*color_v;\n"
-											"	}\n"
-											"	else\n"
-											"		fragColor = lambert*color_v;\n"
-											"}\n";
+	//_insert_defines_here
+
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+
+	in vec3 vertex_pos;
+	in float vertex_scalar;
+
+	out vec3 pos;
+	out vec3 color;
+	out float scalar;
+
+	#if WITH_NORMAL==1
+	uniform mat3 normal_matrix;
+	in vec3 vertex_normal;
+	out vec3 normal;
+	#endif
+
+	//_insert_colormap_function_here
+
+	void main()
+	{
+		scalar = transform_value(vertex_scalar);
+		color = value2color(scalar);
+		#if WITH_NORMAL==1
+		normal = normal_matrix * vertex_normal;
+		#endif
+		vec4 pos4 = model_view_matrix * vec4(vertex_pos, 1.0);
+		pos = pos4.xyz;
+		gl_Position = projection_matrix * pos4;
+	}
+)";
+
+static const char* fragment_shader_source = R"(
+	#version 150
+
+	//_insert_defines_here
+
+	uniform vec3 light_pos;
+	uniform vec4 ambiant_color;
+	uniform bool double_side;
+	uniform bool show_iso_lines;
+	uniform int nb_iso_levels;
+
+	#if WITH_NORMAL==1
+	uniform vec4 spec_color;
+	uniform float spec_coef;
+	in vec3 normal;
+	#endif
+
+	in vec3 pos;
+	in vec3 color;
+	in float scalar;
+
+	out vec3 frag_out;
+
+	void main()
+	{
+		#if WITH_NORMAL==1
+		vec3 N = normal;
+		#else
+		vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+		#endif
+		vec3 L = normalize(light_pos-pos);
+		if (!gl_FrontFacing)
+		{
+			if (!double_side)
+				discard;
+			N *= -1.0;
+		}
+		float lambert = max(0.0, dot(N,L));
+		#if WITH_NORMAL==1
+		vec3 E = normalize(-pos);
+		vec3 R = reflect(-L, N);
+		float specular = pow(max(dot(R,E), 0.0), spec_coef);
+		if (show_iso_lines)
+		{
+			float s = scalar * float(nb_iso_levels);
+			if (s - floor(s) < 0.05)
+				frag_out = vec3(0.0);
+			else
+				frag_out = ambiant_color.rgb + lambert*color + specular*spec_color.rgb;
+		}
+		else
+			frag_out = ambiant_color.rgb + lambert*color + specular*spec_color.rgb;
+		#else
+		if (show_iso_lines)
+		{
+			float s = scalar * float(nb_iso_levels);
+			if (s - floor(s) < 0.05)
+				frag_out = vec3(0.0);
+			else
+				frag_out = ambiant_color.rgb + lambert*color;
+		}
+		else
+			frag_out = ambiant_color.rgb + lambert*color;
+		#endif
+	}
+)";
 
 ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 {
-	std::string bs("#version 150\n#define WITH_NORMAL 0\n");
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_defines_here"), "#define WITH_NORMAL 0\n");
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
+	std::string f_src(fragment_shader_source);
+	f_src.insert(f_src.find("//_insert_defines_here"), "#define WITH_NORMAL 0\n");
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
-
-	load2_bind(vs, fs, "vertex_pos", "vertex_scalar");
+	load2_bind(v_src, f_src, "vertex_pos", "vertex_scalar");
 	add_uniforms("color_map", "expansion", "min_value", "max_value", "show_iso_lines", "nb_iso_levels",
 				 "light_position");
 }
 
 ShaderPhongScalarPerVertex::ShaderPhongScalarPerVertex()
 {
-	std::string bs("#version 150\n#define WITH_NORMAL 1\n");
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_defines_here"), "#define WITH_NORMAL 1\n");
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
+	std::string f_src(fragment_shader_source);
+	f_src.insert(f_src.find("//_insert_defines_here"), "#define WITH_NORMAL 1\n");
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
-
-	load2_bind(vs, fs, "vertex_pos", "vertex_normal", "vertex_scalar");
+	load2_bind(v_src, f_src, "vertex_pos", "vertex_normal", "vertex_scalar");
 	add_uniforms("color_map", "expansion", "min_value", "max_value", "show_iso_lines", "nb_iso_levels",
 				 "light_position");
 }

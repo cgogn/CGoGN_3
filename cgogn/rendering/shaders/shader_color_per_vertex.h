@@ -39,15 +39,18 @@ class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_);
+		shader_->set_uniforms_values(light_position_, ambiant_color_, double_side_);
 	}
 
 public:
+	GLColor ambiant_color_;
 	GLVec3 light_position_;
+	bool double_side_;
 
 	using LocalShader = ShaderFlatColorPerVertex;
 
-	ShaderParamFlatColorPerVertex(LocalShader* sh) : ShaderParam(sh), light_position_(10, 100, 1000)
+	ShaderParamFlatColorPerVertex(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
@@ -62,15 +65,21 @@ class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_);
+		shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
 	}
 
 public:
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
 	GLVec3 light_position_;
+	bool double_side_;
 
 	using LocalShader = ShaderPhongColorPerVertex;
 
-	ShaderParamPhongColorPerVertex(LocalShader* sh) : ShaderParam(sh), light_position_(10, 100, 1000)
+	ShaderParamPhongColorPerVertex(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 

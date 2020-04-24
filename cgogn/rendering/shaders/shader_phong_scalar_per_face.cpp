@@ -94,7 +94,6 @@ static const char* fragment_shader_source = R"(
 				discard;
 			N *= -1.0;
 		}
-
 		float lambert = max(0.0, dot(N,L));
 		vec3 E = normalize(-pos);
 		vec3 R = reflect(-L, N);
@@ -106,7 +105,7 @@ static const char* fragment_shader_source = R"(
 ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
 	load2_bind(v_src, fragment_shader_source);
 
 	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "position_vertex",

@@ -41,7 +41,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerVertex : public ShaderParam
 	inline void set_uniforms() override
 	{
 		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, show_iso_lines_, nb_iso_levels_,
-									 light_position_);
+									 light_position_, ambiant_color_, double_side_);
 	}
 
 public:
@@ -51,13 +51,15 @@ public:
 	float32 max_value_;
 	bool show_iso_lines_;
 	int32 nb_iso_levels_;
+	GLColor ambiant_color_;
 	GLVec3 light_position_;
+	bool double_side_;
 
 	using LocalShader = ShaderFlatScalarPerVertex;
 
 	ShaderParamFlatScalarPerVertex(LocalShader* sh)
 		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
-		  nb_iso_levels_(10), light_position_(10, 100, 1000)
+		  nb_iso_levels_(10), ambiant_color_(color_ambiant_default), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
@@ -73,7 +75,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerVertex : public ShaderPara
 	inline void set_uniforms() override
 	{
 		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, show_iso_lines_, nb_iso_levels_,
-									 light_position_);
+									 light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
 	}
 
 public:
@@ -83,13 +85,18 @@ public:
 	float32 max_value_;
 	bool show_iso_lines_;
 	int32 nb_iso_levels_;
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
 	GLVec3 light_position_;
+	bool double_side_;
 
 	using LocalShader = ShaderPhongScalarPerVertex;
 
 	ShaderParamPhongScalarPerVertex(LocalShader* sh)
 		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
-		  nb_iso_levels_(10), light_position_(10, 100, 1000)
+		  nb_iso_levels_(10), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
