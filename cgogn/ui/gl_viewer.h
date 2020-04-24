@@ -143,6 +143,7 @@ public:
 	}
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
+	virtual std::pair<rendering::GLVec3d, rendering::GLVec3d> pixel_ray(int32 x, int32 y) const = 0;
 
 	inline void set_wheel_sensitivity(float64 s)
 	{

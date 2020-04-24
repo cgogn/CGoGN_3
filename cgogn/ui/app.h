@@ -24,10 +24,9 @@
 #ifndef CGOGN_UI_WINDOW_H_
 #define CGOGN_UI_WINDOW_H_
 
-#include <cgogn/ui/cgogn_ui_export.h>
-
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/type_traits.h>
+#include <cgogn/ui/cgogn_ui_export.h>
 
 #include <cgogn/rendering/shaders/shader_frame2d.h>
 #include <cgogn/ui/inputs.h>
@@ -61,7 +60,12 @@ public:
 	void set_window_size(int32 w, int32 h);
 	void set_window_title(const std::string& name);
 
-	static inline float64 fps() { return fps_; }
+	static inline float64 fps()
+	{
+		return fps_;
+	}
+
+	static float64 frame_time_;
 
 	View* add_view();
 	inline View* current_view() const
@@ -118,7 +122,7 @@ private:
 	int32 framebuffer_width_;
 	int32 framebuffer_height_;
 
-	float64 interface_scaling_;
+	float32 interface_scaling_;
 	float64 time_last_50_frames_;
 	static float64 fps_;
 	bool show_imgui_;

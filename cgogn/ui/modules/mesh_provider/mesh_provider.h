@@ -232,6 +232,11 @@ public:
 			f(m.get(), name);
 	}
 
+	inline uint32 number_of_meshes()
+	{
+		return uint32(meshes_.size());
+	}
+
 	std::string mesh_name(const MESH* m) const
 	{
 		auto it =
@@ -347,7 +352,7 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (result.size())
+			if (uint32(result.size()))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
 					load_graph_from_file(result[0]);
@@ -381,9 +386,9 @@ protected:
 	{
 		if (show_mesh_inspector_)
 		{
-			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
-			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-			ImGui::SetWindowSize({0, 0});
+			//			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
+			//			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			//			ImGui::SetWindowSize({0, 0});
 
 			if (ImGui::ListBoxHeader("Mesh"))
 			{
@@ -446,60 +451,6 @@ private:
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
-
-
-/**
- * @brief generate combo for attribute selection
- * @param m mesh
- * @param att attribute
- * @param f code to execute when combo selection change
- */
-template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m,
-					std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& att,
-					const std::string& label,
-					const FUNC& f)
-{
-	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-
-	std::string selected_attrib = att ? att->name() : "-- select --";
-	bool changed=false;
-	if (ImGui::BeginCombo(label.c_str(), selected_attrib.c_str()))
-	{
-		foreach_attribute<T,CELL>(m,
-				  [&](const std::shared_ptr<Attribute>& attribute)
-		{
-			bool is_selected = attribute == att;
-			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-			{
-				if (att != attribute)
-					changed = true;
-				att = attribute;
-			}
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-		});
-		ImGui::EndCombo();
-	}
-
-	if (att)
-	{
-		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-		if (ImGui::Button((std::string("X##")+label).c_str()))
-		{
-			att.reset();
-			changed = true;
-		}
-	}
-
-	if (changed)
-		f();
-
-}
-
-
-
 
 } // namespace ui
 

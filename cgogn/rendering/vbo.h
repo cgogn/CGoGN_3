@@ -49,10 +49,7 @@ protected:
 	std::string name_;
 
 public:
-	inline VBO(int32 vec_dim = 3) :
-		id_tb_(0),
-		nb_vectors_(0),
-		vector_dimension_(vec_dim)
+	inline VBO(int32 vec_dim = 3) : id_tb_(0), nb_vectors_(0), vector_dimension_(vec_dim)
 	{
 		glGenBuffers(1, &id_);
 	}
@@ -66,7 +63,7 @@ public:
 	inline void set_name(const std::string& name)
 	{
 		name_ = name;
-		gl_debug_name(GL_BUFFER,id_,"VBO_"+name_);
+		gl_debug_name(GL_BUFFER, id_, "VBO_" + name_);
 	}
 
 	inline const std::string& name() const
@@ -84,16 +81,15 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-
 	inline GLint bind_tb(GLint unit)
 	{
-		if (id_tb_==0)
+		if (id_tb_ == 0)
 		{
-			static GLenum internals[]={GL_R32F,GL_RG32F,GL_RGB32F,GL_RGBA32F};
-			glGenTextures(1,&id_tb_);
+			static GLenum internals[] = {GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F};
+			glGenTextures(1, &id_tb_);
 			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
-			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_-1], id_);
-			glBindTexture(GL_TEXTURE_BUFFER,0);
+			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_ - 1], id_);
+			glBindTexture(GL_TEXTURE_BUFFER, 0);
 		}
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
@@ -102,7 +98,7 @@ public:
 
 	inline static void release_tb()
 	{
-		glBindTexture(GL_TEXTURE_BUFFER,0);
+		glBindTexture(GL_TEXTURE_BUFFER, 0);
 	}
 
 	/**
@@ -115,7 +111,7 @@ public:
 		std::size_t total = nb_vectors * uint32(vector_dimension);
 		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_DYNAMIC_DRAW);
 		}
 		nb_vectors_ = nb_vectors;
 		vector_dimension_ = vector_dimension;
@@ -128,6 +124,12 @@ public:
 	inline float32* lock_pointer()
 	{
 		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
+		return ptr;
+	}
+
+	inline float32* lock_pointer_read()
+	{
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
 		return ptr;
 	}
 
@@ -175,30 +177,47 @@ public:
 		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4,
 							  reinterpret_cast<GLvoid*>(first * uint64(vector_dimension()) * 4u));
 		release();
-
 	}
 };
 
 inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 {
-	std::cout <<"DEBUG VBO "<< vbo.id() << " : "<<vbo.name()<<std::endl;
-	vbo.bind();
-	float* f = vbo.lock_pointer();
+	const int NB = 5;
 
-	for (int i=0; i<5; ++i)
+	auto vd = vbo.vector_dimension();
+
+	std::cout << "DEBUG VBO " << vbo.id() << " : " << vbo.name();
+	std::cout << " ( " << vbo.size() << " vec of dim " << vd << " ) " << std::endl;
+	vbo.bind();
+	float* ff = vbo.lock_pointer_read();
+	float* f = ff;
+	for (int i = 0; i < NB; ++i)
 	{
-		for (int j=0; j<vbo.vector_dimension(); ++j)
+		for (int j = 0; j < vd; ++j)
 		{
-			std::cout << *f++<<" ; ";
+			std::cout << *f++ << ", ";
 		}
 		std::cout << std::endl;
 	}
-	std::cout<< "----------end vbo debug-----------" << std::endl;
+
+	std::cout << " . . . . " << std::endl;
+
+	f = ff + vbo.size() - NB * vd;
+
+	for (int i = 0; i < NB; ++i)
+	{
+		for (int j = 0; j < vd; ++j)
+		{
+			std::cout << *f++ << ", ";
+		}
+		std::cout << std::endl;
+	}
+
+	std::cout << "----------end vbo debug-----------" << std::endl;
 	vbo.release_pointer();
 	vbo.release();
 	return out;
 }
-
 
 } // namespace rendering
 

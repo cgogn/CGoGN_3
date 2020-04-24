@@ -50,7 +50,7 @@ void import_graph_data(Graph& g, const GraphImportData& graph_data)
 		(*vertex_dart)[vertex_id] = v.dart;
 	}
 
-	for (uint32 i = 0; i < graph_data.edges_vertex_indices_.size(); i += 2)
+	for (uint32 i = 0; i < uint32(graph_data.edges_vertex_indices_.size()); i += 2)
 	{
 		connect_vertices(g, Vertex((*vertex_dart)[graph_data.edges_vertex_indices_[i]]),
 						 Vertex((*vertex_dart)[graph_data.edges_vertex_indices_[i + 1]]));

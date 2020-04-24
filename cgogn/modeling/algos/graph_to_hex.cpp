@@ -58,8 +58,8 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	M2Attributes m2Attribs;
 
 	okay = get_graph_data(g, gData);
-	std::cout << gData.intersections.size() << " inters" << std::endl;
-	std::cout << gData.branches.size() << " branches" << std::endl;
+	std::cout << uint32(gData.intersections.size()) << " inters" << std::endl;
+	std::cout << uint32(gData.branches.size()) << " branches" << std::endl;
 	for (auto b : gData.branches)
 		std::cout << index_of(g, Graph::Vertex(b.first.dart)) << " - " << index_of(g, Graph::Vertex(b.second.dart))
 				  << std::endl;

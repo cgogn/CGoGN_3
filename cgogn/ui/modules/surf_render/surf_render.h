@@ -460,7 +460,7 @@ private:
 
 //		if (selected_view_ && selected_mesh_)
 //		{
-//			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+//			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 //			Parameters& p = parameters_[selected_view_][selected_mesh_];
 

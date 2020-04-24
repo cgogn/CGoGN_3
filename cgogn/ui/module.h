@@ -76,11 +76,16 @@ public:
 	ViewModule(const App& app, const std::string& name);
 	virtual ~ViewModule();
 
+	std::vector<View*>& linked_views()
+	{
+		return linked_views_;
+	}
+
 protected:
 	virtual void mouse_press_event(View* view, int32 button, int32 x, int32 y);
 	virtual void mouse_release_event(View* view, int32 button, int32 x, int32 y);
 	virtual void mouse_dbl_click_event(View* view, int32 button, int32 x, int32 y);
-	virtual void mouse_move_event(View* view, int32 x, int32 y);
+	virtual void mouse_move_event(View* view, int32 buttons, int32 x, int32 y);
 	virtual void mouse_wheel_event(View* view, int32 dx, int32 dy);
 	virtual void key_press_event(View* view, int32 key_code);
 	virtual void key_release_event(View* view, int32 key_code);

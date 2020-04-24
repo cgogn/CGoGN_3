@@ -22,7 +22,6 @@
  *******************************************************************************/
 
 #include <cgogn/rendering/shaders/shader_explode_volumes_scalar.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -31,7 +30,7 @@ namespace rendering
 {
 
 static const char* vertex_shader_source =
-		R"(
+	R"(
 		#version 330
 		uniform mat4 projection_matrix;
 		uniform mat4 model_view_matrix;
@@ -76,7 +75,7 @@ static const char* vertex_shader_source =
 		)";
 
 static const char* fragment_shader_source =
-		R"(
+	R"(
 		#version 330
 		out vec3 frag_out;
 		uniform vec3 light_position;
@@ -93,23 +92,22 @@ static const char* fragment_shader_source =
 
 ShaderExplodeVolumesScalar* ShaderExplodeVolumesScalar::instance_ = nullptr;
 
-
 ShaderExplodeVolumesScalar::ShaderExplodeVolumesScalar()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"),shader_funcion::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source);
-	add_uniforms("tri_indices", "pos_vertex", "center_volume","scalar_volume",
-				"light_position", "explode", "plane_clip", "plane_clip2",
-				 "color_map", "expansion", "min_value", "max_value");
+	add_uniforms("tri_indices", "pos_vertex", "center_volume", "scalar_volume", "light_position", "explode",
+				 "plane_clip", "plane_clip2", shader_funcion::ColorMap::name[0], shader_funcion::ColorMap::name[1],
+				 shader_funcion::ColorMap::name[2], shader_funcion::ColorMap::name[3]);
+	this->nb_attributes_ = 3;
 }
 
 void ShaderParamExplodeVolumesScalar::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbo_pos_->bind_tb(11),
-						vbo_center_->bind_tb(12),vbo_scalar_vol_->bind_tb(13),
-						light_pos_, explode_, plane_clip_, plane_clip2_,
-						color_map_,expansion_,min_value_,max_value_);
+	shader_->set_uniforms_values(10, vbos_[POS]->bind_tb(11), vbos_[CENTER]->bind_tb(12), vbos_[SCALAR]->bind_tb(13),
+								 light_pos_, explode_, plane_clip_, plane_clip2_, cm_.color_map_, cm_.expansion_,
+								 cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering

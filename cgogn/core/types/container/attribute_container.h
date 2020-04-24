@@ -185,7 +185,7 @@ public:
 
 	inline void init_mark_attributes(uint32 index) override
 	{
-		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+		for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
 		{
 			for (AttributeGenT* mark_attribute : mark_attributes_[i])
 			{
@@ -257,7 +257,8 @@ public:
 		uint32 thread_index = current_thread_index();
 		auto it = std::find(mark_attributes_[thread_index].begin(), mark_attributes_[thread_index].end(), attribute);
 		cgogn_message_assert(it != mark_attributes_[thread_index].end(), "Mark Attribute not found on release");
-		available_mark_attributes_[thread_index].push_back(std::distance(mark_attributes_[thread_index].begin(), it));
+		available_mark_attributes_[thread_index].push_back(
+			int32(std::distance(mark_attributes_[thread_index].begin(), it)));
 	}
 
 	inline void ref_index(uint32 index)

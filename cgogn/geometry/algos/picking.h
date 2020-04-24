@@ -68,16 +68,16 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 										  value<Vec3>(m, vertex_position, vertices[2]), &intersection_point))
 				selected_per_thread[worker_index].emplace_back(f, intersection_point,
 															   (intersection_point - A).squaredNorm());
-		}else{
-			for (uint32 i=0;i+2<vertices.size();i++){
-				if (intersection_ray_triangle(
-					A, AB,
-					value<Vec3>(m, vertex_position, vertices[0]),
-					value<Vec3>(m, vertex_position, vertices[i+1]),
-					value<Vec3>(m, vertex_position, vertices[i+2]),
-					&intersection_point
-				))
-					selected_per_thread[worker_index].emplace_back(f, intersection_point, (intersection_point - A).squaredNorm());
+		}
+		else
+		{
+			for (uint32 i = 0; i + 2 < uint32(vertices.size()); i++)
+			{
+				if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
+											  value<Vec3>(m, vertex_position, vertices[i + 1]),
+											  value<Vec3>(m, vertex_position, vertices[i + 2]), &intersection_point))
+					selected_per_thread[worker_index].emplace_back(f, intersection_point,
+																   (intersection_point - A).squaredNorm());
 			}
 		}
 		// else
@@ -85,7 +85,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		// 	std::vector<uint32>& ear_indices = ear_indices_per_thread[worker_index];
 		// 	ear_indices.clear();
 		// 	append_ear_triangulation(m, f, position, ear_indices);
-		// 	for (std::size_t i = 0; i < ear_indices.size(); i += 3)
+		// 	for (std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 		// 	{
 		// 		const VEC3& p1 = position[ear_indices[i]];
 		// 		const VEC3& p2 = position[ear_indices[i+1]];
@@ -93,7 +93,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		// 		if (intersection_ray_triangle(A, AB, p1, p2, p3, &intersection_point))
 		// 		{
 		// 			selected_per_thread[worker_index].push_back({ f, intersection_point, (intersection_point -
-		// A).squaredNorm() }); 			i = ear_indices.size();
+		// A).squaredNorm() }); 			i = uint32(ear_indices.size());
 		// 		}
 		// 	}
 		// }

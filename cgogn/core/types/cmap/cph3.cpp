@@ -40,9 +40,9 @@ uint32 CPH3::dart_level(Dart d) const
 
 void CPH3::set_dart_level(Dart d, uint32 l)
 {
-	if(nb_darts_per_level_.size() > dart_level(d))
+	if(uint32(nb_darts_per_level_.size()) > dart_level(d))
 		nb_darts_per_level_[dart_level(d)]--;
-	if(nb_darts_per_level_.size() < l)
+	if(uint32(nb_darts_per_level_.size()) < l)
 		nb_darts_per_level_.resize(l);
 	nb_darts_per_level_[l]++;
 	if (l > dart_level(d) && l > maximum_level_)

@@ -29,10 +29,10 @@
 
 #include <Eigen/Dense>
 
+#include <GL/gl3w.h>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
-#include <GL/gl3w.h>
 
 namespace cgogn
 {
@@ -112,23 +112,24 @@ public:
 	}
 };
 
-static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
-	{GL_INVALID_ENUM,"GL_INVALID_ENUM"},
-	{GL_INVALID_VALUE,"GL_INVALID_VALUE"},
-	{GL_INVALID_OPERATION,"GL_INVALID_OPERATION"},
-	{GL_INVALID_FRAMEBUFFER_OPERATION,"GL_INVALID_FRAMEBUFFER_OPERATION"},
-	{GL_OUT_OF_MEMORY,"GL_OUT_OF_MEMORY"},
-	{GL_STACK_UNDERFLOW,"GL_STACK_UNDERFLOW"},
-	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
-};
-
+static std::map<GLenum, std::string> GL_ERRORS_NAMES = {
+	{GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+	{GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+	{GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+	{GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+	{GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+	{GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+	{GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"}};
+#ifdef CGOGN_GL43_DEBUG_MODE
 inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
 {
-	#ifdef CGOGN_GL43_DEBUG_MODE
-	glObjectLabel(type, id, name.length(), name.c_str());
-	#endif
+	glObjectLabel(type, id, GLsizei(name.length()), name.c_str());
 }
-
+#else
+inline void gl_debug_name(GLenum, GLuint, const std::string&)
+{
+}
+#endif
 
 } // namespace rendering
 

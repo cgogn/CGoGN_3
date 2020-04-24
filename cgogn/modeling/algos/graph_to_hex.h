@@ -144,7 +144,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 // Vec3 mean_dir(Vec3 center, Scalar radius, Vec3 point, std::vector<Vec3> points){
 //     using Quat = Eigen::Quaterniond;
-//     uint32 valence = points.size();
+//     uint32 valence = uint32(points.size());
 
 //     std::vector<Vec3> directions;
 //     for (Vec3 p : points){
@@ -229,7 +229,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 //     value<Dart>(m2, m2Attribs.face_branch, M2Face(Fd[1])) = Pdart[1];
 //     value<Dart>(m2, m2Attribs.face_branch, M2Face(Fd[2])) = Pdart[2];
 
-//     for (uint i = 3; i < Ppos.size(); i++)
+//     for (uint i = 3; i < uint32(Ppos.size()); i++)
 //     {
 //         Vec3 P0 = Ppos[i];
 //         Dart F0 = Pdart[i];

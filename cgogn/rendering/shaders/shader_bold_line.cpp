@@ -35,92 +35,119 @@ namespace rendering
 
 ShaderBoldLine* ShaderBoldLine::instance_ = nullptr;
 
-static const char* vertex_shader_source = "#version 150\n"
-										  "in vec3 vertex_pos;\n"
-										  "void main()\n"
-										  "{\n"
-										  "   gl_Position =  vec4(vertex_pos,1.0);\n"
-										  "}\n";
+static const char* vertex_shader_source = R"(
+#version 330
+in vec3 vertex_pos;
+void main()
+{
+	gl_Position =  vec4(vertex_pos,1.0);
+}
+)";
 
-static const char* geometry_shader_source =
-	"#version 150\n"
-	"layout (lines) in;\n"
-	"layout (triangle_strip, max_vertices=6) out;\n"
-	"out vec4 color_f;\n"
-	"out vec4 posi_clip;\n"
-	"uniform mat4 projection_matrix;\n"
-	"uniform mat4 model_view_matrix;\n"
-	"uniform vec2 lineWidths;\n"
-	"uniform vec4 lineColor;\n"
-	"void main()\n"
-	"{\n"
-	"	vec4 A = model_view_matrix * gl_in[0].gl_Position;\n"
-	"	vec4 B = model_view_matrix * gl_in[1].gl_Position;\n"
-	"	float nearZ = 1.0;\n"
-	"	if (projection_matrix[2][2] !=  1.0)\n"
-	"		nearZ = - projection_matrix[3][2] / (projection_matrix[2][2] - 1.0); \n"
-	"	if ((A.z < nearZ) || (B.z < nearZ))\n"
-	"	{\n"
-	"		if (A.z >= nearZ)\n"
-	"			A = B + (A-B)*(nearZ-B.z)/(A.z-B.z);\n"
-	"		if (B.z >= nearZ)\n"
-	"			B = A + (B-A)*(nearZ-A.z)/(B.z-A.z);\n"
+static const char* geometry_shader_source = R"(
+#version 330
+layout (lines) in;
+layout (triangle_strip, max_vertices=6) out;
+out float Nz;
+out vec4 posi_clip;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+uniform vec2 lineWidths;
+flat out vec3 col;
 
-	"		A = projection_matrix*A;\n"
-	"		B = projection_matrix*B;\n"
-	"		A = A/A.w;\n"
-	"		B = B/B.w;\n"
-	"		vec2 U2 = normalize(vec2(lineWidths[1],lineWidths[0])*(B.xy - A.xy));\n"
-	"		vec2 LWCorr =lineWidths * max(abs(U2.x),abs(U2.y));\n"
-	"		vec3 U = vec3(0.5*LWCorr*U2,0.0);\n"
-	"		vec3 V = vec3(LWCorr*vec2(U2[1], -U2[0]), 0.0);	\n"
-	"		vec3 color3 = lineColor.rgb;\n"
-	"		color_f = vec4(color3,0.0);\n"
-	"		posi_clip = gl_in[0].gl_Position;\n"
-	"		gl_Position = vec4(A.xyz-V, 1.0);\n"
-	"		EmitVertex();\n"
-	"		color_f = vec4(color3,0.0);\n"
-	"		posi_clip = gl_in[1].gl_Position;\n"
-	"		gl_Position = vec4(B.xyz-V, 1.0);\n"
-	"		EmitVertex();\n"
-	"		color_f = vec4(color3,1.0);\n"
-	"		posi_clip = gl_in[0].gl_Position;\n"
-	"		gl_Position = vec4(A.xyz-U, 1.0);\n"
-	"		EmitVertex();\n"
-	"		color_f = vec4(color3,1.0);\n"
-	"		posi_clip = gl_in[1].gl_Position;\n"
-	"		gl_Position = vec4(B.xyz+U, 1.0);\n"
-	"		EmitVertex();\n"
-	"		color_f = vec4(color3,0.0);\n"
-	"		posi_clip = gl_in[0].gl_Position;\n"
-	"		gl_Position = vec4(A.xyz+V, 1.0);\n"
-	"		EmitVertex();\n"
-	"		color_f = vec4(color3,0.0);\n"
-	"		posi_clip = gl_in[1].gl_Position;\n"
-	"		gl_Position = vec4(B.xyz+V, 1.0);\n"
-	"		EmitVertex();\n"
-	"		EndPrimitive();\n"
-	"	}\n"
-	"}\n";
+void main()
+{
+	vec4 A = model_view_matrix * gl_in[0].gl_Position;
+	vec4 B = model_view_matrix * gl_in[1].gl_Position;
+	float nearZ = 1.0;
+	if (projection_matrix[2][2] !=  1.0)
+		nearZ = - projection_matrix[3][2] / (projection_matrix[2][2] - 1.0);
+	float farZ = - projection_matrix[3][2] / (projection_matrix[2][2] + 1.0);
 
-static const char* fragment_shader_source = "#version 150\n"
-											"uniform vec4 plane_clip;\n"
-											"uniform vec4 plane_clip2;\n"
-											"in vec4 color_f;\n"
-											"in vec4 posi_clip;\n"
-											"out vec4 fragColor;\n"
-											"void main()\n"
-											"{\n"
-											"	float d = dot(plane_clip,posi_clip);\n"
-											"	float d2 = dot(plane_clip2,posi_clip);\n"
-											"	if ((d>0.0)||(d2>0.0))  discard;\n"
-											"   fragColor = color_f;\n"
-											"}\n";
+	if ((A.z < nearZ) || (B.z < nearZ))
+	{
+		if (A.z >= nearZ)
+			A = B + (A-B)*(nearZ-B.z)/(A.z-B.z);
+		if (B.z >= nearZ)
+			B = A + (B-A)*(nearZ-A.z)/(B.z-A.z);
+
+		vec3 AB = B.xyz/B.w - A.xyz/A.w;
+		vec3 Nl = normalize(cross(AB,vec3(0,0,1)));
+		vec3 Nm = vec3(0,0,1);
+
+
+		A = projection_matrix*A;
+		B = projection_matrix*B;
+		A = A/A.w;
+		B = B/B.w;
+
+		vec2 U2 = normalize(vec2(lineWidths[1],lineWidths[0])*(B.xy - A.xy));
+		vec2 LWCorr = lineWidths * max(abs(U2.x),abs(U2.y));
+
+		vec4 U = vec4(0.5*LWCorr*U2,0,0);
+		vec4 V = vec4(LWCorr*vec2(U2[1], -U2[0]), 0,0);
+		posi_clip = gl_in[0].gl_Position;
+		Nz = 0;
+		gl_Position = (A-V);
+		EmitVertex();
+		posi_clip = gl_in[1].gl_Position;
+		Nz = 0;
+		gl_Position = (B-V);
+		EmitVertex();
+		posi_clip = gl_in[0].gl_Position;
+		Nz = 1;
+		gl_Position = (A-U);
+		EmitVertex();
+		posi_clip = gl_in[1].gl_Position;
+		Nz = 1;
+		gl_Position = (B+U);
+		EmitVertex();
+		posi_clip = gl_in[0].gl_Position;
+		Nz = 0;
+		gl_Position = (A+V);
+		EmitVertex();
+		posi_clip = gl_in[1].gl_Position;
+		Nz = 0;
+		gl_Position = (B+V);
+		EmitVertex();
+		EndPrimitive();
+	}
+}
+)";
+
+static const char* fragment_shader_source = R"(
+#version 330
+uniform vec4 plane_clip;
+uniform vec4 plane_clip2;
+uniform vec4 lineColor;
+in vec4 posi_clip;
+in float Nz;
+out vec3 fragColor;
+uniform float lighted;
+
+void main()
+{
+	float d = dot(plane_clip,posi_clip);
+	float d2 = dot(plane_clip2,posi_clip);
+	if ((d>0.0)||(d2>0.0))  discard;
+
+	float lambert = max(1.0-lighted,Nz); // Nz = dot(N,0,0,1)
+	fragColor = lineColor.rgb * lambert;
+}
+)";
 
 ShaderBoldLine::ShaderBoldLine()
 {
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_pos");
-	add_uniforms("lineColor", "lineWidths", "plane_clip", "plane_clip2");
+	add_uniforms("lineColor", "lineWidths", "lighted", "plane_clip", "plane_clip2");
+}
+
+void ShaderParamBoldLine::set_uniforms()
+{
+	int viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
+	shader_->set_uniforms_values(color_, wd, lighted_, plane_clip_, plane_clip2_);
 }
 
 } // namespace rendering

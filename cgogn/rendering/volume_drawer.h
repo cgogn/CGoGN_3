@@ -51,7 +51,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::VolumeDrawer::Renderer> volu_rend_; // one by context,
  *
  * init:
- *  volu_ = cgogn::make_unique<cgogn::rendering::VolumeDrawer>();
+ *  volu_ = std::make_unique<cgogn::rendering::VolumeDrawer>();
  *  volu_rend_ = volu_->generate_renderer();
  *  volu_->update_face(map_, vertex_position_);
  *  volu_->update_edge(map_, vertex_position_);
@@ -168,7 +168,7 @@ void VolumeDrawerGen::update_edge(const MESH& m, const typename mesh_traits<MESH
 		return true;
 	});
 
-	uint32 nbvec = uint32(out_pos.size());
+	uint32 nbvec = uint32(uint32(out_pos.size()));
 	vbo_pos2_->allocate(nbvec, 3);
 	vbo_pos2_->bind();
 	vbo_pos2_->copy_data(0, nbvec * 12, out_pos[0].data());
@@ -224,7 +224,7 @@ public:
 				{
 					ear_indices.clear();
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
+					for(std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 					{
 						const Vec3& P1 = (*position)[ear_indices[i]];
 						const Vec3& P2 = (*position)[ear_indices[i+1]];
@@ -240,7 +240,7 @@ public:
 			return true;
 		});
 
-		uint32 nbvec = uint32(out_pos.size());
+		uint32 nbvec = uint32(uint32(out_pos.size()));
 
 		vbo_pos_->allocate(nbvec, 3);
 		vbo_pos_->bind();
@@ -306,7 +306,7 @@ public:
 				{
 					ear_indices.clear();
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
+					for(std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 					{
 						const Vec3& P1 = (*position)[ear_indices[i]];
 						const Vec3& C1 = (*color)[ear_indices[i]];
@@ -329,7 +329,7 @@ public:
 			return true;
 		});
 
-		std::size_t nbvec = out_pos.size();
+		std::size_t nbvec = uint32(out_pos.size());
 
 		vbo_pos_->allocate(nbvec, 3);
 		vbo_pos_->bind();
@@ -385,7 +385,7 @@ public:
 				{
 					ear_indices.clear();
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
+					for(std::size_t i = 0; i < uint32(ear_indices.size()); i += 3)
 					{
 						const Vec3& P1 = value<Vec3>(m, position, ear_indices[i]);
 						const Vec3& P2 = value<Vec3>(m, position, ear_indices[i+1]);
@@ -405,7 +405,7 @@ public:
 			return true;
 		});
 
-		std::size_t nbvec = out_pos.size();
+		std::size_t nbvec = uint32(out_pos.size());
 
 		vbo_pos_->allocate(nbvec, 3);
 		vbo_pos_->bind();

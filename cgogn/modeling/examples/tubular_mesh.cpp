@@ -33,12 +33,12 @@
 
 #include <cgogn/modeling/algos/graph_to_hex.h>
 
-using Graph = cgogn::Graph;
-using Surface = cgogn::CMap2;
-using Volume = cgogn::CMap3;
-
 int main(int argc, char** argv)
 {
+	using Graph = cgogn::Graph;
+	using Surface = cgogn::CMap2;
+	using Volume = cgogn::CMap3;
+
 	std::string filename;
 	if (argc < 2)
 	{

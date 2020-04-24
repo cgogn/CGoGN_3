@@ -25,6 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
@@ -33,43 +34,47 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatScalarPerFace,CGOGN_STR(FlatScalarPerFace))
+DECLARE_SHADER_CLASS(FlatScalarPerFace, true, CGOGN_STR(FlatScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlatScalarPerFace : public ShaderParam
 {
 	void set_uniforms() override;
+	enum VBONAme : int32
+	{
+		POS = 0,
+		SCALAR
+	};
+
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_scalar_;
+	std::array<VBO*, 2> vbos_;
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		light_position_ = std::get<1>(a);
-		double_side_ = std::get<2>(a);
+		ambiant_color_ = pp.ambiant_color_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
 	}
 
 	using LocalShader = ShaderFlatScalarPerFace;
 
 	ShaderParamFlatScalarPerFace(LocalShader* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), vbo_scalar_(nullptr), ambiant_color_(0.05f, 0.05f, 0.05f, 1),
-		  light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
 	inline ~ShaderParamFlatScalarPerFace() override
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_scalar_ = vbos[1];
+		return &vbos_[i];
 	}
 };
 

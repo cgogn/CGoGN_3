@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_COLOR_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_COLOR_H_
+#ifndef CGOGN_RENDERING_SHADERS_NO_ILLUM_COLOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_NO_ILLUM_COLOR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,36 +33,33 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColor,CGOGN_STR(FlatColor))
+DECLARE_SHADER_CLASS(NoIllumColorPerVertex, false, CGOGN_STR(NoIllumColorPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlatColor : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamNoIllumColorPerVertex : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(ambiant_color_, light_pos_, bf_culling_);
-	}
+	void set_uniforms() override;
 
 public:
-	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
+	bool double_side_;
 
-	using LocalShader = ShaderFlatColor;
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		double_side_ = pp.double_side_;
+	}
 
-	ShaderParamFlatColor(LocalShader* sh)
-		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.5f, 1), light_pos_(10, 100, 1000), bf_culling_(false)
+	using LocalShader = ShaderNoIllumColorPerVertex;
+
+	ShaderParamNoIllumColorPerVertex(LocalShader* sh) : ShaderParam(sh), double_side_(true)
 	{
 	}
 
-	inline ~ShaderParamFlatColor() override
+	inline ~ShaderParamNoIllumColorPerVertex() override
 	{
 	}
-
-
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif

@@ -21,7 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shaders/shader_flat_cpv.h>
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_VERTEX_H_
+
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -29,46 +33,44 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderFlatColor* ShaderFlatColor::instance_ = nullptr;
+DECLARE_SHADER_CLASS(PhongColorPerVertex, false, CGOGN_STR(PhongColorPerVertex))
 
-ShaderFlatColor::ShaderFlatColor()
+class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
 {
-	const char* vertex_shader_source = "#version 150\n"
-									   "in vec3 vertex_pos;\n"
-									   "in vec3 vertex_col;\n"
-									   "uniform mat4 projection_matrix;\n"
-									   "uniform mat4 model_view_matrix;\n"
-									   "out vec3 pos;\n"
-									   "out vec3 col;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);\n"
-									   "	pos = pos4.xyz;\n"
-									   "	col = vertex_col;\n"
-									   "   gl_Position = projection_matrix * pos4;\n"
-									   "}\n";
+protected:
+	void set_uniforms() override;
 
-	const char* fragment_shader_source = "#version 150\n"
-										 "out vec4 fragColor;\n"
-										 "uniform vec4 ambiant_color;\n"
-										 "uniform vec3 lightPosition;\n"
-										 "uniform bool cull_back_face;\n"
-										 "in vec3 pos;\n"
-										 "in vec3 col;\n"
-										 "void main()\n"
-										 "{\n"
-										 "	vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));\n"
-										 "	vec3 L = normalize(lightPosition-pos);\n"
-										 "	float lambert = dot(N,L);\n"
-										 "	if ((gl_FrontFacing==false) && cull_back_face) discard;\n"
-										 "	else fragColor = ambiant_color+vec4(lambert*col,1.0);\n"
-										 "}\n";
+public:
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
+	GLVec3 light_position_;
+	bool double_side_;
 
-	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_col");
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
+	}
 
-	add_uniforms("ambiant_color", "lightPosition", "cull_back_face");
-}
+	using ShaderType = ShaderPhongColorPerVertex;
+
+	ShaderParamPhongColorPerVertex(ShaderType* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
+
+	inline ~ShaderParamPhongColorPerVertex() override
+	{
+	}
+};
 
 } // namespace rendering
 
 } // namespace cgogn
+
+#endif // CGOGN_RENDERING_SHADERS_PHONG_H_

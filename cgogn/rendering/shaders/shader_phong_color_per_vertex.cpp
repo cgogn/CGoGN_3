@@ -21,11 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_PHONG_CPP_
-
 #include <iostream>
 
-#include <cgogn/rendering/shaders/shader_phong_color.h>
+#include <cgogn/rendering/shaders/shader_phong_color_per_vertex.h>
 
 namespace cgogn
 {
@@ -33,69 +31,78 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderPhongColor* ShaderPhongColor::instance_ = nullptr;
+ShaderPhongColorPerVertex* ShaderPhongColorPerVertex::instance_ = nullptr;
 
-static const char* vertex_shader_source =
-	"#version 150\n"
-	"in vec3 vertex_pos;\n"
-	"in vec3 vertex_normal;\n"
-	"in vec3 vertex_color;\n"
-	"uniform mat4 projection_matrix;\n"
-	"uniform mat4 model_view_matrix;\n"
-	"uniform mat3 normal_matrix;\n"
-	"uniform vec3 lightPosition;\n"
-	"out vec3 EyeVector;\n"
-	"out vec3 Normal;\n"
-	"out vec3 LightDir;\n"
-	"out vec3 front_color;\n"
-	"void main ()\n"
-	"{\n"
-	"	Normal = normal_matrix * vertex_normal;\n"
-	"	vec3 Position = vec3 (model_view_matrix * vec4 (vertex_pos, 1.0));\n"
-	"	LightDir = lightPosition - Position;\n"
-	"	EyeVector = -Position;"
-	"	front_color = vertex_color;"
-	"	gl_Position = projection_matrix * model_view_matrix * vec4 (vertex_pos, 1.0);\n"
-	"}\n";
-
-static const char* fragment_shader_source =
-	"#version 150\n"
-	"in vec3 EyeVector;\n"
-	"in vec3 Normal;\n"
-	"in vec3 LightDir;\n"
-	"in vec3 front_color;\n"
-	"uniform vec4 spec_color;\n"
-	"uniform vec4 ambiant_color;\n"
-	"uniform float spec_coef;\n"
-	"uniform bool double_side;\n"
-	"out vec4 frag_color;\n"
-	"void main()\n"
-	"{\n"
-	"	vec3 N = normalize (Normal);\n"
-	"	vec3 L = normalize (LightDir);\n"
-	"	vec4 finalColor = ambiant_color;\n"
-	"	if (gl_FrontFacing==false)\n" // do not use ! because of bug on old intel under OS/X
-	"	{\n"
-	"		if (!double_side)\n"
-	"			discard;\n"
-	"		N *= -1.0;\n"
-	"	}\n"
-	"	float lambertTerm = clamp(dot(N,L),0.0,1.0);\n"
-	"	finalColor += vec4(front_color*lambertTerm,0.0);\n"
-	"	vec3 E = normalize(EyeVector);\n"
-	"	vec3 R = reflect(-L, N);\n"
-	"	float specular = pow( max(dot(R, E), 0.0), spec_coef );\n"
-	"	finalColor += spec_color * specular;\n"
-	"	frag_color=finalColor;\n"
-	"}\n";
-
-ShaderPhongColor::ShaderPhongColor()
+ShaderPhongColorPerVertex::ShaderPhongColorPerVertex()
 {
+	static const char* vertex_shader_source = R"(
+		#version 150
+		in vec3 vertex_pos;
+		in vec3 vertex_normal;
+		in vec3 vertex_color;
 
-	load3_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_color");
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform mat3 normal_matrix;
 
+		out vec3 P;
+		out vec3 Normal;
+		out vec3 Color;
+
+		void main ()
+		{
+			Normal = normal_matrix * vertex_normal;
+			Color = vertex_color;
+			vec4 P4 = model_view_matrix * vec4 (vertex_pos, 1.0);
+			P = P4.xyz;
+			gl_Position = projection_matrix * P4;
+		}
+		)";
+
+	static const char* fragment_shader_source =
+		R"(	#version 150
+		in vec3 P;
+		in vec3 Normal;
+		in vec3 Color;
+
+		uniform vec4 spec_color;
+		uniform vec4 ambiant_color;
+		uniform float spec_coef;
+		uniform vec3 light_position;
+		uniform bool double_side;
+
+		out vec3 frag_color;
+
+		void main()
+		{
+			vec3 N = normalize(Normal);
+			vec3 L = normalize(light_position-P);
+			vec3 finalColor = ambiant_color.rgb;
+			if (gl_FrontFacing==false) // do not use ! because of bug on old intel under OS/X
+			{
+				if (!double_side)
+					discard;
+				N *= -1.0;
+			}
+			float lambertTerm = clamp(dot(N,L),0.0,1.0);
+			finalColor += Color*lambertTerm ;
+			vec3 E = normalize(-P);
+			vec3 R = reflect(-L, N);
+			float specular = pow( max(dot(R, E), 0.0), spec_coef );
+			finalColor += spec_color.rgb * specular;
+			frag_color = finalColor;
+		}
+		)";
+
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_color");
 	add_uniforms("light_position", "ambiant_color", "spec_color", "spec_coef", "double_side");
 }
 
+void ShaderParamPhongColorPerVertex::set_uniforms()
+{
+	shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
+}
+
 } // namespace rendering
+
 } // namespace cgogn

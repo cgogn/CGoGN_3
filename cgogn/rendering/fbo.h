@@ -55,12 +55,19 @@ public:
 		glViewport(0, 0, tex_[0]->width(), tex_[0]->height());
 	}
 
+	/**
+	 * do no save prceeding fbo & viewport
+	 */
+	inline void bind_no_release()
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, id_);
+	}
+
 	inline void release()
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_id_);
 		glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 	}
-
 
 	inline void bind_read()
 	{
@@ -79,9 +86,9 @@ public:
 		return tex_[i];
 	}
 
-	inline std::size_t nb_textures()
+	inline int32 nb_textures()
 	{
-		return tex_.size();
+		return uint32(tex_.size());
 	}
 
 	inline GLint width() const
@@ -96,6 +103,7 @@ public:
 protected:
 	GLuint id_;
 	GLuint depth_render_buffer_;
+	Texture2D* depth_tex_;
 	std::vector<Texture2D*> tex_;
 };
 

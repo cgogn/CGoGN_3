@@ -56,7 +56,7 @@ private:
 		while (index >= capacity_)
 		{
 			chunks_.push_back(new T[CHUNK_SIZE]());
-			capacity_ = chunks_.size() * CHUNK_SIZE;
+			capacity_ = uint32(chunks_.size()) * CHUNK_SIZE;
 		}
 	}
 
@@ -100,19 +100,19 @@ public:
 	inline void copy(ChunkArray<T>* ca)
 	{
 		if (ca->container_ == this->container_)
-			for (uint32 i = 0; i < chunks_.size(); ++i)
+			for (uint32 i = 0; i < uint32(chunks_.size()); ++i)
 				std::copy(ca->chunks_[i], ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
 	}
 
 	inline uint32 nb_chunks() const
 	{
-		return chunks_.size();
+		return uint32(chunks_.size());
 	}
 
 	inline std::vector<const void*> chunk_pointers() const
 	{
 		std::vector<const void*> pointers;
-		pointers.reserve(chunks_.size());
+		pointers.reserve(uint32(chunks_.size()));
 		for (auto chunk : chunks_)
 			pointers.push_back(chunk);
 

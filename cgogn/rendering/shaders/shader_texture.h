@@ -34,7 +34,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Texture,CGOGN_STR(Textures))
+DECLARE_SHADER_CLASS(Texture, false, CGOGN_STR(Textures))
 
 class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
 {

@@ -70,7 +70,7 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	using Face = typename mesh_traits<MESH>::Face;
 
 	std::vector<Face> faces = incident_faces(m, e);
-	if (faces.size() < 2)
+	if (uint32(faces.size()) < 2)
 		return 0;
 
 	const Vec3 n1 = normal(m, faces[0], vertex_position);
@@ -113,7 +113,7 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 
 	using Face = typename mesh_traits<MESH>::Face;
 	std::vector<Face> faces = incident_faces(m, e);
-	if (faces.size() < 2)
+	if (uint32(faces.size()) < 2)
 		return 0;
 	return angle(value<Vec3>(m, face_normal, faces[0]), value<Vec3>(m, face_normal, faces[1]));
 }

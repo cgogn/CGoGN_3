@@ -24,17 +24,16 @@
 #ifndef CGOGN_RENDERING_TOPO_DRAWER_H_
 #define CGOGN_RENDERING_TOPO_DRAWER_H_
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/rendering/cgogn_rendering_export.h>
 
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_bold_line_color.h>
+#include <cgogn/rendering/shaders/shader_no_illum.h>
 #include <cgogn/rendering/shaders/shader_round_point_color.h>
-#include <cgogn/rendering/shaders/shader_simple_color.h>
 
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/distance.h>
-
 
 namespace cgogn
 {
@@ -50,7 +49,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::TopoDrawer::Renderer> topo_rend_; // one by context,
  *
  * init:
- *  topo_ = cgogn::make_unique<cgogn::rendering::TopoDrawer>();
+ *  topo_ = std::make_unique<cgogn::rendering::TopoDrawer>();
  *  topo_rend_ = topo_->generate_renderer();
  *  topo_->update(map_,vertex_position_);
  *
@@ -82,29 +81,27 @@ public:
 	float32 shrink_f_;
 	float32 shrink_e_;
 
-//	template <typename MESH>
-//	auto update(const MESH& m,
-//				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position) -> typename std::enable_if_t<mesh_traits<MESH>::DIMENSION == 2>;
+	//	template <typename MESH>
+	//	auto update(const MESH& m,
+	//				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position) -> typename
+	// std::enable_if_t<mesh_traits<MESH>::DIMENSION == 2>;
 
-//	template <typename MESH>
-//	auto update(const MESH& m,
-//				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position) -> typename std::enable_if_t<mesh_traits<MESH>::DIMENSION == 3>;
+	//	template <typename MESH>
+	//	auto update(const MESH& m,
+	//				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position) -> typename
+	// std::enable_if_t<mesh_traits<MESH>::DIMENSION == 3>;
 
 	template <typename MESH>
-	void update2D(const MESH& m,
-				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
+	void update2D(const MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
 
 	template <bool PICKABLE, typename MESH>
-	void update3D_vbo(const MESH& m,
-				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
+	void update3D_vbo(const MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
 
 	template <typename MESH>
-	inline void update3D(const MESH& m,
-				const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+	inline void update3D(const MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
-		update3D_vbo<false>(m,position);
+		update3D_vbo<false>(m, position);
 	}
-
 
 	class CGOGN_RENDERING_EXPORT Renderer
 	{
@@ -118,6 +115,7 @@ public:
 		Renderer(TopoDrawer* tr);
 
 	public:
+		float width_;
 		~Renderer();
 
 		/**
@@ -126,7 +124,7 @@ public:
 		 * @param modelview model-view matrix
 		 * @param with_blending
 		 */
-		void draw(const GLMat4& projection, const GLMat4& modelview, bool with_blending = true);
+		void draw(const GLMat4& projection, const GLMat4& modelview);
 
 		void set_clipping_plane(const GLVec4& p);
 
@@ -180,9 +178,7 @@ public:
 	 * @param color color attribute (of any orbit)
 	 */
 	template <typename MESH, typename CELL>
-	void update_colors(const MESH& m,
-		  const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color);
-
+	void update_colors(const MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color);
 
 	/**
 	 * @brief update color of one dart
@@ -215,14 +211,12 @@ public:
 };
 
 template <typename MESH>
-void TopoDrawer::update2D(const MESH& m,
-						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+void TopoDrawer::update2D(const MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	auto POSITION = [&m,position] (Vertex v) { return value<Vec3>(m, position, v); };
-
+	auto POSITION = [&m, position](Vertex v) { return value<Vec3>(m, position, v); };
 
 	Scalar opp_shrink_e = Scalar(1.0f - shrink_e_);
 	Scalar opp_shrink_f = Scalar(1.0f - shrink_f_);
@@ -242,15 +236,13 @@ void TopoDrawer::update2D(const MESH& m,
 	std::vector<Dart> local_darts;
 	local_darts.reserve(256);
 
-	foreach_cell(m,[&](Face f)
-	{
+	foreach_cell(m, [&](Face f) {
 		local_vertices.clear();
 		local_darts.clear();
 		Vec3 center;
 		center.setZero();
 		uint32 count = 0u;
-		foreach_incident_vertex(m, f, [&](Vertex v)
-		{
+		foreach_incident_vertex(m, f, [&](Vertex v) {
 			local_vertices.push_back(POSITION(v));
 			local_darts.push_back(v.dart);
 			center += POSITION(v);
@@ -293,7 +285,7 @@ void TopoDrawer::update2D(const MESH& m,
 	});
 
 	std::vector<Vec3f> darts_col;
-	darts_col.resize(darts_pos_.size());
+	darts_col.resize(uint32(darts_pos_.size()));
 	for (auto& c : darts_col)
 	{
 		c[0] = dart_color_.x();
@@ -301,7 +293,7 @@ void TopoDrawer::update2D(const MESH& m,
 		c[2] = dart_color_.z();
 	}
 
-	uint32 nbvec = std::uint32_t(darts_pos_.size());
+	uint32 nbvec = std::uint32_t(uint32(darts_pos_.size()));
 
 	vbo_darts_->bind();
 	vbo_darts_->allocate(nbvec, 3);
@@ -317,11 +309,10 @@ void TopoDrawer::update2D(const MESH& m,
 	vbo_relations_->allocate(nbvec, 3);
 	vbo_relations_->copy_data(0, nbvec * 12, out_pos2[0].data());
 	vbo_relations_->release();
-	
 }
 
-//template <typename MESH>
-//void TopoDrawer::update3D_old(const MESH& m,
+// template <typename MESH>
+// void TopoDrawer::update3D_old(const MESH& m,
 //						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 //{
 //	auto start_timer = std::chrono::high_resolution_clock::now();
@@ -331,7 +322,6 @@ void TopoDrawer::update2D(const MESH& m,
 //	using Volume = typename mesh_traits<MESH>::Volume;
 
 //	auto POSITION = [&m,position] (Vertex v) { return value<Vec3>(m, position, v); };
-
 
 //	Scalar opp_shrink_e = Scalar(1.0f - shrink_e_);
 //	Scalar opp_shrink_f = Scalar(1.0f - shrink_f_);
@@ -419,7 +409,7 @@ void TopoDrawer::update2D(const MESH& m,
 //	});
 
 //	std::vector<Vec3f> darts_col;
-//	darts_col.resize(darts_pos_.size());
+//	darts_col.resize(uint32(darts_pos_.size()));
 //	for (auto& c : darts_col)
 //	{
 //		c[0] = dart_color_.x();
@@ -427,7 +417,7 @@ void TopoDrawer::update2D(const MESH& m,
 //		c[2] = dart_color_.z();
 //	}
 
-//	uint32 nbvec = uint32(darts_pos_.size());
+//	uint32 nbvec = uint32(uint32(darts_pos_.size()));
 //	vbo_darts_->bind();
 //	vbo_darts_->allocate(nbvec, 3);
 //	vbo_darts_->copy_data(0, nbvec * 12, darts_pos_[0].data());
@@ -449,7 +439,6 @@ void TopoDrawer::update2D(const MESH& m,
 //	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
 //	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
 
-	
 //}
 
 template <typename MESH, typename CELL>
@@ -457,7 +446,7 @@ void TopoDrawer::update_colors(const MESH& m,
 							   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* color)
 {
 	std::vector<Vec3f> darts_col;
-	darts_col.reserve(2 * darts_id_.size());
+	darts_col.reserve(2 * uint32(darts_id_.size()));
 	//	darts_col.clear();
 
 	for (Dart d : darts_id_)
@@ -467,18 +456,16 @@ void TopoDrawer::update_colors(const MESH& m,
 		darts_col.push_back({float32(col[0]), float32(col[1]), float32(col[2])});
 	}
 
-	uint32 nbvec = darts_col.size();
+	uint32 nbvec = uint32(darts_col.size());
 	vbo_color_darts_->allocate(nbvec, 3);
 	vbo_color_darts_->bind();
 	vbo_color_darts_->copy_data(0, nbvec * 12, darts_col[0].data());
 	vbo_color_darts_->release();
-	
 }
-
 
 template <bool PICKABLE, typename MESH>
 void TopoDrawer::update3D_vbo(const MESH& m,
-						const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
+							  const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 {
 	auto start_timer = std::chrono::high_resolution_clock::now();
 
@@ -486,7 +473,7 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 	using Face = typename mesh_traits<MESH>::Face;
 	using Volume = typename mesh_traits<MESH>::Volume;
 
-	auto POSITION = [&m,position] (Vertex v) { return value<Vec3>(m, position, v); };
+	auto POSITION = [&m, position](Vertex v) { return value<Vec3>(m, position, v); };
 
 	Scalar opp_shrink_e = Scalar(1.0f - shrink_e_);
 	Scalar opp_shrink_f = Scalar(1.0f - shrink_f_);
@@ -495,49 +482,46 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 	uint32 nbw = thread_pool()->nb_workers();
 
 	std::vector<std::vector<Vec3f>> thdarts_pos(nbw);
-	for(auto& v: thdarts_pos)
+	for (auto& v : thdarts_pos)
 		v.reserve(1024 * 1024);
 
 	std::vector<std::vector<Vec3f>> thout_pos2(nbw);
-	for(auto& v: thout_pos2)
+	for (auto& v : thout_pos2)
 		v.reserve(1024 * 1024);
 
 	std::vector<std::vector<Vec3f>> thout_pos3(nbw);
-	for(auto& v: thout_pos3)
+	for (auto& v : thout_pos3)
 		v.reserve(1024 * 1024);
 
 	std::vector<std::vector<Vec3>> thlocal_vertices(nbw);
-	for(auto& v: thlocal_vertices)
+	for (auto& v : thlocal_vertices)
 		v.reserve(256);
 
 	std::vector<std::vector<Dart>> thlocal_darts(nbw);
 	std::vector<std::vector<Dart>> thdarts_id(nbw);
 	if (PICKABLE)
 	{
-		for(auto& v: thlocal_darts)
+		for (auto& v : thlocal_darts)
 			v.reserve(256);
-		for(auto& v: thdarts_id)
-			v.reserve(1024*1024);
+		for (auto& v : thdarts_id)
+			v.reserve(1024 * 1024);
 	}
 
-	parallel_foreach_cell(m, [&](Volume v)
-	{
+	parallel_foreach_cell(m, [&](Volume v) {
 		uint32 worker_index = current_worker_index();
 
 		auto& local_vertices = thlocal_vertices[worker_index];
 		auto& local_darts = thlocal_darts[worker_index];
 
 		Vec3 center_vol = geometry::centroid<Vec3>(m, v, position);
-		foreach_incident_face(m, v, [&](Face f)
-		{
+		foreach_incident_face(m, v, [&](Face f) {
 			local_vertices.clear();
 			if (PICKABLE)
 				local_darts.clear();
 			Vec3 center;
 			center.setZero();
 			uint32 count = 0u;
-			foreach_incident_vertex(m, f, [&](Vertex v)
-			{
+			foreach_incident_vertex(m, f, [&](Vertex v) {
 				local_vertices.push_back(POSITION(v));
 				if (PICKABLE)
 					local_darts.push_back(v.dart);
@@ -596,28 +580,27 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 	});
 
 	uint32 nbvec = 0;
-	for (const auto& dp: thdarts_pos)
-		nbvec += dp.size();
+	for (const auto& dp : thdarts_pos)
+		nbvec += uint32(dp.size());
 
 	if (PICKABLE)
 	{
 		darts_pos_.reserve(nbvec);
-		for (const auto& dp: thdarts_pos)
-			darts_pos_.insert(darts_pos_.end(),dp.begin(),dp.end());
+		for (const auto& dp : thdarts_pos)
+			darts_pos_.insert(darts_pos_.end(), dp.begin(), dp.end());
 	}
 
-	std::vector<Vec3f> darts_col(nbvec,
-		{dart_color_.x(),dart_color_.y(),dart_color_.z()});
+	std::vector<Vec3f> darts_col(nbvec, {dart_color_.x(), dart_color_.y(), dart_color_.z()});
 
 	vbo_darts_->bind();
 	vbo_darts_->allocate(nbvec, 3);
 	uint32 beg = 0;
-	for (const auto& dp: thdarts_pos)
+	for (const auto& dp : thdarts_pos)
 		if (!dp.empty())
 		{
 
-			vbo_darts_->copy_data(beg * 12, dp.size() * 12, dp[0].data());
-			beg += dp.size();
+			vbo_darts_->copy_data(beg * 12, uint32(dp.size()) * 12, dp[0].data());
+			beg += uint32(dp.size());
 		}
 	vbo_darts_->release();
 
@@ -629,25 +612,24 @@ void TopoDrawer::update3D_vbo(const MESH& m,
 	vbo_relations_->bind();
 	vbo_relations_->allocate(2 * nbvec, 3);
 	beg = 0;
-	for (const auto& op2: thout_pos2)
+	for (const auto& op2 : thout_pos2)
 		if (!op2.empty())
 		{
-			vbo_relations_->copy_data(beg * 12, op2.size() * 12, op2[0].data());
-			beg += op2.size();
+			vbo_relations_->copy_data(beg * 12, uint32(op2.size()) * 12, op2[0].data());
+			beg += uint32(op2.size());
 		}
-	for (const auto& op3: thout_pos3)
+	for (const auto& op3 : thout_pos3)
 		if (!op3.empty())
 		{
-			vbo_relations_->copy_data(beg * 12, op3.size() * 12, op3[0].data());
-			beg += op3.size();
+			vbo_relations_->copy_data(beg * 12, uint32(op3.size()) * 12, op3[0].data());
+			beg += uint32(op3.size());
 		}
 
 	vbo_relations_->release();
 
 	auto end_timer = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end_timer-start_timer;
-	std::cout << "update topo 3D in "<< elapsed_seconds.count() << std::endl;
-
+	std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
+	std::cout << "update topo 3D in " << elapsed_seconds.count() << std::endl;
 }
 
 } // namespace rendering

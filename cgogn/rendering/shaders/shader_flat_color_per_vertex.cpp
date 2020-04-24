@@ -21,11 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_PER_FACE_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_PER_FACE_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_flat_color_per_vertex.h>
 
 namespace cgogn
 {
@@ -33,38 +29,55 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatPerFace,CGOGN_STR(FlatPerFace))
-
-class CGOGN_RENDERING_EXPORT ShaderParamFlatPerFace : public ShaderParam
+static const char* vertex_shader_source = R"(#version 150
+in vec3 vertex_pos;
+in vec3 vertex_color;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+out vec3 pos;
+out vec3 color;
+void main()
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(light_direction_,);
-	}
+    vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);
+    pos = pos4.xyz;
+	color = vertex_color;
+    gl_Position = projection_matrix * pos4;
+}
+)";
 
-public:
-    int32_t tri_indices;
-    int32_t positions;
-    int32_t colors;
-	GLVec3 light_direction_;
+static const char* fragment_shader_source = R"(#version 150
+out vec3 fragColor;
+uniform vec4 ambiant_color;
+uniform vec3 light_position;
+uniform bool double_side;
+in vec3 pos;
+in vec3 color;
+void main()
+{
+    vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+    vec3 L = normalize(light_position-pos);
+    float lambert = dot(N,L);
+	if (gl_FrontFacing==false && !double_side)
+         discard;
+    else
+        fragColor = ambiant_color.rgb + lambert*color.rgb;
+}
+)";
 
-	using LocalShader = ShaderFlatPerFace;
+ShaderFlatColorPerVertex* ShaderFlatColorPerVertex::instance_ = nullptr;
 
-	ShaderParamFlatPerFace(ShaderFlatPerFace* sh)
-		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
-		  light_direction(10, 100, 1000)
-	{
-        light_direction.normalize();
-	}
+ShaderFlatColorPerVertex::ShaderFlatColorPerVertex()
+{
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_color");
 
-	inline ~ShaderParamFlatPerFace() override
-	{
-	}
+	add_uniforms("ambiant_color", "light_position", "double_side");
+}
 
-};
+void ShaderParamFlatColorPerVertex::set_uniforms()
+{
+	shader_->set_uniforms_values(ambiant_color_, light_position_, double_side_);
+}
 
 } // namespace rendering
 
 } // namespace cgogn
-
-#endif
