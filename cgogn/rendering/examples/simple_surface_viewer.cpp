@@ -31,7 +31,6 @@
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
-#include <cgogn/ui/modules/topo_render/topo_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -100,7 +99,7 @@ int main(int argc, char** argv)
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, vertex_normal);
+	sr.set_vertex_normal(*v1, *m, nullptr);
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
 	// srv.set_vertex_vector(*v1, *m, vertex_normal);

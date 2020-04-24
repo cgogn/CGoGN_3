@@ -184,7 +184,7 @@ protected:
 
 		if (domain_initialized_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 			MeshData<MESH>* md = mesh_provider_->mesh_data(domain_);
 
 			if (!running_)

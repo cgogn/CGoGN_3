@@ -137,7 +137,7 @@ protected:
 
 		if (selected_cph3_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			uint32 min = 0;
 			if (ImGui::SliderScalar("Level", ImGuiDataType_U32, &selected_cph3_->current_level_, &min,

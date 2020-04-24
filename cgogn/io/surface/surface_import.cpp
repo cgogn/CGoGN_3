@@ -47,7 +47,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	std::vector<uint32> vertices_buffer;
 	vertices_buffer.reserve(16u);
 
-	for (uint32 i = 0u, end = surface_data.faces_nb_vertices_.size(); i < end; ++i)
+	for (uint32 i = 0u, end = uint32(surface_data.faces_nb_vertices_.size()); i < end; ++i)
 	{
 		uint32 nbv = surface_data.faces_nb_vertices_[i];
 
@@ -66,7 +66,7 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 		if (vertices_buffer.front() == vertices_buffer.back())
 			vertices_buffer.pop_back();
 
-		nbv = vertices_buffer.size();
+		nbv = uint32(vertices_buffer.size());
 		if (nbv > 2u)
 		{
 			CMap1::Face f = add_face(static_cast<CMap1&>(m), nbv, false);

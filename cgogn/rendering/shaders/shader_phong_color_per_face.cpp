@@ -102,16 +102,20 @@ static const char* fragment_shader_source = R"(
 
 ShaderPhongColorPerFace::ShaderPhongColorPerFace()
 {
-	load2_bind(vertex_shader_source, fragment_shader_source);
+	load2_bind(vertex_shader_source, fragment_shader_source, "");
 	add_uniforms("vertex_ind", "tri_ind", "position_vertex", "normal_vertex", "color_face", "light_pos",
 				 "ambiant_color", "spec_color", "spec_coef", "double_side");
+
+	nb_attributes_ = 3;
 }
 
 void ShaderParamPhongColorPerFace::set_uniforms()
 {
-	if (vbo_pos_ && vbo_norm_ && vbo_color_)
-		shader_->set_uniforms_values(10, 11, vbo_pos_->bind_tb(12), vbo_norm_->bind_tb(13), vbo_color_->bind_tb(14),
-									 light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	vbos_[2]->bind_tb(14);
+	shader_->set_uniforms_values(10, 11, 12, 13, 14, light_position_, ambiant_color_, specular_color_, specular_coef_,
+								 double_side_);
 }
 
 } // namespace rendering

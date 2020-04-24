@@ -24,8 +24,10 @@
 #ifndef CGOGN_RENDERING_FRAMEMANIPULATOR_H_
 #define CGOGN_RENDERING_FRAMEMANIPULATOR_H_
 
+#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/rendering/shaders/frame_manip_drawer.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
-#include <cgogn/rendering/shaders/shader_simple_color.h>
+#include <cgogn/rendering/shaders/shader_no_illum.h>
 #include <cgogn/rendering/types.h>
 
 namespace cgogn
@@ -42,11 +44,11 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::FrameManipulator> frame_manip_;
  *
  * init:
- *   frame_manip_ = cgogn::make_unique<cgogn::rendering::FrameManipulator>();
+ *   frame_manip_ = std::make_unique<cgogn::rendering::FrameManipulator>();
  *   frame_manip_->set_size(...);
  *   frame_manip_->set_position(...);
  * draw:
- *   frame_manip_->draw(true/false, true/false, proj, view, this);
+ *   frame_manip_->draw(true/false, true/false, proj, view);
  * mousePressEvent:
  *   frame_manip_->pick(event->x(), event->y(),P,Q); // P,Q computed ray
  * mouseReleaseEvent:
@@ -62,14 +64,20 @@ namespace rendering
  */
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
+
+	using Vec3 = geometry::Vec3;
+	using Scalar = geometry::Scalar;
+
 	std::unique_ptr<VBO> vbo_grid_;
-	std::unique_ptr<ShaderSimpleColor::Param> param_grid_;
+	std::unique_ptr<ShaderNoIllum::Param> param_grid_;
+
+	FrameManipDrawer* fmd_ = FrameManipDrawer::generate();
 
 	static const uint32 nb_grid_ = 10;
 	static const uint32 nb_grid_ind_ = 4 * (nb_grid_ + 1);
 
 public:
-	enum AXIS
+	enum AXIS : int32
 	{
 		NONE = 0,
 		CENTER,
@@ -114,7 +122,7 @@ protected:
 	 * Shader
 	 */
 	std::unique_ptr<ShaderBoldLine::Param> param_bl_;
-	std::unique_ptr<ShaderSimpleColor::Param> param_sc_;
+	std::unique_ptr<ShaderNoIllum::Param> param_sc_;
 
 	/**
 	 * the selectd axis, highlighted
@@ -353,9 +361,9 @@ void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 template <typename VEC3>
 void FrameManipulator::set_position(const VEC3& pos)
 {
-	trans_[0] = pos[0];
-	trans_[1] = pos[1];
-	trans_[2] = pos[2];
+	trans_[0] = GLfloat(pos[0]);
+	trans_[1] = GLfloat(pos[1]);
+	trans_[2] = GLfloat(pos[2]);
 }
 
 template <typename VEC3>

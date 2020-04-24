@@ -73,7 +73,7 @@ public:
 
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
-		modeling::decimate(m, vertex_position, 0.1 * mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>());
+		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>() / 10);
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
@@ -112,7 +112,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			std::string selected_vertex_position_name_ =
 				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";

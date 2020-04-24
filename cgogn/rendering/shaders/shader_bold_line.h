@@ -32,47 +32,39 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(BoldLine,CGOGN_STR(BoldLine))
+DECLARE_SHADER_CLASS(BoldLine, false, CGOGN_STR(BoldLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		int viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
-	}
+	void set_uniforms() override;
 
 public:
 	GLColor color_;
 	float32 width_;
-	bool blending_;
+	float32 lighted_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		color_ = std::get<0>(a);
-		width_ = std::get<1>(a);
-		blending_ = std::get<2>(a);
+		color_ = pp.color_;
+		width_ = pp.width_;
+		lighted_ = pp.lighted_;
+		plane_clip_ = pp.plane_clip_;
+		plane_clip2_ = pp.plane_clip2_;
 	}
 
 	using LocalShader = ShaderBoldLine;
 
 	ShaderParamBoldLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), width_(2),blending_(true),
-		plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), color_(color_line_default), width_(3.0f), lighted_(0.5f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
 	inline ~ShaderParamBoldLine() override
 	{
 	}
-
-
 };
 
 } // namespace rendering

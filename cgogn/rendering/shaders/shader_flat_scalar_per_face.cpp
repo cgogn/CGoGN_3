@@ -80,25 +80,29 @@ ShaderFlatScalarPerFace::ShaderFlatScalarPerFace()
 			vec3 L = normalize(light_position-pos);
 			float lambert = dot(N,L);
 			if (double_side || gl_FrontFacing)
-				fragColor = ambiant_color.rgb+lambert*color;
+				fragColor = ambiant_color.rgb + lambert*color;
 			else
 				discard;
 		}
 	)";
 
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
-
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_function::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source, "");
-	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "pos_vertex",
-				 "scalar_tri", "ambiant_color", "light_position", "double_side");
+
+	add_uniforms("tri_ind", "tri_emb", "pos_vertex", "scalar_tri", "ambiant_color", "light_position", "double_side",
+				 shader_function::ColorMap::name[0], shader_function::ColorMap::name[1],
+				 shader_function::ColorMap::name[2], shader_function::ColorMap::name[3]);
+
+	nb_attributes_ = 2;
 }
 
 void ShaderParamFlatScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_ && vbo_scalar_)
-		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, 10, 11, vbo_pos_->bind_tb(12),
-									 vbo_scalar_->bind_tb(13), ambiant_color_, light_position_, double_side_);
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	shader_->set_uniforms_values(10, 11, 12, 13, ambiant_color_, light_position_, double_side_, cm_.color_map_,
+								 cm_.expansion_, cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering

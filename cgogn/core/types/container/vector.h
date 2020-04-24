@@ -49,7 +49,7 @@ private:
 
 	inline void manage_index(uint32 index) override
 	{
-		while (index >= data_.size())
+		while (index >= uint32(data_.size()))
 			data_.push_back(T());
 	}
 
@@ -65,13 +65,13 @@ public:
 
 	inline T& operator[](uint32 index)
 	{
-		cgogn_message_assert(index < data_.size(), "index out of bounds");
+		cgogn_message_assert(index < uint32(data_.size()), "index out of bounds");
 		return data_[index];
 	}
 
 	inline const T& operator[](uint32 index) const
 	{
-		cgogn_message_assert(index < data_.size(), "index out of bounds");
+		cgogn_message_assert(index < uint32(data_.size()), "index out of bounds");
 		return data_[index];
 	}
 

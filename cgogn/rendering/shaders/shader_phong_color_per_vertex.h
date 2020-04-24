@@ -21,9 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_VERTEX_H_
 
-#include <cgogn/rendering/shaders/shader_simple_color.h>
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -31,33 +33,44 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderSimpleColor* ShaderSimpleColor::instance_ = nullptr;
+DECLARE_SHADER_CLASS(PhongColorPerVertex, false, CGOGN_STR(PhongColorPerVertex))
 
-ShaderSimpleColor::ShaderSimpleColor()
+class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
 {
-	const char* vertex_shader_source_ =
-		"#version 150\n"
-		"in vec3 vertex_pos;\n"
-		"uniform mat4 projection_matrix;\n"
-		"uniform mat4 model_view_matrix;\n"
-		"void main()\n"
-		"{\n"
-		"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-		"}\n";
+protected:
+	void set_uniforms() override;
 
-	const char* fragment_shader_source_ = "#version 150\n"
-										  "out vec4 fragColor;\n"
-										  "uniform vec4 color;\n"
-										  "void main()\n"
-										  "{\n"
-										  "   fragColor = color;\n"
-										  "}\n";
+public:
+	GLColor ambiant_color_;
+	GLColor specular_color_;
+	float32 specular_coef_;
+	GLVec3 light_position_;
+	bool double_side_;
 
-	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_pos");
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
+	}
 
-	add_uniforms("color");
-}
+	using ShaderType = ShaderPhongColorPerVertex;
+
+	ShaderParamPhongColorPerVertex(ShaderType* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
+	{
+	}
+
+	inline ~ShaderParamPhongColorPerVertex() override
+	{
+	}
+};
 
 } // namespace rendering
 
 } // namespace cgogn
+
+#endif // CGOGN_RENDERING_SHADERS_PHONG_H_

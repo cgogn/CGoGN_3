@@ -111,7 +111,7 @@ public:
 		std::size_t total = nb_vectors * uint32(vector_dimension);
 		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
 		{
-			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_DYNAMIC_DRAW);
 		}
 		nb_vectors_ = nb_vectors;
 		vector_dimension_ = vector_dimension;
@@ -124,6 +124,12 @@ public:
 	inline float32* lock_pointer()
 	{
 		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE));
+		return ptr;
+	}
+
+	inline float32* lock_pointer_read()
+	{
+		float32* ptr = reinterpret_cast<float32*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
 		return ptr;
 	}
 
@@ -176,17 +182,33 @@ public:
 
 inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 {
-	std::cout << "DEBUG VBO " << vbo.id() << " : " << vbo.name() << std::endl;
+	const int NB = 5;
+
+	auto vd = vbo.vector_dimension();
+
+	std::cout << "DEBUG VBO " << vbo.id() << " : " << vbo.name();
+	std::cout << " ( " << vbo.size() << " vec of dim " << vd << " ) " << std::endl;
 	vbo.bind();
-	float* f = vbo.lock_pointer();
-	for (int i = 0; i < 5; ++i)
+	float* ff = vbo.lock_pointer_read();
+	float* f = ff;
+	for (int i = 0; i < NB; ++i)
 	{
-		for (int j = 0; j < vbo.vector_dimension(); ++j)
-		{
-			std::cout << *f++ << " ; ";
-		}
+		for (int j = 0; j < vd; ++j)
+			std::cout << *f++ << ", ";
 		std::cout << std::endl;
 	}
+
+	std::cout << " . . . . " << std::endl;
+
+	f = ff + vbo.size() - NB * vd;
+
+	for (int i = 0; i < NB; ++i)
+	{
+		for (int j = 0; j < vd; ++j)
+			std::cout << *f++ << ", ";
+		std::cout << std::endl;
+	}
+
 	std::cout << "----------end vbo debug-----------" << std::endl;
 	vbo.release_pointer();
 	vbo.release();

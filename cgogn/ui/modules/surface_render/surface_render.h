@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN                                                                        *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -27,6 +27,7 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/tools.h>
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/types/mesh_traits.h>
@@ -36,12 +37,20 @@
 #include <cgogn/rendering/shaders/shader_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_flat_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_flat_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_flat_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_flat_scalar_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_phong.h>
 #include <cgogn/rendering/shaders/shader_phong_color_per_face.h>
+#include <cgogn/rendering/shaders/shader_phong_color_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
+#include <cgogn/rendering/shaders/shader_phong_scalar_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
-#include <cgogn/rendering/shaders/shader_scalar_per_vertex.h>
+
+// #include <cgogn/rendering/topo_drawer.h>
+
+// #include <cgogn/rendering/shaders/compute_normals.h>
+// #include <cgogn/rendering/shaders/outliner.h>
 
 #include <cgogn/geometry/algos/length.h>
 
@@ -74,6 +83,7 @@ class SurfaceRender : public ViewModule
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -238,8 +248,8 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vertex_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 7.0;
-			md->update_vbo(vertex_position.get(), true);
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
+			p.vbo_cache_[VBO_Position] = md->update_vbo(vertex_position.get(), true);
 		}
 
 		auto* vp = md->vbo(p.vertex_position_.get());
@@ -428,11 +438,16 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
+
+		compute_normal_engine = rendering::ComputeNormalEngine::generate();
+		outline_engine = rendering::OutLiner::generate();
 	}
 
 	void draw(View* view) override
 	{
-		for (auto& [m, p] : parameters_[view])
+
+		auto& ps = parameters_[view];
+		for (auto& [m, p] : ps)
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
@@ -573,17 +588,15 @@ protected:
 				}
 				break;
 				}
-
-				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
 			if (p.render_edges_ && p.param_edge_->vao_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				// glEnable(GL_BLEND);
+				// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				md->draw(rendering::LINES);
-				glDisable(GL_BLEND);
+				// glDisable(GL_BLEND);
 				p.param_edge_->release();
 			}
 
@@ -601,35 +614,14 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
-
-		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
-		{
-			for (View* v : linked_views_)
-			{
-				bool is_selected = v == selected_view_;
-				if (ImGui::Selectable(v->name().c_str(), is_selected))
-					selected_view_ = v;
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
+		});
 
 		if (selected_view_ && selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
 			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, "Position", p.vertex_position_,
@@ -829,13 +821,13 @@ protected:
 					}
 				}
 			}
+
+			ImGui::End();
+
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
 		}
-
-		ImGui::End();
-
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
 	}
 
 private:

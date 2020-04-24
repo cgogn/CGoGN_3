@@ -86,13 +86,15 @@ ShaderFlatColorPerFace::ShaderFlatColorPerFace()
 	load2_bind(vertex_shader_source, fragment_shader_source, "");
 
 	add_uniforms("vertex_ind", "tri_ind", "pos_vertex", "color_tri", "ambiant_color", "light_position", "double_side");
+
+	nb_attributes_ = 2;
 }
 
 void ShaderParamFlatColorPerFace::set_uniforms()
 {
-	if (vbo_pos_ && vbo_color_)
-		shader_->set_uniforms_values(10, 11, vbo_pos_->bind_tb(12), vbo_color_->bind_tb(13), ambiant_color_,
-									 light_position_, double_side_);
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	shader_->set_uniforms_values(10, 11, 12, 13, ambiant_color_, light_position_, double_side_);
 }
 
 } // namespace rendering

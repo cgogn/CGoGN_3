@@ -81,7 +81,7 @@ public:
 	uint32 size() const
 	{
 		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).size();
+		return uint32(std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).size());
 	}
 
 	template <typename CELL>

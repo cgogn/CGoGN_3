@@ -58,7 +58,7 @@ public:
 			instance_ = new Self();
 			ShaderProgram::register_instance(instance_);
 		}
-		return cgogn::make_unique<Param>(instance_);
+		return std::make_unique<Param>(instance_);
 	}
 };
 

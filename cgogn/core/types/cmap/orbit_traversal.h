@@ -51,6 +51,7 @@ auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
 
 	if constexpr (orbit == DART)
 	{
+		unused_parameters(m);
 		f(c.dart);
 		return;
 	}
@@ -184,7 +185,7 @@ auto foreach_dart_of_PHI1_PHI2(const MESH& m, Dart d, const FUNC& f)
 	visited_faces.push_back(d); // Start with the face of d
 
 	// For every face added to the list
-	for (uint32 i = 0; i < visited_faces.size(); ++i)
+	for (uint32 i = 0; i < uint32(visited_faces.size()); ++i)
 	{
 		const Dart e = visited_faces[i];
 		if (!marker.is_marked(e)) // Face has not been visited yet
@@ -248,7 +249,7 @@ auto foreach_dart_of_PHI21_PHI31(const MESH& m, Dart d, const FUNC& f)
 	const std::vector<Dart>& marked_darts = marker.marked_darts();
 
 	marker.mark(d);
-	for (uint32 i = 0; i < marked_darts.size(); ++i)
+	for (uint32 i = 0; i < uint32(marked_darts.size()); ++i)
 	{
 		const Dart curr_dart = marked_darts[i];
 		//			if ( !(is_boundary(curr_dart) && is_boundary(phi3(curr_dart))) )

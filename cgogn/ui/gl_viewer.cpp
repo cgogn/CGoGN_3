@@ -61,7 +61,7 @@ void GLViewer::close_event()
 {
 }
 
-void GLViewer::mouse_press_event(int32 button, int32 x, int32 y)
+void GLViewer::mouse_press_event(int32 button, int32, int32)
 {
 	if (button == 0)
 	{
@@ -72,7 +72,7 @@ void GLViewer::mouse_press_event(int32 button, int32 x, int32 y)
 	}
 }
 
-void GLViewer::mouse_release_event(int32 button, int32 x, int32 y)
+void GLViewer::mouse_release_event(int32 button, int32, int32)
 {
 	if (button == 0)
 	{
@@ -88,7 +88,7 @@ void GLViewer::mouse_release_event(int32 button, int32 x, int32 y)
 
 void GLViewer::mouse_dbl_click_event(int32 buttons, int32 x, int32 y)
 {
-	if (inputs_->shift_pressed_)
+	if ((inputs_->shift_pressed_) && (buttons & 1))
 	{
 		rendering::GLVec3d P;
 		if (pixel_scene_position(x, y, P))
@@ -153,7 +153,7 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 	}
 }
 
-void GLViewer::mouse_wheel_event(float64 dx, float64 dy)
+void GLViewer::mouse_wheel_event(float64, float64 dy)
 {
 	if (dy != 0)
 	{
@@ -175,10 +175,12 @@ void GLViewer::mouse_wheel_event(float64 dx, float64 dy)
 
 void GLViewer::key_press_event(int32 key_code)
 {
+	unused_parameters(key_code);
 }
 
 void GLViewer::key_release_event(int32 key_code)
 {
+	unused_parameters(key_code);
 }
 
 void GLViewer::spin()

@@ -232,6 +232,11 @@ public:
 			f(m.get(), name);
 	}
 
+	inline uint32 number_of_meshes()
+	{
+		return uint32(meshes_.size());
+	}
+
 	std::string mesh_name(const MESH* m) const
 	{
 		auto it =
@@ -347,7 +352,7 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (result.size())
+			if (uint32(result.size()))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
 					load_graph_from_file(result[0]);
@@ -381,9 +386,9 @@ protected:
 	{
 		if (show_mesh_inspector_)
 		{
-			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
-			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-			ImGui::SetWindowSize({0, 0});
+			//			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
+			//			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			//			ImGui::SetWindowSize({0, 0});
 
 			if (ImGui::ListBoxHeader("Mesh"))
 			{
@@ -435,7 +440,7 @@ protected:
 	}
 
 private:
-	std::vector<std::string> supported_graph_files = {"Graph", "*.cg *.skel"};
+	std::vector<std::string> supported_graph_files = {"Graph", "*.cg *.cgr *.skel"};
 	std::vector<std::string> supported_surface_files = {"Surface", "*.off"};
 	std::vector<std::string> supported_volume_files = {"Volume", "*.tet"};
 
@@ -446,40 +451,6 @@ private:
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
-
-/**
- * @brief generate combo box for attribute selection
- * @param m mesh
- * @param label label of the combo box
- * @param selected_attribute current selected attribute
- * @param on_change function to call with newly selected attribute
- */
-template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m, const std::string& label,
-						   const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& selected_attribute,
-						   const FUNC& on_change)
-{
-	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-
-	if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
-	{
-		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
-			bool is_selected = attribute == selected_attribute;
-			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-				on_change(attribute);
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-		});
-		ImGui::EndCombo();
-	}
-	if (selected_attribute)
-	{
-		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-		if (ImGui::Button(("X##" + label).c_str()))
-			on_change(nullptr);
-	}
-}
 
 } // namespace ui
 

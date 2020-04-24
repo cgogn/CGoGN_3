@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/moving_frame.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/tools.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/modules/graph_render/graph_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/mesh_provider/mesh_provider.h"

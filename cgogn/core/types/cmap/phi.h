@@ -91,6 +91,7 @@ Dart phi3(const CPH3& m, Dart d);
 template <uint64 N, typename MESH>
 inline Dart phi(const MESH& m, Dart d)
 {
+	unused_parameters(m);
 	static_assert(N % 10 <= mesh_traits<MESH>::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
 
 	if constexpr (N % 10 == 1 && mesh_traits<MESH>::dimension >= 1)

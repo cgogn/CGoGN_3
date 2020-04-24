@@ -33,19 +33,14 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Phong,CGOGN_STR(Phong))
+DECLARE_SHADER_CLASS(Phong, false, CGOGN_STR(Phong))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhong : public ShaderParam
 {
 protected:
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(light_position_, front_color_, back_color_, ambiant_color_, specular_color_,
-									 specular_coef_, double_side_);
-	}
+	void set_uniforms() override;
 
 public:
-
 	GLColor front_color_;
 	GLColor back_color_;
 	GLColor ambiant_color_;
@@ -54,33 +49,29 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
-
-	template<typename ...Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		front_color_ = std::get<0>(a);
-		back_color_ = std::get<1>(a);
-		ambiant_color_ = std::get<2>(a);
-		specular_color_ = std::get<3>(a);
-		specular_coef_ = std::get<4>(a);
-		light_position_ = std::get<5>(a);
-		double_side_ = std::get<6>(a);
+		front_color_ = pp.front_color_;
+		back_color_ = pp.back_color_;
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
 	}
 
 	using ShaderType = ShaderPhong;
 
 	ShaderParamPhong(ShaderType* sh)
-		: ShaderParam(sh), front_color_(color_front_default),
-		  back_color_(color_back_default), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1),
-		  specular_coef_(250), light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), front_color_(color_front_default), back_color_(color_back_default),
+		  ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
+		  light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
 	inline ~ShaderParamPhong() override
 	{
 	}
-
 };
 
 } // namespace rendering

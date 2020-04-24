@@ -64,7 +64,6 @@ enum DrawingType : uint32
 	INDEX_FACES,
 	INDEX_VOLUMES,
 
-	SIZE_BUFFER,
 	POINTS_TB,
 	LINES_TB,
 	TRIANGLES_TB,
@@ -75,6 +74,19 @@ enum DrawingType : uint32
 	INDEX_FACES_TB,
 	INDEX_VOLUMES_TB
 };
+
+static const uint32 SIZE_BUFFER = uint32(POINTS_TB);
+
+inline DrawingType& operator++(DrawingType& d)
+{
+	++*reinterpret_cast<int32*>(&d);
+	return d;
+}
+
+inline int32* operator&(DrawingType& d)
+{
+	return reinterpret_cast<int*>(&d);
+}
 
 static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
 													"TRIANGLES",		"VOLUMES_FACES",
@@ -106,6 +118,17 @@ public:
 	inline void set_primitive_dirty(DrawingType prim)
 	{
 		indices_buffers_uptodate_[prim % SIZE_BUFFER] = false;
+	}
+
+	inline void set_all_dirty()
+	{
+		for (DrawingType p = POINTS; p < SIZE_BUFFER; ++p)
+			indices_buffers_uptodate_[p] = false;
+	}
+
+	inline EBO* get_EBO(DrawingType prim)
+	{
+		return indices_buffers_[prim % SIZE_BUFFER].get();
 	}
 
 protected:
@@ -160,7 +183,7 @@ protected:
 				auto& vertices = vvertices[worker_index];
 				vertices.clear();
 				incident_vertices(m, f, vertices);
-				for (uint32 i = 1; i < vertices.size() - 1; ++i)
+				for (uint32 i = 1; i < uint32(vertices.size()) - 1; ++i)
 				{
 					auto& tif = table_indices[worker_index];
 					tif.push_back(index_of(m, vertices[0]));
@@ -315,13 +338,16 @@ public:
 		const MESH& m, DrawingType prim,
 		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
 	{
+		unused_parameters(position); // for constexpr case dim<2 !
+
 		if (prim >= SIZE_BUFFER)
-			prim = DrawingType(prim + POINTS - POINTS_TB);
+			prim = DrawingType(prim % SIZE_BUFFER);
+		indices_buffers_uptodate_[prim] = true;
 
 		auto func_update_ebo = [&](DrawingType pr, const TablesIndices& table) -> void {
 			uint32 total_size = 0;
 			for (const auto& t : table)
-				total_size += t.size();
+				total_size += uint32(t.size());
 
 			indices_buffers_uptodate_[pr] = true;
 			if (total_size > 0)
@@ -333,8 +359,8 @@ public:
 				uint32 beg = 0;
 				for (const auto& t : table)
 				{
-					indices_buffers_[pr]->copy_data(beg, t.size(), t.data());
-					beg += t.size();
+					indices_buffers_[pr]->copy_data(beg, uint32(t.size()), t.data());
+					beg += uint32(t.size());
 				}
 				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
 			}
@@ -343,7 +369,7 @@ public:
 		auto func_update_ebo2 = [&](DrawingType pr1, const TablesIndices& table1) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
-				total_size1 += t.size();
+				total_size1 += uint32(t.size());
 
 			indices_buffers_uptodate_[pr1] = true;
 			if (total_size1 > 0)
@@ -371,7 +397,7 @@ public:
 									uint32 interv) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
-				total_size1 += t.size();
+				total_size1 += uint32(t.size());
 
 			indices_buffers_uptodate_[pr1] = true;
 			if (total_size1 > 0)
@@ -383,11 +409,11 @@ public:
 				indices_buffers_[pr1]->bind();
 				uint32* ptr1 = indices_buffers_[pr1]->lock_pointer();
 				uint32 beg = 0;
-				uint32 nb = table1.size();
+				uint32 nb = uint32(table1.size());
 				for (uint32 j = 0; j < nb; ++j)
 				{
 					const auto& t1 = table1[j];
-					uint32 sz = t1.size();
+					uint32 sz = uint32(t1.size());
 					for (uint32 k = 0; k < sz; ++k)
 						*ptr1++ = (k % interv == interv - 1) ? t1[k] + beg : t1[k];
 

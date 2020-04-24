@@ -66,12 +66,12 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 		while (!sserr.eof())
 		{
 			std::size_t a = 0;
-			while ((a < line.size()) && (line[a] >= '0') && (line[a] <= '9'))
+			while ((a < uint32(line.size())) && (line[a] >= '0') && (line[a] <= '9'))
 				a++;
 			std::size_t b = a + 1;
-			while ((b < line.size()) && (line[b] >= '0') && (line[b] <= '9'))
+			while ((b < uint32(line.size())) && (line[b] >= '0') && (line[b] <= '9'))
 				b++;
-			if (b < line.size())
+			if (b < uint32(line.size()))
 			{
 				int ln = std::stoi(line.substr(a + 1, b - a - 1));
 				error_lines.push_back(ln);
@@ -246,7 +246,7 @@ void ShaderProgram::set_matrices(const GLMat4& proj, const GLMat4& mv)
 	if (unif_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
-		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
+		GLMat3 normal_matrix = t.linear().matrix().inverse().transpose().cast<float32>();
 		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
@@ -282,7 +282,7 @@ ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(fa
 {
 	vao_ = std::make_unique<VAO>();
 	vao_->create();
-	// vao_initialized_ = true;
+	vao_initialized_ = 0;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
@@ -306,28 +306,86 @@ void ShaderParam::release()
 	shader_->release();
 }
 
+VBO** ShaderParam::vbo_tb(uint32 i)
+{
+	unused_parameters(i);
+	return nullptr;
+}
+
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	if (vbos.size() != shader_->nb_attributes())
-		std::cerr << "WARNING WRONG NUMBER OF ATTRIBUTES" << std::endl;
+	if (shader_->use_tb())
+	{
+		vao_initialized_ = 0;
+		uint32 m = 1;
 
-	if (!vao_initialized_)
-		vao_->create();
+		for (std::size_t i = 0; i < vbos.size(); ++i)
+		{
+			*vbo_tb(i) = vbos[i];
+			if (vbos[i])
+				vao_initialized_ += m;
+			m *= 2u;
+		}
+		return;
+	}
+	// else ...
+
+	assert(uint32(vbos.size()) <= shader_->nb_attributes());
+
+	vao_initialized_ = 0;
+	shader_->bind();
 
 	vao_initialized_ = true;
 	bind_vao();
 	GLuint attrib = 1u;
+	uint32 m = 1;
 	for (auto* v : vbos)
 	{
 		if (v)
-			v->associate(attrib++);
-		else
 		{
-			vao_initialized_ = false;
-			break;
+			vao_initialized_ |= m;
+			v->associate(attrib);
 		}
+		attrib++;
+		m *= 2u;
 	}
 	release_vao();
+	shader_->release();
+}
+
+void ShaderParam::set_vbo(GLuint att, VBO* vbo)
+{
+	if (shader_->use_tb())
+	{
+		--att; // warning attributes begin at 1 !
+		*vbo_tb(att) = vbo;
+		if (vbo)
+			vao_initialized_ |= 1u << (att);
+		else
+			vao_initialized_ &= ~(1u << (att));
+
+		return;
+	}
+
+	assert(att <= shader_->nb_attributes());
+
+	shader_->bind();
+	bind_vao();
+
+	if (vbo)
+	{
+		vbo->associate(att);
+		vao_initialized_ |= 1u << (att - 1u);
+	}
+	else
+		vao_initialized_ &= ~(1u << (att - 1u));
+
+	release_vao();
+	shader_->release();
+}
+
+void ShaderParam::pick_parameters(const PossibleParameters&)
+{
 }
 
 } // namespace rendering

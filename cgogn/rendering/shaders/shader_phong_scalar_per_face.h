@@ -33,8 +33,7 @@ namespace cgogn
 
 namespace rendering
 {
-
-DECLARE_SHADER_CLASS(PhongScalarPerFace, CGOGN_STR(PhongScalarPerFace))
+DECLARE_SHADER_CLASS(PhongScalarPerFace, true, CGOGN_STR(PhongScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
@@ -42,48 +41,33 @@ protected:
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_norm_;
-	VBO* vbo_scalar_;
-	ColorMap color_map_;
-	int32 expansion_;
-	float32 min_value_;
-	float32 max_value_;
+	std::array<VBO*, 3> vbos_;
 	GLColor ambiant_color_;
 	GLColor specular_color_;
 	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
+	shader_function::ColorMap::Uniforms cm_;
 
-	template <typename... Args>
-	void fill(Args&&... args)
+	inline void pick_parameters(const PossibleParameters& pp) override
 	{
-		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		specular_color_ = std::get<1>(a);
-		specular_coef_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
+		ambiant_color_ = pp.ambiant_color_;
+		specular_color_ = pp.specular_color_;
+		specular_coef_ = pp.specular_coef_;
+		light_position_ = pp.light_position_;
+		double_side_ = pp.double_side_;
 	}
-
 	using ShaderType = ShaderPhongScalarPerFace;
 
 	ShaderParamPhongScalarPerFace(ShaderType* sh)
-		: ShaderParam(sh), vbo_pos_(nullptr), vbo_norm_(nullptr), vbo_scalar_(nullptr), color_map_(BWR), expansion_(0),
-		  min_value_(.0f), max_value_(1.0f), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1),
-		  specular_coef_(250), light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), ambiant_color_(), specular_color_(), specular_coef_(), light_position_(), double_side_()
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
-
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_norm_ = vbos[1];
-		vbo_scalar_ = vbos[2];
-		if (vbo_pos_ && vbo_norm_ && vbo_scalar_)
-			vao_initialized_ = true;
-		else
-			vao_initialized_ = false;
+		return &vbos_[i];
 	}
 };
 

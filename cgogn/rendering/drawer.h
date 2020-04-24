@@ -50,7 +50,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::DisplayListDrawer::Renderer> drawer_rend_; // one by context,
  *
  * init:
- *  drawer_ = cgogn::make_unique<cgogn::rendering::DisplayListDrawer>();
+ *  drawer_ = std::make_unique<cgogn::rendering::DisplayListDrawer>();
  *  drawer_rend_ = drawer_->generate_renderer(); // don't worry automatically deleted when finished
  *  drawer_->new_list();
  *  drawer_->line_width(2.0);

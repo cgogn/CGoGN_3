@@ -155,27 +155,27 @@ Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool 
 		}
 		else
 		{
-			Dart dd = add_dart(g);
-			Dart ee = add_dart(g);
-			alpha0_sew(g, dd, ee);
-			alpha1_sew(g, d, dd);
-			alpha1_sew(g, e, ee);
+			Dart ddd = add_dart(g);
+			Dart eee = add_dart(g);
+			alpha0_sew(g, ddd, eee);
+			alpha1_sew(g, d, ddd);
+			alpha1_sew(g, e, eee);
 			if (set_indices)
 			{
 				if (is_indexed<Graph::Vertex>(g))
 				{
-					copy_index<Graph::Vertex>(g, dd, d);
-					copy_index<Graph::Vertex>(g, ee, e);
+					copy_index<Graph::Vertex>(g, ddd, d);
+					copy_index<Graph::Vertex>(g, eee, e);
 				}
 				if (is_indexed<Graph::HalfEdge>(g))
 				{
-					set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
-					set_index(g, Graph::HalfEdge(ee), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(ddd), new_index<Graph::HalfEdge>(g));
+					set_index(g, Graph::HalfEdge(eee), new_index<Graph::HalfEdge>(g));
 				}
 				if (is_indexed<Graph::Edge>(g))
-					set_index(g, Graph::Edge(dd), new_index<Graph::Edge>(g));
+					set_index(g, Graph::Edge(ddd), new_index<Graph::Edge>(g));
 			}
-			return Graph::Edge(dd);
+			return Graph::Edge(ddd);
 		}
 	}
 }

@@ -21,11 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_PHONG_CPP_
-
-#include <iostream>
-
-#include <cgogn/rendering/shaders/shader_phong_color.h>
+#include <cgogn/rendering/shaders/shader_flat_scalar_per_vertex.h>
 
 namespace cgogn
 {
@@ -33,69 +29,67 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderPhongColor* ShaderPhongColor::instance_ = nullptr;
-
 static const char* vertex_shader_source =
-	"#version 150\n"
-	"in vec3 vertex_pos;\n"
-	"in vec3 vertex_normal;\n"
-	"in vec3 vertex_color;\n"
-	"uniform mat4 projection_matrix;\n"
-	"uniform mat4 model_view_matrix;\n"
-	"uniform mat3 normal_matrix;\n"
-	"uniform vec3 lightPosition;\n"
-	"out vec3 EyeVector;\n"
-	"out vec3 Normal;\n"
-	"out vec3 LightDir;\n"
-	"out vec3 front_color;\n"
-	"void main ()\n"
-	"{\n"
-	"	Normal = normal_matrix * vertex_normal;\n"
-	"	vec3 Position = vec3 (model_view_matrix * vec4 (vertex_pos, 1.0));\n"
-	"	LightDir = lightPosition - Position;\n"
-	"	EyeVector = -Position;"
-	"	front_color = vertex_color;"
-	"	gl_Position = projection_matrix * model_view_matrix * vec4 (vertex_pos, 1.0);\n"
-	"}\n";
+	R"(#version 150
+	in vec3 vertex_pos;
+	in float vertex_scalar;
+
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+
+	out vec3 pos;
+	out vec3 color;
+
+	//_insert_colormap_funcion_here
+
+	void main()
+	{
+		vec4 pos4 = model_view_matrix * vec4(vertex_pos,1.0);
+		color = scalar2color(vertex_scalar);
+		pos = pos4.xyz;
+		gl_Position = projection_matrix * pos4;
+	}
+	)";
 
 static const char* fragment_shader_source =
-	"#version 150\n"
-	"in vec3 EyeVector;\n"
-	"in vec3 Normal;\n"
-	"in vec3 LightDir;\n"
-	"in vec3 front_color;\n"
-	"uniform vec4 spec_color;\n"
-	"uniform vec4 ambiant_color;\n"
-	"uniform float spec_coef;\n"
-	"uniform bool double_side;\n"
-	"out vec4 frag_color;\n"
-	"void main()\n"
-	"{\n"
-	"	vec3 N = normalize (Normal);\n"
-	"	vec3 L = normalize (LightDir);\n"
-	"	vec4 finalColor = ambiant_color;\n"
-	"	if (gl_FrontFacing==false)\n" // do not use ! because of bug on old intel under OS/X
-	"	{\n"
-	"		if (!double_side)\n"
-	"			discard;\n"
-	"		N *= -1.0;\n"
-	"	}\n"
-	"	float lambertTerm = clamp(dot(N,L),0.0,1.0);\n"
-	"	finalColor += vec4(front_color*lambertTerm,0.0);\n"
-	"	vec3 E = normalize(EyeVector);\n"
-	"	vec3 R = reflect(-L, N);\n"
-	"	float specular = pow( max(dot(R, E), 0.0), spec_coef );\n"
-	"	finalColor += spec_color * specular;\n"
-	"	frag_color=finalColor;\n"
-	"}\n";
+	R"(#version 150
+	out vec3 fragColor;
+	uniform vec4 ambiant_color;
+	uniform vec3 light_position;
+	uniform bool double_side;
+	in vec3 pos;
+	in vec3 color;
+	void main()
+	{
+		vec3 N = normalize(cross(dFdx(pos),dFdy(pos)));
+		vec3 L = normalize(light_position-pos);
+		float lambert = dot(N,L);
+		if (!gl_FrontFacing && !double_side)
+			 discard;
+		else
+			fragColor = ambiant_color.rgb + lambert*color.rgb;
+	}
+	)";
 
-ShaderPhongColor::ShaderPhongColor()
+ShaderFlatScalarPerVertex* ShaderFlatScalarPerVertex::instance_ = nullptr;
+
+ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 {
+	std::string v_src(vertex_shader_source);
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::ColorMap::source);
+	load2_bind(v_src, fragment_shader_source, "vertex_pos", "vertex_scalar");
 
-	load3_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_color");
+	add_uniforms("ambiant_color", "light_position", "double_side", shader_funcion::ColorMap::name[0],
+				 shader_funcion::ColorMap::name[1], shader_funcion::ColorMap::name[2],
+				 shader_funcion::ColorMap::name[3]);
+}
 
-	add_uniforms("light_position", "ambiant_color", "spec_color", "spec_coef", "double_side");
+void ShaderParamFlatScalarPerVertex::set_uniforms()
+{
+	shader_->set_uniforms_values(ambiant_color_, light_position_, double_side_, cm_.color_map_, cm_.expansion_,
+								 cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering
+
 } // namespace cgogn

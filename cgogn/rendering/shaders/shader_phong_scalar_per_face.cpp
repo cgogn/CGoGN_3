@@ -21,8 +21,6 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_PHONG_CPP_
-
 #include <iostream>
 
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_face.h>
@@ -105,20 +103,24 @@ static const char* fragment_shader_source = R"(
 ShaderPhongScalarPerFace::ShaderPhongScalarPerFace()
 {
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::color_maps_shader_source());
+	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_function::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source);
 
-	add_uniforms("color_map", "expansion", "min_value", "max_value", "vertex_ind", "tri_ind", "position_vertex",
-				 "normal_vertex", "scalar_face", "light_pos", "ambiant_color", "spec_color", "spec_coef",
-				 "double_side");
+	add_uniforms("vertex_ind", "tri_ind", "position_vertex", "normal_vertex", "scalar_face", "light_pos",
+				 "ambiant_color", "spec_color", "spec_coef", "double_side", shader_function::ColorMap::name[0],
+				 shader_function::ColorMap::name[1], shader_function::ColorMap::name[2],
+				 shader_function::ColorMap::name[3]);
+
+	nb_attributes_ = 3;
 }
 
 void ShaderParamPhongScalarPerFace::set_uniforms()
 {
-	if (vbo_pos_ && vbo_norm_ && vbo_scalar_)
-		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, 10, 11, vbo_pos_->bind_tb(12),
-									 vbo_norm_->bind_tb(13), vbo_scalar_->bind_tb(14), light_position_, ambiant_color_,
-									 specular_color_, specular_coef_, double_side_);
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	vbos_[2]->bind_tb(14);
+	shader_->set_uniforms_values(10, 11, 12, 13, 14, light_position_, ambiant_color_, specular_color_, specular_coef_,
+								 double_side_, cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
 }
 
 } // namespace rendering

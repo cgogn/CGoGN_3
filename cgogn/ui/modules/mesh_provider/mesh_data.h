@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr)
+	MeshData() : mesh_(nullptr), outlined_until_(0.0)
 	{
 	}
 
@@ -99,10 +99,6 @@ public:
 	void update_nb_cells()
 	{
 		internal_update_nb_cells(typename mesh_traits<MESH>::Cells{});
-		std::cout << "update_nb_cells" << " / ";
-		for (uint32 i : nb_cells_)
-			std::cout << i << ";";
-		std::cout << std::endl;
 	}
 
 	template <typename CELL>
@@ -195,6 +191,8 @@ private:
 	{
 		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = {(internal_rebuild_cells_sets_of_type<T>(), 0)...};
+		unused_parameters(a);
+		// TOOO CHECK
 	}
 
 public:
@@ -228,6 +226,9 @@ private:
 	rendering::MeshRender render_;
 	std::unordered_map<AttributeGen*, std::unique_ptr<rendering::VBO>> vbos_;
 	CellsSets cells_sets_;
+
+public:
+	float64 outlined_until_;
 };
 
 } // namespace ui
