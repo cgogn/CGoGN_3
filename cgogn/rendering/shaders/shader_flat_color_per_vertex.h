@@ -44,16 +44,9 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
+	using ShaderType = ShaderFlatColorPerVertex;
 
-	using LocalShader = ShaderFlatColorPerVertex;
-
-	ShaderParamFlatColorPerVertex(LocalShader* sh)
+	ShaderParamFlatColorPerVertex(ShaderType* sh)
 		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
@@ -67,4 +60,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_VERTEX_H_

@@ -40,6 +40,9 @@ enum ColorMap
 	BGR
 };
 
+namespace shader_function
+{
+
 struct ColorMap
 {
 	static const std::string source;
@@ -50,13 +53,16 @@ struct ColorMap
 		int expansion_;
 		float min_value_;
 		float max_value_;
-		inline Uniforms() : color_map_(0), expansion_(0), min_value_(0), max_value_(1)
+
+		inline Uniforms() : color_map_(BWR), expansion_(0), min_value_(0), max_value_(1)
 		{
 		}
 	};
 
-	static const char* name[4];
+	static const char* uniform_names[4];
 };
+
+} // namespace shader_function
 
 } // namespace rendering
 

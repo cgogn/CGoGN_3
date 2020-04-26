@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_BOLDLINE_H_
-#define CGOGN_RENDERING_SHADERS_BOLDLINE_H_
+#ifndef CGOGN_RENDERING_SHADERS_BOLD_LINE_H_
+#define CGOGN_RENDERING_SHADERS_BOLD_LINE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,6 +32,7 @@ namespace cgogn
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(BoldLine, false, CGOGN_STR(BoldLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLine : public ShaderParam
@@ -45,19 +46,10 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		width_ = pp.width_;
-		lighted_ = pp.lighted_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderBoldLine;
 
-	using LocalShader = ShaderBoldLine;
-
-	ShaderParamBoldLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), width_(3.0f), lighted_(0.5f), plane_clip_(0, 0, 0, 0),
+	ShaderParamBoldLine(ShaderType* sh)
+		: ShaderParam(sh), color_(1, 1, 0, 1), width_(2.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0),
 		  plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -68,6 +60,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_BOLD_LINE_H_

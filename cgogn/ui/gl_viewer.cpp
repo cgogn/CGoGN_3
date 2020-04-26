@@ -23,6 +23,8 @@
 
 #include <cgogn/ui/gl_viewer.h>
 
+#include <GLFW/glfw3.h>
+
 namespace cgogn
 {
 
@@ -88,7 +90,7 @@ void GLViewer::mouse_release_event(int32 button, int32, int32)
 
 void GLViewer::mouse_dbl_click_event(int32 buttons, int32 x, int32 y)
 {
-	if ((inputs_->shift_pressed_) && (buttons & 1))
+	if (inputs_->shift_pressed_ && mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT))
 	{
 		rendering::GLVec3d P;
 		if (pixel_scene_position(x, y, P))
@@ -104,7 +106,7 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 	float64 dx = float64(x - inputs_->previous_mouse_x_);
 	float64 dy = float64(y - inputs_->previous_mouse_y_);
 
-	if ((inputs_->mouse_buttons_ & 1) && ((std::abs(dx) + std::abs(dy)) > 0.0))
+	if (mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT) && ((std::abs(dx) + std::abs(dy)) > 0.0))
 	{
 		rendering::GLVec3d axis(dy, dx, 0.0);
 		spinning_speed_ = axis.norm();
@@ -130,7 +132,7 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		need_redraw_ = true;
 	}
 
-	if (inputs_->mouse_buttons_ & 2)
+	if (mouse_button_pressed(GLFW_MOUSE_BUTTON_RIGHT))
 	{
 		float64 zcam = 1.0 / std::tan(camera_.field_of_view() / 2.0);
 		float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam;

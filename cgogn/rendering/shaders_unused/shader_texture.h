@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,11 +21,12 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
-#define CGOGN_RENDERING_SHADERS_XXXX_H_
+#ifndef CGOGN_RENDERING_SHADERS_TEXTURE_H_
+#define CGOGN_RENDERING_SHADERS_TEXTURE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
 
 namespace cgogn
 {
@@ -33,59 +34,26 @@ namespace cgogn
 namespace rendering
 {
 
-// forward
-class ShaderParamXXXX;
+DECLARE_SHADER_CLASS(Texture, false, CGOGN_STR(Textures))
 
-class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
-{
-public:
-	using Self = ShaderXXXX;
-	using Param = ShaderParamXXXX;
-	friend Param;
-
-protected:
-	ShaderXXXX();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
-
-	void set_locations() override;
-	static Self* instance_;
-
-public:
-	inline static std::unique_ptr<Param> generate_param()
-	{
-		if (!instance_)
-		{
-			instance_ = new Self();
-			ShaderProgram::register_instance(instance_);
-		}
-		return std::make_unique<Param>(instance_);
-	}
-};
-
-class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
+		shader_->set_uniforms_values(texture_->bind(unit_));
 	}
 
 public:
-	GLColor front_color_;
-	GLColor back_color_;
-	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
+	Texture2D* texture_;
+	GLuint unit_;
 
-	using LocalShader = ShaderXXXX;
+	using ShaderType = ShaderTexture;
 
-	ShaderParamXXXX(LocalShader* sh)
-		: ShaderParam(sh),
-
-		  light_pos_(10, 100, 1000), bf_culling_(false)
+	ShaderParamTexture(ShaderType* sh) : ShaderParam(sh), unit_(0)
 	{
 	}
 
-	inline ~ShaderParamXXXX() override
+	inline ~ShaderParamTexture() override
 	{
 	}
 

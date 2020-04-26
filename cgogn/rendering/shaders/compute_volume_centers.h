@@ -51,9 +51,9 @@ public:
 	VBO* vbo_pos_;
 	int32 height_tex_;
 
-	using LocalShader = ShaderComputeCenter1;
+	using ShaderType = ShaderComputeCenter1;
 
-	ShaderParamComputeCenter1(LocalShader* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+	ShaderParamComputeCenter1(ShaderType* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
 	{
 	}
 };
@@ -66,9 +66,9 @@ protected:
 public:
 	Texture2D* tex_;
 
-	using LocalShader = ShaderComputeCenter2;
+	using ShaderType = ShaderComputeCenter2;
 
-	ShaderParamComputeCenter2(LocalShader* sh) : ShaderParam(sh)
+	ShaderParamComputeCenter2(ShaderType* sh) : ShaderParam(sh)
 	{
 	}
 };

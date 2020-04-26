@@ -46,9 +46,9 @@ public:
 	{
 	}
 
-	using LocalShader = ShaderAxis;
+	using ShaderType = ShaderAxis;
 
-	ShaderParamAxis(LocalShader* sh) : ShaderParam(sh), selected_(4)
+	ShaderParamAxis(ShaderType* sh) : ShaderParam(sh), selected_(4)
 	{
 	}
 
@@ -70,9 +70,9 @@ public:
 	{
 	}
 
-	using LocalShader = ShaderRings;
+	using ShaderType = ShaderRings;
 
-	ShaderParamRings(LocalShader* sh) : ShaderParam(sh), selected_(4)
+	ShaderParamRings(ShaderType* sh) : ShaderParam(sh), selected_(4)
 	{
 	}
 
@@ -96,9 +96,9 @@ public:
 	{
 	}
 
-	using LocalShader = ShaderXYGrid;
+	using ShaderType = ShaderXYGrid;
 
-	ShaderParamXYGrid(LocalShader* sh) : ShaderParam(sh), sc_(1), nb_(4), color_(1, 1, 1, 1)
+	ShaderParamXYGrid(ShaderType* sh) : ShaderParam(sh), sc_(1), nb_(4), color_(1, 1, 1, 1)
 	{
 	}
 

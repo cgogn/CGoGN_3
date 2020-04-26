@@ -29,7 +29,7 @@ namespace cgogn
 namespace rendering
 {
 
-namespace shader_funcion
+namespace shader_function
 {
 
 const std::string ColorMap::source = std::string(R"(
@@ -107,13 +107,19 @@ const std::string ColorMap::source = std::string(R"(
 		return vec3(1.0, 0.0, 0.0) ;
 	}
 
-	vec3 scalar2color(float scalar)
+	float transform_value(float scalar)
 	{
-		float value = scale_expand_within_0_1(scale_and_clamp_to_0_1(
-					scalar,
-					min_value,
-					max_value),
-				expansion);
+		return scale_expand_within_0_1(
+			scale_and_clamp_to_0_1(
+				scalar,
+				min_value,
+				max_value),
+			expansion
+		);
+	}
+
+	vec3 value2color(float value)
+	{
 		switch(color_map)
 		{
 			case 0 : return color_map_blue_white_red(value);
@@ -123,12 +129,12 @@ const std::string ColorMap::source = std::string(R"(
 		}
 		return vec3(1,1,1);
 	}
+)");
 
-	)");
+const char* ColorMap::uniform_names[] = {"color_map", "expansion", "min_value", "max_value"};
 
-const char* ColorMap::name[] = {"color_map", "expansion", "min_value", "max_value"};
+} // namespace shader_function
 
-
-}
 } // namespace rendering
+
 } // namespace cgogn

@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr), outlined_until_(0.0)
+	MeshData() : mesh_(nullptr)
 	{
 	}
 
@@ -83,9 +83,19 @@ struct MeshData
 		render_.init_primitives(*mesh_, primitive, position.get());
 	}
 
-	void set_primitives_dirty(rendering::DrawingType primitive)
+	bool is_primitive_uptodate(rendering::DrawingType primitive)
+	{
+		return render_.is_primitive_uptodate(primitive);
+	}
+
+	void set_primitive_dirty(rendering::DrawingType primitive)
 	{
 		render_.set_primitive_dirty(primitive);
+	}
+
+	void set_all_primitives_dirty()
+	{
+		render_.set_all_primitives_dirty();
 	}
 
 private:
@@ -192,7 +202,6 @@ private:
 		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = {(internal_rebuild_cells_sets_of_type<T>(), 0)...};
 		unused_parameters(a);
-		// TOOO CHECK
 	}
 
 public:
@@ -226,9 +235,6 @@ private:
 	rendering::MeshRender render_;
 	std::unordered_map<AttributeGen*, std::unique_ptr<rendering::VBO>> vbos_;
 	CellsSets cells_sets_;
-
-public:
-	float64 outlined_until_;
 };
 
 } // namespace ui

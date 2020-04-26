@@ -24,10 +24,12 @@
 #ifndef CGOGN_RENDERING_SHADERS_SHADER_PROGRAM_H_
 #define CGOGN_RENDERING_SHADERS_SHADER_PROGRAM_H_
 
-#include <array>
 #include <cgogn/rendering/cgogn_rendering_export.h>
+
 #include <cgogn/rendering/types.h>
 #include <cgogn/rendering/vao.h>
+
+#include <array>
 #include <iostream>
 #include <memory>
 
@@ -83,23 +85,23 @@ inline void* void_ptr(uint32 x)
 	return reinterpret_cast<void*>(uint64_t(x));
 }
 
-struct PossibleParameters
-{
-	GLColor color_;
-	GLColor ambiant_color_;
-	GLColor front_color_;
-	GLColor back_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
-	GLVec3 light_position_;
-	bool double_side_;
-	float32 width_;
-	float32 size_;
-	float32 explode_;
-	float32 lighted_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-};
+// struct PossibleParameters
+// {
+// 	GLColor color_;
+// 	GLColor ambiant_color_;
+// 	GLColor front_color_;
+// 	GLColor back_color_;
+// 	GLColor specular_color_;
+// 	float32 specular_coef_;
+// 	GLVec3 light_position_;
+// 	bool double_side_;
+// 	float32 width_;
+// 	float32 size_;
+// 	float32 explode_;
+// 	float32 lighted_;
+// 	GLVec4 plane_clip_;
+// 	GLVec4 plane_clip2_;
+// };
 
 class CGOGN_RENDERING_EXPORT Shader
 {
@@ -138,31 +140,20 @@ protected:
 	Shader* frag_shader_;
 	Shader* geom_shader_;
 
-	void load(const std::string& vert_src, const std::string& frag_src);
-	void load(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src);
+	void load(const std::string& vertex_program_src, const std::string& fragment_program_src);
+	// void load(const std::string& vertex_program_src, const std::string& fragment_program_src,
+	// 		  const std::string& geometry_program_src);
 
-	GLint unif_mvp_matrix_;
-	GLint unif_mv_matrix_;
-	GLint unif_projection_matrix_;
-	GLint unif_normal_matrix_;
+	GLint uniform_mvp_matrix_;
+	GLint uniform_mv_matrix_;
+	GLint uniform_projection_matrix_;
+	GLint uniform_normal_matrix_;
+
 	uint32 nb_attributes_;
 
 	std::vector<GLint> uniforms_;
 
 public:
-	//	enum Attrib_Indices: GLuint
-	//	{
-	//		ATTRIB_POS     = 1u,
-	//		ATTRIB_COLOR   = 2u,
-	//		ATTRIB_NORM    = 3u,
-	//		ATTRIB_TC      = 4u,
-	//		ATTRIB_SIZE    = 5u,
-	//		ATTRIB_CUSTOM1 = 5u,
-	//		ATTRIB_CUSTOM2 = 6u,
-	//		ATTRIB_CUSTOM3 = 7u,
-	//		ATTRIB_CUSTOM4 = 8u,
-	//	};
-
 	static void register_instance(ShaderProgram* sh);
 
 	static void clean_all();
@@ -177,16 +168,6 @@ public:
 	{
 		return id_;
 	}
-
-	//	inline void start_use()
-	//	{
-	//		glUseProgram(id_);
-	//	}
-
-	//	inline void stop_use()
-	//	{
-	//		glUseProgram(0);
-	//	}
 
 	virtual std::string name() const = 0;
 
@@ -318,22 +299,23 @@ public:
 	void set_view_matrix(const GLMat4d& mv);
 
 	template <typename... Ts>
-	void load3_bind(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src, Ts... pn)
+	void load3_bind(const std::string& vertex_program_src, const std::string& fragment_program_src,
+					const std::string& geometry_program_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src, name());
+		vert_shader_->compile(vertex_program_src, name());
 
 		geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-		geom_shader_->compile(geom_src, name());
+		geom_shader_->compile(geometry_program_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src, name());
+		frag_shader_->compile(fragment_program_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, geom_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
 
-		//		set_locations();
+		// set_locations();
 		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
@@ -367,13 +349,13 @@ public:
 	}
 
 	template <typename... Ts>
-	void load2_bind(const std::string& vert_src, const std::string& frag_src, Ts... pn)
+	void load2_bind(const std::string& vertex_program_src, const std::string& fragment_program_src, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src, name());
+		vert_shader_->compile(vertex_program_src, name());
 
 		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(frag_src, name());
+		frag_shader_->compile(fragment_program_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 		glAttachShader(id_, frag_shader_->shaderId());
@@ -410,10 +392,10 @@ public:
 	}
 
 	template <typename... Ts>
-	void load_tfb1_bind(const std::string& vert_src, const std::vector<std::string>& tf_outs, Ts... pn)
+	void load_tfb1_bind(const std::string& vertex_program_src, const std::vector<std::string>& tf_outs, Ts... pn)
 	{
 		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vert_src, name());
+		vert_shader_->compile(vertex_program_src, name());
 
 		glAttachShader(id_, vert_shader_->shaderId());
 
@@ -464,19 +446,19 @@ protected:
 
 	virtual void set_uniforms() = 0;
 
-	static const GLColor color_front_default;
-	static const GLColor color_back_default;
-	static const GLColor color_ambiant_default;
-	static const GLColor color_spec_default;
-	static const GLColor color_line_default;
-	static const GLColor color_point_default;
+	// static const GLColor color_front_default;
+	// static const GLColor color_back_default;
+	// static const GLColor color_ambiant_default;
+	// static const GLColor color_spec_default;
+	// static const GLColor color_line_default;
+	// static const GLColor color_point_default;
 
 public:
 	ShaderParam(ShaderProgram* prg);
 	ShaderParam(const ShaderParam&) = delete;
 	ShaderParam& operator=(const ShaderParam&) = delete;
 
-	virtual void pick_parameters(const PossibleParameters&);
+	// virtual void pick_parameters(const PossibleParameters&);
 
 	virtual VBO** vbo_tb(uint32 i);
 
@@ -538,9 +520,9 @@ public:
 	}
 
 	/**
-	 * @brief bind the shader set uniforms & matrices, bind vao
+	 * @brief bind the shader, set uniforms & matrices, bind vao
 	 * @param proj projection matrix
-	 * @param mv model-view matrix
+	 * @param mv modelview matrix
 	 */
 	void bind(const GLMat4& proj, const GLMat4& mv);
 
@@ -559,7 +541,7 @@ public:
 
 	/**
 	 * @brief set one vbo into the vao
-	 * @param attrib_id,vbo
+	 * @param attrib_id, vbo
 	 */
 	virtual void set_vbo(GLuint att, VBO* vbo);
 };

@@ -37,30 +37,20 @@ DECLARE_SHADER_CLASS(PhongColorPerVertex, false, CGOGN_STR(PhongColorPerVertex))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
-
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		specular_color_ = pp.specular_color_;
-		specular_coef_ = pp.specular_coef_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
+	GLColor specular_color_;
+	float32 specular_coef_;
 
 	using ShaderType = ShaderPhongColorPerVertex;
 
 	ShaderParamPhongColorPerVertex(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
-		  light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
+		  specular_color_(1, 1, 1, 1), specular_coef_(250)
 	{
 	}
 
@@ -73,4 +63,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_PHONG_H_
+#endif // CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_VERTEX_H_

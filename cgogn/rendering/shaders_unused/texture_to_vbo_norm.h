@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_
-#define CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_
+#ifndef CGOGN_RENDERING_SHADERS_FLAT_H_
+#define CGOGN_RENDERING_SHADERS_FLAT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,40 +33,29 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPointColor, false, CGOGN_STR(RoundPointColor))
+DECLARE_SHADER_CLASS(TEX2VBO)
 
-class CGOGN_RENDERING_EXPORT ShaderParamRoundPointColor : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
 {
+protected:
 	inline void set_uniforms() override
 	{
-		int viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
-		shader_->set_uniforms_values(wd, plane_clip_, plane_clip2_);
+		shader_->set_uniforms_values(TUin_);
 	}
 
 public:
-	GLColor color_;
-	float32 size_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
+	using ShaderType = ShaderTEX2VBO;
 
-	using LocalShader = ShaderRoundPointColor;
-
-	ShaderParamRoundPointColor(LocalShader* sh)
-		: ShaderParam(sh), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
-	{
-	}
-
-	inline ~ShaderParamRoundPointColor() override
-	{
-	}
-
-
+	ShaderParamTEX2VBO(ShaderType* sh)
+		: ShaderParam(sh), TUin_(-1)
+	{}
+	 //
+	int32_t TUin_;
 };
+
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_
+#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

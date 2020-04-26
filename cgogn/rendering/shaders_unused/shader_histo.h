@@ -48,9 +48,9 @@ public:
 	FBO* fbo_;
 	Texture2D* texture_;
 
-	using LocalShader = ShaderHisto;
+	using ShaderType = ShaderHisto;
 
-	inline ShaderParamHisto(LocalShader* sh) : ShaderParam(sh)
+	inline ShaderParamHisto(ShaderType* sh) : ShaderParam(sh)
 	{
 		tex_fbo_ = new Texture2D();
 		tex_fbo_->alloc(1, 1, GL_R32F, GL_RED, nullptr, GL_FLOAT);

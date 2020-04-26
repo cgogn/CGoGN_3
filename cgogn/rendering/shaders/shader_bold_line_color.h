@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_BOLDLINE_COLOR_H_
-#define CGOGN_RENDERING_SHADERS_BOLDLINE_COLOR_H_
+#ifndef CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_
+#define CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,39 +32,28 @@ namespace cgogn
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(BoldLineColor, false, CGOGN_STR(BoldLineColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamBoldLineColor : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		int viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		GLVec2 wd(width_ / float32(viewport[2]), width_ / float32(viewport[3]));
-		shader_->set_uniforms_values(wd, plane_clip_, plane_clip2_);
-	}
+	void set_uniforms() override;
 
 public:
 	float32 width_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		width_ = pp.width_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderBoldLineColor;
 
-	using LocalShader = ShaderBoldLineColor;
-
-	ShaderParamBoldLineColor(LocalShader* sh)
-		: ShaderParam(sh), width_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamBoldLineColor(ShaderType* sh)
+		: ShaderParam(sh), width_(2.0f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_

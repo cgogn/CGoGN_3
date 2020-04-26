@@ -33,34 +33,47 @@ ShaderFrame2d* ShaderFrame2d::instance_ = nullptr;
 
 ShaderFrame2d::ShaderFrame2d()
 {
-	const char* vertex_shader_source =
-		"#version 150\n"
-		"const float vertex_pos[]=float[](-1,-1,1, -1,-1,0, 1,-1,1, 1,-1,0, 1,1,1, 1,1,0, -1,1,1, -1,1,0, -1,-1,1, "
-		"-1,-1,0);\n"
-		"uniform float w;\n"
-		"uniform float h;\n"
-		"uniform float sz;\n"
-		"out float alpha;\n"
-		"void main()\n"
-		"{\n"
-		"	vec2 mu = vec2(1.0,1.0) - 2.0 * sz* float((gl_VertexID)%2)/vec2(w,h);\n"
-		"	vec2 P = vec2(vertex_pos[3*gl_VertexID],vertex_pos[3*gl_VertexID+1]) * mu;\n"
-		"   gl_Position = vec4(P,0.0,1.0);\n"
-		"	alpha = vertex_pos[3*gl_VertexID +2];\n"
-		"}\n";
+	const char* vertex_shader_source = R"(
+		#version 150
+		uniform float w;
+		uniform float h;
+		uniform float width;
 
-	const char* fragment_shader_source = "#version 150\n"
-										 "in float alpha;\n"
-										 "out vec4 frag;\n"
-										 "uniform vec4 color;\n"
-										 "void main()\n"
-										 "{\n"
-										 "	frag = vec4(color.rgb,alpha);\n"
-										 "}\n";
+		const float vertex_position[] = float[](-1,-1,1, -1,-1,0, 1,-1,1, 1,-1,0, 1,1,1, 1,1,0, -1,1,1, -1,1,0, -1,-1,1, -1,-1,0);
+		
+		out float alpha;
+		
+		void main()
+		{
+			vec2 mu = vec2(1.0, 1.0) - 2.0 * width * float((gl_VertexID) % 2) / vec2(w, h);
+			vec2 P = vec2(vertex_position[3 * gl_VertexID], vertex_position[3 * gl_VertexID + 1]) * mu;
+			gl_Position = vec4(P, 0.0, 1.0);
+			alpha = vertex_position[3 * gl_VertexID + 2];
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform vec4 color;
+
+		in float alpha;
+		out vec4 frag_out;
+		
+		void main()
+		{
+			frag_out = vec4(color.rgb, alpha);
+		}
+	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("color", "sz", "w", "h");
+	add_uniforms("color", "width", "w", "h");
+}
+
+void ShaderParamFrame2d::set_uniforms()
+{
+	shader_->set_uniforms_values(color_, width_, w_, h_);
 }
 
 } // namespace rendering
+
 } // namespace cgogn

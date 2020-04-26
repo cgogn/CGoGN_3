@@ -247,8 +247,6 @@ private:
 						p.topo_dirty_ = true;
 						p.centers_dirty_ = true;
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
-						rendering::MeshRender* render = md->get_render();
-						render->set_all_dirty();
 					}
 					v->request_update();
 				}));

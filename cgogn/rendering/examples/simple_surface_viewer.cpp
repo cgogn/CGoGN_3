@@ -62,7 +62,6 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	// cgogn::ui::TopoRender<Mesh> tr(app);
 
 	app.init_modules();
 
@@ -70,7 +69,6 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
-	// v1->link_module(&tr);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
@@ -85,7 +83,6 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
 	std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
 
-	// cgogn::index_cells<Face>(*m);
 	cgogn::foreach_cell(*m, [&](Face f) -> bool {
 		Vec3 c(0, 0, 0);
 		c[rand() % 3] = 1;
@@ -99,12 +96,10 @@ int main(int argc, char** argv)
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, nullptr);
+	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
-	// srv.set_vertex_vector(*v1, *m, vertex_normal);
-
-	// tr.set_vertex_position(*v1, *m, vertex_position);
+	srv.set_vertex_vector(*v1, *m, vertex_normal);
 
 	return app.launch();
 }

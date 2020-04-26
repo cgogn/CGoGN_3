@@ -329,9 +329,7 @@ public:
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_nb_cells();
 		md->rebuild_cells_sets();
-		md->set_primitives_dirty(rendering::POINTS);
-		md->set_primitives_dirty(rendering::LINES);
-		md->set_primitives_dirty(rendering::TRIANGLES);
+		md->set_all_primitives_dirty();
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -386,9 +384,9 @@ protected:
 	{
 		if (show_mesh_inspector_)
 		{
-			//			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
-			//			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-			//			ImGui::SetWindowSize({0, 0});
+			// std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
+			// ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			// ImGui::SetWindowSize({0, 0});
 
 			if (ImGui::ListBoxHeader("Mesh"))
 			{
@@ -435,7 +433,7 @@ protected:
 				}
 			}
 
-			ImGui::End();
+			// ImGui::End();
 		}
 	}
 

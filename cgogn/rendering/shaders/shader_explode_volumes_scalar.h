@@ -63,9 +63,9 @@ public:
 		plane_clip2_ = pp.plane_clip2_;
 	}
 
-	using LocalShader = ShaderExplodeVolumesScalar;
+	using ShaderType = ShaderExplodeVolumesScalar;
 
-	ShaderParamExplodeVolumesScalar(LocalShader* sh)
+	ShaderParamExplodeVolumesScalar(ShaderType* sh)
 		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.9f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)

@@ -30,199 +30,419 @@ namespace rendering
 {
 
 ShaderPointSprite* ShaderPointSprite::instance_ = nullptr;
-ShaderPointSpriteColor* ShaderPointSpriteColor::instance_ = nullptr;
-ShaderPointSpriteSize* ShaderPointSpriteSize::instance_ = nullptr;
-ShaderPointSpriteColorSize* ShaderPointSpriteColorSize::instance_ = nullptr;
-
-static const char* vertex_shader_source = "in vec3 vertex_pos;\n"
-										  "#if WITH_COLOR == 1\n"
-										  "in vec3 vertex_col;\n"
-										  "out vec3 color_v;\n"
-										  "#endif\n"
-										  "#if WITH_SIZE == 1\n"
-										  "in float vertex_size;\n"
-										  "out float size_v;\n"
-										  "#endif\n"
-										  "void main()\n"
-										  "{\n"
-										  "	#if WITH_COLOR == 1\n"
-										  "	color_v = vertex_col;\n"
-										  "	#endif\n"
-										  "	#if WITH_SIZE == 1\n"
-										  "	size_v = vertex_size;\n"
-										  "	#endif\n"
-										  "   gl_Position = vec4(vertex_pos,1.0);\n"
-										  "}\n";
-
-static const char* geometry_shader_source = "layout (points) in;\n"
-											"layout (triangle_strip, max_vertices=4) out;\n"
-											"uniform mat4 projection_matrix;\n"
-											"uniform mat4 model_view_matrix;\n"
-											"uniform vec4 plane_clip;\n"
-											"uniform vec4 plane_clip2;\n"
-											"#if WITH_COLOR == 1\n"
-											"in vec3 color_v[];\n"
-											"out vec3 color_f;\n"
-											"#endif\n"
-
-											"#if WITH_SIZE == 1\n"
-											"in float size_v[];\n"
-											"out float size_f;\n"
-											"#else\n"
-											"uniform float point_size;\n"
-											"#endif\n"
-
-											"out vec2 spriteCoord;\n"
-											"out vec3 sphereCenter;\n"
-
-											"#if ((WITH_COLOR == 1) && (WITH_SIZE == 1)) \n"
-											"void corner(vec4 center, float x, float y)\n"
-											"{\n"
-											"	spriteCoord = vec2(x,y);\n"
-											"	vec4 pos = center + vec4(size_v[0]*x, size_v[0]*y, 0.0, 0.0);\n"
-											"	size_f = size_v[0];\n"
-											"	color_f = color_v[0];\n"
-											"	gl_Position = projection_matrix *  pos;\n"
-											"	EmitVertex();\n"
-											"}\n"
-											"#endif\n"
-											"#if ((WITH_COLOR == 1) && (WITH_SIZE == 0)) \n"
-											"void corner(vec4 center, float x, float y)\n"
-											"{\n"
-											"	spriteCoord = vec2(x,y);\n"
-											"	vec4 pos = center + vec4(point_size*x, point_size*y, 0.0, 0.0);\n"
-											"	color_f = color_v[0];\n"
-											"	gl_Position = projection_matrix *  pos;\n"
-											"	EmitVertex();\n"
-											"}\n"
-											"#endif\n"
-											"#if ((WITH_COLOR == 0) && (WITH_SIZE == 1)) \n"
-											"void corner(vec4 center, float x, float y)\n"
-											"{\n"
-											"	spriteCoord = vec2(x,y);\n"
-											"	vec4 pos = center + vec4(size_v[0]*x, size_v[0]*y, 0.0, 0.0);\n"
-											"	size_f = size_v[0];\n"
-											"	gl_Position = projection_matrix *  pos;\n"
-											"	EmitVertex();\n"
-											"}\n"
-											"#endif\n"
-											"#if ((WITH_COLOR == 0) && (WITH_SIZE == 0)) \n"
-											"void corner(vec4 center, float x, float y)\n"
-											"{\n"
-											"	spriteCoord = vec2(x,y);\n"
-											"	vec4 pos = center + vec4(point_size*x, point_size*y, 0.0, 0.0);\n"
-											"	gl_Position = projection_matrix *  pos;\n"
-											"	EmitVertex();\n"
-											"}\n"
-											"#endif\n"
-											"void main()\n"
-											"{\n"
-											"	float d = dot(plane_clip,gl_in[0].gl_Position);\n"
-											"	float d2 = dot(plane_clip2,gl_in[0].gl_Position);\n"
-											"	if ((d<=0.0)&&(d2<=0.0))\n"
-											"	{\n"
-											"		vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;\n"
-											"		sphereCenter = posCenter.xyz;\n"
-											"		corner(posCenter, -1.4,  1.4);\n"
-											"		corner(posCenter, -1.4, -1.4);\n"
-											"		corner(posCenter,  1.4,  1.4);\n"
-											"		corner(posCenter,  1.4, -1.4);\n"
-											"		EndPrimitive();\n"
-											"	}\n"
-											"}\n";
-
-static const char* fragment_shader_source =
-	"uniform mat4 projection_matrix;\n"
-	"uniform vec4 ambiant;\n"
-	"uniform vec3 lightPos;\n"
-	"#if WITH_SIZE == 1\n"
-	"in float size_f;\n"
-	"#else\n"
-	"uniform float point_size;\n"
-	"#endif\n"
-	"#if WITH_COLOR == 1\n"
-	"in vec3 color_f;\n"
-	"#else\n"
-	"uniform vec4 color;\n"
-	"#endif\n"
-	"in vec2 spriteCoord;\n"
-	"in vec3 sphereCenter;\n"
-	"out vec4 fragColor;\n"
-
-	"void main()\n"
-	"{\n"
-	"	#if WITH_SIZE == 1\n"
-	"	float point_size=size_f;\n"
-	"	#endif\n"
-	"	vec3 billboard_frag_pos = sphereCenter + vec3(spriteCoord, 0.0) * point_size;\n"
-	"	vec3 ray_direction = normalize(billboard_frag_pos);\n"
-	"	float TD = -dot(ray_direction,sphereCenter);\n"
-	"	float c = dot(sphereCenter, sphereCenter) - point_size * point_size;\n"
-	"	float arg = TD * TD - c;\n"
-	"	if (arg < 0.0)\n"
-	"		discard;\n"
-	"	float t = -c / (TD - sqrt(arg));\n"
-	"	vec3 frag_position_eye = ray_direction * t ;\n"
-	"	vec4 pos = projection_matrix * vec4(frag_position_eye, 1.0);\n"
-	"	gl_FragDepth = (pos.z / pos.w + 1.0) / 2.0;\n"
-	"	vec3 N = normalize(frag_position_eye - sphereCenter);\n"
-	"	vec3 L = normalize (lightPos - frag_position_eye);\n"
-	"	float lambertTerm = dot(N,L);\n"
-	"	#if WITH_COLOR == 1\n"
-	"	vec4 result = vec4(color_f*lambertTerm, 1.0);\n"
-	"	#else\n"
-	"	vec4 result = vec4(color.rgb*lambertTerm, color.a);\n"
-	"	#endif\n"
-	"	result += vec4(ambiant.rgb, 0.0);\n"
-	"	fragColor = result.rgba;\n"
-	"}\n";
 
 ShaderPointSprite::ShaderPointSprite()
 {
-	std::string bs("#version 150\n#define WITH_COLOR 0\n#define WITH_SIZE 0\n");
+	const char* vertex_shader_source = R"(
+		#version 150
+		in vec3 vertex_position;
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string gs = bs + std::string(geometry_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
+		void main()
+		{
+			gl_Position = vec4(vertex_position, 1.0);
+		}
+	)";
 
-	load3_bind(vs, fs, gs, "vertex_pos");
-	add_uniforms("color", "ambiant", "lightPos", "point_size", "plane_clip", "plane_clip2");
+	const char* geometry_shader_source = R"(
+		#version 150
+		layout (points) in;
+		layout (triangle_strip, max_vertices=4) out;
+		
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform vec4 plane_clip;
+		uniform vec4 plane_clip2;
+		uniform float point_size;
+		
+		out vec2 spriteCoord;
+		out vec3 sphereCenter;
+
+		void corner(vec4 center, float x, float y)
+		{
+			spriteCoord = vec2(x, y);
+			vec4 pos = center + vec4(point_size * x, point_size * y, 0.0, 0.0);
+			gl_Position = projection_matrix *  pos;
+			EmitVertex();
+		}
+		
+		void main()
+		{
+			float d = dot(plane_clip, gl_in[0].gl_Position);
+			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			if (d <= 0.0 && d2 <= 0.0)
+			{
+				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
+				sphereCenter = posCenter.xyz;
+				corner(posCenter, -1.4,  1.4);
+				corner(posCenter, -1.4, -1.4);
+				corner(posCenter,  1.4,  1.4);
+				corner(posCenter,  1.4, -1.4);
+				EndPrimitive();
+			}
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform mat4 projection_matrix;
+		uniform vec4 ambiant;
+		uniform vec3 light_position;
+		uniform float point_size;
+		uniform vec4 color;
+
+		in vec2 spriteCoord;
+		in vec3 sphereCenter;
+
+		out vec4 frag_out;
+
+		void main()
+		{
+			vec3 billboard_frag_pos = sphereCenter + vec3(spriteCoord, 0.0) * point_size;
+			vec3 ray_direction = normalize(billboard_frag_pos);
+			float TD = -dot(ray_direction, sphereCenter);
+			float c = dot(sphereCenter, sphereCenter) - point_size * point_size;
+			float arg = TD * TD - c;
+			if (arg < 0.0)
+				discard;
+			float t = -c / (TD - sqrt(arg));
+			vec3 frag_position_eye = ray_direction * t ;
+			vec4 pos = projection_matrix * vec4(frag_position_eye, 1.0);
+			gl_FragDepth = (pos.z / pos.w + 1.0) / 2.0;
+			vec3 N = normalize(frag_position_eye - sphereCenter);
+			vec3 L = normalize (light_position - frag_position_eye);
+			float lambertTerm = dot(N, L);
+			vec4 result = vec4(color.rgb * lambertTerm, color.a);
+			result += vec4(ambiant.rgb, 0.0);
+			frag_out = result.rgba;
+		}
+	)";
+
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position");
+	add_uniforms("color", "ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
+
+void ShaderParamPointSprite::set_uniforms()
+{
+	shader_->set_uniforms_values(color_, ambiant_color_, light_position_, point_size_, plane_clip_, plane_clip2_);
+}
+
+ShaderPointSpriteColor* ShaderPointSpriteColor::instance_ = nullptr;
 
 ShaderPointSpriteColor::ShaderPointSpriteColor()
 {
-	std::string bs("#version 150\n#define WITH_COLOR 1\n#define WITH_SIZE 0\n");
+	const char* vertex_shader_source = R"(
+		#version 150
+		in vec3 vertex_position;
+		in vec3 vertex_color;
+		
+		out vec3 color_v;
+		
+		void main()
+		{
+			color_v = vertex_color;
+			gl_Position = vec4(vertex_position, 1.0);
+		}
+	)";
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string gs = bs + std::string(geometry_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
+	const char* geometry_shader_source = R"(
+		#version 150
+		layout (points) in;
+		layout (triangle_strip, max_vertices=4) out;
 
-	load3_bind(vs, fs, gs, "vertex_pos", "vertex_col");
-	add_uniforms("ambiant", "lightPos", "point_size", "plane_clip", "plane_clip2");
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform vec4 plane_clip;
+		uniform vec4 plane_clip2;
+		uniform float point_size;
+		
+		in vec3 color_v[];
+
+		out vec3 color_f;
+		out vec2 spriteCoord;
+		out vec3 sphereCenter;
+
+		void corner(vec4 center, float x, float y)
+		{
+			spriteCoord = vec2(x, y);
+			vec4 pos = center + vec4(point_size * x, point_size * y, 0.0, 0.0);
+			color_f = color_v[0];
+			gl_Position = projection_matrix *  pos;
+			EmitVertex();
+		}
+		
+		void main()
+		{
+			float d = dot(plane_clip, gl_in[0].gl_Position);
+			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			if (d <= 0.0 && d2 <= 0.0)
+			{
+				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
+				sphereCenter = posCenter.xyz;
+				corner(posCenter, -1.4,  1.4);
+				corner(posCenter, -1.4, -1.4);
+				corner(posCenter,  1.4,  1.4);
+				corner(posCenter,  1.4, -1.4);
+				EndPrimitive();
+			}
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform mat4 projection_matrix;
+		uniform vec4 ambiant;
+		uniform vec3 light_position;
+		uniform float point_size;
+
+		in vec3 color_f;
+		in vec2 spriteCoord;
+		in vec3 sphereCenter;
+
+		out vec4 frag_out;
+
+		void main()
+		{
+			vec3 billboard_frag_pos = sphereCenter + vec3(spriteCoord, 0.0) * point_size;
+			vec3 ray_direction = normalize(billboard_frag_pos);
+			float TD = -dot(ray_direction, sphereCenter);
+			float c = dot(sphereCenter, sphereCenter) - point_size * point_size;
+			float arg = TD * TD - c;
+			if (arg < 0.0)
+				discard;
+			float t = -c / (TD - sqrt(arg));
+			vec3 frag_position_eye = ray_direction * t ;
+			vec4 pos = projection_matrix * vec4(frag_position_eye, 1.0);
+			gl_FragDepth = (pos.z / pos.w + 1.0) / 2.0;
+			vec3 N = normalize(frag_position_eye - sphereCenter);
+			vec3 L = normalize (light_position - frag_position_eye);
+			float lambertTerm = dot(N, L);
+			vec4 result = vec4(color_f * lambertTerm, 1.0);
+			result += vec4(ambiant.rgb, 0.0);
+			frag_out = result.rgba;
+		}
+	)";
+
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color");
+	add_uniforms("ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
+
+void ShaderParamPointSpriteColor::set_uniforms()
+{
+	shader_->set_uniforms_values(ambiant_color_, light_position_, point_size_, plane_clip_, plane_clip2_);
+}
+
+ShaderPointSpriteSize* ShaderPointSpriteSize::instance_ = nullptr;
 
 ShaderPointSpriteSize::ShaderPointSpriteSize()
 {
-	std::string bs("#version 150\n#define WITH_COLOR 0\n#define WITH_SIZE 1\n");
+	const char* vertex_shader_source = R"(
+		#version 150
+		in vec3 vertex_position;
+		in float vertex_size;
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string gs = bs + std::string(geometry_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
+		out float size_v;
 
-	load3_bind(vs, fs, gs, "vertex_pos", "vertex_size");
-	add_uniforms("color", "ambiant", "lightPos", "plane_clip", "plane_clip2");
+		void main()
+		{
+			size_v = vertex_size;
+			gl_Position = vec4(vertex_position, 1.0);
+		}
+	)";
+
+	const char* geometry_shader_source = R"(
+		layout (points) in;
+		layout (triangle_strip, max_vertices=4) out;
+
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform vec4 plane_clip;
+		uniform vec4 plane_clip2;
+
+		in float size_v[];
+
+		out float size_f;
+		out vec2 spriteCoord;
+		out vec3 sphereCenter;
+
+		void corner(vec4 center, float x, float y)
+		{
+			spriteCoord = vec2(x, y);
+			vec4 pos = center + vec4(size_v[0] * x, size_v[0] * y, 0.0, 0.0);
+			size_f = size_v[0];
+			gl_Position = projection_matrix *  pos;
+			EmitVertex();
+		}
+		
+		void main()
+		{
+			float d = dot(plane_clip, gl_in[0].gl_Position);
+			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			if (d <= 0.0 && d2 <= 0.0)
+			{
+				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
+				sphereCenter = posCenter.xyz;
+				corner(posCenter, -1.4,  1.4);
+				corner(posCenter, -1.4, -1.4);
+				corner(posCenter,  1.4,  1.4);
+				corner(posCenter,  1.4, -1.4);
+				EndPrimitive();
+			}
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform mat4 projection_matrix;
+		uniform vec4 ambiant;
+		uniform vec3 light_position;
+		uniform vec4 color;
+
+		in float size_f;
+		in vec2 spriteCoord;
+		in vec3 sphereCenter;
+		
+		out vec4 frag_out;
+
+		void main()
+		{
+			float point_size=size_f;
+			vec3 billboard_frag_pos = sphereCenter + vec3(spriteCoord, 0.0) * point_size;
+			vec3 ray_direction = normalize(billboard_frag_pos);
+			float TD = -dot(ray_direction, sphereCenter);
+			float c = dot(sphereCenter, sphereCenter) - point_size * point_size;
+			float arg = TD * TD - c;
+			if (arg < 0.0)
+				discard;
+			float t = -c / (TD - sqrt(arg));
+			vec3 frag_position_eye = ray_direction * t ;
+			vec4 pos = projection_matrix * vec4(frag_position_eye, 1.0);
+			gl_FragDepth = (pos.z / pos.w + 1.0) / 2.0;
+			vec3 N = normalize(frag_position_eye - sphereCenter);
+			vec3 L = normalize (light_position - frag_position_eye);
+			float lambertTerm = dot(N, L);
+			vec4 result = vec4(color.rgb * lambertTerm, color.a);
+			result += vec4(ambiant.rgb, 0.0);
+			frag_out = result.rgba;
+		}
+	)";
+
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size");
+	add_uniforms("color", "ambiant", "light_position", "plane_clip", "plane_clip2");
 }
+
+void ShaderParamPointSpriteSize::set_uniforms()
+{
+	shader_->set_uniforms_values(color_, ambiant_color_, light_position_, plane_clip_, plane_clip2_);
+}
+
+ShaderPointSpriteColorSize* ShaderPointSpriteColorSize::instance_ = nullptr;
 
 ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 {
-	std::string bs("#version 150\n#define WITH_COLOR 1\n#define WITH_SIZE 1\n");
+	const char* vertex_shader_source = R"(
+		#version 150
+		in vec3 vertex_position;
+		in vec3 vertex_color;
+		out vec3 color_v;
+		in float vertex_size;
+		out float size_v;
 
-	std::string vs = bs + std::string(vertex_shader_source);
-	std::string gs = bs + std::string(geometry_shader_source);
-	std::string fs = bs + std::string(fragment_shader_source);
+		void main()
+		{
+			color_v = vertex_color;
+			size_v = vertex_size;
+			gl_Position = vec4(vertex_position, 1.0);
+		}
+	)";
 
-	load3_bind(vs, fs, gs, "vertex_pos", "vertex_col", "vertex_size");
-	add_uniforms("ambiant", "lightPos", "plane_clip", "plane_clip2");
+	const char* geometry_shader_source = R"(
+		layout (points) in;
+		layout (triangle_strip, max_vertices=4) out;
+		
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform vec4 plane_clip;
+		uniform vec4 plane_clip2;
+		
+		in vec3 color_v[];
+		in float size_v[];
+
+		out vec3 color_f;
+		out float size_f;
+		out vec2 spriteCoord;
+		out vec3 sphereCenter;
+
+		void corner(vec4 center, float x, float y)
+		{
+			spriteCoord = vec2(x, y);
+			vec4 pos = center + vec4(size_v[0] * x, size_v[0] * y, 0.0, 0.0);
+			size_f = size_v[0];
+			color_f = color_v[0];
+			gl_Position = projection_matrix *  pos;
+			EmitVertex();
+		}
+		
+		void main()
+		{
+			float d = dot(plane_clip, gl_in[0].gl_Position);
+			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			if (d <= 0.0 && d2 <= 0.0)
+			{
+				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
+				sphereCenter = posCenter.xyz;
+				corner(posCenter, -1.4,  1.4);
+				corner(posCenter, -1.4, -1.4);
+				corner(posCenter,  1.4,  1.4);
+				corner(posCenter,  1.4, -1.4);
+				EndPrimitive();
+			}
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform mat4 projection_matrix;
+		uniform vec4 ambiant;
+		uniform vec3 light_position;
+
+		in float size_f;
+		in vec3 color_f;
+		in vec2 spriteCoord;
+		in vec3 sphereCenter;
+
+		out vec4 frag_out;
+
+		void main()
+		{
+			float point_size=size_f;
+			vec3 billboard_frag_pos = sphereCenter + vec3(spriteCoord, 0.0) * point_size;
+			vec3 ray_direction = normalize(billboard_frag_pos);
+			float TD = -dot(ray_direction, sphereCenter);
+			float c = dot(sphereCenter, sphereCenter) - point_size * point_size;
+			float arg = TD * TD - c;
+			if (arg < 0.0)
+				discard;
+			float t = -c / (TD - sqrt(arg));
+			vec3 frag_position_eye = ray_direction * t ;
+			vec4 pos = projection_matrix * vec4(frag_position_eye, 1.0);
+			gl_FragDepth = (pos.z / pos.w + 1.0) / 2.0;
+			vec3 N = normalize(frag_position_eye - sphereCenter);
+			vec3 L = normalize (light_position - frag_position_eye);
+			float lambertTerm = dot(N, L);
+			vec4 result = vec4(color_f * lambertTerm, 1.0);
+			result += vec4(ambiant.rgb, 0.0);
+			frag_out = result.rgba;
+		}
+	)";
+
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
+			   "vertex_size");
+	add_uniforms("ambiant", "light_position", "plane_clip", "plane_clip2");
+}
+
+void ShaderParamPointSpriteColorSize::set_uniforms()
+{
+	shader_->set_uniforms_values(ambiant_color_, light_position_, plane_clip_, plane_clip2_);
 }
 
 } // namespace rendering

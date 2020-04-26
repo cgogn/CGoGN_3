@@ -21,54 +21,41 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_TEX2VBO_H_
-#define CGOGN_RENDERING_SHADERS_TEX2VBO_H_
+#ifndef CGOGN_RENDERING_SHADERS_PICK_H_
+#define CGOGN_RENDERING_SHADERS_PICK_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/vbo.h>
-
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/shaders/transform_feedback.h>
+
 namespace cgogn
 {
 
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(TEX2VBO, false, CGOGN_STR(TEX2VBO))
+DECLARE_SHADER_CLASS(Pick, false, CGOGN_STR(Pick))
 
-class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamPick : public ShaderParam
 {
-protected:
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(TUin_);
-	}
-
-	inline void set_normalization(bool n)
-	{
-		shader_->set_uniform_value(1, n);
 	}
 
 public:
-	using LocalShader = ShaderTEX2VBO;
+	using ShaderType = ShaderPick;
 
-	ShaderParamTEX2VBO(LocalShader* sh) : ShaderParam(sh), TUin_(-1)
+	ShaderParamPick(ShaderType* sh) : ShaderParam(sh)
 	{
 	}
-	//
-	int32_t TUin_;
+
+	inline ~ShaderParamPick() override
+	{
+	}
+
 };
 
-using TFB_TEX2VBO = TransformFeedback<ShaderTEX2VBO>;
-
-inline void texture_to_vbo(TFB_TEX2VBO* tfb, VBO* vbo)
-{
-	tfb->start(GL_POINTS, {vbo});
-}
-
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif // CGOGN_RENDERING_SHADERS_PICK_H_

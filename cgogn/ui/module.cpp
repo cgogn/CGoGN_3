@@ -80,7 +80,7 @@ void ViewModule::mouse_release_event(View*, int32, int32, int32)
 void ViewModule::mouse_dbl_click_event(View*, int32, int32, int32)
 {
 }
-void ViewModule::mouse_move_event(View*, int32, int32, int32)
+void ViewModule::mouse_move_event(View*, int32, int32)
 {
 }
 void ViewModule::mouse_wheel_event(View*, int32, int32)

@@ -44,15 +44,9 @@ public:
 	GLColor color_;
 	bool double_side_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		double_side_ = pp.double_side_;
-	}
-
 	using ShaderType = ShaderNoIllum;
 
-	ShaderParamNoIllum(ShaderType* sh) : ShaderParam(sh), color_(color_line_default)
+	ShaderParamNoIllum(ShaderType* sh) : ShaderParam(sh), color_(1, 1, 1, 1)
 	{
 	}
 

@@ -21,12 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_TEXTURE_H_
-#define CGOGN_RENDERING_SHADERS_TEXTURE_H_
+#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
+#define CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
-#include <cgogn/rendering/texture.h>
 
 namespace cgogn
 {
@@ -34,26 +33,32 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Texture, false, CGOGN_STR(Textures))
+DECLARE_SHADER_CLASS(RoundPoint, false, CGOGN_STR(RoundPoint))
 
-class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamRoundPoint : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(texture_->bind(unit_));
+		int viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
+		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
 	}
 
 public:
-	Texture2D* texture_;
-	GLuint unit_;
+	GLColor color_;
+	float32 size_;
+	GLVec4 plane_clip_;
+	GLVec4 plane_clip2_;
 
-	using LocalShader = ShaderTexture;
+	using ShaderType = ShaderRoundPoint;
 
-	ShaderParamTexture(LocalShader* sh) : ShaderParam(sh), unit_(0)
+	ShaderParamRoundPoint(ShaderType* sh)
+		: ShaderParam(sh), color_(color_point_default), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
-	inline ~ShaderParamTexture() override
+	inline ~ShaderParamRoundPoint() override
 	{
 	}
 
@@ -63,4 +68,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_H_

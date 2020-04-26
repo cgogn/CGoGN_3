@@ -29,12 +29,12 @@ namespace cgogn
 namespace rendering
 {
 
-const GLColor ShaderParam::color_front_default = GLColor(0, 0.8f, 0, 1);
-const GLColor ShaderParam::color_back_default = GLColor(0, 0, 0.8f, 1);
-const GLColor ShaderParam::color_ambiant_default = GLColor(0.1f, 0.1f, 0, 1);
-const GLColor ShaderParam::color_spec_default = GLColor(1, 1, 1, 1);
-const GLColor ShaderParam::color_line_default = GLColor(1, 1, 0, 1);
-const GLColor ShaderParam::color_point_default = GLColor(1, 1, 1, 1);
+// const GLColor ShaderParam::color_front_default = GLColor(0, 0.8f, 0, 1);
+// const GLColor ShaderParam::color_back_default = GLColor(0, 0, 0.8f, 1);
+// const GLColor ShaderParam::color_ambiant_default = GLColor(0.1f, 0.1f, 0, 1);
+// const GLColor ShaderParam::color_spec_default = GLColor(1, 1, 1, 1);
+// const GLColor ShaderParam::color_line_default = GLColor(1, 1, 0, 1);
+// const GLColor ShaderParam::color_point_default = GLColor(1, 1, 1, 1);
 
 void Shader::compile(const std::string& src, const std::string& prg_name)
 {
@@ -108,26 +108,6 @@ ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), g
 	id_ = glCreateProgram();
 }
 
-// ShaderProgram::ShaderProgram(const std::string& vert_src, const std::string& frag_src):
-//	vert_shader_(nullptr),
-//	frag_shader_(nullptr),
-//	geom_shader_(nullptr)
-//{
-//	id_ = glCreateProgram();
-
-//	load(vert_src, frag_src);
-//}
-
-// ShaderProgram::ShaderProgram(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src):
-//	vert_shader_(nullptr),
-//	frag_shader_(nullptr),
-//	geom_shader_(nullptr)
-//{
-//	id_ = glCreateProgram();
-
-//	load(vert_src, frag_src, geom_src);
-//}
-
 ShaderProgram::~ShaderProgram()
 {
 	if (vert_shader_)
@@ -200,81 +180,81 @@ void ShaderProgram::clean_all()
 
 void ShaderProgram::get_matrices_uniforms()
 {
-	unif_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
-	unif_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
-	unif_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
-	unif_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");
+	uniform_mvp_matrix_ = glGetUniformLocation(id_, "mvp_matrix");
+	uniform_mv_matrix_ = glGetUniformLocation(id_, "model_view_matrix");
+	uniform_projection_matrix_ = glGetUniformLocation(id_, "projection_matrix");
+	uniform_normal_matrix_ = glGetUniformLocation(id_, "normal_matrix");
 }
 
-void ShaderProgram::set_matrices(const GLMat4d& proj, const GLMat4d& mv)
+void ShaderProgram::set_matrices(const GLMat4d& projection, const GLMat4d& mv)
 {
-	if (unif_mvp_matrix_ >= 0)
+	if (uniform_mvp_matrix_ >= 0)
 	{
-		GLMat4d mvp = proj * mv;
+		GLMat4d mvp = projection * mv;
 		GLMat4 m = mvp.cast<float>();
-		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());
+		glUniformMatrix4fv(uniform_mvp_matrix_, 1, false, m.data());
 	}
-	if (unif_projection_matrix_ >= 0)
+	if (uniform_projection_matrix_ >= 0)
 	{
-		GLMat4 m = proj.cast<float>();
-		glUniformMatrix4fv(unif_projection_matrix_, 1, false, m.data());
+		GLMat4 m = projection.cast<float>();
+		glUniformMatrix4fv(uniform_projection_matrix_, 1, false, m.data());
 	}
-	if (unif_mv_matrix_ >= 0)
+	if (uniform_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());
+		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, m.data());
 	}
-	if (unif_normal_matrix_ >= 0)
+	if (uniform_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
+		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
 
-void ShaderProgram::set_matrices(const GLMat4& proj, const GLMat4& mv)
+void ShaderProgram::set_matrices(const GLMat4& projection, const GLMat4& mv)
 {
-	if (unif_mvp_matrix_ >= 0)
+	if (uniform_mvp_matrix_ >= 0)
 	{
-		GLMat4 m = proj * mv;
-		glUniformMatrix4fv(unif_mvp_matrix_, 1, false, m.data());
+		GLMat4 m = projection * mv;
+		glUniformMatrix4fv(uniform_mvp_matrix_, 1, false, m.data());
 	}
-	if (unif_projection_matrix_ >= 0)
-		glUniformMatrix4fv(unif_projection_matrix_, 1, false, proj.data());
-	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());
-	if (unif_normal_matrix_ >= 0)
+	if (uniform_projection_matrix_ >= 0)
+		glUniformMatrix4fv(uniform_projection_matrix_, 1, false, projection.data());
+	if (uniform_mv_matrix_ >= 0)
+		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, mv.data());
+	if (uniform_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().matrix().inverse().transpose().cast<float32>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
+		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
 
 void ShaderProgram::set_view_matrix(const GLMat4d& mv)
 {
-	if (unif_mv_matrix_ >= 0)
+	if (uniform_mv_matrix_ >= 0)
 	{
 		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, m.data());
+		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, m.data());
 	}
-	if (unif_normal_matrix_ >= 0)
+	if (uniform_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv);
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
+		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
 
 void ShaderProgram::set_view_matrix(const GLMat4& mv)
 {
-	if (unif_mv_matrix_ >= 0)
-		glUniformMatrix4fv(unif_mv_matrix_, 1, false, mv.data());
-	if (unif_normal_matrix_ >= 0)
+	if (uniform_mv_matrix_ >= 0)
+		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, mv.data());
+	if (uniform_normal_matrix_ >= 0)
 	{
 		Eigen::Affine3d t(mv.cast<float64>());
 		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(unif_normal_matrix_, 1, false, normal_matrix.data());
+		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
 	}
 }
 
@@ -334,8 +314,6 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 
 	vao_initialized_ = 0;
 	shader_->bind();
-
-	vao_initialized_ = true;
 	bind_vao();
 	GLuint attrib = 1u;
 	uint32 m = 1;
@@ -384,9 +362,9 @@ void ShaderParam::set_vbo(GLuint att, VBO* vbo)
 	shader_->release();
 }
 
-void ShaderParam::pick_parameters(const PossibleParameters&)
-{
-}
+// void ShaderParam::pick_parameters(const PossibleParameters&)
+// {
+// }
 
 } // namespace rendering
 

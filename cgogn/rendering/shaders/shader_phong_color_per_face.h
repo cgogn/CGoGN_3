@@ -36,28 +36,28 @@ DECLARE_SHADER_CLASS(PhongColorPerFace, true, CGOGN_STR(PhongColorPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VERTEX_NORMAL,
+		FACE_COLOR
+	};
 
 public:
 	std::array<VBO*, 3> vbos_;
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
+	GLColor specular_color_;
+	float32 specular_coef_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		specular_color_ = pp.specular_color_;
-		specular_coef_ = pp.specular_coef_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
 	using ShaderType = ShaderPhongColorPerFace;
 
-	ShaderParamPhongColorPerFace(ShaderType* sh) : ShaderParam(sh)
+	ShaderParamPhongColorPerFace(ShaderType* sh)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
+		  specular_color_(1, 1, 1, 1), specular_coef_(250)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;

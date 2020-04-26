@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
-#define CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
+#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_
+#define CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,16 +33,16 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPoint, false, CGOGN_STR(RoundPoint))
+DECLARE_SHADER_CLASS(RoundPointColor, false, CGOGN_STR(RoundPointColor))
 
-class CGOGN_RENDERING_EXPORT ShaderParamRoundPoint : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamRoundPointColor : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
 		int viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
 		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
+		shader_->set_uniforms_values(wd, plane_clip_, plane_clip2_);
 	}
 
 public:
@@ -51,16 +51,17 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	using LocalShader = ShaderRoundPoint;
+	using ShaderType = ShaderRoundPointColor;
 
-	ShaderParamRoundPoint(LocalShader* sh)
-		: ShaderParam(sh), color_(color_point_default), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamRoundPointColor(ShaderType* sh)
+		: ShaderParam(sh), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
 
-	inline ~ShaderParamRoundPoint() override
+	inline ~ShaderParamRoundPointColor() override
 	{
 	}
+
 
 };
 
@@ -68,4 +69,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
+#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_COLOR_H_

@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_
-#define CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_
+#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
+#define CGOGN_RENDERING_SHADERS_XXXX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -33,63 +33,66 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FlatColorPerVertex, CGOGN_STR(FlatColorPerVertex))
+// forward
+class ShaderParamXXXX;
 
-class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(light_position_, ambiant_color_, double_side_);
-	}
+public:
+	using Self = ShaderXXXX;
+	using Param = ShaderParamXXXX;
+	friend Param;
+
+protected:
+	ShaderXXXX();
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
+
+	void set_locations() override;
+	static Self* instance_;
 
 public:
-	GLColor ambiant_color_;
-	GLVec3 light_position_;
-	bool double_side_;
-
-	using LocalShader = ShaderFlatColorPerVertex;
-
-	ShaderParamFlatColorPerVertex(LocalShader* sh)
-		: ShaderParam(sh), ambiant_color_(color_ambiant_default), light_position_(10, 100, 1000), double_side_(true)
+	inline static std::unique_ptr<Param> generate_param()
 	{
-	}
-
-	inline ~ShaderParamFlatColorPerVertex() override
-	{
+		if (!instance_)
+		{
+			instance_ = new Self();
+			ShaderProgram::register_instance(instance_);
+		}
+		return std::make_unique<Param>(instance_);
 	}
 };
 
-DECLARE_SHADER_CLASS(PhongColorPerVertex, CGOGN_STR(PhongColorPerVertex))
-
-class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
+		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
 	}
 
 public:
+	GLColor front_color_;
+	GLColor back_color_;
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
-	GLVec3 light_position_;
-	bool double_side_;
+	GLVec3 light_pos_;
+	bool bf_culling_;
 
-	using LocalShader = ShaderPhongColorPerVertex;
+	using ShaderType = ShaderXXXX;
 
-	ShaderParamPhongColorPerVertex(LocalShader* sh)
-		: ShaderParam(sh), ambiant_color_(color_ambiant_default), specular_color_(1, 1, 1, 1), specular_coef_(250),
-		  light_position_(10, 100, 1000), double_side_(true)
+	ShaderParamXXXX(ShaderType* sh)
+		: ShaderParam(sh),
+
+		  light_pos_(10, 100, 1000), bf_culling_(false)
 	{
 	}
 
-	inline ~ShaderParamPhongColorPerVertex() override
+	inline ~ShaderParamXXXX() override
 	{
 	}
+
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADER_COLOR_PER_VERTEX_H_
+#endif

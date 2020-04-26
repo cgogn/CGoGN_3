@@ -133,6 +133,11 @@ public:
 		return inputs_->meta_pressed_;
 	}
 
+	inline bool mouse_button_pressed(int32 b) const
+	{
+		return (inputs_->mouse_buttons_ & (1 << b)) > 0;
+	}
+
 	inline int32 previous_mouse_x() const
 	{
 		return inputs_->previous_mouse_x_;

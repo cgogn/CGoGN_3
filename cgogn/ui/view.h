@@ -113,7 +113,7 @@ protected:
 	int32 viewport_x_offset_;
 	int32 viewport_y_offset_;
 
-	std::unique_ptr<rendering::ShaderFSTexture::Param> param_fst_;
+	std::unique_ptr<rendering::ShaderFullScreenTexture::Param> param_full_screen_texture_;
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
 

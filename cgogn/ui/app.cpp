@@ -40,8 +40,6 @@ namespace ui
 
 float64 App::frame_time_ = 0;
 
-uint32 label_uuid = 0;
-
 static void glfw_error_callback(int error, const char* description)
 {
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
@@ -340,7 +338,7 @@ App::App()
 				that->show_demo_ = !that->show_demo_;
 			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
 			{
-				that->interface_scaling_ += 0.5f;
+				that->interface_scaling_ += 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
 			}
 			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
@@ -479,13 +477,11 @@ void App::init_modules()
 int App::launch()
 {
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
-	param_frame_->sz_ = 5.0f;
+	param_frame_->width_ = 5.0f;
 
 	int32 frame_counter = 0;
 	while (!glfwWindowShouldClose(window_))
 	{
-		label_uuid = 0;
-
 		boost::synapse::poll(*tlq_);
 
 		glfwPollEvents();
@@ -511,7 +507,9 @@ int App::launch()
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
 				else
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
-				param_frame_->draw(float(v->viewport_width()), float(v->viewport_height()));
+				param_frame_->w_ = float(v->viewport_width());
+				param_frame_->h_ = float(v->viewport_height());
+				param_frame_->draw();
 			}
 		}
 
@@ -581,10 +579,14 @@ int App::launch()
 
 			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
+			uint32 id = 0;
 			for (Module* m : modules_)
 			{
+				ImGui::PushID(id);
 				if (ImGui::CollapsingHeader(m->name().c_str()))
 					m->interface();
+				ImGui::PopID();
+				++id;
 			}
 			ImGui::End();
 
@@ -605,8 +607,6 @@ int App::launch()
 		}
 
 		glfwSwapBuffers(window_);
-
-		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

@@ -47,9 +47,9 @@ public:
 		double_side_ = pp.double_side_;
 	}
 
-	using LocalShader = ShaderNoIllumColorPerVertex;
+	using ShaderType = ShaderNoIllumColorPerVertex;
 
-	ShaderParamNoIllumColorPerVertex(LocalShader* sh) : ShaderParam(sh), double_side_(true)
+	ShaderParamNoIllumColorPerVertex(ShaderType* sh) : ShaderParam(sh), double_side_(true)
 	{
 	}
 

@@ -21,19 +21,22 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_H_
+#ifndef CGOGN_RENDERING_SHADERS_TEX2VBO_H_
+#define CGOGN_RENDERING_SHADERS_TEX2VBO_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/vbo.h>
 
+#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/transform_feedback.h>
 namespace cgogn
 {
 
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(TEX2VBO)
+DECLARE_SHADER_CLASS(TEX2VBO, false, CGOGN_STR(TEX2VBO))
 
 class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
 {
@@ -43,19 +46,29 @@ protected:
 		shader_->set_uniforms_values(TUin_);
 	}
 
-public:
-	using LocalShader = ShaderTEX2VBO;
+	inline void set_normalization(bool n)
+	{
+		shader_->set_uniform_value(1, n);
+	}
 
-	ShaderParamTEX2VBO(LocalShader* sh)
-		: ShaderParam(sh), TUin_(-1)
-	{}
-	 //
+public:
+	using ShaderType = ShaderTEX2VBO;
+
+	ShaderParamTEX2VBO(ShaderType* sh) : ShaderParam(sh), TUin_(-1)
+	{
+	}
+	//
 	int32_t TUin_;
 };
 
+using TFB_TEX2VBO = TransformFeedback<ShaderTEX2VBO>;
+
+inline void texture_to_vbo(TFB_TEX2VBO* tfb, VBO* vbo)
+{
+	tfb->start(GL_POINTS, {vbo});
+}
 
 } // namespace rendering
-
 } // namespace cgogn
 
 #endif // CGOGN_RENDERING_SHADERS_FLAT_H_

@@ -66,9 +66,9 @@ public:
 		blending_ = std::get<2>(a);
 	}
 
-	using LocalShader = ShaderBoldLine;
+	using ShaderType = ShaderBoldLine;
 
-	ShaderParamBoldLine(LocalShader* sh)
+	ShaderParamBoldLine(ShaderType* sh)
 		: ShaderParam(sh), color_(color_line_default), width_(2),blending_(true),
 		plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
@@ -95,9 +95,9 @@ public:
 		double_side_ = pp.double_side_;
 	}
 
-	using LocalShader = ShaderNoIllumColorPerFace;
+	using ShaderType = ShaderNoIllumColorPerFace;
 
-	ShaderParamNoIllumColorPerFace(LocalShader* sh) : ShaderParam(sh), double_side_(true)
+	ShaderParamNoIllumColorPerFace(ShaderType* sh) : ShaderParam(sh), double_side_(true)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;

@@ -31,7 +31,8 @@ namespace ui
 
 View::View(Inputs* inputs, const std::string& name)
 	: GLViewer(inputs), name_(name), ratio_x_offset_(0), ratio_y_offset_(0), ratio_width_(1), ratio_height_(1),
-	  param_fst_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), event_stopped_(false), closing_(false)
+	  param_full_screen_texture_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), event_stopped_(false),
+	  closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
 	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
@@ -39,8 +40,9 @@ View::View(Inputs* inputs, const std::string& name)
 
 	fbo_ = std::make_unique<rendering::FBO>(vt, true, nullptr);
 
-	param_fst_ = rendering::ShaderFSTexture::generate_param();
-	param_fst_->texture_ = fbo_->texture(0);
+	param_full_screen_texture_ = rendering::ShaderFullScreenTexture::generate_param();
+	param_full_screen_texture_->unit_ = 0;
+	param_full_screen_texture_->texture_ = fbo_->texture(0);
 }
 
 View::~View()
@@ -111,7 +113,7 @@ void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
 void View::mouse_move_event(int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
-		m->mouse_move_event(this, inputs_->mouse_buttons_, x, y);
+		m->mouse_move_event(this, x, y);
 
 	if (!event_stopped_)
 		GLViewer::mouse_move_event(x, y);
@@ -159,23 +161,20 @@ void View::draw()
 	{
 		if (fbo_->width() * fbo_->height() > 0)
 		{
-
 			fbo_->bind();
 			glEnable(GL_DEPTH_TEST);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			GLenum idbuf = GL_COLOR_ATTACHMENT0;
 			glDrawBuffers(1, &idbuf);
 			for (ViewModule* m : linked_view_modules_)
-			{
 				m->draw(this);
-			}
 			fbo_->release();
 			glDisable(GL_DEPTH_TEST);
 			need_redraw_ = false;
 		}
 	}
 
-	param_fst_->draw();
+	param_full_screen_texture_->draw();
 }
 
 void View::link_module(ViewModule* m)
@@ -277,7 +276,6 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 
 std::pair<rendering::GLVec3d, rendering::GLVec3d> View::pixel_ray(int32 x, int32 y) const
 {
-
 	float64 xs = float64(float64(x - x_offset_) / float64(width_) * viewport_width_);
 	float64 ys = float64(float64(height_ - (y - y_offset_)) / float64(height_) * viewport_height_);
 

@@ -26,10 +26,11 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/type_traits.h>
+
 #include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/ui/inputs.h>
 
 #include <cgogn/rendering/shaders/shader_frame2d.h>
-#include <cgogn/ui/inputs.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
