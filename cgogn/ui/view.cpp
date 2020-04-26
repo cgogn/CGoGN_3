@@ -237,6 +237,11 @@ void View::unlock_scene_bb()
 	update_scene_bb();
 }
 
+bool View::scene_bb_locked() const
+{
+	return scene_bb_locked_;
+}
+
 bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 {
 	float z[4];

@@ -21,8 +21,6 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
-
 #include <cgogn/rendering/shaders/shader_no_illum.h>
 
 namespace cgogn
@@ -50,8 +48,8 @@ ShaderNoIllum::ShaderNoIllum()
 
 	char const* fragment_shader_source_ = R"(
 		#version 330
-		uniform bool double_side;
 		uniform vec4 color;
+		uniform bool double_side;
 		
 		out vec4 frag_out;
 

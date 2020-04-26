@@ -37,7 +37,6 @@ DECLARE_SHADER_CLASS(NoIllum, false, CGOGN_STR(NoIllum))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllum : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
@@ -59,4 +58,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_NO_ILLUM_H_

@@ -39,33 +39,24 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumes : public ShaderParam
 {
 	void set_uniforms() override;
 
-	enum VBONAme : int32
+	enum VBOName : int32
 	{
-		POS = 0,
-		CENTER
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER
 	};
 
 public:
 	std::array<VBO*, 2> vbos_;
 	GLColor color_;
-	GLVec3 light_pos_;
+	GLVec3 light_position_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		explode_ = pp.explode_;
-		light_pos_ = pp.light_position_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
-
 	using ShaderType = ShaderExplodeVolumes;
 
 	inline ShaderParamExplodeVolumes(ShaderType* sh)
-		: ShaderParam(sh), color_(color_front_default), light_pos_(10, 100, 1000), explode_(0.9f),
+		: ShaderParam(sh), color_(0.9f, 0, 0, 1), light_position_(10, 100, 1000), explode_(0.9f),
 		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)

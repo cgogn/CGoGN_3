@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr)
+	MeshData() : mesh_(nullptr), outlined_until_(0.0)
 	{
 	}
 
@@ -167,6 +167,7 @@ public:
 		}
 		if (v)
 			rendering::update_vbo<T>(attribute, v);
+
 		return v;
 	}
 
@@ -214,6 +215,7 @@ public:
 	std::shared_ptr<Attribute<Vec3>> bb_vertex_position_;
 	Vec3 bb_min_, bb_max_;
 	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
+	float64 outlined_until_;
 
 private:
 	template <class>

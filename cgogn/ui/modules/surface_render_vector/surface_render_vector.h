@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
 
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -195,7 +196,11 @@ protected:
 		bool need_update = false;
 
 		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
+
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		});
 
 		if (selected_view_ && selected_mesh_)
 		{
@@ -218,11 +223,15 @@ protected:
 			need_update |= ImGui::SliderFloat("length", &p.vector_scale_factor_, 0.1f, 5.0f);
 			need_update |= ImGui::SliderFloat("width", &p.param_vector_per_vertex_->width_, 1.0f, 9.0f);
 			need_update |= ImGui::SliderFloat("lighted", &p.param_vector_per_vertex_->lighted_, 0.0f, 1.0f);
-		}
 
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
+			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			if (remain > 0)
+				need_update = true;
+
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
+		}
 	}
 
 private:

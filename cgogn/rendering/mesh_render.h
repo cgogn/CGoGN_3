@@ -36,11 +36,10 @@
 
 #include <cgogn/geometry/algos/ear_triangulation.h>
 
-#include <memory>
-
-// #include <cgogn/rendering/drawer.h>
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/vbo.h>
+
+#include <memory>
 
 namespace cgogn
 {
@@ -339,8 +338,6 @@ public:
 
 		if (prim >= SIZE_BUFFER)
 			prim = DrawingType(prim % SIZE_BUFFER);
-
-		// indices_buffers_uptodate_[prim] = true;
 
 		auto func_update_ebo = [&](DrawingType pr, const TablesIndices& table) -> void {
 			uint32 total_size = 0;

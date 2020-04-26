@@ -20,8 +20,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.h"
+		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types.h"
@@ -37,8 +37,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.cpp"
 
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_vertex.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_vertex.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_color_per_vertex.h"
@@ -81,14 +81,14 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.cpp"
 
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.cpp"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_fullscreen_texture.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_fullscreen_texture.cpp"
@@ -107,8 +107,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.cpp"
 
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

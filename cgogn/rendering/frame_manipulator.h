@@ -21,14 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_FRAMEMANIPULATOR_H_
-#define CGOGN_RENDERING_FRAMEMANIPULATOR_H_
+#ifndef CGOGN_RENDERING_FRAME_MANIPULATOR_H_
+#define CGOGN_RENDERING_FRAME_MANIPULATOR_H_
 
-#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/rendering/shaders/frame_manip_drawer.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_no_illum.h>
 #include <cgogn/rendering/types.h>
+
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -64,7 +65,6 @@ namespace rendering
  */
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
-
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
@@ -387,4 +387,4 @@ void FrameManipulator::get_axis(uint32 ax, VEC3& axis)
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_FRAMEMANIPULATOR_H_
+#endif // CGOGN_RENDERING_FRAME_MANIPULATOR_H_

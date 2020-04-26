@@ -583,8 +583,16 @@ int App::launch()
 			for (Module* m : modules_)
 			{
 				ImGui::PushID(id);
+				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(255, 128, 0, 200));
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 128, 0, 255));
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 128, 0, 128));
 				if (ImGui::CollapsingHeader(m->name().c_str()))
+				{
+					ImGui::PopStyleColor(3);
 					m->interface();
+				}
+				else
+					ImGui::PopStyleColor(3);
 				ImGui::PopID();
 				++id;
 			}

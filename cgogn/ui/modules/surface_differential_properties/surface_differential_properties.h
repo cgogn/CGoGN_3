@@ -109,6 +109,7 @@ protected:
 			selected_vertex_Kmax_.reset();
 			selected_vertex_Kmin_.reset();
 			selected_vertex_Knormal_.reset();
+			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)

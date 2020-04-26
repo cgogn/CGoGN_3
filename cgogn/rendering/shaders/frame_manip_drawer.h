@@ -42,10 +42,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamAxis : public ShaderParam
 public:
 	int selected_;
 
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
-
 	using ShaderType = ShaderAxis;
 
 	ShaderParamAxis(ShaderType* sh) : ShaderParam(sh), selected_(4)
@@ -65,10 +61,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamRings : public ShaderParam
 
 public:
 	int selected_;
-
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
 
 	using ShaderType = ShaderRings;
 
@@ -91,10 +83,6 @@ public:
 	float sc_;
 	int32 nb_;
 	GLColor color_;
-
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
 
 	using ShaderType = ShaderXYGrid;
 
@@ -128,10 +116,12 @@ public:
 	{
 		param_axis_->selected_ = s;
 	}
+
 	inline void set_ring_selected(int32 s)
 	{
 		param_rings_->selected_ = s;
 	}
+
 	~FrameManipDrawer();
 
 	void draw_transla(const GLMat4& projection, const GLMat4& view, const GLMat4& frame);
@@ -147,6 +137,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_FRAME_MANIP_DRAWER_H_

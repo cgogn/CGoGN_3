@@ -220,7 +220,6 @@ private:
 						v->request_update();
 					}));
 		}
-		outlined_until_[m] = 0.0;
 	}
 
 public:
@@ -433,7 +432,7 @@ protected:
 			if (p.render_faces_)
 			{
 				glEnable(GL_POLYGON_OFFSET_FILL);
-				glPolygonOffset(1.0f, 2.0f);
+				glPolygonOffset(1.0f, 1.5f);
 
 				switch (p.normal_per_cell_)
 				{
@@ -583,15 +582,15 @@ protected:
 				p.param_point_sprite_->release();
 			}
 
-			float64 remain = outlined_until_[m] - App::frame_time_;
+			float64 remain = md->outlined_until_ - App::frame_time_;
 			if (remain > 0)
 			{
-				rendering::GLColor col{0.9f, 0.9f, 0.1f, 1};
-				col *= float(remain * 2);
+				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
+				color *= float(remain * 2);
 				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
 					md->init_primitives(rendering::TRIANGLES);
 				if (p.vertex_position_vbo_)
-					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, col);
+					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -601,9 +600,10 @@ protected:
 		bool need_update = false;
 
 		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
-			outlined_until_[m] = App::frame_time_ + 1.0;
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_view_ && selected_mesh_)
@@ -816,7 +816,7 @@ protected:
 				}
 			}
 
-			float64 remain = outlined_until_[selected_mesh_] - App::frame_time_;
+			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
 			if (remain > 0)
 				need_update = true;
 
@@ -834,7 +834,6 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 
-	std::unordered_map<const MESH*, float64> outlined_until_;
 	rendering::OutLiner* outline_engine_;
 };
 
