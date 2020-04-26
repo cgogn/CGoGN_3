@@ -1,25 +1,25 @@
-/*******************************************************************************
-* CGoGN                                                                        *
-* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+﻿/*******************************************************************************
+ * CGoGN                                                                        *
+ * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/ui/view.h>
 
@@ -29,18 +29,9 @@ namespace cgogn
 namespace ui
 {
 
-View::View(Inputs* inputs, const std::string& name) :
-	GLViewer(inputs),
-	name_(name),
-	ratio_x_offset_(0),
-	ratio_y_offset_(0),
-	ratio_width_(1),
-	ratio_height_(1),
-	param_fst_(nullptr),
-	fbo_(nullptr),
-	tex_(nullptr),
-	scene_bb_locked_(false),
-	closing_(false)
+View::View(Inputs* inputs, const std::string& name)
+	: GLViewer(inputs), name_(name), ratio_x_offset_(0), ratio_y_offset_(0), ratio_width_(1), ratio_height_(1),
+	  param_fst_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
 	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
@@ -53,7 +44,8 @@ View::View(Inputs* inputs, const std::string& name) :
 }
 
 View::~View()
-{}
+{
+}
 
 void View::set_view_ratio(float64 px, float64 py, float64 pw, float64 ph)
 {
@@ -82,7 +74,7 @@ void View::close_event()
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->close_event();
-	
+
 	closing_ = true;
 }
 
@@ -106,7 +98,7 @@ void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_dbl_click_event(this, button, x, y);
-	
+
 	GLViewer::mouse_dbl_click_event(button, x, y);
 }
 
@@ -114,7 +106,7 @@ void View::mouse_move_event(int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_move_event(this, x, y);
-	
+
 	GLViewer::mouse_move_event(x, y);
 }
 
@@ -122,7 +114,7 @@ void View::mouse_wheel_event(float64 dx, float64 dy)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_wheel_event(this, dx, dy);
-	
+
 	GLViewer::mouse_wheel_event(dx, dy);
 }
 
@@ -130,7 +122,7 @@ void View::key_press_event(int32 key_code)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->key_press_event(this, key_code);
-	
+
 	GLViewer::key_press_event(key_code);
 }
 
@@ -138,7 +130,7 @@ void View::key_release_event(int32 key_code)
 {
 	for (ViewModule* m : linked_view_modules_)
 		m->key_release_event(this, key_code);
-	
+
 	GLViewer::key_release_event(key_code);
 }
 
@@ -146,10 +138,10 @@ void View::draw()
 {
 	if (closing_)
 		return;
-	
+
 	spin();
 	glViewport(viewport_x_offset_, viewport_y_offset_, viewport_width_, viewport_height_);
-	
+
 	if (need_redraw_)
 	{
 		fbo_->bind();
@@ -169,14 +161,21 @@ void View::draw()
 
 void View::link_module(ViewModule* m)
 {
-	linked_view_modules_.push_back(m);
-	m->linked_views_.push_back(this);
+	if (std::find(linked_view_modules_.begin(), linked_view_modules_.end(), m) == linked_view_modules_.end())
+	{
+		linked_view_modules_.push_back(m);
+		m->linked_views_.push_back(this);
+	}
 }
 
 void View::link_module(ProviderModule* m)
 {
-	linked_provider_modules_.push_back(m);
-	m->linked_views_.push_back(this);
+	if (std::find(linked_provider_modules_.begin(), linked_provider_modules_.end(), m) ==
+		linked_provider_modules_.end())
+	{
+		linked_provider_modules_.push_back(m);
+		m->linked_views_.push_back(this);
+	}
 }
 
 void View::update_scene_bb()
@@ -262,7 +261,7 @@ rendering::GLVec3d View::unproject(int32 x, int32 y, float64 z) const
 	float64 xogl = (double(x - x_offset_) / double(width_)) * 2.0 - 1.0;
 	float64 yogl = (double(height_ - (y - y_offset_)) / double(height_)) * 2.0 - 1.0;
 	float64 zogl = z * 2.0 - 1.0;
-	
+
 	rendering::GLVec4d Q(xogl, yogl, zogl, 1.0);
 	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();
 	rendering::GLVec4d res = im * Q;
@@ -270,6 +269,6 @@ rendering::GLVec3d View::unproject(int32 x, int32 y, float64 z) const
 	return res.head(3);
 }
 
-} // namespace cgogn
-
 } // namespace ui
+
+} // namespace cgogn

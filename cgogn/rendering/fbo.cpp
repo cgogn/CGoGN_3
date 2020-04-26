@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/rendering/fbo.h>
 
@@ -46,7 +46,7 @@ FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 		if (from)
 		{
 			depth_render_buffer_ = from->depth_render_buffer_;
-			glBindRenderbuffer( GL_RENDERBUFFER, depth_render_buffer_ );
+			glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer_);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer_);
 			glBindRenderbuffer(GL_RENDERBUFFER, 0);
 		}
@@ -59,7 +59,10 @@ FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 			glBindRenderbuffer(GL_RENDERBUFFER, 0);
 		}
 	}
+	else
+		depth_render_buffer_ = 0;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 }
 
 void FBO::resize(int w, int h)
@@ -73,8 +76,9 @@ void FBO::resize(int w, int h)
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	}
+	
 }
 
-} // namespace cgogn
-
 } // namespace rendering
+
+} // namespace cgogn

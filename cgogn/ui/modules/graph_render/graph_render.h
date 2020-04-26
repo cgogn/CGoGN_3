@@ -1,32 +1,33 @@
 /*******************************************************************************
-* CGoGN                                                                        *
-* Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN                                                                        *
+ * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_MODULE_GRAPH_RENDER_H_
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
+#include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
-#include <cgogn/ui/view.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/view.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -50,32 +51,29 @@ template <typename MESH>
 class GraphRender : public ViewModule
 {
 	static_assert(mesh_traits<MESH>::dimension >= 1, "GraphRender can only be used with meshes of dimension >= 1");
-	
-    template <typename T>
-    using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
-    using Vertex = typename mesh_traits<MESH>::Vertex;
+	template <typename T>
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
-    using Vec3 = geometry::Vec3;
-    using Scalar = geometry::Scalar;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	using Vec3 = geometry::Vec3;
+	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{
-		Parameters() :
-			vertex_position_(nullptr),
-			vertex_radius_(nullptr),
-			render_vertices_(true),
-			render_edges_(true),
-			vertex_scale_factor_(1.0)
+		Parameters()
+			: vertex_position_(nullptr), vertex_radius_(nullptr), render_vertices_(true), render_edges_(true),
+			  vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-			
+
 			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
 			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
 			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_= 3.0f;
+			param_edge_->width_ = 3.0f;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -89,23 +87,22 @@ class GraphRender : public ViewModule
 
 		bool render_vertices_;
 		bool render_edges_;
-		
+
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
 	};
 
 public:
-
-	GraphRender(const App& app) :
-		ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"),
-		selected_mesh_(nullptr)
-	{}
+	GraphRender(const App& app)
+		: ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr)
+	{
+	}
 
 	~GraphRender()
-	{}
+	{
+	}
 
 private:
-
 	void init_mesh(MESH* m)
 	{
 		parameters_[m];
@@ -114,8 +111,7 @@ private:
 			set_vertex_position(*m, vertex_position);
 		mesh_connections_[m].push_back(
 			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
-				m, [this, m] (Attribute<Vec3>* attribute)
-				{
+				m, [this, m](Attribute<Vec3>* attribute) {
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
 					{
@@ -129,15 +125,12 @@ private:
 
 					for (View* v : linked_views_)
 						v->request_update();
-				}
-			)
-		);
+				}));
 
 		std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
 	}
 
 public:
-
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&m];
@@ -152,9 +145,9 @@ public:
 			md->update_vbo(vertex_position.get(), true);
 		}
 
-		p.param_point_sprite_->set_vbos(md->vbo(p.vertex_position_.get()));
-		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
-		p.param_edge_->set_vbos(md->vbo(p.vertex_position_.get()));
+		p.param_point_sprite_->set_vbos({md->vbo(p.vertex_position_.get())});
+		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
+		p.param_edge_->set_vbos({md->vbo(p.vertex_position_.get())});
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -169,23 +162,20 @@ public:
 		if (p.vertex_radius_)
 			md->update_vbo(vertex_radius.get(), true);
 
-		p.param_point_sprite_size_->set_vbos(md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get()));
+		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
 
 		for (View* v : linked_views_)
 			v->request_update();
 	}
 
 protected:
-
 	void init() override
 	{
-		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this] (MESH* m, const std::string&) { init_mesh(m); });
-		connections_.push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-				mesh_provider_, this, &GraphRender<MESH>::init_mesh
-			)
-		);
+		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
+			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
+		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
+			mesh_provider_, this, &GraphRender<MESH>::init_mesh));
 	}
 
 	void draw(View* view) override
@@ -226,7 +216,7 @@ protected:
 		}
 	}
 
-    void interface() override
+	void interface() override
 	{
 		bool need_update = false;
 
@@ -235,8 +225,7 @@ protected:
 
 		if (ImGui::ListBoxHeader("Mesh"))
 		{
-			mesh_provider_->foreach_mesh([this] (MESH* m, const std::string& name)
-			{
+			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
 				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
 					selected_mesh_ = m;
 			});
@@ -251,14 +240,14 @@ protected:
 
 			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
 			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Vec3>>& attribute)
-				{
-					bool is_selected = attribute == p.vertex_position_;
-					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_position(*selected_mesh_, attribute);
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				});
+				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
+												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+													bool is_selected = attribute == p.vertex_position_;
+													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+														set_vertex_position(*selected_mesh_, attribute);
+													if (is_selected)
+														ImGui::SetItemDefaultFocus();
+												});
 				ImGui::EndCombo();
 			}
 			if (p.vertex_position_)
@@ -267,17 +256,17 @@ protected:
 				if (ImGui::Button("X##position"))
 					set_vertex_position(*selected_mesh_, nullptr);
 			}
-			
+
 			if (ImGui::BeginCombo("Radius", p.vertex_radius_ ? p.vertex_radius_->name().c_str() : "-- select --"))
 			{
-				foreach_attribute<Scalar, Vertex>(*selected_mesh_, [&] (const std::shared_ptr<Attribute<Scalar>>& attribute)
-				{
-					bool is_selected = attribute == p.vertex_radius_;
-					if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-						set_vertex_radius(*selected_mesh_, attribute);
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				});
+				foreach_attribute<Scalar, Vertex>(*selected_mesh_,
+												  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
+													  bool is_selected = attribute == p.vertex_radius_;
+													  if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+														  set_vertex_radius(*selected_mesh_, attribute);
+													  if (is_selected)
+														  ImGui::SetItemDefaultFocus();
+												  });
 				ImGui::EndCombo();
 			}
 			if (p.vertex_radius_)
@@ -295,7 +284,8 @@ protected:
 			{
 				ImGui::Separator();
 				ImGui::TextUnformatted("Edges parameters");
-				need_update |= ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |=
+					ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
 				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
 			}
 
@@ -304,10 +294,12 @@ protected:
 				ImGui::Separator();
 				ImGui::TextUnformatted("Vertices parameters");
 				if (p.vertex_radius_)
-					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_size_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_size_->color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
 				else
 				{
-					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(), ImGuiColorEditFlags_NoInputs);	
+					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
 				}
 			}
@@ -321,7 +313,6 @@ protected:
 	}
 
 private:
-
 	const MESH* selected_mesh_;
 	std::unordered_map<const MESH*, Parameters> parameters_;
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;

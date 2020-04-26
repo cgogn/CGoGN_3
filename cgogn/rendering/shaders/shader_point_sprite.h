@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_SHADER_POINT_SPRITE_H_
 #define CGOGN_RENDERING_SHADER_POINT_SPRITE_H_
@@ -33,7 +33,7 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(PointSprite)
+DECLARE_SHADER_CLASS(PointSprite,CGOGN_STR(PointSprite))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSprite : public ShaderParam
 {
@@ -43,7 +43,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamPointSprite : public ShaderParam
 	}
 
 public:
-
 	GLColor color_;
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
@@ -51,29 +50,31 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
+
+	template<typename ...Args>
+	void fill(Args&&... args)
+	{
+		auto a = std::forward_as_tuple(args...);
+		color_ = std::get<0>(a);
+		ambiant_color_ = std::get<1>(a);
+		light_pos_ = std::get<2>(a);
+	}
+
 	using LocalShader = ShaderPointSprite;
 
-	ShaderParamPointSprite(LocalShader* sh) :
-		ShaderParam(sh),
-		color_(color_point_default),
-		ambiant_color_(color_ambiant_default),
-		light_pos_(10, 100, 1000),
-		size_(2),
-		plane_clip_(0, 0, 0, 0),
-		plane_clip2_(0, 0, 0, 0)
-	{}
-
-	inline ~ShaderParamPointSprite() override {}
-
-	inline void set_vbos(VBO* vbo_pos)
+	ShaderParamPointSprite(LocalShader* sh)
+		: ShaderParam(sh), color_(color_point_default), ambiant_color_(color_ambiant_default),
+		  light_pos_(10, 100, 1000), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
-		bind_vao();
-		associate_vbos(vbo_pos);
-		release_vao();
 	}
+
+	inline ~ShaderParamPointSprite() override
+	{
+	}
+
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColor)
+DECLARE_SHADER_CLASS(PointSpriteColor,CGOGN_STR(PointSpriteColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 {
@@ -83,7 +84,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColor : public ShaderParam
 	}
 
 public:
-
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
 	float32 size_;
@@ -92,26 +92,20 @@ public:
 
 	using LocalShader = ShaderPointSpriteColor;
 
-	ShaderParamPointSpriteColor(LocalShader* sh) :
-		ShaderParam(sh),
-		ambiant_color_(color_ambiant_default),
-		light_pos_(10, 100, 1000),
-		size_(2),
-		plane_clip_(0, 0, 0, 0),
-		plane_clip2_(0, 0, 0, 0)
-	{}
-
-	inline ~ShaderParamPointSpriteColor() override {}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col)
+	ShaderParamPointSpriteColor(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), light_pos_(10, 100, 1000), size_(2),
+		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col);
-		release_vao();
 	}
+
+	inline ~ShaderParamPointSpriteColor() override
+	{
+	}
+
+
 };
 
-DECLARE_SHADER_CLASS(PointSpriteSize)
+DECLARE_SHADER_CLASS(PointSpriteSize,CGOGN_STR(PointSpriteSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 {
@@ -121,7 +115,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteSize : public ShaderParam
 	}
 
 public:
-
 	GLColor color_;
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
@@ -131,26 +124,19 @@ public:
 
 	using LocalShader = ShaderPointSpriteSize;
 
-	ShaderParamPointSpriteSize(LocalShader* sh) :
-		ShaderParam(sh),
-		color_(color_point_default),
-		ambiant_color_(color_ambiant_default),
-		light_pos_(10, 100, 1000),
-		plane_clip_(0, 0, 0, 0),
-		plane_clip2_(0, 0, 0, 0)
-	{}
-
-	inline ~ShaderParamPointSpriteSize() override {}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_size)
+	ShaderParamPointSpriteSize(LocalShader* sh)
+		: ShaderParam(sh), color_(color_point_default), ambiant_color_(color_ambiant_default),
+		  light_pos_(10, 100, 1000), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_size);
-		release_vao();
 	}
+
+	inline ~ShaderParamPointSpriteSize() override
+	{
+	}
+
 };
 
-DECLARE_SHADER_CLASS(PointSpriteColorSize)
+DECLARE_SHADER_CLASS(PointSpriteColorSize,CGOGN_STR(PointSpriteColorSize))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColorSize : public ShaderParam
 {
@@ -160,7 +146,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamPointSpriteColorSize : public ShaderPara
 	}
 
 public:
-
 	GLColor ambiant_color_;
 	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
@@ -168,22 +153,16 @@ public:
 
 	using LocalShader = ShaderPointSpriteColorSize;
 
-	ShaderParamPointSpriteColorSize(LocalShader* sh) :
-		ShaderParam(sh),
-		ambiant_color_(color_ambiant_default),
-		light_pos_(10, 100, 1000),
-		plane_clip_(0, 0, 0, 0),
-		plane_clip2_(0, 0, 0, 0)
-	{}
-
-	inline ~ShaderParamPointSpriteColorSize() override {}
-
-	inline void set_vbos(VBO* vbo_pos, VBO* vbo_col, VBO* vbo_size)
+	ShaderParamPointSpriteColorSize(LocalShader* sh)
+		: ShaderParam(sh), ambiant_color_(color_ambiant_default), light_pos_(10, 100, 1000), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
-		bind_vao();
-		associate_vbos(vbo_pos, vbo_col, vbo_size);
-		release_vao();
 	}
+
+	inline ~ShaderParamPointSpriteColorSize() override
+	{
+	}
+
 };
 
 } // namespace rendering

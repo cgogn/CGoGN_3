@@ -30,13 +30,14 @@
 #include <cgogn/rendering/shaders/shader_explode_volumes_color.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes_line.h>
 
-#include <cgogn/geometry/types/geometry_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/ear_triangulation.h>
 
 
 namespace cgogn
 {
+using namespace geometry;
 
 namespace rendering
 {
@@ -133,23 +134,17 @@ public:
 		return std::unique_ptr<Renderer>(new Renderer(this));
 	}
 
-	template <typename MAP, typename MASK, typename VERTEX_ATTR>
-	void update_edge(const MAP& m, const MASK& mask, const VERTEX_ATTR& position);
-
-	template <typename MAP, typename VERTEX_ATTR>
-	void update_edge(const MAP& m, const VERTEX_ATTR& position);
+	template <typename MESH>
+	void update_edge(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* position);
 };
 
 
-template <typename MAP, typename MASK, typename VERTEX_ATTR>
-void VolumeDrawerGen::update_edge(const MAP& m, const MASK& mask, const VERTEX_ATTR& position)
+template <typename MESH>
+void VolumeDrawerGen::update_edge(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* position)
 {
-	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
-
-	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-	using Vertex = typename MAP::Vertex;
-	using Edge = typename MAP::Edge;
-	using Volume = typename MAP::Volume;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Volume = typename mesh_traits<MESH>::Volume;
 
 	std::vector<Vec3f> out_pos;
 	out_pos.reserve(1024 * 1024);
@@ -157,31 +152,27 @@ void VolumeDrawerGen::update_edge(const MAP& m, const MASK& mask, const VERTEX_A
 	std::vector<uint32> ear_indices;
 	ear_indices.reserve(256);
 
-	m.foreach_cell([&] (Volume v)
+	foreach_cell(m,[&] (Volume v)
 	{
-		VEC3 CV = geometry::centroid(m, v, position);
-		m.foreach_incident_edge(v, [&] (Edge e)
+		Vec3 CV = geometry::centroid<Vec3>(m, v, position);
+		foreach_incident_edge(m, v, [&] (Edge e) -> bool
 		{
-			const VEC3& P1 = position[Vertex(e.dart)];
-			const VEC3& P2 = position[Vertex(m.phi1(e.dart))];
+			auto vs = incident_vertices(m,e); // WARNING PERFORMANCE ISSUE, SPECIAL PAIR VERSION
+			const Vec3& P1 = value<Vec3>(m, position, vs[0]);
+			const Vec3& P2 = value<Vec3>(m, position, vs[1]);
 			out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 			out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 			out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
+			return true;
 		});
-	},
-	mask);
+		return true;
+	});
 
 	uint32 nbvec = uint32(out_pos.size());
 	vbo_pos2_->allocate(nbvec, 3);
 	vbo_pos2_->bind();
 	vbo_pos2_->copy_data(0, nbvec * 12, out_pos[0].data());
 	vbo_pos2_->release();
-}
-
-template <typename MAP, typename VERTEX_ATTR>
-void VolumeDrawerGen::update_edge(const MAP& m, const VERTEX_ATTR& position)
-{
-	update_edge(m, AllCellsFilter(), position);
 }
 
 
@@ -200,15 +191,12 @@ public:
 
 	~VolumeDrawerTpl() override;
 
-	template <typename MAP, typename MASK, typename VERTEX_ATTR>
-	void update_face(const MAP& m, const MASK& mask, const VERTEX_ATTR& position)
+	template <typename MESH>
+	void update_face(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* position)
 	{
-		static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
-
-		using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-		using Vertex = typename MAP::Vertex;
-		using Face = typename MAP::Face;
-		using Volume = typename MAP::Volume;
+		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Face = typename mesh_traits<MESH>::Face;
+		using Volume = typename mesh_traits<MESH>::Volume;
 
 		std::vector<Vec3f> out_pos;
 		out_pos.reserve(1024 * 1024);
@@ -216,16 +204,17 @@ public:
 		std::vector<uint32> ear_indices;
 		ear_indices.reserve(256);
 
-		m.foreach_cell([&] (Volume v)
+		foreach_cell(m,[&] (Volume v) -> bool
 		{
-			VEC3 CV = geometry::centroid(m, v, position);
-			m.foreach_incident_face(v, [&] (Face f)
+			Vec3 CV = geometry::centroid<Vec3>(m, v, position);
+			foreach_incident_face(m, v, [&] (Face f) -> bool
 			{
-				if (m.has_codegree(f, 3))
+				if (codegree(m, f) < 3)
 				{
-					const VEC3& P1 = position[Vertex(f.dart)];
-					const VEC3& P2 = position[Vertex(m.phi1(f.dart))];
-					const VEC3& P3 = position[Vertex(m.phi1(m.phi1(f.dart)))];
+					auto vs = incident_vertices(m,f); // WARNING PERFORMANCE ISSUE, SPECIAL TRIPLET VERSION
+					const Vec3& P1 = value<Vec3>(m, position, vs[0]);
+					const Vec3& P2 = value<Vec3>(m, position, vs[1]);
+					const Vec3& P3 = value<Vec3>(m, position, vs[2]);
 					out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 					out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 					out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -237,18 +226,19 @@ public:
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
 					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
 					{
-						const VEC3& P1 = position[ear_indices[i]];
-						const VEC3& P2 = position[ear_indices[i+1]];
-						const VEC3& P3 = position[ear_indices[i+2]];
+						const Vec3& P1 = (*position)[ear_indices[i]];
+						const Vec3& P2 = (*position)[ear_indices[i+1]];
+						const Vec3& P3 = (*position)[ear_indices[i+2]];
 						out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 						out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 						out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
 						out_pos.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
 					}
 				}
+				return true;
 			});
-		},
-		mask);
+			return true;
+		});
 
 		uint32 nbvec = uint32(out_pos.size());
 
@@ -256,12 +246,6 @@ public:
 		vbo_pos_->bind();
 		vbo_pos_->copy_data(0, nbvec * 12, out_pos[0].data());
 		vbo_pos_->release();
-	}
-
-	template <typename MAP, typename VERTEX_ATTR>
-	void update_face(const MAP& m, const VERTEX_ATTR& position)
-	{
-		update_face(m, AllCellsFilter(), position);
 	}
 };
 
@@ -276,15 +260,15 @@ public:
 
 	~VolumeDrawerTpl() override;
 
-	template <typename MAP, typename MASK, typename VERTEX_ATTR>
-	void update_face(const MAP& m, const MASK& mask, const VERTEX_ATTR& position, const VERTEX_ATTR& color)
-	{
-		static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
 
-		using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-		using Vertex = typename MAP::Vertex;
-		using Face = typename MAP::Face;
-		using Volume = typename MAP::Volume;
+	template <typename MESH>
+	void update_face_color_vertex(const MESH& m,
+					 const typename mesh_traits<MESH>::template Attribute<Vec3>* position,
+					 const typename mesh_traits<MESH>::template Attribute<Vec3>* color)
+	{
+		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Face = typename mesh_traits<MESH>::Face;
+		using Volume = typename mesh_traits<MESH>::Volume;
 
 		std::vector<Vec3f> out_pos;
 		out_pos.reserve(1024 * 1024);
@@ -295,22 +279,20 @@ public:
 		std::vector<uint32> ear_indices;
 		ear_indices.reserve(256);
 
-		m.foreach_cell([&] (Volume v)
+		foreach_cell(m, [&] (Volume v) -> bool
 		{
-			VEC3 CV = geometry::centroid(m, v, position);
-			m.foreach_incident_face(v, [&] (Face f)
+			Vec3 CV = geometry::centroid(m, v, position);
+			foreach_incident_face(m, v, [&] (Face f) -> bool
 			{
 				if (m.has_codegree(f, 3))
 				{
-					Dart d = f.dart;
-					const VEC3& P1 = position[Vertex(d)];
-					const VEC3& C1 = color[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P2 = position[Vertex(d)];
-					const VEC3& C2 = color[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P3 = position[Vertex(d)];
-					const VEC3& C3 = color[Vertex(d)];
+					auto vs = incident_vertices(m,f); // WARNING PERFORMANCE ISSUE, SPECIAL TRIPLET VERSION
+					const Vec3& P1 = value<Vec3>(m, position, vs[0]);
+					const Vec3& C1 = value<Vec3>(m, color, vs[0]);
+					const Vec3& P2 = value<Vec3>(m, position, vs[1]);
+					const Vec3& C2 = value<Vec3>(m, color, vs[1]);
+					const Vec3& P3 = value<Vec3>(m, position, vs[2]);
+					const Vec3& C3 = value<Vec3>(m, color, vs[2]);
 					out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 					out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 					out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -326,12 +308,12 @@ public:
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
 					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
 					{
-						const VEC3& P1 = position[ear_indices[i]];
-						const VEC3& C1 = color[ear_indices[i]];
-						const VEC3& P2 = position[ear_indices[i+1]];
-						const VEC3& C2 = color[ear_indices[i+1]];
-						const VEC3& P3 = position[ear_indices[i+2]];
-						const VEC3& C3 = color[ear_indices[i+2]];
+						const Vec3& P1 = (*position)[ear_indices[i]];
+						const Vec3& C1 = (*color)[ear_indices[i]];
+						const Vec3& P2 = (*position)[ear_indices[i+1]];
+						const Vec3& C2 = (*color)[ear_indices[i+1]];
+						const Vec3& P3 = (*position)[ear_indices[i+2]];
+						const Vec3& C3 = (*color)[ear_indices[i+2]];
 						out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 						out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 						out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -342,9 +324,10 @@ public:
 						out_color.push_back({float32(C3[0]), float32(C3[1]), float32(C3[2])});
 					}
 				}
+				return true;
 			});
-		},
-		mask);
+			return true;
+		});
 
 		std::size_t nbvec = out_pos.size();
 
@@ -359,21 +342,14 @@ public:
 		vbo_col_->release();
 	}
 
-	template <typename MAP, typename VERTEX_ATTR>
-	void update_face(const MAP& m, const VERTEX_ATTR& position, const VERTEX_ATTR& color)
+	template <typename MESH>
+	void update_face_color_volume(const MESH& m,
+					 const typename mesh_traits<MESH>::template Attribute<Vec3>* position,
+					 const typename mesh_traits<MESH>::template Attribute<Vec3>* color)
 	{
-		update_face(m, AllCellsFilter(), position, color);
-	}
-
-	template <typename MAP, typename MASK, typename VERTEX_ATTR, typename FACE_ATTR, typename std::enable_if<is_orbit_of<FACE_ATTR, MAP::Face::ORBIT>::value, void>::type* = nullptr>
-	void update_face(const MAP& m, const MASK& mask, const VERTEX_ATTR& position, const FACE_ATTR& color)
-	{
-		static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
-
-		using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-		using Vertex = typename MAP::Vertex;
-		using Face = typename MAP::Face;
-		using Volume = typename MAP::Volume;
+//		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Face = typename mesh_traits<MESH>::Face;
+		using Volume = typename mesh_traits<MESH>::Volume;
 
 		std::vector<Vec3f> out_pos;
 		out_pos.reserve(1024 * 1024);
@@ -384,21 +360,18 @@ public:
 		std::vector<uint32> ear_indices;
 		ear_indices.reserve(256);
 
-		m.foreach_cell([&] (Volume v)
+		foreach_cell(m, [&] (Volume v) -> bool
 		{
-			VEC3 CV = geometry::centroid(m, v, position);
+			Vec3 CV = geometry::centroid(m, v, position);
+			const Vec3& C = value<Vec3>(m, color, v);
 			m.foreach_incident_face(v, [&] (Face f)
 			{
-				const VEC3& C = color[f];
-
 				if (m.has_codegree(f, 3))
 				{
-					Dart d = f.dart;
-					const VEC3& P1 = position[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P2 = position[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P3 = position[Vertex(d)];
+					auto vs = incident_vertices(m,f); // WARNING PERFORMANCE ISSUE, SPECIAL TRIPLET VERSION
+					const Vec3& P1 = value<Vec3>(m, position, vs[0]);
+					const Vec3& P2 = value<Vec3>(m, position, vs[1]);
+					const Vec3& P3 = value<Vec3>(m, position, vs[2]);
 					out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 					out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 					out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -414,9 +387,9 @@ public:
 					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
 					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
 					{
-						const VEC3& P1 = position[ear_indices[i]];
-						const VEC3& P2 = position[ear_indices[i+1]];
-						const VEC3& P3 = position[ear_indices[i+2]];
+						const Vec3& P1 = value<Vec3>(m, position, ear_indices[i]);
+						const Vec3& P2 = value<Vec3>(m, position, ear_indices[i+1]);
+						const Vec3& P3 = value<Vec3>(m, position, ear_indices[i+2]);
 						out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
 						out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
 						out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
@@ -427,9 +400,10 @@ public:
 						out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
 					}
 				}
+				return true;
 			});
-		},
-		mask);
+			return true;
+		});
 
 		std::size_t nbvec = out_pos.size();
 
@@ -442,96 +416,6 @@ public:
 		vbo_col_->bind();
 		vbo_col_->copy_data(0, nbvec * 12, out_color[0].data());
 		vbo_col_->release();
-	}
-
-	template <typename MAP, typename VERTEX_ATTR, typename FACE_ATTR, typename std::enable_if<is_orbit_of<FACE_ATTR, MAP::Face::ORBIT>::value, void>::type* = nullptr>
-	void update_face(const MAP& m, const VERTEX_ATTR& position, const FACE_ATTR& color)
-	{
-		update_face(m, AllCellsFilter(), position, color);
-	}
-
-	template <typename MAP, typename MASK, typename VERTEX_ATTR, typename VOLUME_ATTR, typename std::enable_if<is_orbit_of<VOLUME_ATTR, MAP::Volume::ORBIT>::value, void>::type* = nullptr>
-	void update_face(const MAP& m, const MASK& mask, const VERTEX_ATTR& position, const VOLUME_ATTR& color)
-	{
-		static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value,"position must be a vertex attribute");
-
-		using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-		using Vertex = typename MAP::Vertex;
-		using Face = typename MAP::Face;
-		using Volume = typename MAP::Volume;
-
-		std::vector<Vec3f> out_pos;
-		out_pos.reserve(1024 * 1024);
-
-		std::vector<Vec3f> out_color;
-		out_color.reserve(1024 * 1024);
-
-		std::vector<uint32> ear_indices;
-		ear_indices.reserve(256);
-
-		m.foreach_cell([&] (Volume v)
-		{
-			VEC3 CV = geometry::centroid(m, v, position);
-			const VEC3& C = color[v];
-			m.foreach_incident_face(v, [&] (Face f)
-			{
-				if (m.has_codegree(f, 3))
-				{
-					Dart d = f.dart;
-					const VEC3& P1 = position[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P2 = position[Vertex(d)];
-					d = m.phi1(d);
-					const VEC3& P3 = position[Vertex(d)];
-					out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
-					out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
-					out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
-					out_pos.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
-					out_color.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
-					out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-					out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-					out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-				}
-				else
-				{
-					ear_indices.clear();
-					cgogn::geometry::append_ear_triangulation(m, f, position, ear_indices);
-					for(std::size_t i = 0; i < ear_indices.size(); i += 3)
-					{
-						const VEC3& P1 = position[ear_indices[i]];
-						const VEC3& P2 = position[ear_indices[i+1]];
-						const VEC3& P3 = position[ear_indices[i+2]];
-						out_pos.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
-						out_pos.push_back({float32(P1[0]), float32(P1[1]), float32(P1[2])});
-						out_pos.push_back({float32(P2[0]), float32(P2[1]), float32(P2[2])});
-						out_pos.push_back({float32(P3[0]), float32(P3[1]), float32(P3[2])});
-						out_color.push_back({float32(CV[0]), float32(CV[1]), float32(CV[2])});
-						out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-						out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-						out_color.push_back({float32(C[0]), float32(C[1]), float32(C[2])});
-					}
-				}
-			});
-		},
-		mask);
-
-		std::size_t nbvec = out_pos.size();
-
-		vbo_pos_->allocate(nbvec, 3);
-		vbo_pos_->bind();
-		vbo_pos_->copy_data(0, nbvec * 12, out_pos[0].data());
-		vbo_pos_->release();
-
-		vbo_col_->allocate(nbvec, 3);
-		vbo_col_->bind();
-		vbo_col_->copy_data(0, nbvec * 12, out_color[0].data());
-		vbo_col_->release();
-	}
-
-	template <typename MAP, typename VERTEX_ATTR, typename VOLUME_ATTR, typename std::enable_if<is_orbit_of<VOLUME_ATTR, MAP::Volume::ORBIT>::value, void>::type* = nullptr>
-	void update_face(const MAP& m, const VERTEX_ATTR& position, const VOLUME_ATTR& color)
-	{
-		update_face(m, AllCellsFilter(), position, color);
 	}
 };
 

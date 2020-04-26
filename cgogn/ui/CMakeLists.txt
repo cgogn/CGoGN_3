@@ -7,6 +7,7 @@ find_package(cgogn_rendering REQUIRED)
 find_package(ImGUI REQUIRED)
 find_package(synapse REQUIRED)
 
+
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::ui ALIAS ${PROJECT_NAME})
 
@@ -36,6 +37,11 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render/surface_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_render_vector/surface_render_vector.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_selection/surface_selection.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/volume_render/volume_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/topo_render/topo_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_modeling/surface_modeling.h"
+		"${CMAKE_CURRENT_LIST_DIR}/modules/surf_render/surf_render.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/modules/volume_selection/volume_selection.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -53,6 +59,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::rendering ImGUI synapse)
+
+if (CGOGN_GL43_DEBUG_MODE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "-DCGOGN_GL43_DEBUG_MODE=1")
+endif()
 
 # Write out cgogn_ui_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})

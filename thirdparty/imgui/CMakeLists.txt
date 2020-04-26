@@ -33,7 +33,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw dl)
+if (NOT MSVC)
+    target_link_libraries(${PROJECT_NAME} PUBLIC glfw dl)
+else()
+    target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+endif()
 
 install(FILES ${HEADER_FILES} DESTINATION "include/cgogn/thirdparty")
 
