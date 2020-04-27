@@ -28,7 +28,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/volume_render/volume_render_new.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
 
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/distance.h>

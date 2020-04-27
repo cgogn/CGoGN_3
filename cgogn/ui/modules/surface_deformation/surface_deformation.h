@@ -563,7 +563,7 @@ protected:
 		}
 	}
 
-	void mouse_move_event(View* view, int32 x, int32 y, int32) override
+	void mouse_move_event(View* view, int32 x, int32 y) override
 	{
 		if (dragging_)
 		{

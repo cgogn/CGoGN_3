@@ -24,30 +24,30 @@
 #ifndef CGOGN_MODULE_VOLUME_RENDER_H_
 #define CGOGN_MODULE_VOLUME_RENDER_H_
 
-#include <GLFW/glfw3.h>
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/view.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/geometry/algos/length.h>
 #include <cgogn/rendering/frame_manipulator.h>
-#include <cgogn/rendering/shaders/compute_volume_centers.h>
+#include <cgogn/rendering/shaders/outliner.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes_color.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes_line.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes_scalar.h>
-#include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
-#include <cgogn/rendering/topo_drawer.h>
 
+#include <cgogn/geometry/algos/centroid.h>
+#include <cgogn/geometry/algos/length.h>
+
+#include <GLFW/glfw3.h>
 #include <boost/synapse/connect.hpp>
 
-#include <cgogn/ui/tools.h>
-#include <cgogn/ui/view.h>
 #include <unordered_map>
 
 namespace cgogn
@@ -59,29 +59,18 @@ namespace ui
 template <typename MESH>
 class VolumeRender : public ViewModule
 {
+	static_assert(mesh_traits<MESH>::dimension >= 3, "VolumeRender can only be used with meshes of dimension >= 3");
 
-	enum VBOContent : int32
+	enum AttributePerCell
 	{
-		Positions = 0,
-		Centers,
-		VolumeScalar,
-		VolumeColor,
-		NbVBOs
+		GLOBAL = 0,
+		PER_VOLUME
 	};
-
-	enum ShaderIndex : int32
+	enum ColorType
 	{
-		Points = 0,
-		Edges,
-		Flat,
-		ExplodeVolumes,
-		ExplodeVolumesLines,
-		ExplodeVolumeScalar,
-		ExplodeVolumeColor,
-		NbShaders
+		SCALAR = 0,
+		VECTOR
 	};
-
-	static_assert(mesh_traits<MESH>::dimension >= 2, "Volume_Render can only be used with meshes of dimension >= 2");
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -96,132 +85,77 @@ class VolumeRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), volume_center_(nullptr), vbo_volume_center_(nullptr), render_topo_(false),
-			  render_vertices_(false), render_edges_(true), render_faces_(false), render_volumes_b_(true),
-			  render_volumes_style(ExplodeVolumes), render_volumes_line_(true), vertex_scale_factor_(1.0),
-			  vertex_base_size_(1.0), auto_update_scalar_min_max_(true), gpu_center_(false), centers_dirty_(true),
-			  topo_dirty_(true)
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_center_(nullptr),
+			  volume_center_vbo_(nullptr), volume_scalar_(nullptr), volume_scalar_vbo_(nullptr), volume_color_(nullptr),
+			  volume_color_vbo_(nullptr), render_vertices_(false), render_edges_(false), render_volumes_(true),
+			  render_volume_lines_(true), color_per_cell_(GLOBAL), color_type_(SCALAR), vertex_scale_factor_(1.0),
+			  auto_update_volume_scalar_min_max_(true), clipping_plane_(false), show_frame_manipulator_(false),
+			  manipulating_frame_(false)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-			params_[Points] = param_point_sprite_.get();
 
-			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_ = 1.0f;
-			params_[Edges] = param_edge_.get();
+			param_bold_line_ = rendering::ShaderBoldLine::generate_param();
+			param_bold_line_->color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+			param_bold_line_->width_ = 2.0f;
 
-			param_flat_ = rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(0, 0.69f, 0.83f, 1);
-			param_flat_->back_color_ = rendering::GLColor(0, 1, 0.5f, 1);
-			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
-			params_[Flat] = param_flat_.get();
+			param_volume_ = rendering::ShaderExplodeVolumes::generate_param();
+			param_volume_->color_ = {0.4f, 0.8f, 1.0f, 1.0f};
 
-			param_volumes_ = rendering::ShaderExplodeVolumes::generate_param();
-			params_[ExplodeVolumes] = param_volumes_.get();
-			param_volumes_line_ = rendering::ShaderExplodeVolumesLine::generate_param();
-			params_[ExplodeVolumesLines] = param_volumes_line_.get();
-			param_volumes_scalar_ = rendering::ShaderExplodeVolumesScalar::generate_param();
-			params_[ExplodeVolumeScalar] = param_volumes_scalar_.get();
-			param_volumes_color_ = rendering::ShaderExplodeVolumesColor::generate_param();
-			params_[ExplodeVolumeColor] = param_volumes_color_.get();
+			param_volume_line_ = rendering::ShaderExplodeVolumesLine::generate_param();
+			param_volume_line_->color_ = {0.0f, 0.0f, 0.0f, 1.0f};
+			param_volume_line_->explode_ = param_volume_->explode_;
 
-			topo_drawer_ = std::make_unique<rendering::TopoDrawer>();
-			topo_renderer_ = topo_drawer_->generate_renderer();
+			param_volume_color_ = rendering::ShaderExplodeVolumesColor::generate_param();
+			param_volume_color_->explode_ = param_volume_->explode_;
 
-			for (auto& c : vbo_cache_)
-				c = nullptr;
+			param_volume_scalar_ = rendering::ShaderExplodeVolumesScalar::generate_param();
+			param_volume_scalar_->explode_ = param_volume_->explode_;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
-		inline void update_topo(const MESH& m)
-		{
-			if (render_topo_ && vertex_position_)
-				topo_drawer_->update3D(m, vertex_position_.get());
-			topo_dirty_ = false;
-		}
-
-		inline void update_positions_params()
-		{
-			for (int32 si = Points; si < NbShaders; ++si)
-				params_[si]->set_vbo(1, vbo_cache_[Positions]);
-		}
-
-		inline void update_centers_params()
-		{
-			for (int32 si = ExplodeVolumes; si <= ExplodeVolumeColor; ++si)
-				params_[si]->set_vbo(2, vbo_cache_[Centers]);
-		}
-
-		inline void update_gpu_centers(MeshData<MESH>* md)
-		{
-			if (centers_dirty_)
-			{
-				const MESH& m = *(md->mesh_);
-				centers_dirty_ = false;
-				if (vbo_cache_[Centers] == nullptr)
-				{
-					vbo_volume_center_ = std::make_unique<rendering::VBO>();
-					auto* centers = vbo_volume_center_.get();
-					vbo_cache_[Centers] = centers;
-					centers->bind();
-					const CMapBase& map = static_cast<const CMapBase&>(m);
-					uint32 mi = is_indexed<Volume>(m) ? map.attribute_containers_[Volume::ORBIT].maximum_index()
-													  : nb_cells<Volume>(m);
-					centers->allocate(mi, 3);
-					centers->release();
-				}
-			}
-		}
-
-		/// attributes
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		rendering::VBO* vertex_position_vbo_;
 		std::shared_ptr<Attribute<Vec3>> volume_center_;
-		std::shared_ptr<Attribute<Vec3>> volume_color_;
+		rendering::VBO* volume_center_vbo_;
 		std::shared_ptr<Attribute<Scalar>> volume_scalar_;
+		rendering::VBO* volume_scalar_vbo_;
+		std::shared_ptr<Attribute<Vec3>> volume_color_;
+		rendering::VBO* volume_color_vbo_;
 
-		/// VBOs
-		std::unique_ptr<rendering::VBO> vbo_volume_center_;
-		std::array<rendering::VBO*, 4> vbo_cache_;
-
-		/// SHaders
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
-		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
-		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
-		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volumes_;
-		std::unique_ptr<rendering::ShaderExplodeVolumesScalar::Param> param_volumes_scalar_;
-		std::unique_ptr<rendering::ShaderExplodeVolumesColor::Param> param_volumes_color_;
-		std::unique_ptr<rendering::ShaderExplodeVolumesLine::Param> param_volumes_line_;
-		std::array<rendering::ShaderParam*, 7> params_;
+		std::unique_ptr<rendering::ShaderBoldLine::Param> param_bold_line_;
+		std::unique_ptr<rendering::ShaderExplodeVolumes::Param> param_volume_;
+		std::unique_ptr<rendering::ShaderExplodeVolumesLine::Param> param_volume_line_;
+		std::unique_ptr<rendering::ShaderExplodeVolumesColor::Param> param_volume_color_;
+		std::unique_ptr<rendering::ShaderExplodeVolumesScalar::Param> param_volume_scalar_;
 
-		/// topo
-		std::unique_ptr<rendering::TopoDrawer> topo_drawer_;
-		std::unique_ptr<rendering::TopoDrawer::Renderer> topo_renderer_;
-
-		/// booleans
-		bool render_topo_;
 		bool render_vertices_;
 		bool render_edges_;
-		bool render_faces_;
-		bool render_volumes_b_;
-		int render_volumes_style;
-		bool render_volumes_line_;
+		bool render_volumes_;
+		bool render_volume_lines_;
+
+		AttributePerCell color_per_cell_;
+		ColorType color_type_;
+
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
-		bool auto_update_scalar_min_max_;
-		bool gpu_center_;
 
-		bool centers_dirty_;
-		bool topo_dirty_;
+		bool auto_update_volume_scalar_min_max_;
+
+		bool clipping_plane_;
+		rendering::FrameManipulator frame_manipulator_;
+		bool show_frame_manipulator_;
+		bool manipulating_frame_;
 	};
 
 public:
-	Volume_Render(const App& app)
-		: ViewModule(app, "Volume_Render (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_view_(app.current_view()), selected_mesh_(nullptr), compute_center_engine_(nullptr),
-		  frame_manip_(nullptr), show_frame_manip_(false), manipullating_frame_(false)
+	VolumeRender(const App& app)
+		: ViewModule(app, "VolumeRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
+		outline_engine_ = rendering::OutLiner::generate();
 	}
 
 	~VolumeRender()
@@ -233,7 +167,12 @@ private:
 	{
 		for (View* v : linked_views_)
 		{
-			auto& p = parameters_[v][m];
+			Parameters& p = parameters_[v][m];
+			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			p.volume_center_ = add_attribute<Vec3, Volume>(*m, "__volume_center_" + v->name());
+			md->update_vbo(p.volume_center_.get(), true);
+			p.volume_center_vbo_ = md->vbo(p.volume_center_.get());
+
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
@@ -241,12 +180,12 @@ private:
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
+					MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 					if (p.vertex_position_)
 					{
-						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-						p.topo_dirty_ = true;
-						p.centers_dirty_ = true;
-						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
+						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+						geometry::compute_centroid<Vec3, Volume>(*m, p.vertex_position_.get(), p.volume_center_.get());
+						md->update_vbo(p.volume_center_.get(), true);
 					}
 					v->request_update();
 				}));
@@ -254,61 +193,50 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
+						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 						if (p.vertex_position_.get() == attribute)
 						{
-							p.topo_dirty_ = true;
-							p.centers_dirty_ = true;
-							p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7);
+							p.vertex_base_size_ =
+								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							geometry::compute_centroid<Vec3, Volume>(*m, p.vertex_position_.get(),
+																	 p.volume_center_.get());
+							md->update_vbo(p.volume_center_.get(), true);
 						}
 						v->request_update();
 					}));
-
-			p.param_volumes_line_->explode_ = p.param_volumes_->explode_;
-			p.param_volumes_scalar_->explode_ = p.param_volumes_->explode_;
-			p.param_volumes_color_->explode_ = p.param_volumes_->explode_;
-			if (p.render_topo_)
-			{
-				p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
-				p.topo_dirty_ = true;
-			}
-			v->request_update();
 		}
-	}
-
-	void update_gpu_centers(Parameters& p, MeshData<MESH>* md)
-	{
-		if (p.centers_dirty_)
-		{
-			const MESH& m = *(md->mesh_);
-			p.centers_dirty_ = false;
-			if (p.vbo_cache_[Centers] == nullptr)
-			{
-				p.vbo_volume_center_ = std::make_unique<rendering::VBO>();
-				auto* centers = p.vbo_volume_center_.get();
-				p.vbo_cache_[Centers] = centers;
-				centers->bind();
-				uint32 mi = is_indexed<Volume>(m) ? m.attribute_containers_[Volume::ORBIT].maximum_index()
-												  : nb_cells<Volume>(m);
-				centers->allocate(mi, 3);
-				centers->release();
-			}
-		}
-
-		auto* render = md->get_render();
-		compute_center_engine_->check_primitives(render, *(md->mesh_), p.vertex_position_.get());
-		compute_center_engine_->compute(p.vbo_cache_[Positions], render, p.vbo_cache_[Centers]);
-		p.update_centers_params();
 	}
 
 public:
-	void set_volume_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& volume_scalar)
+	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
-		p.volume_scalar_ = volume_scalar;
-		p.vbo_cache_[VolumeScalar] = md->update_vbo(volume_scalar.get(), true);
-		p.param_volumes_scalar_->set_vbo(3, p.vbo_cache_[VolumeScalar]);
+		p.vertex_position_ = vertex_position;
+		if (p.vertex_position_)
+		{
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7.0);
+			md->update_vbo(vertex_position.get(), true);
+			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
+			md->update_vbo(p.volume_center_.get(), true);
+			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
+		}
+		else
+			p.vertex_position_vbo_ = nullptr;
+
+		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
+		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
+		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
+		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
+		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
+		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
+
+		Scalar size = (md->bb_max_ - md->bb_min_).norm() / 10;
+		Vec3 position = 0.2 * md->bb_min_ + 0.8 * md->bb_max_;
+		p.frame_manipulator_.set_size(size);
+		p.frame_manipulator_.set_position(position);
+
 		v.request_update();
 	}
 
@@ -318,63 +246,58 @@ public:
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.volume_color_ = volume_color;
-		p.vbo_cache_[VolumeColor] = md->update_vbo(volume_color.get(), true);
-		p.param_volumes_color_->set_vbo(3, p.vbo_cache_[VolumeColor]);
+		if (p.volume_color_)
+		{
+			md->update_vbo(p.volume_color_.get(), true);
+			p.volume_color_vbo_ = md->vbo(p.volume_color_.get());
+		}
+		else
+			p.volume_color_vbo_ = nullptr;
+
+		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
+
 		v.request_update();
 	}
 
-	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	void set_volume_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& volume_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
-		p.vertex_position_ = vertex_position;
-		if (p.vertex_position_)
+		p.volume_scalar_ = volume_scalar;
+		if (p.volume_scalar_)
 		{
-			//			p.update_topo(m);
-
-			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7);
-
-			p.vbo_cache_[Positions] = md->update_vbo(vertex_position.get(), true);
-
-			p.volume_center_ = cgogn::get_attribute<Vec3, Volume>(m, "center");
-			p.gpu_center_ |= (p.volume_center_ == nullptr);
-
-			if (p.volume_center_ && !p.gpu_center_)
-			{
-				p.vbo_cache_[Centers] = md->update_vbo(p.volume_center_.get(), true);
-			}
-			if (p.gpu_center_)
-			{
-				p.update_gpu_centers(md);
-				auto* render = md->get_render();
-				compute_center_engine_->check_primitives(render, m, p.vertex_position_.get());
-				compute_center_engine_->compute(p.vbo_cache_[Positions], render, p.vbo_cache_[Centers]);
-				p.update_centers_params();
-			}
+			md->update_vbo(p.volume_scalar_.get(), true);
+			if (p.auto_update_volume_scalar_min_max_)
+				update_volume_scalar_min_max_values(p);
+			p.volume_scalar_vbo_ = md->vbo(p.volume_scalar_.get());
 		}
-		p.update_positions_params();
-		p.topo_dirty_ = true;
-		p.centers_dirty_ = true;
+		else
+		{
+			p.volume_scalar_vbo_ = nullptr;
+			p.param_volume_scalar_->color_map_.min_value_ = 0.0f;
+			p.param_volume_scalar_->color_map_.max_value_ = 1.0f;
+		}
+
+		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
+
 		v.request_update();
 	}
 
 protected:
-	void update_scalar_min_max_values(Parameters& p)
+	void update_volume_scalar_min_max_values(Parameters& p)
 	{
 		Scalar min = std::numeric_limits<float64>::max();
 		Scalar max = std::numeric_limits<float64>::lowest();
-		for (const Scalar& v : *p.vertex_scalar_)
+		for (const Scalar& v : *p.volume_scalar_)
 		{
 			if (v < min)
 				min = v;
 			if (v > max)
 				max = v;
 		}
-		p.param_scalar_per_vertex_->min_value_ = min;
-		p.param_scalar_per_vertex_->max_value_ = max;
-		p.param_scalar_per_vertex_gouraud_->min_value_ = min;
-		p.param_scalar_per_vertex_gouraud_->max_value_ = max;
+		p.param_volume_scalar_->color_map_.min_value_ = min;
+		p.param_volume_scalar_->color_map_.max_value_ = max;
 	}
 
 	void init() override
@@ -384,8 +307,6 @@ protected:
 		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &VolumeRender<MESH>::init_mesh));
-		compute_center_engine_ = std::make_unique<rendering::ComputeCenterEngine>();
-		frame_manip_ = std::make_unique<cgogn::rendering::FrameManipulator>();
 	}
 
 	void draw(View* view) override
@@ -397,101 +318,160 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			glEnable(GL_POLYGON_OFFSET_FILL);
-			glPolygonOffset(1.0f, 1.5f);
-
-			if (p.render_faces_)
+			if (p.render_volumes_)
 			{
+				glEnable(GL_POLYGON_OFFSET_FILL);
+				glPolygonOffset(1.0f, 1.5f);
 
-				if (p.param_flat_->vao_initialized())
+				switch (p.color_per_cell_)
 				{
-					p.param_flat_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::TRIANGLES, p.vertex_position_);
-					p.param_flat_->release();
-				}
-			}
-
-			if (p.render_volumes_b_)
-			{
-				if (p.centers_dirty_ && p.gpu_center_)
-				{
-					p.update_gpu_centers(md);
-					auto* render = md->get_render();
-					compute_center_engine_->check_primitives(render, *m, p.vertex_position_.get());
-					compute_center_engine_->compute(p.vbo_cache_[Positions], render, p.vbo_cache_[Centers]);
-					p.update_centers_params();
-					view->request_update();
-				}
-
-				if (p.render_volumes_style == ExplodeVolumes)
-				{
-					if (p.param_volumes_->vao_initialized())
+				case GLOBAL: {
+					if (p.param_volume_->vao_initialized())
 					{
-						p.param_volumes_->bind(proj_matrix, view_matrix);
+						p.param_volume_->bind(proj_matrix, view_matrix);
 						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
-						p.param_volumes_->release();
+						p.param_volume_->release();
 					}
 				}
-
-				if (p.render_volumes_style == ExplodeVolumeScalar && p.volume_scalar_)
-				{
-					if (p.param_volumes_scalar_->vao_initialized())
+				break;
+				case PER_VOLUME: {
+					switch (p.color_type_)
 					{
-						p.param_volumes_scalar_->bind(proj_matrix, view_matrix);
-						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
-						p.param_volumes_scalar_->release();
+					case SCALAR: {
+						if (p.param_volume_scalar_->vao_initialized())
+						{
+							p.param_volume_scalar_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
+							p.param_volume_scalar_->release();
+						}
+					}
+					break;
+					case VECTOR: {
+						if (p.param_volume_color_->vao_initialized())
+						{
+							p.param_volume_color_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
+							p.param_volume_color_->release();
+						}
+					}
+					break;
 					}
 				}
-
-				if (p.render_volumes_style == ExplodeVolumeColor && p.volume_color_)
-				{
-					if (p.param_volumes_color_->vao_initialized())
-					{
-						p.param_volumes_color_->bind(proj_matrix, view_matrix);
-						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
-						p.param_volumes_color_->release();
-					}
+				break;
 				}
-			}
 
-			glDisable(GL_POLYGON_OFFSET_FILL);
+				glDisable(GL_POLYGON_OFFSET_FILL);
 
-			if (p.render_volumes_b_ && p.render_volumes_line_)
-			{
-				if (p.param_volumes_->vao_initialized())
+				if (p.render_volume_lines_ && p.param_volume_line_->vao_initialized())
 				{
-					p.param_volumes_line_->bind(proj_matrix, view_matrix);
+					p.param_volume_line_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::VOLUMES_EDGES);
-					p.param_volumes_line_->release();
+					p.param_volume_line_->release();
 				}
 			}
 
-			if (p.render_edges_ && p.param_edge_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
 			{
-				p.param_edge_->bind(proj_matrix, view_matrix);
+				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
-				p.param_edge_->release();
+				p.param_bold_line_->release();
 			}
 
 			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::POINTS);
 				p.param_point_sprite_->release();
 			}
 
-			if (p.render_topo_)
+			if (p.show_frame_manipulator_)
+				p.frame_manipulator_.draw(true, true, proj_matrix, view_matrix);
+
+			float64 remain = md->outlined_until_ - App::frame_time_;
+			if (remain > 0)
 			{
-				if (p.topo_dirty_)
-					p.update_topo(*m);
-				p.topo_renderer_->draw(proj_matrix, view_matrix);
+				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
+				color *= float(remain * 2);
+				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
+					md->init_primitives(rendering::TRIANGLES);
+				if (p.vertex_position_vbo_)
+					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
 			}
-			if (show_frame_manip_)
+		}
+	}
+
+	void key_press_event(View* view, int32 key_code) override
+	{
+		if (key_code == GLFW_KEY_C)
+		{
+			if (view == selected_view_ && selected_mesh_)
 			{
-				frame_manip_->draw(true, true, proj_matrix, view_matrix);
-				//				*mousePressEvent : *frame_manip_->pick(event->x(), event->y(), P, Q); // P,Q computed
-				// ray 				*mouseReleaseEvent : *frame_manip_->release(); 				*mouseMouseEvent:
+				Parameters& p = parameters_[selected_view_][selected_mesh_];
+				if (p.show_frame_manipulator_)
+					p.manipulating_frame_ = true;
+			}
+		}
+	}
+
+	void key_release_event(View* view, int32 key_code) override
+	{
+		if (key_code == GLFW_KEY_C)
+		{
+			if (view == selected_view_ && selected_mesh_)
+			{
+				Parameters& p = parameters_[selected_view_][selected_mesh_];
+				p.manipulating_frame_ = false;
+			}
+		}
+	}
+
+	void mouse_press_event(View* view, int32, int32 x, int32 y) override
+	{
+		if (view == selected_view_ && selected_mesh_)
+		{
+			Parameters& p = parameters_[selected_view_][selected_mesh_];
+			if (p.manipulating_frame_)
+			{
+				auto [P, Q] = view->pixel_ray(x, y);
+				p.frame_manipulator_.pick(x, y, P, Q);
+				view->request_update();
+			}
+		}
+	}
+
+	void mouse_release_event(View* view, int32, int32, int32) override
+	{
+		if (view == selected_view_ && selected_mesh_)
+		{
+			Parameters& p = parameters_[selected_view_][selected_mesh_];
+			p.frame_manipulator_.release();
+			view->request_update();
+		}
+	}
+
+	void mouse_move_event(View* view, int32 x, int32 y) override
+	{
+		if (view == selected_view_ && selected_mesh_)
+		{
+			Parameters& p = parameters_[selected_view_][selected_mesh_];
+			if (p.manipulating_frame_ && view->mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT))
+			{
+				p.frame_manipulator_.drag(true, x, y);
+				if (p.clipping_plane_)
+				{
+					Vec3 position;
+					p.frame_manipulator_.get_position(position);
+					Vec3 axis_z;
+					p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
+					float32 d = -(position.dot(axis_z));
+					p.param_volume_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+					p.param_volume_line_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+					p.param_volume_color_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+					p.param_volume_scalar_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+				}
+				view->stop_event();
+				view->request_update();
 			}
 		}
 	}
@@ -500,255 +480,176 @@ protected:
 	{
 		bool need_update = false;
 
-		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		//		ImGui::SetWindowSize({0, 0});
-		std::stringstream ss;
-		ss << std::setw(6) << std::fixed << std::setprecision(2) << App::fps();
-		std::string str_fps = ss.str() + " fps";
-		ImGui::Text(str_fps.c_str());
-
 		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
-
-		need_update |= ImGui::Checkbox("Lock scene bb", &selected_view_->scene_bb_locked_);
 
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
-			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
 		});
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
 
 		if (selected_view_ && selected_mesh_)
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position Attribute",
-												[&](const decltype(p.vertex_position_)& att) {
-													set_vertex_position(*selected_view_, *selected_mesh_, att);
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
+												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+													set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 												});
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
 			if (p.render_vertices_)
 			{
-				ImGui::SameLine();
-				ImGui::TextUnformatted(" > ");
-				ImGui::SameLine();
-				ImGui::BeginGroup();
-				need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
-												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-				need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
-				ImGui::EndGroup();
+				need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
+												 ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1, 2.0);
 			}
+
+			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 			if (p.render_edges_)
 			{
-				ImGui::SameLine();
-				ImGui::TextUnformatted(" > ");
-				ImGui::SameLine();
-				ImGui::BeginGroup();
-				need_update |= ImGui::ColorEdit3("edge color##edges", p.param_edge_->color_.data(),
-												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-				need_update |= ImGui::SliderFloat("##width_edges", &(p.param_edge_->width_), 1.0f, 10.0f);
-				need_update |= ImGui::SliderFloat("##lighted_edges", &(p.param_edge_->lighted_), 0.0f, 1.0f);
-				ImGui::EndGroup();
-			}
-			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
-			if (p.render_faces_)
-			{
-				ImGui::SameLine();
-				ImGui::TextUnformatted(" > ");
-				ImGui::SameLine();
-				ImGui::BeginGroup();
-				need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
-												 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-				if (p.param_flat_->double_side_)
-					need_update |= ImGui::ColorEdit3("back color##flat", p.param_flat_->back_color_.data(),
-													 ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-				need_update |= ImGui::Checkbox("double side##flat", &(p.param_flat_->double_side_));
-				ImGui::EndGroup();
+				need_update |=
+					ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("Width##edges", &p.param_bold_line_->width_, 1.0f, 10.0f);
 			}
 
-			need_update |= ImGui::Checkbox("Volumes##b", &p.render_volumes_b_);
-			if (p.render_volumes_b_)
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Volumes", &p.render_volumes_);
+			if (p.render_volumes_)
 			{
-				if (ImGui::Checkbox("FrameManip", &show_frame_manip_))
+				if (ImGui::SliderFloat("Explode", &p.param_volume_->explode_, 0.01f, 1.0f))
 				{
-					auto [pmin, pmax] = mesh_provider_->meshes_bb();
-					Scalar sz = (pmax - pmin).norm() / 5;
-					Vec3 pos = 0.8 * pmin + 0.2 * pmax;
-					frame_manip_->set_size(sz);
-					frame_manip_->set_position(pos);
+					need_update = true;
+					p.param_volume_line_->explode_ = p.param_volume_->explode_;
+					p.param_volume_color_->explode_ = p.param_volume_->explode_;
+					p.param_volume_scalar_->explode_ = p.param_volume_->explode_;
 				}
 
-				int32* ptrVS = reinterpret_cast<int32*>(&p.render_volumes_style);
-
-				ImGui::TextUnformatted("Attribute:");
-				ImGui::BeginGroup();
-				need_update |= ImGui::RadioButton("None", ptrVS, ExplodeVolumes);
-				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Scalar", ptrVS, ExplodeVolumeScalar);
-				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Color", ptrVS, ExplodeVolumeColor);
-				ImGui::EndGroup();
-
-				switch (p.render_volumes_style)
-				{
-				case ExplodeVolumes:
-					need_update |= ImGui::ColorEdit3("color##volume", p.param_volumes_->color_.data(),
+				need_update |= ImGui::Checkbox("Volume lines", &p.render_volume_lines_);
+				if (p.render_volume_lines_)
+					need_update |= ImGui::ColorEdit3("Volume lines color", p.param_volume_line_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-					break;
-				case ExplodeVolumeScalar:
-					imgui_combo_attribute<Volume, Scalar>(*selected_mesh_, p.volume_scalar_, "Vol. Scalar Attribute",
-														  [&](const decltype(p.volume_scalar_)& att) {
-															  set_volume_scalar(*selected_view_, *selected_mesh_, att);
-														  });
-					need_update |= imgui_colormap_interface(p.param_volumes_scalar_->cm_, "vol_scal");
-					break;
-				case ExplodeVolumeColor:
-					imgui_combo_attribute<Volume, Vec3>(*selected_mesh_, p.volume_color_, "Vol. Color Attribute",
-														[&](const decltype(p.volume_color_)& att) {
-															set_volume_color(*selected_view_, *selected_mesh_, att);
-														});
-					break;
-				}
 
-				if (ImGui::SliderFloat("explode", &(p.param_volumes_->explode_), 0.01f, 1.0f))
+				if (ImGui::Checkbox("Apply clipping plane", &p.clipping_plane_))
 				{
-					p.param_volumes_line_->explode_ = p.param_volumes_->explode_;
-					p.param_volumes_scalar_->explode_ = p.param_volumes_->explode_;
-					p.param_volumes_color_->explode_ = p.param_volumes_->explode_;
-					if (p.render_topo_)
+					if (p.clipping_plane_)
 					{
-						p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
-						p.topo_dirty_ = true;
+						Vec3 position;
+						p.frame_manipulator_.get_position(position);
+						Vec3 axis_z;
+						p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
+						float32 d = -(position.dot(axis_z));
+						p.param_volume_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+						p.param_volume_line_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+						p.param_volume_color_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+						p.param_volume_scalar_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+					}
+					else
+					{
+						p.param_volume_->plane_clip_ = {0, 0, 0, 0};
+						p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
+						p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
+						p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
 					}
 					need_update = true;
 				}
 
-				ImGui::Separator();
-				need_update |= ImGui::Checkbox("VolumesLine", &p.render_volumes_line_);
-				if (p.render_volumes_line_)
+				need_update |= ImGui::Checkbox("Show clipping plane", &p.show_frame_manipulator_);
+				if (p.show_frame_manipulator_)
+					ImGui::TextUnformatted("Press C to manipulate the plane");
+
+				ImGui::TextUnformatted("Colors");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Global##color", p.color_per_cell_ == GLOBAL))
 				{
-					ImGui::TextUnformatted("Volume line parameters");
-					need_update |= ImGui::ColorEdit3("color##volume_line", p.param_volumes_line_->color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
+					p.color_per_cell_ = GLOBAL;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per volume##color", p.color_per_cell_ == PER_VOLUME))
+				{
+					p.color_per_cell_ = PER_VOLUME;
+					need_update = true;
 				}
 
-				ImGui::Separator();
-				if (ImGui::Checkbox("Topo", &p.render_topo_))
+				if (p.color_per_cell_ == GLOBAL)
 				{
-					need_update = true;
-					if (p.render_topo_)
+					need_update |=
+						ImGui::ColorEdit3("Volume color", p.param_volume_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				}
+				else if (p.color_per_cell_ == PER_VOLUME)
+				{
+					ImGui::BeginGroup();
+					if (ImGui::RadioButton("Scalar", p.color_type_ == SCALAR))
 					{
-						p.topo_drawer_->shrink_v_ = std::min(1.0f, p.param_volumes_->explode_ + 0.02f);
-						p.topo_dirty_ = true;
+						p.color_type_ = SCALAR;
+						need_update = true;
 					}
-					p.update_topo(*selected_mesh_);
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Vector", p.color_type_ == VECTOR))
+					{
+						p.color_type_ = VECTOR;
+						need_update = true;
+					}
+					ImGui::EndGroup();
+
+					if (p.color_type_ == SCALAR)
+					{
+						imgui_combo_attribute<Volume, Scalar>(
+							*selected_mesh_, p.volume_scalar_, "Attribute##scalarvolumecolor",
+							[&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
+								set_volume_scalar(*selected_view_, *selected_mesh_, attribute);
+							});
+						need_update |=
+							ImGui::InputFloat("Scalar min##volumecolor", &p.param_volume_scalar_->color_map_.min_value_,
+											  0.01f, 1.0f, "%.3f");
+						need_update |=
+							ImGui::InputFloat("Scalar max##volumecolor", &p.param_volume_scalar_->color_map_.max_value_,
+											  0.01f, 1.0f, "%.3f");
+						if (ImGui::Checkbox("Auto update min/max##volumecolor", &p.auto_update_volume_scalar_min_max_))
+						{
+							if (p.auto_update_volume_scalar_min_max_)
+							{
+								update_volume_scalar_min_max_values(p);
+								need_update = true;
+							}
+						}
+					}
+					else if (p.color_type_ == VECTOR)
+					{
+						imgui_combo_attribute<Volume, Vec3>(
+							*selected_mesh_, p.volume_color_, "Attribute##vectorvolumecolor",
+							[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+								set_volume_color(*selected_view_, *selected_mesh_, attribute);
+							});
+					}
 				}
 			}
 
-			if (p.render_topo_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Topo parameters");
-				need_update |=
-					ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |=
-					ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |=
-					ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##topo", &(p.topo_renderer_->width_), 1.0f, 5.0f);
-				if (ImGui::SliderFloat("explodeEdges", &(p.topo_drawer_->shrink_e_), 0.01f, 1.0f))
-				{
-					need_update = true;
-					p.topo_dirty_ = true;
-				}
+			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			if (remain > 0)
+				need_update = true;
 
-				if (ImGui::SliderFloat("explodeFaces", &(p.topo_drawer_->shrink_f_), 0.01f, 1.0f))
-				{
-					need_update = true;
-					p.topo_dirty_ = true;
-				}
-			}
-		}
-
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
-	}
-
-	inline void key_press_event(View* view, int32 key_code) override
-	{
-		if (key_code == GLFW_KEY_F)
-		{
-			manipullating_frame_ = true;
-		}
-	}
-
-	inline void key_release_event(View* view, int32 key_code) override
-	{
-		if (key_code == GLFW_KEY_F)
-		{
-			manipullating_frame_ = false;
-			view->stop_event();
-		}
-	}
-	inline void mouse_press_event(View* view, int32 button, int32 x, int32 y) override
-	{
-		if (manipullating_frame_)
-		{
-			auto [P, Q] = view->pixel_ray(x, y);
-			frame_manip_->pick(x, y, P, Q); // P,Q computed ray
-			view->stop_event();
-			view->request_update();
-		}
-	}
-	inline void mouse_release_event(View* view, int32 button, int32 x, int32 y) override
-	{
-		unused_parameters(view, button, x, y);
-		if (manipullating_frame_)
-		{
-			frame_manip_->release();
-			view->stop_event();
-			view->request_update();
-		}
-	}
-
-	inline void mouse_move_event(View* view, int32 buttons, int32 x, int32 y) override
-	{
-		unused_parameters(view, buttons);
-		if (manipullating_frame_ && buttons & 3)
-		{
-			frame_manip_->drag(buttons & 2, x, y);
-			view->stop_event();
-			view->request_update();
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
 		}
 	}
 
 private:
 	View* selected_view_;
 	const MESH* selected_mesh_;
-	const MeshData<MESH>* selected_mesh_data_;
 	std::unordered_map<View*, std::unordered_map<const MESH*, Parameters>> parameters_;
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
-	std::unique_ptr<rendering::ComputeCenterEngine> compute_center_engine_;
-	std::unique_ptr<rendering::FrameManipulator> frame_manip_;
-	bool show_frame_manip_;
-	bool manipullating_frame_;
+
+	rendering::OutLiner* outline_engine_;
 };
 
 } // namespace ui
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_MODULE_SURFACE_RENDER_H_

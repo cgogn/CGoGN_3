@@ -45,8 +45,8 @@ enum Intersection
 	FACE_INTERSECTION
 };
 
-bool intersection_ray_triangle(const Vec3& P, const Vec3& Dir, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc,
-							   Vec3* inter = nullptr)
+inline bool intersection_ray_triangle(const Vec3& P, const Vec3& Dir, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc,
+									  Vec3* inter = nullptr)
 {
 	Vec3 u = Ta - P;
 	Vec3 v = Tb - P;
@@ -108,7 +108,8 @@ bool intersection_ray_triangle(const Vec3& P, const Vec3& Dir, const Vec3& Ta, c
  * \param[in] p2 second point of the segment
  * \param[out] alpha ratio of the segment inside the sphere
  */
-bool intersection_sphere_segment(const Vec3& center, Scalar radius, const Vec3& p1, const Vec3& p2, Scalar& alpha)
+inline bool intersection_sphere_segment(const Vec3& center, Scalar radius, const Vec3& p1, const Vec3& p2,
+										Scalar& alpha)
 {
 	if (in_sphere(p1, center, radius) && !in_sphere(p2, center, radius))
 	{
@@ -123,7 +124,8 @@ bool intersection_sphere_segment(const Vec3& center, Scalar radius, const Vec3& 
 	return false;
 }
 
-Intersection intersection_segment_segment(const Vec3& PA, const Vec3& PB, const Vec3& QA, const Vec3& QB, Vec3& Inter)
+inline Intersection intersection_segment_segment(const Vec3& PA, const Vec3& PB, const Vec3& QA, const Vec3& QB,
+												 Vec3& Inter)
 {
 	Vec3 vp1p2 = PB - PA;
 	Vec3 vq1q2 = QB - QA;
@@ -162,7 +164,7 @@ Intersection intersection_segment_segment(const Vec3& PA, const Vec3& PB, const 
 	return EDGE_INTERSECTION;
 }
 
-bool intersection_line_plane(const Vec3& point_line, const Vec3& dir_line, const Vec3& point_plane,
+inline bool intersection_line_plane(const Vec3& point_line, const Vec3& dir_line, const Vec3& point_plane,
 							 const Vec3& normal_plane, Vec3* inter = nullptr)
 {
 	const Scalar PRECISION = std::numeric_limits<Scalar>::epsilon();

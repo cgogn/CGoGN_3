@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_GRAPH_RENDER_H_
 
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -63,27 +64,30 @@ class GraphRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_radius_(nullptr), render_vertices_(true), render_edges_(true),
-			  vertex_scale_factor_(1.0)
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_radius_(nullptr),
+			  vertex_radius_vbo_(nullptr), render_vertices_(true), render_edges_(true), vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
+			param_point_sprite_->color_ = {1, 0.5f, 0, 1};
 
 			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
-			param_point_sprite_size_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
-			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 1, 1, 1);
-			param_edge_->width_ = 3.0f;
+			param_point_sprite_size_->color_ = {1, 0.5f, 0, 1};
+
+			param_bold_line_ = rendering::ShaderBoldLine::generate_param();
+			param_bold_line_->color_ = {1, 1, 1, 1};
+			param_bold_line_->width_ = 3.0f;
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		rendering::VBO* vertex_position_vbo_;
 		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
+		rendering::VBO* vertex_radius_vbo_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderPointSpriteSize::Param> param_point_sprite_size_;
-		std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
+		std::unique_ptr<rendering::ShaderBoldLine::Param> param_bold_line_;
 
 		bool render_vertices_;
 		bool render_edges_;
@@ -94,7 +98,8 @@ class GraphRender : public ViewModule
 
 public:
 	GraphRender(const App& app)
-		: ViewModule(app, "GraphRender Vec3(" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr)
+		: ViewModule(app, "GraphRender (" + std::string{mesh_traits<MESH>::name} + ")"),
+		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 	}
 
@@ -105,67 +110,74 @@ public:
 private:
 	void init_mesh(MESH* m)
 	{
-		parameters_[m];
-		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-		if (vertex_position)
-			set_vertex_position(*m, vertex_position);
-		mesh_connections_[m].push_back(
-			boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
-				m, [this, m](Attribute<Vec3>* attribute) {
-					Parameters& p = parameters_[m];
-					if (p.vertex_position_.get() == attribute)
-					{
-						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
-						if (p.vertex_base_size_ == 0.0)
+		for (View* v : linked_views_)
+		{
+			parameters_[v][m];
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			if (vertex_position)
+				set_vertex_position(*v, *m, vertex_position);
+
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
+					m, [this, v, m](Attribute<Vec3>* attribute) {
+						Parameters& p = parameters_[v][m];
+						if (p.vertex_position_.get() == attribute)
 						{
-							MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-							p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20);
+							p.vertex_base_size_ =
+								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							if (p.vertex_base_size_ == 0.0)
+							{
+								MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+								p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+							}
 						}
-					}
-
-					for (View* v : linked_views_)
 						v->request_update();
-				}));
-
-		std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
+					}));
+		}
 	}
 
 public:
-	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		Parameters& p = parameters_[&m];
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / Scalar(7));
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
 			if (p.vertex_base_size_ == 0.0)
-				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / Scalar(20));
-			md->update_vbo(vertex_position.get(), true);
+				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+			md->update_vbo(p.vertex_position_.get(), true);
+			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
+		else
+			p.vertex_position_vbo_ = nullptr;
 
-		p.param_point_sprite_->set_vbos({md->vbo(p.vertex_position_.get())});
-		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
-		p.param_edge_->set_vbos({md->vbo(p.vertex_position_.get())});
+		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
+		p.param_point_sprite_size_->set_vbos({p.vertex_position_vbo_, p.vertex_radius_vbo_});
+		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
 
-		for (View* v : linked_views_)
-			v->request_update();
+		v.request_update();
 	}
 
-	void set_vertex_radius(const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
+	void set_vertex_radius(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
 	{
-		Parameters& p = parameters_[&m];
+		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_radius_ = vertex_radius;
 		if (p.vertex_radius_)
+		{
 			md->update_vbo(vertex_radius.get(), true);
+			p.vertex_radius_vbo_ = md->vbo(p.vertex_radius_.get());
+		}
+		else
+			p.vertex_radius_vbo_ = nullptr;
 
-		p.param_point_sprite_size_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_radius_.get())});
+		p.param_point_sprite_size_->set_vbos({p.vertex_position_vbo_, p.vertex_radius_vbo_});
 
-		for (View* v : linked_views_)
-			v->request_update();
+		v.request_update();
 	}
 
 protected:
@@ -180,12 +192,19 @@ protected:
 
 	void draw(View* view) override
 	{
-		for (auto& [m, p] : parameters_)
+		for (auto& [m, p] : parameters_[view])
 		{
 			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
+
+			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			{
+				p.param_bold_line_->bind(proj_matrix, view_matrix);
+				md->draw(rendering::LINES);
+				p.param_bold_line_->release();
+			}
 
 			if (p.render_vertices_)
 			{
@@ -197,21 +216,11 @@ protected:
 				}
 				else if (p.param_point_sprite_->vao_initialized())
 				{
-					p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+					p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 					p.param_point_sprite_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::POINTS);
 					p.param_point_sprite_->release();
 				}
-			}
-
-			if (p.render_edges_ && p.param_edge_->vao_initialized())
-			{
-				p.param_edge_->bind(proj_matrix, view_matrix);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				md->draw(rendering::LINES);
-				glDisable(GL_BLEND);
-				p.param_edge_->release();
 			}
 		}
 	}
@@ -220,101 +229,58 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
+		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		if (ImGui::ListBoxHeader("Mesh"))
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
+
+		if (selected_view_ && selected_mesh_)
 		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-		if (selected_mesh_)
-		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
-			Parameters& p = parameters_[selected_mesh_];
-
-			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_position_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_position(*selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
+													set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 												});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_position_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##position"))
-					set_vertex_position(*selected_mesh_, nullptr);
-			}
 
-			if (ImGui::BeginCombo("Radius", p.vertex_radius_ ? p.vertex_radius_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Scalar, Vertex>(*selected_mesh_,
+			imgui_combo_attribute<Vertex, Scalar>(*selected_mesh_, p.vertex_radius_, "Radius",
 												  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
-													  bool is_selected = attribute == p.vertex_radius_;
-													  if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														  set_vertex_radius(*selected_mesh_, attribute);
-													  if (is_selected)
-														  ImGui::SetItemDefaultFocus();
+													  set_vertex_radius(*selected_view_, *selected_mesh_, attribute);
 												  });
-				ImGui::EndCombo();
-			}
-			if (p.vertex_radius_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##radius"))
-					set_vertex_radius(*selected_mesh_, nullptr);
-			}
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
-			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
-
-			if (p.render_edges_)
-			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Edges parameters");
-				need_update |=
-					ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("width##edges", &(p.param_edge_->width_), 1.0f, 10.0f);
-			}
-
 			if (p.render_vertices_)
 			{
-				ImGui::Separator();
-				ImGui::TextUnformatted("Vertices parameters");
 				if (p.vertex_radius_)
-					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_size_->color_.data(),
+					need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_size_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
 				else
 				{
-					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
+					need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 				}
 			}
+
+			ImGui::Separator();
+			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+			if (p.render_edges_)
+			{
+				need_update |=
+					ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(), ImGuiColorEditFlags_NoInputs);
+				need_update |= ImGui::SliderFloat("Width##edges", &(p.param_bold_line_->width_), 1.0f, 10.0f);
+			}
+
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
 		}
-
-		ImGui::End();
-
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
 	}
 
 private:
+	View* selected_view_;
 	const MESH* selected_mesh_;
-	std::unordered_map<const MESH*, Parameters> parameters_;
+	std::unordered_map<View*, std::unordered_map<const MESH*, Parameters>> parameters_;
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;

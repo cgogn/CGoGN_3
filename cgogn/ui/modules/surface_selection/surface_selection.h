@@ -437,7 +437,7 @@ protected:
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
 				p.param_point_sprite_->vao_initialized())
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_POINTS, 0, p.selected_vertices_set_->size());
 				p.param_point_sprite_->release();

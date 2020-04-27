@@ -59,22 +59,22 @@ namespace cgogn
 namespace ui
 {
 
-enum AttributePerCell
-{
-	GLOBAL = 0,
-	PER_VERTEX,
-	PER_FACE
-};
-enum ColorType
-{
-	SCALAR = 0,
-	VECTOR
-};
-
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "SurfaceRender can only be used with meshes of dimension >= 2");
+
+	enum AttributePerCell
+	{
+		GLOBAL = 0,
+		PER_VERTEX,
+		PER_FACE
+	};
+	enum ColorType
+	{
+		SCALAR = 0,
+		VECTOR
+	};
 
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
@@ -174,7 +174,7 @@ class SurfaceRender : public ViewModule
 public:
 	SurfaceRender(const App& app)
 		: ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_view_(app.current_view()), selected_mesh_(nullptr), outline_engine_(nullptr)
+		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 		outline_engine_ = rendering::OutLiner::generate();
 	}

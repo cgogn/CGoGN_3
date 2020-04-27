@@ -179,9 +179,6 @@ protected:
 
 	void interface() override
 	{
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
-
 		if (domain_initialized_)
 		{
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
@@ -275,8 +272,6 @@ protected:
 				}
 			}
 		}
-
-		ImGui::End();
 	}
 
 private:

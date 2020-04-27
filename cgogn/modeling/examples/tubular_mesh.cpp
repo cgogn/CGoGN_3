@@ -30,7 +30,7 @@
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
-#include <cgogn/ui/modules/volume_render/volume_render_new.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
 
 #include <cgogn/core/utils/string.h>
 #include <cgogn/modeling/algos/graph_to_hex.h>
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 		cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*g, "position");
 
 	mpg.set_mesh_bb_vertex_position(g, vertex_position_g);
-	gr.set_vertex_position(*g, vertex_position_g);
+	gr.set_vertex_position(*v1, *g, vertex_position_g);
 
 	// load surface
 	std::string surface_name = cgogn::remove_extension(filename) + ".off";

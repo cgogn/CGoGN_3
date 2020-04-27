@@ -250,6 +250,7 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 	)";
 
 	const char* geometry_shader_source = R"(
+		#version 150
 		layout (points) in;
 		layout (triangle_strip, max_vertices=4) out;
 
@@ -356,6 +357,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 	)";
 
 	const char* geometry_shader_source = R"(
+		#version 150
 		layout (points) in;
 		layout (triangle_strip, max_vertices=4) out;
 		
