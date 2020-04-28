@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -33,6 +33,7 @@
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/subdivision.h>
+#include <cgogn/modeling/algos/topstoc.h>
 
 namespace cgogn
 {
@@ -72,7 +73,15 @@ public:
 
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
-		modeling::decimate(m, vertex_position, 0.1 * mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>());
+		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>() / 10);
+		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+	}
+
+	void simplify_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		modeling::topstoc(mesh_provider_, m, vertex_position,
+						  0.5 * mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>());
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
@@ -103,7 +112,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			std::string selected_vertex_position_name_ =
 				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
@@ -132,6 +141,8 @@ protected:
 					subdivide_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Simplify"))
+					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
 

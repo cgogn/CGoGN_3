@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -53,13 +53,13 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr)
+	MeshData() : mesh_(nullptr), outlined_until_(0.0)
 	{
 	}
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshData);
 
-	rendering::MeshRender* get_render()
+	rendering::MeshRender* mesh_render()
 	{
 		return &render_;
 	}
@@ -77,14 +77,25 @@ struct MeshData
 		render_.draw(primitive);
 	}
 
-	void init_primitives(rendering::DrawingType primitive, const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
+	void init_primitives(rendering::DrawingType primitive,
+						 const typename std::shared_ptr<Attribute<Vec3>> position = nullptr)
 	{
 		render_.init_primitives(*mesh_, primitive, position.get());
 	}
 
-	void set_primitives_dirty(rendering::DrawingType primitive)
+	bool is_primitive_uptodate(rendering::DrawingType primitive)
+	{
+		return render_.is_primitive_uptodate(primitive);
+	}
+
+	void set_primitive_dirty(rendering::DrawingType primitive)
 	{
 		render_.set_primitive_dirty(primitive);
+	}
+
+	void set_all_primitives_dirty()
+	{
+		render_.set_all_primitives_dirty();
 	}
 
 private:
@@ -145,8 +156,8 @@ public:
 	template <typename T>
 	rendering::VBO* update_vbo(Attribute<T>* attribute, bool create_if_needed = false)
 	{
-		if ( attribute == nullptr)
-			return  nullptr;
+		if (attribute == nullptr)
+			return nullptr;
 
 		rendering::VBO* v = vbo(attribute);
 		if (!v && create_if_needed)
@@ -156,9 +167,9 @@ public:
 		}
 		if (v)
 			rendering::update_vbo<T>(attribute, v);
+
 		return v;
 	}
-
 
 	template <typename CELL, typename FUNC>
 	void foreach_cells_set(const FUNC& f)
@@ -191,6 +202,7 @@ private:
 	{
 		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = {(internal_rebuild_cells_sets_of_type<T>(), 0)...};
+		unused_parameters(a);
 	}
 
 public:
@@ -203,6 +215,7 @@ public:
 	std::shared_ptr<Attribute<Vec3>> bb_vertex_position_;
 	Vec3 bb_min_, bb_max_;
 	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
+	float64 outlined_until_;
 
 private:
 	template <class>

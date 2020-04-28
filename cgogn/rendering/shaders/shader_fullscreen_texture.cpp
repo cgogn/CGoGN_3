@@ -29,31 +29,44 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderFSTexture* ShaderFSTexture::instance_ = nullptr;
+ShaderFullScreenTexture* ShaderFullScreenTexture::instance_ = nullptr;
 
-ShaderFSTexture::ShaderFSTexture()
+ShaderFullScreenTexture::ShaderFullScreenTexture()
 {
-	const char* vertex_shader_source = "#version 150\n"
-									   "out vec2 tc;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	vec2 p = 2.0*vec2(gl_VertexID%2, gl_VertexID/2);\n"
-									   "	tc = p;\n"
-									   "	p = 2.0*p - 1.0; "
-									   "   gl_Position = vec4(p,0.0,1.0);\n"
-									   "}\n";
-	const char* fragment_shader_source = "#version 150\n"
-										 "out vec4 frag_color;\n"
-										 "uniform sampler2D texture_unit;\n"
-										 "uniform float alpha;\n"
-										 "in vec2 tc;\n"
-										 "void main()\n"
-										 "{\n"
-										 "	frag_color = vec4(texture(texture_unit,tc).rgb,alpha);\n"
-										 "}\n";
+	const char* vertex_shader_source = R"(
+		#version 150
+		out vec2 tc;
+		
+		void main()
+		{
+			vec2 p = 2.0 * vec2(gl_VertexID % 2, gl_VertexID / 2);
+			tc = p;
+			p = 2.0 * p - 1.0;
+			gl_Position = vec4(p, 0.0, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform sampler2D texture_unit;
+		uniform float alpha;
+
+		in vec2 tc;
+		out vec4 frag_out;
+		
+		void main()
+		{
+			frag_out = vec4(texture(texture_unit, tc).rgb, alpha);
+		}
+	)";
 
 	load(vertex_shader_source, fragment_shader_source);
 	add_uniforms("texture_unit", "alpha");
+}
+
+void ShaderParamFullScreenTexture::set_uniforms()
+{
+	shader_->set_uniforms_values(texture_->bind(unit_), alpha_);
 }
 
 } // namespace rendering

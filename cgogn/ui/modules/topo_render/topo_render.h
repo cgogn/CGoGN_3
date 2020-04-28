@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -60,9 +60,7 @@ class TopoRender : public ViewModule
 
 	struct Parameters
 	{
-		Parameters()
-			: vertex_position_(nullptr),
-			  render_topo_(true)
+		Parameters() : vertex_position_(nullptr), render_topo_(true)
 		{
 			topo_drawer_ = std::make_unique<rendering::TopoDrawer>();
 			topo_renderer_ = topo_drawer_->generate_renderer();
@@ -70,21 +68,13 @@ class TopoRender : public ViewModule
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
-		inline 	void update_topo(const MESH& m)
+		inline void update_topo(const MESH& m)
 		{
-			switch(mesh_traits<MESH>::dimension)
-			{
-				case 2:
-					topo_drawer_->update2D(m, vertex_position_.get());
-					break;
-				case 3:
-					topo_drawer_->update3D(m, vertex_position_.get());
-					break;
-				default:
-					break;
-			}
+			if constexpr (mesh_traits<MESH>::dimension == 2)
+				topo_drawer_->update2D(m, vertex_position_.get());
+			else if constexpr (mesh_traits<MESH>::dimension == 3)
+				topo_drawer_->update3D(m, vertex_position_.get());
 		}
-
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		std::unique_ptr<rendering::TopoDrawer> topo_drawer_;
@@ -104,8 +94,6 @@ public:
 	}
 
 private:
-
-
 	void init_mesh(MESH* m)
 	{
 		for (View* v : linked_views_)
@@ -136,7 +124,6 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
@@ -144,9 +131,7 @@ public:
 		v.request_update();
 	}
 
-
 protected:
-
 	void init() override
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
@@ -160,17 +145,15 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-
 			if (p.render_topo_)
 			{
-				p.topo_renderer_->draw(proj_matrix,view_matrix);
+				p.topo_renderer_->draw(proj_matrix, view_matrix);
 			}
-
 		}
 	}
 
@@ -204,7 +187,7 @@ protected:
 
 		if (selected_view_ && selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
@@ -234,11 +217,11 @@ protected:
 			{
 				ImGui::Separator();
 				ImGui::TextUnformatted("Volume parameters");
-				need_update |= ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
+				need_update |=
+					ImGui::ColorEdit3("colorDarts", p.topo_drawer_->dart_color_.data(), ImGuiColorEditFlags_NoInputs);
 				if (mesh_traits<MESH>::dimension >= 2)
 					need_update |= ImGui::ColorEdit3("colorPhi2", p.topo_drawer_->phi2_color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
+													 ImGuiColorEditFlags_NoInputs);
 				if (mesh_traits<MESH>::dimension >= 3)
 					need_update |= ImGui::ColorEdit3("colorPhi3", p.topo_drawer_->phi3_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);

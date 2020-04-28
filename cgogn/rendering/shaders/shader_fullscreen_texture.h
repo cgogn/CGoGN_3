@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FS_TEXTURE_H_
-#define CGOGN_RENDERING_SHADERS_FS_TEXTURE_H_
+#ifndef CGOGN_RENDERING_SHADERS_FULL_SCREEN_TEXTURE_H_
+#define CGOGN_RENDERING_SHADERS_FULL_SCREEN_TEXTURE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -34,33 +34,35 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(FSTexture,CGOGN_STR(FSTexture))
+DECLARE_SHADER_CLASS(FullScreenTexture, false, CGOGN_STR(FullScreenTexture))
 
-class CGOGN_RENDERING_EXPORT ShaderParamFSTexture : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamFullScreenTexture : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(texture_->bind(unit_), alpha_);
-	}
+	void set_uniforms() override;
 
 public:
 	Texture2D* texture_;
 	GLint unit_;
 	GLfloat alpha_;
 
-	using LocalShader = ShaderFSTexture;
+	// inline void pick_parameters(const PossibleParameters&) override
+	// {
+	// }
 
-	ShaderParamFSTexture(LocalShader* sh) : ShaderParam(sh), unit_(0), alpha_(1.0f)
+	using ShaderType = ShaderFullScreenTexture;
+
+	ShaderParamFullScreenTexture(ShaderType* sh) : ShaderParam(sh), unit_(0), alpha_(1.0f)
 	{
 	}
 
-	inline ~ShaderParamFSTexture() override
+	inline ~ShaderParamFullScreenTexture() override
 	{
 	}
 
 	inline void draw()
 	{
 		bind();
+		// set_uniforms();
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		release();
 	}
@@ -70,4 +72,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_FULL_SCREEN_TEXTURE_H_

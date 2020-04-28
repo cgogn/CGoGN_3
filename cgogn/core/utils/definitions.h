@@ -45,7 +45,7 @@
 #endif
 
 /*
- * a constexrp function can be evaluated at compile time.
+ * a constexpr function can be evaluated at compile time.
  * Can be used to optimize the code.
  * WARNING : cases where the use of constexpr is mandatory for the compilation are not allowed since it's not available
  * in VS 2013.

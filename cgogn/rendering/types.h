@@ -29,10 +29,10 @@
 
 #include <Eigen/Dense>
 
+#include <GL/gl3w.h>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
-#include <GL/gl3w.h>
 
 namespace cgogn
 {
@@ -43,6 +43,24 @@ namespace rendering
 using GLVec2 = Eigen::Vector2f;
 using GLVec3 = Eigen::Vector3f;
 using GLVec4 = Eigen::Vector4f;
+
+template <typename T1, typename T2>
+inline GLVec2 construct_GLVec4(T1 x, T2 y)
+{
+	return GLVec2(float32(x), float32(y));
+}
+
+template <typename T1, typename T2, typename T3>
+inline GLVec4 construct_GLVec4(T1 x, T2 y, T3 z)
+{
+	return GLVec4(float32(x), float32(y), float32(z));
+}
+
+template <typename T1, typename T2, typename T3, typename T4>
+inline GLVec4 construct_GLVec4(T1 x, T2 y, T3 z, T4 w)
+{
+	return GLVec4(float32(x), float32(y), float32(z), float32(w));
+}
 
 using GLVec2d = Eigen::Vector2d;
 using GLVec3d = Eigen::Vector3d;
@@ -106,29 +124,31 @@ public:
 	}
 	inline void set_pixel(int32 x, int32 y, const GLColor& col)
 	{
-		uint8* ptr = data_ + (bpp_ * (y * width_ + x));
+		uint8* ptr = data_ + (uint64(bpp_) * (y * width_ + x));
 		for (int32 i = 0; i < bpp_; ++i)
 			*ptr++ = uint8(255 * col[i]);
 	}
 };
 
-static std::map<GLenum,std::string> GL_ERRORS_NAMES ={
-	{GL_INVALID_ENUM,"GL_INVALID_ENUM"},
-	{GL_INVALID_VALUE,"GL_INVALID_VALUE"},
-	{GL_INVALID_OPERATION,"GL_INVALID_OPERATION"},
-	{GL_INVALID_FRAMEBUFFER_OPERATION,"GL_INVALID_FRAMEBUFFER_OPERATION"},
-	{GL_OUT_OF_MEMORY,"GL_OUT_OF_MEMORY"},
-	{GL_STACK_UNDERFLOW,"GL_STACK_UNDERFLOW"},
-	{GL_STACK_OVERFLOW,"GL_STACK_OVERFLOW"}
-};
+static std::map<GLenum, std::string> GL_ERRORS_NAMES = {
+	{GL_INVALID_ENUM, "GL_INVALID_ENUM"},
+	{GL_INVALID_VALUE, "GL_INVALID_VALUE"},
+	{GL_INVALID_OPERATION, "GL_INVALID_OPERATION"},
+	{GL_INVALID_FRAMEBUFFER_OPERATION, "GL_INVALID_FRAMEBUFFER_OPERATION"},
+	{GL_OUT_OF_MEMORY, "GL_OUT_OF_MEMORY"},
+	{GL_STACK_UNDERFLOW, "GL_STACK_UNDERFLOW"},
+	{GL_STACK_OVERFLOW, "GL_STACK_OVERFLOW"}};
 
+#ifdef CGOGN_GL43_DEBUG_MODE
 inline void gl_debug_name(GLenum type, GLuint id, const std::string& name)
 {
-	#ifdef CGOGN_GL43_DEBUG_MODE
-	glObjectLabel(type, id, name.length(), name.c_str());
-	#endif
+	glObjectLabel(type, id, GLsizei(name.length()), name.c_str());
 }
-
+#else
+inline void gl_debug_name(GLenum, GLuint, const std::string&)
+{
+}
+#endif
 
 } // namespace rendering
 

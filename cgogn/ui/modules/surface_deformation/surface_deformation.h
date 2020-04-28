@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -178,7 +178,7 @@ private:
 			Scalar& weight = value<Scalar>(*m, p.edge_weight_, e);
 			for (Scalar a : angles)
 				weight += std::tan(M_PI_2 - a);
-			weight /= angles.size();
+			weight /= uint32(angles.size());
 			return true;
 		});
 
@@ -550,6 +550,7 @@ protected:
 
 	void key_release_event(View* view, int32 key_code) override
 	{
+		unused_parameters(view);
 		if (key_code == GLFW_KEY_D)
 		{
 			if (dragging_)
@@ -595,7 +596,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];

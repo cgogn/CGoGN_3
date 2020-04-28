@@ -19,6 +19,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/camera.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/gl_viewer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/gl_viewer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/imgui_helpers.h"
 		"${CMAKE_CURRENT_LIST_DIR}/inputs.h"
 		"${CMAKE_CURRENT_LIST_DIR}/module.h"
 		"${CMAKE_CURRENT_LIST_DIR}/module.cpp"
@@ -40,8 +41,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/modules/volume_render/volume_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/topo_render/topo_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_modeling/surface_modeling.h"
-		"${CMAKE_CURRENT_LIST_DIR}/modules/surf_render/surf_render.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/modules/volume_selection/volume_selection.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

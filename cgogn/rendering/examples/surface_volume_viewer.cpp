@@ -33,9 +33,9 @@
 #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
+#include <cgogn/ui/modules/volume_render/volume_render.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH)"/meshes/"
-
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using SurfaceMesh = cgogn::CMap2;
 using VolumeMesh = cgogn::CMap3;
@@ -57,9 +57,8 @@ int main(int argc, char** argv)
 	if (argc < 3)
 	{
 		volume_filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
-
-//		std::cout << "Usage: " << argv[0] << " surface_filename volume_filename" << std::endl;
-//		return 1;
+		// std::cout << "Usage: " << argv[0] << " surface_filename volume_filename" << std::endl;
+		// return 1;
 	}
 	else
 	{
@@ -79,7 +78,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceDifferentialProperties<SurfaceMesh> sdp(app);
 
 	cgogn::ui::MeshProvider<VolumeMesh> mpv(app);
-	cgogn::ui::SurfaceRender<VolumeMesh> sr_vol(app);
+	cgogn::ui::VolumeRender<VolumeMesh> vr(app);
 
 	app.init_modules();
 
@@ -90,7 +89,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&mpv);
-	v2->link_module(&sr_vol);
+	v2->link_module(&vr);
 
 	SurfaceMesh* sm = mps.load_surface_from_file(surface_filename);
 	if (!sm)
@@ -121,7 +120,7 @@ int main(int argc, char** argv)
 	std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v =
 		cgogn::get_attribute<Vec3, VolumeVertex>(*vm, "position");
 
-	sr_vol.set_vertex_position(*v2, *vm, vertex_position_v);
+	vr.set_vertex_position(*v2, *vm, vertex_position_v);
 
 	return app.launch();
 }

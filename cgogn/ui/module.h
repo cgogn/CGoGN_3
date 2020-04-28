@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -75,6 +75,11 @@ class CGOGN_UI_EXPORT ViewModule : public Module
 public:
 	ViewModule(const App& app, const std::string& name);
 	virtual ~ViewModule();
+
+	const std::vector<View*>& linked_views() const
+	{
+		return linked_views_;
+	}
 
 protected:
 	virtual void mouse_press_event(View* view, int32 button, int32 x, int32 y);

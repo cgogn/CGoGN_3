@@ -1,5 +1,5 @@
 /*******************************************************************************
- * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * CGoGN                                                                        *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
@@ -14,7 +14,7 @@
  *                                                                              *
  * You should have received a copy of the GNU Lesser General Public License     *
  * along with this library; if not, write to the Free Software Foundation,      *
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  021binding_point-1301 USA.           *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
  *                                                                              *
  * Web site: http://cgogn.unistra.fr/                                           *
  * Contact information: cgogn@unistra.fr                                        *
@@ -44,7 +44,7 @@ MeshRender::~MeshRender()
 
 void MeshRender::draw(DrawingType prim, GLint binding_point)
 {
-	uint32 prim_buffer = (prim<SIZE_BUFFER) ? prim : prim-(SIZE_BUFFER+1);
+	uint32 prim_buffer = prim % SIZE_BUFFER;
 	int32 nb_indices = int32(indices_buffers_[prim_buffer]->size());
 	if (nb_indices == 0)
 		return;
@@ -67,37 +67,41 @@ void MeshRender::draw(DrawingType prim, GLint binding_point)
 		indices_buffers_[prim]->release();
 		break;
 	case VOLUMES_EDGES:
+	case VOLUMES_EDGES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/3);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 3);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_FACES:
+	case VOLUMES_FACES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/4);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 4);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case VOLUMES_VERTICES:
+	case VOLUMES_VERTICES_TB:
 		indices_buffers_[prim]->bind_tb(binding_point);
-		glDrawArrays(GL_POINTS, 0, nb_indices/2);
+		glDrawArrays(GL_POINTS, 0, nb_indices / 2);
 		indices_buffers_[prim]->release_tb();
 		break;
 	case LINES_TB:
 		indices_buffers_[LINES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices/2);
+		indices_buffers_[INDEX_EDGES]->bind_tb(binding_point + 1);
+		glDrawArraysInstanced(GL_LINES, 0, 2, nb_indices / 2);
+		indices_buffers_[INDEX_EDGES]->release_tb();
 		indices_buffers_[LINES]->release_tb();
 		break;
 	case TRIANGLES_TB:
 		indices_buffers_[TRIANGLES]->bind_tb(binding_point);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices/3);
+		indices_buffers_[INDEX_FACES]->bind_tb(binding_point + 1);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 3, nb_indices / 3);
+		indices_buffers_[INDEX_FACES]->release_tb();
 		indices_buffers_[TRIANGLES]->release_tb();
 		break;
-
 	default:
 		break;
 	}
-	
 }
-
 
 } // namespace rendering
 

@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Simple viewer");
+	app.set_window_title("Simple graph viewer");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	gr.set_vertex_position(*m, vertex_position);
+	gr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

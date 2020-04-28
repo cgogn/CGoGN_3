@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_PERFACE_H_
-#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_PERFACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,54 +32,45 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColorPerFace,CGOGN_STR(PhongColorPerFace))
+DECLARE_SHADER_CLASS(PhongColorPerFace, true, CGOGN_STR(PhongColorPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongColorPerFace : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VERTEX_NORMAL,
+		FACE_COLOR
+	};
+
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_norm_;
-	VBO* vbo_color_; // perface
+	std::array<VBO*, 3> vbos_;
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
-
-
-	template<typename ...Args>
-	void fill(Args&&... args)
-	{
-		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		specular_color_ = std::get<1>(a);
-		specular_coef_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
-	}
+	GLColor specular_color_;
+	float32 specular_coef_;
 
 	using ShaderType = ShaderPhongColorPerFace;
 
 	ShaderParamPhongColorPerFace(ShaderType* sh)
-		: ShaderParam(sh),
-		  vbo_pos_(nullptr),
-		  vbo_norm_(nullptr),
-		  vbo_color_(nullptr),
-		  ambiant_color_(), specular_color_(),
-		  specular_coef_(), light_position_(), double_side_()
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
+		  specular_color_(1, 1, 1, 1), specular_coef_(250)
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_norm_ = vbos[1];
-		vbo_color_ = vbos[2];
+		return &vbos_[i];
 	}
 };
+
 } // namespace rendering
+
 } // namespace cgogn
-#endif // CGOGN_RENDERING_SHADERS_PHONG_H_
+
+#endif // CGOGN_RENDERING_SHADERS_PHONG_COLOR_PER_FACE_H_

@@ -25,6 +25,7 @@
 #define CGOGN_GEOMETRY_FUNCTIONS_INCLUSION_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/functions/normal.h>
 
 namespace cgogn
 {
@@ -37,55 +38,24 @@ inline bool in_sphere(const Vec3& point, const Vec3& center, Scalar radius)
 	return (point - center).norm() < radius;
 }
 
-
-
-
-
-
-template <typename VEC3a, typename VEC3b, typename VEC3c>
-double triple_product(const Eigen::MatrixBase<VEC3a>& U, const Eigen::MatrixBase<VEC3b>& V, const Eigen::MatrixBase<VEC3c>& W)
+inline double triple_product(const Vec3& U, const Vec3& V, const Vec3& W)
 {
-//	static_assert(is_same_vector<VEC3a,VEC3b,VEC3c>::value, "parameters must have same type");
-//	static_assert(is_dim_of<VEC3a, 3>::value, "The size of the vector must be equal to 3.");
-
 	return U.dot(V.cross(W));
 }
 
-
-template <typename VEC3a, typename VEC3b, typename VEC3c, typename VEC3d, typename VEC3e>
-bool in_triangle(const Eigen::MatrixBase<VEC3a>& P, const Eigen::MatrixBase<VEC3b>& normal,
-				 const Eigen::MatrixBase<VEC3c>& Ta,  const Eigen::MatrixBase<VEC3d>& Tb, const VEC3e& Tc)
+inline bool in_triangle(const Vec3& P, const Vec3& normal, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc)
 {
-//	static_assert(is_same_vector<VEC3a,VEC3b,VEC3c,VEC3d,VEC3e>::value, "parameters must have same type");
-//	static_assert(is_dim_of<VEC3a, 3>::value, "The size of the vector must be equal to 3.");
-
-	if (triple_product(P-Ta, Tb-Ta, normal) >= 0 ||
-		triple_product(P-Tb, Tc-Tb, normal) >= 0  ||
-		triple_product(P-Tc, Ta-Tc, normal) >= 0  )
+	if (triple_product(P - Ta, Tb - Ta, normal) >= 0 || triple_product(P - Tb, Tc - Tb, normal) >= 0 ||
+		triple_product(P - Tc, Ta - Tc, normal) >= 0)
 		return false;
 
 	return true;
 }
 
-
-
-template <typename VEC3a, typename VEC3b, typename VEC3c, typename VEC3d>
-bool in_triangle(const Eigen::MatrixBase<VEC3a>& P, const Eigen::MatrixBase<VEC3b>& Ta,  const Eigen::MatrixBase<VEC3c>& Tb, const Eigen::MatrixBase<VEC3d>& Tc)
+inline bool in_triangle(const Vec3& P, const Vec3& Ta, const Vec3& Tb, const Vec3& Tc)
 {
-//	static_assert(is_same_vector<VEC3a,VEC3b,VEC3c,VEC3d>::value, "parameters must have same type");
-//	static_assert(is_dim_of<VEC3a, 3>::value, "The size of the vector must be equal to 3.");
-
-	return in_triangle(P, normal(Ta, Tb, Tc), Ta, Tb,Tc );
+	return in_triangle(P, normal(Ta, Tb, Tc), Ta, Tb, Tc);
 }
-
-
-
-
-
-
-
-
-
 
 } // namespace geometry
 

@@ -25,6 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
@@ -33,73 +34,49 @@ namespace cgogn
 namespace rendering
 {
 
-enum ColorMap : int32
-{
-	BWR = 0,
-	CWR,
-	BCGYR,
-	BGR
-};
-
-
-DECLARE_SHADER_CLASS(ExplodeVolumesScalar,CGOGN_STR(ExplodeVolumesScalar))
+DECLARE_SHADER_CLASS(ExplodeVolumesScalar, true, CGOGN_STR(ExplodeVolumesScalar))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderParam
 {
 	void set_uniforms() override;
 
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER,
+		VOLUME_SCALAR
+	};
+
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
-	VBO* vbo_scalar_vol_;
+	std::array<VBO*, 3> vbos_;
+	GLVec3 light_position_;
 	float32 explode_;
-	GLVec3 light_pos_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-	int32 color_map_;
-	int32 expansion_;
-	float32 min_value_;
-	float32 max_value_;
+	shader_function::ColorMap::Uniforms color_map_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	using ShaderType = ShaderExplodeVolumesScalar;
+
+	ShaderParamExplodeVolumesScalar(ShaderType* sh)
+		: ShaderParam(sh), light_position_(10, 100, 1000), explode_(0.9f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
-		auto a = std::forward_as_tuple(args...);
-		explode_ = std::get<0>(a);
-		light_pos_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
-		color_map_ = std::get<4>(a);
-		expansion_ = std::get<5>(a);
-		min_value_ = std::get<6>(a);
-		max_value_ = std::get<7>(a);
-	}
-
-
-	using LocalShader = ShaderExplodeVolumesScalar;
-
-	ShaderParamExplodeVolumesScalar(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f),
-		  vbo_pos_(nullptr),vbo_center_(nullptr),vbo_scalar_vol_(nullptr),
-		  plane_clip_(0, 0, 0, 0),
-		  plane_clip2_(0, 0, 0, 0),
-		  color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f)
-	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
 	inline ~ShaderParamExplodeVolumesScalar() override
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_center_ = vbos[1];
-		vbo_scalar_vol_ = vbos[2];
+		return &vbos_[i];
 	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_

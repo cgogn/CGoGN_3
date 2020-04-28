@@ -119,6 +119,7 @@ public:
 	template <class F, class... Args>
 	std::future<void> enqueue(const F& f, Args&&... args)
 	{
+		//TODO use std::invoke_result?
 		static_assert(std::is_same<typename std::result_of<F(Args...)>::type, void>::value,
 					  "The thread pool only accepts non-returning functions.");
 

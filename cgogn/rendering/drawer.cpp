@@ -58,17 +58,17 @@ void DisplayListDrawer::begin(GLenum mode)
 	case GL_POINTS:
 		if (current_ball_)
 		{
-			begins_balls_.push_back(PrimParam(data_pos_.size(), mode, current_size_, false));
+			begins_balls_.push_back(PrimParam(uint32(data_pos_.size()), mode, current_size_, false));
 			current_begin_ = &begins_balls_;
 		}
 		else if (current_size_ > 2.0f)
 		{
-			begins_round_point_.push_back(PrimParam(data_pos_.size(), mode, current_size_, current_aa_));
+			begins_round_point_.push_back(PrimParam(uint32(data_pos_.size()), mode, current_size_, current_aa_));
 			current_begin_ = &begins_round_point_;
 		}
 		else
 		{
-			begins_point_.push_back(PrimParam(data_pos_.size(), mode, current_size_, false));
+			begins_point_.push_back(PrimParam(uint32(data_pos_.size()), mode, current_size_, false));
 			current_begin_ = &begins_point_;
 		}
 		break;
@@ -77,17 +77,17 @@ void DisplayListDrawer::begin(GLenum mode)
 	case GL_LINE_LOOP:
 		if (current_size_ > 1.0f)
 		{
-			begins_bold_line_.push_back(PrimParam(data_pos_.size(), mode, current_size_, current_aa_));
+			begins_bold_line_.push_back(PrimParam(uint32(data_pos_.size()), mode, current_size_, current_aa_));
 			current_begin_ = &begins_bold_line_;
 		}
 		else
 		{
-			begins_line_.push_back(PrimParam(data_pos_.size(), mode, 1.0f, current_aa_));
+			begins_line_.push_back(PrimParam(uint32(data_pos_.size()), mode, 1.0f, current_aa_));
 			current_begin_ = &begins_line_;
 		}
 		break;
 	default:
-		begins_face_.push_back(PrimParam(data_pos_.size(), mode, 1.0f, false));
+		begins_face_.push_back(PrimParam(uint32(data_pos_.size()), mode, 1.0f, false));
 		current_begin_ = &begins_face_;
 		break;
 	}
@@ -95,7 +95,7 @@ void DisplayListDrawer::begin(GLenum mode)
 
 void DisplayListDrawer::end()
 {
-	current_begin_->back().nb = uint32(data_pos_.size() - current_begin_->back().begin);
+	current_begin_->back().nb = uint32(uint32(data_pos_.size()) - current_begin_->back().begin);
 }
 
 void DisplayListDrawer::vertex3ff(float32 x, float32 y, float32 z)
@@ -231,7 +231,7 @@ void DisplayListDrawer::end_list()
 
 DisplayListDrawer::Renderer::Renderer(DisplayListDrawer* dr) : drawer_data_(dr)
 {
-	param_cpv_ = ShaderColorPerVertex::generate_param();
+	param_cpv_ = ShaderFlatColorPerVertex::generate_param();
 	param_bl_ = ShaderBoldLineColor::generate_param();
 	param_rp_ = ShaderRoundPointColor::generate_param();
 	param_ps_ = ShaderPointSpriteColor::generate_param();

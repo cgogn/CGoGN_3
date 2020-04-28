@@ -32,109 +32,40 @@ namespace cgogn
 namespace rendering
 {
 
-namespace shader_funcion
+enum ColorMap
+{
+	BWR = 0,
+	CWR,
+	BCGYR,
+	BGR
+};
+
+namespace shader_function
 {
 
-
-inline std::string color_maps_shader_source()
+struct ColorMap
 {
-	return std::string(R"(
-	const float M_PI = 3.1415926535897932384626433832795;
+	static const std::string source;
 
-	uniform int color_map;
-	uniform int expansion;
-	uniform float min_value;
-	uniform float max_value;
-
-	float scale_and_clamp_to_0_1(float x, float min, float max)
+	struct Uniforms
 	{
-		// smooth_step ?? (hermite instead of linear)
-		// smooth_step(x,min,max);
-		float v = (x - min) / (max - min);
-		return clamp(v, 0.0, 1.0);
-	}
+		int color_map_;
+		int expansion_;
+		float min_value_;
+		float max_value_;
 
-	float scale_expand_within_0_1(float x, int n)
-	{
-		for (int i = 1; i <= n; i++)
-			x = (1.0 - cos(M_PI * x)) / 2.0;
-		for (int i = -1; i >= n; i--)
-			x = acos(1.0 - 2.0 * x) / M_PI;
-		return x;
-	}
-
-	vec3 color_map_blue_white_red(float x)
-	{
-		float x2 = 2.0 * x;
-		switch(int(floor(max(0.0,x2+1.0))))
+		inline Uniforms() : color_map_(BWR), expansion_(0), min_value_(0), max_value_(1)
 		{
-			case 0: return vec3(0.0, 0.0, 1.0) ;
-			case 1: return vec3(x2, x2 , 1.0);
-			case 2: return vec3(1.0, 2.0 - x2, 2.0 - x2);
 		}
-		return vec3(1.0, 0.0, 0.0) ;
-	}
+	};
 
-	vec3 color_map_cyan_white_red(float x)
-	{
-		float x2 = 2.0 * x;
-		switch(int(floor(max(0.0,x2+1.0))))
-		{
-			case 0: return vec3(0.0, 0.0, 1.0) ;
-			case 1: return vec3(x2, 1.0 , 1.0);
-			case 2: return vec3(1.0, 2.0 - x2, 2.0 - x2);
-		}
-		return vec3(1.0, 0.0, 0.0) ;
-	}
+	static const char* uniform_names[4];
+};
 
-	vec3 color_map_BCGYR(float x)
-	{
-		float x4 = 4.0 * x;
-		switch(int(floor(max(0.0,x4+1.0))))
-		{
-			case 0: return vec3(0, 0, 1) ;
-			case 1: return vec3(0.0, x4, 1.0);
-			case 2: return vec3(0.0, 1.0 , 2.0 - x4);
-			case 3: return vec3(x4 - 2.0, 1.0, 0.0);
-			case 4: return vec3(1.0, 4.0 - x4, 0.0);
-		}
-		return vec3(1, 0, 0) ;
-	}
-
-	vec3 color_map_blue_green_red(float x)
-	{
-		float x2 = 2.0 * x;
-		switch(int(floor(max(0.0,x2+1.0))))
-		{
-			case 0: return vec3(0.0, 0.0, 1.0) ;
-			case 1: return vec3(0.0, 2.0 * x, 1.0 - 2.0 * x);
-			case 2: return vec3(2.0 * x - 1.0, 2.0 - 2.0 * x, 0.0);
-		}
-		return vec3(1.0, 0.0, 0.0) ;
-	}
-
-	vec3 scalar2color(float scalar)
-	{
-		float value = scale_expand_within_0_1(scale_and_clamp_to_0_1(
-					scalar,
-					min_value,
-					max_value),
-				expansion);
-		switch(color_map)
-		{
-			case 0 : return color_map_blue_white_red(value);
-			case 1 : return color_map_cyan_white_red(value);
-			case 2 : return color_map_BCGYR(value);
-			case 3 : return color_map_blue_green_red(value);
-		}
-		return vec3(1,1,1);
-	}
-
-	)");
-}
-}
+} // namespace shader_function
 
 } // namespace rendering
+
 } // namespace cgogn
 
 #endif

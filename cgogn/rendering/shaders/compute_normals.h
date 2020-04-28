@@ -25,13 +25,13 @@
 #define CGOGN_RENDERING_SHADERS_COMPUTE_NORMALS_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/texture.h>
-#include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/vbo.h>
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/fbo.h>
+#include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 #include <cgogn/rendering/shaders/transform_feedback.h>
+#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/vbo.h>
 
 namespace cgogn
 {
@@ -39,8 +39,8 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ComputeNormal1,CGOGN_STR(ComputeNormal1))
-DECLARE_SHADER_CLASS(ComputeNormal2,CGOGN_STR(ComputeNormal2))
+DECLARE_SHADER_CLASS(ComputeNormal1, true, CGOGN_STR(ComputeNormal1))
+DECLARE_SHADER_CLASS(ComputeNormal2, false, CGOGN_STR(ComputeNormal2))
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal1 : public ShaderParam
 {
@@ -51,14 +51,12 @@ public:
 	VBO* vbo_pos_;
 	int32 height_tex_;
 
-	using LocalShader = ShaderComputeNormal1;
+	using ShaderType = ShaderComputeNormal1;
 
-	ShaderParamComputeNormal1(LocalShader* sh)
-		: ShaderParam(sh) , vbo_pos_(nullptr), height_tex_(0)
-	{}
-
+	ShaderParamComputeNormal1(ShaderType* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+	{
+	}
 };
-
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeNormal2 : public ShaderParam
 {
@@ -68,36 +66,39 @@ protected:
 public:
 	Texture2D* tex_;
 
-	using LocalShader = ShaderComputeNormal2;
+	using ShaderType = ShaderComputeNormal2;
 
-	ShaderParamComputeNormal2(LocalShader* sh)
-		: ShaderParam(sh)
-	{}
+	ShaderParamComputeNormal2(ShaderType* sh) : ShaderParam(sh)
+	{
+	}
 };
-
 
 using TFB_ComputeNormal = TransformFeedback<ShaderComputeNormal2>;
 
-
 class ComputeNormalEngine
 {
+	static ComputeNormalEngine* instance_;
 	Texture2D* tex_;
 	FBO* fbo_;
 	std::unique_ptr<ShaderComputeNormal1::Param> param1_;
 	std::unique_ptr<ShaderComputeNormal2::Param> param2_;
 	TFB_ComputeNormal* tfb_;
 
-public:
 	ComputeNormalEngine();
 
+public:
+	inline static ComputeNormalEngine* generate()
+	{
+		if (instance_ == nullptr)
+			instance_ = new ComputeNormalEngine();
+		return instance_;
+	}
+
 	~ComputeNormalEngine();
-
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
-
+	void compute(VBO* pos, MeshRender* renderer, VBO* normals);
 };
 
-}
-}
-
+} // namespace rendering
+} // namespace cgogn
 
 #endif
