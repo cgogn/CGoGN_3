@@ -200,7 +200,7 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 
 	std::cout << " . . . . " << std::endl;
 
-	f = ff + vbo.size() - NB * vd;
+	f = ff + vbo.size() - int64(NB) * vd;
 
 	for (int i = 0; i < NB; ++i)
 	{

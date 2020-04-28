@@ -350,8 +350,8 @@ void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 	beg_X_ = x;
 	beg_Y_ = y;
 
-	GLVec4 P(PP[0], PP[1], PP[2], 1.0);
-	GLVec4 Q(QQ[0], QQ[1], QQ[2], 1.0);
+	GLVec4 P = construct_GLVec4(PP[0], PP[1], PP[2], 1.0);
+	GLVec4 Q = construct_GLVec4(QQ[0], QQ[1], QQ[2], 1.0);
 	highlighted_ = pick_frame(P, Q);
 
 	if (highlighted_ != NONE)

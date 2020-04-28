@@ -465,10 +465,11 @@ protected:
 					Vec3 axis_z;
 					p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
 					float32 d = -(position.dot(axis_z));
-					p.param_volume_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-					p.param_volume_line_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-					p.param_volume_color_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-					p.param_volume_scalar_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+					rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
+					p.param_volume_->plane_clip_ = plane;
+					p.param_volume_line_->plane_clip_ = plane;
+					p.param_volume_color_->plane_clip_ = plane;
+					p.param_volume_scalar_->plane_clip_ = plane;
 				}
 				view->stop_event();
 				view->request_update();
@@ -502,7 +503,7 @@ protected:
 			{
 				need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1, 2.0);
+				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1f, 2.0f);
 			}
 
 			ImGui::Separator();
@@ -540,10 +541,11 @@ protected:
 						Vec3 axis_z;
 						p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
 						float32 d = -(position.dot(axis_z));
-						p.param_volume_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-						p.param_volume_line_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-						p.param_volume_color_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
-						p.param_volume_scalar_->plane_clip_ = {axis_z.x(), axis_z.y(), axis_z.z(), d};
+						rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
+						p.param_volume_->plane_clip_ = plane;
+						p.param_volume_line_->plane_clip_ = plane;
+						p.param_volume_color_->plane_clip_ = plane;
+						p.param_volume_scalar_->plane_clip_ = plane;
 					}
 					else
 					{
@@ -625,6 +627,7 @@ protected:
 							});
 					}
 				}
+				ImGui::EndGroup();
 			}
 
 			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;

@@ -621,7 +621,7 @@ protected:
 			{
 				need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
 												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1, 2.0);
+				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1f, 2.0f);
 			}
 
 			ImGui::Separator();

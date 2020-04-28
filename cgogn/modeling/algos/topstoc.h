@@ -158,7 +158,7 @@ void vertex_selection(MESH& _m, CellMarkerStore<MESH, Vertex>& cm_selected, uint
 	std::sort(vertices.begin(), vertices.end(), [&](Vertex v, Vertex v2) -> bool {
 		return value<float32>(_m, charac, v) > value<float32>(_m, charac, v2);
 	});
-	uint count = 0;
+	uint32 count = 0;
 
 	// stochastic vertex selection
 	foreach_cell(_m, [&](Vertex v) -> bool {

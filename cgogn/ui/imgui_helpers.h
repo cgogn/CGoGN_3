@@ -70,7 +70,7 @@ void imgui_combo_attribute(const MESH& m,
 	if (selected_attribute)
 	{
 		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - float32(X_button_width));
 		if (ImGui::Button(("X##" + label).c_str()))
 			on_change(nullptr);
 	}
