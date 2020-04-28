@@ -38,14 +38,14 @@ target_link_libraries(simple_volume_viewer
 	${CMAKE_DL_LIBS}
 )
 
-add_executable(surface_volume_viewer surface_volume_viewer.cpp)
-target_link_libraries(surface_volume_viewer
-	cgogn::core
-	cgogn::ui
-	cgogn::io
-	cgogn::rendering
-	${CMAKE_DL_LIBS}
-)
+#add_executable(surface_volume_viewer surface_volume_viewer.cpp)
+#target_link_libraries(surface_volume_viewer
+#	cgogn::core
+#	cgogn::ui
+#	cgogn::io
+#	cgogn::rendering
+#	${CMAKE_DL_LIBS}
+#)
 
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
@@ -54,16 +54,14 @@ if(APPLE)
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(simple_surface_viewer 
-		${CORE_FOUNDATION}
-		${CARBON}
-	)
 	target_link_libraries(simple_volume_viewer 
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(surface_volume_viewer 
-		${CORE_FOUNDATION}
-		${CARBON}
-	)
+#	target_link_libraries(surface_volume_viewer
+#		${CORE_FOUNDATION}
+#		${CARBON}
+#	)
 endif()
+
+

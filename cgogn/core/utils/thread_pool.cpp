@@ -1,43 +1,41 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
-#include <cgogn/core/utils/thread_pool.h>
 #include <cgogn/core/utils/thread.h>
+#include <cgogn/core/utils/thread_pool.h>
 
 namespace cgogn
 {
 
-ThreadPool::ThreadPool() :
-    stop_(false)
+ThreadPool::ThreadPool() : stop_(false)
 {
 	nb_working_workers_ = std::thread::hardware_concurrency() - 1;
 
 	for (uint32 i = 0u; i < nb_working_workers_; ++i)
 	{
-		workers_.emplace_back([this, i] () -> void
-		{
+		workers_.emplace_back([this, i]() -> void {
 			thread_start(i + 1);
-			for(;;)
+			for (;;)
 			{
 				while (i >= nb_working_workers_)
 				{
@@ -46,17 +44,14 @@ ThreadPool::ThreadPool() :
 				}
 
 				std::unique_lock<std::mutex> lock(queue_mutex_);
-				condition_task_.wait(
-					lock,
-					[this] () { return stop_ || !tasks_.empty(); }
-				);
+				condition_task_.wait(lock, [this]() { return stop_ || !tasks_.empty(); });
 
 				if (stop_ && tasks_.empty())
 				{
 					thread_stop();
 					return;
 				}
-				
+
 				if (i < nb_working_workers_)
 				{
 					PackagedTask task = std::move(tasks_.front());
@@ -113,7 +108,8 @@ void ThreadPool::set_nb_workers(uint32 nb)
 
 ThreadPool* thread_pool()
 {
-	// thread safe according to http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
+	// thread safe according to
+	// http://stackoverflow.com/questions/8102125/is-local-static-variable-initialization-thread-safe-in-c11
 	static ThreadPool pool;
 	return &pool;
 }

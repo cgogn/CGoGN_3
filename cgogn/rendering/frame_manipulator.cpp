@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #include <cgogn/rendering/frame_manipulator.h>
 #include <cgogn/rendering/vbo_update.h>
@@ -39,12 +39,10 @@ namespace rendering
 
 const float32 FrameManipulator::ring_half_width = 0.08f;
 
-FrameManipulator::FrameManipulator():
-		highlighted_(NONE),
-		scale_rendering_(1.0f),
-		trans_(0.0f, 0.0f, 0.0f),
-		scale_(1.0f, 1.0f, 1.0f)
+FrameManipulator::FrameManipulator()
+	: highlighted_(NONE), scale_rendering_(1.0f), trans_(0.0f, 0.0f, 0.0f), scale_(1.0f, 1.0f, 1.0f)
 {
+	fmd_ = FrameManipDrawer::generate();
 	rotations_.setIdentity();
 
 	for (uint32 i = 0; i < 11; ++i)
@@ -53,13 +51,13 @@ FrameManipulator::FrameManipulator():
 		locked_picking_axis_[i] = false;
 	}
 
-	vbo_frame_ = cgogn::make_unique<VBO>(3);
+	vbo_frame_ = std::make_unique<VBO>(3);
 
-	param_sc_ = ShaderSimpleColor::generate_param();
-	param_sc_->set_vbos(vbo_frame_.get());
+	param_sc_ = ShaderNoIllum::generate_param();
+	param_sc_->set_vbos({vbo_frame_.get()});
 
 	param_bl_ = ShaderBoldLine::generate_param();
-	param_bl_->set_vbos(vbo_frame_.get());
+	param_bl_->set_vbos({vbo_frame_.get()});
 
 	std::vector<GLVec3> points;
 	points.reserve(6 * nb_segments + 30);
@@ -108,7 +106,7 @@ FrameManipulator::FrameManipulator():
 	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
 	points.push_back(GLVec3(0.03f, 0.7f, 0.0f));
 	points.push_back(GLVec3(0.0f, 0.7f, -0.03f));
-	points.push_back(GLVec3(-0.03f,0.7f, 0.0f));
+	points.push_back(GLVec3(-0.03f, 0.7f, 0.0f));
 	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
 
 	points.push_back(GLVec3(0.0f, 0.0f, 0.27f));
@@ -123,9 +121,9 @@ FrameManipulator::FrameManipulator():
 	update_vbo(points, vbo_frame_.get());
 	set_length_axes();
 
-	vbo_grid_ = cgogn::make_unique<VBO>(3);
-	param_grid_ = ShaderSimpleColor::generate_param();
-	param_grid_->set_vbos(vbo_grid_.get());
+	vbo_grid_ = std::make_unique<VBO>(3);
+	param_grid_ = ShaderNoIllum::generate_param();
+	param_grid_->set_vbos({vbo_grid_.get()});
 	param_grid_->color_ = GLColor(1, 1, 1, 1);
 
 	points.clear();
@@ -187,199 +185,21 @@ float32 FrameManipulator::get_size()
 
 void FrameManipulator::draw(bool frame, bool zplane, const GLMat4& proj, const GLMat4& view)
 {
-	proj_mat_ = proj;
-	view_mat_ = view;
-	glGetIntegerv(GL_VIEWPORT, viewport_);
-
-	GLMat4 tr_view = view * transfo_render_frame();
+	fmd_->set_axis_selected(highlighted_ - Xt);
+	fmd_->set_ring_selected(highlighted_ - Xr);
+	GLMat4 fr = transfo_render_frame();
 
 	if (frame)
 	{
-		if (!locked_axis_[Xr])
-		{
-			if (highlighted_ == Xr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(1, 0, 0, 1);
-			param_sc_->bind(proj,tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Yr])
-		{
-			if (highlighted_ == Yr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 1, 0, 1);
-			param_sc_->bind(proj,tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 2 * nb_segments + 2, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Zr])
-		{
-			if (highlighted_ == Zr)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 0, 1, 1);
-			param_sc_->bind(proj,tr_view);
-			glDrawArrays(GL_TRIANGLE_STRIP, 4 * nb_segments + 4, 2 * nb_segments + 2);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Xt])
-		{
-			if (highlighted_ == Xt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(1, 0, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 14, 6);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Yt])
-		{
-			if (highlighted_ == Yt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 1, 0, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 22, 6);
-			param_sc_->release();
-		}
-
-		if (!locked_axis_[Zt])
-		{
-			if (highlighted_ == Zt)
-				param_sc_->color_ = GLColor(1, 1, 0, 1);
-			else
-				param_sc_->color_ = GLColor(0, 0, 1, 1);
-			param_sc_->bind(proj, tr_view);
-			glDrawArrays(GL_TRIANGLE_FAN, 6 * nb_segments + 30, 6);
-			param_sc_->release();
-		}
-
-		if ((!locked_axis_[CENTER]) && (highlighted_ == CENTER))
-		{
-			param_bl_->width_ = 6.0;
-			param_bl_->color_ = GLColor(1, 1, 0, 1);
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 6, 6);
-			param_bl_->release();
-		}
-		else
-		{
-			if (!locked_axis_[Xs])
-			{
-				if (highlighted_ == Xs)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0.8f, 0, 0, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 6, 2);
-				param_bl_->release();
-			}
-
-			if (!locked_axis_[Ys])
-			{
-				if (highlighted_ == Ys)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0, 0.8f, 0, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 8, 2);
-				param_bl_->release();
-			}
-
-			if (!locked_axis_[Zs])
-			{
-				if (highlighted_ == Zs)
-				{
-					param_bl_->width_ = 6.0;
-					param_bl_->color_ = GLColor(1, 1, 0, 1);
-				}
-				else
-				{
-					param_bl_->width_ = 3.0;
-					param_bl_->color_ = GLColor(0, 0, 0.8f, 1);
-				}
-				param_bl_->bind(proj, tr_view);
-				glDrawArrays(GL_LINES, 6 * nb_segments + 10, 2);
-				param_bl_->release();
-			}
-		}
-
-		if (!locked_axis_[Xt])
-		{
-			if (highlighted_ == Xt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(1, 0, 0, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 12, 2);
-			param_bl_->release();
-		}
-
-		if (!locked_axis_[Yt])
-		{
-			if (highlighted_ == Yt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(0, 1, 0, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 20, 2);
-			param_bl_->release();
-		}
-
-		if (!locked_axis_[Zt])
-		{
-			if (highlighted_ == Zt)
-			{
-				param_bl_->width_ = 6.0;
-				param_bl_->color_ = GLColor(1, 1, 0, 1);
-			}
-			else
-			{
-				param_bl_->width_ = 3.0;
-				param_bl_->color_ = GLColor(0, 0, 1, 1);
-			}
-			param_bl_->bind(proj, tr_view);
-			glDrawArrays(GL_LINES, 6 * nb_segments + 28, 2);
-			param_bl_->release();
-		}
+		fmd_->draw_transla(proj, view, fr);
+		fmd_->draw_rota(proj, view, fr);
 	}
 	if (zplane)
-	{
-		param_grid_->bind(proj, tr_view);
-		glDrawArrays(GL_LINES, 0, nb_grid_ind_);
-		param_grid_->release();
-	}
+		fmd_->draw_grid(proj, view, fr);
+
+	proj_mat_ = proj;
+	view_mat_ = view;
+	glGetIntegerv(GL_VIEWPORT, viewport_);
 }
 
 void FrameManipulator::highlight(uint32 axis)
@@ -405,11 +225,11 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 	Vec3 origin(0.0, 0.0, 0.0);
 
 	// intersection possible between line and frame (10% margin)?
-	float32 dist2 = cgogn::geometry::squared_distance_line_point(P, Q, origin);
+	float32 dist2 = float32(cgogn::geometry::squared_distance_line_point(P, Q, origin));
 
 	float32 distMax = std::max(length_axes_[0], std::max(length_axes_[1], length_axes_[2]));
 	distMax *= 3.6f;
-	distMax= std::max(distMax, 1.0f + ring_half_width);
+	distMax = std::max(distMax, 1.0f + ring_half_width);
 
 	if (dist2 > distMax * distMax)
 		return NONE;
@@ -468,7 +288,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 		if (inter)
 			dist_target[5] = Qz.norm() - 1.0;
 
-		if (std::abs(dist_target[5]) <  ring_half_width)
+		if (std::abs(dist_target[5]) < ring_half_width)
 			dist_cam[5] = (P - Qz).squaredNorm();
 	}
 
@@ -533,7 +353,7 @@ uint32 FrameManipulator::pick_frame(const GLVec4& PP, const GLVec4& QQ)
 	Scalar min_val = dist_cam[0];
 	for (uint32 i = 1; i < 9; ++i)
 	{
-		if  (dist_cam[i] < min_val)
+		if (dist_cam[i] < min_val)
 		{
 			min_val = dist_cam[i];
 			min_index = i;
@@ -567,7 +387,7 @@ void FrameManipulator::translate(uint32 axis, float32 x)
 void FrameManipulator::set_length_axes()
 {
 	float32 avgScale = (scale_[0] + scale_[1] + scale_[2]) / 3.0f;
-
+	vbo_frame_->bind();
 	float32* positions = vbo_frame_->lock_pointer();
 	uint32 ind = 3 * (6 * nb_segments + 6 + 1);
 
@@ -710,30 +530,30 @@ void FrameManipulator::set_transformation(const GLMat4&)
 	// TODO E.S.: parameter is not used. It seems wrong.
 	set_position(rotations_.block<3, 1>(0, 3).eval());
 
-//	col = rotations_.column(0);
-//	QVector3D Rx(	col[0], col[1], col[2]);
-//	col = rotations_.column(1);
-//	QVector3D Ry(	col[0], col[1], col[2]);
-//	col = rotations_.column(2);
-//	QVector3D Rz(	col[0], col[1], col[2]);
+	//	col = rotations_.column(0);
+	//	QVector3D Rx(	col[0], col[1], col[2]);
+	//	col = rotations_.column(1);
+	//	QVector3D Ry(	col[0], col[1], col[2]);
+	//	col = rotations_.column(2);
+	//	QVector3D Rz(	col[0], col[1], col[2]);
 
-//	set_scale(QVector3D(float32(Rx.length()), float32(Ry.length()), float32(Rz.length())));
+	//	set_scale(QVector3D(float32(Rx.length()), float32(Ry.length()), float32(Rz.length())));
 
-//	col[3] = 0.0f;
-//	col[0] = Rx[0];
-//	col[1] = Rx[1];
-//	col[2] = Rx[2];
-//	rotations_.setColumn(0,col);
+	//	col[3] = 0.0f;
+	//	col[0] = Rx[0];
+	//	col[1] = Rx[1];
+	//	col[2] = Rx[2];
+	//	rotations_.setColumn(0,col);
 
-//	col[0] = Ry[0];
-//	col[1] = Ry[1];
-//	col[2] = Ry[2];
-//	rotations_.setColumn(0,col);
+	//	col[0] = Ry[0];
+	//	col[1] = Ry[1];
+	//	col[2] = Ry[2];
+	//	rotations_.setColumn(0,col);
 
-//	col[0] = Rz[0];
-//	col[1] = Rz[1];
-//	col[2] = Rz[2];
-//	rotations_.setColumn(0,col);
+	//	col[0] = Rz[0];
+	//	col[1] = Rz[1];
+	//	col[2] = Rz[2];
+	//	rotations_.setColumn(0,col);
 }
 
 void FrameManipulator::lock(uint32 axis)
@@ -896,28 +716,28 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 {
 	Vec3 Vo(float32(x) - projected_origin_[0], float32(viewport_[3] - y) - projected_origin_[1], 0.0f);
 	Vec3 dV(float32(dx), float32(dy), 0.0f);
-//	Vec3 W = Vo.cross(dV);
-//	W.normalize();
+	//	Vec3 W = Vo.cross(dV);
+	//	W.normalize();
 
 	Vo.normalize();
 	dV.normalize();
 	Vec3 W = Vo.cross(dV);
 
-	float32 alpha = std::abs(W[2]);
+	float32 alpha = float32(std::abs(W[2]));
 
 	// which direction ?
 
-//	std::cout << "projected_origin_ "<< projected_origin_[0]<<", "<<projected_origin_[1]<<", "<<projected_origin_[2]<< std::endl;
-//	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl;
-//	std::cout << "Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl;
-//	std::cout << W << std::endl;
-//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<< std::endl;
+	//	std::cout << "projected_origin_ "<< projected_origin_[0]<<", "<<projected_origin_[1]<<",
+	//"<<projected_origin_[2]<< std::endl; 	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl; 	std::cout <<
+	//"Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl; 	std::cout << W << std::endl;
+	//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<<
+	// std::endl;
 
 	if (axis_orientation_ != (W[2] > 0.0f))
 		alpha *= -1.0f;
 
-//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] << std::endl;
-//	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
+	//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] <<
+	// std::endl; 	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
 
 	return alpha / 100.0f;
 }
@@ -926,13 +746,13 @@ float32 FrameManipulator::distance_from_mouse(int dx, int dy)
 {
 	Vec3 dV(float32(dx), float32(dy), 0.0f);
 	Vec3 ax(projected_selected_axis_[0], projected_selected_axis_[1], projected_selected_axis_[2]);
-	float32 tr = dV.dot(ax);
+	float32 tr = float32(dV.dot(ax));
 
 	if (tr > 0)
 		tr = float32(dV.norm() / 100.0f);
 	else
 		tr = float32(dV.norm() / -100.0f);
-	
+
 	return tr;
 }
 
@@ -1007,20 +827,22 @@ void FrameManipulator::drag(bool local, int x, int y)
 			float angle = angle_from_mouse(x, y, x - beg_X_, beg_Y_ - y);
 			rotate(highlighted_, angle);
 		}
-		else rotate_in_screen(x - beg_X_, beg_Y_ - y);
+		else
+			rotate_in_screen(x - beg_X_, beg_Y_ - y);
 	}
 	// translation selected
 	else if (translation_axis(highlighted_))
 	{
 		if (local)
 		{
-			float dist =  distance_from_mouse(x - beg_X_, beg_Y_ - y);
+			float dist = distance_from_mouse(x - beg_X_, beg_Y_ - y);
 			translate(highlighted_, dist);
 		}
-		else translate_in_screen(x - beg_X_, beg_Y_ - y);
+		else
+			translate_in_screen(x - beg_X_, beg_Y_ - y);
 	}
 	// scale selected
-	else if (scale_axis(highlighted_) )
+	else if (scale_axis(highlighted_))
 	{
 		float sc = scale_from_mouse(x - beg_X_, beg_Y_ - y);
 		scale(highlighted_, sc);

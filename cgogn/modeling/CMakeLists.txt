@@ -12,8 +12,7 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::modeling ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+target_sources(${PROJECT_NAME}	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/decimation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
@@ -21,6 +20,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/topstoc.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

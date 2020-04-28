@@ -1,25 +1,25 @@
 /*******************************************************************************
-* CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
-* Copyright (C) 2015, IGG Group, ICube, University of Strasbourg, France       *
-*                                                                              *
-* This library is free software; you can redistribute it and/or modify it      *
-* under the terms of the GNU Lesser General Public License as published by the *
-* Free Software Foundation; either version 2.1 of the License, or (at your     *
-* option) any later version.                                                   *
-*                                                                              *
-* This library is distributed in the hope that it will be useful, but WITHOUT  *
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
-* for more details.                                                            *
-*                                                                              *
-* You should have received a copy of the GNU Lesser General Public License     *
-* along with this library; if not, write to the Free Software Foundation,      *
-* Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
-*                                                                              *
-* Web site: http://cgogn.unistra.fr/                                           *
-* Contact information: cgogn@unistra.fr                                        *
-*                                                                              *
-*******************************************************************************/
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_RENDERING_TEXT_DRAWER_H_
 #define CGOGN_RENDERING_TEXT_DRAWER_H_
@@ -35,7 +35,7 @@ namespace cgogn
 namespace rendering
 {
 
-//class CGOGN_RENDERING_EXPORT TextDrawerEnd {};
+// class CGOGN_RENDERING_EXPORT TextDrawerEnd {};
 
 /**
  * @brief Rendering of volumes
@@ -46,9 +46,9 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::TextDrawer::Renderer> text_rend_; // one by context,
  *
  * init:
- *  text_ = cgogn::make_unique<cgogn::rendering::TextDrawer>();
+ *  text_ = std::make_unique<cgogn::rendering::TextDrawer>();
  *  text_rend_ = text_->generate_renderer();
- *  
+ *
  *  *text_ << pos << size << color << str; // add str at pos using size an color
  *  *text_ << pos << color << str;         // add str at pos using color (keep size)
  *  *text_ << pos << size << str;          // add str at pos using size (keep color)
@@ -62,7 +62,6 @@ namespace rendering
 class CGOGN_RENDERING_EXPORT TextDrawer
 {
 protected:
-
 	using Vec3f = std::array<float32, 3>;
 	using Vec4f = std::array<float32, 4>;
 
@@ -71,7 +70,7 @@ protected:
 	std::unique_ptr<VBO> vbo_colsz_;
 
 	static Texture2D* texture_;
-	
+
 	std::vector<Vec3f> positions_;
 	std::vector<std::string> strings_;
 	std::vector<GLColor> colors_;
@@ -83,7 +82,6 @@ protected:
 	bool next_pos_;
 
 public:
-
 	using Self = TextDrawer;
 
 	/**
@@ -99,31 +97,33 @@ public:
 
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(TextDrawer);
 
-	class End {};
+	class End
+	{
+	};
 
 	static TextDrawer::End end;
 
-	Self& operator <<(TextDrawer::End);
+	Self& operator<<(TextDrawer::End);
 
 	template <typename VEC3>
-	inline auto operator <<(const VEC3& p) -> typename std::enable_if<geometry::vector_traits<VEC3>::OK, Self&>::type
+	inline auto operator<<(const VEC3& p) -> typename std::enable_if<geometry::vector_traits<VEC3>::OK, Self&>::type
 	{
-		current_pos_ = Vec3f{ float32(p[0]), float32(p[1]), float32(p[2]) };
+		current_pos_ = Vec3f{float32(p[0]), float32(p[1]), float32(p[2])};
 		next_pos_ = true;
 		return *this;
 	}
 
-	Self& operator <<(const GLColor& col);
+	Self& operator<<(const GLColor& col);
 
-	Self& operator <<(float32 sz);
+	Self& operator<<(float32 sz);
 
-	Self& operator <<(const std::string& str);
+	Self& operator<<(const std::string& str);
 
-	inline Self& operator <<(const char* cstr)
+	inline Self& operator<<(const char* cstr)
 	{
 		return this->operator<<(std::string(cstr));
 	}
-	
+
 	void update_text(std::size_t pos, const std::string& str);
 
 	void scale_text(float sc);
@@ -136,7 +136,6 @@ public:
 		Renderer(TextDrawer* td);
 
 	public:
-
 		~Renderer();
 
 		void draw(const GLMat4& projection, const GLMat4& modelview);
