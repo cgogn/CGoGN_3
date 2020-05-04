@@ -75,7 +75,7 @@ AttributeContainerGen::AttributeContainerGen() : nb_elements_(0), maximum_index_
 
 AttributeContainerGen::~AttributeContainerGen()
 {
-	for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+	for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
 	{
 		for (AttributeGenT* mark_attribute : mark_attributes_[i])
 			delete mark_attribute;
@@ -85,7 +85,7 @@ AttributeContainerGen::~AttributeContainerGen()
 uint32 AttributeContainerGen::new_index()
 {
 	uint32 index;
-	if (available_indices_.size() > 0)
+	if (uint32(available_indices_.size()) > 0)
 	{
 		index = available_indices_.back();
 		available_indices_.pop_back();
@@ -98,7 +98,7 @@ uint32 AttributeContainerGen::new_index()
 
 	{
 		std::lock_guard<std::mutex> lock(mark_attributes_mutex_);
-		for (uint32 i = 0, nb = mark_attributes_.size(); i < nb; ++i)
+		for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
 		{
 			for (AttributeGenT* ag : mark_attributes_[i])
 				ag->manage_index(index);

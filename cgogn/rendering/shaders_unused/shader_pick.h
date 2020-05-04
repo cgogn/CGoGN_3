@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,11 +21,10 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
-#define CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
+#ifndef CGOGN_RENDERING_SHADERS_PICK_H_
+#define CGOGN_RENDERING_SHADERS_PICK_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
@@ -34,72 +33,29 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ScalarPerVertex, CGOGN_STR(ScalarPerVertex))
+DECLARE_SHADER_CLASS(Pick, false, CGOGN_STR(Pick))
 
-class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamPick : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, show_iso_lines_, nb_iso_levels_,
-									 light_position_);
 	}
 
 public:
-	ColorMap color_map_;
-	int32 expansion_;
-	float32 min_value_;
-	float32 max_value_;
-	bool show_iso_lines_;
-	int32 nb_iso_levels_;
-	GLVec3 light_position_;
+	using ShaderType = ShaderPick;
 
-	using LocalShader = ShaderScalarPerVertex;
-
-	ShaderParamScalarPerVertex(LocalShader* sh)
-		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
-		  nb_iso_levels_(10), light_position_(10, 100, 1000)
+	ShaderParamPick(ShaderType* sh) : ShaderParam(sh)
 	{
 	}
 
-	inline ~ShaderParamScalarPerVertex() override
-	{
-	}
-};
-
-DECLARE_SHADER_CLASS(ScalarPerVertexGouraud, CGOGN_STR(ScalarPerVertexGouraud))
-
-class CGOGN_RENDERING_EXPORT ShaderParamScalarPerVertexGouraud : public ShaderParam
-{
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(color_map_, expansion_, min_value_, max_value_, show_iso_lines_, nb_iso_levels_,
-									 light_position_);
-	}
-
-public:
-	ColorMap color_map_;
-	int32 expansion_;
-	float32 min_value_;
-	float32 max_value_;
-	bool show_iso_lines_;
-	int32 nb_iso_levels_;
-	GLVec3 light_position_;
-
-	using LocalShader = ShaderScalarPerVertexGouraud;
-
-	ShaderParamScalarPerVertexGouraud(LocalShader* sh)
-		: ShaderParam(sh), color_map_(BWR), expansion_(0), min_value_(.0f), max_value_(1.0f), show_iso_lines_(false),
-		  nb_iso_levels_(10), light_position_(10, 100, 1000)
+	inline ~ShaderParamPick() override
 	{
 	}
 
-	inline ~ShaderParamScalarPerVertexGouraud() override
-	{
-	}
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADER_SCALAR_PER_VERTEX_H_
+#endif // CGOGN_RENDERING_SHADERS_PICK_H_

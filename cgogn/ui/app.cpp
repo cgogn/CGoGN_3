@@ -38,6 +38,8 @@ namespace cgogn
 namespace ui
 {
 
+float64 App::frame_time_ = 0;
+
 static void glfw_error_callback(int error, const char* description)
 {
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
@@ -48,6 +50,8 @@ template <bool NOTIF>
 static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 										const GLchar* message, const void*)
 {
+	unused_parameters(id, length); // id not revelant
+
 	if (!NOTIF && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
 		return;
 
@@ -85,12 +89,13 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 	}
 
 	std::cerr << "================== DEBUG OPENGL ==========================" << std::endl;
-	std::cerr << gl_dbg_str[type] << std::endl;
-	std::cerr << "ID " << id << std::endl;
+	std::cerr << gl_dbg_str[source] << std::endl;
 	std::cerr << gl_dbg_str[type] << std::endl;
 	std::cerr << message << std::endl;
 	std::cerr << "==========================================================" << std::endl;
 	std::cerr << "\033[m" << std::endl;
+
+	assert(severity != GL_DEBUG_SEVERITY_HIGH);
 }
 
 inline void enable_gl43_debug_mode(bool show_notif = false)
@@ -102,7 +107,6 @@ inline void enable_gl43_debug_mode(bool show_notif = false)
 	else
 		glDebugMessageCallback(cgogn_gl_debug_msg<false>, nullptr);
 }
-
 #endif
 
 float64 App::fps_ = 0.0;
@@ -188,7 +192,7 @@ App::App()
 	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
-	ImFont* font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
+	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
 
 	ImGui_ImplGlfw_InitForOpenGL(window_, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
@@ -258,10 +262,10 @@ App::App()
 			return;
 		}
 
-		ImGui::GetIO().MousePos = ImVec2(cx, cy);
+		ImGui::GetIO().MousePos = ImVec2(float(cx), float(cy));
 
-		int32 px = std::floor(cx);
-		int32 py = std::floor(cy);
+		int32 px = int32(std::floor(cx));
+		int32 py = int32(std::floor(cy));
 
 		for (const auto& v : that->views_)
 		{
@@ -311,6 +315,7 @@ App::App()
 	});
 
 	glfwSetKeyCallback(window_, [](GLFWwindow* wi, int k, int s, int a, int m) {
+		unused_parameters(s);
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
 		that->inputs_.shift_pressed_ = (m & GLFW_MOD_SHIFT);
@@ -409,10 +414,10 @@ void App::set_window_title(const std::string& name)
 
 View* App::add_view()
 {
-	if (views_.size() < 4)
+	if (uint32(views_.size()) < 4)
 	{
 		glfwMakeContextCurrent(window_);
-		views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(views_.size())));
+		views_.push_back(std::make_unique<View>(&inputs_, "view" + std::to_string(uint32(views_.size()))));
 		adapt_views_geometry();
 		return views_.back().get();
 	}
@@ -437,7 +442,7 @@ void App::close_event()
 
 void App::adapt_views_geometry()
 {
-	switch (views_.size())
+	switch (uint32(views_.size()))
 	{
 	case 1:
 		views_[0]->set_view_ratio(0, 0, 1, 1);
@@ -472,36 +477,39 @@ void App::init_modules()
 int App::launch()
 {
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
-	param_frame_->sz_ = 5.0f;
+	param_frame_->width_ = 5.0f;
 
 	int32 frame_counter = 0;
 	while (!glfwWindowShouldClose(window_))
 	{
-		if (++frame_counter == 50)
-		{
-			double now = glfwGetTime();
-			frame_counter = 0;
-			fps_ = 50 / (now - time_last_50_frames_);
-			time_last_50_frames_ = now;
-		}
-
 		boost::synapse::poll(*tlq_);
 
 		glfwPollEvents();
 		glfwMakeContextCurrent(window_);
+
+		frame_time_ = glfwGetTime();
+		if (++frame_counter == 50)
+		{
+			double now = frame_time_;
+			frame_counter = 0;
+			fps_ = 50 / (now - time_last_50_frames_);
+			time_last_50_frames_ = now;
+		}
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (const auto& v : views_)
 		{
 			v->draw();
-			if (views_.size() > 1)
+			if (uint32(views_.size()) > 1)
 			{
 				if (v.get() == current_view_)
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
 				else
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
-				param_frame_->draw(v->viewport_width(), v->viewport_height());
+				param_frame_->w_ = float(v->viewport_width());
+				param_frame_->h_ = float(v->viewport_height());
+				param_frame_->draw();
 			}
 		}
 
@@ -526,6 +534,7 @@ int App::launch()
 							ImGuiWindowFlags_NoMove;
 			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 			window_flags |= ImGuiWindowFlags_NoBackground;
+
 			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
 
 			ImGui::PopStyleVar(3);
@@ -552,7 +561,8 @@ int App::launch()
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			dockspace_flags |= ImGuiDockNodeFlags_DockSpace;
 
-			ImGuiID dockIdLeft, dockIdBottom;
+			ImGuiID dockIdLeft = 0;
+			ImGuiID dockIdBottom = 0;
 			static bool first_render = true;
 
 			if (first_render)
@@ -567,12 +577,29 @@ int App::launch()
 				ImGui::DockBuilderFinish(dockspace_id);
 			}
 
+			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::SetWindowSize({0, 0});
+			uint32 id = 0;
 			for (Module* m : modules_)
 			{
-				m->interface();
-				if (first_render)
-					ImGui::DockBuilderDockWindow(m->name().c_str(), dockIdLeft);
+				ImGui::PushID(id);
+				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(255, 128, 0, 200));
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 128, 0, 255));
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 128, 0, 128));
+				if (ImGui::CollapsingHeader(m->name().c_str()))
+				{
+					ImGui::PopStyleColor(3);
+					m->interface();
+				}
+				else
+					ImGui::PopStyleColor(3);
+				ImGui::PopID();
+				++id;
 			}
+			ImGui::End();
+
+			if (first_render)
+				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);
 
 			ImGui::End();
 
@@ -588,8 +615,6 @@ int App::launch()
 		}
 
 		glfwSwapBuffers(window_);
-
-		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

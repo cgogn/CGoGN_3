@@ -50,7 +50,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::DisplayListDrawer::Renderer> drawer_rend_; // one by context,
  *
  * init:
- *  drawer_ = cgogn::make_unique<cgogn::rendering::DisplayListDrawer>();
+ *  drawer_ = std::make_unique<cgogn::rendering::DisplayListDrawer>();
  *  drawer_rend_ = drawer_->generate_renderer(); // don't worry automatically deleted when finished
  *  drawer_->new_list();
  *  drawer_->line_width(2.0);
@@ -105,7 +105,7 @@ public:
 	{
 		friend class DisplayListDrawer;
 
-		std::unique_ptr<ShaderColorPerVertex::Param> param_cpv_;
+		std::unique_ptr<ShaderFlatColorPerVertex::Param> param_cpv_;
 		std::unique_ptr<ShaderBoldLineColor::Param> param_bl_;
 		std::unique_ptr<ShaderRoundPointColor::Param> param_rp_;
 		std::unique_ptr<ShaderPointSpriteColor::Param> param_ps_;

@@ -42,13 +42,14 @@ using Mesh = cgogn::CMap2;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
+	using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+	using Vec3 = cgogn::geometry::Vec3;
+	using Scalar = cgogn::geometry::Scalar;
+
 	std::string filename;
 	if (argc < 2)
 		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");

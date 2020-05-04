@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,9 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
+#ifndef CGOGN_RENDERING_SHADERS_FLAT_H_
+#define CGOGN_RENDERING_SHADERS_FLAT_H_
 
-#include <cgogn/rendering/shaders/shader_color_per_vertex.h>
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -31,34 +33,29 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderColorPerVertex* ShaderColorPerVertex::instance_ = nullptr;
+DECLARE_SHADER_CLASS(TEX2VBO)
 
-ShaderColorPerVertex::ShaderColorPerVertex()
+class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
 {
-	const char* vertex_shader_source =
-		"#version 150\n"
-		"in vec3 vertex_pos;\n"
-		"in vec3 vertex_color;\n"
-		"uniform mat4 projection_matrix;\n"
-		"uniform mat4 model_view_matrix;\n"
-		"out vec3 color_v;\n"
-		"void main()\n"
-		"{\n"
-		"   color_v = vertex_color;"
-		"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-		"}\n";
+protected:
+	inline void set_uniforms() override
+	{
+		shader_->set_uniforms_values(TUin_);
+	}
 
-	const char* fragment_shader_source = "#version 150\n"
-										 "in vec3 color_v;\n"
-										 "out vec3 fragColor;\n"
-										 "void main()\n"
-										 "{\n"
-										 "   fragColor = color_v;\n"
-										 "}\n";
+public:
+	using ShaderType = ShaderTEX2VBO;
 
-	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_color");
-}
+	ShaderParamTEX2VBO(ShaderType* sh)
+		: ShaderParam(sh), TUin_(-1)
+	{}
+	 //
+	int32_t TUin_;
+};
+
 
 } // namespace rendering
 
 } // namespace cgogn
+
+#endif // CGOGN_RENDERING_SHADERS_FLAT_H_

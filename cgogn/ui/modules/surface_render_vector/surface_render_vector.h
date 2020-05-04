@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
 
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
@@ -60,20 +61,22 @@ class SurfaceRenderVector : public ViewModule
 
 	struct Parameters
 	{
-		Parameters() : render_vectors_(true), vector_scale_factor_(1.0)
+		Parameters()
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_vector_(nullptr),
+			  vertex_vector_vbo_(nullptr), vector_scale_factor_(1.0)
 		{
 			param_vector_per_vertex_ = rendering::ShaderVectorPerVertex::generate_param();
-			param_vector_per_vertex_->color_ = rendering::GLColor(1, 0, 0, 1);
+			param_vector_per_vertex_->color_ = {1.0f, 0.0f, 0.0f, 1.0f};
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
+		rendering::VBO* vertex_position_vbo_;
 		std::shared_ptr<Attribute<Vec3>> vertex_vector_;
+		rendering::VBO* vertex_vector_vbo_;
 
 		std::unique_ptr<rendering::ShaderVectorPerVertex::Param> param_vector_per_vertex_;
-
-		bool render_vectors_;
 
 		float32 vector_scale_factor_;
 		float32 vector_base_size_;
@@ -99,12 +102,21 @@ private:
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
+
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
+					Parameters& p = parameters_[v][m];
+					if (p.vertex_position_)
+						p.vector_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0);
+					v->request_update();
+				}));
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
-							p.vector_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0;
+							p.vector_base_size_ =
+								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0);
 						v->request_update();
 					}));
 		}
@@ -119,11 +131,14 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vector_base_size_ = geometry::mean_edge_length(m, vertex_position.get()) / 2.0;
-			md->update_vbo(vertex_position.get(), true);
+			p.vector_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 2.0);
+			md->update_vbo(p.vertex_position_.get(), true);
+			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
+		else
+			p.vertex_position_vbo_ = nullptr;
 
-		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
+		p.param_vector_per_vertex_->set_vbos({p.vertex_position_vbo_, p.vertex_vector_vbo_});
 
 		v.request_update();
 	}
@@ -135,9 +150,14 @@ public:
 
 		p.vertex_vector_ = vertex_vector;
 		if (p.vertex_vector_)
+		{
 			md->update_vbo(vertex_vector.get(), true);
+			p.vertex_vector_vbo_ = md->vbo(p.vertex_vector_.get());
+		}
+		else
+			p.vertex_vector_vbo_ = nullptr;
 
-		p.param_vector_per_vertex_->set_vbos({md->vbo(p.vertex_position_.get()), md->vbo(p.vertex_vector_.get())});
+		p.param_vector_per_vertex_->set_vbos({p.vertex_position_vbo_, p.vertex_vector_vbo_});
 
 		v.request_update();
 	}
@@ -161,7 +181,7 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_vectors_ && p.param_vector_per_vertex_->vao_initialized())
+			if (p.param_vector_per_vertex_->vao_initialized())
 			{
 				p.param_vector_per_vertex_->length_ = p.vector_base_size_ * p.vector_scale_factor_;
 				p.param_vector_per_vertex_->bind(proj_matrix, view_matrix);
@@ -175,90 +195,43 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
+		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		if (ImGui::BeginCombo("View", selected_view_->name().c_str()))
-		{
-			for (View* v : linked_views_)
-			{
-				bool is_selected = v == selected_view_;
-				if (ImGui::Selectable(v->name().c_str(), is_selected))
-					selected_view_ = v;
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		});
 
 		if (selected_view_ && selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(
-					*selected_mesh_, [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-						bool is_selected = attribute == p.vertex_position_;
-						if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-							set_vertex_position(*selected_view_, *selected_mesh_, attribute);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_position_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##position"))
-					set_vertex_position(*selected_view_, *selected_mesh_, nullptr);
-			}
-
-			if (ImGui::BeginCombo("Vector", p.vertex_vector_ ? p.vertex_vector_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_vector_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_vector(*selected_view_, *selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
+													set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 												});
-				ImGui::EndCombo();
-			}
-			if (p.vertex_vector_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##vector"))
-					set_vertex_vector(*selected_view_, *selected_mesh_, nullptr);
-			}
+
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_vector_, "Vector",
+												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+													set_vertex_vector(*selected_view_, *selected_mesh_, attribute);
+												});
 
 			ImGui::Separator();
-			need_update |= ImGui::Checkbox("Render vectors", &p.render_vectors_);
+			ImGui::TextUnformatted("Vectors");
+			need_update |=
+				ImGui::ColorEdit3("color", p.param_vector_per_vertex_->color_.data(), ImGuiColorEditFlags_NoInputs);
+			need_update |= ImGui::SliderFloat("length", &p.vector_scale_factor_, 0.1f, 5.0f);
+			need_update |= ImGui::SliderFloat("width", &p.param_vector_per_vertex_->width_, 1.0f, 9.0f);
+			need_update |= ImGui::SliderFloat("lighted", &p.param_vector_per_vertex_->lighted_, 0.0f, 1.0f);
 
-			ImGui::Separator();
-			ImGui::TextUnformatted("Vector parameters");
-			need_update |= ImGui::ColorEdit3("color##vectors", p.param_vector_per_vertex_->color_.data(),
-											 ImGuiColorEditFlags_NoInputs);
-			need_update |= ImGui::SliderFloat("length##vectors", &(p.vector_scale_factor_), 0.1, 5.0);
+			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			if (remain > 0)
+				need_update = true;
+
+			if (need_update)
+				for (View* v : linked_views_)
+					v->request_update();
 		}
-
-		ImGui::End();
-
-		if (need_update)
-			for (View* v : linked_views_)
-				v->request_update();
 	}
 
 private:

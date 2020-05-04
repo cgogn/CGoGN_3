@@ -58,7 +58,7 @@ public:
 
 	uint32 size() const
 	{
-		return cells_.size();
+		return uint32(cells_.size());
 	}
 
 	inline void select(CELL c)

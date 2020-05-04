@@ -21,43 +21,37 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
+#ifndef CGOGN_GEOMETRY_FUNCTIONS_FITTING_H_
+#define CGOGN_GEOMETRY_FUNCTIONS_FITTING_H_
 
-#include <cgogn/rendering/shaders/shader_simple_color.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace rendering
+namespace geometry
 {
 
-ShaderSimpleColor* ShaderSimpleColor::instance_ = nullptr;
-
-ShaderSimpleColor::ShaderSimpleColor()
+inline std::pair<Vec3, Scalar> plane_fitting(const std::vector<Vec3>& points)
 {
-	const char* vertex_shader_source_ =
-		"#version 150\n"
-		"in vec3 vertex_pos;\n"
-		"uniform mat4 projection_matrix;\n"
-		"uniform mat4 model_view_matrix;\n"
-		"void main()\n"
-		"{\n"
-		"   gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);\n"
-		"}\n";
+	uint32 nb_points = points.size();
+	Eigen::Matrix3Xd m_points(3, nb_points);
+	for (uint32 i = 0; i < nb_points; ++i)
+		m_points.col(i) = points[i];
 
-	const char* fragment_shader_source_ = "#version 150\n"
-										  "out vec4 fragColor;\n"
-										  "uniform vec4 color;\n"
-										  "void main()\n"
-										  "{\n"
-										  "   fragColor = color;\n"
-										  "}\n";
+	Vec3 mean = m_points.rowwise().mean();
+	const Eigen::Matrix3Xd m_points_centered = m_points.colwise() - mean;
 
-	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_pos");
+	Eigen::JacobiSVD<Eigen::Matrix3Xd> svd = m_points_centered.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
 
-	add_uniforms("color");
+	Vec3 normal = svd.matrixU().col(2);
+	Scalar d = normal.dot(mean);
+
+	return {normal, d};
 }
 
-} // namespace rendering
+} // namespace geometry
 
 } // namespace cgogn
+
+#endif // CGOGN_GEOMETRY_FUNCTIONS_FITTING_H_

@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COL_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COL_H_
+#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_
+#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,53 +32,48 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ExplodeVolumesColor,CGOGN_STR(ExplodeVolumesColor))
+DECLARE_SHADER_CLASS(ExplodeVolumesColor, true, CGOGN_STR(ExplodeVolumesColor))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesColor : public ShaderParam
 {
 	void set_uniforms() override;
 
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER,
+		VOLUME_COLOR
+	};
+
 public:
-	VBO* vbo_pos_;
-	VBO* vbo_center_;
-	VBO* vbo_color_vol_;
-	GLVec3 light_pos_;
+	std::array<VBO*, 3> vbos_;
+	GLVec3 light_position_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
-	{
-		auto a = std::forward_as_tuple(args...);
-		explode_ = std::get<0>(a);
-		light_pos_ = std::get<1>(a);
-		plane_clip_ = std::get<2>(a);
-		plane_clip2_ = std::get<3>(a);
-	}
+	using ShaderType = ShaderExplodeVolumesColor;
 
-	using LocalShader = ShaderExplodeVolumesColor;
-
-	ShaderParamExplodeVolumesColor(LocalShader* sh)
-		: ShaderParam(sh),vbo_pos_(nullptr),vbo_center_(nullptr),vbo_color_vol_(nullptr),
-		  light_pos_(10, 100, 1000), explode_(0.8f),
-		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamExplodeVolumesColor(ShaderType* sh)
+		: ShaderParam(sh), light_position_(10, 100, 1000), explode_(0.9f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 
 	inline ~ShaderParamExplodeVolumesColor() override
 	{
 	}
 
-	inline void set_vbos(const std::vector<VBO*>& vbos) override
+	inline VBO** vbo_tb(uint32 i) override
 	{
-		vbo_pos_ = vbos[0];
-		vbo_center_ = vbos[1];
-		vbo_color_vol_ = vbos[2];
+		return &vbos_[i];
 	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_

@@ -43,7 +43,7 @@ namespace rendering
  *  std::unique_ptr<cgogn::rendering::WallPaper::Renderer> wp_rend_; // one by context,
  *
  * init:
- *  wp_ = cgogn::make_unique<cgogn::rendering::WallPaper>();
+ *  wp_ = std::make_unique<cgogn::rendering::WallPaper>();
  *  wp_rend_ = wp_->generate_renderer();
  *  wp_->update<Vec3>(map_,vertex_position_);
  *

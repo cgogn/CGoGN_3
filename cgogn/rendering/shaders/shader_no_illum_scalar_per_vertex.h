@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,10 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
-#define CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
+#ifndef CGOGN_RENDERING_SHADERS_NO_ILLUM_SCALAR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_NO_ILLUM_SCALAR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
@@ -33,34 +34,37 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(SimpleColor,CGOGN_STR(SimpleColor))
+DECLARE_SHADER_CLASS(NoIllumScalarPerVertex, false, CGOGN_STR(NoIllumScalarPerVertex))
 
-class CGOGN_RENDERING_EXPORT ShaderParamSimpleColor : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamNoIllumScalarPerVertex : public ShaderParam
 {
-protected:
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(color_);
-	}
+	void set_uniforms() override;
 
 public:
-	GLColor color_;
+	GLColor ambiant_color_;
+	GLVec3 light_position_;
+	bool double_side_;
+	shader_funcion::ColorMap::Uniforms cm_;
 
-	using ShaderType = ShaderSimpleColor;
+	inline void pick_parameters(const PossibleParameters& pp) override
+	{
+		double_side_ = pp.double_side_;
+	}
 
-	ShaderParamSimpleColor(ShaderType* sh) : ShaderParam(sh), color_(color_line_default)
+	using ShaderType = ShaderNoIllumScalarPerVertex;
+
+	ShaderParamNoIllumScalarPerVertex(ShaderType* sh)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
 
-	inline ~ShaderParamSimpleColor() override
+	inline ~ShaderParamNoIllumScalarPerVertex() override
 	{
 	}
-
-
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_SIMPLECOLOR_H_
+#endif

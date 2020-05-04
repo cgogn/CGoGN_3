@@ -99,7 +99,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			std::string selected_vertex_attribute_name_ =
 				selected_vertex_attribute_ ? selected_vertex_attribute_->name() : "-- select --";

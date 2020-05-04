@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
-#define CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
+#ifndef CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
+#define CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -112,8 +112,6 @@ bool intersection_surface(const CMap2& m, const CMap2::Attribute<Vec3>* vertex_p
 						  Vec3* inter);
 void export_surface_off(CMap2& m2, std::string filename);
 
-
-
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
@@ -156,7 +154,7 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttributes& gAttribs, CMap2& m2,
 												M2Attributes& m2Attribs, const CMap2& surface);
 
-	/*****************************************************************************/
+/*****************************************************************************/
 /* volume mesh generation                                                    */
 /*****************************************************************************/
 
@@ -177,7 +175,8 @@ bool compute_mean_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_
 Scalar frame_frobenius(Mat3 frame);
 Vec3 get_quality_color(Scalar quality);
 
-
 } // namespace modeling
+
 } // namespace cgogn
-#endif // CGOGN_GEOMETRY_ALGOS_GRAPH_TO_HEX_H_
+
+#endif // CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_

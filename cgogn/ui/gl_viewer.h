@@ -133,6 +133,11 @@ public:
 		return inputs_->meta_pressed_;
 	}
 
+	inline bool mouse_button_pressed(int32 b) const
+	{
+		return (inputs_->mouse_buttons_ & (1 << b)) > 0;
+	}
+
 	inline int32 previous_mouse_x() const
 	{
 		return inputs_->previous_mouse_x_;
@@ -143,6 +148,7 @@ public:
 	}
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const = 0;
+	virtual std::pair<rendering::GLVec3d, rendering::GLVec3d> pixel_ray(int32 x, int32 y) const = 0;
 
 	inline void set_wheel_sensitivity(float64 s)
 	{

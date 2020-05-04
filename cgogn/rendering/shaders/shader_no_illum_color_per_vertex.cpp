@@ -21,11 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
-#define CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_no_illum_color_per_vertex.h>
 
 namespace cgogn
 {
@@ -33,39 +29,48 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(RoundPoint,CGOGN_STR(RoundPoint))
+static char const* vertex_shader_source =
+	R"(#version 330
+	in vec3 vertex_pos;
+	in vec3 vertex_color;
+	uniform mat4 projection_matrix;
+	uniform mat4 model_view_matrix;
+	out vec3 color;
+	void main()
+	{
+		gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
+		color = vertex_color;
+	}
+	)";
 
-class CGOGN_RENDERING_EXPORT ShaderParamRoundPoint : public ShaderParam
+static char const* fragment_shader_source =
+	R"(#version 330
+	out vec3 fragColor;
+	in vec3 color;
+	uniform bool double_side;
+
+	void main()
+	{
+		if (gl_FrontFacing || double_side)
+			fragColor = color;
+		else
+			discard;
+	}
+	)";
+
+ShaderNoIllumColorPerVertex* ShaderNoIllumColorPerVertex::instance_ = nullptr;
+
+ShaderNoIllumColorPerVertex::ShaderNoIllumColorPerVertex()
 {
-	inline void set_uniforms() override
-	{
-		int viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
-		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
-	}
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_color");
+	add_uniforms("double_side");
+}
 
-public:
-	GLColor color_;
-	float32 size_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-
-	using LocalShader = ShaderRoundPoint;
-
-	ShaderParamRoundPoint(LocalShader* sh)
-		: ShaderParam(sh), color_(color_point_default), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
-	{
-	}
-
-	inline ~ShaderParamRoundPoint() override
-	{
-	}
-
-};
+void ShaderParamNoIllumColorPerVertex::set_uniforms()
+{
+	shader_->set_uniforms_values(double_side_);
+}
 
 } // namespace rendering
 
 } // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_H_

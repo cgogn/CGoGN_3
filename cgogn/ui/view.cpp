@@ -31,7 +31,8 @@ namespace ui
 
 View::View(Inputs* inputs, const std::string& name)
 	: GLViewer(inputs), name_(name), ratio_x_offset_(0), ratio_y_offset_(0), ratio_width_(1), ratio_height_(1),
-	  param_fst_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), closing_(false)
+	  param_full_screen_texture_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), event_stopped_(false),
+	  closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
 	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
@@ -39,8 +40,9 @@ View::View(Inputs* inputs, const std::string& name)
 
 	fbo_ = std::make_unique<rendering::FBO>(vt, true, nullptr);
 
-	param_fst_ = rendering::ShaderFSTexture::generate_param();
-	param_fst_->texture_ = fbo_->texture(0);
+	param_full_screen_texture_ = rendering::ShaderFullScreenTexture::generate_param();
+	param_full_screen_texture_->unit_ = 0;
+	param_full_screen_texture_->texture_ = fbo_->texture(0);
 }
 
 View::~View()
@@ -83,7 +85,9 @@ void View::mouse_press_event(int32 button, int32 x, int32 y)
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_press_event(this, button, x, y);
 
-	GLViewer::mouse_press_event(button, x, y);
+	if (!event_stopped_)
+		GLViewer::mouse_press_event(button, x, y);
+	event_stopped_ = false;
 }
 
 void View::mouse_release_event(int32 button, int32 x, int32 y)
@@ -91,7 +95,9 @@ void View::mouse_release_event(int32 button, int32 x, int32 y)
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_release_event(this, button, x, y);
 
-	GLViewer::mouse_release_event(button, x, y);
+	if (!event_stopped_)
+		GLViewer::mouse_release_event(button, x, y);
+	event_stopped_ = false;
 }
 
 void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
@@ -99,7 +105,9 @@ void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_dbl_click_event(this, button, x, y);
 
-	GLViewer::mouse_dbl_click_event(button, x, y);
+	if (!event_stopped_)
+		GLViewer::mouse_dbl_click_event(button, x, y);
+	event_stopped_ = false;
 }
 
 void View::mouse_move_event(int32 x, int32 y)
@@ -107,15 +115,19 @@ void View::mouse_move_event(int32 x, int32 y)
 	for (ViewModule* m : linked_view_modules_)
 		m->mouse_move_event(this, x, y);
 
-	GLViewer::mouse_move_event(x, y);
+	if (!event_stopped_)
+		GLViewer::mouse_move_event(x, y);
+	event_stopped_ = false;
 }
 
 void View::mouse_wheel_event(float64 dx, float64 dy)
 {
 	for (ViewModule* m : linked_view_modules_)
-		m->mouse_wheel_event(this, dx, dy);
+		m->mouse_wheel_event(this, int32(dx), int32(dy));
 
-	GLViewer::mouse_wheel_event(dx, dy);
+	if (!event_stopped_)
+		GLViewer::mouse_wheel_event(dx, dy);
+	event_stopped_ = false;
 }
 
 void View::key_press_event(int32 key_code)
@@ -123,7 +135,9 @@ void View::key_press_event(int32 key_code)
 	for (ViewModule* m : linked_view_modules_)
 		m->key_press_event(this, key_code);
 
-	GLViewer::key_press_event(key_code);
+	if (!event_stopped_)
+		GLViewer::key_press_event(key_code);
+	event_stopped_ = false;
 }
 
 void View::key_release_event(int32 key_code)
@@ -131,7 +145,9 @@ void View::key_release_event(int32 key_code)
 	for (ViewModule* m : linked_view_modules_)
 		m->key_release_event(this, key_code);
 
-	GLViewer::key_release_event(key_code);
+	if (!event_stopped_)
+		GLViewer::key_release_event(key_code);
+	event_stopped_ = false;
 }
 
 void View::draw()
@@ -141,22 +157,24 @@ void View::draw()
 
 	spin();
 	glViewport(viewport_x_offset_, viewport_y_offset_, viewport_width_, viewport_height_);
-
 	if (need_redraw_)
 	{
-		fbo_->bind();
-		glEnable(GL_DEPTH_TEST);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		GLenum idbuf = GL_COLOR_ATTACHMENT0;
-		glDrawBuffers(1, &idbuf);
-		for (ViewModule* m : linked_view_modules_)
-			m->draw(this);
-		fbo_->release();
-		glDisable(GL_DEPTH_TEST);
-		need_redraw_ = false;
+		if (fbo_->width() * fbo_->height() > 0)
+		{
+			fbo_->bind();
+			glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			GLenum idbuf = GL_COLOR_ATTACHMENT0;
+			glDrawBuffers(1, &idbuf);
+			for (ViewModule* m : linked_view_modules_)
+				m->draw(this);
+			fbo_->release();
+			glDisable(GL_DEPTH_TEST);
+			need_redraw_ = false;
+		}
 	}
 
-	param_fst_->draw();
+	param_full_screen_texture_->draw();
 }
 
 void View::link_module(ViewModule* m)
@@ -219,6 +237,11 @@ void View::unlock_scene_bb()
 	update_scene_bb();
 }
 
+bool View::scene_bb_locked() const
+{
+	return scene_bb_locked_;
+}
+
 bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 {
 	float z[4];
@@ -254,6 +277,26 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	}
 
 	return false;
+}
+
+std::pair<rendering::GLVec3d, rendering::GLVec3d> View::pixel_ray(int32 x, int32 y) const
+{
+	float64 xs = float64(float64(x - x_offset_) / float64(width_) * viewport_width_);
+	float64 ys = float64(float64(height_ - (y - y_offset_)) / float64(height_) * viewport_height_);
+
+	float64 xogl = (xs / viewport_width_) * 2.0 - 1.0;
+	float64 yogl = (ys / viewport_height_) * 2.0 - 1.0;
+
+	rendering::GLMat4d im = (camera().projection_matrix_d() * camera().modelview_matrix_d()).inverse();
+	rendering::GLVec4d Q(xogl, yogl, 1.0, 1.0);
+	rendering::GLVec4d P4 = im * Q;
+
+	rendering::GLVec3d P1(P4.x() / P4.w(), P4.y() / P4.w(), P4.z() / P4.w());
+
+	Q.z() = -1;
+	P4 = im * Q;
+	rendering::GLVec3d P2(P4.x() / P4.w(), P4.y() / P4.w(), P4.z() / P4.w());
+	return std::make_pair(P1, P2);
 }
 
 rendering::GLVec3d View::unproject(int32 x, int32 y, float64 z) const

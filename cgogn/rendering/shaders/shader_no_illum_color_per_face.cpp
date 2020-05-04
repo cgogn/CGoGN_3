@@ -21,11 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
-#define CGOGN_RENDERING_SHADERS_XXXX_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shaders/shader_no_illum_color_per_face.h>
 
 namespace cgogn
 {
@@ -33,66 +29,64 @@ namespace cgogn
 namespace rendering
 {
 
-// forward
-class ShaderParamXXXX;
-
-class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
+static char const* vertex_shader_source = R"(#version 330
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+uniform usamplerBuffer tri_ind;
+uniform usamplerBuffer face_emb;
+uniform samplerBuffer pos_vertex;
+uniform samplerBuffer color_face;
+out vec3 A;
+flat out vec3 N;
+flat out vec3 color;
+void main()
 {
-public:
-	using Self = ShaderXXXX;
-	using Param = ShaderParamXXXX;
-	friend Param;
+	int tri = int(texelFetch(tri_ind, gl_InstanceID).r);
+	int i_c = int(texelFetch(face_emb, gl_InstanceID).r);
+	color = texelFetch(color_face, i_c).rgb;
+	int vid = gl_VertexID;
+	int ind_a = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	A = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_a).rgb,1.0)).xyz;
+	vid  = (vid+1)%3;
+	int ind_b = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	vec3 B = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_b).rgb,1.0)).xyz;
+	vid  = (vid+1)%3;
+	int ind_c = int(texelFetch(tri_ind, 3*gl_InstanceID+vid).r);
+	vec3 C = (model_view_matrix * vec4(texelFetch(pos_vertex, ind_c).rgb,1.0)).xyz;
+	N = normalize(cross(B-A,C-A));
+	gl_Position = projection_matrix*vec4(A,1);
+}
+)";
 
-protected:
-	ShaderXXXX();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
+static char const* fragment_shader_source = R"(#version 330
+uniform bool double_side;
+flat in vec3 color;
+out vec3 fragColor;
 
-	void set_locations() override;
-	static Self* instance_;
-
-public:
-	inline static std::unique_ptr<Param> generate_param()
-	{
-		if (!instance_)
-		{
-			instance_ = new Self();
-			ShaderProgram::register_instance(instance_);
-		}
-		return cgogn::make_unique<Param>(instance_);
-	}
-};
-
-class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
+void main()
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
-	}
+	if (double_side || gl_FrontFacing)
+		fragColor = color;
+	else
+		discard;
+}
+)";
 
-public:
-	GLColor front_color_;
-	GLColor back_color_;
-	GLColor ambiant_color_;
-	GLVec3 light_pos_;
-	bool bf_culling_;
+ShaderNoIllumColorPerFace* ShaderNoIllumColorPerFace::instance_ = nullptr;
 
-	using LocalShader = ShaderXXXX;
+ShaderNoIllumColorPerFace::ShaderNoIllumColorPerFace()
+{
+	load2_bind(vertex_shader_source, fragment_shader_source, "");
+	add_uniforms("tri_ind", "face_emb", "pos_vertex", "color_face", "double_side");
+	this->nb_attributes_ = 2;
+}
 
-	ShaderParamXXXX(LocalShader* sh)
-		: ShaderParam(sh),
-
-		  light_pos_(10, 100, 1000), bf_culling_(false)
-	{
-	}
-
-	inline ~ShaderParamXXXX() override
-	{
-	}
-
-};
+void ShaderParamNoIllumColorPerFace::set_uniforms()
+{
+	vbos_[0]->bind_tb(12);
+	vbos_[1]->bind_tb(13);
+	shader_->set_uniforms_values(10, 11, 12, 13, double_side_);
+}
 
 } // namespace rendering
-
 } // namespace cgogn
-
-#endif

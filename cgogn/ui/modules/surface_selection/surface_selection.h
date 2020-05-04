@@ -86,17 +86,17 @@ class SurfaceSelection : public ViewModule
 			  selecting_cell_(VertexSelect), selection_method_(SingleCell)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_point_sprite_->set_vbos({&selected_vertices_vbo_});
 
 			param_edge_ = rendering::ShaderBoldLine::generate_param();
-			param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_edge_->width_ = 2.0f;
 			param_edge_->set_vbos({&selected_edges_vbo_});
 
 			param_flat_ = rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65);
-			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65);
+			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_flat_->double_side_ = true;
 			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
 			param_flat_->set_vbos({&selected_faces_vbo_});
@@ -192,7 +192,7 @@ private:
 					Parameters& p = parameters_[m];
 					if (p.vertex_position_.get() == attribute)
 					{
-						p.vertex_base_size_ = geometry::mean_edge_length(*m, p.vertex_position_.get()) / 6.0;
+						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 6);
 						p.update_selected_vertices_vbo();
 						p.update_selected_edges_vbo();
 						p.update_selected_faces_vbo();
@@ -244,7 +244,7 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vertex_base_size_ = geometry::mean_edge_length(m, p.vertex_position_.get()) / 6.0;
+			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 6); // 6 ???
 			p.update_selected_vertices_vbo();
 			p.update_selected_edges_vbo();
 			p.update_selected_faces_vbo();
@@ -431,15 +431,13 @@ protected:
 	{
 		for (auto& [m, p] : parameters_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
 				p.param_point_sprite_->vao_initialized())
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_POINTS, 0, p.selected_vertices_set_->size());
 				p.param_point_sprite_->release();
@@ -479,7 +477,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -502,22 +500,22 @@ protected:
 					set_vertex_position(*selected_mesh_, nullptr);
 
 				ImGui::Separator();
+				int* ptr_sel_cell = reinterpret_cast<int*>(&p.selecting_cell_);
+				need_update |= ImGui::RadioButton("Vertex", ptr_sel_cell, VertexSelect);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Edge", ptr_sel_cell, EdgeSelect);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Face", ptr_sel_cell, FaceSelect);
 
-				need_update |= ImGui::RadioButton("Vertex", (int*)(&p.selecting_cell_), VertexSelect);
+				ImGui::RadioButton("Single", reinterpret_cast<int*>(&p.selection_method_), SingleCell);
 				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Edge", (int*)(&p.selecting_cell_), EdgeSelect);
-				ImGui::SameLine();
-				need_update |= ImGui::RadioButton("Face", (int*)(&p.selecting_cell_), FaceSelect);
-
-				ImGui::RadioButton("Single", (int*)(&p.selection_method_), SingleCell);
-				ImGui::SameLine();
-				ImGui::RadioButton("Sphere", (int*)(&p.selection_method_), WithinSphere);
+				ImGui::RadioButton("Sphere", reinterpret_cast<int*>(&p.selection_method_), WithinSphere);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
 
 				MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
-				Parameters& p = parameters_[selected_mesh_];
+				//				Parameters& p = parameters_[selected_mesh_];
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
@@ -549,7 +547,7 @@ protected:
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1, 2.0);
+					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 				}
 				else if (p.selecting_cell_ == EdgeSelect)
 				{

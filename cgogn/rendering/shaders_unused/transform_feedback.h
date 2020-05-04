@@ -1,4 +1,5 @@
-﻿/*******************************************************************************
+﻿
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,41 +22,71 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_FLAT_H_
-#define CGOGN_RENDERING_SHADERS_FLAT_H_
+#ifndef CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
+#define CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
+#include<vector>
+#include<string>
+#include<memory>
+
 #include <cgogn/rendering/shaders/shader_program.h>
+
+
 
 namespace cgogn
 {
 
 namespace rendering
 {
-
-DECLARE_SHADER_CLASS(TEX2VBO)
-
-class CGOGN_RENDERING_EXPORT ShaderParamTEX2VBO : public ShaderParam
+template <typename SHADER>
+class CGOGN_RENDERING_EXPORT TransformFeedback
 {
-protected:
-	inline void set_uniforms() override
+	GLuint id_;
+	typename SHADER::Param& prg_param_;
+
+	void internal_start(GLenum prim, const std::vector<VBO*>& vbos)
 	{
-		shader_->set_uniforms_values(TUin_);
+		glEnable(GL_RASTERIZER_DISCARD);
+//		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, id_);
+		for (GLuint i = 0; i < uint32(vbos.size()); ++i)
+			glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, i, vbos[i]->id());
+		glBeginTransformFeedback(prim);
 	}
 
 public:
-	using LocalShader = ShaderTEX2VBO;
+	inline TransformFeedback(typename SHADER::Param& param):
+		prg_param_(param)
+	{
+//		glCreateTransformFeedbacks(1,&id_);
+	}
 
-	ShaderParamTEX2VBO(LocalShader* sh)
-		: ShaderParam(sh), TUin_(-1)
-	{}
-	 //
-	int32_t TUin_;
+
+	TransformFeedback(const TransformFeedback&) = delete;
+	TransformFeedback& operator=(const TransformFeedback&) = delete;
+	inline ~TransformFeedback() {}
+
+	inline void start(GLenum prim, const std::vector<VBO*>& vbos)
+	{
+		prg_param_.bind();
+		internal_start(prim,vbos);
+	}
+
+	inline void start(GLenum prim, const std::vector<VBO*>& vbos, const GLMat4& proj, const GLMat4& mv)
+	{
+		prg_param_.bind(proj,mv);
+		internal_start(prim,vbos);
+	}
+
+	inline void stop()
+	{
+		glEndTransformFeedback();
+		glFlush();
+//		glBindTransformFeedback(GL_TRANSFORM_FEEDBACK,0);
+		glDisable(GL_RASTERIZER_DISCARD);
+		prg_param_.release();
+	}
 };
 
-
-} // namespace rendering
-
-} // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+}
+}
+#endif

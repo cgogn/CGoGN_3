@@ -180,8 +180,8 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 
 CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 {
-	Dart f0 = add_face(static_cast<CMap1&>(m), path.size(), false).dart;
-	Dart f1 = add_face(static_cast<CMap1&>(m), path.size(), false).dart;
+	Dart f0 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart;
+	Dart f1 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart;
 
 	for (Dart d0 : path)
 	{
@@ -335,7 +335,7 @@ CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 
 	uint32 count = 0u;
 
-	for (uint32 i = 0u; i < visited_faces.size(); ++i)
+	for (uint32 i = 0u; i < uint32(visited_faces.size()); ++i)
 	{
 		const Dart it = visited_faces[i];
 		Dart f = it;

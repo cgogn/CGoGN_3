@@ -21,10 +21,12 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
-#define CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
+#ifndef CGOGN_RENDERING_SHADERS_TEXTURE_H_
+#define CGOGN_RENDERING_SHADERS_TEXTURE_H_
+
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/texture.h>
 
 namespace cgogn
 {
@@ -32,23 +34,33 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(ColorPerVertex,CGOGN_STR(ColorPerVertex))
+DECLARE_SHADER_CLASS(Texture, false, CGOGN_STR(Textures))
 
-class CGOGN_RENDERING_EXPORT ShaderParamColorPerVertex : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamTexture : public ShaderParam
 {
 	inline void set_uniforms() override
 	{
+		shader_->set_uniforms_values(texture_->bind(unit_));
 	}
 
 public:
-	using LocalShader = ShaderColorPerVertex;
+	Texture2D* texture_;
+	GLuint unit_;
 
-	ShaderParamColorPerVertex(LocalShader* sh) : ShaderParam(sh)
+	using ShaderType = ShaderTexture;
+
+	ShaderParamTexture(ShaderType* sh) : ShaderParam(sh), unit_(0)
+	{
+	}
+
+	inline ~ShaderParamTexture() override
 	{
 	}
 
 };
 
 } // namespace rendering
+
 } // namespace cgogn
-#endif // CGOGN_RENDERING_SHADERS_COLORPERVERTEX_H_
+
+#endif

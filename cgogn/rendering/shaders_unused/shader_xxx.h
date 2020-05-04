@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_PHONG_COLOR_H_
-#define CGOGN_RENDERING_SHADERS_PHONG_COLOR_H_
+#ifndef CGOGN_RENDERING_SHADERS_XXXX_H_
+#define CGOGN_RENDERING_SHADERS_XXXX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -32,42 +32,67 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(PhongColor,CGOGN_STR(PhongColor))
 
-class CGOGN_RENDERING_EXPORT ShaderParamPhongColor : public ShaderParam
+// forward
+class ShaderParamXXXX;
+
+class CGOGN_RENDERING_EXPORT ShaderXXXX : public ShaderProgram
 {
+public:
+	using Self = ShaderXXXX;
+	using Param = ShaderParamXXXX;
+	friend Param;
+
 protected:
+	ShaderXXXX();
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(ShaderXXXX);
+
+	void set_locations() override;
+	static Self* instance_;
+
+public:
+	inline static std::unique_ptr<Param> generate_param()
+	{
+		if (!instance_)
+		{
+			instance_ = new Self();
+			ShaderProgram::register_instance(instance_);
+		}
+		return std::make_unique<Param>(instance_);
+	}
+};
+
+class CGOGN_RENDERING_EXPORT ShaderParamXXXX : public ShaderParam
+{
 	inline void set_uniforms() override
 	{
-		shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_);
+		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_pos_, bf_culling_);
 	}
 
 public:
+	GLColor front_color_;
+	GLColor back_color_;
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
-	GLVec3 light_position_;
-	bool double_side_;
+	GLVec3 light_pos_;
+	bool bf_culling_;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
+	using ShaderType = ShaderXXXX;
+
+	ShaderParamXXXX(ShaderType* sh)
+		: ShaderParam(sh),
+
+		  light_pos_(10, 100, 1000), bf_culling_(false)
 	{
-		auto a = std::forward_as_tuple(args...);
-		ambiant_color_ = std::get<0>(a);
-		specular_color_ = std::get<1>(a);
-		specular_coef_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
 	}
 
-	using ShaderType = ShaderPhongColor;
-
-	ShaderParamPhongColor(ShaderType* sh)
-		: ShaderParam(sh), light_position_(), ambiant_color_(), specular_color_(), specular_coef_(), double_side_()
+	inline ~ShaderParamXXXX() override
 	{
 	}
 
 };
+
 } // namespace rendering
+
 } // namespace cgogn
-#endif // CGOGN_RENDERING_SHADERS_PHONG_H_
+
+#endif

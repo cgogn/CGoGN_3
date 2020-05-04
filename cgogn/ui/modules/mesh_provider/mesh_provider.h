@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODULE_MESH_PROVIDER_H_
 #define CGOGN_MODULE_MESH_PROVIDER_H_
 
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 #include <cgogn/ui/portable-file-dialogs.h>
@@ -66,8 +67,8 @@ class MeshProvider : public ProviderModule
 
 public:
 	MeshProvider(const App& app)
-		: ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  show_mesh_inspector_(false), selected_mesh_(nullptr), bb_min_(0, 0, 0), bb_max_(0, 0, 0)
+		: ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
+		  bb_min_(0, 0, 0), bb_max_(0, 0, 0)
 	{
 	}
 
@@ -232,6 +233,11 @@ public:
 			f(m.get(), name);
 	}
 
+	inline uint32 number_of_meshes()
+	{
+		return uint32(meshes_.size());
+	}
+
 	std::string mesh_name(const MESH* m) const
 	{
 		auto it =
@@ -324,9 +330,7 @@ public:
 		MeshData<MESH>* md = mesh_data(m);
 		md->update_nb_cells();
 		md->rebuild_cells_sets();
-		md->set_primitives_dirty(rendering::POINTS);
-		md->set_primitives_dirty(rendering::LINES);
-		md->set_primitives_dirty(rendering::TRIANGLES);
+		md->set_all_primitives_dirty();
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -347,7 +351,7 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (result.size())
+			if (uint32(result.size()))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
 					load_graph_from_file(result[0]);
@@ -371,7 +375,6 @@ protected:
 				if constexpr (mesh_traits<MESH>::dimension == 3)
 					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files);
 			}
-			ImGui::MenuItem("Show inspector", "", &show_mesh_inspector_);
 			ImGui::PopItemFlag();
 			ImGui::EndMenu();
 		}
@@ -379,118 +382,51 @@ protected:
 
 	void interface() override
 	{
-		if (show_mesh_inspector_)
+		imgui_mesh_selector(this, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
+		});
+
+		if (selected_mesh_)
 		{
-			std::string name = std::string{mesh_traits<MESH>::name} + " inspector";
-			ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-			ImGui::SetWindowSize({0, 0});
+			MeshData<MESH>* md = mesh_data(selected_mesh_);
 
-			if (ImGui::ListBoxHeader("Mesh"))
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, md->bb_vertex_position_, "Position",
+												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+													set_mesh_bb_vertex_position(selected_mesh_, attribute);
+												});
+
+			ImGui::Separator();
+			ImGui::TextUnformatted("Cells");
+			ImGui::Columns(2);
+			ImGui::Separator();
+			ImGui::TextUnformatted("Type");
+			ImGui::NextColumn();
+			ImGui::TextUnformatted("Number");
+			ImGui::NextColumn();
+			ImGui::Separator();
+			for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 			{
-				foreach_mesh([this](MESH* m, const std::string& name) {
-					if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-						selected_mesh_ = m;
-				});
-				ImGui::ListBoxFooter();
-			}
-
-			if (selected_mesh_)
-			{
-				MeshData<MESH>* md = mesh_data(selected_mesh_);
-
-				if (ImGui::BeginCombo("Position", md->bb_vertex_position_ ? md->bb_vertex_position_->name().c_str()
-																		  : "-- select --"))
-				{
-					foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-													[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-														bool is_selected = attribute == md->bb_vertex_position_;
-														if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-															set_mesh_bb_vertex_position(selected_mesh_, attribute);
-														if (is_selected)
-															ImGui::SetItemDefaultFocus();
-													});
-					ImGui::EndCombo();
-				}
-
-				ImGui::Separator();
-				ImGui::TextUnformatted("Cells");
-				ImGui::Columns(2);
-				ImGui::Separator();
-				ImGui::TextUnformatted("Type");
+				ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]);
 				ImGui::NextColumn();
-				ImGui::TextUnformatted("Number");
+				ImGui::Text("%d", md->nb_cells_[i]);
 				ImGui::NextColumn();
-				ImGui::Separator();
-				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
-				{
-					ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]);
-					ImGui::NextColumn();
-					ImGui::Text("%d", md->nb_cells_[i]);
-					ImGui::NextColumn();
-				}
 			}
-
-			ImGui::End();
+			ImGui::Columns(1);
 		}
 	}
 
 private:
-	std::vector<std::string> supported_graph_files = {"Graph", "*.cg *.skel"};
+	std::vector<std::string> supported_graph_files = {"Graph", "*.cg *.cgr *.skel"};
 	std::vector<std::string> supported_surface_files = {"Surface", "*.off"};
 	std::vector<std::string> supported_volume_files = {"Volume", "*.tet"};
 
-	bool show_mesh_inspector_;
 	const MESH* selected_mesh_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
-
-/**
- * @brief generate combo for attribute selection
- * @param m mesh
- * @param att attribute
- * @param f code to execute when combo selection change
- */
-template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& att,
-						   const std::string& label, const FUNC& f)
-{
-	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
-
-	std::string selected_attrib = att ? att->name() : "-- select --";
-	bool changed = false;
-	if (ImGui::BeginCombo(label.c_str(), selected_attrib.c_str()))
-	{
-		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
-			bool is_selected = attribute == att;
-			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-			{
-				if (att != attribute)
-					changed = true;
-				att = attribute;
-			}
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-		});
-		ImGui::EndCombo();
-	}
-
-	if (att)
-	{
-		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-		if (ImGui::Button((std::string("X##") + label).c_str()))
-		{
-			att.reset();
-			changed = true;
-		}
-	}
-
-	if (changed)
-		f();
-}
 
 } // namespace ui
 

@@ -47,7 +47,7 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face f,
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	std::vector<Vertex> vertices = incident_vertices(m, f);
-	if (vertices.size() == 3)
+	if (uint32(vertices.size()) == 3)
 	{
 		Vec3 n = normal(value<Vec3>(m, vertex_position, vertices[0]), value<Vec3>(m, vertex_position, vertices[1]),
 						value<Vec3>(m, vertex_position, vertices[2]));
@@ -57,7 +57,7 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face f,
 	else
 	{
 		Vec3 n{0.0, 0.0, 0.0};
-		for (uint32 i = 0; i < vertices.size() - 1; ++i)
+		for (uint32 i = 0; i < uint32(vertices.size()) - 1; ++i)
 		{
 			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
 			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i + 1]);
@@ -70,34 +70,26 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face f,
 	}
 }
 
-
 template <typename MESH>
-Vec3
-normal(
-	const MESH& m,
-	typename mesh_traits<MESH>::Face2 f,
-	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
-)
+Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face2 f,
+			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	std::vector<Vertex> vertices = incident_vertices(m, f);
-	if (vertices.size() == 3)
+	if (uint32(vertices.size()) == 3)
 	{
-		Vec3 n = normal(
-			value<Vec3>(m, vertex_position, vertices[0]),
-			value<Vec3>(m, vertex_position, vertices[1]),
-			value<Vec3>(m, vertex_position, vertices[2])
-		);
+		Vec3 n = normal(value<Vec3>(m, vertex_position, vertices[0]), value<Vec3>(m, vertex_position, vertices[1]),
+						value<Vec3>(m, vertex_position, vertices[2]));
 		n.normalize();
 		return n;
 	}
 	else
 	{
 		Vec3 n{0.0, 0.0, 0.0};
-		for (uint32 i = 0; i < vertices.size() - 1; ++i)
+		for (uint32 i = 0; i < uint32(vertices.size()) - 1; ++i)
 		{
 			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
-			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i+1]);
+			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i + 1]);
 			n[0] += (p[1] - q[1]) * (p[2] + q[2]);
 			n[1] += (p[2] - q[2]) * (p[0] + q[0]);
 			n[2] += (p[0] - q[0]) * (p[1] + q[1]);

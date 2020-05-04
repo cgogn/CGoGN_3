@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr)
+	MeshData() : mesh_(nullptr), outlined_until_(0.0)
 	{
 	}
 
@@ -83,9 +83,19 @@ struct MeshData
 		render_.init_primitives(*mesh_, primitive, position.get());
 	}
 
-	void set_primitives_dirty(rendering::DrawingType primitive)
+	bool is_primitive_uptodate(rendering::DrawingType primitive)
+	{
+		return render_.is_primitive_uptodate(primitive);
+	}
+
+	void set_primitive_dirty(rendering::DrawingType primitive)
 	{
 		render_.set_primitive_dirty(primitive);
+	}
+
+	void set_all_primitives_dirty()
+	{
+		render_.set_all_primitives_dirty();
 	}
 
 private:
@@ -99,10 +109,6 @@ public:
 	void update_nb_cells()
 	{
 		internal_update_nb_cells(typename mesh_traits<MESH>::Cells{});
-		std::cout << "update_nb_cells" << " / ";
-		for (uint32 i : nb_cells_)
-			std::cout << i << ";";
-		std::cout << std::endl;
 	}
 
 	template <typename CELL>
@@ -161,6 +167,7 @@ public:
 		}
 		if (v)
 			rendering::update_vbo<T>(attribute, v);
+
 		return v;
 	}
 
@@ -195,6 +202,7 @@ private:
 	{
 		// std::initializer_list<int> (comma operator returns 0 for each call)
 		auto a = {(internal_rebuild_cells_sets_of_type<T>(), 0)...};
+		unused_parameters(a);
 	}
 
 public:
@@ -207,6 +215,7 @@ public:
 	std::shared_ptr<Attribute<Vec3>> bb_vertex_position_;
 	Vec3 bb_min_, bb_max_;
 	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
+	float64 outlined_until_;
 
 private:
 	template <class>

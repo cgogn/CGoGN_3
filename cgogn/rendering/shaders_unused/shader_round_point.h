@@ -20,19 +20,52 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-#include <cgogn/modeling/cgogn_modeling_export.h>
+
+#ifndef CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
+#define CGOGN_RENDERING_SHADERS_ROUND_POINT_H_
+
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
 
-namespace modeling
+namespace rendering
 {
 
-int CGOGN_MODELING_EXPORT pipo()
-{
-	return 0;
-}
+DECLARE_SHADER_CLASS(RoundPoint, false, CGOGN_STR(RoundPoint))
 
-} // namespace modeling
+class CGOGN_RENDERING_EXPORT ShaderParamRoundPoint : public ShaderParam
+{
+	inline void set_uniforms() override
+	{
+		int viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		GLVec2 wd(size_ / float32(viewport[2]), size_ / float32(viewport[3]));
+		shader_->set_uniforms_values(color_, wd, plane_clip_, plane_clip2_);
+	}
+
+public:
+	GLColor color_;
+	float32 size_;
+	GLVec4 plane_clip_;
+	GLVec4 plane_clip2_;
+
+	using ShaderType = ShaderRoundPoint;
+
+	ShaderParamRoundPoint(ShaderType* sh)
+		: ShaderParam(sh), color_(color_point_default), size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	{
+	}
+
+	inline ~ShaderParamRoundPoint() override
+	{
+	}
+
+};
+
+} // namespace rendering
 
 } // namespace cgogn
+
+#endif // CGOGN_RENDERING_SHADERS_ROUND_POINT_H_

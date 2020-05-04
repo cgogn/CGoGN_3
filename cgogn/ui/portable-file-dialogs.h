@@ -479,7 +479,7 @@ protected:
 				memset(&bi, 0, sizeof(bi));
 				auto status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-				auto callback = [&](HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData) -> INT {
+				auto callback = [&](HWND hwnd, UINT uMsg, LPARAM /*lp*/, LPARAM /*pData*/) -> INT {
 					switch (uMsg)
 					{
 					case BFFM_INITIALIZED:
@@ -1032,6 +1032,7 @@ private:
 	std::map<int, button> m_mappings;
 };
 
+
 class open_file : public internal::file_dialog
 {
 public:
@@ -1081,4 +1082,3 @@ public:
 #undef far
 #undef near
 #undef interface
-

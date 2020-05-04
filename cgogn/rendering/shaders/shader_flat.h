@@ -33,14 +33,11 @@ namespace cgogn
 namespace rendering
 {
 
-DECLARE_SHADER_CLASS(Flat,CGOGN_STR(Flat))
+DECLARE_SHADER_CLASS(Flat, false, CGOGN_STR(Flat))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFlat : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniforms_values(front_color_, back_color_, ambiant_color_, light_position_, double_side_);
-	}
+	void set_uniforms() override;
 
 public:
 	GLColor front_color_;
@@ -49,22 +46,9 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
+	using ShaderType = ShaderFlat;
 
-	template<typename ...Args>
-	void fill(Args&&... args)
-	{
-		auto a = std::forward_as_tuple(args...);
-		front_color_ = std::get<0>(a);
-		back_color_ = std::get<1>(a);
-		ambiant_color_ = std::get<2>(a);
-		light_position_ = std::get<3>(a);
-		double_side_ = std::get<4>(a);
-	}
-
-
-	using LocalShader = ShaderFlat;
-
-	ShaderParamFlat(LocalShader* sh)
+	ShaderParamFlat(ShaderType* sh)
 		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
 		  ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
@@ -73,7 +57,6 @@ public:
 	inline ~ShaderParamFlat() override
 	{
 	}
-
 };
 
 } // namespace rendering
