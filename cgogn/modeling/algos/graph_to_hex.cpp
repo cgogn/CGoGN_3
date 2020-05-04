@@ -44,6 +44,7 @@
 
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/functions/intersection.h>
+#include <cgogn/geometry/algos/picking.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
@@ -1361,53 +1362,83 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 	return true;
 }
 
-//bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-//								   const CMap2& surface)
-//{
-//
-//	std::shared_ptr<CMap2::Attribute<Vec3>> surface_vertex_position =
-//		get_attribute<Vec3, CMap2::Vertex>(surface, "position");
-//
-//	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
-//		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
-//
-//		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-//		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
-//
-//		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v);
-//
-//		if (degree(g, v) < 3)
-//		{
-//			Graph::HalfEdge h(v.dart);
-//			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
-//			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
-//			Vec3 inter0, inter1, inter2, inter3;
-//			intersection_surface(surface, surface_vertex_position.get(), center, -frame.col(1), &inter0);
-//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(0), &inter1);
-//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(1), &inter2);
-//			intersection_surface(surface, surface_vertex_position.get(), center, frame.col(1), &inter3);
-//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
-//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
-//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
-//				center + frame.col(1) * radius;
-//			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
-//		}
-//
-//		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
-//			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
-//			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
-//							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
-//			project_on_sphere(mid, center, radius);
-//			// mid = center + ((value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) - center) +
-//			//				  (value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]) - center));
-//			value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
-//			return true;
-//		});
-//		return true;
-//	});
-//
-//	return true;
-//}
+bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								   const CMap2& surface)
+{
+	using SelectedFace = std::tuple<CMap2::Face, Vec3, Scalar>;
+	std::shared_ptr<CMap2::Attribute<Vec3>> surface_vertex_position =
+		get_attribute<Vec3, CMap2::Vertex>(surface, "position");
+
+	//std::vector<uint32> failure(thread_pool()->nb_workers(), 0);
+	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		//if (failure[current_worker_index()])
+		//	return true;
+
+		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
+
+		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+
+		Graph::HalfEdge h(v.dart);
+		Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
+		if (degree(g, v) < 3)
+		{
+			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
+			std::vector<SelectedFace> selectedfaces0 = cgogn::geometry::internal::picking(
+				surface, surface_vertex_position.get(), center, center - frame.col(1));
+			std::vector<SelectedFace> selectedfaces1 = cgogn::geometry::internal::picking(
+				surface, surface_vertex_position.get(), center, center + frame.col(0));
+			std::vector<SelectedFace> selectedfaces2 = cgogn::geometry::internal::picking(
+				surface, surface_vertex_position.get(), center, center + frame.col(1));
+			std::vector<SelectedFace> selectedfaces3 = cgogn::geometry::internal::picking(
+				surface, surface_vertex_position.get(), center, center - frame.col(0));
+
+			//if (!(selectedfaces0.size() && selectedfaces1.size() 
+			//	&& selectedfaces2.size() && selectedfaces3.size()))
+			//{
+			//	failure[current_worker_index()] = 1;
+			//}
+			//else
+			//{
+				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = std::get<1>(selectedfaces0[0]);
+				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) =
+					std::get<1>(selectedfaces1[0]);
+				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
+					std::get<1>(selectedfaces2[0]);
+				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) =
+					std::get<1>(selectedfaces3[0]);
+			//}
+		}
+		else
+		{
+			foreach_incident_vertex(m2, CMap2::Volume(csf), [&](CMap2::Vertex v2) -> bool {
+				std::vector<SelectedFace> selectedfaces = cgogn::geometry::internal::picking(
+					surface, surface_vertex_position.get(), center, value<Vec3>(m2, m2Attribs.vertex_position, v2));
+				//if(selectedfaces.size()) 
+				//	failure[current_worker_index()] = 1;
+				//else
+					value<Vec3>(m2, m2Attribs.vertex_position, v2) = std::get<1>(selectedfaces[0]);
+				
+				return true;
+				});
+		}
+
+		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
+			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
+			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
+							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
+			
+			std::vector<SelectedFace> selectedfaces = cgogn::geometry::internal::picking(
+				surface, surface_vertex_position.get(), center, mid);
+
+			value<Vec3>(m2, m2Attribs.edge_mid, e) = std::get<1>(selectedfaces[0]);
+			return true;
+		});
+		return true;
+	});
+
+	return true;
+}
 
 /*****************************************************************************/
 /* volume mesh generation                                                    */
