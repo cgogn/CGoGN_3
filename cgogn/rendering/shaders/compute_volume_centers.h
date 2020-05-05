@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_COMPUTER_VOLUME_CENTERS_H_
-#define CGOGN_RENDERING_SHADERS_COMPUTER_VOLUME_CENTERS_H_
+#ifndef CGOGN_RENDERING_SHADERS_COMPUTE_VOLUME_CENTERS_H_
+#define CGOGN_RENDERING_SHADERS_COMPUTE_VOLUME_CENTERS_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/ebo.h>
@@ -39,6 +39,9 @@ namespace cgogn
 namespace rendering
 {
 
+namespace compute_center_shaders
+{
+
 DECLARE_SHADER_CLASS(ComputeCenter1, true, CGOGN_STR(ComputeCenter1))
 DECLARE_SHADER_CLASS(ComputeCenter2, false, CGOGN_STR(ComputeCenter2))
 
@@ -48,12 +51,12 @@ protected:
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_pos_;
-	int32 height_tex_;
+	VBO* vbo_position_;
+	int32 tex_height_;
 
 	using ShaderType = ShaderComputeCenter1;
 
-	ShaderParamComputeCenter1(ShaderType* sh) : ShaderParam(sh), vbo_pos_(nullptr), height_tex_(0)
+	ShaderParamComputeCenter1(ShaderType* sh) : ShaderParam(sh), vbo_position_(nullptr), tex_height_(0)
 	{
 	}
 };
@@ -73,32 +76,27 @@ public:
 	}
 };
 
-using TFB_ComputeCenter = TransformFeedback<ShaderComputeCenter2>;
+} // namespace compute_center_shaders
 
-class ComputeCenterEngine
+using TFB_ComputeCenter = TransformFeedback<compute_center_shaders::ShaderComputeCenter2>;
+
+class ComputeVolumeCenterEngine
 {
 	Texture2D* tex_;
 	FBO* fbo_;
-	std::unique_ptr<ShaderComputeCenter1::Param> param1_;
-	std::unique_ptr<ShaderComputeCenter2::Param> param2_;
+	std::unique_ptr<compute_center_shaders::ShaderComputeCenter1::Param> param1_;
+	std::unique_ptr<compute_center_shaders::ShaderComputeCenter2::Param> param2_;
 	TFB_ComputeCenter* tfb_;
 
 public:
-	ComputeCenterEngine();
+	ComputeVolumeCenterEngine();
+	~ComputeVolumeCenterEngine();
 
-	~ComputeCenterEngine();
-
-	template <typename MESH, typename ATT>
-	inline void check_primitives(rendering::MeshRender* render, const MESH& m, const ATT* vert_pos)
-	{
-		if (!render->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
-			render->init_primitives(m, rendering::VOLUMES_VERTICES, vert_pos);
-	}
-
-	void compute(VBO* pos, MeshRender* renderer, VBO* centers);
+	void compute(VBO* vertex_position, MeshRender* renderer, VBO* volume_center);
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_COMPUTE_VOLUME_CENTERS_H_

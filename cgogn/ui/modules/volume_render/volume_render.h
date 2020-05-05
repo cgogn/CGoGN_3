@@ -34,6 +34,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/rendering/frame_manipulator.h>
+#include <cgogn/rendering/shaders/compute_volume_centers.h>
 #include <cgogn/rendering/shaders/outliner.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_explode_volumes.h>
@@ -42,7 +43,6 @@
 #include <cgogn/rendering/shaders/shader_explode_volumes_scalar.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
-#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/length.h>
 
 #include <GLFW/glfw3.h>
@@ -85,13 +85,14 @@ class VolumeRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_center_(nullptr),
-			  volume_center_vbo_(nullptr), volume_scalar_(nullptr), volume_scalar_vbo_(nullptr), volume_color_(nullptr),
-			  volume_color_vbo_(nullptr), render_vertices_(false), render_edges_(false), render_volumes_(true),
-			  render_volume_lines_(true), color_per_cell_(GLOBAL), color_type_(SCALAR), vertex_scale_factor_(1.0),
-			  auto_update_volume_scalar_min_max_(true), clipping_plane_(false), show_frame_manipulator_(false),
-			  manipulating_frame_(false)
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_scalar_(nullptr),
+			  volume_scalar_vbo_(nullptr), volume_color_(nullptr), volume_color_vbo_(nullptr), render_vertices_(false),
+			  render_edges_(false), render_volumes_(true), render_volume_lines_(true), color_per_cell_(GLOBAL),
+			  color_type_(SCALAR), vertex_scale_factor_(1.0), auto_update_volume_scalar_min_max_(true),
+			  clipping_plane_(false), show_frame_manipulator_(false), manipulating_frame_(false)
 		{
+			volume_center_vbo_ = std::make_unique<rendering::VBO>();
+
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 
@@ -117,12 +118,12 @@ class VolumeRender : public ViewModule
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
-		std::shared_ptr<Attribute<Vec3>> volume_center_;
-		rendering::VBO* volume_center_vbo_;
 		std::shared_ptr<Attribute<Scalar>> volume_scalar_;
 		rendering::VBO* volume_scalar_vbo_;
 		std::shared_ptr<Attribute<Vec3>> volume_color_;
 		rendering::VBO* volume_color_vbo_;
+
+		std::unique_ptr<rendering::VBO> volume_center_vbo_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_bold_line_;
@@ -155,7 +156,8 @@ public:
 		: ViewModule(app, "VolumeRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
-		outline_engine_ = rendering::OutLiner::generate();
+		outline_engine_ = rendering::Outliner::instance();
+		compute_volume_center_engine_ = std::make_unique<rendering::ComputeVolumeCenterEngine>();
 	}
 
 	~VolumeRender()
@@ -168,10 +170,11 @@ private:
 		for (View* v : linked_views_)
 		{
 			Parameters& p = parameters_[v][m];
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-			p.volume_center_ = add_attribute<Vec3, Volume>(*m, "__volume_center_" + v->name());
-			md->update_vbo(p.volume_center_.get(), true);
-			p.volume_center_vbo_ = md->vbo(p.volume_center_.get());
+
+			uint32 nb_elements = is_indexed<Volume>(*m) ? maximum_index<Volume>(*m) : nb_cells<Volume>(*m);
+			p.volume_center_vbo_->bind();
+			p.volume_center_vbo_->allocate(nb_elements, 3);
+			p.volume_center_vbo_->release();
 
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
@@ -180,12 +183,16 @@ private:
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
-					MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+
+					uint32 nb_elements = is_indexed<Volume>(*m) ? maximum_index<Volume>(*m) : nb_cells<Volume>(*m);
+					p.volume_center_vbo_->bind();
+					p.volume_center_vbo_->allocate(nb_elements, 3);
+					p.volume_center_vbo_->release();
+
 					if (p.vertex_position_)
 					{
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
-						geometry::compute_centroid<Vec3, Volume>(*m, p.vertex_position_.get(), p.volume_center_.get());
-						md->update_vbo(p.volume_center_.get(), true);
+						update_volume_center(*v, *m);
 					}
 					v->request_update();
 				}));
@@ -193,14 +200,11 @@ private:
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
-						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 						if (p.vertex_position_.get() == attribute)
 						{
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
-							geometry::compute_centroid<Vec3, Volume>(*m, p.vertex_position_.get(),
-																	 p.volume_center_.get());
-							md->update_vbo(p.volume_center_.get(), true);
+							update_volume_center(*v, *m);
 						}
 						v->request_update();
 					}));
@@ -217,9 +221,8 @@ public:
 		if (p.vertex_position_)
 		{
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7.0);
+			update_volume_center(v, m);
 			md->update_vbo(vertex_position.get(), true);
-			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
-			md->update_vbo(p.volume_center_.get(), true);
 			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
 		else
@@ -227,10 +230,10 @@ public:
 
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
-		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
-		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
-		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
-		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
+		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get()});
+		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get()});
+		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_color_vbo_});
+		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_scalar_vbo_});
 
 		Scalar size = (md->bb_max_ - md->bb_min_).norm() / 10;
 		Vec3 position = 0.2 * md->bb_min_ + 0.8 * md->bb_max_;
@@ -254,7 +257,7 @@ public:
 		else
 			p.volume_color_vbo_ = nullptr;
 
-		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
+		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_color_vbo_});
 
 		v.request_update();
 	}
@@ -279,7 +282,7 @@ public:
 			p.param_volume_scalar_->color_map_.max_value_ = 1.0f;
 		}
 
-		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
+		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_scalar_vbo_});
 
 		v.request_update();
 	}
@@ -298,6 +301,20 @@ protected:
 		}
 		p.param_volume_scalar_->color_map_.min_value_ = min;
 		p.param_volume_scalar_->color_map_.max_value_ = max;
+	}
+
+	void update_volume_center(View& v, const MESH& m)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+
+		if (p.vertex_position_)
+		{
+			if (!md->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+				md->init_primitives(rendering::VOLUMES_VERTICES, p.vertex_position_);
+			compute_volume_center_engine_->compute(p.vertex_position_vbo_, md->mesh_render(),
+												   p.volume_center_vbo_.get());
+		}
 	}
 
 	void init() override
@@ -389,14 +406,13 @@ protected:
 				p.frame_manipulator_.draw(true, true, proj_matrix, view_matrix);
 
 			float64 remain = md->outlined_until_ - App::frame_time_;
-			if (remain > 0)
+			if (remain > 0 && p.vertex_position_vbo_)
 			{
 				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
 				color *= float(remain * 2);
 				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
 					md->init_primitives(rendering::TRIANGLES);
-				if (p.vertex_position_vbo_)
-					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
+				outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -648,7 +664,8 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 
-	rendering::OutLiner* outline_engine_;
+	rendering::Outliner* outline_engine_;
+	std::unique_ptr<rendering::ComputeVolumeCenterEngine> compute_volume_center_engine_;
 };
 
 } // namespace ui
