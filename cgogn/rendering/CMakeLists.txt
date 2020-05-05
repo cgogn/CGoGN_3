@@ -96,8 +96,10 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_frame2d.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_frame2d.cpp"
 
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/transform_feedback.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
 

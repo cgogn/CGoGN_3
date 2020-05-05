@@ -223,9 +223,9 @@ void ShaderParamColorize::set_uniforms()
 
 } // namespace outline_shaders
 
-OutLiner* OutLiner::instance_ = nullptr;
+Outliner* Outliner::instance_ = nullptr;
 
-OutLiner::OutLiner()
+Outliner::Outliner()
 {
 	param_mask_ = outline_shaders::ShaderMask::generate_param();
 	param_sobel_ = outline_shaders::ShaderSobel::generate_param();
@@ -245,7 +245,7 @@ OutLiner::OutLiner()
 	fbo_blur2_ = new FBO(std::vector<Texture2D*>{t3}, false, nullptr);
 }
 
-OutLiner::~OutLiner()
+Outliner::~Outliner()
 {
 	delete fbo_mask_->texture(0);
 	delete fbo_mask_;
@@ -255,7 +255,7 @@ OutLiner::~OutLiner()
 	delete fbo_blur2_;
 }
 
-void OutLiner::draw(VBO* position, MeshRender* renderer, const rendering::GLMat4& projection_matrix,
+void Outliner::draw(VBO* position, MeshRender* renderer, const rendering::GLMat4& projection_matrix,
 					const rendering::GLMat4& view_matrix, const GLColor& color)
 {
 	GLint prev_viewport[4];

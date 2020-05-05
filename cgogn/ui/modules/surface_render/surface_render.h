@@ -176,7 +176,7 @@ public:
 		: ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
-		outline_engine_ = rendering::OutLiner::generate();
+		outline_engine_ = rendering::Outliner::instance();
 	}
 
 	~SurfaceRender()
@@ -583,14 +583,13 @@ protected:
 			}
 
 			float64 remain = md->outlined_until_ - App::frame_time_;
-			if (remain > 0)
+			if (remain > 0 && p.vertex_position_vbo_)
 			{
 				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
 				color *= float(remain * 2);
 				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
 					md->init_primitives(rendering::TRIANGLES);
-				if (p.vertex_position_vbo_)
-					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
+				outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -834,7 +833,7 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 
-	rendering::OutLiner* outline_engine_;
+	rendering::Outliner* outline_engine_;
 };
 
 } // namespace ui
