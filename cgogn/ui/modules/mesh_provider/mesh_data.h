@@ -53,7 +53,7 @@ struct MeshData
 
 	using Vec3 = geometry::Vec3;
 
-	MeshData() : mesh_(nullptr), outlined_until_(0.0)
+	MeshData() : mesh_(nullptr), bb_vertex_position_(nullptr), bb_min_(0, 0, 0), bb_max_(0, 0, 0), outlined_until_(0.0)
 	{
 	}
 
