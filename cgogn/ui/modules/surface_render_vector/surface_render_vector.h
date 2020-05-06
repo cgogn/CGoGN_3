@@ -195,7 +195,8 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		if (app_.nb_views() > 1)
+			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;

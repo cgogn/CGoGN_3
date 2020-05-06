@@ -50,8 +50,8 @@ ShaderComputeCenter1::ShaderComputeCenter1()
 		
 		void main()
 		{
-			int ind_v = int(texelFetch(vertex_volume, 2*gl_VertexID).r);
-			uint ind_c = texelFetch(vertex_volume, 2*gl_VertexID+1).r;
+			int ind_v = int(texelFetch(vertex_volume, 2 * gl_VertexID).r);
+			uint ind_c = texelFetch(vertex_volume, 2 * gl_VertexID+1).r;
 
 			vec2 d = vec2(1.0 / 1024.0, inv_h);
 			vec2 coord_c = (-1.0 + d) + 2.0 * d * vec2(float(ind_c % 1024u), float(ind_c / 1024u));
