@@ -68,6 +68,21 @@ void CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = t
 /*****************************************************************************/
 
 // template <typename MESH>
+// void
+// merge_incident_faces(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Edge
 // cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices =
 // true);

@@ -39,7 +39,7 @@ struct CPH3
 	using Attribute = CMAP::Attribute<T>;
 	using AttributeGen = CMAP::AttributeGen;
 	using MarkAttribute = CMAP::MarkAttribute;
-	
+
 	using Vertex = Cell<PHI21_PHI31>;
 	using Vertex2 = Cell<PHI21>;
 	using HalfEdge = Cell<DART>;
@@ -63,9 +63,8 @@ struct CPH3
 	uint32 current_level_;
 
 	CPH3(CMAP& m)
-		: m_(m), current_level_(0),
-		  nb_darts_per_level_(m.get_attribute<std::vector<uint32>>("cph3_nb_darts_per_level")),
-		  maximum_level_(m.get_attribute<uint32>("cph3_maximum_level"))
+		: m_(m), nb_darts_per_level_(m.get_attribute<std::vector<uint32>>("cph3_nb_darts_per_level")),
+		  maximum_level_(m.get_attribute<uint32>("cph3_maximum_level")), current_level_(0)
 	{
 		dart_level_ = m_.darts_.get_attribute<uint32>("dart_level");
 		if (!dart_level_)

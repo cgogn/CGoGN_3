@@ -24,8 +24,6 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/types/attribute_handler.h>
-
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
@@ -82,33 +80,14 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
-	std::shared_ptr<Attribute<Vec3>> vert_col = cgogn::add_attribute<Vec3, Vertex>(*m, "colorV");
-	std::shared_ptr<Attribute<Scalar>> vert_wgt = cgogn::add_attribute<Scalar, Vertex>(*m, "weightV");
+	std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
+	std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
 
-	auto vert_color_handler = cgogn::attribute_handler<Vertex>(m, vert_col);
-	auto vert_scalar_handler = cgogn::attribute_handler<Vertex>(m, vert_wgt);
-
-	cgogn::index_cells<Vertex>(*m);
-	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
-		Vec3 c(0, 0, 0);
-		c[rand() % 3] = 1;
-		vert_color_handler[v] = c;
-		vert_scalar_handler[v] = (double(rand()) / RAND_MAX);
-		return true;
-	});
-
-	std::shared_ptr<Attribute<Vec3>> face_col = cgogn::add_attribute<Vec3, Face>(*m, "colorF");
-	std::shared_ptr<Attribute<Scalar>> face_wgt = cgogn::add_attribute<Scalar, Face>(*m, "weightF");
-
-	auto face_color_handler = cgogn::attribute_handler<Face>(m, face_col);
-	auto face_scalar_handler = cgogn::attribute_handler<Face>(m, face_wgt);
-
-	cgogn::index_cells<Face>(*m);
 	cgogn::foreach_cell(*m, [&](Face f) -> bool {
 		Vec3 c(0, 0, 0);
 		c[rand() % 3] = 1;
-		face_color_handler[f] = c;
-		face_scalar_handler[f] = (double(rand()) / RAND_MAX);
+		cgogn::value<Vec3>(*m, face_color, f) = c;
+		cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
 		return true;
 	});
 
@@ -117,7 +96,7 @@ int main(int argc, char** argv)
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, nullptr);
+	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
 	srv.set_vertex_position(*v1, *m, vertex_position);
 	srv.set_vertex_vector(*v1, *m, vertex_normal);

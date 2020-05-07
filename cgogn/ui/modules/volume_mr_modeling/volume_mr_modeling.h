@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -78,11 +78,11 @@ public:
 	{
 		uint32 cur = m.current_level_;
 		m.current_level_ = m.maximum_level_;
-		
-		modeling::butterflySubdivisionVolumeAdaptative(m,0.5f,vertex_position);
-		
+
+		modeling::butterflySubdivisionVolumeAdaptative(m, 0.5f, vertex_position);
+
 		m.current_level_ = cur;
-		
+
 		cph3_provider_->emit_connectivity_changed(&m);
 		cph3_provider_->emit_attribute_changed(&m, vertex_position);
 
@@ -141,11 +141,11 @@ protected:
 
 			uint32 min = 0;
 			if (ImGui::SliderScalar("Level", ImGuiDataType_U32, &selected_cph3_->current_level_, &min,
-									&selected_cph3_->maximum_level_)){
+									&selected_cph3_->maximum_level_))
+			{
 				cph3_provider_->emit_connectivity_changed(selected_cph3_);
 				cph3_provider_->emit_attribute_changed(selected_cph3_, selected_vertex_position_.get());
 			}
-				
 
 			std::string selected_vertex_position_name_ =
 				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";

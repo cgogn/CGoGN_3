@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COL_H_
-#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COL_H_
+#ifndef CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_
+#define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_program.h>
@@ -37,32 +37,26 @@ DECLARE_SHADER_CLASS(ExplodeVolumesColor, true, CGOGN_STR(ExplodeVolumesColor))
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesColor : public ShaderParam
 {
 	void set_uniforms() override;
-	enum VBONAme : int32
+
+	enum VBOName : uint32
 	{
-		POS = 0,
-		CENTER,
-		COLOR
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER,
+		VOLUME_COLOR
 	};
 
 public:
 	std::array<VBO*, 3> vbos_;
-	GLVec3 light_pos_;
+	GLVec3 light_position_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		explode_ = pp.explode_;
-		light_pos_ = pp.light_position_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderExplodeVolumesColor;
 
-	using LocalShader = ShaderExplodeVolumesColor;
-
-	ShaderParamExplodeVolumesColor(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamExplodeVolumesColor(ShaderType* sh)
+		: ShaderParam(sh), light_position_(10, 100, 1000), explode_(0.9f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
@@ -79,6 +73,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_COLOR_H_

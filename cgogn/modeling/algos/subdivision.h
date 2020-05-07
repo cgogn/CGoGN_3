@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
-#define CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
+#define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
@@ -60,6 +60,28 @@ void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 	Dart d3 = phi<11>(m, d2);
 	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
 }
+
+CMap2::Vertex quadrangulate_face(CMap2& m, CMap2::Face f)
+{
+	cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	Dart d0 = phi1(m, f.dart);
+	Dart d1 = phi<11>(m, d0);
+
+	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
+	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
+
+	Dart x = phi2(m, phi_1(m, d0));
+	Dart dd = phi<1111>(m, x);
+	while (dd != x)
+	{
+		Dart next =phi<11>(m, dd);
+		cut_face(m, CMap2::Vertex(dd), CMap2::Vertex(phi1(m, x)));
+		dd = next;
+	}
+
+	return CMap2::Vertex(phi2(m, x));
+}
+
 
 /////////////
 // GENERIC //
@@ -105,10 +127,29 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 	});
 }
 
+template <typename MESH, typename FUNC1, typename FUNC2>
+void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut)
+{
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
+	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	using Face = typename cgogn::mesh_traits<MESH>::Face;
+
+	CellCache<MESH> cache(m);
+	cache.template build<Edge>();
+	cache.template build<Face>();
+
+	cut_all_edges(m, on_edge_cut);
+
+	foreach_cell(cache, [&](Face f) -> bool {
+		on_face_cut(quadrangulate_face(m, f));
+		return true;
+	});
+}
+
 /* -------------------------- BUTTERFLY VOLUME MASKS -------------------------- */
 
 // Remplit les vecteurs de p/q-points pour le volume incident à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et le vecteur de q-points est vide après l'appel
 template <typename MESH>
 auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vector<Dart>& q_point)
@@ -160,7 +201,7 @@ auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vec
 }
 
 // Remplit les vecteurs de p/q/r/s/t-points pour la face incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 template <typename MESH>
 auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vector<Dart>& q_point,
@@ -273,7 +314,7 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 }
 
 // Remplit les vecteurs de p/q/r/s-points pour l'arete incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 // Attention, un appel récursif est fait (un seul)
 template <typename MESH>
@@ -799,4 +840,4 @@ auto butterflySubdivisionVolumeAdaptative(MESH& m, double angle_threshold,
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#endif // CGOGN_MODELING_ALGOS_SUBDIVISION_H_

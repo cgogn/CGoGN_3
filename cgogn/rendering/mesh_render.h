@@ -36,11 +36,10 @@
 
 #include <cgogn/geometry/algos/ear_triangulation.h>
 
-#include <memory>
-
-#include <cgogn/rendering/drawer.h>
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/vbo.h>
+
+#include <memory>
 
 namespace cgogn
 {
@@ -67,9 +66,11 @@ enum DrawingType : uint32
 	POINTS_TB,
 	LINES_TB,
 	TRIANGLES_TB,
+
 	VOLUMES_FACES_TB,
 	VOLUMES_EDGES_TB,
 	VOLUMES_VERTICES_TB,
+
 	INDEX_EDGES_TB,
 	INDEX_FACES_TB,
 	INDEX_VOLUMES_TB
@@ -88,16 +89,11 @@ inline int32* operator&(DrawingType& d)
 	return reinterpret_cast<int*>(&d);
 }
 
-static std::vector<std::string> primitives_names = {"POINTS",			"LINES",
-													"TRIANGLES",		"VOLUMES_FACES",
-													"VOLUMES_EDGES",	"VOLUMES_VERTICES",
-													"INDEX_EDGES",		"INDEX_FACES",
-													"INDEX_VOLUMES",	"SIZE_BUFFER",
-													"POINTS_TB",		"LINES_TB",
-													"TRIANGLES_TB",		"VOLUMES_FACES_TB",
-													"VOLUMES_EDGES_TB", "VOLUMES_VERTICES_TB",
-													"INDEX_EDGES_TB",	"INDEX_FACES_TB",
-													"INDEX_VOLUMES_TB"};
+static std::vector<std::string> primitives_names = {
+	"POINTS",			"LINES",		  "TRIANGLES",		  "VOLUMES_FACES",	  "VOLUMES_EDGES",
+	"VOLUMES_VERTICES", "INDEX_EDGES",	  "INDEX_FACES",	  "INDEX_VOLUMES",	  "POINTS_TB",
+	"LINES_TB",			"TRIANGLES_TB",	  "VOLUMES_FACES_TB", "VOLUMES_EDGES_TB", "VOLUMES_VERTICES_TB",
+	"INDEX_EDGES_TB",	"INDEX_FACES_TB", "INDEX_VOLUMES_TB"};
 
 class CGOGN_RENDERING_EXPORT MeshRender
 {
@@ -120,7 +116,7 @@ public:
 		indices_buffers_uptodate_[prim % SIZE_BUFFER] = false;
 	}
 
-	inline void set_all_dirty()
+	inline void set_all_primitives_dirty()
 	{
 		for (DrawingType p = POINTS; p < SIZE_BUFFER; ++p)
 			indices_buffers_uptodate_[p] = false;
@@ -286,7 +282,9 @@ protected:
 
 				if (EMB)
 					ivol = index_of(m, vol);
+
 				auto& vertices = vvertices[worker_index];
+
 				foreach_incident_face(m, vol, [&](Face f) -> bool {
 					auto& tif = table_indices_f[worker_index];
 					if (codegree(m, f) == 3)
@@ -299,9 +297,7 @@ protected:
 						tif.push_back(ivol);
 					}
 					else
-					{
-						cgogn::geometry::append_ear_triangulation(m, f, position, tif, [&]() { tif.push_back(ivol); });
-					}
+						geometry::append_ear_triangulation(m, f, position, tif, [&]() { tif.push_back(ivol); });
 					return true;
 				});
 
@@ -342,7 +338,6 @@ public:
 
 		if (prim >= SIZE_BUFFER)
 			prim = DrawingType(prim % SIZE_BUFFER);
-		indices_buffers_uptodate_[prim] = true;
 
 		auto func_update_ebo = [&](DrawingType pr, const TablesIndices& table) -> void {
 			uint32 total_size = 0;
@@ -366,20 +361,20 @@ public:
 			}
 		};
 
-		auto func_update_ebo2 = [&](DrawingType pr1, const TablesIndices& table1) -> void {
+		auto func_update_ebo2 = [&](DrawingType pr, const TablesIndices& table1) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
 				total_size1 += uint32(t.size());
 
-			indices_buffers_uptodate_[pr1] = true;
+			indices_buffers_uptodate_[pr] = true;
 			if (total_size1 > 0)
 			{
-				if (!indices_buffers_[pr1]->is_created())
-					indices_buffers_[pr1]->create();
+				if (!indices_buffers_[pr]->is_created())
+					indices_buffers_[pr]->create();
 
-				indices_buffers_[pr1]->allocate(total_size1);
-				indices_buffers_[pr1]->bind();
-				uint32* ptr = indices_buffers_[pr1]->lock_pointer();
+				indices_buffers_[pr]->allocate(total_size1);
+				indices_buffers_[pr]->bind();
+				uint32* ptr = indices_buffers_[pr]->lock_pointer();
 				uint32 beg = 0;
 				for (const auto& t : table1)
 				{
@@ -387,29 +382,27 @@ public:
 						*ptr++ = i + beg;
 					beg += t.empty() ? 0 : t.back() + 1;
 				}
-				indices_buffers_[pr1]->set_name("EBO_" + primitives_names[pr1]);
-				indices_buffers_[pr1]->release_pointer();
-				indices_buffers_[pr1]->release();
+				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+				indices_buffers_[pr]->release_pointer();
+				indices_buffers_[pr]->release();
 			}
 		};
 
-		auto func_update_ebo3 = [&](DrawingType pr1, const TablesIndices& table1, const TablesIndices& table2,
+		auto func_update_ebo3 = [&](DrawingType pr, const TablesIndices& table1, const TablesIndices& table2,
 									uint32 interv) -> void {
 			uint32 total_size1 = 0;
 			for (const auto& t : table1)
 				total_size1 += uint32(t.size());
 
-			indices_buffers_uptodate_[pr1] = true;
+			indices_buffers_uptodate_[pr] = true;
 			if (total_size1 > 0)
 			{
-				if (!indices_buffers_[pr1]->is_created())
-					indices_buffers_[pr1]->create();
+				if (!indices_buffers_[pr]->is_created())
+					indices_buffers_[pr]->create();
 
-				indices_buffers_[pr1]->allocate(total_size1);
-
-				indices_buffers_[pr1]->bind();
-				uint32* ptr1 = indices_buffers_[pr1]->lock_pointer();
-
+				indices_buffers_[pr]->allocate(total_size1);
+				indices_buffers_[pr]->bind();
+				uint32* ptr1 = indices_buffers_[pr]->lock_pointer();
 				uint32 beg = 0;
 				uint32 nb = uint32(table1.size());
 				for (uint32 j = 0; j < nb; ++j)
@@ -422,13 +415,13 @@ public:
 					beg += table2[j].empty() ? 0 : table2[j].back() + 1;
 				}
 
-				indices_buffers_[pr1]->set_name("EBO_" + primitives_names[pr1]);
-				indices_buffers_[pr1]->release_pointer();
-				indices_buffers_[pr1]->release();
+				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+				indices_buffers_[pr]->release_pointer();
+				indices_buffers_[pr]->release();
 			}
 		};
 
-		auto start_timer = std::chrono::high_resolution_clock::now();
+		// auto start_timer = std::chrono::high_resolution_clock::now();
 
 		uint32 nbw = thread_pool()->nb_workers();
 
@@ -491,7 +484,6 @@ public:
 				func_update_ebo(TRIANGLES, table_indices);
 			}
 			break;
-
 		case VOLUMES_VERTICES:
 		case VOLUMES_EDGES:
 		case VOLUMES_FACES:
@@ -517,14 +509,13 @@ public:
 				}
 			}
 			break;
-
 		default:
 			break;
 		}
 
-		auto end_timer = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
-		std::cout << "init primitive " << prim << " in " << elapsed_seconds.count() << std::endl;
+		// auto end_timer = std::chrono::high_resolution_clock::now();
+		// std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
+		// std::cout << "init primitive " << prim << " in " << elapsed_seconds.count() << std::endl;
 	}
 
 	void draw(DrawingType prim, GLint binding_point = 10);

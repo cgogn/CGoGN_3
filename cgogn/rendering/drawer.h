@@ -105,7 +105,7 @@ public:
 	{
 		friend class DisplayListDrawer;
 
-		std::unique_ptr<ShaderColorPerVertex::Param> param_cpv_;
+		std::unique_ptr<ShaderFlatColorPerVertex::Param> param_cpv_;
 		std::unique_ptr<ShaderBoldLineColor::Param> param_bl_;
 		std::unique_ptr<ShaderRoundPointColor::Param> param_rp_;
 		std::unique_ptr<ShaderPointSpriteColor::Param> param_ps_;

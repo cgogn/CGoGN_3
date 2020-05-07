@@ -50,9 +50,9 @@ public:
 		double_side_ = pp.double_side_;
 	}
 
-	using LocalShader = ShaderNoIllumScalarPerFace;
+	using ShaderType = ShaderNoIllumScalarPerFace;
 
-	ShaderParamNoIllumScalarPerFace(LocalShader* sh) : ShaderParam(sh)
+	ShaderParamNoIllumScalarPerFace(ShaderType* sh) : ShaderParam(sh)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;

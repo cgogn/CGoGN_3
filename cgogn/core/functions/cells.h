@@ -56,6 +56,26 @@ bool is_indexed(const CMapBase& m)
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
+// uint32 maximum_index(MESH& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+uint32 maximum_index(const CMapBase& m)
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access a cell index of an unindexed cell type");
+	return m.attribute_containers_[CELL::ORBIT].maximum_index();
+}
+
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
 // uint32 index_of(MESH& m, CELL c);
 
 /*****************************************************************************/
@@ -73,9 +93,12 @@ uint32 index_of(const CMapBase& m, CELL c)
 	return (*m.cells_indices_[orbit])[c.dart.index];
 }
 
-template <typename MRMAP,typename CELL>
-inline auto index_of(const MRMAP& m, CELL c)
--> std::enable_if_t<std::is_convertible_v<MRMAP&, CPH3&>,uint32>
+//////////
+// CPH3 //
+//////////
+
+template <typename MRMAP, typename CELL>
+inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MRMAP&, CPH3&>, uint32>
 {
 	static const Orbit orbit = CELL::ORBIT;
 
@@ -143,11 +166,9 @@ inline void init_cells_indexing(CMapBase& m)
 //////////////
 
 template <typename CELL, typename MESH>
-auto set_index(const MESH& m, CELL c,uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
-	static const Orbit orbit = CELL::ORBIT;
-	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
 	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
 		set_index<CELL>(m, d, index);

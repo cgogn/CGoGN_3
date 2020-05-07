@@ -47,16 +47,15 @@ public:
 	Texture2D* texture_;
 	float32 italic_;
 
-	using LocalShader = ShaderText;
+	using ShaderType = ShaderText;
 
-	ShaderParamText(LocalShader* sh) : ShaderParam(sh), italic_(0)
+	ShaderParamText(ShaderType* sh) : ShaderParam(sh), italic_(0)
 	{
 	}
 
 	inline ~ShaderParamText() override
 	{
 	}
-
 };
 
 } // namespace rendering

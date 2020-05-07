@@ -102,9 +102,9 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
 		{
 			DartMarkerStore<MESH> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				Edge e(d);
 				if (!marker.is_marked(d))
 				{
+					Edge e(d);
 					foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
 						marker.mark(d);
 						return true;

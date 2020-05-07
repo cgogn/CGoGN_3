@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -25,9 +25,9 @@
 #define CGOGN_MODULE_SURFACE_DIFFERENTIAL_PROPERTIES_H_
 
 #include <cgogn/ui/app.h>
+#include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/tools.h>
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -66,6 +66,7 @@ public:
 		  selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr)
 	{
 	}
+
 	~SurfaceDifferentialProperties()
 	{
 	}
@@ -99,9 +100,6 @@ protected:
 
 	void interface() override
 	{
-		//		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		//		ImGui::SetWindowSize({0, 0});
-
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
 			selected_vertex_position_.reset();
@@ -111,37 +109,38 @@ protected:
 			selected_vertex_Kmax_.reset();
 			selected_vertex_Kmin_.reset();
 			selected_vertex_Knormal_.reset();
+			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
 		{
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_position_, "Position",
-				[&](const decltype(selected_vertex_position_)& att) { selected_vertex_position_ = att; });
+				[&](const decltype(selected_vertex_position_)& attribute) { selected_vertex_position_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_normal_, "Normal",
-				[&](const decltype(selected_vertex_normal_)& att) { selected_vertex_normal_ = att; });
+				[&](const decltype(selected_vertex_normal_)& attribute) { selected_vertex_normal_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Scalar>(
 				*selected_mesh_, selected_vertex_kmax_, "kmax",
-				[&](const decltype(selected_vertex_kmax_)& att) { selected_vertex_kmax_ = att; });
+				[&](const decltype(selected_vertex_kmax_)& attribute) { selected_vertex_kmax_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Scalar>(
 				*selected_mesh_, selected_vertex_kmin_, "kmin",
-				[&](const decltype(selected_vertex_kmin_)& att) { selected_vertex_kmin_ = att; });
+				[&](const decltype(selected_vertex_kmin_)& attribute) { selected_vertex_kmin_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_Kmax_, "Kmax",
-				[&](const decltype(selected_vertex_Kmax_)& att) { selected_vertex_Kmax_ = att; });
+				[&](const decltype(selected_vertex_Kmax_)& attribute) { selected_vertex_Kmax_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_Kmin_, "Kmin",
-				[&](const decltype(selected_vertex_Kmin_)& att) { selected_vertex_Kmin_ = att; });
+				[&](const decltype(selected_vertex_Kmin_)& attribute) { selected_vertex_Kmin_ = attribute; });
 
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_Knormal_, "Knormal",
-				[&](const decltype(selected_vertex_Knormal_)& att) { selected_vertex_Knormal_ = att; });
+				[&](const decltype(selected_vertex_Knormal_)& attribute) { selected_vertex_Knormal_ = attribute; });
 
 			if (selected_vertex_position_)
 			{
@@ -184,8 +183,6 @@ protected:
 				}
 			}
 		}
-
-		//		ImGui::End();
 	}
 
 private:

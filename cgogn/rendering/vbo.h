@@ -194,22 +194,18 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
-		{
 			std::cout << *f++ << ", ";
-		}
 		std::cout << std::endl;
 	}
 
 	std::cout << " . . . . " << std::endl;
 
-	f = ff + vbo.size() - NB * vd;
+	f = ff + vbo.size() - int64(NB) * vd;
 
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
-		{
 			std::cout << *f++ << ", ";
-		}
 		std::cout << std::endl;
 	}
 

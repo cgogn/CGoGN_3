@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -70,17 +70,10 @@ class TopoRender : public ViewModule
 
 		inline void update_topo(const MESH& m)
 		{
-			switch (mesh_traits<MESH>::dimension)
-			{
-			case 2:
+			if constexpr (mesh_traits<MESH>::dimension == 2)
 				topo_drawer_->update2D(m, vertex_position_.get());
-				break;
-			case 3:
+			else if constexpr (mesh_traits<MESH>::dimension == 3)
 				topo_drawer_->update3D(m, vertex_position_.get());
-				break;
-			default:
-				break;
-			}
 		}
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
@@ -152,7 +145,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			//			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();

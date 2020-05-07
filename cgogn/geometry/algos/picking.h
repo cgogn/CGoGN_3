@@ -71,7 +71,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		}
 		else
 		{
-			for (uint32 i = 0; i + 2 < uint32(vertices.size()); i++)
+			for (uint32 i = 0, size = uint32(vertices.size()); i + 2 < size; i++)
 			{
 				if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
 											  value<Vec3>(m, vertex_position, vertices[i + 1]),

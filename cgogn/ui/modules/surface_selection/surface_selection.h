@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -268,7 +268,7 @@ protected:
 	{
 		if (selected_mesh_ && view->shift_pressed())
 		{
-			//			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (p.vertex_position_)
@@ -437,7 +437,7 @@ protected:
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
 				p.param_point_sprite_->vao_initialized())
 			{
-				p.param_point_sprite_->size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_POINTS, 0, p.selected_vertices_set_->size());
 				p.param_point_sprite_->release();

@@ -32,15 +32,17 @@ namespace cgogn
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(ExplodeVolumesLine, true, CGOGN_STR(ExplodeVolumesLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
 	void set_uniforms() override;
-	enum VBONAme : int32
+
+	enum VBOName : int32
 	{
-		POS = 0,
-		CENTER
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER
 	};
 
 public:
@@ -50,18 +52,10 @@ public:
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		explode_ = pp.explode_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderExplodeVolumesLine;
 
-	using LocalShader = ShaderExplodeVolumesLine;
-
-	ShaderParamExplodeVolumesLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamExplodeVolumesLine(ShaderType* sh)
+		: ShaderParam(sh), color_(1, 1, 0, 1), explode_(0.9f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
@@ -78,6 +72,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
 #endif

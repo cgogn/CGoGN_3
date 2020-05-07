@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -40,8 +40,6 @@ namespace ui
 
 float64 App::frame_time_ = 0;
 
-uint32 label_uuid = 0;
-
 static void glfw_error_callback(int error, const char* description)
 {
 	std::cerr << "Glfw Error " << error << ": " << description << std::endl;
@@ -53,6 +51,7 @@ static void APIENTRY cgogn_gl_debug_msg(GLenum source, GLenum type, GLuint id, G
 										const GLchar* message, const void*)
 {
 	unused_parameters(id, length); // id not revelant
+
 	if (!NOTIF && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
 		return;
 
@@ -108,7 +107,6 @@ inline void enable_gl43_debug_mode(bool show_notif = false)
 	else
 		glDebugMessageCallback(cgogn_gl_debug_msg<false>, nullptr);
 }
-
 #endif
 
 float64 App::fps_ = 0.0;
@@ -118,7 +116,6 @@ App::App()
 	  framebuffer_width_(0), framebuffer_height_(0), interface_scaling_(1.0), show_imgui_(true), show_demo_(false),
 	  current_view_(nullptr)
 {
-
 #ifdef WIN32
 	{
 		bool ok = false;
@@ -136,15 +133,15 @@ App::App()
 		}
 		if (ok)
 		{
-			std::cout << "Windows \033[41m\033[37m console \033[42m color \033[42m mode " << std::endl;
-			std::cout << "\033[40m \033[91m YEEHHH \033[92m YEEHHH \033[93m YEEHHH \033[96m YEEHHH \033[95m YEEHHH "
-					  << "\033[m" << std::endl;
+			// std::cout << "Windows \033[41m\033[37m console \033[42m color \033[42m mode " << std::endl;
+			// std::cout << "\033[40m \033[91m YEEHHH \033[92m YEEHHH \033[93m YEEHHH \033[96m YEEHHH \033[95m YEEHHH "
+			// 		  << "\033[m" << std::endl;
 		}
 	}
 #endif
-	std::cout << "Windows \033[41m\033[37m console \033[42m color \033[42m mode " << std::endl;
-	std::cout << "\033[40m \033[91m YEEHHH \033[92m YEEHHH \033[93m YEEHHH \033[96m YEEHHH \033[95m YEEHHH "
-			  << "\033[m" << std::endl;
+	// std::cout << "Windows \033[41m\033[37m console \033[42m color \033[42m mode " << std::endl;
+	// std::cout << "\033[40m \033[91m YEEHHH \033[92m YEEHHH \033[93m YEEHHH \033[96m YEEHHH \033[95m YEEHHH "
+	// 		  << "\033[m" << std::endl;
 
 	tlq_ = boost::synapse::create_thread_local_queue();
 
@@ -192,7 +189,7 @@ App::App()
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = 0.0f;
-	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
+	style.Colors[ImGuiCol_WindowBg].w = 0.75f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
 	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
@@ -341,7 +338,7 @@ App::App()
 				that->show_demo_ = !that->show_demo_;
 			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
 			{
-				that->interface_scaling_ += 0.5f;
+				that->interface_scaling_ += 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
 			}
 			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
@@ -480,14 +477,11 @@ void App::init_modules()
 int App::launch()
 {
 	param_frame_ = rendering::ShaderFrame2d::generate_param();
-	param_frame_->sz_ = 5.0f;
+	param_frame_->width_ = 5.0f;
 
 	int32 frame_counter = 0;
 	while (!glfwWindowShouldClose(window_))
 	{
-
-		label_uuid = 0;
-
 		boost::synapse::poll(*tlq_);
 
 		glfwPollEvents();
@@ -503,6 +497,7 @@ int App::launch()
 		}
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		for (const auto& v : views_)
 		{
 			v->draw();
@@ -512,7 +507,9 @@ int App::launch()
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.75f, 0.25f, 1);
 				else
 					param_frame_->color_ = rendering::GLColor(0.25f, 0.25f, 0.25f, 1);
-				param_frame_->draw(float(v->viewport_width()), float(v->viewport_height()));
+				param_frame_->w_ = float(v->viewport_width());
+				param_frame_->h_ = float(v->viewport_height());
+				param_frame_->draw();
 			}
 		}
 
@@ -537,6 +534,7 @@ int App::launch()
 							ImGuiWindowFlags_NoMove;
 			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 			window_flags |= ImGuiWindowFlags_NoBackground;
+
 			ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
 
 			ImGui::PopStyleVar(3);
@@ -581,12 +579,25 @@ int App::launch()
 
 			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
+			uint32 id = 0;
 			for (Module* m : modules_)
 			{
+				ImGui::PushID(id);
+				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(255, 128, 0, 200));
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 128, 0, 255));
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 128, 0, 128));
 				if (ImGui::CollapsingHeader(m->name().c_str()))
+				{
+					ImGui::PopStyleColor(3);
 					m->interface();
+				}
+				else
+					ImGui::PopStyleColor(3);
+				ImGui::PopID();
+				++id;
 			}
 			ImGui::End();
+
 			if (first_render)
 				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);
 
@@ -604,8 +615,6 @@ int App::launch()
 		}
 
 		glfwSwapBuffers(window_);
-
-		// std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

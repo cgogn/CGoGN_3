@@ -21,14 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_FRAMEMANIPULATOR_H_
-#define CGOGN_RENDERING_FRAMEMANIPULATOR_H_
+#ifndef CGOGN_RENDERING_FRAME_MANIPULATOR_H_
+#define CGOGN_RENDERING_FRAME_MANIPULATOR_H_
 
-#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/rendering/shaders/frame_manip_drawer.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_no_illum.h>
 #include <cgogn/rendering/types.h>
+
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -64,7 +65,6 @@ namespace rendering
  */
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
-
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
@@ -350,8 +350,8 @@ void FrameManipulator::pick(int x, int y, const VEC& PP, const VEC& QQ)
 	beg_X_ = x;
 	beg_Y_ = y;
 
-	GLVec4 P(PP[0], PP[1], PP[2], 1.0);
-	GLVec4 Q(QQ[0], QQ[1], QQ[2], 1.0);
+	GLVec4 P = construct_GLVec4(PP[0], PP[1], PP[2], 1.0);
+	GLVec4 Q = construct_GLVec4(QQ[0], QQ[1], QQ[2], 1.0);
 	highlighted_ = pick_frame(P, Q);
 
 	if (highlighted_ != NONE)
@@ -387,4 +387,4 @@ void FrameManipulator::get_axis(uint32 ax, VEC3& axis)
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_FRAMEMANIPULATOR_H_
+#endif // CGOGN_RENDERING_FRAME_MANIPULATOR_H_

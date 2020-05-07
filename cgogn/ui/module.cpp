@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -80,7 +80,7 @@ void ViewModule::mouse_release_event(View*, int32, int32, int32)
 void ViewModule::mouse_dbl_click_event(View*, int32, int32, int32)
 {
 }
-void ViewModule::mouse_move_event(View*, int32, int32, int32)
+void ViewModule::mouse_move_event(View*, int32, int32)
 {
 }
 void ViewModule::mouse_wheel_event(View*, int32, int32)

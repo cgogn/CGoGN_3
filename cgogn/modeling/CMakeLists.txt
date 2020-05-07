@@ -20,6 +20,7 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/topstoc.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

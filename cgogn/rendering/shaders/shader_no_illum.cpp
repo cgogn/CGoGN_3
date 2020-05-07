@@ -21,8 +21,6 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <iostream>
-
 #include <cgogn/rendering/shaders/shader_no_illum.h>
 
 namespace cgogn
@@ -31,35 +29,40 @@ namespace cgogn
 namespace rendering
 {
 
-static char const* vertex_shader_source_ = R"(#version 330
-in vec3 vertex_pos;
-uniform mat4 projection_matrix;
-uniform mat4 model_view_matrix;
-void main()
-{
-	gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
-}
-)";
-
-static char const* fragment_shader_source_ = R"(#version 330
-uniform bool double_side;
-uniform vec4 color;
-out vec4 fragColor;
-
-void main()
-{
-if (double_side || gl_FrontFacing)
-	fragColor = color;
-else
-	discard;
-}
-)";
-
 ShaderNoIllum* ShaderNoIllum::instance_ = nullptr;
 
 ShaderNoIllum::ShaderNoIllum()
 {
-	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_pos");
+	char const* vertex_shader_source_ = R"(
+		#version 330
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+
+		in vec3 vertex_position;
+		
+		void main()
+		{
+			gl_Position = projection_matrix * model_view_matrix * vec4(vertex_position, 1.0);
+		}
+	)";
+
+	char const* fragment_shader_source_ = R"(
+		#version 330
+		uniform vec4 color;
+		uniform bool double_side;
+		
+		out vec4 frag_out;
+
+		void main()
+		{
+			if (double_side || gl_FrontFacing)
+				frag_out = color;
+			else
+				discard;
+		}
+	)";
+
+	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_position");
 	add_uniforms("color", "double_side");
 }
 
@@ -69,4 +72,5 @@ void ShaderParamNoIllum::set_uniforms()
 }
 
 } // namespace rendering
+
 } // namespace cgogn
