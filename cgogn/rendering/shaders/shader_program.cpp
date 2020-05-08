@@ -299,7 +299,7 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		vao_initialized_ = 0;
 		uint32 m = 1;
 
-		for (std::size_t i = 0; i < vbos.size(); ++i)
+		for (uint32 i = 0; i < uint32(vbos.size()); ++i)
 		{
 			*vbo_tb(i) = vbos[i];
 			if (vbos[i])

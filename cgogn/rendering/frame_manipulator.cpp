@@ -44,132 +44,12 @@ FrameManipulator::FrameManipulator()
 {
 	fmd_ = FrameManipDrawer::generate();
 	rotations_.setIdentity();
-
 	for (uint32 i = 0; i < 11; ++i)
 	{
 		locked_axis_[i] = false;
 		locked_picking_axis_[i] = false;
 	}
-
-	vbo_frame_ = std::make_unique<VBO>(3);
-
-	param_sc_ = ShaderNoIllum::generate_param();
-	param_sc_->set_vbos({vbo_frame_.get()});
-
-	param_bl_ = ShaderBoldLine::generate_param();
-	param_bl_->set_vbos({vbo_frame_.get()});
-
-	std::vector<GLVec3> points;
-	points.reserve(6 * nb_segments + 30);
-	points.resize(6 * nb_segments + 6);
-
-	uint32 second = 2 * (nb_segments + 1);
-	uint32 third = 4 * (nb_segments + 1);
-
-	for (uint32 i = 0; i <= nb_segments; ++i)
-	{
-		float32 alpha = float32(M_PI * i) / float32(nb_segments / 2);
-		float32 x = (1.0f + ring_half_width) * std::cos(alpha);
-		float32 y = (1.0f + ring_half_width) * std::sin(alpha);
-		float32 xx = (1.0f - ring_half_width) * std::cos(alpha);
-		float32 yy = (1.0f - ring_half_width) * std::sin(alpha);
-
-		points[2 * i] = GLVec3(0.0f, x, y);
-		points[2 * i + 1] = GLVec3(0.0f, xx, yy);
-		points[second + 2 * i] = GLVec3(x, 0.0f, y);
-		points[second + 2 * i + 1] = GLVec3(xx, 0.0f, yy);
-		points[third + 2 * i] = GLVec3(x, y, 0.0f);
-		points[third + 2 * i + 1] = GLVec3(xx, yy, 0.0f);
-	}
-
-	points.push_back(GLVec3(0.0f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.23f, 0.0f, 0.0f));
-
-	points.push_back(GLVec3(0.0f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.23f, 0.0f));
-
-	points.push_back(GLVec3(0.0f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.0f, 0.23f));
-
-	points.push_back(GLVec3(0.27f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.75f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.9f, 0.0f, 0.0f));
-	points.push_back(GLVec3(0.7f, -0.03f, 0.0f));
-	points.push_back(GLVec3(0.7f, 0.0f, -0.03f));
-	points.push_back(GLVec3(0.7f, 0.03f, 0.0f));
-	points.push_back(GLVec3(0.7f, 0.0f, 0.03f));
-	points.push_back(GLVec3(0.7f, -0.03f, 0.0f));
-
-	points.push_back(GLVec3(0.0f, 0.27f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.75f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.9f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
-	points.push_back(GLVec3(0.03f, 0.7f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.7f, -0.03f));
-	points.push_back(GLVec3(-0.03f, 0.7f, 0.0f));
-	points.push_back(GLVec3(0.0f, 0.7f, 0.03f));
-
-	points.push_back(GLVec3(0.0f, 0.0f, 0.27f));
-	points.push_back(GLVec3(0.0f, 0.0f, 0.75f));
-	points.push_back(GLVec3(0.0f, 0.0f, 0.9f));
-	points.push_back(GLVec3(0.03f, 0.0f, 0.7f));
-	points.push_back(GLVec3(0.0f, 0.03f, 0.7f));
-	points.push_back(GLVec3(-0.03f, 0.0f, 0.7f));
-	points.push_back(GLVec3(0.0f, -0.03f, 0.7f));
-	points.push_back(GLVec3(0.03f, 0.0f, 0.7f));
-
-	update_vbo(points, vbo_frame_.get());
 	set_length_axes();
-
-	vbo_grid_ = std::make_unique<VBO>(3);
-	param_grid_ = ShaderNoIllum::generate_param();
-	param_grid_->set_vbos({vbo_grid_.get()});
-	param_grid_->color_ = GLColor(1, 1, 1, 1);
-
-	points.clear();
-
-	for (uint32 i = 0; i <= nb_grid_; ++i)
-	{
-		float32 x = float32(2 * i) / float32(nb_grid_) - 1.0f;
-		points.push_back(GLVec3(x, -1.0f, 0.001f));
-		points.push_back(GLVec3(x, 1.0f, 0.001f));
-	}
-	for (uint32 i = 0; i <= nb_grid_; ++i)
-	{
-		float32 x = float32(2 * i) / float32(nb_grid_) - 1.0f;
-		points.push_back(GLVec3(-1.0f, x, 0.001f));
-		points.push_back(GLVec3(1.0f, x, 0.001f));
-	}
-
-	update_vbo(points, vbo_grid_.get());
-}
-
-void FrameManipulator::z_plane_param(const GLColor& color, float32 xc, float32 yc, float32 r)
-{
-	std::vector<GLVec3> points;
-	points.reserve(nb_grid_ind_);
-
-	param_grid_->color_ = color;
-
-	float32 x_min = xc - r;
-	float32 x_max = xc + r;
-	float32 y_min = yc - r;
-	float32 y_max = yc + r;
-
-	for (uint32 i = 0; i <= nb_grid_; ++i)
-	{
-		float32 x = r * float32(2 * i) / float32(nb_grid_) + x_min;
-		points.push_back(GLVec3(x, y_min, 0.001f));
-		points.push_back(GLVec3(x, y_max, 0.001f));
-	}
-	for (uint32 i = 0; i <= nb_grid_; ++i)
-	{
-		float32 y = r * float32(2 * i) / float32(nb_grid_) + y_min;
-		points.push_back(GLVec3(x_min, y, 0.001f));
-		points.push_back(GLVec3(x_max, y, 0.001f));
-	}
-
-	update_vbo(points, vbo_grid_.get());
 }
 
 void FrameManipulator::set_size(float32 radius)
@@ -386,86 +266,9 @@ void FrameManipulator::translate(uint32 axis, float32 x)
 
 void FrameManipulator::set_length_axes()
 {
-	float32 avgScale = (scale_[0] + scale_[1] + scale_[2]) / 3.0f;
-	vbo_frame_->bind();
-	float32* positions = vbo_frame_->lock_pointer();
-	uint32 ind = 3 * (6 * nb_segments + 6 + 1);
+	float32 avgScale = 0.75f / (scale_[0] + scale_[1] + scale_[2]);
 
-	float32 sc0 = scale_[0] / avgScale;
-	float32 sc1 = scale_[1] / avgScale;
-	float32 sc2 = scale_[2] / avgScale;
-
-	positions[ind] = 0.23f * sc0;
-	ind += 7;
-	positions[ind] = 0.23f * sc1;
-	ind += 7;
-	positions[ind] = 0.23f * sc2;
-	ind++;
-	if (locked_axis_[Xs] && (highlighted_ != CENTER))
-		positions[ind] = 0.0f;
-	else
-		positions[ind] = 0.27f * sc0;
-	ind += 3;
-	positions[ind] = 0.75f * sc0;
-	ind += 3;
-	positions[ind] = 0.9f * sc0;
-	ind += 3;
-	float32 le = 0.7f * sc0;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 4;
-
-	if (locked_axis_[Ys] && (highlighted_ != CENTER))
-		positions[ind] = 0.0f;
-	else
-		positions[ind] = 0.27f * sc1;
-	ind += 3;
-	positions[ind] = 0.75f * sc1;
-	ind += 3;
-	positions[ind] = 0.9f * sc1;
-	ind += 3;
-	le = 0.7f * sc1;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 4;
-
-	if (locked_axis_[Zs] && (highlighted_ != CENTER))
-		positions[ind] = 0.0f;
-	else
-		positions[ind] = 0.27f * sc2;
-	ind += 3;
-	positions[ind] = 0.75f * sc2;
-	ind += 3;
-	positions[ind] = 0.9f * sc2;
-	ind += 3;
-	le = 0.7f * sc2;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-	ind += 3;
-	positions[ind] = le;
-
-	vbo_frame_->release_pointer();
-
-	length_axes_ = GLVec3(0.25f * sc0, 0.25f * sc1, 0.25f * sc2);
+	length_axes_ = avgScale * scale_;
 }
 
 void FrameManipulator::scale(uint32 axis, float32 sc)
@@ -685,8 +488,9 @@ void FrameManipulator::store_projection(uint32 ax)
 {
 	GLMat4 mat = proj_mat_ * view_mat_;
 	GLVec4 tr(trans_.x(), trans_.y(), trans_.z(), 1);
-	GLVec3 Or = (mat * tr).head<3>();
-	projected_origin_ = Or * 0.5f + GLVec3(0.5f, 0.5f, 0.5f);
+	GLVec4 Or4 = (mat * tr);
+	GLVec3 Or = Or4.head<3>() / Or4[3];
+	projected_origin_ = Or* 0.5f + GLVec3(0.5f, 0.5f, 0.5f);
 	projected_origin_[0] = projected_origin_[0] * float32(viewport_[2]) + float32(viewport_[0]);
 	projected_origin_[1] = projected_origin_[1] * float32(viewport_[3]) + float32(viewport_[1]);
 
@@ -696,15 +500,15 @@ void FrameManipulator::store_projection(uint32 ax)
 		if ((ax >= Xr) && (ax <= Zr))
 		{
 			// compute screen orientation
-			GLVec4 A4(A.x(), A.y(), A.z(), 1);
-			GLVec3 V = (view_mat_ * A4).head<3>();
-			Or = (view_mat_ * tr).head<3>();
-			axis_orientation_ = Or.dot(V) < 0;
+			GLVec3 V = (view_mat_.block<3, 3>(0, 0) * A);
+			axis_orientation_ = V[2] > 0;
+			std::cout << std::boolalpha << axis_orientation_ << std::endl;
 		}
 
 		A = A + trans_;
 		GLVec4 A4(A.x(), A.y(), A.z(), 1);
-		projected_selected_axis_ = (mat * A4).head<3>();
+		A4 = (mat * A4);
+		projected_selected_axis_ = A4.head<3>() / A4[3];
 		projected_selected_axis_ = projected_selected_axis_ * 0.5f + GLVec3(0.5f, 0.5f, 0.5f);
 		projected_selected_axis_[0] = projected_selected_axis_[0] * float32(viewport_[2]) + float32(viewport_[0]);
 		projected_selected_axis_[1] = projected_selected_axis_[1] * float32(viewport_[3]) + float32(viewport_[1]);
@@ -715,31 +519,13 @@ void FrameManipulator::store_projection(uint32 ax)
 float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 {
 	Vec3 Vo(float32(x) - projected_origin_[0], float32(viewport_[3] - y) - projected_origin_[1], 0.0f);
+
 	Vec3 dV(float32(dx), float32(dy), 0.0f);
-	//	Vec3 W = Vo.cross(dV);
-	//	W.normalize();
 
 	Vo.normalize();
 	dV.normalize();
 	Vec3 W = Vo.cross(dV);
-
-	float32 alpha = float32(std::abs(W[2]));
-
-	// which direction ?
-
-	//	std::cout << "projected_origin_ "<< projected_origin_[0]<<", "<<projected_origin_[1]<<",
-	//"<<projected_origin_[2]<< std::endl; 	std::cout << "xy: "<< x << ", "<< viewport_[3]-y << std::endl; 	std::cout <<
-	//"Vo " << Vo << "  dV " << dV << "    => "<< W[2] << std::endl; 	std::cout << W << std::endl;
-	//@@@@@@@@@@@@@@@@@@@@@@@	std::cout << "Alpha="<<alpha<<"  & ori:"<<std::boolalpha<<axis_orientation_<<std::endl<<
-	// std::endl;
-
-	if (axis_orientation_ != (W[2] > 0.0f))
-		alpha *= -1.0f;
-
-	//	std::cout << x << "," << viewport_[3]-y << "  -  " << projected_origin_[0] <<","<< projected_origin_[1] <<
-	// std::endl; 	std::cout<< "->" << Vo << " ^ "<< dV << " = " << W << " * "<< psa << " => "<< alpha << std::endl;
-
-	return alpha / 100.0f;
+	return (axis_orientation_ ? W[2] : - W[2]) / 100.0f;
 }
 
 float32 FrameManipulator::distance_from_mouse(int dx, int dy)
@@ -793,26 +579,15 @@ void FrameManipulator::translate_in_screen(int dx, int dy)
 
 void FrameManipulator::rotate_in_screen(int dx, int dy)
 {
-	GLMat4& proj = proj_mat_;
-	GLMat4& view = view_mat_;
-
-	// unproject origin
-	GLMat4 inv_mat = (proj * view).inverse();
-
-	GLVec4 P(projected_origin_[0] - float32(dy), projected_origin_[1] + float32(dx), projected_origin_[2], 1.0f);
-	P[0] = (P[0] - float32(viewport_[0])) / float32(viewport_[2]);
-	P[1] = (P[1] - float32(viewport_[1])) / float32(viewport_[3]);
-	P = P * 2.0f - GLVec4(1.0f, 1.0f, 1.0f, 1.0f);
-
+	GLMat4 inv_mat = (proj_mat_ * view_mat_).inverse();
+	GLVec4 P(dx, -dy, 0.0f, 1.0f);
 	P = inv_mat * P;
 	P /= P[3];
 
-	// and apply rotation
-
-	GLVec3 axis_rot(P[0] - trans_[0], P[1] - trans_[1], P[2] - trans_[2]);
+	GLVec3 axis_rot(P[1], P[0], P[2]);
 	axis_rot.normalize();
 
-	float32 angle = std::sqrt(float32(dx * dx + dy * dy)) / 2.0f;
+	float32 angle = std::sqrt(float32(dx * dx + dy * dy)) / 200.0f;
 	Eigen::Transform<float, 3, Eigen::Affine> tr(Eigen::AngleAxisf(angle, axis_rot));
 	rotations_ = tr * rotations_;
 }
