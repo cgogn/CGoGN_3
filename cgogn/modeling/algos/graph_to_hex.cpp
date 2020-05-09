@@ -398,7 +398,7 @@ void extract_volume_surface(CMap3& m3, CMap2& m2)
 		if (is_incident_to_boundary(m3, f))
 		{
 			foreach_incident_vertex(m3, f, [&](CMap3::Vertex v3) -> bool {
-				uint32 vertex_id = value<uint32>(m3, vertex_m2_embeddings, v3);
+				//uint32 vertex_id = value<uint32>(m3, vertex_m2_embeddings, v3);
 				indices.push_back(value<uint32>(m3, vertex_m2_embeddings, v3));
 				return true;
 			});
@@ -651,13 +651,13 @@ bool subdivide_graph(Graph& g)
 		Scalar D = edge.norm();
 		edge = edge.normalized();
 
-		uint32 n = D / avg_radius;
+		uint32 n = uint32(D / avg_radius);
 		//if (D > 2 * avg_radius)
 		//{
 		//	n = 2;
 			if (n > 1)
 			{
-				Scalar y = (Rn - R0) / D;
+				//Scalar y = (Rn - R0) / D;
 				Scalar ratio = pow(Rn / R0, 1.0 / Scalar(n));
 
 				Scalar sum_ratio = 0;
@@ -1559,7 +1559,7 @@ Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data)
 
 	Dart volume_dart;
 	std::vector<Dart> all_darts;
-	for (uint32 i = 0u, end = surface_data.faces_nb_vertices_.size(); i < end; ++i)
+	for (std::size_t i = 0u, end = surface_data.faces_nb_vertices_.size(); i < end; ++i)
 	{
 		uint32 nbv = surface_data.faces_nb_vertices_[i];
 
@@ -1686,7 +1686,7 @@ Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes
 
 Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations)
 {
-	uint32 nb_pts = points.size();
+	uint32 nb_pts = uint32(points.size());
 	std::vector<Vec3> pts0(nb_pts);
 	std::vector<Vec3> pts1(nb_pts);
 
@@ -1880,10 +1880,10 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 						continue;
 
 					uint32 new_min = value<uint32>(m2, dist, CMap2::Vertex(v2));
-					if(value<uint32>(m2, dist, CMap2::Vertex(v2)) < curr_min)
+					if(new_min < curr_min)
 					{
 						
-						curr_min = value<uint32>(m2, dist, CMap2::Vertex(v2));
+						curr_min = new_min; // value<uint32>(m2, dist, CMap2::Vertex(v2)); ????
 						curr_min_vert = v2;
 					}
 				}	
@@ -2071,6 +2071,7 @@ bool add_quality_attributes(CMap3& m3, M3Attributes& m3Attribs)
 		std::cout << "Failed to add color_maen_frobenius attribute to cmap3" << std::endl;
 		return false;
 	}
+	return true;
 }
 
 bool set_hex_frames(CMap3& m3, M3Attributes& m3Attribs)

@@ -169,15 +169,6 @@ public:
 	void set_size(float32 radius);
 
 	/**
-	 * @brief set z_plane parameter drawing
-	 * @param color
-	 * @param xc x position [-1/1] (default 0)
-	 * @param yc y position [-1/1] (default 0)
-	 * @param r radius (default 1)
-	 */
-	void z_plane_param(const GLColor& color, float32 xc, float32 yc, float32 r);
-
-	/**
 	 * get the size of frame
 	 */
 	float32 get_size();

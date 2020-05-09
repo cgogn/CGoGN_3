@@ -471,9 +471,11 @@ protected:
 		if (view == selected_view_ && selected_mesh_)
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
-			if (p.manipulating_frame_ && view->mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT))
+			bool leftpress = view->mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
+			bool rightpress = view->mouse_button_pressed(GLFW_MOUSE_BUTTON_RIGHT);
+			if (p.manipulating_frame_ && (rightpress || leftpress))
 			{
-				p.frame_manipulator_.drag(true, x, y);
+				p.frame_manipulator_.drag(leftpress, x, y);
 				if (p.clipping_plane_)
 				{
 					Vec3 position;
