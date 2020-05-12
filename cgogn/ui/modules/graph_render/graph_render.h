@@ -140,16 +140,17 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_position_ == vertex_position)
+			return;
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
 			if (p.vertex_base_size_ == 0.0)
 				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
-			md->update_vbo(p.vertex_position_.get(), true);
-			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -164,13 +165,14 @@ public:
 	void set_vertex_radius(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_radius_ == vertex_radius)
+			return;
 
 		p.vertex_radius_ = vertex_radius;
 		if (p.vertex_radius_)
 		{
-			md->update_vbo(vertex_radius.get(), true);
-			p.vertex_radius_vbo_ = md->vbo(p.vertex_radius_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_radius_vbo_ = md->update_vbo(vertex_radius.get(), true);
 		}
 		else
 			p.vertex_radius_vbo_ = nullptr;
@@ -199,7 +201,7 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
@@ -208,13 +210,13 @@ protected:
 
 			if (p.render_vertices_)
 			{
-				if (p.param_point_sprite_size_->vao_initialized())
+				if (p.param_point_sprite_size_->attributes_initialized())
 				{
 					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::POINTS);
 					p.param_point_sprite_size_->release();
 				}
-				else if (p.param_point_sprite_->vao_initialized())
+				else if (p.param_point_sprite_->attributes_initialized())
 				{
 					p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 					p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -229,7 +231,8 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		if (app_.nb_views() > 1)
+			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
 

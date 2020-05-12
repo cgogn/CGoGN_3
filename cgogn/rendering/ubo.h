@@ -28,7 +28,7 @@
 #include <GL/gl3w.h>
 
 #include <cgogn/core/utils/numerics.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 #include <string>
 
@@ -64,6 +64,11 @@ public:
 		glDeleteBuffers(1, &id_);
 	}
 
+	inline GLuint id() const
+	{
+		return id_;
+	}
+
 	template <typename T>
 	inline void update_data(const T& data)
 	{
@@ -78,11 +83,6 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, id_);
 		glBufferSubData(GL_UNIFORM_BUFFER, &sub - &data, GLsizeiptr(sizeof(S)), &sub);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
-
-	GLuint id() const
-	{
-		return id_;
 	}
 };
 

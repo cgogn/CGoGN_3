@@ -54,7 +54,7 @@ ShaderTEX2VBO::ShaderTEX2VBO()
 
 	load_tfb1_bind(vertex_shader_source, {"vbo_out"});
 
-	add_uniforms("TUin","normalization");
+	get_uniforms("TUin","normalization");
 }
 
 } // namespace rendering

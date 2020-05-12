@@ -33,9 +33,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.h"
 		"${CMAKE_CURRENT_LIST_DIR}/fbo.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo_update.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_program.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shader_program.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shader_program.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"

@@ -144,7 +144,7 @@ ShaderBoldLine::ShaderBoldLine()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position");
-	add_uniforms("line_color", "line_width", "lighted", "plane_clip", "plane_clip2");
+	get_uniforms("line_color", "line_width", "lighted", "plane_clip", "plane_clip2");
 }
 
 void ShaderParamBoldLine::set_uniforms()

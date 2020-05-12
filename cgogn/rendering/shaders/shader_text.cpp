@@ -73,7 +73,7 @@ ShaderText::ShaderText()
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_in", "char_in", "colsz_in");
 
-	add_uniforms("texture_unit", "italic");
+	get_uniforms("texture_unit", "italic");
 }
 
 } // namespace rendering

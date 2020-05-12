@@ -72,7 +72,7 @@ FBO::FBO(const std::vector<Texture2D*>& textures, bool add_depth, FBO* from)
 				{GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE},
 				{GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE},
 			});
-			depth_tex_->alloc(0, 0, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT);
+			depth_tex_->allocate(0, 0, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT);
 		}
 		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex_->id(), 0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

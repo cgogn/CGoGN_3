@@ -94,7 +94,7 @@ ShaderPhong::ShaderPhong()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_normal");
-	add_uniforms("light_position", "front_color", "back_color", "ambiant_color", "specular_color", "specular_coef",
+	get_uniforms("light_position", "front_color", "back_color", "ambiant_color", "specular_color", "specular_coef",
 				 "double_side");
 }
 

@@ -80,7 +80,7 @@ ShaderRings::ShaderRings()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("selected");
+	get_uniforms("selected");
 }
 
 void ShaderParamRings::set_uniforms()
@@ -199,7 +199,7 @@ ShaderAxis::ShaderAxis()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source);
-	add_uniforms("lineWidths", "selected");
+	get_uniforms("lineWidths", "selected");
 }
 
 void ShaderParamAxis::set_uniforms()
@@ -247,7 +247,7 @@ ShaderXYGrid::ShaderXYGrid()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("sc", "nb", "color");
+	get_uniforms("sc", "nb", "color");
 }
 
 void ShaderParamXYGrid::set_uniforms()

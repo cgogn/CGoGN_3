@@ -43,5 +43,5 @@ ShaderXXXX::ShaderXXXX()
 		const char* fragment_shader_source =
 
 			load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("front_color", );
+	get_uniforms("front_color", );
 }

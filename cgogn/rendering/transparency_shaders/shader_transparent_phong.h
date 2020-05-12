@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADER_TRANSP_PHONG_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/vbo.h>
 
 #include <GLColor>

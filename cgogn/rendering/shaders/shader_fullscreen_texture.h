@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_FULL_SCREEN_TEXTURE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 
 namespace cgogn
@@ -45,10 +45,6 @@ public:
 	GLint unit_;
 	GLfloat alpha_;
 
-	// inline void pick_parameters(const PossibleParameters&) override
-	// {
-	// }
-
 	using ShaderType = ShaderFullScreenTexture;
 
 	ShaderParamFullScreenTexture(ShaderType* sh) : ShaderParam(sh), unit_(0), alpha_(1.0f)
@@ -62,7 +58,6 @@ public:
 	inline void draw()
 	{
 		bind();
-		// set_uniforms();
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		release();
 	}

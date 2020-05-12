@@ -25,8 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -40,6 +40,14 @@ class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
 	void set_uniforms() override;
 
+	std::array<VBO*, 3> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
+	{
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
 	enum VBOName : uint32
 	{
 		VERTEX_POSITION = 0,
@@ -48,7 +56,6 @@ class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 	};
 
 public:
-	std::array<VBO*, 3> vbos_;
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
@@ -64,11 +71,6 @@ public:
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
-	}
-
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
 	}
 };
 
