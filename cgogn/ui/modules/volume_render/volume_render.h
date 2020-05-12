@@ -171,11 +171,6 @@ private:
 		{
 			Parameters& p = parameters_[v][m];
 
-			uint32 nb_elements = is_indexed<Volume>(*m) ? maximum_index<Volume>(*m) : nb_cells<Volume>(*m);
-			p.volume_center_vbo_->bind();
-			p.volume_center_vbo_->allocate(nb_elements, 3);
-			p.volume_center_vbo_->release();
-
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
@@ -183,12 +178,6 @@ private:
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
-
-					uint32 nb_elements = is_indexed<Volume>(*m) ? maximum_index<Volume>(*m) : nb_cells<Volume>(*m);
-					p.volume_center_vbo_->bind();
-					p.volume_center_vbo_->allocate(nb_elements, 3);
-					p.volume_center_vbo_->release();
-
 					if (p.vertex_position_)
 					{
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
@@ -215,15 +204,17 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
+		if (p.vertex_position_ == vertex_position)
+			return;
+
 		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			p.vertex_position_vbo_ = md->update_vbo(vertex_position.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7.0);
 			update_volume_center(v, m);
-			md->update_vbo(vertex_position.get(), true);
-			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -235,7 +226,7 @@ public:
 		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_color_vbo_});
 		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_.get(), p.volume_scalar_vbo_});
 
-		Scalar size = (md->bb_max_ - md->bb_min_).norm() / 10;
+		Scalar size = (md->bb_max_ - md->bb_min_).norm() / 25;
 		Vec3 position = 0.2 * md->bb_min_ + 0.8 * md->bb_max_;
 		p.frame_manipulator_.set_size(size);
 		p.frame_manipulator_.set_position(position);
@@ -246,13 +237,14 @@ public:
 	void set_volume_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& volume_color)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.volume_color_ == volume_color)
+			return;
 
 		p.volume_color_ = volume_color;
 		if (p.volume_color_)
 		{
-			md->update_vbo(p.volume_color_.get(), true);
-			p.volume_color_vbo_ = md->vbo(p.volume_color_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.volume_color_vbo_ = md->update_vbo(p.volume_color_.get(), true);
 		}
 		else
 			p.volume_color_vbo_ = nullptr;
@@ -265,15 +257,16 @@ public:
 	void set_volume_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& volume_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.volume_scalar_ == volume_scalar)
+			return;
 
 		p.volume_scalar_ = volume_scalar;
 		if (p.volume_scalar_)
 		{
-			md->update_vbo(p.volume_scalar_.get(), true);
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.volume_scalar_vbo_ = md->update_vbo(p.volume_scalar_.get(), true);
 			if (p.auto_update_volume_scalar_min_max_)
 				update_volume_scalar_min_max_values(p);
-			p.volume_scalar_vbo_ = md->vbo(p.volume_scalar_.get());
 		}
 		else
 		{
@@ -310,6 +303,11 @@ protected:
 
 		if (p.vertex_position_)
 		{
+			uint32 nb_elements = is_indexed<Volume>(m) ? maximum_index<Volume>(m) : nb_cells<Volume>(m);
+			p.volume_center_vbo_->bind();
+			p.volume_center_vbo_->allocate(nb_elements, 3);
+			p.volume_center_vbo_->release();
+
 			if (!md->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
 				md->init_primitives(rendering::VOLUMES_VERTICES, p.vertex_position_);
 			compute_volume_center_engine_->compute(p.vertex_position_vbo_, md->mesh_render(),

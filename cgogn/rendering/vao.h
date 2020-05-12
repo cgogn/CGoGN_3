@@ -49,35 +49,30 @@ protected:
 public:
 	inline VAO() : id_(0), nb_(0)
 	{
-	}
-
-	inline bool is_created()
-	{
-		return id_ != 0;
-	}
-
-	inline void create()
-	{
 		nb_ = 0;
-		if (is_created())
-			glDeleteVertexArrays(1, &id_);
 		glGenVertexArrays(1, &id_);
 	}
 
-	inline VAO(const std::vector<std::tuple<GLint, VBO, GLint>>& params)
+	inline ~VAO()
 	{
-		nb_ = std::get<1>(params[0]).size();
-		glGenVertexArrays(1, &id_);
-		glBindVertexArray(id_);
-		for (const auto& p : params)
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, std::get<1>(p).id());
-			GLuint vid = GLuint(std::get<0>(p));
-			glEnableVertexAttribArray(vid);
-			glVertexAttribPointer(vid, GLint(std::get<1>(p).vector_dimension()), GL_FLOAT, GL_FALSE, 0, nullptr);
-		}
-		glBindVertexArray(0);
-		
+		if (id_ != 0)
+			glDeleteVertexArrays(1, &id_);
+	}
+
+	inline void set_name(const std::string& name)
+	{
+		name_ = name;
+		gl_debug_name(GL_VERTEX_ARRAY, id_, "VAO_" + name_);
+	}
+
+	inline GLuint id() const
+	{
+		return id_;
+	}
+
+	inline const std::string& name() const
+	{
+		return name_;
 	}
 
 	inline void bind()
@@ -89,18 +84,6 @@ public:
 	{
 		glBindVertexArray(0);
 	}
-
-	inline void set_name(const std::string& name)
-	{
-		name_ = name;
-		gl_debug_name(GL_VERTEX_ARRAY,id_,"VAO_"+name_);
-	}
-
-	inline const std::string& name() const
-	{
-		return name_;
-	}
-
 };
 
 } // namespace rendering

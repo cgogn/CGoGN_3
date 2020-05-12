@@ -117,7 +117,7 @@ ShaderSobel::ShaderSobel()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("TU", "texel_size");
+	get_uniforms("TU", "texel_size");
 }
 
 void ShaderParamSobel::set_uniforms()
@@ -167,7 +167,7 @@ ShaderBlur::ShaderBlur()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("TU", "texel_size_dir");
+	get_uniforms("TU", "texel_size_dir");
 }
 
 void ShaderParamBlur::set_uniforms()
@@ -213,7 +213,7 @@ ShaderColorize::ShaderColorize()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("TU_blur", "TU_mask", "color");
+	get_uniforms("TU_blur", "TU_mask", "color");
 }
 
 void ShaderParamColorize::set_uniforms()
@@ -233,16 +233,16 @@ Outliner::Outliner()
 	param_colorize_ = outline_shaders::ShaderColorize::generate_param();
 
 	Texture2D* t1 = new Texture2D();
-	t1->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_mask_ = new FBO(std::vector<Texture2D*>{t1}, false, nullptr);
+	t1->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_mask_ = new FBO({t1}, false, nullptr);
 
 	Texture2D* t2 = new Texture2D();
-	t2->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_blur1_ = new FBO(std::vector<Texture2D*>{t2}, false, nullptr);
+	t2->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_blur1_ = new FBO({t2}, false, nullptr);
 
 	Texture2D* t3 = new Texture2D();
-	t3->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_blur2_ = new FBO(std::vector<Texture2D*>{t3}, false, nullptr);
+	t3->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_blur2_ = new FBO({t3}, false, nullptr);
 }
 
 Outliner::~Outliner()

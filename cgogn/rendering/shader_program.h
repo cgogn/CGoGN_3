@@ -33,7 +33,7 @@
 #include <iostream>
 #include <memory>
 
-#define DECLARE_SHADER_CLASS(NAME, TB, STRNA)                                                                          \
+#define DECLARE_SHADER_CLASS(NAME, TB, STRNAME)                                                                        \
 	class ShaderParam##NAME;                                                                                           \
 	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
 	{                                                                                                                  \
@@ -52,9 +52,9 @@
 		}                                                                                                              \
 		inline std::string name() const override                                                                       \
 		{                                                                                                              \
-			return STRNA;                                                                                              \
+			return STRNAME;                                                                                            \
 		}                                                                                                              \
-		inline bool use_tb() const override                                                                            \
+		inline bool use_texture_buffer() const override                                                                \
 		{                                                                                                              \
 			return TB;                                                                                                 \
 		}                                                                                                              \
@@ -85,23 +85,9 @@ inline void* void_ptr(uint32 x)
 	return reinterpret_cast<void*>(uint64_t(x));
 }
 
-// struct PossibleParameters
-// {
-// 	GLColor color_;
-// 	GLColor ambiant_color_;
-// 	GLColor front_color_;
-// 	GLColor back_color_;
-// 	GLColor specular_color_;
-// 	float32 specular_coef_;
-// 	GLVec3 light_position_;
-// 	bool double_side_;
-// 	float32 width_;
-// 	float32 size_;
-// 	float32 explode_;
-// 	float32 lighted_;
-// 	GLVec4 plane_clip_;
-// 	GLVec4 plane_clip2_;
-// };
+/*****************************************************************************/
+// Shader
+/*****************************************************************************/
 
 class CGOGN_RENDERING_EXPORT Shader
 {
@@ -123,7 +109,7 @@ public:
 		glDeleteShader(id_);
 	}
 
-	inline GLuint shaderId() const
+	inline GLuint id() const
 	{
 		return id_;
 	}
@@ -131,18 +117,19 @@ public:
 	void compile(const std::string& src, const std::string& prg_name);
 };
 
+/*****************************************************************************/
+// ShaderProgram
+/*****************************************************************************/
+
 class CGOGN_RENDERING_EXPORT ShaderProgram
 {
 protected:
 	static std::vector<ShaderProgram*>* instances_;
-	GLuint id_;
-	Shader* vert_shader_;
-	Shader* frag_shader_;
-	Shader* geom_shader_;
 
-	void load(const std::string& vertex_program_src, const std::string& fragment_program_src);
-	// void load(const std::string& vertex_program_src, const std::string& fragment_program_src,
-	// 		  const std::string& geometry_program_src);
+	GLuint id_;
+	Shader* vertex_shader_;
+	Shader* fragment_shader_;
+	Shader* geometry_shader_;
 
 	GLint uniform_mvp_matrix_;
 	GLint uniform_mv_matrix_;
@@ -154,15 +141,14 @@ protected:
 	std::vector<GLint> uniforms_;
 
 public:
-	static void register_instance(ShaderProgram* sh);
-
-	static void clean_all();
-
 	ShaderProgram();
 	ShaderProgram(const ShaderProgram&) = delete;
 	ShaderProgram& operator=(const ShaderProgram&) = delete;
 
 	virtual ~ShaderProgram();
+
+	static void register_instance(ShaderProgram* sh);
+	static void clean_all();
 
 	inline GLuint id() const
 	{
@@ -171,7 +157,7 @@ public:
 
 	virtual std::string name() const = 0;
 
-	virtual bool use_tb() const = 0;
+	virtual bool use_texture_buffer() const = 0;
 
 	inline uint32 nb_attributes() const
 	{
@@ -188,12 +174,7 @@ public:
 		glUseProgram(0);
 	}
 
-	inline GLint uniform_location(const GLchar* str) const
-	{
-		return glGetUniformLocation(id_, str);
-	}
-
-	inline void add_uniform(const GLchar* str)
+	inline void get_uniform(const GLchar* str)
 	{
 		GLint u = glGetUniformLocation(id_, str);
 		if (u >= 0)
@@ -203,17 +184,64 @@ public:
 	}
 
 	template <typename T1>
-	void add_uniforms(T1 p1)
+	void get_uniforms(T1 p1)
 	{
-		add_uniform(p1);
+		get_uniform(p1);
 	}
 
 	template <typename T1, typename... Ts>
-	void add_uniforms(T1 p1, Ts... pn)
+	void get_uniforms(T1 p1, Ts... pn)
 	{
-		add_uniform(p1);
-		add_uniforms(pn...);
+		get_uniform(p1);
+		get_uniforms(pn...);
 	}
+
+	inline void set_uniform_value(std::size_t i, const float32 v)
+	{
+		glUniform1f(uniforms_[i], v);
+	}
+	inline void set_uniform_value(std::size_t i, const GLVec2& v)
+	{
+		glUniform2fv(uniforms_[i], 1, v.data());
+	}
+	inline void set_uniform_value(std::size_t i, const GLVec3& v)
+	{
+		glUniform3fv(uniforms_[i], 1, v.data());
+	}
+	inline void set_uniform_value(std::size_t i, const GLVec4& v)
+	{
+		glUniform4fv(uniforms_[i], 1, v.data());
+	}
+	inline void set_uniform_value(std::size_t i, const int32 v)
+	{
+		glUniform1i(uniforms_[i], v);
+	}
+	inline void set_uniform_value(std::size_t i, const uint32 v)
+	{
+		glUniform1ui(uniforms_[i], v);
+	}
+	inline void set_uniform_value(std::size_t i, const bool v)
+	{
+		glUniform1i(uniforms_[i], int32(v));
+	}
+
+	template <typename T>
+	void set_uniforms_values(T v)
+	{
+		set_uniform_value(uint32(uniforms_.size()) - 1, v);
+	}
+
+	template <typename T, typename... Ts>
+	void set_uniforms_values(T v, Ts... vs)
+	{
+		set_uniform_value(uint32(uniforms_.size()) - 1 - sizeof...(Ts), v);
+		set_uniforms_values(vs...);
+	}
+
+	void get_matrices_uniforms();
+
+	void set_matrices(const GLMat4& proj, const GLMat4& mv);
+	void set_matrices(const GLMat4d& proj, const GLMat4d& mv);
 
 	inline void bind_attrib_location(GLuint attrib, const char* str_var)
 	{
@@ -248,90 +276,41 @@ public:
 		internal_bind_attrib_locations(1u, pn...);
 	}
 
-	inline void set_uniform_value(std::size_t i, const float32 v)
-	{
-		glUniform1f(uniforms_[i], v);
-	}
-	inline void set_uniform_value(std::size_t i, const GLVec2& v)
-	{
-		glUniform2fv(uniforms_[i], 1, v.data());
-	}
-	inline void set_uniform_value(std::size_t i, const GLVec3& v)
-	{
-		glUniform3fv(uniforms_[i], 1, v.data());
-	}
-	inline void set_uniform_value(std::size_t i, const GLVec4& v)
-	{
-		glUniform4fv(uniforms_[i], 1, v.data());
-	}
-	inline void set_uniform_value(std::size_t i, const int32 v)
-	{
-		glUniform1i(uniforms_[i], v);
-	}
-	inline void set_uniform_value(std::size_t i, const uint32 v)
-	{
-		glUniform1ui(uniforms_[i], v);
-	}
-	inline void set_uniform_value(std::size_t i, const bool v)
-	{
-		glUniform1i(uniforms_[i], int32(v));
-	}
-
-	template <typename T1>
-	void set_uniforms_values(T1 p1)
-	{
-		set_uniform_value(uint32(uniforms_.size()) - 1, p1);
-	}
-
-	template <typename T1, typename... Ts>
-	void set_uniforms_values(T1 p1, Ts... pn)
-	{
-		set_uniform_value(uint32(uniforms_.size()) - 1 - sizeof...(Ts), p1);
-		set_uniforms_values(pn...);
-	}
-
-	void get_matrices_uniforms();
-
-	void set_matrices(const GLMat4& proj, const GLMat4& mv);
-	void set_matrices(const GLMat4d& proj, const GLMat4d& mv);
-
-	void set_view_matrix(const GLMat4& mv);
-	void set_view_matrix(const GLMat4d& mv);
+	void load(const std::string& vertex_program_src, const std::string& fragment_program_src);
 
 	template <typename... Ts>
 	void load3_bind(const std::string& vertex_program_src, const std::string& fragment_program_src,
 					const std::string& geometry_program_src, Ts... pn)
 	{
-		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vertex_program_src, name());
+		vertex_shader_ = new Shader(GL_VERTEX_SHADER);
+		vertex_shader_->compile(vertex_program_src, name());
 
-		geom_shader_ = new Shader(GL_GEOMETRY_SHADER);
-		geom_shader_->compile(geometry_program_src, name());
+		geometry_shader_ = new Shader(GL_GEOMETRY_SHADER);
+		geometry_shader_->compile(geometry_program_src, name());
 
-		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(fragment_program_src, name());
+		fragment_shader_ = new Shader(GL_FRAGMENT_SHADER);
+		fragment_shader_->compile(fragment_program_src, name());
 
-		glAttachShader(id_, vert_shader_->shaderId());
-		glAttachShader(id_, geom_shader_->shaderId());
-		glAttachShader(id_, frag_shader_->shaderId());
+		glAttachShader(id_, vertex_shader_->id());
+		glAttachShader(id_, geometry_shader_->id());
+		glAttachShader(id_, fragment_shader_->id());
 
-		// set_locations();
 		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
 
 		glLinkProgram(id_);
 
 		// puis detache (?)
-		glDetachShader(id_, frag_shader_->shaderId());
-		glDetachShader(id_, geom_shader_->shaderId());
-		glDetachShader(id_, vert_shader_->shaderId());
+		glDetachShader(id_, fragment_shader_->id());
+		glDetachShader(id_, geometry_shader_->id());
+		glDetachShader(id_, vertex_shader_->id());
 
-		glValidateProgram(id_);
-		// Print log if needed
-		GLint infologLength = 0;
-		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS load3_bind " << name() << std::endl;
+		// glValidateProgram(id_);
+		// // Print log if needed
+		// GLint infologLength = 0;
+		// glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_LINK_STATUS load3_bind " << name() << std::endl;
 		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		// if (infologLength != GL_TRUE)
 		// 	std::cerr << "PB GL_VALIDATE_STATUS load3_bind " << name() << std::endl;
@@ -351,14 +330,14 @@ public:
 	template <typename... Ts>
 	void load2_bind(const std::string& vertex_program_src, const std::string& fragment_program_src, Ts... pn)
 	{
-		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vertex_program_src, name());
+		vertex_shader_ = new Shader(GL_VERTEX_SHADER);
+		vertex_shader_->compile(vertex_program_src, name());
 
-		frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-		frag_shader_->compile(fragment_program_src, name());
+		fragment_shader_ = new Shader(GL_FRAGMENT_SHADER);
+		fragment_shader_->compile(fragment_program_src, name());
 
-		glAttachShader(id_, vert_shader_->shaderId());
-		glAttachShader(id_, frag_shader_->shaderId());
+		glAttachShader(id_, vertex_shader_->id());
+		glAttachShader(id_, fragment_shader_->id());
 
 		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
@@ -366,15 +345,15 @@ public:
 		glLinkProgram(id_);
 
 		// puis detache (?)
-		glDetachShader(id_, frag_shader_->shaderId());
-		glDetachShader(id_, vert_shader_->shaderId());
+		glDetachShader(id_, fragment_shader_->id());
+		glDetachShader(id_, vertex_shader_->id());
 
-		glValidateProgram(id_);
-		// Print log if needed
-		GLint infologLength = 0;
-		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " " << infologLength << std::endl;
+		// glValidateProgram(id_);
+		// // Print log if needed
+		// GLint infologLength = 0;
+		// glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_LINK_STATUS load2_bind " << name() << " " << infologLength << std::endl;
 		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		// if (infologLength != GL_TRUE)
 		// 	std::cerr << "PB GL_VALIDATE_STATUS load2_bind " << name() << " " << infologLength << std::endl;
@@ -394,10 +373,10 @@ public:
 	template <typename... Ts>
 	void load_tfb1_bind(const std::string& vertex_program_src, const std::vector<std::string>& tf_outs, Ts... pn)
 	{
-		vert_shader_ = new Shader(GL_VERTEX_SHADER);
-		vert_shader_->compile(vertex_program_src, name());
+		vertex_shader_ = new Shader(GL_VERTEX_SHADER);
+		vertex_shader_->compile(vertex_program_src, name());
 
-		glAttachShader(id_, vert_shader_->shaderId());
+		glAttachShader(id_, vertex_shader_->id());
 
 		nb_attributes_ = sizeof...(Ts);
 		bind_attrib_locations(pn...);
@@ -412,14 +391,14 @@ public:
 
 		glLinkProgram(id_);
 
-		glDetachShader(id_, vert_shader_->shaderId());
+		glDetachShader(id_, vertex_shader_->id());
 
-		glValidateProgram(id_);
-		// Print log if needed
-		GLint infologLength = 0;
-		glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
-		if (infologLength != GL_TRUE)
-			std::cerr << "PB GL_LINK_STATUS load_tfb1_bind " << name() << std::endl;
+		// glValidateProgram(id_);
+		// // Print log if needed
+		// GLint infologLength = 0;
+		// glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+		// if (infologLength != GL_TRUE)
+		// 	std::cerr << "PB GL_LINK_STATUS load_tfb1_bind " << name() << std::endl;
 		// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
 		// if (infologLength != GL_TRUE)
 		// 	std::cerr << "PB GL_VALIDATE_STATUS load_tfb1_bind " << name() << std::endl;
@@ -437,6 +416,10 @@ public:
 	}
 };
 
+/*****************************************************************************/
+// ShaderParam
+/*****************************************************************************/
+
 class CGOGN_RENDERING_EXPORT ShaderParam
 {
 protected:
@@ -446,21 +429,14 @@ protected:
 
 	virtual void set_uniforms() = 0;
 
-	// static const GLColor color_front_default;
-	// static const GLColor color_back_default;
-	// static const GLColor color_ambiant_default;
-	// static const GLColor color_spec_default;
-	// static const GLColor color_line_default;
-	// static const GLColor color_point_default;
+	virtual void bind_texture_buffers();
+	virtual void release_texture_buffers();
+	virtual void set_texture_buffer_vbo(uint32, VBO*);
 
 public:
 	ShaderParam(ShaderProgram* prg);
 	ShaderParam(const ShaderParam&) = delete;
 	ShaderParam& operator=(const ShaderParam&) = delete;
-
-	// virtual void pick_parameters(const PossibleParameters&);
-
-	virtual VBO** vbo_tb(uint32 i);
 
 	inline virtual ~ShaderParam()
 	{
@@ -471,50 +447,7 @@ public:
 		return vao_initialized_ >= (1u << shader_->nb_attributes()) - 1;
 	}
 
-	template <typename ARRAY_VBO>
-	inline void set_vbos_tb(ARRAY_VBO& vbos_tb, const std::vector<VBO*>& vbos)
-	{
-		assert(vbos.size() == vbos_tb.size());
-		for (std::size_t i = 0; i < vbos.size(); ++i)
-			vbos_tb[i] = vbos[i];
-
-		vao_initialized_ = 0;
-		uint32 m = 1;
-		for (VBO* v : vbos)
-		{
-			if (v)
-				vao_initialized_ += m;
-			m *= 2u;
-		}
-	}
-
-	template <typename ARRAY_VBO>
-	inline void set_vbo_tb(ARRAY_VBO vbo_tb, GLuint att, VBO* vbo)
-	{
-		--att; // warning attributes begin at 1 !
-		vbo_tb[att] = vbo;
-		if (vbo)
-			vao_initialized_ |= 1u << (att);
-		else
-			vao_initialized_ &= ~(1u << (att));
-	}
-
-	inline void bind_vao()
-	{
-		vao_->bind();
-	}
-
-	inline void release_vao()
-	{
-		vao_->release();
-	}
-
-	inline ShaderProgram* get_shader()
-	{
-		return shader_;
-	}
-
-	inline void set_name(const std::string& name)
+	inline void set_vao_name(const std::string& name)
 	{
 		vao_->set_name(name);
 	}
@@ -539,11 +472,11 @@ public:
 	 */
 	virtual void set_vbos(const std::vector<VBO*>& vbos);
 
-	/**
-	 * @brief set one vbo into the vao
-	 * @param attrib_id, vbo
-	 */
-	virtual void set_vbo(GLuint att, VBO* vbo);
+	// /**
+	//  * @brief set one vbo into the vao
+	//  * @param attrib_id, vbo
+	//  */
+	// virtual void set_vbo(GLuint att, VBO* vbo);
 };
 
 } // namespace rendering

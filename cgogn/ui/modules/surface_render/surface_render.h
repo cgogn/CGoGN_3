@@ -226,14 +226,15 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_position_ == vertex_position)
+			return;
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
-			md->update_vbo(p.vertex_position_.get(), true);
-			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -258,13 +259,14 @@ public:
 	void set_vertex_normal(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_normal_ == vertex_normal)
+			return;
 
 		p.vertex_normal_ = vertex_normal;
 		if (p.vertex_normal_)
 		{
-			md->update_vbo(p.vertex_normal_.get(), true);
-			p.vertex_normal_vbo_ = md->vbo(p.vertex_normal_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_normal_vbo_ = md->update_vbo(p.vertex_normal_.get(), true);
 		}
 		else
 			p.vertex_normal_vbo_ = nullptr;
@@ -282,13 +284,14 @@ public:
 	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_color)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_color_ == vertex_color)
+			return;
 
 		p.vertex_color_ = vertex_color;
 		if (p.vertex_color_)
 		{
-			md->update_vbo(p.vertex_color_.get(), true);
-			p.vertex_color_vbo_ = md->vbo(p.vertex_color_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_color_vbo_ = md->update_vbo(p.vertex_color_.get(), true);
 		}
 		else
 			p.vertex_color_vbo_ = nullptr;
@@ -302,15 +305,16 @@ public:
 	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_scalar_ == vertex_scalar)
+			return;
 
 		p.vertex_scalar_ = vertex_scalar;
 		if (p.vertex_scalar_)
 		{
-			md->update_vbo(p.vertex_scalar_.get(), true);
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_scalar_vbo_ = md->update_vbo(p.vertex_scalar_.get(), true);
 			if (p.auto_update_vertex_scalar_min_max_)
 				update_vertex_scalar_min_max_values(p);
-			p.vertex_scalar_vbo_ = md->vbo(p.vertex_scalar_.get());
 		}
 		else
 		{
@@ -331,13 +335,14 @@ public:
 	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_color)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.face_color_ == face_color)
+			return;
 
 		p.face_color_ = face_color;
 		if (p.face_color_)
 		{
-			md->update_vbo(p.face_color_.get(), true);
-			p.face_color_vbo_ = md->vbo(p.face_color_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.face_color_vbo_ = md->update_vbo(p.face_color_.get(), true);
 		}
 		else
 			p.face_color_vbo_ = nullptr;
@@ -351,15 +356,16 @@ public:
 	void set_face_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& face_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.face_scalar_ == face_scalar)
+			return;
 
 		p.face_scalar_ = face_scalar;
 		if (p.face_scalar_)
 		{
-			md->update_vbo(p.face_scalar_.get(), true);
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.face_scalar_vbo_ = md->update_vbo(p.face_scalar_.get(), true);
 			if (p.auto_update_face_scalar_min_max_)
 				update_face_scalar_min_max_values(p);
-			p.face_scalar_vbo_ = md->vbo(p.face_scalar_.get());
 		}
 		else
 		{

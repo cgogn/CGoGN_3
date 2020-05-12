@@ -43,6 +43,15 @@ namespace rendering
 
 class CGOGN_RENDERING_EXPORT Texture2D
 {
+protected:
+	GLuint id_;
+	GLint internal_;
+	GLenum external_;
+	GLenum data_type_;
+	GLsizei width_;
+	GLsizei height_;
+	bool depth_;
+
 public:
 	inline Texture2D() : internal_(0), external_(0), data_type_(0), width_(0), height_(0), depth_(false)
 	{
@@ -54,11 +63,12 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
-	inline Texture2D(const std::vector<std::pair<GLenum,GLint>>& params)  : internal_(0), external_(0), data_type_(0), width_(0), height_(0), depth_(false)
+	inline Texture2D(const std::vector<std::pair<GLenum, GLint>>& params)
+		: internal_(0), external_(0), data_type_(0), width_(0), height_(0), depth_(false)
 	{
 		glGenTextures(1, &id_);
 		glBindTexture(GL_TEXTURE_2D, id_);
-		for (const auto& [p,v] : params)
+		for (const auto& [p, v] : params)
 			glTexParameteri(GL_TEXTURE_2D, p, v);
 	}
 
@@ -72,8 +82,8 @@ public:
 		return id_;
 	}
 
-	inline void alloc(GLsizei w, GLsizei h, GLint internal, GLenum external, const uint8* ptr = nullptr,
-					  GLenum data_type = GL_UNSIGNED_BYTE)
+	inline void allocate(GLsizei w, GLsizei h, GLint internal, GLenum external, const uint8* ptr = nullptr,
+						 GLenum data_type = GL_UNSIGNED_BYTE)
 	{
 		internal_ = internal;
 		external_ = external;
@@ -94,16 +104,15 @@ public:
 		switch (img.depth())
 		{
 		case 1:
-			alloc(img.width(), img.height(), GL_R8, GL_RED, img.data());
+			allocate(img.width(), img.height(), GL_R8, GL_RED, img.data());
 			break;
 		case 3:
-			alloc(img.width(), img.height(), GL_RGB8, GL_RGB, img.data());
+			allocate(img.width(), img.height(), GL_RGB8, GL_RGB, img.data());
 			break;
 		case 4:
-			alloc(img.width(), img.height(), GL_RGBA8, GL_RGBA, img.data());
+			allocate(img.width(), img.height(), GL_RGBA8, GL_RGBA, img.data());
 			break;
 		}
-		
 	}
 
 	inline void resize(GLsizei w, GLsizei h)
@@ -113,7 +122,6 @@ public:
 		width_ = w;
 		height_ = h;
 		release();
-		
 	}
 
 	inline GLsizei width() const
@@ -129,31 +137,19 @@ public:
 	inline void bind()
 	{
 		glBindTexture(GL_TEXTURE_2D, id_);
-		
 	}
 
 	inline GLint bind(GLint unit)
 	{
 		glActiveTexture(GL_TEXTURE0 + GLuint(unit));
 		glBindTexture(GL_TEXTURE_2D, id_);
-		
 		return unit;
 	}
 
 	inline static void release()
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
-		
 	}
-
-protected:
-	GLuint id_;
-	GLint internal_;
-	GLenum external_;
-	GLenum data_type_;
-	GLsizei width_;
-	GLsizei height_;
-	bool depth_;
 };
 
 } // namespace rendering

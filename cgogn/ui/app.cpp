@@ -113,8 +113,8 @@ float64 App::fps_ = 0.0;
 
 App::App()
 	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
-	  framebuffer_width_(0), framebuffer_height_(0), background_color_(0.0f, 0.0f, 0.0f, 1.0f), interface_scaling_(1.0),
-	  show_imgui_(true), show_demo_(false), current_view_(nullptr)
+	  framebuffer_width_(0), framebuffer_height_(0), background_color_(0.25f, 0.25f, 0.25f, 1.0f),
+	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
 {
 #ifdef WIN32
 	{

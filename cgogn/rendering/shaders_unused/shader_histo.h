@@ -26,7 +26,7 @@
 #include <GL/gl3w.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/fbo.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 
 namespace cgogn

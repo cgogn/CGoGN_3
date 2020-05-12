@@ -25,7 +25,7 @@
 #ifndef CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
 #define CGOGN_RENDERING_TRANSFORM_FEEDBACK_H_
 
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -35,7 +35,7 @@ namespace rendering
 template <typename SHADER>
 class CGOGN_RENDERING_EXPORT TransformFeedback
 {
-	GLuint id_;
+	// GLuint id_;
 	typename SHADER::Param& prg_param_;
 
 	void internal_start(GLenum prim, const std::vector<VBO*>& vbos)

@@ -77,7 +77,7 @@ ShaderFlat::ShaderFlat()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position");
-	add_uniforms("front_color", "back_color", "ambiant_color", "light_position", "double_side");
+	get_uniforms("front_color", "back_color", "ambiant_color", "light_position", "double_side");
 }
 
 void ShaderParamFlat::set_uniforms()

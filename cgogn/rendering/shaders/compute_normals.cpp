@@ -71,7 +71,7 @@ ShaderComputeNormal1* ShaderComputeNormal1::instance_ = nullptr;
 ShaderComputeNormal1::ShaderComputeNormal1()
 {
 	load2_bind(vertex_shader_source1, fragment_shader_source1);
-	add_uniforms("tri_ind", "pos_vertex", "inv_h");
+	get_uniforms("tri_ind", "pos_vertex", "inv_h");
 	this->nb_attributes_ = 1;
 }
 
@@ -100,7 +100,7 @@ ShaderComputeNormal2* ShaderComputeNormal2::instance_ = nullptr;
 ShaderComputeNormal2::ShaderComputeNormal2()
 {
 	load_tfb1_bind(vertex_shader_source2, {"vbo_out"});
-	add_uniforms("tex_normals");
+	get_uniforms("tex_normals");
 }
 void ShaderParamComputeNormal2::set_uniforms()
 {

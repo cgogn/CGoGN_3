@@ -95,7 +95,7 @@ ShaderPhongColorPerVertex::ShaderPhongColorPerVertex()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_normal", "vertex_color");
-	add_uniforms("light_position", "ambiant_color", "specular_color", "specular_coef", "double_side");
+	get_uniforms("light_position", "ambiant_color", "specular_color", "specular_coef", "double_side");
 }
 
 void ShaderParamPhongColorPerVertex::set_uniforms()

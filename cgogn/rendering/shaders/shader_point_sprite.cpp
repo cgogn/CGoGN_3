@@ -118,7 +118,7 @@ ShaderPointSprite::ShaderPointSprite()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position");
-	add_uniforms("color", "ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
+	get_uniforms("color", "ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
 void ShaderParamPointSprite::set_uniforms()
@@ -223,7 +223,7 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color");
-	add_uniforms("ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
+	get_uniforms("ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
 void ShaderParamPointSpriteColor::set_uniforms()
@@ -328,7 +328,7 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size");
-	add_uniforms("color", "ambiant", "light_position", "plane_clip", "plane_clip2");
+	get_uniforms("color", "ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 
 void ShaderParamPointSpriteSize::set_uniforms()
@@ -439,7 +439,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
 			   "vertex_size");
-	add_uniforms("ambiant", "light_position", "plane_clip", "plane_clip2");
+	get_uniforms("ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 
 void ShaderParamPointSpriteColorSize::set_uniforms()

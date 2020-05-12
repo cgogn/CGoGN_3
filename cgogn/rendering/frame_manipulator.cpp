@@ -490,7 +490,7 @@ void FrameManipulator::store_projection(uint32 ax)
 	GLVec4 tr(trans_.x(), trans_.y(), trans_.z(), 1);
 	GLVec4 Or4 = (mat * tr);
 	GLVec3 Or = Or4.head<3>() / Or4[3];
-	projected_origin_ = Or* 0.5f + GLVec3(0.5f, 0.5f, 0.5f);
+	projected_origin_ = Or * 0.5f + GLVec3(0.5f, 0.5f, 0.5f);
 	projected_origin_[0] = projected_origin_[0] * float32(viewport_[2]) + float32(viewport_[0]);
 	projected_origin_[1] = projected_origin_[1] * float32(viewport_[3]) + float32(viewport_[1]);
 
@@ -502,7 +502,6 @@ void FrameManipulator::store_projection(uint32 ax)
 			// compute screen orientation
 			GLVec3 V = (view_mat_.block<3, 3>(0, 0) * A);
 			axis_orientation_ = V[2] > 0;
-			std::cout << std::boolalpha << axis_orientation_ << std::endl;
 		}
 
 		A = A + trans_;
@@ -525,7 +524,7 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 	Vo.normalize();
 	dV.normalize();
 	Vec3 W = Vo.cross(dV);
-	return (axis_orientation_ ? W[2] : - W[2]) / 100.0f;
+	return (axis_orientation_ ? W[2] : -W[2]) / 100.0f;
 }
 
 float32 FrameManipulator::distance_from_mouse(int dx, int dy)

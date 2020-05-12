@@ -175,6 +175,7 @@ protected:
 
 		mesh_provider_->emit_attribute_changed(domain_, vertex_water_position_.get());
 		mesh_provider_->emit_attribute_changed(domain_, vertex_water_flux_.get());
+		mesh_provider_->emit_attribute_changed(domain_, sw_attributes_.face_h_.get());
 	}
 
 	void interface() override

@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -29,12 +29,9 @@ namespace cgogn
 namespace rendering
 {
 
-// const GLColor ShaderParam::color_front_default = GLColor(0, 0.8f, 0, 1);
-// const GLColor ShaderParam::color_back_default = GLColor(0, 0, 0.8f, 1);
-// const GLColor ShaderParam::color_ambiant_default = GLColor(0.1f, 0.1f, 0, 1);
-// const GLColor ShaderParam::color_spec_default = GLColor(1, 1, 1, 1);
-// const GLColor ShaderParam::color_line_default = GLColor(1, 1, 0, 1);
-// const GLColor ShaderParam::color_point_default = GLColor(1, 1, 1, 1);
+/*****************************************************************************/
+// Shader
+/*****************************************************************************/
 
 void Shader::compile(const std::string& src, const std::string& prg_name)
 {
@@ -103,56 +100,29 @@ void Shader::compile(const std::string& src, const std::string& prg_name)
 	}
 }
 
-ShaderProgram::ShaderProgram() : vert_shader_(nullptr), frag_shader_(nullptr), geom_shader_(nullptr), nb_attributes_(0)
+/*****************************************************************************/
+// ShaderProgram
+/*****************************************************************************/
+
+std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
+
+ShaderProgram::ShaderProgram()
+	: vertex_shader_(nullptr), fragment_shader_(nullptr), geometry_shader_(nullptr), nb_attributes_(0)
 {
 	id_ = glCreateProgram();
 }
 
 ShaderProgram::~ShaderProgram()
 {
-	if (vert_shader_)
-		delete vert_shader_;
-	if (geom_shader_)
-		delete geom_shader_;
-	if (frag_shader_)
-		delete frag_shader_;
+	if (vertex_shader_)
+		delete vertex_shader_;
+	if (geometry_shader_)
+		delete geometry_shader_;
+	if (fragment_shader_)
+		delete fragment_shader_;
 
 	glDeleteProgram(id_);
 }
-
-void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
-{
-	vert_shader_ = new Shader(GL_VERTEX_SHADER);
-	vert_shader_->compile(vert_src, name());
-
-	frag_shader_ = new Shader(GL_FRAGMENT_SHADER);
-	frag_shader_->compile(frag_src, name());
-
-	glAttachShader(id_, vert_shader_->shaderId());
-	glAttachShader(id_, frag_shader_->shaderId());
-
-	glLinkProgram(id_);
-
-	// puis detache (?)
-	glDetachShader(id_, frag_shader_->shaderId());
-	glDetachShader(id_, vert_shader_->shaderId());
-
-	// Print log if needed
-	int infologLength = 0;
-	glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
-	if (infologLength > 1)
-	{
-		char* infoLog = new char[infologLength];
-		int charsWritten = 0;
-		glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
-		std::cerr << "Link message: " << infoLog << std::endl;
-		delete[] infoLog;
-	}
-
-	get_matrices_uniforms();
-}
-
-std::vector<ShaderProgram*>* ShaderProgram::instances_ = nullptr;
 
 void ShaderProgram::register_instance(ShaderProgram* sh)
 {
@@ -231,37 +201,52 @@ void ShaderProgram::set_matrices(const GLMat4& projection, const GLMat4& mv)
 	}
 }
 
-void ShaderProgram::set_view_matrix(const GLMat4d& mv)
+void ShaderProgram::load(const std::string& vert_src, const std::string& frag_src)
 {
-	if (uniform_mv_matrix_ >= 0)
-	{
-		GLMat4 m = mv.cast<float>();
-		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, m.data());
-	}
-	if (uniform_normal_matrix_ >= 0)
-	{
-		Eigen::Affine3d t(mv);
-		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float32>();
-		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
-	}
+	vertex_shader_ = new Shader(GL_VERTEX_SHADER);
+	vertex_shader_->compile(vert_src, name());
+
+	fragment_shader_ = new Shader(GL_FRAGMENT_SHADER);
+	fragment_shader_->compile(frag_src, name());
+
+	glAttachShader(id_, vertex_shader_->id());
+	glAttachShader(id_, fragment_shader_->id());
+
+	glLinkProgram(id_);
+
+	// puis detache (?)
+	glDetachShader(id_, fragment_shader_->id());
+	glDetachShader(id_, vertex_shader_->id());
+
+	// glValidateProgram(id_);
+	// // Print log if needed
+	// GLint infologLength = 0;
+	// glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+	// if (infologLength != GL_TRUE)
+	// 	std::cerr << "PB GL_LINK_STATUS load " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+	// if (infologLength != GL_TRUE)
+	// 	std::cerr << "PB GL_VALIDATE_STATUS load " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+	// if (infologLength > 1)
+	// {
+	// 	char* infoLog = new char[infologLength];
+	// 	int charsWritten = 0;
+	// 	glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+	// 	std::cerr << "Link message: " << infoLog << std::endl;
+	// 	delete[] infoLog;
+	// }
+
+	get_matrices_uniforms();
 }
 
-void ShaderProgram::set_view_matrix(const GLMat4& mv)
-{
-	if (uniform_mv_matrix_ >= 0)
-		glUniformMatrix4fv(uniform_mv_matrix_, 1, false, mv.data());
-	if (uniform_normal_matrix_ >= 0)
-	{
-		Eigen::Affine3d t(mv.cast<float64>());
-		GLMat3 normal_matrix = t.linear().inverse().transpose().matrix().cast<float>();
-		glUniformMatrix3fv(uniform_normal_matrix_, 1, false, normal_matrix.data());
-	}
-}
+/*****************************************************************************/
+// ShaderParam
+/*****************************************************************************/
 
 ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(false)
 {
 	vao_ = std::make_unique<VAO>();
-	vao_->create();
 	vao_initialized_ = 0;
 }
 
@@ -269,6 +254,7 @@ void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
 {
 	shader_->bind();
 	shader_->set_matrices(proj, mv);
+	bind_texture_buffers();
 	set_uniforms();
 	vao_->bind();
 }
@@ -276,6 +262,7 @@ void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
 void ShaderParam::bind()
 {
 	shader_->bind();
+	bind_texture_buffers();
 	set_uniforms();
 	vao_->bind();
 }
@@ -283,25 +270,32 @@ void ShaderParam::bind()
 void ShaderParam::release()
 {
 	vao_->release();
+	release_texture_buffers();
 	shader_->release();
 }
 
-VBO** ShaderParam::vbo_tb(uint32 i)
+void ShaderParam::bind_texture_buffers()
 {
-	unused_parameters(i);
-	return nullptr;
+}
+
+void ShaderParam::release_texture_buffers()
+{
+}
+
+void ShaderParam::set_texture_buffer_vbo(uint32, VBO*)
+{
 }
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	if (shader_->use_tb())
+	if (shader_->use_texture_buffer())
 	{
 		vao_initialized_ = 0;
 		uint32 m = 1;
 
 		for (uint32 i = 0; i < uint32(vbos.size()); ++i)
 		{
-			*vbo_tb(i) = vbos[i];
+			set_texture_buffer_vbo(i, vbos[i]);
 			if (vbos[i])
 				vao_initialized_ += m;
 			m *= 2u;
@@ -314,9 +308,9 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 
 	vao_initialized_ = 0;
 	shader_->bind();
-	bind_vao();
+	vao_->bind();
 	GLuint attrib = 1u;
-	uint32 m = 1;
+	uint32 m = 1u;
 	for (auto* v : vbos)
 	{
 		if (v)
@@ -327,43 +321,37 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 		attrib++;
 		m *= 2u;
 	}
-	release_vao();
+	vao_->release();
 	shader_->release();
 }
 
-void ShaderParam::set_vbo(GLuint att, VBO* vbo)
-{
-	if (shader_->use_tb())
-	{
-		--att; // warning attributes begin at 1 !
-		*vbo_tb(att) = vbo;
-		if (vbo)
-			vao_initialized_ |= 1u << (att);
-		else
-			vao_initialized_ &= ~(1u << (att));
-
-		return;
-	}
-
-	assert(att <= shader_->nb_attributes());
-
-	shader_->bind();
-	bind_vao();
-
-	if (vbo)
-	{
-		vbo->associate(att);
-		vao_initialized_ |= 1u << (att - 1u);
-	}
-	else
-		vao_initialized_ &= ~(1u << (att - 1u));
-
-	release_vao();
-	shader_->release();
-}
-
-// void ShaderParam::pick_parameters(const PossibleParameters&)
+// void ShaderParam::set_vbo(GLuint att, VBO* vbo)
 // {
+// 	if (shader_->use_texture_buffer())
+// 	{
+// 		--att; // warning attributes begin at 1 !
+// 		set_texture_buffer_vbo(att, vbo);
+// 		if (vbo)
+// 			vao_initialized_ |= 1u << (att);
+// 		else
+// 			vao_initialized_ &= ~(1u << (att));
+
+// 		return;
+// 	}
+
+// 	assert(att <= shader_->nb_attributes());
+
+// 	shader_->bind();
+// 	vao_->bind();
+// 	if (vbo)
+// 	{
+// 		vbo->associate(att);
+// 		vao_initialized_ |= 1u << (att - 1u);
+// 	}
+// 	else
+// 		vao_initialized_ &= ~(1u << (att - 1u));
+// 	vao_->release();
+// 	shader_->release();
 // }
 
 } // namespace rendering

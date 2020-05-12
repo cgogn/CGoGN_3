@@ -25,10 +25,9 @@
 #define CGOGN_RENDERING_SHADERS_COMPUTE_VOLUME_CENTERS_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/fbo.h>
 #include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/transform_feedback.h>
 #include <cgogn/rendering/texture.h>
 #include <cgogn/rendering/vbo.h>
@@ -47,23 +46,28 @@ DECLARE_SHADER_CLASS(ComputeCenter2, false, CGOGN_STR(ComputeCenter2))
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter1 : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
-	VBO* vbo_position_;
 	int32 tex_height_;
+	VBO* vbo_position_;
+
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
 
 	using ShaderType = ShaderComputeCenter1;
 
-	ShaderParamComputeCenter1(ShaderType* sh) : ShaderParam(sh), vbo_position_(nullptr), tex_height_(0)
+	ShaderParamComputeCenter1(ShaderType* sh) : ShaderParam(sh), tex_height_(0), vbo_position_(nullptr)
+	{
+	}
+
+	inline ~ShaderParamComputeCenter1() override
 	{
 	}
 };
 
 class CGOGN_RENDERING_EXPORT ShaderParamComputeCenter2 : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
