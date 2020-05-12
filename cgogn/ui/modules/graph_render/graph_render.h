@@ -201,7 +201,7 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
@@ -210,13 +210,13 @@ protected:
 
 			if (p.render_vertices_)
 			{
-				if (p.param_point_sprite_size_->vao_initialized())
+				if (p.param_point_sprite_size_->attributes_initialized())
 				{
 					p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::POINTS);
 					p.param_point_sprite_size_->release();
 				}
-				else if (p.param_point_sprite_->vao_initialized())
+				else if (p.param_point_sprite_->attributes_initialized())
 				{
 					p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 					p.param_point_sprite_->bind(proj_matrix, view_matrix);

@@ -435,7 +435,7 @@ protected:
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
-				p.param_point_sprite_->vao_initialized())
+				p.param_point_sprite_->attributes_initialized())
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -443,14 +443,14 @@ protected:
 				p.param_point_sprite_->release();
 			}
 			else if (p.selecting_cell_ == EdgeSelect && p.selected_edges_set_ && p.selected_edges_set_->size() > 0 &&
-					 p.param_edge_->vao_initialized())
+					 p.param_edge_->attributes_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_LINES, 0, p.selected_edges_set_->size() * 2);
 				p.param_edge_->release();
 			}
 			else if (p.selecting_cell_ == FaceSelect && p.selected_faces_set_ && p.selected_faces_set_->size() > 0 &&
-					 p.param_flat_->vao_initialized())
+					 p.param_flat_->attributes_initialized())
 			{
 				p.param_flat_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_TRIANGLES, 0, p.selected_faces_set_->size() * 3); // TODO: manage polygonal faces

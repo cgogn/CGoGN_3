@@ -341,7 +341,7 @@ protected:
 				switch (p.color_per_cell_)
 				{
 				case GLOBAL: {
-					if (p.param_volume_->vao_initialized())
+					if (p.param_volume_->attributes_initialized())
 					{
 						p.param_volume_->bind(proj_matrix, view_matrix);
 						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
@@ -353,7 +353,7 @@ protected:
 					switch (p.color_type_)
 					{
 					case SCALAR: {
-						if (p.param_volume_scalar_->vao_initialized())
+						if (p.param_volume_scalar_->attributes_initialized())
 						{
 							p.param_volume_scalar_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
@@ -362,7 +362,7 @@ protected:
 					}
 					break;
 					case VECTOR: {
-						if (p.param_volume_color_->vao_initialized())
+						if (p.param_volume_color_->attributes_initialized())
 						{
 							p.param_volume_color_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
@@ -377,7 +377,7 @@ protected:
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
 
-				if (p.render_volume_lines_ && p.param_volume_line_->vao_initialized())
+				if (p.render_volume_lines_ && p.param_volume_line_->attributes_initialized())
 				{
 					p.param_volume_line_->bind(proj_matrix, view_matrix);
 					md->draw(rendering::VOLUMES_EDGES);
@@ -385,14 +385,14 @@ protected:
 				}
 			}
 
-			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
 				p.param_bold_line_->release();
 			}
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);

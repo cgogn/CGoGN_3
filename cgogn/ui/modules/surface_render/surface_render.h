@@ -446,7 +446,7 @@ protected:
 					switch (p.color_per_cell_)
 					{
 					case GLOBAL: {
-						if (p.param_phong_->vao_initialized())
+						if (p.param_phong_->attributes_initialized())
 						{
 							p.param_phong_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -458,7 +458,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_phong_scalar_per_vertex_->vao_initialized())
+							if (p.param_phong_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -467,7 +467,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_phong_color_per_vertex_->vao_initialized())
+							if (p.param_phong_color_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_color_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -482,7 +482,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_phong_scalar_per_face_->vao_initialized())
+							if (p.param_phong_scalar_per_face_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -491,7 +491,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_phong_color_per_face_->vao_initialized())
+							if (p.param_phong_color_per_face_->attributes_initialized())
 							{
 								p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -509,7 +509,7 @@ protected:
 					switch (p.color_per_cell_)
 					{
 					case GLOBAL: {
-						if (p.param_flat_->vao_initialized())
+						if (p.param_flat_->attributes_initialized())
 						{
 							p.param_flat_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -521,7 +521,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_flat_scalar_per_vertex_->vao_initialized())
+							if (p.param_flat_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -530,7 +530,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_flat_color_per_vertex_->vao_initialized())
+							if (p.param_flat_color_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_color_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -545,7 +545,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_flat_scalar_per_face_->vao_initialized())
+							if (p.param_flat_scalar_per_face_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -554,7 +554,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_flat_color_per_face_->vao_initialized())
+							if (p.param_flat_color_per_face_->attributes_initialized())
 							{
 								p.param_flat_color_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -573,14 +573,14 @@ protected:
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
-			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
 				p.param_bold_line_->release();
 			}
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);

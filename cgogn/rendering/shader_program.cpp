@@ -244,10 +244,9 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 // ShaderParam
 /*****************************************************************************/
 
-ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), vao_initialized_(false)
+ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), attributes_initialized_(false)
 {
 	vao_ = std::make_unique<VAO>();
-	vao_initialized_ = 0;
 }
 
 void ShaderParam::bind(const GLMat4& proj, const GLMat4& mv)
@@ -288,71 +287,35 @@ void ShaderParam::set_texture_buffer_vbo(uint32, VBO*)
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
+	assert(uint32(vbos.size()) == shader_->nb_attributes());
+
 	if (shader_->use_texture_buffer())
 	{
-		vao_initialized_ = 0;
-		uint32 m = 1;
-
+		attributes_initialized_ = true;
 		for (uint32 i = 0; i < uint32(vbos.size()); ++i)
 		{
 			set_texture_buffer_vbo(i, vbos[i]);
-			if (vbos[i])
-				vao_initialized_ += m;
-			m *= 2u;
+			if (!vbos[i])
+				attributes_initialized_ = false;
 		}
 		return;
 	}
-	// else ...
-
-	assert(uint32(vbos.size()) <= shader_->nb_attributes());
-
-	vao_initialized_ = 0;
-	shader_->bind();
-	vao_->bind();
-	GLuint attrib = 1u;
-	uint32 m = 1u;
-	for (auto* v : vbos)
+	else
 	{
-		if (v)
+		attributes_initialized_ = true;
+		vao_->bind();
+		GLuint attrib = 1u;
+		for (auto* v : vbos)
 		{
-			vao_initialized_ |= m;
-			v->associate(attrib);
+			if (v)
+				v->associate(attrib);
+			else
+				attributes_initialized_ = false;
+			attrib++;
 		}
-		attrib++;
-		m *= 2u;
+		vao_->release();
 	}
-	vao_->release();
-	shader_->release();
 }
-
-// void ShaderParam::set_vbo(GLuint att, VBO* vbo)
-// {
-// 	if (shader_->use_texture_buffer())
-// 	{
-// 		--att; // warning attributes begin at 1 !
-// 		set_texture_buffer_vbo(att, vbo);
-// 		if (vbo)
-// 			vao_initialized_ |= 1u << (att);
-// 		else
-// 			vao_initialized_ &= ~(1u << (att));
-
-// 		return;
-// 	}
-
-// 	assert(att <= shader_->nb_attributes());
-
-// 	shader_->bind();
-// 	vao_->bind();
-// 	if (vbo)
-// 	{
-// 		vbo->associate(att);
-// 		vao_initialized_ |= 1u << (att - 1u);
-// 	}
-// 	else
-// 		vao_initialized_ &= ~(1u << (att - 1u));
-// 	vao_->release();
-// 	shader_->release();
-// }
 
 } // namespace rendering
 

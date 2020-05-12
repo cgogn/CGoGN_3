@@ -425,7 +425,7 @@ class CGOGN_RENDERING_EXPORT ShaderParam
 protected:
 	ShaderProgram* shader_;
 	std::unique_ptr<VAO> vao_;
-	uint32 vao_initialized_;
+	bool attributes_initialized_;
 
 	virtual void set_uniforms() = 0;
 
@@ -442,9 +442,9 @@ public:
 	{
 	}
 
-	inline bool vao_initialized() const
+	inline bool attributes_initialized() const
 	{
-		return vao_initialized_ >= (1u << shader_->nb_attributes()) - 1;
+		return attributes_initialized_; // >= (1u << shader_->nb_attributes()) - 1;
 	}
 
 	inline void set_vao_name(const std::string& name)
