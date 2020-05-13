@@ -82,7 +82,7 @@ ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 	std::string v_src(vertex_shader_source);
 	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source, "vertex_position", "vertex_scalar");
-	add_uniforms("ambiant_color", "light_position", "double_side", shader_function::ColorMap::uniform_names[0],
+	get_uniforms("ambiant_color", "light_position", "double_side", shader_function::ColorMap::uniform_names[0],
 				 shader_function::ColorMap::uniform_names[1], shader_function::ColorMap::uniform_names[2],
 				 shader_function::ColorMap::uniform_names[3]);
 }

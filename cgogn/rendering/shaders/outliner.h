@@ -27,7 +27,7 @@
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/fbo.h>
 #include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 
 namespace cgogn
@@ -43,7 +43,6 @@ DECLARE_SHADER_CLASS(Mask, false, CGOGN_STR(Mask))
 
 class CGOGN_RENDERING_EXPORT ShaderParamMask : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
@@ -130,9 +129,10 @@ public:
 
 } // namespace outline_shaders
 
-class OutLiner
+class Outliner
 {
-	static OutLiner* instance_;
+	static Outliner* instance_;
+
 	Texture2D* tex_;
 	FBO* fbo_mask_;
 	FBO* fbo_blur1_;
@@ -142,17 +142,17 @@ class OutLiner
 	std::unique_ptr<outline_shaders::ShaderBlur::Param> param_blur_;
 	std::unique_ptr<outline_shaders::ShaderColorize::Param> param_colorize_;
 
-	OutLiner();
+	Outliner();
 
 public:
-	inline static OutLiner* generate()
+	inline static Outliner* instance()
 	{
 		if (instance_ == nullptr)
-			instance_ = new OutLiner();
+			instance_ = new Outliner();
 		return instance_;
 	}
 
-	~OutLiner();
+	~Outliner();
 
 	void draw(VBO* position, MeshRender* renderer, const rendering::GLMat4& projection_matrix,
 			  const rendering::GLMat4& view_matrix, const GLColor& color);

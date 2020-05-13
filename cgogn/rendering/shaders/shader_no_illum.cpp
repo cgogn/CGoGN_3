@@ -63,7 +63,7 @@ ShaderNoIllum::ShaderNoIllum()
 	)";
 
 	load2_bind(vertex_shader_source_, fragment_shader_source_, "vertex_position");
-	add_uniforms("color", "double_side");
+	get_uniforms("color", "double_side");
 }
 
 void ShaderParamNoIllum::set_uniforms()

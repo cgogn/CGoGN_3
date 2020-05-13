@@ -61,7 +61,7 @@ ShaderFullScreenTexture::ShaderFullScreenTexture()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("texture_unit", "alpha");
+	get_uniforms("texture_unit", "alpha");
 }
 
 void ShaderParamFullScreenTexture::set_uniforms()

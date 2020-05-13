@@ -102,7 +102,7 @@ ShaderPhongScalarPerVertex::ShaderPhongScalarPerVertex()
 	std::string v_src(vertex_shader_source);
 	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source, "vertex_position", "vertex_normal", "vertex_scalar");
-	add_uniforms("light_position", "ambiant_color", "specular_color", "specular_coef", "double_side",
+	get_uniforms("light_position", "ambiant_color", "specular_color", "specular_coef", "double_side",
 				 shader_function::ColorMap::uniform_names[0], shader_function::ColorMap::uniform_names[1],
 				 shader_function::ColorMap::uniform_names[2], shader_function::ColorMap::uniform_names[3]);
 }

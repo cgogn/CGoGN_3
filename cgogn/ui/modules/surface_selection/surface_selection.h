@@ -435,7 +435,7 @@ protected:
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
-				p.param_point_sprite_->vao_initialized())
+				p.param_point_sprite_->attributes_initialized())
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -443,14 +443,14 @@ protected:
 				p.param_point_sprite_->release();
 			}
 			else if (p.selecting_cell_ == EdgeSelect && p.selected_edges_set_ && p.selected_edges_set_->size() > 0 &&
-					 p.param_edge_->vao_initialized())
+					 p.param_edge_->attributes_initialized())
 			{
 				p.param_edge_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_LINES, 0, p.selected_edges_set_->size() * 2);
 				p.param_edge_->release();
 			}
 			else if (p.selecting_cell_ == FaceSelect && p.selected_faces_set_ && p.selected_faces_set_->size() > 0 &&
-					 p.param_flat_->vao_initialized())
+					 p.param_flat_->attributes_initialized())
 			{
 				p.param_flat_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_TRIANGLES, 0, p.selected_faces_set_->size() * 3); // TODO: manage polygonal faces
@@ -463,42 +463,23 @@ protected:
 	{
 		bool need_update = false;
 
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-					selected_mesh_ = m;
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		});
 
 		if (selected_mesh_)
 		{
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			Parameters& p = parameters_[selected_mesh_];
 
-			if (ImGui::BeginCombo("Position", p.vertex_position_ ? p.vertex_position_->name().c_str() : "-- select --"))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == p.vertex_position_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														set_vertex_position(*selected_mesh_, attribute);
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
+													set_vertex_position(*selected_mesh_, attribute);
 												});
-				ImGui::EndCombo();
-			}
+
 			if (p.vertex_position_)
 			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##position"))
-					set_vertex_position(*selected_mesh_, nullptr);
-
 				ImGui::Separator();
 				int* ptr_sel_cell = reinterpret_cast<int*>(&p.selecting_cell_);
 				need_update |= ImGui::RadioButton("Vertex", ptr_sel_cell, VertexSelect);
@@ -515,7 +496,6 @@ protected:
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
 
 				MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
-				//				Parameters& p = parameters_[selected_mesh_];
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
@@ -614,8 +594,6 @@ protected:
 				}
 			}
 		}
-
-		ImGui::End();
 
 		if (need_update)
 			for (View* v : linked_views_)

@@ -45,7 +45,7 @@ template <typename T>
 class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
 public:
-	static const uint32 CHUNK_SIZE = 1024;
+	static const uint32 CHUNK_SIZE = 1024u;
 
 private:
 	std::vector<T*> chunks_;

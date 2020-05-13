@@ -113,8 +113,8 @@ float64 App::fps_ = 0.0;
 
 App::App()
 	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
-	  framebuffer_width_(0), framebuffer_height_(0), interface_scaling_(1.0), show_imgui_(true), show_demo_(false),
-	  current_view_(nullptr)
+	  framebuffer_width_(0), framebuffer_height_(0), background_color_(0.25f, 0.25f, 0.25f, 1.0f),
+	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
 {
 #ifdef WIN32
 	{
@@ -189,7 +189,7 @@ App::App()
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = 0.0f;
-	style.Colors[ImGuiCol_WindowBg].w = 0.25f;
+	style.Colors[ImGuiCol_WindowBg].w = 0.75f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
 	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
@@ -496,6 +496,7 @@ int App::launch()
 			time_last_50_frames_ = now;
 		}
 
+		glClearColor(background_color_[0], background_color_[1], background_color_[2], background_color_[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (const auto& v : views_)
@@ -544,8 +545,19 @@ int App::launch()
 
 			if (ImGui::BeginMainMenuBar())
 			{
-				if (ImGui::BeginMenu("File"))
+				if (ImGui::BeginMenu("Main menu"))
 				{
+					if (ImGui::BeginMenu("Preferences"))
+					{
+						if (ImGui::ColorEdit3("Background color", background_color_.data(),
+											  ImGuiColorEditFlags_NoInputs))
+						{
+							for (const auto& v : views_)
+								v->request_update();
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::Separator();
 					if (ImGui::MenuItem("Quit", "[ESC]"))
 						this->stop();
 					ImGui::EndMenu();

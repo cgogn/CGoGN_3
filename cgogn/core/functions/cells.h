@@ -56,6 +56,26 @@ bool is_indexed(const CMapBase& m)
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
+// uint32 maximum_index(MESH& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+uint32 maximum_index(const CMapBase& m)
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access a cell index of an unindexed cell type");
+	return m.attribute_containers_[CELL::ORBIT].maximum_index();
+}
+
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
 // uint32 index_of(MESH& m, CELL c);
 
 /*****************************************************************************/

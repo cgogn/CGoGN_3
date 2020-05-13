@@ -104,8 +104,8 @@ ShaderPhongColorPerFace::ShaderPhongColorPerFace()
 		}
 	)";
 
-	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("vertex_ind", "face_ind", "vertex_position", "vertex_normal", "face_color", "light_position",
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("vertex_ind", "face_ind", "vertex_position", "vertex_normal", "face_color", "light_position",
 				 "ambiant_color", "specular_color", "specular_coef", "double_side");
 
 	nb_attributes_ = 3;
@@ -113,11 +113,22 @@ ShaderPhongColorPerFace::ShaderPhongColorPerFace()
 
 void ShaderParamPhongColorPerFace::set_uniforms()
 {
-	vbos_[VERTEX_POSITION]->bind_tb(12);
-	vbos_[VERTEX_NORMAL]->bind_tb(13);
-	vbos_[FACE_COLOR]->bind_tb(14);
 	shader_->set_uniforms_values(10, 11, 12, 13, 14, light_position_, ambiant_color_, specular_color_, specular_coef_,
 								 double_side_);
+}
+
+void ShaderParamPhongColorPerFace::bind_texture_buffers()
+{
+	vbos_[VERTEX_POSITION]->bind_texture_buffer(12);
+	vbos_[VERTEX_NORMAL]->bind_texture_buffer(13);
+	vbos_[FACE_COLOR]->bind_texture_buffer(14);
+}
+
+void ShaderParamPhongColorPerFace::release_texture_buffers()
+{
+	vbos_[VERTEX_POSITION]->release_texture_buffer(12);
+	vbos_[VERTEX_NORMAL]->release_texture_buffer(13);
+	vbos_[FACE_COLOR]->release_texture_buffer(14);
 }
 
 } // namespace rendering

@@ -35,10 +35,9 @@ View::View(Inputs* inputs, const std::string& name)
 	  closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
-	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
-	std::vector<rendering::Texture2D*> vt{tex_.get()};
+	tex_->allocate(1, 1, GL_RGBA8, GL_RGBA);
 
-	fbo_ = std::make_unique<rendering::FBO>(vt, true, nullptr);
+	fbo_ = std::make_unique<rendering::FBO>(std::vector<rendering::Texture2D*>{tex_.get()}, true, nullptr);
 
 	param_full_screen_texture_ = rendering::ShaderFullScreenTexture::generate_param();
 	param_full_screen_texture_->unit_ = 0;
@@ -168,8 +167,8 @@ void View::draw()
 			glDrawBuffers(1, &idbuf);
 			for (ViewModule* m : linked_view_modules_)
 				m->draw(this);
-			fbo_->release();
 			glDisable(GL_DEPTH_TEST);
+			fbo_->release();
 			need_redraw_ = false;
 		}
 	}

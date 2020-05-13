@@ -176,7 +176,7 @@ public:
 		: ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
-		outline_engine_ = rendering::OutLiner::generate();
+		outline_engine_ = rendering::Outliner::instance();
 	}
 
 	~SurfaceRender()
@@ -226,14 +226,15 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_position_ == vertex_position)
+			return;
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
-			md->update_vbo(p.vertex_position_.get(), true);
-			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -258,13 +259,14 @@ public:
 	void set_vertex_normal(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_normal)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_normal_ == vertex_normal)
+			return;
 
 		p.vertex_normal_ = vertex_normal;
 		if (p.vertex_normal_)
 		{
-			md->update_vbo(p.vertex_normal_.get(), true);
-			p.vertex_normal_vbo_ = md->vbo(p.vertex_normal_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_normal_vbo_ = md->update_vbo(p.vertex_normal_.get(), true);
 		}
 		else
 			p.vertex_normal_vbo_ = nullptr;
@@ -282,13 +284,14 @@ public:
 	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_color)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_color_ == vertex_color)
+			return;
 
 		p.vertex_color_ = vertex_color;
 		if (p.vertex_color_)
 		{
-			md->update_vbo(p.vertex_color_.get(), true);
-			p.vertex_color_vbo_ = md->vbo(p.vertex_color_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_color_vbo_ = md->update_vbo(p.vertex_color_.get(), true);
 		}
 		else
 			p.vertex_color_vbo_ = nullptr;
@@ -302,15 +305,16 @@ public:
 	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.vertex_scalar_ == vertex_scalar)
+			return;
 
 		p.vertex_scalar_ = vertex_scalar;
 		if (p.vertex_scalar_)
 		{
-			md->update_vbo(p.vertex_scalar_.get(), true);
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_scalar_vbo_ = md->update_vbo(p.vertex_scalar_.get(), true);
 			if (p.auto_update_vertex_scalar_min_max_)
 				update_vertex_scalar_min_max_values(p);
-			p.vertex_scalar_vbo_ = md->vbo(p.vertex_scalar_.get());
 		}
 		else
 		{
@@ -331,13 +335,14 @@ public:
 	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_color)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.face_color_ == face_color)
+			return;
 
 		p.face_color_ = face_color;
 		if (p.face_color_)
 		{
-			md->update_vbo(p.face_color_.get(), true);
-			p.face_color_vbo_ = md->vbo(p.face_color_.get());
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.face_color_vbo_ = md->update_vbo(p.face_color_.get(), true);
 		}
 		else
 			p.face_color_vbo_ = nullptr;
@@ -351,15 +356,16 @@ public:
 	void set_face_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& face_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		if (p.face_scalar_ == face_scalar)
+			return;
 
 		p.face_scalar_ = face_scalar;
 		if (p.face_scalar_)
 		{
-			md->update_vbo(p.face_scalar_.get(), true);
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.face_scalar_vbo_ = md->update_vbo(p.face_scalar_.get(), true);
 			if (p.auto_update_face_scalar_min_max_)
 				update_face_scalar_min_max_values(p);
-			p.face_scalar_vbo_ = md->vbo(p.face_scalar_.get());
 		}
 		else
 		{
@@ -440,7 +446,7 @@ protected:
 					switch (p.color_per_cell_)
 					{
 					case GLOBAL: {
-						if (p.param_phong_->vao_initialized())
+						if (p.param_phong_->attributes_initialized())
 						{
 							p.param_phong_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -452,7 +458,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_phong_scalar_per_vertex_->vao_initialized())
+							if (p.param_phong_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -461,7 +467,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_phong_color_per_vertex_->vao_initialized())
+							if (p.param_phong_color_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_color_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -476,7 +482,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_phong_scalar_per_face_->vao_initialized())
+							if (p.param_phong_scalar_per_face_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -485,7 +491,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_phong_color_per_face_->vao_initialized())
+							if (p.param_phong_color_per_face_->attributes_initialized())
 							{
 								p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -503,7 +509,7 @@ protected:
 					switch (p.color_per_cell_)
 					{
 					case GLOBAL: {
-						if (p.param_flat_->vao_initialized())
+						if (p.param_flat_->attributes_initialized())
 						{
 							p.param_flat_->bind(proj_matrix, view_matrix);
 							md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -515,7 +521,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_flat_scalar_per_vertex_->vao_initialized())
+							if (p.param_flat_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -524,7 +530,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_flat_color_per_vertex_->vao_initialized())
+							if (p.param_flat_color_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_color_per_vertex_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES, p.vertex_position_);
@@ -539,7 +545,7 @@ protected:
 						switch (p.color_type_)
 						{
 						case SCALAR: {
-							if (p.param_flat_scalar_per_face_->vao_initialized())
+							if (p.param_flat_scalar_per_face_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -548,7 +554,7 @@ protected:
 						}
 						break;
 						case VECTOR: {
-							if (p.param_flat_color_per_face_->vao_initialized())
+							if (p.param_flat_color_per_face_->attributes_initialized())
 							{
 								p.param_flat_color_per_face_->bind(proj_matrix, view_matrix);
 								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
@@ -567,14 +573,14 @@ protected:
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
-			if (p.render_edges_ && p.param_bold_line_->vao_initialized())
+			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
 				md->draw(rendering::LINES);
 				p.param_bold_line_->release();
 			}
 
-			if (p.render_vertices_ && p.param_point_sprite_->vao_initialized())
+			if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
@@ -583,14 +589,13 @@ protected:
 			}
 
 			float64 remain = md->outlined_until_ - App::frame_time_;
-			if (remain > 0)
+			if (remain > 0 && p.vertex_position_vbo_)
 			{
 				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
 				color *= float(remain * 2);
 				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
 					md->init_primitives(rendering::TRIANGLES);
-				if (p.vertex_position_vbo_)
-					outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
+				outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -599,7 +604,8 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		if (app_.nb_views() > 1)
+			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
@@ -834,7 +840,7 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 
-	rendering::OutLiner* outline_engine_;
+	rendering::Outliner* outline_engine_;
 };
 
 } // namespace ui

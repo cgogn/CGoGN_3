@@ -66,7 +66,7 @@ ShaderFrame2d::ShaderFrame2d()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("color", "width", "w", "h");
+	get_uniforms("color", "width", "w", "h");
 }
 
 void ShaderParamFrame2d::set_uniforms()

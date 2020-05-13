@@ -28,7 +28,7 @@
 #include <cgogn/rendering/texture.h>
 #include <cgogn/rendering/vbo.h>
 
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/transform_feedback.h>
 namespace cgogn
 {
