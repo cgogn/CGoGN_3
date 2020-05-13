@@ -69,14 +69,124 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	GAttributes gAttribs;
 	M2Attributes m2Attribs;
 	M3Attributes m3Attribs;
-	//okay = subdivide_graph(g);
-	//if (!okay)
-	//{
-	//	std::cout << "error graph_to_hex: subdivide_graph" << std::endl;
-	//	return false;
-	//}
-	//else
-	//	std::cout << "graph_to_hex (/): sudivided graph" << std::endl;
+
+	okay = get_graph_data(g, gData);
+	std::cout << uint32(gData.intersections.size()) << " inters" << std::endl;
+	std::cout << uint32(gData.branches.size()) << " branches" << std::endl;
+	for (auto b : gData.branches)
+		std::cout << index_of(g, Graph::Vertex(b.first.dart)) << " - " << index_of(g, Graph::Vertex(b.second.dart))
+				  << std::endl;
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: get_graph_data" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): got graph data" << std::endl;
+
+	okay = add_graph_attributes(g, gAttribs);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: add_graph_attributes" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): added graph attributes" << std::endl;
+
+	okay = add_cmap2_attributes(m2, m2Attribs);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: add_cmap2_attributes" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): added cmap2 attributes" << std::endl;
+
+	okay = build_contact_surfaces(g, gAttribs, m2, m2Attribs);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: build_contact_surfaces" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): contact surfaces built" << std::endl;
+
+	okay = create_intersection_frames(g, gAttribs, m2, m2Attribs);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: create_intersections_frames" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): create_intersections_frames completed" << std::endl;
+
+	okay = propagate_frames(g, gAttribs, gData, m2);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: propagate_frames" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): propagate_frames completed" << std::endl;
+	
+	okay = set_contact_surfaces_geometry(g, gAttribs, m2, m2Attribs);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: set_contact_surfaces_geometry" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
+
+	okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): build_branch_sections completed" << std::endl;
+
+	okay = sew_branch_sections(m2, m2Attribs, m3);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: sew_sections" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): sew_sections completed" << std::endl;
+
+	//okay = set_volumes_geometry(m2, m2Attribs, m3, m3Attribs);
+	okay = set_volumes_geometry(m2, m2Attribs, m3);
+	if (!okay)
+	{
+		std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
+		return false;
+	}
+	else
+		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
+	
+	//bloat(m3, g, gAttribs);
+
+
+	okay = add_quality_attributes(m3, m3Attribs);
+	okay = set_hex_frames(m3, m3Attribs);
+	okay = compute_scaled_jacobians(m3, m3Attribs, true);
+	okay = compute_jacobians(m3, m3Attribs, true);
+	okay = compute_maximum_aspect_frobenius(m3, m3Attribs, true);
+	okay = compute_mean_aspect_frobenius(m3, m3Attribs, true);
+
+	return okay;
+}
+
+bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3, CMap2& surface)
+{
+	bool okay;
+
+	GData gData;
+	GAttributes gAttribs;
+	M2Attributes m2Attribs;
+	M3Attributes m3Attribs;
 
 	okay = get_graph_data(g, gData);
 	std::cout << uint32(gData.intersections.size()) << " inters" << std::endl;
@@ -137,7 +247,8 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	else
 		std::cout << "graph_to_hex (/): propagate_frames completed" << std::endl;
 
-	okay = set_contact_surfaces_geometry(g, gAttribs, m2, m2Attribs);
+	// okay = set_contact_surfaces_geometry(g, gAttribs, m2, m2Attribs);
+	okay = set_contact_surfaces_geometry_from_surface(g, gAttribs, m2, m2Attribs, surface);
 	if (!okay)
 	{
 		std::cout << "error graph_to_hex: set_contact_surfaces_geometry" << std::endl;
@@ -164,6 +275,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	else
 		std::cout << "graph_to_hex (/): sew_sections completed" << std::endl;
 
+	// okay = set_volumes_geometry(m2, m2Attribs, m3, m3Attribs);
 	okay = set_volumes_geometry(m2, m2Attribs, m3);
 	if (!okay)
 	{
@@ -172,7 +284,8 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	}
 	else
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
-	
+
+	// bloat(m3, g, gAttribs);
 
 	okay = add_quality_attributes(m3, m3Attribs);
 	okay = set_hex_frames(m3, m3Attribs);
@@ -370,6 +483,37 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const 
 		}
 		return true;
 	});
+}
+
+//void bloat(CMap3& m3, Scalar s)
+void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs)
+{
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position3 = get_attribute<Vec3, CMap3::Vertex>(m3, "position");
+
+	foreach_cell(g, [&](Graph::Vertex gv) -> bool {
+		if (degree(g, gv) == 1)
+		{
+			Vec3 p0 = value<Vec3>(g, gAttribs.vertex_position, gv);
+			std::vector<Graph::Vertex> neigh = adjacent_vertices_through_edge(g, gv);
+			Vec3 p1 = value<Vec3>(g, gAttribs.vertex_position, neigh[0]);
+			Vec3 offset = (p0 - p1).normalized() * value<Scalar>(g, gAttribs.vertex_radius, gv);
+			CMap3::Vertex v3 = CMap3::Vertex(value<Dart>(g, gAttribs.halfedge_volume_connection, Graph::HalfEdge(gv.dart)));
+			value<Vec3>(m3, vertex_position3, v3) += offset;
+		}
+		return true;
+	});
+
+	//foreach_cell(m3, [&](CMap3::Vertex v0) -> bool {
+	//if (!is_incident_to_boundary(m3, v0))
+	//{
+	//	Vec3 p0 = value<Vec3>(m3, vertex_position3, v0);
+	//	foreach_adjacent_vertex_through_edge(m3, v0, [&](CMap3::Vertex v1) -> bool {
+	//		if ()
+	//		return true;
+	//	});
+	//}
+	//return true;
+	//});
 }
 
 void extract_volume_surface(CMap3& m3, CMap2& m2)
@@ -754,6 +898,13 @@ bool add_graph_attributes(Graph& g, GAttributes& gAttribs)
 		return false;
 	}
 
+	gAttribs.halfedge_volume_connection = add_attribute<Dart, Graph::HalfEdge>(g, "volume_connection");
+	if (!gAttribs.halfedge_volume_connection)
+	{
+		std::cout << "Failed to add halfedge_volume_connection attribute to graph" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -803,6 +954,15 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 
 	return true;
 }
+
+bool add_cmap3_attributes(CMap3& m3, M3Attributes& m3Attribs)
+{
+	m3Attribs.vertex_position = cgogn::add_attribute<Vec3, CMap3::Vertex>(m3, "position");
+	m3Attribs.volume_graph_connection = cgogn::add_attribute <Graph::Edge, CMap3::Volume > (m3, "graph_connection");
+
+	return true;
+}
+
 
 /*****************************************************************************/
 /* contact surfaces generation                                               */
@@ -1400,7 +1560,8 @@ bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttribute
 			//}
 			//else
 			//{
-				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = std::get<1>(selectedfaces0[0]);
+				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = 
+					std::get<1>(selectedfaces0[0]);
 				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) =
 					std::get<1>(selectedfaces1[0]);
 				value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
@@ -1469,6 +1630,8 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[2])) = phi<11>(m3, D1[3]);
 		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[3])) = phi<11>(m3, D1[2]);
 
+		value<Dart>(g, gAttribs.halfedge_volume_connection, halfedges[0]) = D0[0];
+		value<Dart>(g, gAttribs.halfedge_volume_connection, halfedges[1]) = phi1(m3, D1[0]);
 		return true;
 	});
 
@@ -1491,6 +1654,7 @@ bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 	return true;
 }
 
+//bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs)
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
 	auto m3pos = cgogn::add_attribute<Vec3, CMap3::Vertex>(m3, "position");
