@@ -1431,7 +1431,7 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 	{
 		Scalar cos = UE.col(0).dot(U_.col(0));
 		Scalar angle = cos > 1 ? std::acos(1) : std::acos(cos);
-		Scalar angle_step = -angle / Scalar(nb_e + 1);
+		Scalar angle_step = angle / Scalar(nb_e);
 
 		d_from = h_from_start.dart;
 		d_to = alpha0(g, d_from);
