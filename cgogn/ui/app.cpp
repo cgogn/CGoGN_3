@@ -194,9 +194,6 @@ App::App()
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
 	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
 
-	ImGui_ImplGlfw_InitForOpenGL(window_, true);
-	ImGui_ImplOpenGL3_Init(glsl_version);
-
 	glfwSetWindowUserPointer(window_, this);
 
 	std::cout << glGetString(GL_VENDOR) << std::endl;
@@ -392,6 +389,9 @@ App::App()
 			}
 		}
 	});
+
+	ImGui_ImplGlfw_InitForOpenGL(window_, true);
+	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	current_view_ = add_view();
 }
