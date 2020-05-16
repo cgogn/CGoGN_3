@@ -88,8 +88,8 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 		}
 	)";
 
-	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("vertex_ind", "vertex_position", "volume_center", "color", "light_position", "explode", "plane_clip",
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("vertex_ind", "vertex_position", "volume_center", "color", "light_position", "explode", "plane_clip",
 				 "plane_clip2");
 
 	nb_attributes_ = 2;
@@ -97,8 +97,19 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 
 void ShaderParamExplodeVolumes::set_uniforms()
 {
-	shader_->set_uniforms_values(10, vbos_[VERTEX_POSITION]->bind_tb(11), vbos_[VOLUME_CENTER]->bind_tb(12), color_,
-								 light_position_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, 11, 12, color_, light_position_, explode_, plane_clip_, plane_clip2_);
+}
+
+void ShaderParamExplodeVolumes::bind_texture_buffers()
+{
+	vbos_[VERTEX_POSITION]->bind_texture_buffer(11);
+	vbos_[VOLUME_CENTER]->bind_texture_buffer(12);
+}
+
+void ShaderParamExplodeVolumes::release_texture_buffers()
+{
+	vbos_[VERTEX_POSITION]->release_texture_buffer(11);
+	vbos_[VOLUME_CENTER]->release_texture_buffer(12);
 }
 
 } // namespace rendering

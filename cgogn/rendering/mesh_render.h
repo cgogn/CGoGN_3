@@ -264,7 +264,6 @@ protected:
 							 TablesIndices& table_indices_v, TablesIndices& table_emb_vol,
 							 const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
-
 		if constexpr (mesh_traits<MESH>::dimension >= 2)
 		{
 			using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -275,7 +274,9 @@ protected:
 			std::vector<std::vector<Vertex>> vvertices(thread_pool()->nb_workers());
 			for (auto& v : vvertices)
 				v.reserve(32u);
+
 			std::vector<uint32> i_vol(thread_pool()->nb_workers(), 0);
+
 			parallel_foreach_cell(m, [&](Volume vol) -> bool {
 				uint32 worker_index = current_worker_index();
 				auto& ivol = i_vol[worker_index];
@@ -350,6 +351,7 @@ public:
 				if (!indices_buffers_[pr]->is_created())
 					indices_buffers_[pr]->create();
 
+				indices_buffers_[pr]->bind();
 				indices_buffers_[pr]->allocate(total_size);
 				uint32 beg = 0;
 				for (const auto& t : table)
@@ -358,22 +360,23 @@ public:
 					beg += uint32(t.size());
 				}
 				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+				indices_buffers_[pr]->release();
 			}
 		};
 
 		auto func_update_ebo2 = [&](DrawingType pr, const TablesIndices& table1) -> void {
-			uint32 total_size1 = 0;
+			uint32 total_size = 0;
 			for (const auto& t : table1)
-				total_size1 += uint32(t.size());
+				total_size += uint32(t.size());
 
 			indices_buffers_uptodate_[pr] = true;
-			if (total_size1 > 0)
+			if (total_size > 0)
 			{
 				if (!indices_buffers_[pr]->is_created())
 					indices_buffers_[pr]->create();
 
-				indices_buffers_[pr]->allocate(total_size1);
 				indices_buffers_[pr]->bind();
+				indices_buffers_[pr]->allocate(total_size);
 				uint32* ptr = indices_buffers_[pr]->lock_pointer();
 				uint32 beg = 0;
 				for (const auto& t : table1)
@@ -390,18 +393,18 @@ public:
 
 		auto func_update_ebo3 = [&](DrawingType pr, const TablesIndices& table1, const TablesIndices& table2,
 									uint32 interv) -> void {
-			uint32 total_size1 = 0;
+			uint32 total_size = 0;
 			for (const auto& t : table1)
-				total_size1 += uint32(t.size());
+				total_size += uint32(t.size());
 
 			indices_buffers_uptodate_[pr] = true;
-			if (total_size1 > 0)
+			if (total_size > 0)
 			{
 				if (!indices_buffers_[pr]->is_created())
 					indices_buffers_[pr]->create();
 
-				indices_buffers_[pr]->allocate(total_size1);
 				indices_buffers_[pr]->bind();
+				indices_buffers_[pr]->allocate(total_size);
 				uint32* ptr1 = indices_buffers_[pr]->lock_pointer();
 				uint32 beg = 0;
 				uint32 nb = uint32(table1.size());
@@ -414,7 +417,6 @@ public:
 
 					beg += table2[j].empty() ? 0 : table2[j].back() + 1;
 				}
-
 				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
 				indices_buffers_[pr]->release_pointer();
 				indices_buffers_[pr]->release();
@@ -496,7 +498,7 @@ public:
 					func_update_ebo(VOLUMES_FACES, table_indices);
 					func_update_ebo(VOLUMES_EDGES, table_indices_e);
 					func_update_ebo(VOLUMES_VERTICES, table_indices_v);
-					func_update_ebo2(INDEX_VOLUMES, table_indices_emb);
+					func_update_ebo(INDEX_VOLUMES, table_indices_emb);
 				}
 				else
 				{
@@ -518,15 +520,7 @@ public:
 		// std::cout << "init primitive " << prim << " in " << elapsed_seconds.count() << std::endl;
 	}
 
-	void draw(DrawingType prim, GLint binding_point = 10);
-
-	inline void bind_ebo_tb(DrawingType prim, GLint binding_point)
-	{
-		if (prim >= SIZE_BUFFER)
-			indices_buffers_[prim - SIZE_BUFFER - 1]->bind_tb(binding_point);
-		else
-			indices_buffers_[prim]->bind_tb(binding_point);
-	}
+	void draw(DrawingType prim);
 };
 
 } // namespace rendering

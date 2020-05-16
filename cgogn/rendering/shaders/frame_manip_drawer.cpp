@@ -80,7 +80,7 @@ ShaderRings::ShaderRings()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("selected");
+	get_uniforms("selected");
 }
 
 void ShaderParamRings::set_uniforms()
@@ -128,6 +128,8 @@ ShaderAxis::ShaderAxis()
 		{
 			vec4 A = gl_in[0].gl_Position;
 			vec4 B = gl_in[1].gl_Position;
+			A = A / A.w;
+			B = B / B.w;
 			vec4 C = 0.75*A+ 0.25*B;
 
 			vec2 U2 = normalize(vec2(line_widths[0][1],line_widths[0][0])*(B.xy - A.xy));
@@ -197,13 +199,13 @@ ShaderAxis::ShaderAxis()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source);
-	add_uniforms("lineWidths", "selected");
+	get_uniforms("lineWidths", "selected");
 }
 
 void ShaderParamAxis::set_uniforms()
 {
 	int viewport[4];
-	float32 width = 2400.0f;
+	float32 width = 8.0f;
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	GLVec2 wd(width / float32(viewport[2]), width / float32(viewport[3]));
 	shader_->set_uniforms_values(wd, selected_);
@@ -245,7 +247,7 @@ ShaderXYGrid::ShaderXYGrid()
 	)";
 
 	load2_bind(vertex_shader_source, fragment_shader_source);
-	add_uniforms("sc", "nb", "color");
+	get_uniforms("sc", "nb", "color");
 }
 
 void ShaderParamXYGrid::set_uniforms()

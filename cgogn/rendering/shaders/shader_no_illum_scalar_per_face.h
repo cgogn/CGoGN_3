@@ -25,8 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_NO_ILLUM_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -40,15 +40,23 @@ class CGOGN_RENDERING_EXPORT ShaderParamNoIllumScalarPerFace : public ShaderPara
 {
 	void set_uniforms() override;
 
-public:
 	std::array<VBO*, 2> vbos_;
-	bool double_side_;
-	shader_funcion::ColorMap::Uniforms cm_;
-
-	inline void pick_parameters(const PossibleParameters& pp) override
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
-		double_side_ = pp.double_side_;
+		vbos_[i] = vbo;
 	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		FACE_SCALAR
+	};
+
+public:
+	bool double_side_;
+	shader_function::ColorMap::Uniforms color_map_;
 
 	using ShaderType = ShaderNoIllumScalarPerFace;
 
@@ -61,15 +69,10 @@ public:
 	inline ~ShaderParamNoIllumScalarPerFace() override
 	{
 	}
-
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
-	}
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_NO_ILLUM_SCALAR_PER_FACE_H_

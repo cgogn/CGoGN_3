@@ -73,6 +73,10 @@ public:
 	{
 		return current_view_;
 	}
+	uint32 nb_views() const
+	{
+		return uint32(views_.size());
+	}
 
 	template <typename FUNC>
 	void foreach_view(const FUNC& f) const
@@ -122,6 +126,8 @@ private:
 	int32 window_height_;
 	int32 framebuffer_width_;
 	int32 framebuffer_height_;
+
+	rendering::GLVec4 background_color_;
 
 	float32 interface_scaling_;
 

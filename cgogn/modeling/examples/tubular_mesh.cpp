@@ -135,19 +135,26 @@ int main(int argc, char** argv)
 
 		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s =
 			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
+
+		mps.set_mesh_bb_vertex_position(s, vertex_position_s);
 		mps.emit_connectivity_changed(s);
 		mps.emit_attribute_changed(s, vertex_position_s.get());
 
 		std::shared_ptr<VolumeAttribute<Vec3>> vertex_position_v =
 			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Volume>::Vertex>(*v, "position");
-		vr.set_vertex_position(*v1, *v, vertex_position_v);
+
+		mpv.set_mesh_bb_vertex_position(v, vertex_position_v);
 		mpv.emit_connectivity_changed(v);
 		mpv.emit_attribute_changed(v, vertex_position_v.get());
+
+		vr.set_vertex_position(*v1, *v, vertex_position_v);
 
 		cgogn::modeling::extract_volume_surface(*v, *s2);
 		cgogn::modeling::catmull_clark_approx(*s2, 3);
 		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s2 =
 			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s2, "position");
+
+		mps.set_mesh_bb_vertex_position(s2, vertex_position_s2);
 		mps.emit_connectivity_changed(s2);
 		mps.emit_attribute_changed(s2, vertex_position_s2.get());
 

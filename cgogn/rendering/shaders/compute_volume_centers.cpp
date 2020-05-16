@@ -1,4 +1,4 @@
-/*********************************************************000000**********************
+/********************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -28,123 +28,156 @@ namespace cgogn
 
 namespace rendering
 {
-static const char* vertex_shader_source1 =
-	R"(
-		#version 330
-		uniform usamplerBuffer vertex_volume;
-		uniform samplerBuffer pos_vertex;
-		uniform float inv_h;
-		out vec4 P;
-		void main()
-		{
-			vec2 d = vec2(1.0/1024.0,inv_h);
-			int vid = gl_VertexID;
-			int ind_v = int(texelFetch(vertex_volume, 2*gl_VertexID).r);
-			uint ind_c = texelFetch(vertex_volume, 2*gl_VertexID+1).r;
-			vec2 coord_c = (-1.0+d) + 2.0 * d * vec2(float(ind_c%1024u),float(ind_c/1024u));
-			gl_Position = vec4(coord_c,0,1);
-			P = vec4(texelFetch(pos_vertex, ind_v).rgb,1.0);
-		}
-		)";
 
-static const char* fragment_shader_source1 =
-	R"(
-		#version 330
-		out vec4 frag_out;
-		in vec4 P;
-		void main()
-		{
-			frag_out = P;
-		}
-		)";
+namespace compute_center_shaders
+{
+
+/*****************************************************************************/
+// ShaderComputeCenter1
+/*****************************************************************************/
 
 ShaderComputeCenter1* ShaderComputeCenter1::instance_ = nullptr;
 
 ShaderComputeCenter1::ShaderComputeCenter1()
 {
-	load2_bind(vertex_shader_source1, fragment_shader_source1);
-	add_uniforms("vertex_volume", "pos_vertex", "inv_h");
-	this->nb_attributes_ = 1;
+	const char* vertex_shader_source = R"(
+		#version 330
+		uniform usamplerBuffer vertex_ind;
+		uniform samplerBuffer vertex_position;
+		uniform float inv_h;
+
+		out vec4 position;
+		
+		void main()
+		{
+			int ind_v = int(texelFetch(vertex_ind, 2 * gl_VertexID).r);
+			uint ind_vol = texelFetch(vertex_ind, 2 * gl_VertexID + 1).r;
+
+			vec2 d = vec2(1.0 / 1024.0, inv_h);
+			vec2 coord_c = (-1.0 + d) + 2.0 * d * vec2(float(ind_vol % 1024u), float(ind_vol / 1024u));
+			
+			gl_Position = vec4(coord_c, 0, 1);
+			position = vec4(texelFetch(vertex_position, ind_v).rgb, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 330
+		in vec4 position;
+
+		out vec4 frag_out;
+		
+		void main()
+		{
+			frag_out = position;
+		}
+	)";
+
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("vertex_ind", "vertex_position", "inv_h");
+
+	nb_attributes_ = 1;
 }
 
 void ShaderParamComputeCenter1::set_uniforms()
 {
-	if (vbo_pos_)
-		shader_->set_uniforms_values(10, vbo_pos_->bind_tb(20), 1.0f / float(height_tex_));
+	shader_->set_uniforms_values(10, 11, 1.0f / float(tex_height_));
 }
 
-static const char* vertex_shader_source2 =
-	R"(
-		#version 330
-		uniform sampler2D tex_centers;
-		out vec3 vbo_out;
-		const int w = 1024;
-		void main()
-		{
-			ivec2 icoord = ivec2(gl_VertexID%w,gl_VertexID/w);
-			vec4 P4 = texelFetch(tex_centers,icoord,0);
-			vbo_out = P4.xyz/P4.w;
-		}
-		)";
+void ShaderParamComputeCenter1::bind_texture_buffers()
+{
+	vbo_position_->bind_texture_buffer(11);
+}
+
+void ShaderParamComputeCenter1::release_texture_buffers()
+{
+	vbo_position_->release_texture_buffer(11);
+}
+
+/*****************************************************************************/
+// ShaderComputeCenter2
+/*****************************************************************************/
 
 ShaderComputeCenter2* ShaderComputeCenter2::instance_ = nullptr;
 
 ShaderComputeCenter2::ShaderComputeCenter2()
 {
-	load_tfb1_bind(vertex_shader_source2, {"vbo_out"});
-	add_uniforms("tex_centers");
+	const char* vertex_shader_source = R"(
+		#version 330
+		uniform sampler2D tex_centers;
+
+		out vec3 vbo_out;
+		
+		void main()
+		{
+			ivec2 icoord = ivec2(gl_VertexID % 1024, gl_VertexID / 1024);
+			vec4 position4 = texelFetch(tex_centers, icoord, 0);
+			vbo_out = position4.xyz / position4.w;
+		}
+	)";
+
+	load_tfb1_bind(vertex_shader_source, {"vbo_out"});
+	get_uniforms("tex_centers");
 }
+
 void ShaderParamComputeCenter2::set_uniforms()
 {
 	shader_->set_uniforms_values(tex_->bind(0));
 }
 
-// ComputeCenterEngine* ComputeCenterEngine::instance_ = nullptr;
+} // namespace compute_center_shaders
 
-ComputeCenterEngine::ComputeCenterEngine()
+ComputeVolumeCenterEngine::ComputeVolumeCenterEngine()
 {
-	param1_ = ShaderComputeCenter1::generate_param();
-	param2_ = ShaderComputeCenter2::generate_param();
+	param1_ = compute_center_shaders::ShaderComputeCenter1::generate_param();
+	param2_ = compute_center_shaders::ShaderComputeCenter2::generate_param();
 	param2_->tex_ = new Texture2D();
-	param2_->tex_->alloc(0, 0, GL_RGBA32F, GL_RGBA, nullptr, GL_FLOAT);
-	fbo_ = new FBO(std::vector<Texture2D*>{param2_->tex_}, false, nullptr);
+	param2_->tex_->allocate(0, 0, GL_RGBA32F, GL_RGBA, nullptr, GL_FLOAT);
+	fbo_ = new FBO({param2_->tex_}, false, nullptr);
 	tfb_ = new TFB_ComputeCenter(*(param2_.get()));
 }
 
-ComputeCenterEngine::~ComputeCenterEngine()
+ComputeVolumeCenterEngine::~ComputeVolumeCenterEngine()
 {
-	delete param2_->tex_;
-	delete tfb_;
 	delete fbo_;
+	delete tfb_;
+	delete param2_->tex_;
 }
 
-void ComputeCenterEngine::compute(VBO* pos, MeshRender* renderer, VBO* centers)
+void ComputeVolumeCenterEngine::compute(VBO* vertex_position, MeshRender* renderer, VBO* volume_center)
 {
-	int32 h = (centers->size() + 1023) / 1024;
+	int32 h = (volume_center->size() + 1023) / 1024;
 	fbo_->resize(1024, h);
-	fbo_->bind();
+
 	glDisable(GL_DEPTH_TEST);
+
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
+
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE, GL_ONE);
+
 	glPointSize(1.001f);
-	param1_->vbo_pos_ = pos;
-	param1_->height_tex_ = h;
+
+	fbo_->bind();
+	param1_->vbo_position_ = vertex_position;
+	param1_->tex_height_ = h;
 	param1_->bind();
 	renderer->draw(VOLUMES_VERTICES);
 	param1_->release();
-	glDisable(GL_BLEND);
 	fbo_->release();
 
-	glClearColor(0, 0, 0, 0);
-	tfb_->start(GL_POINTS, {centers});
-	glDrawArrays(GL_POINTS, 0, centers->size());
-	tfb_->stop();
-	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
 
-	std::cout << "centers computed" << std::endl;
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	tfb_->start(GL_POINTS, {volume_center});
+	glDrawArrays(GL_POINTS, 0, volume_center->size());
+	tfb_->stop();
+
+	glEnable(GL_DEPTH_TEST);
 }
 
 } // namespace rendering

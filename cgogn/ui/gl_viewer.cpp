@@ -88,7 +88,7 @@ void GLViewer::mouse_release_event(int32 button, int32, int32)
 	}
 }
 
-void GLViewer::mouse_dbl_click_event(int32 buttons, int32 x, int32 y)
+void GLViewer::mouse_dbl_click_event(int32 /*buttons*/, int32 x, int32 y)
 {
 	if (inputs_->shift_pressed_ && mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT))
 	{

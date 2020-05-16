@@ -77,7 +77,7 @@ ShaderFlatColorPerVertex::ShaderFlatColorPerVertex()
     )";
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_color");
-	add_uniforms("ambiant_color", "light_position", "double_side");
+	get_uniforms("ambiant_color", "light_position", "double_side");
 }
 
 void ShaderParamFlatColorPerVertex::set_uniforms()

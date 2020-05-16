@@ -181,7 +181,7 @@ protected:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.param_vector_per_vertex_->vao_initialized())
+			if (p.param_vector_per_vertex_->attributes_initialized())
 			{
 				p.param_vector_per_vertex_->length_ = p.vector_base_size_ * p.vector_scale_factor_;
 				p.param_vector_per_vertex_->bind(proj_matrix, view_matrix);
@@ -195,7 +195,8 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
+		if (app_.nb_views() > 1)
+			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;

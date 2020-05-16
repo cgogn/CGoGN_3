@@ -52,7 +52,7 @@ ShaderHisto::ShaderHisto()
 										 "}\n";
 
 	load(vertex_shader_source, fragment_shader_source);
-	add_uniforms("TU", "width", "k");
+	get_uniforms("TU", "width", "k");
 }
 
 } // namespace rendering

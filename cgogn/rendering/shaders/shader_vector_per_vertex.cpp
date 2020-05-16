@@ -130,7 +130,7 @@ ShaderVectorPerVertex::ShaderVectorPerVertex()
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position",
 			   "vertex_vector");
-	add_uniforms("line_color", "line_width", "length", "lighted");
+	get_uniforms("line_color", "line_width", "length", "lighted");
 }
 
 void ShaderParamVectorPerVertex::set_uniforms()
