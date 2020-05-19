@@ -52,6 +52,7 @@ struct GAttributes
 	std::shared_ptr<Graph::Attribute<Vec3>> vertex_position;
 	std::shared_ptr<Graph::Attribute<Scalar>> vertex_radius;
 	std::shared_ptr<Graph::Attribute<Dart>> vertex_contact_surface;
+	std::shared_ptr<Graph::Attribute<Dart>> halfedge_volume_connection;
 	std::shared_ptr<Graph::Attribute<Dart>> halfedge_contact_surface_face;
 	std::shared_ptr<Graph::Attribute<Mat3>> halfedge_frame;
 };
@@ -69,6 +70,8 @@ struct M2Attributes
 struct M3Attributes
 {
 	std::shared_ptr<CMap3::Attribute<Vec3>> vertex_position;
+	std::shared_ptr<CMap3::Attribute<Graph::Edge>> volume_graph_connection;
+
 	std::shared_ptr<CMap3::Attribute<Mat3>> corner_frame;
 	std::shared_ptr<CMap3::Attribute<Mat3>> hex_frame;
 
@@ -84,6 +87,7 @@ struct M3Attributes
 };
 
 bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
+bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3, CMap2& surface);
 
 /*****************************************************************************/
 /* utils                                                                     */
@@ -110,6 +114,8 @@ void catmull_clark_approx(CMap2& m2, uint32 iterations);
 void catmull_clark_inter(CMap2& m, uint32 iterations);
 bool intersection_surface(const CMap2& m, const CMap2::Attribute<Vec3>* vertex_position, const Vec3& P, const Vec3& Dir,
 						  Vec3* inter);
+//void bloat(CMap3& m3);
+void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 void export_surface_off(CMap2& m2, std::string filename);
 
 /*****************************************************************************/
@@ -119,6 +125,7 @@ bool subdivide_graph(Graph& g);
 bool get_graph_data(const Graph& g, GData& gData);
 bool add_graph_attributes(Graph& g, GAttributes& gAttribs);
 bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
+bool add_cmap3_attributes(CMap3& m3, M3Attributes& m3Attribs);
 
 /*****************************************************************************/
 /* contact surfaces generation                                               */
@@ -160,6 +167,7 @@ bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttribute
 
 bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
+//bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3&, M3Attributes& m3Attribs);
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 
 /*****************************************************************************/
