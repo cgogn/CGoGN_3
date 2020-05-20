@@ -194,8 +194,9 @@ auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapB
 	if (!is_indexed<CELL>(m))
 		init_cells_indexing<CELL>(m);
 
+	CMapBase& base = static_cast<CMapBase&>(m);
 	DartMarker dm(m);
-	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	for (Dart d = base.begin(), end = base.end(); d != end; d = base.next(d))
 	{
 		if (!is_boundary(m, d) && !dm.is_marked(d))
 		{

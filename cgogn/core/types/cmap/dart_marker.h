@@ -71,7 +71,7 @@ class CGOGN_CORE_EXPORT DartMarker
 {
 private:
 	const CMAP& map_;
-	typename CMAP::MarkAttribute* mark_attribute_;
+	typename mesh_traits<CMAP>::MarkAttribute* mark_attribute_;
 
 public:
 	DartMarker(const CMAP& map) : map_(map)

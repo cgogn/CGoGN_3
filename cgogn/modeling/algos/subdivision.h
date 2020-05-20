@@ -74,14 +74,13 @@ CMap2::Vertex quadrangulate_face(CMap2& m, CMap2::Face f)
 	Dart dd = phi<1111>(m, x);
 	while (dd != x)
 	{
-		Dart next =phi<11>(m, dd);
+		Dart next = phi<11>(m, dd);
 		cut_face(m, CMap2::Vertex(dd), CMap2::Vertex(phi1(m, x)));
 		dd = next;
 	}
 
 	return CMap2::Vertex(phi2(m, x));
 }
-
 
 /////////////
 // GENERIC //
@@ -135,10 +134,24 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	using Face = typename cgogn::mesh_traits<MESH>::Face;
 
 	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
 	cache.template build<Face>();
+	CellMarker<MESH, Edge> cm(m);
+	foreach_cell(cache, [&](Face f) -> bool {
+		foreach_incident_edge(m, f, [&](Edge ie) -> bool {
+			if (!cm.is_marked(ie))
+			{
+				cm.mark(ie);
+				cache.add(ie);
+			}
+			return true;
+		});
+		return true;
+	});
 
-	cut_all_edges(m, on_edge_cut);
+	foreach_cell(cache, [&](Edge e) -> bool {
+		on_edge_cut(cut_edge(m, e));
+		return true;
+	});
 
 	foreach_cell(cache, [&](Face f) -> bool {
 		on_face_cut(quadrangulate_face(m, f));
