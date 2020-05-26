@@ -98,7 +98,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 				Volume v(d);
 				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
 				{
-					if (!marker.is_marked(v) && !is_boundary(m, d))
+					if (!is_boundary(m, d) && !marker.is_marked(v))
 					{
 						marker.mark(v);
 						return func(v);
@@ -121,7 +121,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
 				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
 				{
-					if (!marker.is_marked(d) && !is_boundary(m, d))
+					if (!is_boundary(m, d) && !marker.is_marked(d))
 					{
 						Volume v(d);
 						foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {

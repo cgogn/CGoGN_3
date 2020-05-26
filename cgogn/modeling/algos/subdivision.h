@@ -82,6 +82,26 @@ CMap2::Vertex quadrangulate_face(CMap2& m, CMap2::Face f)
 	return CMap2::Vertex(phi2(m, x));
 }
 
+CMap3::Vertex quadrangulate_face(CMap3& m, CMap3::Face f)
+{
+	//cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	Dart d0 = phi1(m, f.dart);
+	Dart d1 = phi<11>(m, d0);
+
+	cut_face(m, CMap3::Vertex(d0), CMap3::Vertex(d1));
+	cut_edge(m, CMap3::Edge(phi_1(m, d0)));
+
+	Dart x = phi2(m, phi_1(m, d0));
+	Dart dd = phi<1111>(m, x);
+	while (dd != x)
+	{
+		Dart next = phi<11>(m, dd);
+		cut_face(m, CMap3::Vertex(dd), CMap3::Vertex(phi1(m, x)));
+		dd = next;
+	}
+
+	return CMap3::Vertex(phi2(m, x));
+}
 
 /////////////
 // GENERIC //
@@ -138,7 +158,11 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	cache.template build<Edge>();
 	cache.template build<Face>();
 
-	cut_all_edges(m, on_edge_cut);
+	foreach_cell(cache, [&](Edge e) -> bool {
+		on_edge_cut(cut_edge(m, e));
+		return true;
+
+	});
 
 	foreach_cell(cache, [&](Face f) -> bool {
 		on_face_cut(quadrangulate_face(m, f));
