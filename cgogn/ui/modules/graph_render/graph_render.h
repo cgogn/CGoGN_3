@@ -254,15 +254,14 @@ protected:
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
 			if (p.render_vertices_)
 			{
-				if (p.vertex_radius_)
-					need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_size_->color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-				else
+				if (ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
+									  ImGuiColorEditFlags_NoInputs))
 				{
-					need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+					p.param_point_sprite_size_->color_ = p.param_point_sprite_->color_;
+					need_update = true;
 				}
+				if (!p.vertex_radius_)
+					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
 			}
 
 			ImGui::Separator();
