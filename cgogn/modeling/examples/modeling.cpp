@@ -34,6 +34,9 @@
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 #include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
+#include <cgogn/core/types/mesh_views/cell_filter.h>
+#include <cgogn/modeling/algos/subdivision.h>
+
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using namespace cgogn::numerics;
@@ -46,6 +49,8 @@ using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 int main(int argc, char** argv)
 {
 	using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+	using Edge = typename cgogn::mesh_traits<Mesh>::Edge;
+	using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 	using Vec3 = cgogn::geometry::Vec3;
 	using Scalar = cgogn::geometry::Scalar;
@@ -90,6 +95,43 @@ int main(int argc, char** argv)
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
 	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+
+	// cgogn::CellFilter<Mesh> cf(*m);
+	// cf.set_filter<Edge>([](Edge) -> bool { return true; });
+	// cf.set_filter<Face>([&](Face f) -> bool {
+	// 	std::vector<Vertex> iv = incident_vertices(*m, f);
+	// 	return cgogn::value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
+	// });
+
+	cgogn::CellCache<Mesh> cc(*m);
+	cc.build<Edge>();
+	cc.build<Face>([&](Face f) -> bool {
+		std::vector<Vertex> iv = incident_vertices(*m, f);
+		return value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
+	});
+
+	cgogn::modeling::quadrangulate_all_faces(
+		cc,
+		[&](Vertex v) {
+			std::vector<Vertex> av = adjacent_vertices_through_edge(*m, v);
+			cgogn::value<Vec3>(*m, vertex_position, v) =
+				0.5 * (cgogn::value<Vec3>(*m, vertex_position, av[0]) + cgogn::value<Vec3>(*m, vertex_position, av[1]));
+		},
+		[&](Vertex v) {
+			Vec3 center;
+			center.setZero();
+			uint32 count = 0;
+			foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
+				center += cgogn::value<Vec3>(*m, vertex_position, av);
+				++count;
+				return true;
+			});
+			center /= Scalar(count);
+			cgogn::value<Vec3>(*m, vertex_position, v) = center;
+		});
+
+	mp.emit_connectivity_changed(m);
+	mp.emit_attribute_changed(m, vertex_position.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);

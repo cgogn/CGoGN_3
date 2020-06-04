@@ -95,45 +95,17 @@ protected:
 
 	void interface() override
 	{
-		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::SetWindowSize({0, 0});
-
-		if (ImGui::ListBoxHeader("Mesh"))
-		{
-			mesh_provider_->foreach_mesh([this](MESH* m, const std::string& name) {
-				if (ImGui::Selectable(name.c_str(), m == selected_mesh_))
-				{
-					selected_mesh_ = m;
-					selected_vertex_position_.reset();
-				}
-			});
-			ImGui::ListBoxFooter();
-		}
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+			selected_mesh_ = m;
+			selected_vertex_position_.reset();
+			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		});
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
-			std::string selected_vertex_position_name_ =
-				selected_vertex_position_ ? selected_vertex_position_->name() : "-- select --";
-			if (ImGui::BeginCombo("Position", selected_vertex_position_name_.c_str()))
-			{
-				foreach_attribute<Vec3, Vertex>(*selected_mesh_,
-												[this](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													bool is_selected = attribute == selected_vertex_position_;
-													if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-														selected_vertex_position_ = attribute;
-													if (is_selected)
-														ImGui::SetItemDefaultFocus();
-												});
-				ImGui::EndCombo();
-			}
-			if (selected_vertex_position_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##attribute"))
-					selected_vertex_position_.reset();
-			}
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_position_, "Position",
+				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
 
 			if (selected_vertex_position_)
 			{
@@ -145,8 +117,6 @@ protected:
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
-
-		ImGui::End();
 	}
 
 private:

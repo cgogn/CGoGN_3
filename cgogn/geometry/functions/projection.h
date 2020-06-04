@@ -21,64 +21,27 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/mesh_traits.h>
+#ifndef CGOGN_GEOMETRY_FUNCTIONS_PROJECTION_H_
+#define CGOGN_GEOMETRY_FUNCTIONS_PROJECTION_H_
+
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
-
-#include <cgogn/ui/app.h>
-#include <cgogn/ui/view.h>
-
-#include <cgogn/ui/modules/graph_render/graph_render.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-
-using Mesh = cgogn::Graph;
-
-template <typename T>
-using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
-
-int main(int argc, char** argv)
+namespace cgogn
 {
-	std::string filename;
-	if (argc < 2)
-	{
-		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
-		return 1;
-	}
-	else
-		filename = std::string(argv[1]);
 
-	cgogn::thread_start();
+namespace geometry
+{
 
-	cgogn::ui::App app;
-	app.set_window_title("Simple graph viewer");
-	app.set_window_size(1000, 800);
-
-	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::GraphRender<Mesh> gr(app);
-
-	app.init_modules();
-
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
-	v1->link_module(&gr);
-
-	Mesh* m = mp.load_graph_from_file(filename);
-	if (!m)
-	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
-	}
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
-	gr.set_vertex_position(*v1, *m, vertex_position);
-	gr.set_vertex_radius(*v1, *m, vertex_radius);
-
-	return app.launch();
+/**
+ * project point P on the sphere defined by center C and radius R
+ */
+inline void project_on_sphere(Vec3& P, const Vec3& C, Scalar R)
+{
+	P = C + (P - C).normalized() * R;
 }
+
+} // namespace geometry
+
+} // namespace cgogn
+
+#endif // CGOGN_GEOMETRY_FUNCTIONS_PROJECTION_H_

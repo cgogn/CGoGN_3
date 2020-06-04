@@ -382,6 +382,9 @@ protected:
 
 	void interface() override
 	{
+		if (ImGui::Button("Add mesh"))
+			add_mesh(std::string{mesh_traits<MESH>::name});
+
 		imgui_mesh_selector(this, selected_mesh_, [&](MESH* m) {
 			selected_mesh_ = m;
 			mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;

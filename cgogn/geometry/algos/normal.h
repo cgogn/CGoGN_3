@@ -57,10 +57,10 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face f,
 	else
 	{
 		Vec3 n{0.0, 0.0, 0.0};
-		for (uint32 i = 0; i < uint32(vertices.size()) - 1; ++i)
+		for (uint32 i = 0, nb = uint32(vertices.size()); i < nb; ++i)
 		{
 			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
-			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i + 1]);
+			const Vec3& q = value<Vec3>(m, vertex_position, vertices[(i + 1) % nb]);
 			n[0] += (p[1] - q[1]) * (p[2] + q[2]);
 			n[1] += (p[2] - q[2]) * (p[0] + q[0]);
 			n[2] += (p[0] - q[0]) * (p[1] + q[1]);
@@ -86,10 +86,10 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face2 f,
 	else
 	{
 		Vec3 n{0.0, 0.0, 0.0};
-		for (uint32 i = 0; i < uint32(vertices.size()) - 1; ++i)
+		for (uint32 i = 0, nb = uint32(vertices.size()); i < nb; ++i)
 		{
 			const Vec3& p = value<Vec3>(m, vertex_position, vertices[i]);
-			const Vec3& q = value<Vec3>(m, vertex_position, vertices[i + 1]);
+			const Vec3& q = value<Vec3>(m, vertex_position, vertices[(i + 1) % nb]);
 			n[0] += (p[1] - q[1]) * (p[2] + q[2]);
 			n[1] += (p[2] - q[2]) * (p[0] + q[0]);
 			n[2] += (p[0] - q[0]) * (p[1] + q[1]);
@@ -105,8 +105,17 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
 
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
+	// const Vec3& p = value<Vec3>(m, vertex_position, v);
+	// std::vector<Vertex> adjacent_vertices = adjacent_vertices_through_edge(m, v);
+	// for (uint32 i = 0, nb = uint32(adjacent_vertices.size()); i < nb; ++i)
+	// {
+	// 	n += normal(p, value<Vec3>(m, vertex_position, adjacent_vertices[i]),
+	// 				value<Vec3>(m, vertex_position, adjacent_vertices[(i + 1) % nb]))
+	// 			 .normalized();
+	// }
 	foreach_incident_face(m, v, [&](Face f) -> bool {
 		n += normal(m, f, vertex_position);
 		return true;

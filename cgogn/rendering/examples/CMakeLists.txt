@@ -17,6 +17,7 @@ target_link_libraries(simple_graph_viewer
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 

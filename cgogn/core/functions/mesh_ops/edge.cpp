@@ -188,7 +188,6 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			Dart d = e.dart;
 			do
 			{
-
 				copy_index<CMap3::Face>(m, phi1(m, d), d);
 				copy_index<CMap3::Face>(m, phi3(m, d), d);
 				copy_index<CMap3::Face>(m, phi2(m, d), phi<12>(m, d));
@@ -262,7 +261,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				{
 					it = phi1(map, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != d);
-				
+
 				copy_index<CPH3::CMAP::Face>(map, phi1(map, d), it);
 				it = phi2(map, d);
 				do
@@ -308,6 +307,43 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 // collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices)
+{
+	Dart d = e.dart;
+	Dart d1 = alpha_1(g, d);
+	Dart dd = alpha0(g, d);
+	Dart dd1 = alpha_1(g, dd);
+
+	Graph::Vertex v;
+
+	if (dd1 != dd)
+	{
+		v.dart = dd1;
+		alpha1_unsew(g, dd);
+	}
+	if (d1 != d)
+	{
+		v.dart = d1;
+		alpha1_unsew(g, d);
+	}
+	if (d1 != d && dd1 != dd)
+		alpha1_sew(g, d1, dd1);
+	remove_dart(g, d);
+	remove_dart(g, dd);
+
+	if (set_indices && v.is_valid())
+	{
+		if (is_indexed<Graph::Vertex>(g))
+			set_index(g, v, index_of(g, v));
+	}
+
+	return v;
+}
 
 ///////////
 // CMap1 //

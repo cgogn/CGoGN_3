@@ -44,7 +44,10 @@ VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template A
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
 	VEC result;
-	result.setZero();
+	if constexpr (vector_traits<VEC>::SIZE == 1)
+		result = 0;
+	else
+		result.setZero();
 	uint32 count = 0;
 	foreach_incident_vertex(m, c, [&](Vertex v) -> bool {
 		result += value<VEC>(m, attribute, v);

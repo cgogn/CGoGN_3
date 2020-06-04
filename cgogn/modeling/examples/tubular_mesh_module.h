@@ -1,5 +1,5 @@
 /*******************************************************************************
- * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * CGoGN                                                                        *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
@@ -21,64 +21,73 @@
  *                                                                              *
  *******************************************************************************/
 
+#ifndef CGOGN_MODULE_TUBULAR_MESH_H_
+#define CGOGN_MODULE_TUBULAR_MESH_H_
+
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/module.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
+// #include <cgogn/geometry/algos/filtering.h>
 
-#include <cgogn/ui/app.h>
-#include <cgogn/ui/view.h>
-
-#include <cgogn/ui/modules/graph_render/graph_render.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-
-using Mesh = cgogn::Graph;
-
-template <typename T>
-using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
-
-using Vec3 = cgogn::geometry::Vec3;
-using Scalar = cgogn::geometry::Scalar;
-
-int main(int argc, char** argv)
+namespace cgogn
 {
-	std::string filename;
-	if (argc < 2)
+
+namespace ui
+{
+
+template <typename GRAPH, typename SURFACE, typename VOLUME>
+class TubularMesh : public ViewModule
+{
+	template <typename T>
+	using GraphAttribute = typename mesh_traits<GRAPH>::template Attribute<T>;
+	template <typename T>
+	using SurfaceAttribute = typename mesh_traits<SURFACE>::template Attribute<T>;
+	template <typename T>
+	using VolumeAttribute = typename mesh_traits<VOLUME>::template Attribute<T>;
+
+	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
+	using SurfaceVertex = typename mesh_traits<SURFACE>::Vertex;
+	using VolumeVertex = typename mesh_traits<VOLUME>::Vertex;
+
+	using Vec3 = geometry::Vec3;
+	using Scalar = geometry::Scalar;
+
+public:
+	TubularMesh(const App& app) : ViewModule(app, "TubularMesh")
 	{
-		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
-		return 1;
-	}
-	else
-		filename = std::string(argv[1]);
-
-	cgogn::thread_start();
-
-	cgogn::ui::App app;
-	app.set_window_title("Simple graph viewer");
-	app.set_window_size(1000, 800);
-
-	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::GraphRender<Mesh> gr(app);
-
-	app.init_modules();
-
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
-	v1->link_module(&gr);
-
-	Mesh* m = mp.load_graph_from_file(filename);
-	if (!m)
-	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
 	}
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
-	gr.set_vertex_position(*v1, *m, vertex_position);
-	gr.set_vertex_radius(*v1, *m, vertex_radius);
+	~TubularMesh()
+	{
+	}
 
-	return app.launch();
-}
+protected:
+	void init() override
+	{
+		graph_provider_ = static_cast<ui::MeshProvider<GRAPH>*>(
+			app_.module("MeshProvider (" + std::string{mesh_traits<GRAPH>::name} + ")"));
+		surface_provider_ = static_cast<ui::MeshProvider<SURFACE>*>(
+			app_.module("MeshProvider (" + std::string{mesh_traits<SURFACE>::name} + ")"));
+		volume_provider_ = static_cast<ui::MeshProvider<VOLUME>*>(
+			app_.module("MeshProvider (" + std::string{mesh_traits<VOLUME>::name} + ")"));
+	}
+
+	void interface() override
+	{
+	}
+
+private:
+	MeshProvider<GRAPH>* graph_provider_;
+	MeshProvider<SURFACE>* surface_provider_;
+	MeshProvider<VOLUME>* volume_provider_;
+};
+
+} // namespace ui
+
+} // namespace cgogn
+
+#endif // CGOGN_MODULE_TUBULAR_MESH_H_

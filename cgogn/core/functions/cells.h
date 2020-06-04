@@ -27,6 +27,7 @@
 #include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
 #include <sstream>
@@ -110,6 +111,35 @@ inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convert
 		c.dart = m.volume_youngest_dart(c.dart);
 
 	return index_of(static_cast<const CPH3::CMAP&>(m), c);
+}
+
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
+// CELL of_index(MESH& m, uint32 i);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+CELL of_index(const CMapBase& m, uint32 i)
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (!is_boundary(m, d))
+		{
+			const CELL c(d);
+			if (index_of(m, c) == i)
+				return c;
+		}
+	}
+	return CELL();
 }
 
 /*****************************************************************************/

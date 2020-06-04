@@ -61,7 +61,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		uint32 worker_index = current_worker_index();
 		Vec3 intersection_point;
 		std::vector<Vertex> vertices = incident_vertices(m, f);
-		if (codegree(m, f) == 3)
+		if (vertices.size() == 3)
 		{
 			if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
 										  value<Vec3>(m, vertex_position, vertices[1]),
@@ -76,8 +76,11 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 				if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
 											  value<Vec3>(m, vertex_position, vertices[i + 1]),
 											  value<Vec3>(m, vertex_position, vertices[i + 2]), &intersection_point))
+				{
 					selected_per_thread[worker_index].emplace_back(f, intersection_point,
 																   (intersection_point - A).squaredNorm());
+					break;
+				}
 			}
 		}
 		// else
