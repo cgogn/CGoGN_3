@@ -183,6 +183,15 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
 			set_index(m, e, index_of(m, e));
 		}
+		if (is_indexed<CMap3::Face2>(m))
+		{
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				if (is_boundary(m, d))
+					return true;
+				copy_index<CMap3::Face2>(m, d, phi1(m, d));
+				return true;
+			});
+		}
 		if (is_indexed<CMap3::Face>(m))
 		{
 			Dart d = e.dart;

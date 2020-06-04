@@ -106,19 +106,19 @@ int main(int argc, char** argv)
 	gr.set_vertex_position(*v1, *g, vertex_position_g);
 
 	// load surface
-	std::string surface_name = cgogn::remove_extension(filename) + ".off";
-	Surface* sg = mps.load_surface_from_file(surface_name);
-	if (!sg)
-	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
-	}
+	//std::string surface_name = cgogn::remove_extension(filename) + ".off";
+	//Surface* sg = mps.load_surface_from_file(surface_name);
+	//if (!sg)
+	//{
+	//	std::cout << "File could not be loaded" << std::endl;
+	//	return 1;
+	//}
 
-	std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_sg =
-		cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*sg, "position");
+	//std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_sg =
+		//cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*sg, "position");
 
-	mps.set_mesh_bb_vertex_position(sg, vertex_position_sg);
-	sr.set_vertex_position(*v1, *sg, vertex_position_sg);
+	//mps.set_mesh_bb_vertex_position(sg, vertex_position_sg);
+	//sr.set_vertex_position(*v1, *sg, vertex_position_sg);
 
 	// create surfaces + volume mesh
 	Surface* s = mps.add_mesh("contact");

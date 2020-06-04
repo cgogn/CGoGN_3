@@ -63,7 +63,7 @@ void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 
 CMap2::Vertex quadrangulate_face(CMap2& m, CMap2::Face f)
 {
-	cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	//cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
 	Dart d0 = phi1(m, f.dart);
 	Dart d1 = phi<11>(m, d0);
 

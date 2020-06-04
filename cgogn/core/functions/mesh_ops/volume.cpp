@@ -215,6 +215,11 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 				return true;
 			});
 		}
+		if (is_indexed<CMap3::Face2>(m))
+		{
+			set_index(m, CMap3::Face2(f0), new_index<CMap3::Face2>(m));
+			set_index(m, CMap3::Face2(phi3(m, f0)), new_index<CMap3::Face2>(m));
+		}
 		if (is_indexed<CMap3::Face>(m))
 		{
 			set_index(m, CMap3::Face(f0), new_index<CMap3::Face>(m));

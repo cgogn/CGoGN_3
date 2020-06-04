@@ -270,6 +270,19 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 		}
 		if (is_indexed<CMap3::Edge>(m))
 			set_index(m, CMap3::Edge(phi_1(m, v1.dart)), new_index<CMap3::Edge>(m));
+		if (is_indexed<CMap3::Face2>(m))
+		{
+			if (!is_boundary(m, d))
+			{
+				copy_index<CMap3::Face2>(m, phi_1(m, d), d);
+				set_index(m, CMap3::Face2(e), new_index<CMap3::Face2>(m));
+			}
+			if (!is_boundary(m, dd))
+			{
+				copy_index<CMap3::Face2>(m, phi_1(m, dd), dd);
+				set_index(m, CMap3::Face2(ee), new_index<CMap3::Face2>(m));
+			}
+		}
 		if (is_indexed<CMap3::Face>(m))
 		{
 			copy_index<CMap3::Face>(m, phi_1(m, ee), d);
