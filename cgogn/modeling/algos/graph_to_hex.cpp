@@ -171,8 +171,9 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	//bloat(m3, g, gAttribs);
 	CellMarker<CMap3, CMap3::Face> cm(m3);
 	mark_tranversal_faces(m3, m2, m2Attribs, cm);
-	//trisect_length_wise(m3, m3Attribs, cm, g, gAttribs);
-	//subdivide_length_wise(m3, m3Attribs, cm, g, gAttribs);
+	trisect_length_wise(m3, m3Attribs, cm, g, gAttribs);
+	subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
+	subdivide_length_wise(m3, m3Attribs, cm, g, gAttribs);
 	subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
 	okay = add_quality_attributes(m3, m3Attribs);
 	okay = set_hex_frames(m3, m3Attribs);
@@ -2680,7 +2681,8 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	CellCache<MESH> cache_face2cut(m3);
 	CellCache<MESH> cache_vol2cut(m3);
 
-	Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(eg.dart));
+	Dart dg0 = eg.dart;
+	Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(dg0));
 	
 	std::vector<Dart> face2_stack;
 	face2_stack.push_back(d0);
@@ -2720,15 +2722,14 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 			it = phi1(m3, it);
 		} while (it != f2d);
 	}
-	std::cout << uint32(face2_stack.size()) << " " << nb_e << " " << nb_f << std::endl;
+	
 	foreach_cell(cache_edge2cut, [&](Edge e) -> bool {
 		std::vector<Vertex> vertices = incident_vertices(m3, e);
 		Vertex v_mid = cut_edge(m3, e);
 		value<Vec3>(m3, m3Attribs.vertex_position, v_mid) =
-		//Vec3 mid =
-			0.5 * (value<Vec3>(m3, m3Attribs.vertex_position, vertices[0]) +
-				   value<Vec3>(m3, m3Attribs.vertex_position, vertices[1]));
-		//new_vertices.mark(v_mid);
+			(1 - slice) * value<Vec3>(m3, m3Attribs.vertex_position, vertices[0]) +
+				   slice * value<Vec3>(m3, m3Attribs.vertex_position, vertices[1]);
+		
 		return true;
 	});
 
@@ -2740,10 +2741,25 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	foreach_cell(cache_vol2cut, [&](Volume vol) -> bool {
 		std::vector<Dart> path;
 		get_loop_path(m3, phi1(m3, vol.dart), path);
-		cut_volume(m3, path);
+		Face new_face = cut_volume(m3, path);
+		trans_faces.mark(new_face);
 		return true;
 	});
+
+	Dart dg1 = alpha0(g, dg0);
+	Dart d1 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(dg1));
+
+	Dart d0_0 = phi<21132>(m3, d0);
+	Dart d1_0 = phi<21132>(m3, d1);
+
+	GVertex gv = cut_edge(g, eg);
+	value<Vec3>(g, gAttribs.vertex_position, gv) = (1 - slice) * value<Vec3>(g, gAttribs.vertex_position, GVertex(dg0)) +
+												   slice * value<Vec3>(g, gAttribs.vertex_position, GVertex(dg1));
+	value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(alpha0(g, dg0))) = d0_0;
+	value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(alpha0(g, dg1))) = d1_0;
 }
+
+
 
 void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
 						 GAttributes& gAttribs)

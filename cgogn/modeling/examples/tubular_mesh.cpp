@@ -128,10 +128,10 @@ int main(int argc, char** argv)
 
 	if (cgogn::modeling::graph_to_hex(*g, *s, *v))
 	{
-		// std::shared_ptr<GraphAttribute<Vec3>> vertex_position_g =
-		// 	cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
-		// mpg.emit_connectivity_changed(g);
-		// mpg.emit_attribute_changed(g, vertex_position_g.get());
+		 std::shared_ptr<GraphAttribute<Vec3>> vertex_position_g =
+		 	cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
+		 mpg.emit_connectivity_changed(g);
+		 mpg.emit_attribute_changed(g, vertex_position_g.get());
 
 		std::shared_ptr<SurfaceAttribute<Vec3>> vertex_position_s =
 			cgogn::get_attribute<Vec3, typename cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
