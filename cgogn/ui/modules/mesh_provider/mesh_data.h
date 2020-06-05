@@ -28,6 +28,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/rendering/mesh_render.h>
@@ -117,6 +118,28 @@ public:
 		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
 		return nb_cells_[cell_index];
+	}
+
+	template <typename CELL>
+	std::vector<std::string> attributes_names()
+	{
+		std::vector<std::string> names;
+		foreach_attribute<CELL>(
+			*mesh_, [&](const std::shared_ptr<AttributeGen>& attribute) { names.push_back(attribute->name()); });
+		return names;
+	}
+
+private:
+	template <class... T>
+	std::vector<std::vector<std::string>> attributes_names(const std::tuple<T...>&)
+	{
+		return {attributes_names<T>()...};
+	}
+
+public:
+	std::vector<std::vector<std::string>> attributes_names()
+	{
+		return attributes_names(typename mesh_traits<MESH>::Cells{});
 	}
 
 	void update_bb()

@@ -82,7 +82,7 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
 			selected_mesh_ = m;
 			selected_vertex_attribute_.reset();
 			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
@@ -91,7 +91,7 @@ protected:
 		if (selected_mesh_)
 		{
 			imgui_combo_attribute<Vertex, Vec3>(
-				*selected_mesh_, selected_vertex_attribute_, "Position",
+				*selected_mesh_, selected_vertex_attribute_, "Attribute",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_attribute_ = attribute; });
 
 			if (selected_vertex_attribute_)

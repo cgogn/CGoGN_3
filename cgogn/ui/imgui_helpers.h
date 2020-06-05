@@ -33,7 +33,6 @@
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 #include <cgogn/ui/module.h>
-// #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 #include <cgogn/ui/view.h>
 
 namespace cgogn
@@ -77,13 +76,14 @@ void imgui_combo_attribute(const MESH& m,
 }
 
 template <typename MESH_PROVIDER, typename MESH, typename FUNC>
-bool imgui_mesh_selector(MESH_PROVIDER* mesh_provider, const MESH* selected_mesh, const FUNC& f)
+bool imgui_mesh_selector(MESH_PROVIDER* mesh_provider, const MESH* selected_mesh, const std::string& label,
+						 const FUNC& on_change)
 {
-	if (ImGui::ListBoxHeader("Mesh", mesh_provider->number_of_meshes()))
+	if (ImGui::ListBoxHeader(label.c_str(), mesh_provider->number_of_meshes()))
 	{
 		mesh_provider->foreach_mesh([&](MESH* m, const std::string& name) {
 			if (ImGui::Selectable(name.c_str(), m == selected_mesh))
-				f(m);
+				on_change(m);
 		});
 		ImGui::ListBoxFooter();
 		return true;
@@ -92,7 +92,7 @@ bool imgui_mesh_selector(MESH_PROVIDER* mesh_provider, const MESH* selected_mesh
 }
 
 template <typename FUNC>
-bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& f)
+bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& on_change)
 {
 	if (ImGui::BeginCombo("View", selected->name().c_str()))
 	{
@@ -100,7 +100,7 @@ bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& f)
 		{
 			bool is_selected = v == selected;
 			if (ImGui::Selectable(v->name().c_str(), is_selected))
-				f(v);
+				on_change(v);
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		}

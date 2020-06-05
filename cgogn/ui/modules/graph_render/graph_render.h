@@ -329,7 +329,7 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) { selected_mesh_ = m; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Graph", [&](MESH* m) { selected_mesh_ = m; });
 
 		if (selected_view_ && selected_mesh_)
 		{

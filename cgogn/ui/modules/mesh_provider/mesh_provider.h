@@ -70,6 +70,8 @@ public:
 		: ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
 		  bb_min_(0, 0, 0), bb_max_(0, 0, 0)
 	{
+		// for (auto& n : new_attribute_name_)
+		// 	n[0] = '\0';
 	}
 
 	~MeshProvider()
@@ -385,7 +387,7 @@ protected:
 		if (ImGui::Button("Add mesh"))
 			add_mesh(std::string{mesh_traits<MESH>::name});
 
-		imgui_mesh_selector(this, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(this, selected_mesh_, "Mesh", [&](MESH* m) {
 			selected_mesh_ = m;
 			mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
 		});
@@ -400,10 +402,10 @@ protected:
 												});
 
 			ImGui::Separator();
-			ImGui::TextUnformatted("Cells");
+			ImGui::TextUnformatted("Size");
 			ImGui::Columns(2);
 			ImGui::Separator();
-			ImGui::TextUnformatted("Type");
+			ImGui::TextUnformatted("CellType");
 			ImGui::NextColumn();
 			ImGui::TextUnformatted("Number");
 			ImGui::NextColumn();
@@ -416,6 +418,41 @@ protected:
 				ImGui::NextColumn();
 			}
 			ImGui::Columns(1);
+
+			ImGui::Separator();
+			ImGui::TextUnformatted("Attributes");
+			ImGui::Columns(2);
+			ImGui::Separator();
+			ImGui::TextUnformatted("CellType");
+			ImGui::NextColumn();
+			ImGui::TextUnformatted("Names");
+			ImGui::NextColumn();
+			ImGui::Separator();
+			auto names = md->attributes_names();
+			for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
+			{
+				ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]);
+				ImGui::NextColumn();
+				ImGui::PushItemWidth(-1);
+				if (ImGui::ListBoxHeader((std::string("##") + mesh_traits<MESH>::cell_names[i]).c_str(),
+										 names[i].size()))
+				{
+					for (auto& n : names[i])
+						ImGui::Text("%s", n.c_str());
+					ImGui::ListBoxFooter();
+				}
+				// ImGui::PopItemWidth();
+				// ImGui::NextColumn();
+				// ImGui::NextColumn();
+				// ImGui::PushItemWidth(-1);
+				// ImGui::InputText((std::string("##") + mesh_traits<MESH>::cell_names[i]).c_str(),
+				// new_attribute_name_[i], 				 32); ImGui::PopItemWidth(); ImGui::SameLine(); if
+				// (ImGui::Button((std::string("Add##") + mesh_traits<MESH>::cell_names[i]).c_str()))
+				// {
+				// }
+				ImGui::NextColumn();
+			}
+			ImGui::Columns(1);
 		}
 	}
 
@@ -425,6 +462,7 @@ private:
 	std::vector<std::string> supported_volume_files = {"Volume", "*.tet"};
 
 	const MESH* selected_mesh_;
+	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;

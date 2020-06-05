@@ -100,7 +100,7 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
 			selected_mesh_ = m;
 			selected_vertex_position_.reset();
 			selected_vertex_normal_.reset();

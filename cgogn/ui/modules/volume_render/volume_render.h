@@ -500,7 +500,7 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Volume", [&](MESH* m) {
 			selected_mesh_ = m;
 			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
 		});
