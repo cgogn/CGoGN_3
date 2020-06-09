@@ -71,7 +71,7 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 {
 	bool okay;
 
-	GData gData;
+	GraphData gData;
 	GAttributes gAttribs;
 	M2Attributes m2Attribs;
 	M3Attributes m3Attribs;
@@ -186,11 +186,13 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
 
 	// bloat(m3, g, gAttribs);
-	CellMarker<CMap3, CMap3::Face> cm(m3);
-	mark_tranversal_faces(m3, m2, m2Attribs, cm);
+
+	// CellMarker<CMap3, CMap3::Face> cm(m3);
+	// mark_tranversal_faces(m3, m2, m2Attribs, cm);
 	// trisect_length_wise(m3, m3Attribs, cm, g, gAttribs);
 	// subdivide_length_wise(m3, m3Attribs, cm, g, gAttribs);
-	subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
+	// subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
+
 	okay = add_quality_attributes(m3, m3Attribs);
 	okay = set_hex_frames(m3, m3Attribs);
 	okay = compute_scaled_jacobians(m3, m3Attribs, true);
