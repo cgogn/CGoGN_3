@@ -2454,14 +2454,9 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	CellCache<MESH> cache_face2cut(m3);
 	CellCache<MESH> cache_vol2cut(m3);
 
-<<<<<<< HEAD
-	Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(eg.dart));
-
-=======
 	Dart dg0 = eg.dart;
 	Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(dg0));
-	
->>>>>>> 8510536237ee8659def551c802d220a1044963ca
+
 	std::vector<Dart> face2_stack;
 	face2_stack.push_back(d0);
 	visited_face2.mark(Face2(d0));
@@ -2504,16 +2499,9 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 		std::vector<Vertex> vertices = incident_vertices(m3, e);
 		Vertex v_mid = cut_edge(m3, e);
 		value<Vec3>(m3, m3Attribs.vertex_position, v_mid) =
-<<<<<<< HEAD
-			// Vec3 mid =
-			0.5 * (value<Vec3>(m3, m3Attribs.vertex_position, vertices[0]) +
-				   value<Vec3>(m3, m3Attribs.vertex_position, vertices[1]));
-		// new_vertices.mark(v_mid);
-=======
 			(1 - slice) * value<Vec3>(m3, m3Attribs.vertex_position, vertices[0]) +
-				   slice * value<Vec3>(m3, m3Attribs.vertex_position, vertices[1]);
-		
->>>>>>> 8510536237ee8659def551c802d220a1044963ca
+			slice * value<Vec3>(m3, m3Attribs.vertex_position, vertices[1]);
+
 		return true;
 	});
 
