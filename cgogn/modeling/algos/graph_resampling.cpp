@@ -29,6 +29,7 @@
 #include <cgogn/core/functions/traversals/halfedge.h>
 
 #include <cgogn/geometry/algos/centroid.h>
+#include <cgogn/geometry/algos/distance.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/picking.h>
 
@@ -47,17 +48,8 @@ void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_verte
 	using SelectedFace = std::tuple<CMap2::Face, Vec3, Scalar>;
 	foreach_cell(g, [&](Graph::Vertex v) -> bool {
 		const Vec3& p = value<Vec3>(g, g_vertex_position, v);
-		Scalar min = std::numeric_limits<Scalar>::max();
-		std::vector<Vec3> directions{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {-1, 0, 0}, {0, -1, 0}, {0, 0, -1}};
-		for (const Vec3& d : directions)
-		{
-			std::vector<SelectedFace> selectedfaces =
-				cgogn::geometry::internal::picking(s, s_vertex_position, p, p + d);
-			Scalar dist = (std::get<1>(selectedfaces[0]) - p).norm();
-			if (dist < min)
-				min = dist;
-		}
-		value<Scalar>(g, g_vertex_radius, v) = min;
+		Vec3 cp = geometry::closest_point_on_surface(s, s_vertex_position, p);
+		value<Scalar>(g, g_vertex_radius, v) = (cp - p).norm();
 		return true;
 	});
 }

@@ -178,6 +178,16 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 	{
 		if (is_indexed<CMap3::Vertex>(m))
 			set_index(m, v, new_index<CMap3::Vertex>(m));
+		if (is_indexed<CMap3::Vertex2>(m))
+		{
+			Dart d = e.dart;
+			do
+			{
+				if (!is_boundary(m, d))
+					set_index(m, CMap3::Vertex2(d), new_index<CMap3::Vertex2>(m));
+				d = phi<23>(m, d);
+			} while (d != e.dart);
+		}
 		if (is_indexed<CMap3::Edge>(m))
 		{
 			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
@@ -185,12 +195,15 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 		}
 		if (is_indexed<CMap3::Face2>(m))
 		{
-			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-				if (is_boundary(m, d))
-					return true;
-				copy_index<CMap3::Face2>(m, d, phi1(m, d));
-				return true;
-			});
+			Dart d = e.dart;
+			do
+			{
+				// if (!is_boundary(m, d))
+				copy_index<CMap3::Face2>(m, phi1(m, d), d);
+				// if (!is_boundary(m, phi3(m, d)))
+				copy_index<CMap3::Face2>(m, phi3(m, d), phi<13>(m, d));
+				d = phi<23>(m, d);
+			} while (d != e.dart);
 		}
 		if (is_indexed<CMap3::Face>(m))
 		{
@@ -199,7 +212,7 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			{
 				copy_index<CMap3::Face>(m, phi1(m, d), d);
 				copy_index<CMap3::Face>(m, phi3(m, d), d);
-				copy_index<CMap3::Face>(m, phi2(m, d), phi<12>(m, d));
+				// copy_index<CMap3::Face>(m, phi2(m, d), phi<12>(m, d));
 				d = phi<23>(m, d);
 			} while (d != e.dart);
 		}

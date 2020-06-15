@@ -163,7 +163,7 @@ void remove_face(CMap1& m, CMap1::Face f, bool set_indices)
 
 void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices)
 {
-	if(is_incident_to_boundary(m, e))
+	if (is_incident_to_boundary(m, e))
 		return;
 
 	Dart d0 = e.dart;
@@ -173,17 +173,16 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 	phi1_sew(m, phi_1(m, d0), d1);
 	phi1_sew(m, phi_1(m, d1), d0);
 
-	if(set_indices)
+	if (set_indices)
 	{
-		if(is_indexed<CMap2::Face>(m))
+		if (is_indexed<CMap2::Face>(m))
 			copy_index<CMap2::Face>(m, d_1, d0);
 	}
 
 	remove_face(static_cast<CMap1&>(m), CMap1::Face(d0), set_indices);
-	
+
 	return;
 }
-
 
 /*****************************************************************************/
 
@@ -248,7 +247,7 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 	Dart d = v1.dart;
 	Dart e = v2.dart;
 
-	Dart dd = phi<31>(m, v1.dart);
+	Dart dd = phi<31>(m, d);
 	Dart ee = phi<31>(m, e);
 
 	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart), CMap2::Vertex(e), false);
@@ -267,6 +266,19 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 			copy_index<CMap3::Vertex>(m, phi_1(m, ee), v1.dart);
 			copy_index<CMap3::Vertex>(m, phi_1(m, d), e);
 			copy_index<CMap3::Vertex>(m, phi_1(m, dd), e);
+		}
+		if (is_indexed<CMap3::Vertex2>(m))
+		{
+			if (!is_boundary(m, d))
+			{
+				copy_index<CMap3::Vertex2>(m, phi_1(m, d), e);
+				copy_index<CMap3::Vertex2>(m, phi_1(m, e), d);
+			}
+			if (!is_boundary(m, dd))
+			{
+				copy_index<CMap3::Vertex2>(m, phi_1(m, dd), ee);
+				copy_index<CMap3::Vertex2>(m, phi_1(m, ee), dd);
+			}
 		}
 		if (is_indexed<CMap3::Edge>(m))
 			set_index(m, CMap3::Edge(phi_1(m, v1.dart)), new_index<CMap3::Edge>(m));
@@ -314,7 +326,6 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2, bool set_indices)
 {
 	CPH3::CMAP& map = static_cast<CPH3::CMAP&>(m);
-
 
 	Dart d = v1.dart;
 	Dart e = v2.dart;

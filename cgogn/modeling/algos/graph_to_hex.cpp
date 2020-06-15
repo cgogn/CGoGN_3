@@ -67,7 +67,7 @@ namespace modeling
 // CMaps //
 ///////////
 
-bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
+std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 {
 	bool okay;
 
@@ -94,112 +94,79 @@ bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3)
 	// 			  << " / nb_edges: " << nb_edges << std::endl;
 	// }
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: get_graph_data" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): got graph data" << std::endl;
 
-	okay = add_graph_attributes(g, gAttribs);
+	if (okay)
+		okay = add_graph_attributes(g, gAttribs);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: add_graph_attributes" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): added graph attributes" << std::endl;
 
-	okay = add_cmap2_attributes(m2, m2Attribs);
+	if (okay)
+		okay = add_cmap2_attributes(m2, m2Attribs);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: add_cmap2_attributes" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): added cmap2 attributes" << std::endl;
 
-	okay = build_contact_surfaces(g, gAttribs, m2, m2Attribs);
+	if (okay)
+		okay = build_contact_surfaces(g, gAttribs, m2, m2Attribs);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: build_contact_surfaces" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): contact surfaces built" << std::endl;
 
-	okay = create_intersection_frames(g, gAttribs, m2, m2Attribs);
+	if (okay)
+		okay = create_intersection_frames(g, gAttribs, m2, m2Attribs);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: create_intersections_frames" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): create_intersections_frames completed" << std::endl;
 
-	okay = propagate_frames(g, gAttribs, gData, m2);
+	if (okay)
+		okay = propagate_frames(g, gAttribs, gData, m2);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: propagate_frames" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): propagate_frames completed" << std::endl;
 
-	okay = set_contact_surfaces_geometry(g, gAttribs, m2, m2Attribs);
+	if (okay)
+		okay = set_contact_surfaces_geometry(g, gAttribs, m2, m2Attribs);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: set_contact_surfaces_geometry" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
 
-	okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
+	if (okay)
+		okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: build_branch_sections" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): build_branch_sections completed" << std::endl;
 
-	okay = sew_branch_sections(m2, m2Attribs, m3);
+	if (okay)
+		okay = sew_branch_sections(m2, m2Attribs, m3);
 	if (!okay)
-	{
 		std::cout << "error graph_to_hex: sew_sections" << std::endl;
-		return false;
-	}
 	else
 		std::cout << "graph_to_hex (/): sew_sections completed" << std::endl;
 
-	add_cmap3_attributes(m3, m3Attribs);
-
-	okay = set_volumes_geometry(m2, m2Attribs, m3, m3Attribs);
-	// okay = set_volumes_geometry(m2, m2Attribs, m3);
-	if (!okay)
+	if (okay)
 	{
-		std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
-		return false;
+		add_cmap3_attributes(m3, m3Attribs);
+		okay = set_volumes_geometry(m2, m2Attribs, m3, m3Attribs);
 	}
+	if (!okay)
+		std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
 	else
 		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
 
 	// bloat(m3, g, gAttribs);
-	CellMarker<CMap3, CMap3::Face> cm(m3);
-	mark_tranversal_faces(m3, m2, m2Attribs, cm);
-	trisect_length_wise(m3, m3Attribs, cm, g, gAttribs);
-	subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
-	subdivide_length_wise(m3, m3Attribs, cm, g, gAttribs);
-	subdivide_width_wise(m3, m3Attribs, cm, g, gAttribs);
-	okay = add_quality_attributes(m3, m3Attribs);
-	okay = set_hex_frames(m3, m3Attribs);
-	okay = compute_scaled_jacobians(m3, m3Attribs, true);
-	okay = compute_jacobians(m3, m3Attribs, true);
-	okay = compute_maximum_aspect_frobenius(m3, m3Attribs, true);
-	okay = compute_mean_aspect_frobenius(m3, m3Attribs, true);
 
-	return okay;
+	return {gAttribs, m2Attribs, m3Attribs};
 }
 
 /*****************************************************************************/
@@ -1949,262 +1916,8 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 }
 
 /*****************************************************************************/
-/* mesh volume quality                                                       */
+/* export                                                                    */
 /*****************************************************************************/
-
-bool add_quality_attributes(CMap3& m3, M3Attributes& m3Attribs)
-{
-	m3Attribs.vertex_position = get_attribute<Vec3, CMap3::Vertex>(m3, "position");
-	if (!m3Attribs.vertex_position)
-	{
-		std::cout << "m3 has no vertex position attribute" << std::endl;
-		return false;
-	}
-
-	m3Attribs.corner_frame = add_attribute<Mat3, CMap3::Vertex2>(m3, "corner_frame");
-	if (!m3Attribs.corner_frame)
-	{
-		std::cout << "Failed to add corner_frame attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.hex_frame = add_attribute<Mat3, CMap3::Volume>(m3, "hex_frame");
-	if (!m3Attribs.hex_frame)
-	{
-		std::cout << "Failed to add hex_frame attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.scaled_jacobian = add_attribute<Scalar, CMap3::Volume>(m3, "scaled_jacobian");
-	if (!m3Attribs.scaled_jacobian)
-	{
-		std::cout << "Failed to add scaled_jacobian attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.jacobian = add_attribute<Scalar, CMap3::Volume>(m3, "jacobian");
-	if (!m3Attribs.jacobian)
-	{
-		std::cout << "Failed to add jacobian attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.max_frobenius = add_attribute<Scalar, CMap3::Volume>(m3, "max_frobenius");
-	if (!m3Attribs.jacobian)
-	{
-		std::cout << "Failed to add max_frobenius attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.mean_frobenius = add_attribute<Scalar, CMap3::Volume>(m3, "mean_frobenius");
-	if (!m3Attribs.jacobian)
-	{
-		std::cout << "Failed to add mean_frobenius attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.color_scaled_jacobian = add_attribute<Vec3, CMap3::Volume>(m3, "color_scaled_jacobian");
-	if (!m3Attribs.color_scaled_jacobian)
-	{
-		std::cout << "Failed to add color_scaled_jacobian attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.color_jacobian = add_attribute<Vec3, CMap3::Volume>(m3, "color_jacobian");
-	if (!m3Attribs.color_jacobian)
-	{
-		std::cout << "Failed to add color_jacobian attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.color_max_frobenius = add_attribute<Vec3, CMap3::Volume>(m3, "color_max_frobenius");
-	if (!m3Attribs.color_max_frobenius)
-	{
-		std::cout << "Failed to add color_max_frobenius attribute to cmap3" << std::endl;
-		return false;
-	}
-	m3Attribs.color_mean_frobenius = add_attribute<Vec3, CMap3::Volume>(m3, "color_mean_frobenius");
-	if (!m3Attribs.color_mean_frobenius)
-	{
-		std::cout << "Failed to add color_maen_frobenius attribute to cmap3" << std::endl;
-		return false;
-	}
-	return true;
-}
-
-bool set_hex_frames(CMap3& m3, M3Attributes& m3Attribs)
-{
-	foreach_cell(m3, [&](CMap3::Volume vol3) -> bool {
-		Dart d0 = vol3.dart;
-
-		Dart D[8];
-		D[0] = d0;
-		D[1] = phi1(m3, d0);
-		D[2] = phi1(m3, D[1]);
-		D[3] = phi1(m3, D[2]);
-		D[4] = phi<211>(m3, d0);
-		D[5] = phi<211>(m3, D[1]);
-		D[6] = phi<211>(m3, D[2]);
-		D[7] = phi<211>(m3, D[3]);
-
-		Vec3 P[8];
-		P[0] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[0]));
-		P[1] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[1]));
-		P[2] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[2]));
-		P[3] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[3]));
-		P[4] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[4]));
-		P[5] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[5]));
-		P[6] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[6]));
-		P[7] = value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(D[7]));
-
-		value<Mat3>(m3, m3Attribs.hex_frame, vol3)
-			<< ((P[0] + P[1] + P[2] + P[3]) / 4 - (P[4] + P[5] + P[6] + P[7]) / 4),
-			((P[0] + P[3] + P[4] + P[7]) / 4 - (P[1] + P[2] + P[5] + P[6]) / 4),
-			((P[0] + P[1] + P[4] + P[5]) / 4 - (P[2] + P[3] + P[6] + P[7]) / 4);
-
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[0])) << (P[1] - P[0]), (P[4] - P[0]), (P[3] - P[0]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[1])) << (P[0] - P[1]), (P[2] - P[1]), (P[5] - P[1]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[2])) << (P[1] - P[2]), (P[3] - P[2]), (P[6] - P[2]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[3])) << (P[0] - P[3]), (P[7] - P[3]), (P[2] - P[3]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[4])) << (P[0] - P[4]), (P[5] - P[4]), (P[7] - P[4]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[5])) << (P[1] - P[5]), (P[6] - P[5]), (P[4] - P[5]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[6])) << (P[2] - P[6]), (P[7] - P[6]), (P[5] - P[6]);
-		value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(D[7])) << (P[3] - P[7]), (P[4] - P[7]), (P[6] - P[7]);
-		return true;
-	});
-
-	return true;
-}
-
-bool compute_scaled_jacobians(CMap3& m3, M3Attributes& m3Attribs, bool add_color)
-{
-	foreach_cell(m3, [&](CMap3::Volume vol3) -> bool {
-		Mat3 frame_h = value<Mat3>(m3, m3Attribs.hex_frame, vol3);
-		frame_h.col(0).normalize();
-		frame_h.col(1).normalize();
-		frame_h.col(2).normalize();
-
-		Scalar jacobian = frame_h.determinant();
-
-		foreach_incident_vertex(m3, vol3, [&](CMap3::Vertex v3) -> bool {
-			Mat3 frame = value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(v3.dart));
-			frame.col(0).normalize();
-			frame.col(1).normalize();
-			frame.col(2).normalize();
-
-			Scalar temp = frame.determinant();
-			jacobian = temp < jacobian ? temp : jacobian;
-
-			return true;
-		});
-
-		value<Scalar>(m3, m3Attribs.scaled_jacobian, vol3) = jacobian;
-		if (add_color)
-			value<Vec3>(m3, m3Attribs.color_scaled_jacobian, vol3) = get_quality_color(jacobian);
-		return true;
-	});
-
-	return true;
-}
-
-bool compute_jacobians(CMap3& m3, M3Attributes& m3Attribs, bool add_color)
-{
-	foreach_cell(m3, [&](CMap3::Volume vol3) -> bool {
-		Mat3 frame_h = value<Mat3>(m3, m3Attribs.hex_frame, vol3);
-
-		Scalar jacobian = frame_h.determinant();
-
-		foreach_incident_vertex(m3, vol3, [&](CMap3::Vertex v3) -> bool {
-			Mat3 frame = value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(v3.dart));
-			frame.col(0).normalize();
-			frame.col(1).normalize();
-			frame.col(2).normalize();
-
-			Scalar temp = frame.determinant();
-			jacobian = temp < jacobian ? temp : jacobian;
-
-			return true;
-		});
-
-		value<Scalar>(m3, m3Attribs.jacobian, vol3) = jacobian;
-		if (add_color)
-		{
-			value<Vec3>(m3, m3Attribs.color_jacobian, vol3) = get_quality_color(jacobian);
-		}
-		return true;
-	});
-
-	return true;
-}
-
-Scalar frame_frobenius(Mat3 frame)
-{
-	Scalar det = frame.determinant();
-	if (det <= std::numeric_limits<Scalar>::min())
-		return std::numeric_limits<Scalar>::max();
-
-	Vec3 c0 = frame.col(0);
-	Vec3 c1 = frame.col(1);
-	Vec3 c2 = frame.col(2);
-
-	Scalar t1 = c0.dot(c0) + c1.dot(c1) + c2.dot(c2);
-	Scalar t2 = (c0.cross(c1)).dot(c0.cross(c1)) + (c1.cross(c2)).dot(c1.cross(c2)) + (c2.cross(c0)).dot(c2.cross(c0));
-
-	return sqrt(t1 * t2) / (3 * det);
-}
-
-bool compute_maximum_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_color)
-{
-	foreach_cell(m3, [&](CMap3::Volume vol3) -> bool {
-		Scalar frobenius;
-
-		foreach_incident_vertex(m3, vol3, [&](CMap3::Vertex v3) -> bool {
-			Mat3 frame = value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(v3.dart));
-			frame.col(0).normalize();
-			frame.col(1).normalize();
-			frame.col(2).normalize();
-
-			Scalar temp = frame_frobenius(frame);
-			frobenius = temp > frobenius ? temp : frobenius;
-
-			return true;
-		});
-
-		value<Scalar>(m3, m3Attribs.max_frobenius, vol3) = frobenius;
-		if (add_color)
-		{
-			value<Vec3>(m3, m3Attribs.color_max_frobenius, vol3) = get_quality_color(1 - (frobenius - 1) / 2);
-		}
-		return true;
-	});
-
-	return true;
-}
-
-bool compute_mean_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_color)
-{
-	foreach_cell(m3, [&](CMap3::Volume vol3) -> bool {
-		Scalar frobenius;
-
-		foreach_incident_vertex(m3, vol3, [&](CMap3::Vertex v3) -> bool {
-			Mat3 frame = value<Mat3>(m3, m3Attribs.corner_frame, CMap3::Vertex2(v3.dart));
-			frame.col(0).normalize();
-			frame.col(1).normalize();
-			frame.col(2).normalize();
-
-			Scalar temp = frame_frobenius(frame);
-			frobenius += temp;
-
-			return true;
-		});
-
-		value<Scalar>(m3, m3Attribs.mean_frobenius, vol3) = frobenius / 8.0;
-		if (add_color)
-		{
-			value<Vec3>(m3, m3Attribs.color_mean_frobenius, vol3) = get_quality_color(1 - (frobenius - 1) / 2);
-		}
-		return true;
-	});
-
-	return true;
-}
-
-Vec3 get_quality_color(Scalar quality)
-{
-	return Vec3(1 - 2 * quality, quality, 1 - 2 * std::abs(0.5 - quality));
-}
 
 void export_graph_cgr(Graph& g, std::string name)
 {

@@ -82,7 +82,7 @@ struct M3Attributes
 	std::shared_ptr<CMap3::Attribute<Vec3>> color_mean_frobenius;
 };
 
-bool graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
+std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2& m2, CMap3& m3);
 
 /*****************************************************************************/
 /* utils                                                                     */
@@ -116,6 +116,11 @@ void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
 void export_graph_cgr(Graph& g, std::string filename);
 void export_surface_off(CMap2& m2, std::string filename);
+
+/*****************************************************************************/
+/* subdivision                                                               */
+/*****************************************************************************/
+
 void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm);
 
 void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
@@ -129,8 +134,6 @@ void quadrisect_hex(CMap3& m3, CMap3::Volume w);
 void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
 			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
 
-// void mark_tranversal_faces(CMap3& m3, const Graph& g, const GAttributes& gAttribs, CellMarker<CMap3, CMap3::Face>&
-// cm);
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
@@ -181,19 +184,6 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs);
 // bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
-
-/*****************************************************************************/
-/* mesh volume quality                                                       */
-/*****************************************************************************/
-
-bool add_quality_attributes(CMap3& m3, M3Attributes& m3Attribs);
-bool set_hex_frames(CMap3& m3, M3Attributes& m3Attribs);
-bool compute_scaled_jacobians(CMap3& m3, M3Attributes& m3Attribs, bool add_color);
-bool compute_jacobians(CMap3& m3, M3Attributes& m3Attribs, bool add_color);
-bool compute_maximum_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_color);
-bool compute_mean_aspect_frobenius(CMap3& m3, M3Attributes& m3Attribs, bool add_color);
-Scalar frame_frobenius(Mat3 frame);
-Vec3 get_quality_color(Scalar quality);
 
 } // namespace modeling
 

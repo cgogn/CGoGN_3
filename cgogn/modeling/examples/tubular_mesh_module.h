@@ -33,6 +33,8 @@
 
 #include <cgogn/geometry/algos/distance.h>
 #include <cgogn/geometry/algos/ear_triangulation.h>
+#include <cgogn/geometry/algos/filtering.h>
+#include <cgogn/geometry/algos/hex_quality.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/algos/picking.h>
@@ -57,12 +59,19 @@ class TubularMesh : public ViewModule
 	using VolumeAttribute = typename mesh_traits<VOLUME>::template Attribute<T>;
 
 	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
+
 	using SurfaceVertex = typename mesh_traits<SURFACE>::Vertex;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
+
 	using VolumeVertex = typename mesh_traits<VOLUME>::Vertex;
+	using VolumeVertex2 = typename mesh_traits<VOLUME>::Vertex2;
+	using VolumeEdge = typename mesh_traits<VOLUME>::Edge;
+	using VolumeFace = typename mesh_traits<VOLUME>::Face;
+	using VolumeVolume = typename mesh_traits<VOLUME>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
+	using Mat3 = geometry::Mat3;
 
 public:
 	TubularMesh(const App& app)
@@ -129,70 +138,203 @@ protected:
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
-		modeling::graph_to_hex(*resampled_graph_, *contact_surface_, *volume_);
+		hex_building_attributes_ = modeling::graph_to_hex(*resampled_graph_, *contact_surface_, *volume_);
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
 
 		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
-
-		volume_skin_ = surface_provider_->add_mesh("skin");
-		volume_skin_vertex_position_ = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "position");
-		volume_skin_vertex_normal_ = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal");
-		volume_skin_vertex_laplacian_ = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "laplacian");
-		volume_skin_vertex_volume_vertex_ = add_attribute<VolumeVertex, SurfaceVertex>(*volume_skin_, "hex_vertex");
-
-		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), *volume_skin_,
-										 volume_skin_vertex_position_.get(), volume_skin_vertex_volume_vertex_.get());
-		geometry::apply_ear_triangulation(*volume_skin_, volume_skin_vertex_position_.get());
-
-		surface_provider_->emit_connectivity_changed(volume_skin_);
 	}
 
 	void project_on_surface()
 	{
+		SURFACE volume_skin;
+		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
+		auto volume_skin_vertex_normal = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal");
+		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
+
+		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
+										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
+		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+
 		using SelectedFace = std::tuple<SurfaceFace, Vec3, Scalar>;
 
-		geometry::compute_normal(*volume_skin_, volume_skin_vertex_position_.get(), volume_skin_vertex_normal_.get());
+		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 
-		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
-			Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
-			const Vec3& n = value<Vec3>(*volume_skin_, volume_skin_vertex_normal_, v);
+		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
+		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
+		volume_skin_vertex_normal->swap(normal_filtered.get());
+
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
 			std::vector<SelectedFace> selectedfaces =
 				geometry::internal::picking(*surface_, surface_vertex_position_.get(), p, p + n);
 			Vec3 pos = selectedfaces.size() > 0 ? std::get<1>(selectedfaces[0]) : p;
 			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = pos;
+						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = pos;
 			p = pos;
 			return true;
 		});
 
-		surface_provider_->emit_attribute_changed(volume_skin_, volume_skin_vertex_position_.get());
-		surface_provider_->emit_attribute_changed(volume_skin_, volume_skin_vertex_normal_.get());
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void subdivide_volume()
+	{
+		CellMarker<VOLUME, VolumeFace> cm(*volume_);
+		modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_), cm);
+		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+									  std::get<0>(hex_building_attributes_));
+		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+									   std::get<0>(hex_building_attributes_));
+		// modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		// 								std::get<0>(hex_building_attributes_));
+		// modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		// 							   std::get<0>(hex_building_attributes_));
+
+		graph_provider_->emit_connectivity_changed(resampled_graph_);
+		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_position_.get());
+		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_radius_.get());
+
+		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 	}
 
 	void smooth_volume_surface()
 	{
-		geometry::compute_laplacian(*volume_skin_, volume_skin_vertex_position_.get(),
-									volume_skin_vertex_laplacian_.get());
-		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
-			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) +=
-				0.1 * value<Vec3>(*volume_skin_, volume_skin_vertex_laplacian_, v);
+		SURFACE volume_skin;
+		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
+		auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
+		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
+
+		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
+										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
+		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+
+		geometry::compute_laplacian(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_laplacian.get());
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			value<Vec3>(volume_skin, volume_skin_vertex_position, v) +=
+				0.1 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
 			return true;
 		});
-		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			Vec3 p = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(),
-														value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v));
-			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = p;
+														value<Vec3>(volume_skin, volume_skin_vertex_position, v));
+			value<Vec3>(volume_skin, volume_skin_vertex_position, v) = p;
 			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = p;
+						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = p;
 			return true;
 		});
 
-		surface_provider_->emit_attribute_changed(volume_skin_, volume_skin_vertex_position_.get());
-		surface_provider_->emit_attribute_changed(volume_skin_, volume_skin_vertex_laplacian_.get());
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void optimize_volume_vertices()
+	{
+		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
+
+		// compute vertices laplacian
+		uint32 nb_vertices = 0;
+		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
+			return true;
+		});
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
+		std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
+		LAPLcoeffs.reserve(nb_vertices * 10);
+		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
+			auto vertices = incident_vertices(*volume_, e);
+			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
+			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
+			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+			return true;
+		});
+		LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+
+		// set constrained vertices
+		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			if (is_incident_to_boundary(*volume_, v))
+			{
+				int idx = int(value<uint32>(*volume_, vertex_index, v));
+				LAPL.prune([&](int i, int, Scalar) { return i != idx; });
+				LAPL.coeffRef(idx, idx) = 1.0;
+			}
+			return true;
+		});
+		LAPL.makeCompressed();
+
+		Eigen::SparseLU<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(LAPL);
+
+		Eigen::MatrixXd x(nb_vertices, 3);
+		Eigen::MatrixXd b(nb_vertices, 3);
+
+		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+			if (is_incident_to_boundary(*volume_, v))
+			{
+				const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
+				b.coeffRef(vidx, 0) = pos[0];
+				b.coeffRef(vidx, 1) = pos[1];
+				b.coeffRef(vidx, 2) = pos[2];
+			}
+			else
+			{
+				b.coeffRef(vidx, 0) = 0;
+				b.coeffRef(vidx, 1) = 0;
+				b.coeffRef(vidx, 2) = 0;
+			}
+			return true;
+		});
+
+		x = solver.solve(b);
+
+		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+			Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
+			pos[0] = x(vidx, 0);
+			pos[1] = x(vidx, 1);
+			pos[2] = x(vidx, 2);
+			return true;
+		});
+
+		remove_attribute<VolumeVertex>(*volume_, vertex_index);
+
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void compute_volumes_quality()
+	{
+		auto corner_frame = add_attribute<Mat3, VolumeVertex2>(*volume_, "__corner_frame");
+		auto hex_frame = add_attribute<Mat3, VolumeVolume>(*volume_, "__hex_frame");
+
+		auto scaled_jacobian = get_attribute<Scalar, VolumeVolume>(*volume_, "scaled_jacobian");
+		if (!scaled_jacobian)
+			scaled_jacobian = add_attribute<Scalar, VolumeVolume>(*volume_, "scaled_jacobian");
+
+		auto jacobian = get_attribute<Scalar, VolumeVolume>(*volume_, "jacobian");
+		if (!jacobian)
+			jacobian = add_attribute<Scalar, VolumeVolume>(*volume_, "jacobian");
+
+		auto max_froebnius = get_attribute<Scalar, VolumeVolume>(*volume_, "max_froebnius");
+		if (!max_froebnius)
+			max_froebnius = add_attribute<Scalar, VolumeVolume>(*volume_, "max_froebnius");
+
+		auto mean_froebnius = get_attribute<Scalar, VolumeVolume>(*volume_, "mean_froebnius");
+		if (!mean_froebnius)
+			mean_froebnius = add_attribute<Scalar, VolumeVolume>(*volume_, "mean_froebnius");
+
+		geometry::compute_hex_frame(*volume_, volume_vertex_position_.get(), corner_frame.get(), hex_frame.get());
+		geometry::compute_scaled_jacobian(*volume_, corner_frame.get(), hex_frame.get(), scaled_jacobian.get());
+		geometry::compute_jacobian(*volume_, corner_frame.get(), hex_frame.get(), jacobian.get());
+		geometry::compute_maximum_aspect_frobenius(*volume_, corner_frame.get(), max_froebnius.get());
+		geometry::compute_mean_aspect_frobenius(*volume_, corner_frame.get(), mean_froebnius.get());
+
+		remove_attribute<VolumeVolume>(*volume_, hex_frame.get());
+		remove_attribute<VolumeVertex2>(*volume_, corner_frame.get());
 	}
 
 	void interface() override
@@ -247,12 +389,18 @@ protected:
 			if (ImGui::Button("Build hex mesh"))
 				build_hex_mesh();
 		}
-		if (volume_ && volume_skin_)
+		if (volume_)
 		{
+			if (ImGui::Button("Subdivide volume"))
+				subdivide_volume();
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			if (ImGui::Button("Smooth volume surface"))
 				smooth_volume_surface();
+			if (ImGui::Button("Optimize volume vertices"))
+				optimize_volume_vertices();
+			if (ImGui::Button("Compute volumes quality"))
+				compute_volumes_quality();
 		}
 	}
 
@@ -277,11 +425,7 @@ private:
 	VOLUME* volume_;
 	std::shared_ptr<SurfaceAttribute<Vec3>> volume_vertex_position_;
 
-	SURFACE* volume_skin_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> volume_skin_vertex_position_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> volume_skin_vertex_normal_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> volume_skin_vertex_laplacian_;
-	std::shared_ptr<SurfaceAttribute<VolumeVertex>> volume_skin_vertex_volume_vertex_;
+	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
 }; // namespace ui
 
 } // namespace ui
