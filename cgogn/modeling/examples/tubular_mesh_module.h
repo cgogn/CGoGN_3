@@ -31,6 +31,9 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/core/functions/mesh_ops/vertex.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+
 #include <cgogn/geometry/algos/distance.h>
 #include <cgogn/geometry/algos/ear_triangulation.h>
 #include <cgogn/geometry/algos/filtering.h>
@@ -98,8 +101,35 @@ protected:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l);
+		graph_vertex_radius_->fill(l / 5.0);
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+	}
+
+	void extend_graph_extremities()
+	{
+		using SelectedFace = std::tuple<SurfaceFace, Vec3, Scalar>;
+		foreach_cell(*graph_, [&](GraphVertex v) -> bool {
+			if (degree(*graph_, v) == 1)
+			{
+				std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
+				const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+				const Vec3& q = value<Vec3>(*graph_, graph_vertex_position_, av[0]);
+				Vec3 dir = p - q;
+				std::vector<SelectedFace> selectedfaces =
+					geometry::internal::picking(*surface_, surface_vertex_position_.get(), p, p + dir);
+				if (selectedfaces.size() > 0)
+				{
+					Vec3 pos = std::get<1>(selectedfaces[0]);
+					GraphVertex nv = add_vertex(*graph_);
+					connect_vertices(*graph_, v, nv);
+					value<Vec3>(*graph_, graph_vertex_position_, nv) = p + 0.6 * (pos - p);
+				}
+			}
+			return true;
+		});
+
+		graph_provider_->emit_connectivity_changed(graph_);
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
 	}
 
 	void init_graph_radius_from_surface()
@@ -133,12 +163,18 @@ protected:
 		for (Scalar r : *resampled_graph_vertex_radius_)
 			if (r < min_radius)
 				min_radius = r;
+
+		auto radius_copy = add_attribute<Scalar, GraphVertex>(*resampled_graph_, "radius_copy");
+		radius_copy->copy(resampled_graph_vertex_radius_.get());
 		resampled_graph_vertex_radius_->fill(min_radius);
 
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
 		hex_building_attributes_ = modeling::graph_to_hex(*resampled_graph_, *contact_surface_, *volume_);
+
+		resampled_graph_vertex_radius_->copy(radius_copy.get());
+		remove_attribute<GraphVertex>(*resampled_graph_, radius_copy);
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
@@ -165,7 +201,7 @@ protected:
 		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
 		volume_skin_vertex_normal->swap(normal_filtered.get());
 
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
 			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
 			std::vector<SelectedFace> selectedfaces =
@@ -188,10 +224,10 @@ protected:
 									  std::get<0>(hex_building_attributes_));
 		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
 									   std::get<0>(hex_building_attributes_));
-		// modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
-		// 								std::get<0>(hex_building_attributes_));
-		// modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
-		// 							   std::get<0>(hex_building_attributes_));
+		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+										std::get<0>(hex_building_attributes_));
+		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+									   std::get<0>(hex_building_attributes_));
 
 		graph_provider_->emit_connectivity_changed(resampled_graph_);
 		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_position_.get());
@@ -215,13 +251,18 @@ protected:
 		geometry::compute_laplacian(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_laplacian.get());
 		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			value<Vec3>(volume_skin, volume_skin_vertex_position, v) +=
-				0.1 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
+				0.15 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
 			return true;
 		});
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+
+		// auto position2 = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position2");
+		// geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_position.get(), position2.get());
+		// volume_skin_vertex_position->swap(position2.get());
+
+		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			Vec3 p = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(),
 														value<Vec3>(volume_skin, volume_skin_vertex_position, v));
-			value<Vec3>(volume_skin, volume_skin_vertex_position, v) = p;
+			// value<Vec3>(volume_skin, volume_skin_vertex_position, v) = p;
 			value<Vec3>(*volume_, volume_vertex_position_,
 						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = p;
 			return true;
@@ -337,6 +378,18 @@ protected:
 		remove_attribute<VolumeVertex2>(*volume_, corner_frame.get());
 	}
 
+	void export_subdivided_skin()
+	{
+		SURFACE volume_skin;
+		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
+
+		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
+										 volume_skin_vertex_position.get());
+		modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
+		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+		modeling::export_surface_off(volume_skin, volume_skin_vertex_position.get(), "surface.off");
+	}
+
 	void interface() override
 	{
 		ImGui::TextUnformatted("Graph");
@@ -378,6 +431,8 @@ protected:
 		{
 			if (ImGui::Button("Init radius from surface"))
 				init_graph_radius_from_surface();
+			if (ImGui::Button("Extend graph extremities"))
+				extend_graph_extremities();
 		}
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_)
 		{
@@ -391,6 +446,8 @@ protected:
 		}
 		if (volume_)
 		{
+			if (ImGui::Button("Export subdivided skin"))
+				export_subdivided_skin();
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
 			if (ImGui::Button("Project on surface"))

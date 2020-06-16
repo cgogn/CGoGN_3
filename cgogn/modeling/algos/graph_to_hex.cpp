@@ -1957,11 +1957,10 @@ void export_graph_cgr(Graph& g, std::string name)
 	out_file.close();
 }
 
-void export_surface_off(CMap2& m2, std::string name)
+void export_surface_off(CMap2& m2, CMap2::Attribute<Vec3>* vertex_position, std::string name)
 {
-	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position = get_attribute<Vec3, CMap2::Vertex>(m2, "position");
 	std::shared_ptr<CMap2::Attribute<uint32>> vertex_id = add_attribute<uint32, CMap2::Vertex>(m2, "vertex_id");
-	std::cout << name << std::endl;
+
 	uint32 nb_vertices = nb_cells<CMap2::Vertex>(m2);
 	uint32 nb_faces = nb_cells<CMap2::Face>(m2);
 

@@ -115,7 +115,7 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
 void export_graph_cgr(Graph& g, std::string filename);
-void export_surface_off(CMap2& m2, std::string filename);
+void export_surface_off(CMap2& m2, CMap2::Attribute<Vec3>* vertex_position, std::string filename);
 
 /*****************************************************************************/
 /* subdivision                                                               */

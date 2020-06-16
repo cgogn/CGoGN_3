@@ -39,7 +39,7 @@ namespace geometry
 
 template <typename VEC, typename CELL, typename MESH,
 		  typename = typename std::enable_if<is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value>::type>
-VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template Attribute<VEC>* attribute)
+VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template Attribute<VEC>* vertex_attribute)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
@@ -50,7 +50,7 @@ VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template A
 		result.setZero();
 	uint32 count = 0;
 	foreach_incident_vertex(m, c, [&](Vertex v) -> bool {
-		result += value<VEC>(m, attribute, v);
+		result += value<VEC>(m, vertex_attribute, v);
 		++count;
 		return true;
 	});
@@ -59,7 +59,7 @@ VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template A
 }
 
 template <typename VEC, typename MESH>
-VEC centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute<VEC>* attribute)
+VEC centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute<VEC>* vertex_attribute)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
@@ -67,7 +67,7 @@ VEC centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 	result.setZero();
 	uint32 count = 0;
 	foreach_cell(m, [&](Vertex v) -> bool {
-		result += value<VEC>(m, attribute, v);
+		result += value<VEC>(m, vertex_attribute, v);
 		++count;
 		return true;
 	});
@@ -77,11 +77,11 @@ VEC centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 
 template <typename VEC, typename CELL, typename MESH,
 		  typename = typename std::enable_if<is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value>::type>
-void compute_centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute<VEC>* attribute,
+void compute_centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute<VEC>* vertex_attribute,
 					  typename mesh_traits<MESH>::template Attribute<VEC>* cell_centroid)
 {
 	parallel_foreach_cell(m, [&](CELL c) -> bool {
-		value<VEC>(m, cell_centroid, c) = centroid<VEC>(m, c, attribute);
+		value<VEC>(m, cell_centroid, c) = centroid<VEC>(m, c, vertex_attribute);
 		return true;
 	});
 }

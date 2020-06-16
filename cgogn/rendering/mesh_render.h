@@ -364,9 +364,9 @@ public:
 			}
 		};
 
-		auto func_update_ebo2 = [&](DrawingType pr, const TablesIndices& table1) -> void {
+		auto func_update_ebo2 = [&](DrawingType pr, const TablesIndices& table) -> void {
 			uint32 total_size = 0;
-			for (const auto& t : table1)
+			for (const auto& t : table)
 				total_size += uint32(t.size());
 
 			indices_buffers_uptodate_[pr] = true;
@@ -379,7 +379,7 @@ public:
 				indices_buffers_[pr]->allocate(total_size);
 				uint32* ptr = indices_buffers_[pr]->lock_pointer();
 				uint32 beg = 0;
-				for (const auto& t : table1)
+				for (const auto& t : table)
 				{
 					for (uint32 i : t)
 						*ptr++ = i + beg;
@@ -495,6 +495,19 @@ public:
 				if (is_indexed<typename mesh_traits<MESH>::Volume>(m))
 				{
 					init_volumes<true>(m, table_indices, table_indices_e, table_indices_v, table_indices_emb, position);
+					// for (const auto& t : table_indices)
+					// {
+					// 	uint32 c = 1;
+					// 	for (uint32 i : t)
+					// 	{
+					// 		std::cout << i;
+					// 		if (c % 4 == 0)
+					// 			std::cout << std::endl;
+					// 		else
+					// 			std::cout << " ";
+					// 		++c;
+					// 	}
+					// }
 					func_update_ebo(VOLUMES_FACES, table_indices);
 					func_update_ebo(VOLUMES_EDGES, table_indices_e);
 					func_update_ebo(VOLUMES_VERTICES, table_indices_v);
