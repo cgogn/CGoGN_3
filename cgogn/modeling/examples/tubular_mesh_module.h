@@ -45,6 +45,8 @@
 #include <cgogn/modeling/algos/graph_resampling.h>
 #include <cgogn/modeling/algos/graph_to_hex.h>
 
+#include <Eigen/Sparse>
+
 namespace cgogn
 {
 
@@ -64,6 +66,7 @@ class TubularMesh : public ViewModule
 	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
 
 	using SurfaceVertex = typename mesh_traits<SURFACE>::Vertex;
+	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
 
 	using VolumeVertex = typename mesh_traits<VOLUME>::Vertex;
@@ -101,7 +104,7 @@ protected:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l / 5.0);
+		graph_vertex_radius_->fill(l / 4.0);
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
 	}
 
@@ -141,40 +144,40 @@ protected:
 
 	void resample_graph()
 	{
-		resampled_graph_ = graph_provider_->add_mesh("resampled");
-		resampled_graph_vertex_position_ = add_attribute<Vec3, GraphVertex>(*resampled_graph_, "position");
-		resampled_graph_vertex_radius_ = add_attribute<Scalar, GraphVertex>(*resampled_graph_, "radius");
+		GRAPH* resampled_graph = graph_provider_->add_mesh("resampled");
+		auto resampled_graph_vertex_position = add_attribute<Vec3, GraphVertex>(*resampled_graph, "position");
+		auto resampled_graph_vertex_radius = add_attribute<Scalar, GraphVertex>(*resampled_graph, "radius");
 
-		modeling::resample_graph(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), *resampled_graph_,
-								 resampled_graph_vertex_position_.get(), resampled_graph_vertex_radius_.get());
+		modeling::resample_graph(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), *resampled_graph,
+								 resampled_graph_vertex_position.get(), resampled_graph_vertex_radius.get());
 
 		graph_provider_->emit_connectivity_changed(graph_);
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
 
-		graph_provider_->emit_connectivity_changed(resampled_graph_);
-		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_radius_.get());
+		graph_provider_->emit_connectivity_changed(resampled_graph);
+		graph_provider_->emit_attribute_changed(resampled_graph, resampled_graph_vertex_position.get());
+		graph_provider_->emit_attribute_changed(resampled_graph, resampled_graph_vertex_radius.get());
 	}
 
 	void build_hex_mesh()
 	{
 		Scalar min_radius = std::numeric_limits<Scalar>::max();
-		for (Scalar r : *resampled_graph_vertex_radius_)
+		for (Scalar r : *graph_vertex_radius_)
 			if (r < min_radius)
 				min_radius = r;
 
-		auto radius_copy = add_attribute<Scalar, GraphVertex>(*resampled_graph_, "radius_copy");
-		radius_copy->copy(resampled_graph_vertex_radius_.get());
-		resampled_graph_vertex_radius_->fill(min_radius);
+		auto radius_copy = add_attribute<Scalar, GraphVertex>(*graph_, "radius_copy");
+		radius_copy->copy(graph_vertex_radius_.get());
+		graph_vertex_radius_->fill(min_radius);
 
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
-		hex_building_attributes_ = modeling::graph_to_hex(*resampled_graph_, *contact_surface_, *volume_);
+		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
-		resampled_graph_vertex_radius_->copy(radius_copy.get());
-		remove_attribute<GraphVertex>(*resampled_graph_, radius_copy);
+		graph_vertex_radius_->swap(radius_copy.get());
+		remove_attribute<GraphVertex>(*graph_, radius_copy);
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
@@ -220,18 +223,18 @@ protected:
 	{
 		CellMarker<VOLUME, VolumeFace> cm(*volume_);
 		modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_), cm);
-		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
 									  std::get<0>(hex_building_attributes_));
-		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
 									   std::get<0>(hex_building_attributes_));
-		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
 										std::get<0>(hex_building_attributes_));
-		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *resampled_graph_,
+		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
 									   std::get<0>(hex_building_attributes_));
 
-		graph_provider_->emit_connectivity_changed(resampled_graph_);
-		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(resampled_graph_, resampled_graph_vertex_radius_.get());
+		graph_provider_->emit_connectivity_changed(graph_);
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
 
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
@@ -271,11 +274,92 @@ protected:
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 	}
 
+	void regularize_surface_vertices()
+	{
+		SURFACE volume_skin;
+		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
+		auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
+		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
+
+		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
+										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
+		// geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+
+		auto vertex_index = add_attribute<uint32, SurfaceVertex>(volume_skin, "__vertex_index");
+
+		uint32 nb_vertices = 0;
+		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			value<uint32>(volume_skin, vertex_index, v) = nb_vertices++;
+			return true;
+		});
+
+		Scalar fit_to_data = 5.0;
+
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
+		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
+		Acoeffs.reserve(nb_vertices * 10);
+		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
+			auto vertices = adjacent_vertices_through_edge(volume_skin, v);
+			uint32 d = vertices.size();
+			for (SurfaceVertex av : vertices)
+			{
+				uint32 avidx = value<uint32>(volume_skin, vertex_index, av);
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+			}
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), fit_to_data));
+			return true;
+		});
+		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
+
+		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+
+		Eigen::MatrixXd x(nb_vertices, 3);
+		Eigen::MatrixXd b(2 * nb_vertices, 3);
+
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
+			b(vidx, 0) = 0;
+			b(vidx, 1) = 0;
+			b(vidx, 2) = 0;
+			const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+			b(nb_vertices + vidx, 0) = fit_to_data * pos[0];
+			b(nb_vertices + vidx, 1) = fit_to_data * pos[1];
+			b(nb_vertices + vidx, 2) = fit_to_data * pos[2];
+			x(vidx, 0) = pos[0];
+			x(vidx, 1) = pos[1];
+			x(vidx, 2) = pos[2];
+			return true;
+		});
+
+		x = solver.solveWithGuess(b, x);
+
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
+			Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+			pos[0] = x(vidx, 0);
+			pos[1] = x(vidx, 1);
+			pos[2] = x(vidx, 2);
+			return true;
+		});
+
+		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+			Vec3 p = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(),
+														value<Vec3>(volume_skin, volume_skin_vertex_position, v));
+			// value<Vec3>(volume_skin, volume_skin_vertex_position, v) = p;
+			value<Vec3>(*volume_, volume_vertex_position_,
+						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = p;
+			return true;
+		});
+
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
 	void optimize_volume_vertices()
 	{
 		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
 
-		// compute vertices laplacian
 		uint32 nb_vertices = 0;
 		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
@@ -438,9 +522,6 @@ protected:
 		{
 			if (ImGui::Button("Resample graph"))
 				resample_graph();
-		}
-		if (resampled_graph_ && resampled_graph_vertex_position_ && resampled_graph_vertex_radius_)
-		{
 			if (ImGui::Button("Build hex mesh"))
 				build_hex_mesh();
 		}
@@ -454,6 +535,8 @@ protected:
 				project_on_surface();
 			if (ImGui::Button("Smooth volume surface"))
 				smooth_volume_surface();
+			if (ImGui::Button("Regularize surface vertices"))
+				regularize_surface_vertices();
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices();
 			if (ImGui::Button("Compute volumes quality"))
@@ -472,10 +555,6 @@ private:
 
 	SURFACE* surface_;
 	std::shared_ptr<SurfaceAttribute<Vec3>> surface_vertex_position_;
-
-	GRAPH* resampled_graph_;
-	std::shared_ptr<GraphAttribute<Vec3>> resampled_graph_vertex_position_;
-	std::shared_ptr<GraphAttribute<Scalar>> resampled_graph_vertex_radius_;
 
 	SURFACE* contact_surface_;
 

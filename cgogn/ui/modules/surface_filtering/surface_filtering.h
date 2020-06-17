@@ -32,6 +32,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/geometry/algos/filtering.h>
+#include <cgogn/geometry/algos/laplacian.h>
 
 namespace cgogn
 {
@@ -48,6 +49,7 @@ class SurfaceFiltering : public Module
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -71,6 +73,75 @@ public:
 		remove_attribute<Vertex>(m, filtered_vertex_attribute);
 
 		mesh_provider_->emit_attribute_changed(&m, vertex_attribute);
+	}
+
+	void regularize(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
+		auto vertex_laplacian = add_attribute<Vec3, Vertex>(m, "__laplacian");
+
+		geometry::compute_laplacian(m, vertex_position, vertex_laplacian.get());
+
+		uint32 nb_vertices = 0;
+		foreach_cell(m, [&](Vertex v) -> bool {
+			value<uint32>(m, vertex_index, v) = nb_vertices++;
+			return true;
+		});
+
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
+		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
+		Acoeffs.reserve(nb_vertices * 10);
+		foreach_cell(m, [&](Vertex v) -> bool {
+			uint32 vidx = value<uint32>(m, vertex_index, v);
+			auto vertices = adjacent_vertices_through_edge(m, v);
+			uint32 d = vertices.size();
+			for (Vertex av : vertices)
+			{
+				uint32 avidx = value<uint32>(m, vertex_index, av);
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+			}
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), 10));
+			return true;
+		});
+		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
+
+		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+
+		Eigen::MatrixXd x(nb_vertices, 3);
+		Eigen::MatrixXd b(2 * nb_vertices, 3);
+
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			uint32 vidx = value<uint32>(m, vertex_index, v);
+			const Vec3& l = value<Vec3>(m, vertex_laplacian, v);
+			b(vidx, 0) = l[0];
+			b(vidx, 1) = l[1];
+			b(vidx, 2) = l[2];
+			const Vec3& pos = value<Vec3>(m, vertex_position, v);
+			b(nb_vertices + vidx, 0) = 10 * pos[0];
+			b(nb_vertices + vidx, 1) = 10 * pos[1];
+			b(nb_vertices + vidx, 2) = 10 * pos[2];
+			x(vidx, 0) = pos[0];
+			x(vidx, 1) = pos[1];
+			x(vidx, 2) = pos[2];
+			return true;
+		});
+
+		x = solver.solveWithGuess(b, x);
+
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			uint32 vidx = value<uint32>(m, vertex_index, v);
+			Vec3& pos = value<Vec3>(m, vertex_position, v);
+			pos[0] = x(vidx, 0);
+			pos[1] = x(vidx, 1);
+			pos[2] = x(vidx, 2);
+			return true;
+		});
+
+		remove_attribute<Vertex>(m, vertex_index);
+		remove_attribute<Vertex>(m, vertex_laplacian);
+
+		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
 
 protected:
@@ -98,6 +169,8 @@ protected:
 			{
 				if (ImGui::Button("Filter"))
 					filter_mesh(*selected_mesh_, selected_vertex_attribute_.get());
+				if (ImGui::Button("Regularize"))
+					regularize(*selected_mesh_, selected_vertex_attribute_.get());
 			}
 		}
 	}
