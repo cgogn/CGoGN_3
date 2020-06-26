@@ -231,6 +231,10 @@ protected:
 										std::get<0>(hex_building_attributes_));
 		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
 									   std::get<0>(hex_building_attributes_));
+		// modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
+		// 								std::get<0>(hex_building_attributes_));
+		// modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
+		// 							   std::get<0>(hex_building_attributes_));
 
 		graph_provider_->emit_connectivity_changed(graph_);
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
@@ -365,43 +369,44 @@ protected:
 			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
 			return true;
 		});
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
-		std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
-		LAPLcoeffs.reserve(nb_vertices * 10);
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_vertices, nb_vertices);
+		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
+		Acoeffs.reserve(nb_vertices * 10);
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			auto vertices = incident_vertices(*volume_, e);
 			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
 			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
 			return true;
 		});
-		LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
 		// set constrained vertices
 		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			if (is_incident_to_boundary(*volume_, v))
 			{
 				int idx = int(value<uint32>(*volume_, vertex_index, v));
-				LAPL.prune([&](int i, int, Scalar) { return i != idx; });
-				LAPL.coeffRef(idx, idx) = 1.0;
+				A.prune([&](int i, int, Scalar) { return i != idx; });
+				A.coeffRef(idx, idx) = 1.0;
 			}
 			return true;
 		});
-		LAPL.makeCompressed();
+		A.makeCompressed();
 
-		Eigen::SparseLU<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(LAPL);
+		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+		// Eigen::SparseLU<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(LAPL);
 
 		Eigen::MatrixXd x(nb_vertices, 3);
 		Eigen::MatrixXd b(nb_vertices, 3);
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+			const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
 			if (is_incident_to_boundary(*volume_, v))
 			{
-				const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
 				b.coeffRef(vidx, 0) = pos[0];
 				b.coeffRef(vidx, 1) = pos[1];
 				b.coeffRef(vidx, 2) = pos[2];
@@ -412,10 +417,13 @@ protected:
 				b.coeffRef(vidx, 1) = 0;
 				b.coeffRef(vidx, 2) = 0;
 			}
+			x(vidx, 0) = pos[0];
+			x(vidx, 1) = pos[1];
+			x(vidx, 2) = pos[2];
 			return true;
 		});
 
-		x = solver.solve(b);
+		x = solver.solveWithGuess(b, x);
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			uint32 vidx = value<uint32>(*volume_, vertex_index, v);

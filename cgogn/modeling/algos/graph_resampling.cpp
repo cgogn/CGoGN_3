@@ -116,7 +116,7 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 		{
 			if (value<Scalar>(new_g, new_g_vertex_radius, vertices[0]) + // and radiuses sum is greater than edge length
 					value<Scalar>(new_g, new_g_vertex_radius, vertices[1]) >
-				length)
+				2.5 * length)
 			{
 				Vec3 mid_pos = geometry::centroid<Vec3>(new_g, e, new_g_vertex_position);
 				Scalar mid_radius = geometry::centroid<Scalar>(new_g, e, new_g_vertex_radius);
@@ -149,7 +149,7 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Gra
 	// if the radius of the current extremities are disjoint, bisect
 	if (value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.first)) +
 			value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.second)) <
-		0.9 * branch_length)
+		0.7 * branch_length)
 	{
 		// find the edge in which the 0.5 value lies
 		Scalar cur_length = 0;
