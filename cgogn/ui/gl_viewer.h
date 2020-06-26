@@ -56,20 +56,29 @@ public:
 	{
 		return camera_;
 	}
+	inline void save_camera()
+	{
+		camera_saved_ = camera_;
+	}
+	inline void restore_camera()
+	{
+		camera_ = camera_saved_;
+		need_redraw_ = true;
+	}
 
-	inline rendering::GLMat4 projection_matrix() const
+	inline const rendering::GLMat4& projection_matrix() const
 	{
 		return camera_.projection_matrix();
 	}
-	inline rendering::GLMat4d projection_matrix_d() const
+	inline const rendering::GLMat4d& projection_matrix_d() const
 	{
 		return camera_.projection_matrix_d();
 	}
-	inline rendering::GLMat4 modelview_matrix() const
+	inline const rendering::GLMat4& modelview_matrix() const
 	{
 		return camera_.modelview_matrix();
 	}
-	inline rendering::GLMat4d modelview_matrix_d() const
+	inline const rendering::GLMat4d& modelview_matrix_d() const
 	{
 		return camera_.modelview_matrix_d();
 	}
@@ -90,13 +99,13 @@ public:
 		scene_center_ = center.cast<float64>();
 		camera_.set_pivot_point(scene_center_);
 	}
-	inline void set_scene_pivot(const rendering::GLVec3d& piv)
+	inline void set_scene_pivot(const rendering::GLVec3d& pivot)
 	{
-		camera_.change_pivot_point(piv);
+		camera_.change_pivot_point(pivot);
 	}
-	inline void set_scene_pivot(const rendering::GLVec3& piv)
+	inline void set_scene_pivot(const rendering::GLVec3& pivot)
 	{
-		camera_.change_pivot_point(piv.cast<float64>());
+		camera_.change_pivot_point(pivot.cast<float64>());
 	}
 	inline void center_scene()
 	{
@@ -182,8 +191,8 @@ protected:
 	void spin();
 
 	Camera camera_;
+	Camera camera_saved_;
 	MovingFrame* current_frame_;
-	rendering::Transfo3d inv_camera_;
 	rendering::GLVec3d scene_center_;
 	int32 viewport_width_;
 	int32 viewport_height_;

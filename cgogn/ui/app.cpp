@@ -557,6 +557,21 @@ int App::launch()
 						}
 						ImGui::EndMenu();
 					}
+					if (ImGui::BeginMenu("Views"))
+					{
+						for (const auto& v : views_)
+						{
+							if (ImGui::BeginMenu(v->name().c_str()))
+							{
+								if (ImGui::MenuItem("Save camera"))
+									v->save_camera();
+								if (ImGui::MenuItem("Restore camera"))
+									v->restore_camera();
+								ImGui::EndMenu();
+							}
+						}
+						ImGui::EndMenu();
+					}
 					ImGui::Separator();
 					if (ImGui::MenuItem("Quit", "[ESC]"))
 						this->stop();
