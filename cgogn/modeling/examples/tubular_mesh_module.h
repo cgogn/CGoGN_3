@@ -29,6 +29,7 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/grid.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/mesh_ops/vertex.h>
@@ -79,10 +80,13 @@ class TubularMesh : public ViewModule
 	using Scalar = geometry::Scalar;
 	using Mat3 = geometry::Mat3;
 
+	using Grid = geometry::Grid<10, 10, 10, SURFACE>;
+
 public:
 	TubularMesh(const App& app)
 		: ViewModule(app, "TubularMesh"), graph_(nullptr), graph_vertex_position_(nullptr),
-		  graph_vertex_radius_(nullptr), surface_(nullptr), surface_vertex_position_(nullptr), volume_(nullptr)
+		  graph_vertex_radius_(nullptr), surface_(nullptr), surface_vertex_position_(nullptr), surface_grid_(nullptr),
+		  volume_(nullptr)
 	{
 	}
 
@@ -137,8 +141,12 @@ protected:
 
 	void init_graph_radius_from_surface()
 	{
-		modeling::compute_graph_radius_from_surface(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(),
-													*surface_, surface_vertex_position_.get());
+		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
+			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+			Vec3 cp = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(), p);
+			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
+			return true;
+		});
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
 	}
 
@@ -297,6 +305,7 @@ protected:
 			return true;
 		});
 
+		// Scalar fit_to_data = geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get()) * 5.0;
 		Scalar fit_to_data = 5.0;
 
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
@@ -304,11 +313,16 @@ protected:
 		Acoeffs.reserve(nb_vertices * 10);
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
+			// const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
 			auto vertices = adjacent_vertices_through_edge(volume_skin, v);
-			uint32 d = vertices.size();
+			// Scalar d = 0;
+			auto d = vertices.size();
 			for (SurfaceVertex av : vertices)
 			{
 				uint32 avidx = value<uint32>(volume_skin, vertex_index, av);
+				// Scalar dist = (value<Vec3>(volume_skin, volume_skin_vertex_position, av) - p).norm();
+				// Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), dist));
+				// d += dist;
 				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
 			}
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
@@ -349,7 +363,7 @@ protected:
 		});
 
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			Vec3 p = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(),
+			Vec3 p = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(), *surface_grid_,
 														value<Vec3>(volume_skin, volume_skin_vertex_position, v));
 			// value<Vec3>(volume_skin, volume_skin_vertex_position, v) = p;
 			value<Vec3>(*volume_, volume_vertex_position_,
@@ -485,7 +499,11 @@ protected:
 	void interface() override
 	{
 		ImGui::TextUnformatted("Graph");
-		imgui_mesh_selector(graph_provider_, graph_, "Graph", [&](GRAPH* g) { graph_ = g; });
+		imgui_mesh_selector(graph_provider_, graph_, "Graph", [&](GRAPH* g) {
+			graph_ = g;
+			graph_vertex_position_ = nullptr;
+			graph_vertex_radius_ = nullptr;
+		});
 
 		if (graph_)
 		{
@@ -502,13 +520,20 @@ protected:
 
 		ImGui::Separator();
 		ImGui::TextUnformatted("Surface");
-		imgui_mesh_selector(surface_provider_, surface_, "Surface", [&](SURFACE* s) { surface_ = s; });
+		imgui_mesh_selector(surface_provider_, surface_, "Surface", [&](SURFACE* s) {
+			surface_ = s;
+			surface_vertex_position_ = nullptr;
+		});
 
 		if (surface_)
 		{
 			imgui_combo_attribute<SurfaceVertex, Vec3>(*surface_, surface_vertex_position_, "Position##surface",
 													   [&](const std::shared_ptr<SurfaceAttribute<Vec3>>& attribute) {
 														   surface_vertex_position_ = attribute;
+														   if (surface_grid_)
+															   delete surface_grid_;
+														   surface_grid_ =
+															   new Grid(*surface_, surface_vertex_position_);
 													   });
 		}
 
@@ -563,6 +588,7 @@ private:
 
 	SURFACE* surface_;
 	std::shared_ptr<SurfaceAttribute<Vec3>> surface_vertex_position_;
+	Grid* surface_grid_;
 
 	SURFACE* contact_surface_;
 
@@ -570,7 +596,7 @@ private:
 	std::shared_ptr<SurfaceAttribute<Vec3>> volume_vertex_position_;
 
 	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
-}; // namespace ui
+};
 
 } // namespace ui
 

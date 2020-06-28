@@ -41,19 +41,6 @@ namespace cgogn
 namespace modeling
 {
 
-void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_vertex_position,
-									   Graph::Attribute<Scalar>* g_vertex_radius, const CMap2& s,
-									   const CMap2::Attribute<Vec3>* s_vertex_position)
-{
-	using SelectedFace = std::tuple<CMap2::Face, Vec3, Scalar>;
-	foreach_cell(g, [&](Graph::Vertex v) -> bool {
-		const Vec3& p = value<Vec3>(g, g_vertex_position, v);
-		Vec3 cp = geometry::closest_point_on_surface(s, s_vertex_position, p);
-		value<Scalar>(g, g_vertex_radius, v) = (cp - p).norm();
-		return true;
-	});
-}
-
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
 					Graph::Attribute<Scalar>* new_g_vertex_radius)
