@@ -1915,20 +1915,11 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 	return vol_dart;
 }
 
-// void mark_tranversal_faces(CMap3& m3, const Graph& g, const GAttributes& gAttribs, CellMarker<CMap3, CMap3::Face>&
-// cm)
 void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm)
 {
 	foreach_cell(m2, [&](CMap2::Edge e2) -> bool {
 		Dart m3d = value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e2.dart));
 		cm.mark(CMap3::Face(m3d));
-		return true;
-	});
-
-	uint32 i = 0;
-	foreach_cell(m3, [&](CMap3::Face f3) -> bool {
-		if (cm.is_marked(f3))
-			++i;
 		return true;
 	});
 }
@@ -2080,7 +2071,6 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	using GEdge = GRAPH::Edge;
 	using GHEdge = GRAPH::HalfEdge;
 
-	CellCache<GRAPH> graph_edges(g);
 	CellMarker<MESH, Vertex> new_vertices(m3);
 	CellMarker<MESH, Face2> visited_face2(m3);
 	CellMarker<MESH, Face> visited_face(m3);

@@ -92,6 +92,8 @@ public:
 
 	~TubularMesh()
 	{
+		if (transversal_faces_marker_)
+			delete transversal_faces_marker_;
 	}
 
 protected:
@@ -185,6 +187,13 @@ protected:
 
 		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
+		if (!transversal_faces_marker_)
+		{
+			transversal_faces_marker_ = new CellMarker<VOLUME, VolumeFace>(*volume_);
+			modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_),
+											*transversal_faces_marker_);
+		}
+
 		// graph_vertex_radius_->swap(radius_copy.get());
 		// remove_attribute<GraphVertex>(*graph_, radius_copy);
 
@@ -229,22 +238,28 @@ protected:
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 	}
 
-	void subdivide_volume()
+	void add_volume_padding()
 	{
-		CellMarker<VOLUME, VolumeFace> cm(*volume_);
-		modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_), cm);
-		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-									  std::get<0>(hex_building_attributes_));
-		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-									   std::get<0>(hex_building_attributes_));
-		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-										std::get<0>(hex_building_attributes_));
-		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-									   std::get<0>(hex_building_attributes_));
-		// modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-		// 								std::get<0>(hex_building_attributes_));
-		// modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), cm, *graph_,
-		// 							   std::get<0>(hex_building_attributes_));
+		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+									  *graph_, std::get<0>(hex_building_attributes_));
+
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void subdivide_volume_length_wise()
+	{
+		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+										*graph_, std::get<0>(hex_building_attributes_));
+
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void subdivide_volume_width_wise()
+	{
+		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+									   *graph_, std::get<0>(hex_building_attributes_));
 
 		graph_provider_->emit_connectivity_changed(graph_);
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
@@ -507,7 +522,7 @@ protected:
 										 volume_skin_vertex_position.get());
 		modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-		// modeling::export_surface_off(volume_skin, volume_skin_vertex_position.get(), "surface.off");
+		surface_provider_->save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 	}
 
 	void interface() override
@@ -576,12 +591,14 @@ protected:
 		{
 			if (ImGui::Button("Export subdivided skin"))
 				export_subdivided_skin();
-			if (ImGui::Button("Subdivide volume"))
-				subdivide_volume();
+			if (ImGui::Button("Add volume padding"))
+				add_volume_padding();
+			if (ImGui::Button("Subdivide length wise"))
+				subdivide_volume_length_wise();
+			if (ImGui::Button("Subdivide width wise"))
+				subdivide_volume_width_wise();
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
-			if (ImGui::Button("Smooth volume surface"))
-				smooth_volume_surface();
 			if (ImGui::Button("Regularize surface vertices"))
 				regularize_surface_vertices();
 			if (ImGui::Button("Optimize volume vertices"))
@@ -608,6 +625,7 @@ private:
 
 	VOLUME* volume_;
 	std::shared_ptr<SurfaceAttribute<Vec3>> volume_vertex_position_;
+	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
 
 	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
 };
