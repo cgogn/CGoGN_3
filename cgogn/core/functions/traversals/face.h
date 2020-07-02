@@ -114,7 +114,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
 				if constexpr (mesh_traits<MESH>::dimension == 2) // faces can be boundary cells
 				{
-					if (!marker.is_marked(d) && !is_boundary(m, d))
+					if (!is_boundary(m, d) && !marker.is_marked(d))
 					{
 						Face f(d);
 						foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {

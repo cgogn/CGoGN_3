@@ -43,10 +43,7 @@ GLViewer::~GLViewer()
 void GLViewer::set_manipulated_frame(MovingFrame* frame)
 {
 	if (frame != nullptr)
-	{
 		current_frame_ = frame;
-		inv_camera_ = camera_.frame_.inverse();
-	}
 	else
 		current_frame_ = &camera_;
 }
@@ -114,8 +111,9 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		spinning_speed_ *= inputs_->mouse_sensitivity_;
 		if (obj_mode())
 		{
+			rendering::Transfo3d inv_camera = camera_.frame_.inverse();
 			rendering::Transfo3d sm(Eigen::AngleAxisd(2.0 * spinning_speed_, axis));
-			current_frame_->spin_ = inv_camera_ * sm * camera_.frame_;
+			current_frame_->spin_ = inv_camera * sm * camera_.frame_;
 			auto tr = current_frame_->frame_.translation().eval();
 			current_frame_->frame_.translation().setZero();
 			current_frame_->frame_ = current_frame_->spin_ * current_frame_->frame_;
@@ -129,6 +127,8 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 			current_frame_->frame_ = Eigen::AngleAxisd(spinning_speed_, axis) * current_frame_->frame_;
 			current_frame_->frame_.translation() = tr;
 		}
+		if (current_frame_ == &camera_)
+			camera_.update_matrices();
 		need_redraw_ = true;
 	}
 
@@ -138,10 +138,11 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 		float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam;
 		if (obj_mode())
 		{
+			rendering::Transfo3d inv_camera = camera_.frame_.inverse();
 			float64 tx = dx / viewport_width_ * camera_.width() * a;
 			float64 ty = -dy / viewport_height_ * camera_.height() * a;
 			rendering::Transfo3d ntr =
-				inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(tx, ty, 0.0)) * camera_.frame_;
+				inv_camera * Eigen::Translation3d(rendering::GLVec3d(tx, ty, 0.0)) * camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
 		else
@@ -151,6 +152,8 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 			camera_.frame_.translation().x() += 2 * nx;
 			camera_.frame_.translation().y() += 2 * ny;
 		}
+		if (current_frame_ == &camera_)
+			camera_.update_matrices();
 		need_redraw_ = true;
 	}
 }
@@ -161,7 +164,8 @@ void GLViewer::mouse_wheel_event(float64, float64 dy)
 	{
 		if (obj_mode())
 		{
-			auto ntr = inv_camera_ * Eigen::Translation3d(rendering::GLVec3d(0, 0, -inputs_->wheel_sensitivity_ * dy)) *
+			rendering::Transfo3d inv_camera = camera_.frame_.inverse();
+			auto ntr = inv_camera * Eigen::Translation3d(rendering::GLVec3d(0, 0, -inputs_->wheel_sensitivity_ * dy)) *
 					   camera_.frame_;
 			current_frame_->frame_ = ntr * current_frame_->frame_;
 		}
@@ -171,6 +175,8 @@ void GLViewer::mouse_wheel_event(float64, float64 dy)
 			float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam / camera_.scene_radius();
 			camera_.frame_.translation().z() -= inputs_->wheel_sensitivity_ * dy * std::max(0.1, a);
 		}
+		if (current_frame_ == &camera_)
+			camera_.update_matrices();
 		need_redraw_ = true;
 	}
 }
@@ -193,6 +199,8 @@ void GLViewer::spin()
 		current_frame_->frame_.translation().setZero();
 		current_frame_->frame_ = current_frame_->spin_ * current_frame_->frame_;
 		current_frame_->frame_.translation() = tr;
+		if (current_frame_ == &camera_)
+			camera_.update_matrices();
 		need_redraw_ = true;
 	}
 }

@@ -111,13 +111,9 @@ public:
 	{
 		glActiveTexture(GL_TEXTURE0 + unit);
 		if (id_texture_buffer_ == 0)
-		{
 			glGenTextures(1, &id_texture_buffer_);
-			glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
-			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
-		}
-		else
-			glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
+		glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, id_);
 	}
 
 	inline static void release_texture_buffer(GLint unit)

@@ -104,6 +104,27 @@ void remove_attribute(CMapBase& m, CMapBase::AttributeGen* attribute)
 
 /*****************************************************************************/
 
+// template <typename CELL, typename MESH, typename FUNC>
+// void foreach_attribute(const MESH& m, const FUNC& f);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL, typename FUNC>
+void foreach_attribute(const CMapBase& m, const FUNC& f)
+{
+	using AttributeGen = CMapBase::AttributeGen;
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeGen>&>::value,
+				  "Wrong function attribute parameter type");
+	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
+		f(a);
+}
+
+/*****************************************************************************/
+
 // template <typename T, typename CELL, typename MESH, typename FUNC>
 // void foreach_attribute(const MESH& m, const FUNC& f);
 

@@ -21,80 +21,67 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-#define CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_MODELING_ALGOS_GRAPH_DATA_H_
+#define CGOGN_MODELING_ALGOS_GRAPH_DATA_H_
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
+
+#include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
 
-/*****************************************************************************/
+namespace modeling
+{
 
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+struct GraphData
+{
+	std::vector<std::pair<Graph::HalfEdge, Graph::HalfEdge>> branches;
+	std::vector<Graph::Vertex> intersections;
+};
 
-/*****************************************************************************/
+inline Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<Graph, Graph::Edge>& cm)
+{
+	Dart d = h.dart;
+	while (degree(g, Graph::Vertex(d)) == 2)
+	{
+		d = alpha0(g, alpha1(g, d));
+		cm.mark(Graph::Edge(d));
+	}
+	return Graph::HalfEdge(d);
+}
 
-///////////
-// Graph //
-///////////
+template <typename MESH>
+bool get_graph_data(const MESH& g, GraphData& graph_data)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-Graph::Vertex CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
+	foreach_cell(g, [&](Vertex v) -> bool {
+		if (degree(g, v) > 2)
+			graph_data.intersections.push_back(v);
+		return true;
+	});
 
-///////////
-// CMap1 //
-///////////
+	CellMarker<MESH, Edge> cm(g);
+	foreach_cell(g, [&](Edge e) -> bool {
+		if (cm.is_marked(e))
+			return true;
+		cm.mark(e);
+		std::vector<HalfEdge> halfedges = incident_halfedges(g, e);
+		graph_data.branches.push_back({branch_extremity(g, halfedges[0], cm), branch_extremity(g, halfedges[1], cm)});
+		return true;
+	});
 
-CMap1::Vertex CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
+	return true;
+}
 
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-///////////
-// CMap3 //
-///////////
-
-CMap3::Vertex CGOGN_CORE_EXPORT cut_edge(CMap3& m, CMap3::Edge e, bool set_indices = true);
-
-//////////
-// CPH3 //
-//////////
-
-CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices = true);
-
-///////////
-// CMap1 //
-///////////
-
-CMap1::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
+#endif // CGOGN_MODELING_ALGOS_GRAPH_DATA_H_

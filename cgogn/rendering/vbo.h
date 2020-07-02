@@ -111,14 +111,10 @@ public:
 	{
 		glActiveTexture(GL_TEXTURE0 + unit);
 		if (id_texture_buffer_ == 0)
-		{
-			static GLenum internals[] = {GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F};
 			glGenTextures(1, &id_texture_buffer_);
-			glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
-			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_ - 1], id_);
-		}
-		else
-			glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
+		static GLenum internals[] = {GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F};
+		glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
+		glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_ - 1], id_);
 	}
 
 	inline static void release_texture_buffer(GLint unit)
@@ -134,8 +130,8 @@ public:
 	 */
 	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
-		std::size_t total = nb_vectors * uint32(vector_dimension);
-		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
+		std::size_t total = nb_vectors * uint64(vector_dimension);
+		if (total != nb_vectors_ * uint64(vector_dimension_)) // only allocate when > ?
 		{
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_DYNAMIC_DRAW);
 			nb_vectors_ = nb_vectors;

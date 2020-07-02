@@ -106,7 +106,7 @@ void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 
 Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 {
-	auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
+	static auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
 
 	Dart d = v1.dart;
 	Dart e = v2.dart;
@@ -194,7 +194,7 @@ Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool 
 
 void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 {
-	auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
+	static auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
 
 	Dart x = e.dart;
 	Dart y = alpha0(g, x);
@@ -264,6 +264,30 @@ void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 			{
 			}
 		}
+	}
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// merge_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool
+// set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+void merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
+{
+	alpha1_sew(g, v1.dart, v2.dart);
+
+	if (set_indices)
+	{
+		if (is_indexed<Graph::Vertex>(g))
+			set_index(g, v1, index_of(g, v1));
 	}
 }
 

@@ -54,7 +54,7 @@ FrameManipulator::FrameManipulator()
 
 void FrameManipulator::set_size(float32 radius)
 {
-	if (scale_rendering_ > 0.0f)
+	if (scale_rendering_ >= 0.0f)
 		scale_rendering_ = radius;
 }
 

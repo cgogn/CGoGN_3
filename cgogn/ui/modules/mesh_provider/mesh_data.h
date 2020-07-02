@@ -28,6 +28,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/rendering/mesh_render.h>
@@ -119,6 +120,28 @@ public:
 		return nb_cells_[cell_index];
 	}
 
+	template <typename CELL>
+	std::vector<std::string> attributes_names()
+	{
+		std::vector<std::string> names;
+		foreach_attribute<CELL>(
+			*mesh_, [&](const std::shared_ptr<AttributeGen>& attribute) { names.push_back(attribute->name()); });
+		return names;
+	}
+
+private:
+	template <class... T>
+	std::vector<std::vector<std::string>> attributes_names(const std::tuple<T...>&)
+	{
+		return {attributes_names<T>()...};
+	}
+
+public:
+	std::vector<std::vector<std::string>> attributes_names()
+	{
+		return attributes_names(typename mesh_traits<MESH>::Cells{});
+	}
+
 	void update_bb()
 	{
 		if (!bb_vertex_position_)
@@ -133,14 +156,14 @@ public:
 			bb_min_[i] = std::numeric_limits<float64>::max();
 			bb_max_[i] = std::numeric_limits<float64>::lowest();
 		}
-		for (const Vec3& v : *bb_vertex_position_)
+		for (const Vec3& p : *bb_vertex_position_)
 		{
 			for (uint32 i = 0; i < 3; ++i)
 			{
-				if (v[i] < bb_min_[i])
-					bb_min_[i] = v[i];
-				if (v[i] > bb_max_[i])
-					bb_max_[i] = v[i];
+				if (p[i] < bb_min_[i])
+					bb_min_[i] = p[i];
+				if (p[i] > bb_max_[i])
+					bb_max_[i] = p[i];
 			}
 		}
 	}
