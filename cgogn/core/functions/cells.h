@@ -27,6 +27,7 @@
 #include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
 #include <sstream>
@@ -115,6 +116,35 @@ inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convert
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
+// CELL of_index(MESH& m, uint32 i);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL>
+CELL of_index(const CMapBase& m, uint32 i)
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (!is_boundary(m, d))
+		{
+			const CELL c(d);
+			if (index_of(m, c) == i)
+				return c;
+		}
+	}
+	return CELL();
+}
+
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
 // uint32 new_index(MESH& m);
 
 /*****************************************************************************/
@@ -194,8 +224,9 @@ auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapB
 	if (!is_indexed<CELL>(m))
 		init_cells_indexing<CELL>(m);
 
+	CMapBase& base = static_cast<CMapBase&>(m);
 	DartMarker dm(m);
-	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	for (Dart d = base.begin(), end = base.end(); d != end; d = base.next(d))
 	{
 		if (!is_boundary(m, d) && !dm.is_marked(d))
 		{

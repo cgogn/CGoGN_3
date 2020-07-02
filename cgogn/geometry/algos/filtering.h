@@ -31,8 +31,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <Eigen/IterativeLinearSolvers>
-
 namespace cgogn
 {
 
@@ -68,7 +66,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //)
 //{
 //	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in, position_out & normal must be a
-//vertex attribute");
+// vertex attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -103,7 +101,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //			Scalar t = edge.norm();
 //			Scalar h = n.dot(edge);
 //			Scalar wcs = std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS *
-//sigmaS))); 			sum += wcs * h; 			normalizer += wcs;
+// sigmaS))); 			sum += wcs * h; 			normalizer += wcs;
 //		});
 
 //		position_out[v] = position_in[v] + ((sum / normalizer) * n);
@@ -119,7 +117,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //	VERTEX_ATTR& position_tmp)
 //{
 //	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position & position_tmp must be a vertex
-//attribute");
+// attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -170,7 +168,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //)
 //{
 //	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in & position_out must be a vertex
-//attribute");
+// attribute");
 
 //	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
 //	using Scalar = ScalarOf<VEC3>;
@@ -179,9 +177,9 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //	using Edge = typename MAP::Edge;
 
 //	typename MAP::template EdgeAttribute<Scalar> edge_weight = map.template add_attribute<Scalar,
-//Edge::ORBIT>("__edge_weight"); 	typename MAP::template VertexAttribute<uint32> vertex_index = map.template
-//add_attribute<uint32, Vertex::ORBIT>("__vertex_index"); 	typename MAP::template VertexAttribute<VEC3> vertex_lapl =
-//map.template add_attribute<VEC3, Vertex::ORBIT>("__vertex_lapl");
+// Edge::ORBIT>("__edge_weight"); 	typename MAP::template VertexAttribute<uint32> vertex_index = map.template
+// add_attribute<uint32, Vertex::ORBIT>("__vertex_index"); 	typename MAP::template VertexAttribute<VEC3> vertex_lapl =
+// map.template add_attribute<VEC3, Vertex::ORBIT>("__vertex_lapl");
 
 //	// compute edge weights
 //	map.parallel_foreach_cell([&] (Edge e)
@@ -216,7 +214,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
 //		{
 //			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vertex_index[av], (a * edge_weight[Edge(av.dart)]) /
-//wsum));
+// wsum));
 //		});
 //		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vidx, -1.));
 //	},

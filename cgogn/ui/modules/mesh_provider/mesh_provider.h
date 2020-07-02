@@ -70,6 +70,14 @@ public:
 		: ProviderModule(app, "MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
 		  bb_min_(0, 0, 0), bb_max_(0, 0, 0)
 	{
+		// for (auto& n : new_attribute_name_)
+		// 	n[0] = '\0';
+		if constexpr (mesh_traits<MESH>::dimension == 1)
+			supported_formats_ = &supported_graph_formats_;
+		if constexpr (mesh_traits<MESH>::dimension == 2)
+			supported_formats_ = &supported_surface_formats_;
+		if constexpr (mesh_traits<MESH>::dimension == 3)
+			supported_formats_ = &supported_volume_formats_;
 	}
 
 	~MeshProvider()
@@ -152,6 +160,20 @@ public:
 			return nullptr;
 	}
 
+	void save_graph_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,
+							const std::string& filename)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 1)
+		{
+			// if (ext.compare("cg") == 0)
+			// 	// TODO cgogn::io::export_CG();
+			// else if (ext.compare("cgr") == 0)
+			// 	// TODO cgogn::io::export_CGR();
+			// else if (ext.compare("skel") == 0)
+			// 	// TODO cgogn::io::export_SKEL();
+		}
+	}
+
 	MESH* load_surface_from_file(const std::string& filename)
 	{
 		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
@@ -185,6 +207,16 @@ public:
 		}
 		else
 			return nullptr;
+	}
+
+	void save_surface_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,
+							  const std::string& filename)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 2)
+		{
+			if (filetype.compare("off") == 0)
+				cgogn::io::export_OFF(m, vertex_position, filename + ".off");
+		}
 	}
 
 	MESH* load_volume_from_file(const std::string& filename)
@@ -222,6 +254,18 @@ public:
 		}
 		else
 			return nullptr;
+	}
+
+	void save_volume_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,
+							 const std::string& filename)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 1)
+		{
+			// if (ext.compare("tet") == 0)
+			// 	// TODO cgogn::io::export_TET();
+			// else if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
+			// 	// TODO cgogn::io::export_MESHB();
+		}
 	}
 
 	template <typename FUNC>
@@ -363,26 +407,96 @@ protected:
 			open_file_dialog = nullptr;
 		}
 
+		open_save_popup_ = false;
 		if (ImGui::BeginMenu(name_.c_str()))
 		{
+			if (ImGui::MenuItem("Add mesh"))
+				add_mesh(std::string{mesh_traits<MESH>::name});
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files_);
 				if constexpr (mesh_traits<MESH>::dimension == 2)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files_);
 				if constexpr (mesh_traits<MESH>::dimension == 3)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files_);
 			}
 			ImGui::PopItemFlag();
+			if (ImGui::MenuItem("Save mesh"))
+				open_save_popup_ = true;
 			ImGui::EndMenu();
+		}
+	}
+
+	void popups() override
+	{
+		if (open_save_popup_)
+			ImGui::OpenPopup("Save");
+
+		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			static MESH* selected_mesh = nullptr;
+			static char filename[32] = "\0";
+			static std::string filetype = (*supported_formats_)[0];
+			static std::function<void()> cleanup = []() {};
+			bool close_popup = false;
+
+			imgui_mesh_selector(this, selected_mesh, "Mesh", [&](MESH* m) { selected_mesh = m; });
+			if (ImGui::BeginCombo("Filetype", filetype.c_str()))
+			{
+				for (const std::string& t : *supported_formats_)
+				{
+					bool is_selected = t == filetype;
+					if (ImGui::Selectable(t.c_str(), is_selected))
+						filetype = t;
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::InputText("Filename", filename, 32);
+
+			if (selected_mesh)
+			{
+				static std::shared_ptr<Attribute<Vec3>> selected_vertex_position = nullptr;
+				MeshData<MESH>* md = mesh_data(selected_mesh);
+				imgui_combo_attribute<Vertex, Vec3>(
+					*selected_mesh, selected_vertex_position, "Position",
+					[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position = attribute; });
+				if (selected_vertex_position)
+				{
+					if (ImGui::Button("Save", ImVec2(120, 0)))
+					{
+						if constexpr (mesh_traits<MESH>::dimension == 1)
+							save_graph_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
+						if constexpr (mesh_traits<MESH>::dimension == 2)
+							save_surface_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
+						if constexpr (mesh_traits<MESH>::dimension == 3)
+							save_volume_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
+						close_popup = true;
+					}
+				}
+				cleanup = [&]() { selected_vertex_position = nullptr; };
+			}
+
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+				close_popup = true;
+
+			if (close_popup)
+			{
+				selected_mesh = nullptr;
+				filename[0] = '\0';
+				cleanup();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
 		}
 	}
 
 	void interface() override
 	{
-		imgui_mesh_selector(this, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(this, selected_mesh_, "Mesh", [&](MESH* m) {
 			selected_mesh_ = m;
 			mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
 		});
@@ -397,10 +511,10 @@ protected:
 												});
 
 			ImGui::Separator();
-			ImGui::TextUnformatted("Cells");
+			ImGui::TextUnformatted("Size");
 			ImGui::Columns(2);
 			ImGui::Separator();
-			ImGui::TextUnformatted("Type");
+			ImGui::TextUnformatted("CellType");
 			ImGui::NextColumn();
 			ImGui::TextUnformatted("Number");
 			ImGui::NextColumn();
@@ -413,15 +527,60 @@ protected:
 				ImGui::NextColumn();
 			}
 			ImGui::Columns(1);
+
+			ImGui::Separator();
+			ImGui::TextUnformatted("Attributes");
+			ImGui::Columns(2);
+			ImGui::Separator();
+			ImGui::TextUnformatted("CellType");
+			ImGui::NextColumn();
+			ImGui::TextUnformatted("Names");
+			ImGui::NextColumn();
+			ImGui::Separator();
+			auto names = md->attributes_names();
+			for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
+			{
+				ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]);
+				ImGui::NextColumn();
+				ImGui::PushItemWidth(-1);
+				if (ImGui::ListBoxHeader((std::string("##") + mesh_traits<MESH>::cell_names[i]).c_str(),
+										 names[i].size()))
+				{
+					for (auto& n : names[i])
+						ImGui::Text("%s", n.c_str());
+					ImGui::ListBoxFooter();
+				}
+				// ImGui::PopItemWidth();
+				// ImGui::NextColumn();
+				// ImGui::NextColumn();
+				// ImGui::PushItemWidth(-1);
+				// ImGui::InputText((std::string("##") + mesh_traits<MESH>::cell_names[i]).c_str(),
+				// new_attribute_name_[i], 				 32); ImGui::PopItemWidth(); ImGui::SameLine(); if
+				// (ImGui::Button((std::string("Add##") + mesh_traits<MESH>::cell_names[i]).c_str()))
+				// {
+				// }
+				ImGui::NextColumn();
+			}
+			ImGui::Columns(1);
 		}
 	}
 
 private:
-	std::vector<std::string> supported_graph_files = {"Graph", "*.cg *.cgr *.skel"};
-	std::vector<std::string> supported_surface_files = {"Surface", "*.off"};
-	std::vector<std::string> supported_volume_files = {"Volume", "*.tet"};
+	std::vector<std::string> supported_graph_formats_ = {"cg", "cgr", "skel"};
+	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.cgr *.skel"};
+
+	std::vector<std::string> supported_surface_formats_ = {"off"};
+	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off"};
+
+	std::vector<std::string> supported_volume_formats_ = {"tet"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.tet"};
+
+	std::vector<std::string>* supported_formats_ = nullptr;
+
+	bool open_save_popup_ = false;
 
 	const MESH* selected_mesh_;
+	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;

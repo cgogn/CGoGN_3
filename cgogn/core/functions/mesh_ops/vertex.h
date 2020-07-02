@@ -88,6 +88,21 @@ Graph::Edge CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph
 
 void CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// merge_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool
+// set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// Graph //
+///////////
+
+void CGOGN_CORE_EXPORT merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_

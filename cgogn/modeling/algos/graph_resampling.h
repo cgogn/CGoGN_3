@@ -21,19 +21,35 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/geometry/cgogn_geometry_export.h>
+#ifndef CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
+#define CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
+
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
 
-int CGOGN_GEOMETRY_EXPORT pipo()
-{
-	return 0;
-}
+using Vec3 = geometry::Vec3;
+using Scalar = geometry::Scalar;
 
-} // namespace geometry
+void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_vertex_position,
+									   Graph::Attribute<Scalar>* g_vertex_radius, const CMap2& s,
+									   const CMap2::Attribute<Vec3>* s_vertex_position);
+
+void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
+					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
+					Graph::Attribute<Scalar>* new_g_vertex_radius);
+
+void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Graph::Edge new_g_edge,
+					 Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
+					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius);
+
+} // namespace modeling
 
 } // namespace cgogn
+
+#endif // CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_

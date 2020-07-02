@@ -583,7 +583,7 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, [&](MESH* m) {
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
 			selected_mesh_ = m;
 			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
 		});

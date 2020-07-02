@@ -55,6 +55,10 @@ void Module::interface()
 {
 }
 
+void Module::popups()
+{
+}
+
 void Module::close_event()
 {
 }

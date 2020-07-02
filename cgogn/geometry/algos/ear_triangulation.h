@@ -24,12 +24,14 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 #define CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 
-#include <set>
+#include <cgogn/core/functions/mesh_ops/face.h>
 
 //#include <cgogn/geometry/types/geometry_traits.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <set>
 
 namespace cgogn
 {
@@ -85,9 +87,9 @@ class EarTriangulation
 	Vec3 normalPoly_;
 
 	// ref on map
-	const MESH& m_;
+	MESH& m_;
 
-	// ref on position attribute
+	// pointer to position attribute
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* position_;
 
 	inline const Vec3& POSITION(Vertex v)
@@ -221,7 +223,7 @@ public:
 	 * @param f the face to tringulate
 	 * @param position attribute of position to use
 	 */
-	EarTriangulation(const MESH& mesh, const typename mesh_traits<MESH>::Face f,
+	EarTriangulation(MESH& mesh, const typename mesh_traits<MESH>::Face f,
 					 const typename mesh_traits<MESH>::template Attribute<Vec3>* position)
 		: m_(mesh), position_(position), ears_(cmp_VP)
 	{
@@ -402,7 +404,7 @@ void append_ear_triangulation(const MESH& mesh, const typename mesh_traits<MESH>
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* position,
 							  std::vector<uint32>& table_indices, const FUNC& post_func)
 {
-	EarTriangulation tri(mesh, f, position);
+	EarTriangulation tri(const_cast<MESH&>(mesh), f, position);
 	tri.append_indices(table_indices, post_func);
 }
 

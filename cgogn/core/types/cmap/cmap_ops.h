@@ -137,7 +137,8 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	const uint32 old = (*m.cells_indices_[orbit])[d.index];
 	// ref_index() is done before unref_index() to avoid deleting the index if old == index
-	m.attribute_containers_[orbit].ref_index(index); // ref the new index
+	if (index != INVALID_INDEX)
+		m.attribute_containers_[orbit].ref_index(index); // ref the new index
 	if (old != INVALID_INDEX)
 		m.attribute_containers_[orbit].unref_index(old); // unref the old index
 	(*m.cells_indices_[orbit])[d.index] = index;		 // affect the index to the dart
