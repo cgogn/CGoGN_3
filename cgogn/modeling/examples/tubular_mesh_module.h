@@ -152,7 +152,8 @@ protected:
 
 	void resample_graph()
 	{
-		GRAPH* resampled_graph = graph_provider_->add_mesh("resampled");
+		static uint32 count = 0;
+		GRAPH* resampled_graph = graph_provider_->add_mesh("resampled_" + std::to_string(count++));
 		auto resampled_graph_vertex_position = add_attribute<Vec3, GraphVertex>(*resampled_graph, "position");
 		auto resampled_graph_vertex_radius = add_attribute<Scalar, GraphVertex>(*resampled_graph, "radius");
 
@@ -170,27 +171,28 @@ protected:
 
 	void build_hex_mesh()
 	{
-		Scalar min_radius = std::numeric_limits<Scalar>::max();
-		for (Scalar r : *graph_vertex_radius_)
-			if (r < min_radius)
-				min_radius = r;
+		// Scalar min_radius = std::numeric_limits<Scalar>::max();
+		// for (Scalar r : *graph_vertex_radius_)
+		// 	if (r < min_radius)
+		// 		min_radius = r;
 
-		auto radius_copy = add_attribute<Scalar, GraphVertex>(*graph_, "radius_copy");
-		radius_copy->copy(graph_vertex_radius_.get());
-		graph_vertex_radius_->fill(min_radius);
+		// auto radius_copy = add_attribute<Scalar, GraphVertex>(*graph_, "radius_copy");
+		// radius_copy->copy(graph_vertex_radius_.get());
+		// graph_vertex_radius_->fill(min_radius);
 
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
 		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
-		graph_vertex_radius_->swap(radius_copy.get());
-		remove_attribute<GraphVertex>(*graph_, radius_copy);
+		// graph_vertex_radius_->swap(radius_copy.get());
+		// remove_attribute<GraphVertex>(*graph_, radius_copy);
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
 
 		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
+		volume_provider_->set_mesh_bb_vertex_position(volume_, volume_vertex_position_);
 	}
 
 	void project_on_surface()
@@ -386,16 +388,28 @@ protected:
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);
-		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
-			auto vertices = incident_vertices(*volume_, e);
-			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
-			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+			auto vertices = adjacent_vertices_through_edge(*volume_, v);
+			auto d = vertices.size();
+			for (VolumeVertex av : vertices)
+			{
+				uint32 avidx = value<uint32>(*volume_, vertex_index, av);
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+			}
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
 			return true;
 		});
+		// foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
+		// 	auto vertices = incident_vertices(*volume_, e);
+		// 	uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
+		// 	uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
+		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+		// 	return true;
+		// });
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
 		// set constrained vertices
@@ -493,7 +507,7 @@ protected:
 										 volume_skin_vertex_position.get());
 		modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-		modeling::export_surface_off(volume_skin, volume_skin_vertex_position.get(), "surface.off");
+		// modeling::export_surface_off(volume_skin, volume_skin_vertex_position.get(), "surface.off");
 	}
 
 	void interface() override

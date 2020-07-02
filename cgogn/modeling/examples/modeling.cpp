@@ -103,35 +103,35 @@ int main(int argc, char** argv)
 	// 	return cgogn::value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
 	// });
 
-	cgogn::CellCache<Mesh> cc(*m);
-	cc.build<Edge>();
-	cc.build<Face>([&](Face f) -> bool {
-		std::vector<Vertex> iv = incident_vertices(*m, f);
-		return value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
-	});
+	// cgogn::CellCache<Mesh> cc(*m);
+	// cc.build<Edge>();
+	// cc.build<Face>([&](Face f) -> bool {
+	// 	std::vector<Vertex> iv = incident_vertices(*m, f);
+	// 	return cgogn::value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
+	// });
 
-	cgogn::modeling::quadrangulate_all_faces(
-		cc,
-		[&](Vertex v) {
-			std::vector<Vertex> av = adjacent_vertices_through_edge(*m, v);
-			cgogn::value<Vec3>(*m, vertex_position, v) =
-				0.5 * (cgogn::value<Vec3>(*m, vertex_position, av[0]) + cgogn::value<Vec3>(*m, vertex_position, av[1]));
-		},
-		[&](Vertex v) {
-			Vec3 center;
-			center.setZero();
-			uint32 count = 0;
-			foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
-				center += cgogn::value<Vec3>(*m, vertex_position, av);
-				++count;
-				return true;
-			});
-			center /= Scalar(count);
-			cgogn::value<Vec3>(*m, vertex_position, v) = center;
-		});
+	// cgogn::modeling::quadrangulate_all_faces(
+	// 	cc,
+	// 	[&](Vertex v) {
+	// 		std::vector<Vertex> av = adjacent_vertices_through_edge(*m, v);
+	// 		cgogn::value<Vec3>(*m, vertex_position, v) =
+	// 			0.5 * (cgogn::value<Vec3>(*m, vertex_position, av[0]) + cgogn::value<Vec3>(*m, vertex_position, av[1]));
+	// 	},
+	// 	[&](Vertex v) {
+	// 		Vec3 center;
+	// 		center.setZero();
+	// 		uint32 count = 0;
+	// 		foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
+	// 			center += cgogn::value<Vec3>(*m, vertex_position, av);
+	// 			++count;
+	// 			return true;
+	// 		});
+	// 		center /= Scalar(count);
+	// 		cgogn::value<Vec3>(*m, vertex_position, v) = center;
+	// 	});
 
-	mp.emit_connectivity_changed(m);
-	mp.emit_attribute_changed(m, vertex_position.get());
+	// mp.emit_connectivity_changed(m);
+	// mp.emit_attribute_changed(m, vertex_position.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);

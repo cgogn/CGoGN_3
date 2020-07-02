@@ -71,6 +71,12 @@ public:
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
 
+	void triangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		geometry::apply_ear_triangulation(m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>() / 10);
@@ -111,6 +117,8 @@ protected:
 			{
 				if (ImGui::Button("Subdivide"))
 					subdivide_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Triangulate"))
+					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Simplify"))

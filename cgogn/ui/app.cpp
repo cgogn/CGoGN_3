@@ -567,6 +567,7 @@ int App::launch()
 									v->save_camera();
 								if (ImGui::MenuItem("Restore camera"))
 									v->restore_camera();
+								ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
 								ImGui::EndMenu();
 							}
 						}
@@ -578,7 +579,11 @@ int App::launch()
 					ImGui::EndMenu();
 				}
 				for (Module* m : modules_)
+				{
+					ImGui::PushID(m->name().c_str());
 					m->main_menu();
+					ImGui::PopID();
+				}
 				ImGui::EndMainMenuBar();
 			}
 
@@ -606,10 +611,9 @@ int App::launch()
 
 			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
-			uint32 id = 0;
 			for (Module* m : modules_)
 			{
-				ImGui::PushID(id);
+				ImGui::PushID(m->name().c_str());
 				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(255, 128, 0, 200));
 				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 128, 0, 255));
 				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 128, 0, 128));
@@ -621,9 +625,15 @@ int App::launch()
 				else
 					ImGui::PopStyleColor(3);
 				ImGui::PopID();
-				++id;
 			}
 			ImGui::End();
+
+			for (Module* m : modules_)
+			{
+				ImGui::PushID(m->name().c_str());
+				m->popups();
+				ImGui::PopID();
+			}
 
 			if (first_render)
 				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);
