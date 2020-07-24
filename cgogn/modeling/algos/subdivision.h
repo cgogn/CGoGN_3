@@ -49,7 +49,7 @@ using Vec3 = geometry::Vec3;
 // CMap2 //
 ///////////
 
-void hexagon_to_triangles(CMap2& m, CMap2::Face f)
+inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 {
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
 	Dart d0 = phi1(m, f.dart);
@@ -621,8 +621,7 @@ auto subdivideVolume(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templ
 	cut_direction[2] = phi<1211>(m, right_cut_dir);
 	cut_direction[3] = phi<1212111>(m, right_cut_dir);
 
-	auto cutVolume = [&](Dart d) -> typename MESH::Face
-	{
+	auto cutVolume = [&](Dart d) -> typename MESH::Face {
 		std::vector<Dart> cut_path;
 		Dart t = d;
 		do
@@ -658,8 +657,8 @@ auto subdivideListEdges(MESH& m, std::vector<Dart>& edges, std::queue<Vec3>& edg
 	}
 }
 
-void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : edges)
@@ -682,8 +681,8 @@ auto subdivideListFaces(MESH& m, std::vector<Dart>& faces, std::queue<Vec3>& fac
 	}
 }
 
-void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : faces)
@@ -706,8 +705,8 @@ auto subdivideListVolumes(MESH& m, std::vector<Dart>& volumes, std::queue<Vec3>&
 	}
 }
 
-void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
-						  typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
+								 typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : volumes)
