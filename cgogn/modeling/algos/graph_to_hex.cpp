@@ -782,6 +782,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 {
 	uint32 nbf = degree(g, v);
 
+	// create the topology of the surface
 	std::vector<Dart> faces;
 	faces.reserve(nbf);
 	for (uint32 i = 0; i < nbf; ++i)
@@ -798,13 +799,12 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 
 	value<Dart>(g, gAttribs.vertex_contact_surface, v) = faces[0];
 
+	// get the points on the sphere for each incident branch
 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-
 	std::vector<Vec3> Ppos;
 	Ppos.reserve(nbf);
 	std::vector<Dart> Pdart;
 	Pdart.reserve(nbf);
-
 	foreach_dart_of_orbit(g, v, [&](Dart d) {
 		Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
 		geometry::project_on_sphere(p, center, 1);
@@ -813,8 +813,8 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 		return true;
 	});
 
+	// get the best fitting plane normal and build a local frame based on this normal and first branch
 	std::pair<Vec3, Scalar> plane = geometry::plane_fitting(Ppos);
-
 	Vec3 L1 = (Ppos[0] - center).normalized();
 	geometry::project_on_plane(L1, plane.first, 0);
 	Vec3 L3 = plane.first;
@@ -822,6 +822,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 	Mat3 L;
 	L << L1[0], L1[1], L1[2], L2[0], L2[1], L2[2], L3[0], L3[1], L3[2];
 
+	// sort the incident branches on the plane in CW order
 	std::vector<uint32> permutation(nbf);
 	std::iota(permutation.begin(), permutation.end(), 0);
 	std::sort(permutation.begin(), permutation.end(), [&](uint32 i, uint32 j) -> bool {
@@ -851,11 +852,13 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 		}
 	});
 
+	// apply the permutation to branches point & dart
 	std::vector<Vec3> sorted_Ppos(nbf);
 	std::vector<Dart> sorted_Pdart(nbf);
 	std::transform(permutation.begin(), permutation.end(), sorted_Ppos.begin(), [&](uint32 i) { return Ppos[i]; });
 	std::transform(permutation.begin(), permutation.end(), sorted_Pdart.begin(), [&](uint32 i) { return Pdart[i]; });
 
+	// put the geometry on the surface mesh vertices
 	Vec3 Q1 = center + plane.first;
 	Vec3 Q2 = center - plane.first;
 	for (uint32 i = 0; i < nbf; ++i)
