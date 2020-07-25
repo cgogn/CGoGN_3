@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 		tm.set_current_surface(s);
 		tm.set_current_surface_vertex_position(surface_vertex_position);
 
-		tm.extend_graph_extremities();
+		// tm.extend_graph_extremities();
 		tm.init_graph_radius_from_surface();
 		Graph* resampled_graph = tm.resample_graph();
 
