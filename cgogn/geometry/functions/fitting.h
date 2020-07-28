@@ -52,7 +52,7 @@ inline std::pair<Vec3, Scalar> plane_fitting(const std::vector<Vec3>& points)
 
 	normal.normalize();
 
-	return {normal, d};
+	return {normal, -d};
 }
 
 } // namespace geometry

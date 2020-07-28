@@ -726,24 +726,26 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 	gAttribs.vertex_contact_surface->fill(Dart());
 
 	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
-		switch (degree(g, v))
+		uint32 d = degree(g, v);
+		if (d == 1)
 		{
-		case 1:
 			build_contact_surface_1(g, gAttribs, m2, m2Attribs, v);
-			break;
-		case 2:
-			build_contact_surface_2(g, gAttribs, m2, m2Attribs, v);
-			break;
-		// case 3:
-		// 	build_contact_surface_orange(g, gAttribs, m2, m2Attribs, v);
-		// 	break;
-		// default:
-		// 	build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
-		// 	break;
-		default:
-			build_contact_surface_orange(g, gAttribs, m2, m2Attribs, v);
-			break;
+			return res;
 		}
+		if (d == 2)
+		{
+			build_contact_surface_2(g, gAttribs, m2, m2Attribs, v);
+			return res;
+		}
+		// if (d >= 3 && d <= 6)
+		// {
+		// 	// check if branches directions are cube-friendly
+		// 	// yes -> add a 8-hex intersection block
+		// 	return res;
+		// }
+		// other cases
+		// (calls build_contact_surface_orange on planar configurations)
+		build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
 		return res;
 	});
 	return res;
@@ -875,6 +877,36 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v)
 {
+	uint32 nbf = degree(g, v);
+
+	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+
+	std::vector<Vec3> Ppos;
+	Ppos.reserve(nbf);
+
+	foreach_dart_of_orbit(g, v, [&](Dart d) {
+		Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
+		geometry::project_on_sphere(p, center, 1);
+		Ppos.push_back(p);
+		return true;
+	});
+	std::pair<Vec3, Scalar> plane = geometry::plane_fitting(Ppos);
+	bool planar = true;
+	for (const Vec3& p : Ppos)
+	{
+		Scalar dist = geometry::distance_plane_point(plane.first, plane.second, p);
+		if (dist > 0.15)
+		{
+			planar = false;
+			break;
+		}
+	}
+	if (planar)
+	{
+		build_contact_surface_orange(g, gAttribs, m2, m2Attribs, v);
+		return;
+	}
+
 	// compute the n points on the sphere
 	// generate Delaunay mesh from the n points
 	// store the graph branch on their respective delaunay vertex (m2Attribs.dual_vertex_graph_branch)
@@ -883,11 +915,8 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 
 	/// Brute force bête et méchant
 
-	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-
-	std::vector<Vec3> Ppos;
-	std::vector<Dart> Pdart;
 	std::vector<uint32> Pid;
+	Pid.reserve(nbf);
 
 	cgogn::io::SurfaceImportData surface_data;
 
@@ -895,7 +924,6 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 		Vec3 p = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
 		geometry::project_on_sphere(p, center, 1);
 		uint32 vertex_id = new_index<CMap2::Vertex>(m2);
-		Ppos.push_back(p);
 		Pid.push_back(vertex_id);
 		(*m2Attribs.vertex_position)[vertex_id] = p;
 		(*m2Attribs.dual_vertex_graph_branch)[vertex_id] = d;
