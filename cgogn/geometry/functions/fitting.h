@@ -24,7 +24,10 @@
 #ifndef CGOGN_GEOMETRY_FUNCTIONS_FITTING_H_
 #define CGOGN_GEOMETRY_FUNCTIONS_FITTING_H_
 
+#include <cgogn/core/utils/numerics.h>
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <vector>
 
 namespace cgogn
 {
@@ -47,7 +50,9 @@ inline std::pair<Vec3, Scalar> plane_fitting(const std::vector<Vec3>& points)
 	Vec3 normal = svd.matrixU().col(2);
 	Scalar d = normal.dot(mean);
 
-	return {normal, d};
+	normal.normalize();
+
+	return {normal, -d};
 }
 
 } // namespace geometry

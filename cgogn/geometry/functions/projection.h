@@ -24,6 +24,7 @@
 #ifndef CGOGN_GEOMETRY_FUNCTIONS_PROJECTION_H_
 #define CGOGN_GEOMETRY_FUNCTIONS_PROJECTION_H_
 
+#include <cgogn/geometry/functions/distance.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -38,6 +39,14 @@ namespace geometry
 inline void project_on_sphere(Vec3& P, const Vec3& C, Scalar R)
 {
 	P = C + (P - C).normalized() * R;
+}
+
+/**
+ * project point P on the plane defined by normal N and scalar d
+ */
+inline void project_on_plane(Vec3& P, const Vec3& N, Scalar d)
+{
+	P -= N * distance_plane_point(N, d, P);
 }
 
 } // namespace geometry
