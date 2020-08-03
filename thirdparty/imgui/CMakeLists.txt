@@ -33,6 +33,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_IMPL_OPENGL_LOADER_GL3W NOMINMAX)
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PUBLIC glfw dl)
 else()
