@@ -34,6 +34,7 @@
 
 #include <cgogn/modeling/examples/tubular_mesh_module.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
 
 using Graph = cgogn::Graph;
@@ -107,6 +108,39 @@ int main(int argc, char** argv)
 			std::cout << "Surface file could not be loaded" << std::endl;
 			return 1;
 		}
+
+		sr.set_render_vertices(*v, *s, false);
+		sr.set_render_faces(*v, *s, false);
+
+		auto graph_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
+		auto graph_vertex_radius = cgogn::add_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
+
+		tm.set_current_graph(g);
+		tm.set_current_graph_vertex_position(graph_vertex_position);
+		tm.set_current_graph_vertex_radius(graph_vertex_radius);
+
+		auto surface_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
+
+		tm.set_current_surface(s);
+		tm.set_current_surface_vertex_position(surface_vertex_position);
+
+		// tm.extend_graph_extremities();
+		tm.init_graph_radius_from_surface();
+		Graph* resampled_graph = tm.resample_graph();
+
+		auto resampled_graph_vertex_position =
+			cgogn::get_attribute<Vec3, cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
+		auto resampled_graph_vertex_radius =
+			cgogn::get_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
+
+		tm.set_current_graph(resampled_graph);
+		tm.set_current_graph_vertex_position(resampled_graph_vertex_position);
+		tm.set_current_graph_vertex_radius(resampled_graph_vertex_radius);
+
+		Volume* h = tm.build_hex_mesh();
+		auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
+
+		vr.set_vertex_position(*v, *h, volume_vertex_position);
 	}
 
 	return app.launch();

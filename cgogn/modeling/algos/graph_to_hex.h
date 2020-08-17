@@ -134,6 +134,7 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
+
 bool subdivide_graph(Graph& g);
 bool add_graph_attributes(Graph& g, GAttributes& gAttribs);
 bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
@@ -148,8 +149,10 @@ void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 							 Graph::Vertex v);
 void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
-void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-							 Graph::Vertex v);
+void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								  Graph::Vertex v);
+// void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+// 							 Graph::Vertex v);
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
 
