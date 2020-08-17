@@ -25,7 +25,7 @@ target_sources(${PROJECT_NAME}
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types.h"
-		"${CMAKE_CURRENT_LIST_DIR}/gl_image.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/gl_image.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ebo.h"
 		"${CMAKE_CURRENT_LIST_DIR}/vao.h"
