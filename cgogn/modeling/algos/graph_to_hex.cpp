@@ -251,6 +251,18 @@ void sew_volumes(CMap3& m, Dart d0, Dart d1)
 	} while (it0 != d0);
 }
 
+void unsew_volumes(CMap3& m, Dart d0)
+{
+	Dart it0 = d0;
+	do
+	{
+		cgogn_message_assert(phi3(m, it0) == it0, "The faces to sew are already sewn");
+		phi3_unsew(m, it0);
+		it0 = phi1(m, it0);
+	} while (it0 != d0);
+}
+
+
 Dart add_branch_section(CMap3& m3)
 {
 	std::vector<Dart> D = {add_prism(static_cast<CMap2&>(m3), 4).dart, add_prism(static_cast<CMap2&>(m3), 4).dart,
@@ -594,6 +606,135 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 	remove_attribute<CMap2::Vertex>(m, vertex_delta);
 	remove_attribute<CMap2::Vertex>(m, incident_faces_mid);
 	remove_attribute<CMap2::Vertex>(m, incident_init_mid);
+}
+
+
+void padding(CMap3& m3)
+{
+	Dart d_boundary = Dart();
+	for (Dart d = m3.begin(), end = m3.end(); d != end  && (!d_boundary.is_nil()); d = m3.next(d))
+		if (is_boundary(m3, d))
+			d_boundary = d;
+
+	DartMarker visited_edge(m3);
+	DartMarker visited_face(m3);
+	CellCache<CMap3> boundary_edge_cache(m3);
+	CellCache<CMap3> prism_cache(m3);
+	/// visiting all faces of the boundary and inserting a prism beneath it
+	foreach_dart_of_orbit(m3, CMap3::Volume(d_boundary), [&](Dart d0) -> bool {
+		if(!visited_edge.is_marked(d0))
+		{
+			visited_edge.mark(d0);
+			visited_edge.mark(phi2(m3, d0));
+			boundary_edge_cache.add(CMap3::Edge2(d0));
+		}
+		if(!visited_face.is_marked(d0))
+		{
+			uint32 n = 0;
+			foreach_dart_of_orbit(m3, CMap3::Face2(d0), [&](Dart d1) -> bool {
+				++n;
+				visited_face.mark(d1);
+				return true;
+			});
+
+			Dart d1 = phi3(m3, d0);
+			CMap3::Volume p = add_prism(static_cast<CMap2&>(m3), n, false);
+			prism_cache.add(p);
+			unsew_volumes(m3, d1);
+			sew_volumes(m3, d1, p.dart);
+			sew_volumes(m3, d0, phi<2112>(m3, p.dart));
+		}
+		return true;
+	});
+	
+	/// sowing neighboring prisms together
+	foreach_cell(boundary_edge_cache, [&](CMap3::Edge2 e) -> bool {
+		Dart d0 = phi3(m3, e.dart);
+		Dart d1 = phi<23>(m3, e.dart);
+		sew_volumes(m3, d0, d1);
+	});
+
+	/// setting embeddings
+	// if (set_indices)
+	// {
+		foreach_cell(prism_cache, [&](CMap3::Volume w) -> bool {
+			foreach_dart_of_orbit(m3, w, [&](Dart d0) -> bool {
+				if (is_indexed<CMap3::HalfEdge>(m3))
+				{
+					set_index<CMap3::HalfEdge>(m3, CMap3::HalfEdge(d0), new_index<CMap3::HalfEdge>(m3)); 
+				}
+				if (is_indexed<CMap3::Vertex2>(m3))
+				{
+					if(index_of(m3, CMap3::Vertex2(d0)) == INVALID_INDEX)
+						set_index<CMap3::Vertex2>(m3, CMap3::Vertex2(d0), new_index<CMap3::Vertex2>(m3)); 
+				}
+				if (is_indexed<CMap3::Vertex>(m3))
+				{
+					if(index_of(m3, CMap3::Vertex(d0)) == INVALID_INDEX)
+					{
+						uint32 id = INVALID_INDEX;
+						foreach_dart_of_orbit(m3, CMap3::Vertex(d0), [&](Dart d) -> bool {
+							id = index_of(m3, CMap3::Vertex(d));
+							return (id == INVALID_INDEX);
+						});
+						set_index<CMap3::Vertex>(m3, CMap3::Vertex(d0), (id == INVALID_INDEX ? new_index<CMap3::Vertex>(m3) : id )); 
+					}
+				}
+				if (is_indexed<CMap3::Edge2>(m3))
+				{
+					if(index_of(m3, CMap3::Edge2(d0)) == INVALID_INDEX)
+						set_index<CMap3::Edge2>(m3, CMap3::Edge2(d0), new_index<CMap3::Edge2>(m3)); 
+				}
+				if (is_indexed<CMap3::Edge>(m3))
+				{
+					if(index_of(m3, CMap3::Edge(d0)) == INVALID_INDEX)
+					{
+						uint32 id = INVALID_INDEX;
+						foreach_dart_of_orbit(m3, CMap3::Edge(d0), [&](Dart d) -> bool {
+							id = index_of(m3, CMap3::Edge(d));
+							return (id == INVALID_INDEX);
+						});
+						set_index<CMap3::Edge>(m3, CMap3::Edge(d0), (id == INVALID_INDEX ? new_index<CMap3::Edge>(m3) : id )); 
+					}
+				}
+				if (is_indexed<CMap3::Face2>(m3))
+				{
+					if(index_of(m3, CMap3::Face2(d0)) == INVALID_INDEX)
+						set_index<CMap3::Face2>(m3, CMap3::Face2(d0), new_index<CMap3::Face2>(m3)); 
+				}
+				if (is_indexed<CMap3::Face>(m3))
+				{
+					if(index_of(m3, CMap3::Face(d0)) == INVALID_INDEX)
+					{
+						uint32 id = index_of(m3, CMap3::Face(phi3(m3, d0)));
+						set_index<CMap3::Face>(m3, CMap3::Face(d0), (id == INVALID_INDEX ? new_index<CMap3::Face>(m3) : id )); 
+					}
+				}
+				return true;
+			});
+			if (is_indexed<CMap3::Volume>(m3))
+			{
+				set_index<CMap3::Volume>(m3, w, new_index<CMap3::Volume>(m3)); 
+			}
+		});
+	// }
+	/// setting positions 
+	auto vertex_position = get_attribute<Vec3, CMap3::Vertex>(m3, "position");
+
+	foreach_cell(m3, [&](CMap3::Vertex v0) -> bool {
+		if(is_incident_to_boundary(m3, v0));
+		{
+			foreach_adjacent_vertex_through_edge(m3, v0, [&](CMap3::Vertex v1) -> bool {
+				bool searching = is_incident_to_boundary(m3, v1);
+				if(!searching)
+				{
+					value<Vec3>(m3, vertex_position, v0) = value<Vec3>(m3, vertex_position, v1);
+				}
+				return searching;
+			});
+		}
+		return true;
+	});
 }
 
 /*****************************************************************************/
