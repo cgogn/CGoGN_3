@@ -90,6 +90,7 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol);
 void sew_volumes(CMap3& m, Dart d0, Dart d1);
+void unsew_volumes(CMap3& m, Dart d0);
 Dart add_branch_section(CMap3& m3);
 void shift_frame(Mat3& frame, uint32 nb_shifts);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
@@ -113,6 +114,8 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 
 // void bloat(CMap3& m3);
 void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
+
+void padding(CMap3& m3);
 
 /*****************************************************************************/
 /* subdivision                                                               */
