@@ -167,6 +167,257 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	});
 }
 
+template <typename FUNC1, typename FUNC2, typename FUNC3>
+void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+{
+	using HalfEdge = typename CMap3::HalfEdge;
+	using Vertex = typename CMap3::Vertex;
+	using Edge = typename CMap3::Edge;
+	using Face = typename CMap3::Face;
+	using Vertex2 = typename CMap3::Vertex2;
+	using Edge2 = typename CMap3::Edge2;
+	using Face2 = typename CMap3::Face2;
+	using Volume = typename CMap3::Volume;
+
+	CellCache<CMap3> vol_cache(m);
+	vol_cache.template build<Volume>();
+	
+	CellCache<CMap3> edge_vert_cache(m);
+	CellCache<CMap3> face_vert_cache(m);
+
+	CellMarker<CMap3, CMap3::Volume> cm(m);
+	foreach_cell(vol_cache, [&](Volume w) -> bool {
+		cm.mark(w);
+		return true;
+	});
+
+	quadrangulate_all_faces(
+		m,
+		[&](Vertex v) -> void {
+			edge_vert_cache.add(v);
+			on_edge_cut(v);
+		},
+		[&](Vertex v) -> void {
+			face_vert_cache.add(v);
+			on_face_cut(v);
+		}
+	);
+
+	foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+		Dart d = ve.dart;
+		do {
+			if(!is_boundary(m, d) && cm.is_marked(Volume(d)))
+			{
+				Dart d01 = phi_1(m, d);
+				Dart d02 = phi2(m, d01);
+				Dart d21 = phi<21>(m, d);
+				Dart d22 = phi2(m, d21);
+
+				Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart ee = f0;
+				Dart ff = f1;
+				do {
+					phi3_sew(m, ee, ff);
+					ee = phi1(m, ee);
+					ff = phi_1(m, ff);
+				} while(ee != f0);
+
+				phi2_unsew(m, d01);
+				phi2_unsew(m, d21);
+
+				phi2_sew(m, d01, f0);
+				phi2_sew(m, d02, f1);
+
+				phi2_sew(m, d21, phi_1(m, f0));
+				phi2_sew(m, d22, phi1(m, f1));
+			}
+			d = phi<23>(m, d);
+		} while (d != ve.dart);
+		return true;
+	});
+
+	foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+		Dart d0 = vf.dart;
+		Dart d1 = phi<2323>(m, vf.dart);
+		Dart d;
+		if(cm.is_marked(Volume(d0)))
+		{
+			d = d0;
+			do {
+				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
+				d = phi<2321>(m, d);
+			} while (d != d0);
+		}
+
+		if(!is_boundary(m, d1) && cm.is_marked(Volume(d1)))
+		{
+			d = d1;
+			do {
+				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
+				d = phi<2321>(m, d);
+			} while (d != d1);
+		}
+		return true;
+	});
+
+	CellCache<CMap3> vol_vert_cache(m);
+	foreach_cell(vol_cache, [&](Volume w) -> bool {
+		Dart d0 = w.dart;
+		Vertex vw = Vertex(phi_1(m, phi<12>(m, d0)));
+		vol_vert_cache.add(vw);
+		return true;
+	});
+	
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		if (is_indexed<Vertex>(m))
+		{
+			set_index(m, v, new_index<Vertex>(m)); 
+		}
+
+		if(is_indexed<Edge>(m))
+		{
+			DartMarkerStore<CMap3> marker(m);
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				if (!marker.is_marked(d))
+				{
+					Edge e(d);
+					foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
+						marker.mark(d);
+						return true;
+					});
+
+					set_index(m, e, new_index<Edge>(m));
+				}
+				return true;
+			});
+		}
+
+		if(is_indexed<Face>(m))
+		{
+			DartMarkerStore<CMap3> marker(m);
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				if (!marker.is_marked(d))
+				{
+					Face f(d);
+					foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
+						marker.mark(d);
+						return true;
+					});
+
+					set_index(m, f, new_index<Face>(m));
+				}
+				return true;
+			});
+		}
+
+		if(is_indexed<Volume>(m))
+		{
+			DartMarkerStore<CMap3> marker(m);
+			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+				if (!marker.is_marked(d))
+				{
+					Volume w(d);
+					foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
+						marker.mark(d);
+						return true;
+					});
+
+					set_index(m, w, new_index<Volume>(m));
+				}
+				return true;
+			});
+		}
+
+		DartMarkerStore<CMap3> marker_v2(m);
+		DartMarkerStore<CMap3> marker_e2(m);
+		DartMarkerStore<CMap3> marker_f2(m);
+
+		foreach_incident_volume(m, v, [&](Volume w) -> bool {
+			foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
+				if (is_indexed<HalfEdge>(m))
+					set_index<HalfEdge>(m, HalfEdge(d), new_index<HalfEdge>(m));
+
+				if (is_indexed<Vertex2>(m))
+				{
+					if (!marker_v2.is_marked(d))
+					{
+						Vertex2 v2(d);
+						foreach_dart_of_orbit(m, v2, [&](Dart d) -> bool {
+							marker_v2.mark(d);
+							return true;
+						});
+
+						set_index(m, v2, new_index<Vertex2>(m));
+					}
+				}
+
+				if (is_indexed<Edge2>(m))
+				{
+					if (!marker_e2.is_marked(d))
+					{
+						Edge2 e2(d);
+						foreach_dart_of_orbit(m, e2, [&](Dart d) -> bool {
+							marker_e2.mark(d);
+							return true;
+						});
+						if(index_of(m, e2) != index_of(m, Edge2(phi2(m, d))));
+							set_index(m, e2, new_index<Edge2>(m));
+					}
+				}
+
+				if (is_indexed<Face2>(m))
+				{
+					Face2 f2(d);
+					if (!marker_f2.is_marked(d))
+					{
+						foreach_dart_of_orbit(m, f2, [&](Dart d) -> bool {
+							marker_f2.mark(d);
+							return true;
+						});
+						if(index_of(m, f2) == INVALID_INDEX)
+							set_index(m, f2, new_index<Face2>(m));
+					}
+				}
+
+
+				return true;
+			});
+		});
+		return true;
+	});
+
+	if(is_indexed<Vertex>(m))
+	{
+		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			set_index<Vertex>(m, vf, index_of(m, vf));
+			return true;
+		});
+		foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+			set_index<Vertex>(m, ve, index_of(m, ve));
+			return true;
+		});
+	}
+
+	if(is_indexed<Edge>(m))
+	{
+		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			Dart d0 = vf.dart;
+			Dart d = d0;
+			do {
+				set_index<Edge>(m, Edge(d), index_of(m, Edge(d)));
+				d = phi<2321>(m, d);
+			} while (d != d0);
+			return true;
+		});
+	}
+
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		on_vol_cut(v);
+		return true;
+	});
+}
+
 /* -------------------------- BUTTERFLY VOLUME MASKS -------------------------- */
 
 // Remplit les vecteurs de p/q-points pour le volume incident à d
