@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 	cc.build<Edge>();
 	cc.build<Face>([&](Face f) -> bool {
 		std::vector<Vertex> iv = incident_vertices(*m, f);
-		return value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
+		return cgogn::value<Vec3>(*m, vertex_position, iv[0])[0] < 0;
 	});
 
 	cgogn::modeling::quadrangulate_all_faces(
