@@ -248,8 +248,10 @@ public:
 
 	void add_volume_padding()
 	{
-		modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-									  *graph_, std::get<0>(hex_building_attributes_));
+		// modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+		// 							  *graph_, std::get<0>(hex_building_attributes_));
+
+		modeling::padding(*volume_);
 
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
@@ -865,6 +867,7 @@ protected:
 				optimize_volume_vertices();
 			static float optimize_fit_to_surface = 50.0f;
 			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 400.0);
+			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices 2"))
 				optimize_volume_vertices_2(optimize_fit_to_surface);
 			if (ImGui::Button("Compute volumes quality"))
