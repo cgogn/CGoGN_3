@@ -2120,14 +2120,10 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 			for (uint32 i = 0; i < path.size(); ++i)
 			{
 				if (!(i % 2))
-				{
-
-					cut_face(m2, CMap2::Vertex(path[i]), CMap2::Vertex(phi1(m2, path[i])), true).dart;
-				}
+					cut_face(m2, CMap2::Vertex(path[i]), CMap2::Vertex(phi1(m2, path[i])), true);
 				else
 				{
 					vol_dart = phi1(m2, path[i]);
-
 					merge_incident_faces(m2, CMap2::Edge(path[i]), true);
 				}
 			}

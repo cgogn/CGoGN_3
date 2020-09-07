@@ -285,6 +285,47 @@ public:
 		refresh_edge_target_length_ = true;
 	}
 
+	void subdivide_volume()
+	{
+		modeling::dual_cut_all_volumes(
+			*volume_,
+			[&](VolumeVertex v) {
+				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+						   cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			});
+
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+
+		refresh_edge_target_length_ = true;
+	}
+
 	void smooth_volume_surface()
 	{
 		SURFACE volume_skin;
@@ -853,10 +894,12 @@ protected:
 				export_subdivided_skin();
 			if (ImGui::Button("Add volume padding"))
 				add_volume_padding();
-			if (ImGui::Button("Subdivide length wise"))
-				subdivide_volume_length_wise();
-			if (ImGui::Button("Subdivide width wise"))
-				subdivide_volume_width_wise();
+			// if (ImGui::Button("Subdivide length wise"))
+			// 	subdivide_volume_length_wise();
+			// if (ImGui::Button("Subdivide width wise"))
+			// 	subdivide_volume_width_wise();
+			if (ImGui::Button("Subdivide volume"))
+				subdivide_volume();
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;

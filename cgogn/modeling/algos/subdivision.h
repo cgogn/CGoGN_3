@@ -181,7 +181,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 
 	CellCache<CMap3> vol_cache(m);
 	vol_cache.template build<Volume>();
-	
+
 	CellCache<CMap3> edge_vert_cache(m);
 	CellCache<CMap3> face_vert_cache(m);
 
@@ -200,13 +200,13 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 		[&](Vertex v) -> void {
 			face_vert_cache.add(v);
 			on_face_cut(v);
-		}
-	);
+		});
 
 	foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
 		Dart d = ve.dart;
-		do {
-			if(!is_boundary(m, d) && cm.is_marked(Volume(d)))
+		do
+		{
+			if (!is_boundary(m, d) && cm.is_marked(Volume(d)))
 			{
 				Dart d01 = phi_1(m, d);
 				Dart d02 = phi2(m, d01);
@@ -217,11 +217,12 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
 				Dart ee = f0;
 				Dart ff = f1;
-				do {
+				do
+				{
 					phi3_sew(m, ee, ff);
 					ee = phi1(m, ee);
 					ff = phi_1(m, ff);
-				} while(ee != f0);
+				} while (ee != f0);
 
 				phi2_unsew(m, d01);
 				phi2_unsew(m, d21);
@@ -241,19 +242,21 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 		Dart d0 = vf.dart;
 		Dart d1 = phi<2323>(m, vf.dart);
 		Dart d;
-		if(cm.is_marked(Volume(d0)))
+		if (cm.is_marked(Volume(d0)))
 		{
 			d = d0;
-			do {
+			do
+			{
 				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
 				d = phi<2321>(m, d);
 			} while (d != d0);
 		}
 
-		if(!is_boundary(m, d1) && cm.is_marked(Volume(d1)))
+		if (!is_boundary(m, d1) && cm.is_marked(Volume(d1)))
 		{
 			d = d1;
-			do {
+			do
+			{
 				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
 				d = phi<2321>(m, d);
 			} while (d != d1);
@@ -268,14 +271,14 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 		vol_vert_cache.add(vw);
 		return true;
 	});
-	
+
 	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
 		if (is_indexed<Vertex>(m))
 		{
-			set_index(m, v, new_index<Vertex>(m)); 
+			set_index(m, v, new_index<Vertex>(m));
 		}
 
-		if(is_indexed<Edge>(m))
+		if (is_indexed<Edge>(m))
 		{
 			DartMarkerStore<CMap3> marker(m);
 			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
@@ -293,7 +296,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 			});
 		}
 
-		if(is_indexed<Face>(m))
+		if (is_indexed<Face>(m))
 		{
 			DartMarkerStore<CMap3> marker(m);
 			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
@@ -311,7 +314,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 			});
 		}
 
-		if(is_indexed<Volume>(m))
+		if (is_indexed<Volume>(m))
 		{
 			DartMarkerStore<CMap3> marker(m);
 			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
@@ -347,7 +350,6 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 							marker_v2.mark(d);
 							return true;
 						});
-
 						set_index(m, v2, new_index<Vertex2>(m));
 					}
 				}
@@ -361,7 +363,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 							marker_e2.mark(d);
 							return true;
 						});
-						if(index_of(m, e2) != index_of(m, Edge2(phi2(m, d))));
+						if (index_of(m, e2) != index_of(m, Edge2(phi2(m, d))))
 							set_index(m, e2, new_index<Edge2>(m));
 					}
 				}
@@ -375,11 +377,10 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 							marker_f2.mark(d);
 							return true;
 						});
-						if(index_of(m, f2) == INVALID_INDEX)
+						if (index_of(m, f2) == INVALID_INDEX)
 							set_index(m, f2, new_index<Face2>(m));
 					}
 				}
-
 
 				return true;
 			});
@@ -387,7 +388,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 		return true;
 	});
 
-	if(is_indexed<Vertex>(m))
+	if (is_indexed<Vertex>(m))
 	{
 		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
 			set_index<Vertex>(m, vf, index_of(m, vf));
@@ -399,12 +400,13 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 		});
 	}
 
-	if(is_indexed<Edge>(m))
+	if (is_indexed<Edge>(m))
 	{
 		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
 			Dart d0 = vf.dart;
 			Dart d = d0;
-			do {
+			do
+			{
 				set_index<Edge>(m, Edge(d), index_of(m, Edge(d)));
 				d = phi<2321>(m, d);
 			} while (d != d0);
