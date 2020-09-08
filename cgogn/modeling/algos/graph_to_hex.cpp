@@ -657,8 +657,8 @@ void padding(CMap3& m3)
 			Dart f1 = phi<32>(m3, d0);
 			Dart f2 = phi<232>(m3, d0);
 			sew_volumes(m3, f1, f2);
-			return true;
 		}
+		return true;
 	});
 
 	/// setting indices

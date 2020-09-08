@@ -384,6 +384,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 
 				return true;
 			});
+			return true;
 		});
 		return true;
 	});

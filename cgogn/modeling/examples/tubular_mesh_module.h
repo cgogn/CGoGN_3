@@ -545,6 +545,9 @@ public:
 
 			std::vector<VolumeEdge> parallel_edges;
 			parallel_edges.reserve(16);
+			std::vector<VolumeEdge> perpendicular_edges;
+			perpendicular_edges.reserve(16);
+
 			Dart ed = e.dart;
 			parallel_edges.push_back(VolumeEdge(ed)); // the edge itself
 			do
@@ -558,6 +561,8 @@ public:
 				}
 				else
 					parallel_edges.push_back(VolumeEdge(ed)); // edge is on the boundary -> count twice
+				perpendicular_edges.push_back(VolumeEdge(phi1(*volume_, ed)));
+				perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
 				ed = phi<32>(*volume_, ed);
 			} while (ed != e.dart);
 
@@ -566,13 +571,19 @@ public:
 				parallel_edges_mean_length += geometry::length(*volume_, pe, volume_vertex_position_.get());
 			parallel_edges_mean_length /= parallel_edges.size();
 
+			Scalar perpendicular_edges_mean_length = 0.0;
+			for (VolumeEdge pe : perpendicular_edges)
+				perpendicular_edges_mean_length += geometry::length(*volume_, pe, volume_vertex_position_.get());
+			perpendicular_edges_mean_length /= perpendicular_edges.size();
+
 			// Scalar target_length = edge_length;
 			// if (is_incident_to_boundary(*volume_, vertices[0]) && is_incident_to_boundary(*volume_, vertices[1]))
 			// 	target_length = 0.5 * edge_length + 0.5 * parallel_edges_mean_length;
 			// else
 			// 	target_length = parallel_edges_mean_length;
 
-			value<Scalar>(*volume_, volume_edge_target_length_, e) = parallel_edges_mean_length;
+			value<Scalar>(*volume_, volume_edge_target_length_, e) =
+				0.5 * (parallel_edges_mean_length + perpendicular_edges_mean_length);
 
 			return true;
 		});
@@ -776,6 +787,12 @@ public:
 		geometry::compute_jacobian(*volume_, corner_frame.get(), hex_frame.get(), jacobian.get());
 		geometry::compute_maximum_aspect_frobenius(*volume_, corner_frame.get(), max_froebnius.get());
 		geometry::compute_mean_aspect_frobenius(*volume_, corner_frame.get(), mean_froebnius.get());
+
+		Scalar mean_scaled_jacobian = 0.0;
+		for (Scalar s : *scaled_jacobian)
+			mean_scaled_jacobian += s;
+		mean_scaled_jacobian /= scaled_jacobian->size();
+		std::cout << "mean scaled jacobian = " << mean_scaled_jacobian << std::endl;
 
 		volume_provider_->emit_attribute_changed(volume_, scaled_jacobian.get());
 		volume_provider_->emit_attribute_changed(volume_, jacobian.get());
