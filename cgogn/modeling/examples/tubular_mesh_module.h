@@ -192,12 +192,12 @@ public:
 
 		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
-		if (!transversal_faces_marker_)
-		{
-			transversal_faces_marker_ = new CellMarker<VOLUME, VolumeFace>(*volume_);
-			modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_),
-											*transversal_faces_marker_);
-		}
+		// if (!transversal_faces_marker_)
+		// {
+		// 	transversal_faces_marker_ = new CellMarker<VOLUME, VolumeFace>(*volume_);
+		// 	modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_),
+		// 									*transversal_faces_marker_);
+		// }
 
 		// graph_vertex_radius_->swap(radius_copy.get());
 		// remove_attribute<GraphVertex>(*graph_, radius_copy);
