@@ -522,7 +522,7 @@ protected:
 						if (ImGui::Button("X##selected_vertices_set"))
 							p.selected_vertices_set_ = nullptr;
 					}
-					if (ImGui::Button("Create##vertices_set"))
+					if (ImGui::Button("Create set##vertices_set"))
 						md->template add_cells_set<Vertex>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
@@ -554,7 +554,7 @@ protected:
 						if (ImGui::Button("X##selected_edges_set"))
 							p.selected_edges_set_ = nullptr;
 					}
-					if (ImGui::Button("Create##edges_set"))
+					if (ImGui::Button("Create set##edges_set"))
 						md->template add_cells_set<Edge>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |=
@@ -586,7 +586,7 @@ protected:
 						if (ImGui::Button("X##selected_faces_set"))
 							p.selected_faces_set_ = nullptr;
 					}
-					if (ImGui::Button("Create##faces_set"))
+					if (ImGui::Button("Create set##faces_set"))
 						md->template add_cells_set<Face>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),

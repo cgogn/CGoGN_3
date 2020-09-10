@@ -116,17 +116,12 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 // void bloat(CMap3& m3);
 void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
-void export_graph_cgr(Graph& g, std::string filename);
-void export_surface_off(CMap2& m2, CMap2::Attribute<Vec3>* vertex_position, std::string filename);
-
-template <typename FUNC>
 void padding(CMap3& m3);
-void padding_topo(CMap3& m3, bool set_embeddings);
 
 void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& m3);
 bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);
-// template <typename CELL, typename MESH>
-// uint32 find_index_of_orbit(CMap3&)
+
+
 /*****************************************************************************/
 /* subdivision                                                               */
 /*****************************************************************************/
@@ -147,6 +142,7 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 /*****************************************************************************/
 /* data preparation                                                          */
 /*****************************************************************************/
+
 bool subdivide_graph(Graph& g);
 bool add_graph_attributes(Graph& g, GAttributes& gAttribs);
 bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
@@ -161,8 +157,10 @@ void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 							 Graph::Vertex v);
 void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
-void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-							 Graph::Vertex v);
+void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								  Graph::Vertex v);
+// void build_contact_surface_3(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+// 							 Graph::Vertex v);
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
 

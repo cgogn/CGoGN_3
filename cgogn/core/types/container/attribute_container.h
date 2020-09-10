@@ -57,6 +57,7 @@ public:
 	}
 
 	uint32 maximum_index() const;
+	uint32 size() const;
 
 protected:
 	AttributeContainerGen* container_;

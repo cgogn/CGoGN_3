@@ -104,6 +104,7 @@ public:
 	template <typename FUNC>
 	void foreach_face_at(const Vec3& p, const FUNC& func) const
 	{
+		static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function parameter type");
 		Vec3i coord = point_cell_coord(p);
 		for (Face f : cells_[coord[0]][coord[1]][coord[2]])
 			func(f);
@@ -112,11 +113,13 @@ public:
 	template <typename FUNC>
 	void foreach_face_around(const Vec3& p, const FUNC& func) const
 	{
+		static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function parameter type");
 		Vec3i coord = point_cell_coord(p);
-		std::array<int, 3> start{coord[0] > 0 ? coord[0] - 1 : coord[0], coord[1] > 0 ? coord[1] - 1 : coord[1],
-								 coord[2] > 0 ? coord[2] - 1 : coord[2]};
-		std::array<int, 3> end{coord[0] < I - 1 ? coord[0] + 1 : coord[0], coord[1] < J - 1 ? coord[1] + 1 : coord[1],
-							   coord[2] < K - 1 ? coord[2] + 1 : coord[2]};
+		std::array<int, 3> start{coord[0] > 0 ? coord[0] - 1 : 0, coord[1] > 0 ? coord[1] - 1 : 0,
+								 coord[2] > 0 ? coord[2] - 1 : 0};
+		std::array<int, 3> end{coord[0] < I - 1 ? coord[0] + 1 : int(I - 1),
+							   coord[1] < J - 1 ? coord[1] + 1 : int(J - 1),
+							   coord[2] < K - 1 ? coord[2] + 1 : int(K - 1)};
 		for (int i = start[0]; i <= end[0]; ++i)
 			for (int j = start[1]; j <= end[1]; ++j)
 				for (int k = start[2]; k <= end[2]; ++k)

@@ -57,6 +57,7 @@ protected:
 	virtual void init();
 	virtual void main_menu();
 	virtual void interface();
+	virtual void popups();
 
 	virtual void close_event();
 

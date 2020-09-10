@@ -175,11 +175,11 @@ private:
 		{
 			Parameters& p = parameters_[v][m];
 
+			p.volume_center_ = add_attribute<Vec3, Volume>(*m, "__volume_center");
+
 			std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
-
-			p.volume_center_ = add_attribute<Vec3, Volume>(*m, "__volume_center");
 
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {

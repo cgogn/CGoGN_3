@@ -49,9 +49,9 @@ inline Dart add_dart(CMapBase& m)
 {
 	uint32 index = m.darts_.new_index();
 	Dart d(index);
-	for (auto rel : m.relations_)
+	for (auto& rel : m.relations_)
 		(*rel)[d.index] = d;
-	for (auto emb : m.cells_indices_)
+	for (auto& emb : m.cells_indices_)
 		if (emb)
 			(*emb)[d.index] = INVALID_INDEX;
 	return d;
