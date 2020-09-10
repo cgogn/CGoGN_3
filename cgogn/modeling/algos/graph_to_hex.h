@@ -61,6 +61,7 @@ struct M2Attributes
 	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
 	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
+	std::shared_ptr<CMap2::Attribute<CMap2>> ortho_scaffold;
 };
 
 struct M3Attributes
@@ -121,6 +122,9 @@ void export_surface_off(CMap2& m2, CMap2::Attribute<Vec3>* vertex_position, std:
 template <typename FUNC>
 void padding(CMap3& m3);
 void padding_topo(CMap3& m3, bool set_embeddings);
+
+void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& m3);
+bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);
 // template <typename CELL, typename MESH>
 // uint32 find_index_of_orbit(CMap3&)
 /*****************************************************************************/
