@@ -61,6 +61,7 @@ struct M2Attributes
 	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
 	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
+	std::shared_ptr<CMap2::Attribute<CMap2*>> ortho_scaffold;
 };
 
 struct M3Attributes
@@ -117,6 +118,11 @@ void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
 void padding(CMap3& m3);
 
+void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& m3);
+bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);
+bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttribs, Mat3& frame);
+
+
 /*****************************************************************************/
 /* subdivision                                                               */
 /*****************************************************************************/
@@ -158,6 +164,8 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 // 							 Graph::Vertex v);
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
+bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 Graph::Vertex v);
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */
@@ -182,7 +190,7 @@ bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttribute
 /*****************************************************************************/
 /* volume mesh generation                                                    */
 /*****************************************************************************/
-
+void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs);

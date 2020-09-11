@@ -212,6 +212,33 @@ public:
 		return volume_;
 	}
 
+	void test_ortho()
+	{
+		Scalar min_radius = std::numeric_limits<Scalar>::max();
+		for (Scalar r : *graph_vertex_radius_)
+			if (r < min_radius)
+				min_radius = r;
+
+		auto radius_copy = add_attribute<Scalar, GraphVertex>(*graph_, "radius_copy");
+		radius_copy->copy(graph_vertex_radius_.get());
+		graph_vertex_radius_->fill(min_radius);
+
+		contact_surface_ = surface_provider_->add_mesh("contact");
+		contact_surface_2 = surface_provider_->add_mesh("contact2");
+		volume_ = volume_provider_->add_mesh("hex");
+		std::cout << "indexed volume: " << is_indexed<CMap3::Volume>(*volume_) << std::endl;
+		modeling::create_ortho_hex(*graph_, *contact_surface_, *contact_surface_2, *volume_);
+
+		graph_vertex_radius_->swap(radius_copy.get());
+		remove_attribute<GraphVertex>(*graph_, radius_copy);
+
+		surface_provider_->emit_connectivity_changed(contact_surface_);
+		surface_provider_->emit_connectivity_changed(contact_surface_2);
+		volume_provider_->emit_connectivity_changed(volume_);
+
+		// volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
+	}
+
 	void project_on_surface()
 	{
 		SURFACE volume_skin;
@@ -904,6 +931,8 @@ protected:
 				resample_graph();
 			if (ImGui::Button("Build hex mesh"))
 				build_hex_mesh();
+			if (ImGui::Button("Test Ortho"))
+				test_ortho();
 		}
 		if (volume_)
 		{
@@ -949,6 +978,7 @@ private:
 	Grid* surface_grid_;
 
 	SURFACE* contact_surface_;
+	SURFACE* contact_surface_2;
 
 	VOLUME* volume_;
 	std::shared_ptr<VolumeAttribute<Vec3>> volume_vertex_position_;
