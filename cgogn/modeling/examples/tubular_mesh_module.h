@@ -192,12 +192,12 @@ public:
 
 		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
-		if (!transversal_faces_marker_)
-		{
-			transversal_faces_marker_ = new CellMarker<VOLUME, VolumeFace>(*volume_);
-			modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_),
-											*transversal_faces_marker_);
-		}
+		// if (!transversal_faces_marker_)
+		// {
+		// 	transversal_faces_marker_ = new CellMarker<VOLUME, VolumeFace>(*volume_);
+		// 	modeling::mark_tranversal_faces(*volume_, *contact_surface_, std::get<1>(hex_building_attributes_),
+		// 									*transversal_faces_marker_);
+		// }
 
 		// graph_vertex_radius_->swap(radius_copy.get());
 		// remove_attribute<GraphVertex>(*graph_, radius_copy);
@@ -447,7 +447,7 @@ public:
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 	}
 
-	void optimize_volume_vertices()
+	void relocate_interior_vertices()
 	{
 		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
 
@@ -545,8 +545,8 @@ public:
 
 			std::vector<VolumeEdge> parallel_edges;
 			parallel_edges.reserve(16);
-			std::vector<VolumeEdge> perpendicular_edges;
-			perpendicular_edges.reserve(16);
+			// std::vector<VolumeEdge> perpendicular_edges;
+			// perpendicular_edges.reserve(16);
 
 			Dart ed = e.dart;
 			parallel_edges.push_back(VolumeEdge(ed)); // the edge itself
@@ -561,8 +561,8 @@ public:
 				}
 				else
 					parallel_edges.push_back(VolumeEdge(ed)); // edge is on the boundary -> count twice
-				perpendicular_edges.push_back(VolumeEdge(phi1(*volume_, ed)));
-				perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
+				// perpendicular_edges.push_back(VolumeEdge(phi1(*volume_, ed)));
+				// perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
 				ed = phi<32>(*volume_, ed);
 			} while (ed != e.dart);
 
@@ -571,10 +571,10 @@ public:
 				parallel_edges_mean_length += geometry::length(*volume_, pe, volume_vertex_position_.get());
 			parallel_edges_mean_length /= parallel_edges.size();
 
-			Scalar perpendicular_edges_mean_length = 0.0;
-			for (VolumeEdge pe : perpendicular_edges)
-				perpendicular_edges_mean_length += geometry::length(*volume_, pe, volume_vertex_position_.get());
-			perpendicular_edges_mean_length /= perpendicular_edges.size();
+			// Scalar perpendicular_edges_mean_length = 0.0;
+			// for (VolumeEdge pe : perpendicular_edges)
+			// 	perpendicular_edges_mean_length += geometry::length(*volume_, pe, volume_vertex_position_.get());
+			// perpendicular_edges_mean_length /= perpendicular_edges.size();
 
 			// Scalar target_length = edge_length;
 			// if (is_incident_to_boundary(*volume_, vertices[0]) && is_incident_to_boundary(*volume_, vertices[1]))
@@ -582,15 +582,15 @@ public:
 			// else
 			// 	target_length = parallel_edges_mean_length;
 
-			value<Scalar>(*volume_, volume_edge_target_length_, e) =
-				0.5 * (parallel_edges_mean_length + perpendicular_edges_mean_length);
+			value<Scalar>(*volume_, volume_edge_target_length_, e) = parallel_edges_mean_length;
+			// 0.5 * (parallel_edges_mean_length + perpendicular_edges_mean_length);
 
 			return true;
 		});
 		refresh_edge_target_length_ = false;
 	}
 
-	void optimize_volume_vertices_2(Scalar fit_to_data = 50.0)
+	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
 	{
 		if (refresh_edge_target_length_)
 			compute_target_edge_length();
@@ -923,13 +923,13 @@ protected:
 			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
 			if (ImGui::Button("Regularize surface vertices"))
 				regularize_surface_vertices(regularize_fit_to_data);
-			if (ImGui::Button("Optimize volume vertices 1"))
-				optimize_volume_vertices();
+			if (ImGui::Button("Relocate interior vertices"))
+				relocate_interior_vertices();
 			static float optimize_fit_to_surface = 50.0f;
 			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 400.0);
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
-			if (ImGui::Button("Optimize volume vertices 2"))
-				optimize_volume_vertices_2(optimize_fit_to_surface);
+			if (ImGui::Button("Optimize volume vertices"))
+				optimize_volume_vertices(optimize_fit_to_surface);
 			if (ImGui::Button("Compute volumes quality"))
 				compute_volumes_quality();
 		}
