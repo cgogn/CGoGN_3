@@ -187,6 +187,9 @@ public:
 		// radius_copy->copy(graph_vertex_radius_.get());
 		// graph_vertex_radius_->fill(min_radius);
 
+		for (Scalar& r : *graph_vertex_radius_)
+			r = r / 1.1;
+
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
@@ -477,88 +480,116 @@ public:
 	void relocate_interior_vertices()
 	{
 		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
+		auto vertex_laplacian = add_attribute<Vec3, VolumeVertex>(*volume_, "laplacian");
 
 		uint32 nb_vertices = 0;
 		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
 			return true;
 		});
+
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);
-		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-			auto vertices = adjacent_vertices_through_edge(*volume_, v);
-			auto d = vertices.size();
-			for (VolumeVertex av : vertices)
-			{
-				uint32 avidx = value<uint32>(*volume_, vertex_index, av);
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
-			}
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
-			return true;
-		});
-		// foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
-		// 	auto vertices = incident_vertices(*volume_, e);
-		// 	uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
-		// 	uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
-		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
-		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
-		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
-		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+		// foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+		// 	auto vertices = adjacent_vertices_through_edge(*volume_, v);
+		// 	auto d = vertices.size();
+		// 	for (VolumeVertex av : vertices)
+		// 	{
+		// 		uint32 avidx = value<uint32>(*volume_, vertex_index, av);
+		// 		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+		// 	}
+		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
 		// 	return true;
 		// });
+		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
+			auto vertices = incident_vertices(*volume_, e);
+			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
+			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+			return true;
+		});
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
-		// set constrained vertices
-		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			if (is_incident_to_boundary(*volume_, v))
-			{
-				int idx = int(value<uint32>(*volume_, vertex_index, v));
-				A.prune([&](int i, int, Scalar) { return i != idx; });
-				A.coeffRef(idx, idx) = 1.0;
-			}
-			return true;
-		});
-		A.makeCompressed();
+		// // set constrained vertices
+		// foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+		// 	if (is_incident_to_boundary(*volume_, v))
+		// 	{
+		// 		int idx = int(value<uint32>(*volume_, vertex_index, v));
+		// 		A.prune([&](int i, int, Scalar) { return i != idx; });
+		// 		A.coeffRef(idx, idx) = 1.0;
+		// 	}
+		// 	return true;
+		// });
+		// A.makeCompressed();
 
-		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+		// Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
 		// Eigen::SparseLU<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(LAPL);
 
-		Eigen::MatrixXd x(nb_vertices, 3);
-		Eigen::MatrixXd b(nb_vertices, 3);
+		// Eigen::MatrixXd x(nb_vertices, 3);
+		// Eigen::MatrixXd b(nb_vertices, 3);
 
+		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+		// 	const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
+		// 	if (is_incident_to_boundary(*volume_, v))
+		// 	{
+		// 		b.coeffRef(vidx, 0) = pos[0];
+		// 		b.coeffRef(vidx, 1) = pos[1];
+		// 		b.coeffRef(vidx, 2) = pos[2];
+		// 	}
+		// 	else
+		// 	{
+		// 		b.coeffRef(vidx, 0) = 0;
+		// 		b.coeffRef(vidx, 1) = 0;
+		// 		b.coeffRef(vidx, 2) = 0;
+		// 	}
+		// 	x(vidx, 0) = pos[0];
+		// 	x(vidx, 1) = pos[1];
+		// 	x(vidx, 2) = pos[2];
+		// 	return true;
+		// });
+
+		// x = solver.solveWithGuess(b, x);
+
+		Eigen::MatrixXd vpos(nb_vertices, 3);
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			const Vec3& pv = value<Vec3>(*volume_, volume_vertex_position_, v);
 			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-			const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-			if (is_incident_to_boundary(*volume_, v))
-			{
-				b.coeffRef(vidx, 0) = pos[0];
-				b.coeffRef(vidx, 1) = pos[1];
-				b.coeffRef(vidx, 2) = pos[2];
-			}
-			else
-			{
-				b.coeffRef(vidx, 0) = 0;
-				b.coeffRef(vidx, 1) = 0;
-				b.coeffRef(vidx, 2) = 0;
-			}
-			x(vidx, 0) = pos[0];
-			x(vidx, 1) = pos[1];
-			x(vidx, 2) = pos[2];
+			vpos(vidx, 0) = pv[0];
+			vpos(vidx, 1) = pv[1];
+			vpos(vidx, 2) = pv[2];
 			return true;
 		});
 
-		x = solver.solveWithGuess(b, x);
+		Eigen::MatrixXd lapl(nb_vertices, 3);
+		lapl = A * vpos;
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-			Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-			pos[0] = x(vidx, 0);
-			pos[1] = x(vidx, 1);
-			pos[2] = x(vidx, 2);
+			if (!is_incident_to_boundary(*volume_, v))
+			{
+				uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+				Vec3 l;
+				l[0] = lapl(vidx, 0);
+				l[1] = lapl(vidx, 1);
+				l[2] = lapl(vidx, 2);
+				value<Vec3>(*volume_, volume_vertex_position_, v) += 0.1 * l;
+			}
 			return true;
 		});
+
+		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+		// 	Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
+		// 	pos[0] = x(vidx, 0);
+		// 	pos[1] = x(vidx, 1);
+		// 	pos[2] = x(vidx, 2);
+		// 	return true;
+		// });
 
 		remove_attribute<VolumeVertex>(*volume_, vertex_index);
 
@@ -955,7 +986,7 @@ protected:
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
 			static float optimize_fit_to_surface = 50.0f;
-			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 400.0);
+			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 2000.0);
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);

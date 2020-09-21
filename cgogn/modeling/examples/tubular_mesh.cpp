@@ -29,10 +29,15 @@
 
 #include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/volume_deformation/volume_deformation.h>
 #include <cgogn/ui/modules/volume_render/volume_render.h>
+#include <cgogn/ui/modules/volume_selection/volume_selection.h>
 
 #include <cgogn/modeling/examples/tubular_mesh_module.h>
+
+#include <cgogn/io/graph/cgr.h>
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
@@ -73,9 +78,15 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Surface> mps(app);
 	cgogn::ui::MeshProvider<Volume> mpv(app);
 
+	cgogn::ui::VolumeSelection<Volume> vs(app);
+	cgogn::ui::VolumeDeformation<Volume> vd(app);
+
+	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
+
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::VolumeRender<Volume> vr(app);
+
 	cgogn::ui::TubularMesh<Graph, Surface, Volume> tm(app);
 
 	app.init_modules();
@@ -86,9 +97,13 @@ int main(int argc, char** argv)
 	v->link_module(&mps);
 	v->link_module(&mpv);
 
+	v->link_module(&vs);
+	v->link_module(&vd);
+
 	v->link_module(&gr);
 	v->link_module(&sr);
 	v->link_module(&vr);
+
 	v->link_module(&tm);
 
 	// load graph
@@ -113,7 +128,9 @@ int main(int argc, char** argv)
 		sr.set_render_faces(*v, *s, false);
 
 		auto graph_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
-		auto graph_vertex_radius = cgogn::add_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
+		auto graph_vertex_radius = cgogn::get_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
+		if (!graph_vertex_radius)
+			graph_vertex_radius = cgogn::add_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
 
 		tm.set_current_graph(g);
 		tm.set_current_graph_vertex_position(graph_vertex_position);
@@ -125,22 +142,23 @@ int main(int argc, char** argv)
 		tm.set_current_surface_vertex_position(surface_vertex_position);
 
 		// tm.extend_graph_extremities();
-		tm.init_graph_radius_from_surface();
-		Graph* resampled_graph = tm.resample_graph();
+		// tm.extend_graph_extremities();
+		// tm.init_graph_radius_from_surface();
+		// Graph* resampled_graph = tm.resample_graph();
 
-		auto resampled_graph_vertex_position =
-			cgogn::get_attribute<Vec3, cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
-		auto resampled_graph_vertex_radius =
-			cgogn::get_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
+		// auto resampled_graph_vertex_position =
+		// 	cgogn::get_attribute<Vec3, cgogn::mesh_traits<Graph>::Vertex>(*g, "position");
+		// auto resampled_graph_vertex_radius =
+		// 	cgogn::get_attribute<Scalar, cgogn::mesh_traits<Graph>::Vertex>(*g, "radius");
 
-		tm.set_current_graph(resampled_graph);
-		tm.set_current_graph_vertex_position(resampled_graph_vertex_position);
-		tm.set_current_graph_vertex_radius(resampled_graph_vertex_radius);
+		// tm.set_current_graph(resampled_graph);
+		// tm.set_current_graph_vertex_position(resampled_graph_vertex_position);
+		// tm.set_current_graph_vertex_radius(resampled_graph_vertex_radius);
 
-		Volume* h = tm.build_hex_mesh();
-		auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
+		// Volume* h = tm.build_hex_mesh();
+		// auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
 
-		vr.set_vertex_position(*v, *h, volume_vertex_position);
+		// vr.set_vertex_position(*v, *h, volume_vertex_position);
 	}
 
 	return app.launch();

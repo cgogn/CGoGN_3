@@ -136,7 +136,7 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Gra
 	// if the radius of the current extremities are disjoint, bisect
 	if (value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.first)) +
 			value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.second)) <
-		0.85 * branch_length)
+		0.95 * branch_length)
 	{
 		// find the edge in which the 0.5 value lies
 		Scalar cur_length = 0;

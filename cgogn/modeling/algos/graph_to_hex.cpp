@@ -141,7 +141,7 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 		std::cout << "error graph_to_hex: set_contact_surfaces_geometry" << std::endl;
 	else
 		std::cout << "graph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
-	
+
 	// insert_ortho_chunks(g, gAttribs, m2, m2Attribs, m3);
 	// close(m3, false);
 
@@ -171,27 +171,72 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 
 	// bloat(m3, g, gAttribs);
 
-	uint32 nb_vertices_b = 0;
-	uint32 nb_edges_b = 0;
-	uint32 nb_faces_b = 0;
-	foreach_cell(m3, [&](CMap3::Edge e3) -> bool {
-		if(is_incident_to_boundary(m3, e3))
-			++nb_edges_b;
-		return true;
-	});
-	foreach_cell(m3, [&](CMap3::Face e3) -> bool {
-		if(is_incident_to_boundary(m3, e3))
-			++nb_faces_b;
-		return true;
-	});
-	foreach_cell(m3, [&](CMap3::Vertex e3) -> bool {
-		if(is_incident_to_boundary(m3, e3))
-			++nb_vertices_b;
-		std::cout << degree(m3, e3) << std::endl;
-		return true;
-	});
+	// uint32 nb_vertices_b = 0;
+	// uint32 nb_edges_b = 0;
+	// uint32 nb_faces_b = 0;
+	// foreach_cell(m3, [&](CMap3::Edge e3) -> bool {
+	// 	if (is_incident_to_boundary(m3, e3))
+	// 		++nb_edges_b;
+	// 	return true;
+	// });
+	// foreach_cell(m3, [&](CMap3::Face e3) -> bool {
+	// 	if (is_incident_to_boundary(m3, e3))
+	// 		++nb_faces_b;
+	// 	return true;
+	// });
+	// foreach_cell(m3, [&](CMap3::Vertex e3) -> bool {
+	// 	if (is_incident_to_boundary(m3, e3))
+	// 		++nb_vertices_b;
+	// 	std::cout << degree(m3, e3) << std::endl;
+	// 	return true;
+	// });
 
-	std::cout << "boundary cells: " << nb_vertices_b << " : " << nb_edges_b << " : " << nb_faces_b << std::endl; 
+	// std::cout << "boundary cells: " << nb_vertices_b << " : " << nb_edges_b << " : " << nb_faces_b << std::endl;
+
+	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
+
+		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+		if (degree(g, v) == 1)
+			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
+				center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
+		else
+			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+
+		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v) * 1.1;
+
+		if (degree(g, v) < 3)
+		{
+			Graph::HalfEdge h(v.dart);
+			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
+			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
+
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
+				center + frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
+		}
+		else
+		{
+			foreach_incident_vertex(m2, contact_surface, [&](CMap2::Vertex v2) -> bool {
+				Vec3 pos = value<Vec3>(m2, m2Attribs.vertex_position, v2);
+				geometry::project_on_sphere(pos, center, radius);
+				value<Vec3>(m2, m2Attribs.vertex_position, v2) = pos;
+				return true;
+			});
+		}
+
+		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
+			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
+			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
+							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
+			geometry::project_on_sphere(mid, center, radius);
+			value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
+			return true;
+		});
+		return true;
+	});
 
 	return {gAttribs, m2Attribs, m3Attribs};
 }
@@ -217,7 +262,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 				});
 				if (index_of<CMap2::Vertex>(m, v) == INVALID_INDEX)
 					set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
+				// return true;
 			}
 		}
 		if (is_indexed<CMap2::Edge>(m) || is_indexed<CMap2::HalfEdge>(m))
@@ -239,7 +284,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 					if (index_of<CMap2::HalfEdge>(m, CMap2::HalfEdge(phi2(m, e.dart))) == INVALID_INDEX)
 						set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
 				}
-				return true;
+				// return true;
 			}
 		}
 		if (is_indexed<CMap2::Face>(m))
@@ -253,7 +298,7 @@ void index_volume_cells(CMap2& m, CMap2::Volume vol)
 				});
 				if (index_of<CMap2::Face>(m, f) == INVALID_INDEX)
 					set_index(m, f, new_index<CMap2::Face>(m));
-				return true;
+				// return true;
 			}
 		}
 		return true;
@@ -918,7 +963,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 			// check if branches directions are cube-friendly
 			// yes -> add a 8-hex intersection block
 			bool ortho = build_contact_surface_ortho(g, gAttribs, m2, m2Attribs, v);
-			if(ortho)
+			if (ortho)
 				return res;
 		}
 		// other cases
@@ -1179,25 +1224,26 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 }
 
 bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-							 Graph::Vertex gv)
+								 Graph::Vertex gv)
 {
 	Mat3 frame = Mat3();
 	bool found_frame = find_inter_frame(g, gv, gAttribs, frame);
-	if(!found_frame)
+	if (!found_frame)
 		return false;
 
-	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, gv);
+	std::cout << "ortho intersection " << degree(g, gv) << std::endl;
 
-	std::vector<Vec3> corners = {
-		(frame.col(0) - frame.col(1) - frame.col(2))/2 * radius,
-		(frame.col(0) + frame.col(1) - frame.col(2))/2 * radius,
-		(-frame.col(0) + frame.col(1) - frame.col(2))/2 * radius,
-		(-frame.col(0) - frame.col(1) - frame.col(2))/2 * radius,
-		(frame.col(0) - frame.col(1) + frame.col(2))/2 * radius,
-		(frame.col(0) + frame.col(1) + frame.col(2))/2 * radius,
-		(-frame.col(0) + frame.col(1) + frame.col(2))/2 * radius,
-		(-frame.col(0) - frame.col(1) + frame.col(2)) /2 * radius
-	};
+	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, gv) * 1.414;
+
+	Vec3& p = value<Vec3>(g, gAttribs.vertex_position, gv);
+	std::vector<Vec3> corners = {(frame.col(0) - frame.col(1) - frame.col(2)) / 2 * radius + p,
+								 (frame.col(0) + frame.col(1) - frame.col(2)) / 2 * radius + p,
+								 (-frame.col(0) + frame.col(1) - frame.col(2)) / 2 * radius + p,
+								 (-frame.col(0) - frame.col(1) - frame.col(2)) / 2 * radius + p,
+								 (frame.col(0) - frame.col(1) + frame.col(2)) / 2 * radius + p,
+								 (frame.col(0) + frame.col(1) + frame.col(2)) / 2 * radius + p,
+								 (-frame.col(0) + frame.col(1) + frame.col(2)) / 2 * radius + p,
+								 (-frame.col(0) - frame.col(1) + frame.col(2)) / 2 * radius + p};
 
 	/// create support
 	CMap2* scaffold = new CMap2();
@@ -1206,25 +1252,24 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 
 	Dart d0 = w.dart;
 	std::vector<Dart> vertices = {
-		d0, //0 
-		phi1(*scaffold, d0), //1
-		phi<1211>(*scaffold, d0), //2
-		phi<212>(*scaffold, d0), //3
-		phi_1(*scaffold, d0), //4
-		phi<11>(*scaffold, d0), //5
-		phi<11211>(*scaffold, d0), //6
-		phi<112111>(*scaffold, d0), //7
+		d0,							// 0
+		phi1(*scaffold, d0),		// 1
+		phi<1211>(*scaffold, d0),	// 2
+		phi<212>(*scaffold, d0),	// 3
+		phi_1(*scaffold, d0),		// 4
+		phi<11>(*scaffold, d0),		// 5
+		phi<11211>(*scaffold, d0),	// 6
+		phi<112111>(*scaffold, d0), // 7
 	};
 
-	for(uint32 i = 0; i < 8; ++i) {
-		value<Vec3>(*scaffold, scaffold_position, CMap2::Vertex(vertices[i])) = corners[i]; 
-	}
+	for (uint32 i = 0; i < 8; ++i)
+		value<Vec3>(*scaffold, scaffold_position, CMap2::Vertex(vertices[i])) = corners[i];
 
 	/// setup geometry for m3 use
 	auto scaffold_position_edge = add_attribute<Vec3, CMap2::Edge>(*scaffold, "position");
 	foreach_cell(*scaffold, [&](CMap2::Edge e) -> bool {
 		Vec3 center = {0, 0, 0};
-		foreach_incident_vertex(*scaffold, e, [&](CMap2::Vertex v) -> bool{
+		foreach_incident_vertex(*scaffold, e, [&](CMap2::Vertex v) -> bool {
 			center += value<Vec3>(*scaffold, scaffold_position, v);
 			return true;
 		});
@@ -1235,7 +1280,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	auto scaffold_position_face = add_attribute<Vec3, CMap2::Face>(*scaffold, "position");
 	foreach_cell(*scaffold, [&](CMap2::Face f) -> bool {
 		Vec3 center = {0, 0, 0};
-		foreach_incident_vertex(*scaffold, f, [&](CMap2::Vertex v) -> bool{
+		foreach_incident_vertex(*scaffold, f, [&](CMap2::Vertex v) -> bool {
 			center += value<Vec3>(*scaffold, scaffold_position, v);
 			return true;
 		});
@@ -1246,127 +1291,183 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	auto scaffold_position_volume = add_attribute<Vec3, CMap2::Volume>(*scaffold, "position");
 	value<Vec3>(*scaffold, scaffold_position_volume, w) = value<Vec3>(g, gAttribs.vertex_position, gv);
 
-
 	// associate branches with cube faces
 	auto scaffold_face_branch = add_attribute<CMap2::HalfEdge, CMap2::Face>(*scaffold, "face_branch");
 	std::vector<CMap2::Face> faces = {
-		CMap2::Face(phi2(*scaffold, vertices[0])),
-		CMap2::Face(vertices[0]),
-		CMap2::Face(phi<212>(*scaffold, vertices[6])),
-		CMap2::Face(phi<2>(*scaffold, vertices[6])),
-		CMap2::Face(phi<212>(*scaffold, vertices[0])),
-		CMap2::Face(vertices[6])
-	};
+		CMap2::Face(phi2(*scaffold, vertices[0])),	   CMap2::Face(vertices[0]),
+		CMap2::Face(phi<212>(*scaffold, vertices[6])), CMap2::Face(phi<2>(*scaffold, vertices[6])),
+		CMap2::Face(phi<212>(*scaffold, vertices[0])), CMap2::Face(vertices[6])};
 
 	CellCache<CMap2> cache_active_faces(*scaffold);
 	Vec3 A = value<Vec3>(g, gAttribs.vertex_position, gv);
 	std::vector<uint32> face_axis = {1, 3, 2, 4, 5, 0};
+	std::vector<uint32> face_axis_used = {false, false, false, false, false, false};
+	bool same_face_twice = false;
+	std::cout << "active faces: " << std::endl;
 	foreach_dart_of_orbit(g, gv, [&](Dart d) -> bool {
 		Vec3 B = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
 		Vec3 AB = (B - A).normalized();
-		for(uint32 i = 0; i < 3; ++i)
+		uint32 faceid = 0;
+		Scalar maxdot = 0;
+		for (uint32 i = 0; i < 3; ++i)
 		{
-			Scalar dot = round(AB.dot(frame.col(i)));
-			if(dot == 1){
-				value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[2 * i]]) = Graph::HalfEdge(d);
-				cache_active_faces.add(faces[face_axis[2 * i]]);
+			Scalar dot = AB.dot(frame.col(i));
+			if (abs(dot) > maxdot)
+			{
+				if (dot > 0)
+					faceid = 2 * i;
+				else
+					faceid = 2 * i + 1;
+				maxdot = abs(dot);
 			}
-			if(dot == -1){
-				value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[2 * i + 1]]) = Graph::HalfEdge(d);
-				cache_active_faces.add(faces[face_axis[2 * i + 1]]);
-			}
+			// Scalar dot = round(AB.dot(frame.col(i)));
 		}
+		std::cout << "maxdot = " << maxdot << std::endl;
+		std::cout << "faceid = " << faceid << std::endl;
+		if (maxdot > 0.4)
+		{
+			std::cout << faceid << ",";
+			value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[faceid]]) = Graph::HalfEdge(d);
+			cache_active_faces.add(faces[face_axis[faceid]]);
+			if (face_axis_used[faceid])
+				same_face_twice = true;
+			face_axis_used[faceid] = true;
+		}
+
+		// if (dot == 1)
+		// {
+		// 	value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[2 * i]]) = Graph::HalfEdge(d);
+		// 	cache_active_faces.add(faces[face_axis[2 * i]]);
+		// 	if (face_axis_used[2 * i])
+		// 		same_face_twice = true;
+		// 	face_axis_used[2 * i] = true;
+		// 	std::cout << 2 * i << ",";
+		// }
+		// if (dot == -1)
+		// {
+		// 	value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[2 * i + 1]]) = Graph::HalfEdge(d);
+		// 	cache_active_faces.add(faces[face_axis[2 * i + 1]]);
+		// 	if (face_axis_used[2 * i + 1])
+		// 		same_face_twice = true;
+		// 	face_axis_used[2 * i + 1] = true;
+		// 	std::cout << 2 * i + 1 << ",";
+		// }
 		return true;
 	});
-	
+	std::cout << std::endl;
+	if (same_face_twice)
+	{
+		delete scaffold;
+		std::cout << "abort.." << std::endl;
+		return false;
+	}
 
 	/// start building connection surfaces
 	auto scaffold_cs_connection = add_attribute<Dart, CMap2::HalfEdge>(*scaffold, "scaffold_connection");
-	
+
 	CellMarker<CMap2, CMap2::Vertex> active_vertices(*scaffold);
 	foreach_cell(cache_active_faces, [&](CMap2::Face f) -> bool {
 		Dart dcs = add_face(static_cast<CMap1&>(m2), 4, false).dart;
 		Dart df = f.dart;
-		
-		do {
+		do
+		{
 			value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(df)) = dcs;
 			active_vertices.mark(CMap2::Vertex(df));
 			dcs = phi1(m2, dcs);
 			df = phi1(*scaffold, df);
-		} while(df != f.dart);
+		} while (df != f.dart);
 
 		return true;
 	});
 
 	Dart d_ind; // capture of a dart of the volume being built
 	foreach_cell(*scaffold, [&](CMap2::Vertex v) -> bool {
-		if(active_vertices.is_marked(v))
+		if (active_vertices.is_marked(v))
 		{
 			Dart d0;
 			foreach_dart_of_orbit(*scaffold, v, [&](Dart d2) -> bool {
-				if(!value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(d2)).is_nil())
-					d0 = d2; 
+				if (!value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(d2)).is_nil())
+					d0 = d2;
 				return d0.is_nil();
 			});
 
-			if(d_ind.is_nil())
-				d_ind = d0;
+			// if (d_ind.is_nil())
+			// 	d_ind = d0;
 
 			std::vector<Dart> path;
 			Dart d = d0;
-			do {
-				active_vertices.unmark(CMap2::Vertex(d));				
+			do
+			{
+				active_vertices.unmark(CMap2::Vertex(d));
 				path.push_back(value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(d)));
-				if(value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(phi2(*scaffold, d))).is_nil())
+				if (value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(phi2(*scaffold, d))).is_nil())
 					d = phi1(*scaffold, d);
 				else
-					d = phi<21>(*scaffold,d);
+					d = phi<21>(*scaffold, d);
 			} while (d != d0);
 
 			Dart d_new = add_face(static_cast<CMap1&>(m2), path.size(), false).dart;
-			for(uint32 i = 0; i < path.size(); ++i)
+			for (uint32 i = 0; i < path.size(); ++i)
 			{
 				phi2_sew(m2, path[i], d_new);
 				d_new = phi_1(m2, d_new);
 			}
+
+			d_ind = d_new;
 		}
 		return true;
 	});
+
+	DartMarkerStore<CMap2> vertex_marker(m2);
+	foreach_dart_of_orbit(m2, CMap2::Volume(d_ind), [&](Dart d) -> bool {
+		if (!vertex_marker.is_marked(d))
+		{
+			CMap2::Vertex v(d);
+			foreach_dart_of_orbit(m2, v, [&](Dart d) -> bool {
+				vertex_marker.mark(d);
+				return true;
+			});
+		}
+		return true;
+	});
+
 	index_volume_cells(m2, CMap2::Volume(d_ind));
+
 	value<CMap2*>(m2, m2Attribs.ortho_scaffold, CMap2::Volume(d_ind)) = scaffold;
 	value<Dart>(g, gAttribs.vertex_contact_surface, gv) = d_ind;
 
 	/// add connection graph halfedge -> contact surface face
 	foreach_cell(*scaffold, [&](CMap2::Face fs) -> bool {
 		Graph::HalfEdge g_he = value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, fs);
-		if(g_he.is_valid())
+		if (g_he.is_valid())
 		{
-			value<Dart>(g, gAttribs.halfedge_contact_surface_face, g_he) = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(fs.dart));
+			value<Dart>(g, gAttribs.halfedge_contact_surface_face, g_he) =
+				value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(fs.dart));
 		}
 		return true;
 	});
 
 	// // debug
 	// auto cs_position = add_attribute<Vec3, CMap2::Vertex>(m2, "position");
-	foreach_cell(*scaffold, [&](CMap2::Edge e) -> bool{
+	foreach_cell(*scaffold, [&](CMap2::Edge e) -> bool {
 		Dart d0 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(e.dart));
 		Dart d1 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(phi2(*scaffold, e.dart)));
-		if(!d0.is_nil())
+		if (!d0.is_nil())
 		{
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d0))) = value<Vec3>(*scaffold, scaffold_position_edge, e);
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d0))) =
+				value<Vec3>(*scaffold, scaffold_position_edge, e);
 		}
-		else if(!d1.is_nil())
+		else if (!d1.is_nil())
 		{
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d1))) = value<Vec3>(*scaffold, scaffold_position_edge, e);
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d1))) =
+				value<Vec3>(*scaffold, scaffold_position_edge, e);
 		}
-		
+
 		return true;
 	});
 
-
-
 	return true;
-}
+} // namespace modeling
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */
@@ -1792,20 +1893,21 @@ void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribute
 	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
 		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 		CMap2* scaffold = value<CMap2*>(m2, m2Attribs.ortho_scaffold, contact_surface);
-		if(scaffold)
+		if (scaffold)
 		{
 			auto scaffold_cs_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "scaffold_connection");
 			auto scaffold_hex_connection = add_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
 			foreach_cell(*scaffold, [&](CMap2::Vertex v) -> bool {
 				Dart dv = v.dart;
 				Dart d3 = add_prism(static_cast<CMap2&>(m3), 4, true).dart;
-				do {
+				do
+				{
 					value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(dv)) = d3;
 
 					Dart cs_dart = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(dv));
-					if(!cs_dart.is_nil())
-						value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(phi2(m2, cs_dart))) = phi_1(m3,d3);
-
+					if (!cs_dart.is_nil())
+						value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(phi2(m2, cs_dart))) =
+							phi_1(m3, d3);
 
 					dv = phi<21>(*scaffold, dv);
 					d3 = phi<21>(m3, d3);
@@ -1909,7 +2011,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 
 	parallel_foreach_cell(m2, [&](CMap2::Volume w) -> bool {
 		CMap2* scaffold = value<CMap2*>(m2, m2Attribs.ortho_scaffold, w);
-		if(scaffold)
+		if (scaffold)
 		{
 			auto scaffold_cs_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "scaffold_connection");
 			auto scaffold_position = get_attribute<Vec3, CMap2::Vertex>(*scaffold, "position");
@@ -1920,13 +2022,15 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 			uint32 i = 0;
 			foreach_cell(*scaffold, [&](CMap2::Vertex v2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart));
-				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) = value<Vec3>(*scaffold, scaffold_position, v2);
+				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+					value<Vec3>(*scaffold, scaffold_position, v2);
 				return true;
 			});
 			foreach_cell(*scaffold, [&](CMap2::Edge e2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e2.dart));
 				d3 = phi1(m3, d3);
-				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) = value<Vec3>(*scaffold, scaffold_position_edge, e2);
+				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+					value<Vec3>(*scaffold, scaffold_position_edge, e2);
 
 				return true;
 			});
@@ -1934,14 +2038,16 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 			foreach_cell(*scaffold, [&](CMap2::Face f2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(f2.dart));
 				d3 = phi<11>(m3, d3);
-				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) = value<Vec3>(*scaffold, scaffold_position_face, f2);
+				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+					value<Vec3>(*scaffold, scaffold_position_face, f2);
 				return true;
 			});
 
 			foreach_cell(*scaffold, [&](CMap2::Volume w2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(w2.dart));
 				d3 = phi<11211>(m3, d3);
-				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) = value<Vec3>(*scaffold, scaffold_position_volume, w2);
+				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+					value<Vec3>(*scaffold, scaffold_position_volume, w2);
 				return true;
 			});
 		}
@@ -2187,7 +2293,6 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 
 	std::vector<CMap2::Vertex> valence_sup4;
 	std::vector<CMap2::Vertex> valence_3;
-
 
 	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
 		uint32 valence = degree(m2, v);
@@ -2848,7 +2953,7 @@ void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path)
 
 bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame)
 {
-	Scalar eps = M_PI / 6;
+	Scalar eps = M_PI / 4;
 	uint32 nb_points = degree(g, gv);
 	auto g_position = get_attribute<Vec3, Graph::Vertex>(g, "position");
 
@@ -2861,16 +2966,15 @@ bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame)
 
 	std::vector<Scalar> angles(nb_points * nb_points);
 	bool end = false;
-	for(uint32 i = 0; i < nb_points && !end; ++i)
+	for (uint32 i = 0; i < nb_points && !end; ++i)
 	{
-		for(uint32 j = i + 1; j < nb_points && !end; ++j)
+		for (uint32 j = i + 1; j < nb_points && !end; ++j)
 		{
 			Scalar ang = cgogn::geometry::angle(directions[i], directions[j]);
-			bool in_range = ang < eps && ang > - eps 
-				|| (ang < (M_PI + eps) && ang > (M_PI - eps)) 
-				|| (ang < (M_PI / 2 + eps) && ang > (M_PI / 2 - eps));
+			bool in_range = (ang < eps && ang > -eps) || (ang < (M_PI + eps) && ang > (M_PI - eps)) ||
+							(ang < (M_PI / 2 + eps) && ang > (M_PI / 2 - eps));
 
-			if(in_range)
+			if (in_range)
 			{
 				angles[i * nb_points + j] = round(directions[i].dot(directions[j]));
 			}
@@ -2878,29 +2982,28 @@ bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame)
 			{
 				end = true;
 			}
-			
-		} 	
+		}
 	}
 
-	if(end)
+	if (end)
 		return false;
-	
+
 	uint32 current_id = 0;
 	std::vector<uint32> axis_id(nb_points);
-	for(uint32 j = 0; j < nb_points; ++j)
+	for (uint32 j = 0; j < nb_points; ++j)
 	{
 		axis_id[j] = -1;
 	}
 
-	for(uint32 i = 0; i < nb_points; ++i)
+	for (uint32 i = 0; i < nb_points; ++i)
 	{
-		if(axis_id[i] != -1)
+		if (axis_id[i] != -1)
 			continue;
-			
+
 		bool new_axis = true;
-		for(uint32 j = i; j < nb_points && new_axis; ++j)
+		for (uint32 j = i; j < nb_points && new_axis; ++j)
 		{
-			if(angles[i * nb_points + j] == -1)
+			if (angles[i * nb_points + j] == -1)
 			{
 				new_axis = false;
 				axis_id[i] = current_id;
@@ -2908,30 +3011,31 @@ bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame)
 				++current_id;
 			}
 		}
-		if(new_axis)
+		if (new_axis)
 			axis_id[i] = current_id++;
 	}
 
 	std::vector<uint32> axis_set = {0, 0, 0};
 	frame = Mat3::Zero();
-	for(uint32 j = 0; j < nb_points; ++j)
+	for (uint32 j = 0; j < nb_points; ++j)
 	{
 		frame.col(axis_id[j]) += axis_set[axis_id[j]]++ == 0 ? directions[j] : -directions[j];
 		frame.col(axis_id[j]) = frame.col(axis_id[j]).normalized();
 	}
-	if(current_id == 2)
+	if (current_id == 2)
 		frame.col(2) = frame.col(0).cross(frame.col(1));
 
 	Vec3 x_y = frame.col(0).cross(frame.col(1)).normalized();
 	bool up = frame.col(2).dot(x_y) > 0;
-	if(!up) frame.col(2) *= -1;
+	if (!up)
+		frame.col(2) *= -1;
 
 	return true;
 }
 
 bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttribs, Mat3& frame)
 {
-	Scalar eps = M_PI / 6;
+	Scalar eps = M_PI / 5;
 	uint32 nb_points = degree(g, gv);
 
 	std::vector<Vec3> directions;
@@ -2943,46 +3047,40 @@ bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttr
 
 	std::vector<Scalar> angles(nb_points * nb_points);
 	bool end = false;
-	for(uint32 i = 0; i < nb_points && !end; ++i)
+	for (uint32 i = 0; i < nb_points && !end; ++i)
 	{
-		for(uint32 j = i + 1; j < nb_points && !end; ++j)
+		for (uint32 j = i + 1; j < nb_points && !end; ++j)
 		{
 			Scalar ang = cgogn::geometry::angle(directions[i], directions[j]);
-			bool in_range = ang < eps && ang > - eps 
-				|| (ang < (M_PI + eps) && ang > (M_PI - eps)) 
-				|| (ang < (M_PI / 2 + eps) && ang > (M_PI / 2 - eps));
+			bool in_range = (ang < eps && ang > -eps) || (ang < (M_PI + eps) && ang > (M_PI - eps)) ||
+							(ang < (M_PI / 2 + eps) && ang > (M_PI / 2 - eps));
 
-			if(in_range)
-			{
+			if (in_range)
 				angles[i * nb_points + j] = round(directions[i].dot(directions[j]));
-			}
 			else
-			{
 				end = true;
-			}
-			
-		} 	
+		}
 	}
 
-	if(end)
+	if (end)
 		return false;
-	
+
 	uint32 current_id = 0;
 	std::vector<uint32> axis_id(nb_points);
-	for(uint32 j = 0; j < nb_points; ++j)
+	for (uint32 j = 0; j < nb_points; ++j)
 	{
 		axis_id[j] = -1;
 	}
 
-	for(uint32 i = 0; i < nb_points; ++i)
+	for (uint32 i = 0; i < nb_points; ++i)
 	{
-		if(axis_id[i] != -1)
+		if (axis_id[i] != -1)
 			continue;
-			
+
 		bool new_axis = true;
-		for(uint32 j = i; j < nb_points && new_axis; ++j)
+		for (uint32 j = i; j < nb_points && new_axis; ++j)
 		{
-			if(angles[i * nb_points + j] == -1)
+			if (angles[i * nb_points + j] == -1)
 			{
 				new_axis = false;
 				axis_id[i] = current_id;
@@ -2990,23 +3088,24 @@ bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttr
 				++current_id;
 			}
 		}
-		if(new_axis)
+		if (new_axis)
 			axis_id[i] = current_id++;
 	}
 
 	std::vector<uint32> axis_set = {0, 0, 0};
 	frame = Mat3::Zero();
-	for(uint32 j = 0; j < nb_points; ++j)
+	for (uint32 j = 0; j < nb_points; ++j)
 	{
 		frame.col(axis_id[j]) += axis_set[axis_id[j]]++ == 0 ? directions[j] : -directions[j];
 		frame.col(axis_id[j]) = frame.col(axis_id[j]).normalized();
 	}
-	if(current_id == 2)
+	if (current_id == 2)
 		frame.col(2) = frame.col(0).cross(frame.col(1));
 
 	Vec3 x_y = frame.col(0).cross(frame.col(1)).normalized();
 	bool up = frame.col(2).dot(x_y) > 0;
-	if(!up) frame.col(2) *= -1;
+	if (!up)
+		frame.col(2) *= -1;
 
 	return true;
 }
@@ -3020,15 +3119,10 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	find_frame(g, gv, frame);
 
 	std::vector<Vec3> corners = {
-		(frame.col(0) - frame.col(1) - frame.col(2))/2,
-		(frame.col(0) + frame.col(1) - frame.col(2))/2,
-		(-frame.col(0) + frame.col(1) - frame.col(2))/2,
-		(-frame.col(0) - frame.col(1) - frame.col(2))/2,
-		(frame.col(0) - frame.col(1) + frame.col(2))/2,
-		(frame.col(0) + frame.col(1) + frame.col(2))/2,
-		(-frame.col(0) + frame.col(1) + frame.col(2))/2,
-		(-frame.col(0) - frame.col(1) + frame.col(2)) /2
-	};
+		(frame.col(0) - frame.col(1) - frame.col(2)) / 2,  (frame.col(0) + frame.col(1) - frame.col(2)) / 2,
+		(-frame.col(0) + frame.col(1) - frame.col(2)) / 2, (-frame.col(0) - frame.col(1) - frame.col(2)) / 2,
+		(frame.col(0) - frame.col(1) + frame.col(2)) / 2,  (frame.col(0) + frame.col(1) + frame.col(2)) / 2,
+		(-frame.col(0) + frame.col(1) + frame.col(2)) / 2, (-frame.col(0) - frame.col(1) + frame.col(2)) / 2};
 
 	/// create support
 	CMap2::Volume w = add_prism(m2, 4, true);
@@ -3036,25 +3130,26 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 
 	Dart d0 = w.dart;
 	std::vector<Dart> vertices = {
-		d0, //0 
-		phi1(m2, d0), //1
-		phi<1211>(m2, d0), //2
-		phi<212>(m2, d0), //3
-		phi_1(m2, d0), //4
-		phi<11>(m2, d0), //5
-		phi<11211>(m2, d0), //6
-		phi<112111>(m2, d0), //7
+		d0,					 // 0
+		phi1(m2, d0),		 // 1
+		phi<1211>(m2, d0),	 // 2
+		phi<212>(m2, d0),	 // 3
+		phi_1(m2, d0),		 // 4
+		phi<11>(m2, d0),	 // 5
+		phi<11211>(m2, d0),	 // 6
+		phi<112111>(m2, d0), // 7
 	};
 
-	for(uint32 i = 0; i < 8; ++i) {
-		value<Vec3>(m2, m2_position, CMap2::Vertex(vertices[i])) = corners[i]; 
+	for (uint32 i = 0; i < 8; ++i)
+	{
+		value<Vec3>(m2, m2_position, CMap2::Vertex(vertices[i])) = corners[i];
 	}
 
 	/// setup geometry for m3 use
 	auto m2_position_edge = add_attribute<Vec3, CMap2::Edge>(m2, "position");
 	foreach_cell(m2, [&](CMap2::Edge e) -> bool {
 		Vec3 center = {0, 0, 0};
-		foreach_incident_vertex(m2, e, [&](CMap2::Vertex v) -> bool{
+		foreach_incident_vertex(m2, e, [&](CMap2::Vertex v) -> bool {
 			center += value<Vec3>(m2, m2_position, v);
 			return true;
 		});
@@ -3065,7 +3160,7 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	auto m2_position_face = add_attribute<Vec3, CMap2::Face>(m2, "position");
 	foreach_cell(m2, [&](CMap2::Face f) -> bool {
 		Vec3 center = {0, 0, 0};
-		foreach_incident_vertex(m2, f, [&](CMap2::Vertex v) -> bool{
+		foreach_incident_vertex(m2, f, [&](CMap2::Vertex v) -> bool {
 			center += value<Vec3>(m2, m2_position, v);
 			return true;
 		});
@@ -3076,17 +3171,11 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	auto m2_position_volume = add_attribute<Vec3, CMap2::Volume>(m2, "position");
 	value<Vec3>(m2, m2_position_volume, w) = value<Vec3>(g, g_position, gv);
 
-
 	// associate branches with cube faces
 	auto m2_face_branch = add_attribute<CMap2::HalfEdge, CMap2::Face>(m2, "face_branch");
-	std::vector<CMap2::Face> faces = {
-		CMap2::Face(phi2(m2, vertices[0])),
-		CMap2::Face(vertices[0]),
-		CMap2::Face(phi<212>(m2, vertices[6])),
-		CMap2::Face(phi<2>(m2, vertices[6])),
-		CMap2::Face(phi<212>(m2, vertices[0])),
-		CMap2::Face(vertices[6])
-	};
+	std::vector<CMap2::Face> faces = {CMap2::Face(phi2(m2, vertices[0])),	  CMap2::Face(vertices[0]),
+									  CMap2::Face(phi<212>(m2, vertices[6])), CMap2::Face(phi<2>(m2, vertices[6])),
+									  CMap2::Face(phi<212>(m2, vertices[0])), CMap2::Face(vertices[6])};
 
 	CellCache<CMap2> cache_active_faces(m2);
 	Vec3 A = value<Vec3>(g, g_position, gv);
@@ -3094,64 +3183,67 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	foreach_dart_of_orbit(g, gv, [&](Dart d) -> bool {
 		Vec3 B = value<Vec3>(g, g_position, Graph::Vertex(alpha0(g, d)));
 		Vec3 AB = (B - A).normalized();
-		for(uint32 i = 0; i < 3; ++i)
+		for (uint32 i = 0; i < 3; ++i)
 		{
 			Scalar dot = round(AB.dot(frame.col(i)));
-			if(dot == 1){
+			if (dot == 1)
+			{
 				value<CMap2::HalfEdge>(m2, m2_face_branch, faces[face_axis[2 * i]]) = Graph::HalfEdge(d);
 				cache_active_faces.add(faces[face_axis[2 * i]]);
 			}
-			if(dot == -1){
+			if (dot == -1)
+			{
 				value<CMap2::HalfEdge>(m2, m2_face_branch, faces[face_axis[2 * i + 1]]) = Graph::HalfEdge(d);
 				cache_active_faces.add(faces[face_axis[2 * i + 1]]);
 			}
 		}
 		return true;
 	});
-	
 
 	/// start building connection surfaces
 	auto m2_scaffold_connection = add_attribute<Dart, CMap2::HalfEdge>(m2, "scaffold_connection");
-	
+
 	CellMarker<CMap2, CMap2::Vertex> active_vertices(m2);
 	foreach_cell(cache_active_faces, [&](CMap2::Face f) -> bool {
 		std::cout << index_of(m2, f) << " : " << value<CMap2::HalfEdge>(m2, m2_face_branch, f) << std::endl;
 		Dart dcs = add_face(static_cast<CMap1&>(contact_surface), 4, false).dart;
 		Dart df = f.dart;
-		
-		do {
+
+		do
+		{
 			value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(df)) = dcs;
 			active_vertices.mark(CMap2::Vertex(df));
 			dcs = phi1(contact_surface, dcs);
 			df = phi1(m2, df);
-		} while(df != f.dart);
+		} while (df != f.dart);
 
 		return true;
 	});
 
 	foreach_cell(m2, [&](CMap2::Vertex v) -> bool {
-		if(active_vertices.is_marked(v))
+		if (active_vertices.is_marked(v))
 		{
 			Dart d0;
 			foreach_dart_of_orbit(m2, v, [&](Dart d2) -> bool {
-				if(!value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(d2)).is_nil())
-					d0 = d2; 
+				if (!value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(d2)).is_nil())
+					d0 = d2;
 				return d0.is_nil();
 			});
 
 			std::vector<Dart> path;
 			Dart d = d0;
-			do {
-				active_vertices.unmark(CMap2::Vertex(d));				
+			do
+			{
+				active_vertices.unmark(CMap2::Vertex(d));
 				path.push_back(value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(d)));
-				if(value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(phi2(m2, d))).is_nil())
+				if (value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(phi2(m2, d))).is_nil())
 					d = phi1(m2, d);
 				else
-					d = phi<21>(m2,d);
+					d = phi<21>(m2, d);
 			} while (d != d0);
 
 			Dart d_new = add_face(static_cast<CMap1&>(contact_surface), path.size(), false).dart;
-			for(uint32 i = 0; i < path.size(); ++i)
+			for (uint32 i = 0; i < path.size(); ++i)
 			{
 				phi2_sew(contact_surface, path[i], d_new);
 				d_new = phi_1(contact_surface, d_new);
@@ -3163,18 +3255,20 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	/// add connection graph halfedge -> contact surface face
 	// // debug
 	auto cs_position = add_attribute<Vec3, CMap2::Vertex>(contact_surface, "position");
-	foreach_cell(m2, [&](CMap2::Edge e) -> bool{
+	foreach_cell(m2, [&](CMap2::Edge e) -> bool {
 		Dart d0 = value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(e.dart));
 		Dart d1 = value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(phi2(m2, e.dart)));
-		if(!d0.is_nil())
+		if (!d0.is_nil())
 		{
-			value<Vec3>(contact_surface, cs_position, CMap2::Vertex(phi1(contact_surface, d0))) = value<Vec3>(m2, m2_position_edge, e);
+			value<Vec3>(contact_surface, cs_position, CMap2::Vertex(phi1(contact_surface, d0))) =
+				value<Vec3>(m2, m2_position_edge, e);
 		}
-		else if(!d1.is_nil())
+		else if (!d1.is_nil())
 		{
-			value<Vec3>(contact_surface, cs_position, CMap2::Vertex(phi1(contact_surface, d1))) = value<Vec3>(m2, m2_position_edge, e);
+			value<Vec3>(contact_surface, cs_position, CMap2::Vertex(phi1(contact_surface, d1))) =
+				value<Vec3>(m2, m2_position_edge, e);
 		}
-		
+
 		return true;
 	});
 
@@ -3184,12 +3278,13 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	foreach_cell(m2, [&](CMap2::Vertex v) -> bool {
 		Dart dv = v.dart;
 		Dart d3 = add_prism(static_cast<CMap2&>(m3), 4, true).dart;
-		do {
+		do
+		{
 			value<Dart>(m2, m2_hex_connection, CMap2::HalfEdge(dv)) = d3;
 
 			Dart cs_dart = value<Dart>(m2, m2_scaffold_connection, CMap2::HalfEdge(dv));
-			if(!cs_dart.is_nil())
-				value<Dart>(contact_surface, halfedge_volume_connection, CMap2::HalfEdge(cs_dart)) = phi<11>(m3,d3);
+			if (!cs_dart.is_nil())
+				value<Dart>(contact_surface, halfedge_volume_connection, CMap2::HalfEdge(cs_dart)) = phi<11>(m3, d3);
 
 			dv = phi<21>(m2, dv);
 			d3 = phi<21>(m3, d3);
@@ -3207,7 +3302,7 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 
 	close(m3, false);
 	auto m3_position = add_attribute<Vec3, CMap3::Vertex>(m3, "position");
-	
+
 	/// set geometry
 	foreach_cell(m2, [&](CMap2::Vertex v2) -> bool {
 		Dart d3 = value<Dart>(m2, m2_hex_connection, CMap2::HalfEdge(v2.dart));
@@ -3233,7 +3328,7 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 	d3 = phi<11211>(m3, d3);
 	value<Vec3>(m3, m3_position, CMap3::Vertex(d3)) = value<Vec3>(m2, m2_position_volume, w);
 	// foreach_cell(m2, [&](CMap2::Vertex e2) -> bool {
-		
+
 	// 	return true;
 	// });
 	// foreach_cell(m2, [&](CMap2::Vertex f2) -> bool {
