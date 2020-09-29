@@ -868,7 +868,7 @@ public:
 
 		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
 										 volume_skin_vertex_position.get());
-		modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
+		// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 		surface_provider_->save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 	}
@@ -884,6 +884,12 @@ public:
 	{
 		surface_ = s;
 		surface_vertex_position_ = nullptr;
+	}
+
+	void set_current_volume(VOLUME* v)
+	{
+		volume_ = v;
+		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
 	}
 
 	void set_current_graph_vertex_position(const std::shared_ptr<GraphAttribute<Vec3>>& attribute)
@@ -985,8 +991,8 @@ protected:
 				regularize_surface_vertices(regularize_fit_to_data);
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
-			static float optimize_fit_to_surface = 50.0f;
-			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 2000.0);
+			static float optimize_fit_to_surface = 1.0f;
+			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 10.0);
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);

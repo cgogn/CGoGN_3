@@ -3035,7 +3035,7 @@ bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame)
 
 bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttribs, Mat3& frame)
 {
-	Scalar eps = M_PI / 5;
+	Scalar eps = M_PI / 6;
 	uint32 nb_points = degree(g, gv);
 
 	std::vector<Vec3> directions;

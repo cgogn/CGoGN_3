@@ -161,5 +161,21 @@ int main(int argc, char** argv)
 		// vr.set_vertex_position(*v, *h, volume_vertex_position);
 	}
 
+	// load volume
+	if (argc >= 4)
+	{
+		std::string volume_filename = std::string(argv[3]);
+		Volume* h = mpv.load_volume_from_file(volume_filename);
+		if (!h)
+		{
+			std::cout << "Volume file could not be loaded" << std::endl;
+			return 1;
+		}
+
+		tm.set_current_volume(h);
+		auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
+		vr.set_vertex_position(*v, *h, volume_vertex_position);
+	}
+
 	return app.launch();
 }
