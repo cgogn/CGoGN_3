@@ -32,6 +32,8 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <set>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 namespace cgogn
 {
