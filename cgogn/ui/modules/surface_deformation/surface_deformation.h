@@ -38,6 +38,8 @@
 #include <Eigen/Sparse>
 #include <boost/synapse/connect.hpp>
 #include <memory>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 namespace cgogn
 {
