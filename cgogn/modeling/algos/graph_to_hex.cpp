@@ -142,9 +142,6 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 	else
 		std::cout << "graph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
 
-	// insert_ortho_chunks(g, gAttribs, m2, m2Attribs, m3);
-	// close(m3, false);
-
 	if (okay)
 		okay = build_branch_sections(g, gAttribs, m2, m2Attribs, m3);
 	if (!okay)
@@ -1467,7 +1464,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	});
 
 	return true;
-} // namespace modeling
+}
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */
