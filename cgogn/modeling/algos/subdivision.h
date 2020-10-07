@@ -224,7 +224,7 @@ void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_
 		return true;
 	});
 
-	foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+	parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
 		Dart d0 = vf.dart;
 		Dart d1 = phi<2323>(m, vf.dart);
 		Dart d;
@@ -312,11 +312,11 @@ void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	if (is_indexed<Vertex>(m))
 	{
-		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
 			set_index<Vertex>(m, vf, index_of(m, vf));
 			return true;
 		});
-		foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+		parallel_foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
 			set_index<Vertex>(m, ve, index_of(m, ve));
 			return true;
 		});
@@ -324,7 +324,7 @@ void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	if (is_indexed<Edge>(m))
 	{
-		foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
 			Dart d0 = vf.dart;
 			Dart d = d0;
 			do
