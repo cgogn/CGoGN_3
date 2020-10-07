@@ -122,23 +122,21 @@ void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& 
 bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);
 bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttribs, Mat3& frame);
 
-
 /*****************************************************************************/
 /* subdivision                                                               */
 /*****************************************************************************/
 
-void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm);
+// void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm);
 
-void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						   GAttributes& gAttribs);
-void subdivide_width_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						  GAttributes& gAttribs);
-void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						 GAttributes& gAttribs);
-void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path);
-void quadrisect_hex(CMap3& m3, CMap3::Volume w);
-void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
+// void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						   GAttributes& gAttribs);
+// void subdivide_width_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						  GAttributes& gAttribs);
+// void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						 GAttributes& gAttribs);
+// void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path);
+// void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
 
 /*****************************************************************************/
 /* data preparation                                                          */
@@ -165,7 +163,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
 bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-							 Graph::Vertex v);
+								 Graph::Vertex v);
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */

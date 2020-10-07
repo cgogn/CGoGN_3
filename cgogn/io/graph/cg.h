@@ -158,6 +158,7 @@ void export_CG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geo
 	out_file << "# D:3 NV:" << nb_vertices << " NE:" << nb_edges << "\n";
 
 	uint32 id = 0;
+	// uint32 id = 1;
 	foreach_cell(m, [&](Vertex v) -> bool {
 		const geometry::Vec3& pos = value<geometry::Vec3>(m, vertex_position, v);
 		value<uint32>(m, vertex_id, v) = id++;

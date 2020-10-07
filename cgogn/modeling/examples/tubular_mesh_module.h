@@ -215,33 +215,6 @@ public:
 		return volume_;
 	}
 
-	void test_ortho()
-	{
-		Scalar min_radius = std::numeric_limits<Scalar>::max();
-		for (Scalar r : *graph_vertex_radius_)
-			if (r < min_radius)
-				min_radius = r;
-
-		auto radius_copy = add_attribute<Scalar, GraphVertex>(*graph_, "radius_copy");
-		radius_copy->copy(graph_vertex_radius_.get());
-		graph_vertex_radius_->fill(min_radius);
-
-		contact_surface_ = surface_provider_->add_mesh("contact");
-		contact_surface_2 = surface_provider_->add_mesh("contact2");
-		volume_ = volume_provider_->add_mesh("hex");
-		std::cout << "indexed volume: " << is_indexed<CMap3::Volume>(*volume_) << std::endl;
-		modeling::create_ortho_hex(*graph_, *contact_surface_, *contact_surface_2, *volume_);
-
-		graph_vertex_radius_->swap(radius_copy.get());
-		remove_attribute<GraphVertex>(*graph_, radius_copy);
-
-		surface_provider_->emit_connectivity_changed(contact_surface_);
-		surface_provider_->emit_connectivity_changed(contact_surface_2);
-		volume_provider_->emit_connectivity_changed(volume_);
-
-		// volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
-	}
-
 	void project_on_surface()
 	{
 		SURFACE volume_skin;
@@ -259,7 +232,11 @@ public:
 
 		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
 		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
-		volume_skin_vertex_normal->swap(normal_filtered.get());
+		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
+		// volume_skin_vertex_normal->swap(normal_filtered.get());
+
+		for (Vec3& n : *volume_skin_vertex_normal)
+			n.normalize();
 
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
@@ -278,9 +255,6 @@ public:
 
 	void add_volume_padding()
 	{
-		// modeling::trisect_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-		// 							  *graph_, std::get<0>(hex_building_attributes_));
-
 		modeling::padding(*volume_);
 
 		volume_provider_->emit_connectivity_changed(volume_);
@@ -289,35 +263,35 @@ public:
 		refresh_edge_target_length_ = true;
 	}
 
-	void subdivide_volume_length_wise()
-	{
-		modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-										*graph_, std::get<0>(hex_building_attributes_));
+	// void subdivide_volume_length_wise()
+	// {
+	// 	modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+	// 									*graph_, std::get<0>(hex_building_attributes_));
 
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	// 	volume_provider_->emit_connectivity_changed(volume_);
+	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
-		refresh_edge_target_length_ = true;
-	}
+	// 	refresh_edge_target_length_ = true;
+	// }
 
-	void subdivide_volume_width_wise()
-	{
-		modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-									   *graph_, std::get<0>(hex_building_attributes_));
+	// void subdivide_volume_width_wise()
+	// {
+	// 	modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
+	// 								   *graph_, std::get<0>(hex_building_attributes_));
 
-		graph_provider_->emit_connectivity_changed(graph_);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+	// 	graph_provider_->emit_connectivity_changed(graph_);
+	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
 
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	// 	volume_provider_->emit_connectivity_changed(volume_);
+	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
-		refresh_edge_target_length_ = true;
-	}
+	// 	refresh_edge_target_length_ = true;
+	// }
 
 	void subdivide_volume()
 	{
-		modeling::dual_cut_all_volumes(
+		modeling::primal_cut_all_volumes(
 			*volume_,
 			[&](VolumeVertex v) {
 				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
@@ -968,8 +942,6 @@ protected:
 				resample_graph();
 			if (ImGui::Button("Build hex mesh"))
 				build_hex_mesh();
-			if (ImGui::Button("Test Ortho"))
-				test_ortho();
 		}
 		if (volume_)
 		{

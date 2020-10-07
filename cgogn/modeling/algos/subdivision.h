@@ -71,7 +71,8 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	// cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	cgogn_message_assert(codegree(m, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
+
 	Dart d0 = phi1(m, f.dart);
 	Dart d1 = phi<11>(m, d0);
 
@@ -94,36 +95,12 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 // GENERIC //
 /////////////
 
-template <typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
-	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
-	using Face = typename cgogn::mesh_traits<MESH>::Face;
-
-	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
-	cache.template build<Face>();
-
-	foreach_cell(cache, [&](Edge e) -> bool {
-		std::vector<Vertex> vertices = incident_vertices(m, e);
-		Vertex v = cut_edge(m, e);
-		value<Vec3>(m, vertex_position, v) =
-			0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
-		return true;
-	});
-
-	foreach_cell(cache, [&](Face f) -> bool {
-		if (codegree(m, f) == 6)
-			hexagon_to_triangles(m, f);
-		return true;
-	});
-}
-
 template <typename MESH, typename FUNC>
 void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 {
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Given function should take a Vertex");
 
 	CellCache<MESH> cache(m);
 	cache.template build<Edge>();
@@ -140,6 +117,8 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
 	using Face = typename cgogn::mesh_traits<MESH>::Face;
+	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
 
 	CellCache<MESH> cache(m);
 	cache.template build<Face>();
@@ -167,8 +146,12 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	});
 }
 
+///////////
+// CMap3 //
+///////////
+
 template <typename FUNC1, typename FUNC2, typename FUNC3>
-void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
 {
 	using HalfEdge = typename CMap3::HalfEdge;
 	using Vertex = typename CMap3::Vertex;
@@ -178,6 +161,9 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 	using Edge2 = typename CMap3::Edge2;
 	using Face2 = typename CMap3::Face2;
 	using Volume = typename CMap3::Volume;
+	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC3, Vertex>::value, "Given function should take a Vertex");
 
 	CellCache<CMap3> vol_cache(m);
 	vol_cache.template build<Volume>();
@@ -185,7 +171,7 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 	CellCache<CMap3> edge_vert_cache(m);
 	CellCache<CMap3> face_vert_cache(m);
 
-	CellMarker<CMap3, CMap3::Volume> cm(m);
+	CellMarker<CMap3, Volume> cm(m);
 	foreach_cell(vol_cache, [&](Volume w) -> bool {
 		cm.mark(w);
 		return true;
@@ -274,114 +260,49 @@ void dual_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_fa
 
 	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
 		if (is_indexed<Vertex>(m))
-		{
 			set_index(m, v, new_index<Vertex>(m));
-		}
 
-		if (is_indexed<Edge>(m))
-		{
-			DartMarkerStore<CMap3> marker(m);
-			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-				if (!marker.is_marked(d))
-				{
-					Edge e(d);
-					foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
-						marker.mark(d);
-						return true;
-					});
-
-					set_index(m, e, new_index<Edge>(m));
-				}
-				return true;
-			});
-		}
-
-		if (is_indexed<Face>(m))
-		{
-			DartMarkerStore<CMap3> marker(m);
-			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-				if (!marker.is_marked(d))
-				{
-					Face f(d);
-					foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
-						marker.mark(d);
-						return true;
-					});
-
-					set_index(m, f, new_index<Face>(m));
-				}
-				return true;
-			});
-		}
-
-		if (is_indexed<Volume>(m))
-		{
-			DartMarkerStore<CMap3> marker(m);
-			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-				if (!marker.is_marked(d))
-				{
-					Volume w(d);
-					foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
-						marker.mark(d);
-						return true;
-					});
-
-					set_index(m, w, new_index<Volume>(m));
-				}
-				return true;
-			});
-		}
-
-		DartMarkerStore<CMap3> marker_v2(m);
-		DartMarkerStore<CMap3> marker_e2(m);
-		DartMarkerStore<CMap3> marker_f2(m);
+		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+			if (is_indexed<Edge>(m))
+			{
+				if (index_of(m, Edge(d)) == INVALID_INDEX)
+					set_index(m, Edge(d), new_index<Edge>(m));
+			}
+			if (is_indexed<Face>(m))
+			{
+				if (index_of(m, Face(d)) == INVALID_INDEX)
+					set_index(m, Face(d), new_index<Face>(m));
+			}
+			if (is_indexed<Volume>(m))
+			{
+				if (index_of(m, Volume(d)) == INVALID_INDEX)
+					set_index(m, Volume(d), new_index<Volume>(m));
+			}
+			return true;
+		});
 
 		foreach_incident_volume(m, v, [&](Volume w) -> bool {
 			foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
 				if (is_indexed<HalfEdge>(m))
-					set_index<HalfEdge>(m, HalfEdge(d), new_index<HalfEdge>(m));
-
+				{
+					if (index_of(m, HalfEdge(d)) == INVALID_INDEX)
+						set_index<HalfEdge>(m, HalfEdge(d), new_index<HalfEdge>(m));
+				}
 				if (is_indexed<Vertex2>(m))
 				{
-					if (!marker_v2.is_marked(d))
-					{
-						Vertex2 v2(d);
-						foreach_dart_of_orbit(m, v2, [&](Dart d) -> bool {
-							marker_v2.mark(d);
-							return true;
-						});
-						set_index(m, v2, new_index<Vertex2>(m));
-					}
+					if (index_of(m, Vertex2(d)) == INVALID_INDEX)
+						set_index(m, Vertex2(d), new_index<Vertex2>(m));
 				}
-
 				if (is_indexed<Edge2>(m))
 				{
-					if (!marker_e2.is_marked(d))
-					{
-						Edge2 e2(d);
-						foreach_dart_of_orbit(m, e2, [&](Dart d) -> bool {
-							marker_e2.mark(d);
-							return true;
-						});
-						if (index_of(m, e2) != index_of(m, Edge2(phi2(m, d))))
-							set_index(m, e2, new_index<Edge2>(m));
-					}
+					if (index_of(m, Edge2(d)) == INVALID_INDEX)
+						set_index(m, Edge2(d), new_index<Edge2>(m));
 				}
-
 				if (is_indexed<Face2>(m))
 				{
-					Face2 f2(d);
-					if (!marker_f2.is_marked(d))
-					{
-						foreach_dart_of_orbit(m, f2, [&](Dart d) -> bool {
-							marker_f2.mark(d);
-							return true;
-						});
-						if (index_of(m, f2) == INVALID_INDEX)
-							set_index(m, f2, new_index<Face2>(m));
-					}
+					if (index_of(m, Face2(d)) == INVALID_INDEX)
+						set_index(m, Face2(d), new_index<Face2>(m));
 				}
-
 				return true;
 			});
 			return true;
