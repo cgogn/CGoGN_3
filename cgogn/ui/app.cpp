@@ -329,16 +329,16 @@ App::App()
 		switch (a)
 		{
 		case GLFW_PRESS:
-			if (k == GLFW_KEY_SPACE)
+			if (k == GLFW_KEY_SPACE && that->inputs_.control_pressed_)
 				that->show_imgui_ = !that->show_imgui_;
-			if (k == GLFW_KEY_H)
+			if (k == GLFW_KEY_H && that->inputs_.control_pressed_)
 				that->show_demo_ = !that->show_demo_;
-			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
+			else if (k == GLFW_KEY_KP_ADD && that->inputs_.control_pressed_)
 			{
 				that->interface_scaling_ += 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
 			}
-			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
+			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.control_pressed_)
 			{
 				that->interface_scaling_ -= 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;

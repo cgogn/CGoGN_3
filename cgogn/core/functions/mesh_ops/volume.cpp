@@ -66,32 +66,44 @@ CMap2::Volume add_pyramid(CMap2& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap2::Vertex>(m))
 		{
-			foreach_incident_vertex(m, vol, [&](CMap2::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, vol,
+				[&](CMap2::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap2::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::HalfEdge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-				set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Edge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, e, new_index<CMap2::Edge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, e, new_index<CMap2::Edge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Face>(m))
 		{
-			foreach_incident_face(m, vol, [&](CMap2::Face f) -> bool {
-				set_index(m, f, new_index<CMap2::Face>(m));
-				return true;
-			});
+			foreach_incident_face(
+				m, vol,
+				[&](CMap2::Face f) -> bool {
+					set_index(m, f, new_index<CMap2::Face>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));
@@ -132,32 +144,44 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap2::Vertex>(m))
 		{
-			foreach_incident_vertex(m, vol, [&](CMap2::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, vol,
+				[&](CMap2::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap2::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::HalfEdge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-				set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Edge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, e, new_index<CMap2::Edge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, e, new_index<CMap2::Edge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Face>(m))
 		{
-			foreach_incident_face(m, vol, [&](CMap2::Face f) -> bool {
-				set_index(m, f, new_index<CMap2::Face>(m));
-				return true;
-			});
+			foreach_incident_face(
+				m, vol,
+				[&](CMap2::Face f) -> bool {
+					set_index(m, f, new_index<CMap2::Face>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));

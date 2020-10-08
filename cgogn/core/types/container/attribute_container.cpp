@@ -51,6 +51,13 @@ uint32 AttributeGenT::maximum_index() const
 	return 0;
 }
 
+uint32 AttributeGenT::size() const
+{
+	if (container_)
+		return container_->nb_elements();
+	return 0;
+}
+
 /////////////////////////////////
 // AttributeContainerGen class //
 /////////////////////////////////

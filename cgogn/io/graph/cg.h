@@ -127,16 +127,59 @@ bool import_CG(MESH& m, const std::string& filename)
 			iss >> a;
 			iss >> b;
 
-			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a - 1]);
-			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b - 1]);
-			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a]);
-			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b]);
+			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a - 1]);
+			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b - 1]);
+			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a]);
+			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b]);
 		}
 	}
 
 	import_graph_data(m, graph_data);
 
 	return true;
+}
+
+template <typename MESH>
+void export_CG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
+			   const std::string& filename)
+{
+	static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
+
+	using Vertex = typename MESH::Vertex;
+	using Edge = typename MESH::Edge;
+
+	auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
+
+	uint32 nb_vertices = nb_cells<Vertex>(m);
+	uint32 nb_edges = nb_cells<Edge>(m);
+
+	std::ofstream out_file;
+	out_file.open(filename);
+	out_file << "# D:3 NV:" << nb_vertices << " NE:" << nb_edges << "\n";
+
+	uint32 id = 0;
+	// uint32 id = 1;
+	foreach_cell(m, [&](Vertex v) -> bool {
+		const geometry::Vec3& pos = value<geometry::Vec3>(m, vertex_position, v);
+		value<uint32>(m, vertex_id, v) = id++;
+		out_file << "v " << pos[0] << " " << pos[1] << " " << pos[2] << " "
+				 << "\n";
+		return true;
+	});
+
+	foreach_cell(m, [&](Edge e) -> bool {
+		out_file << "e";
+		foreach_incident_vertex(m, e, [&](Vertex v) -> bool {
+			out_file << " " << value<uint32>(m, vertex_id, v);
+			return true;
+		});
+		out_file << "\n";
+		return true;
+	});
+
+	remove_attribute<Vertex>(m, vertex_id);
+
+	out_file.close();
 }
 
 } // namespace io
