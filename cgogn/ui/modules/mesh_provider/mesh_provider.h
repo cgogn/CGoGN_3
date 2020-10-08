@@ -37,6 +37,7 @@
 #include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/surface/off.h>
+#include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
 #include <cgogn/io/volume/tet.h>
 
@@ -165,11 +166,11 @@ public:
 	{
 		if constexpr (mesh_traits<MESH>::dimension == 1)
 		{
-			// if (ext.compare("cg") == 0)
-			// 	// TODO cgogn::io::export_CG();
-			// else if (ext.compare("cgr") == 0)
+			if (filetype.compare("cg") == 0)
+				cgogn::io::export_CG(m, vertex_position, filename + ".cg");
+			// else if (filetype.compare("cgr") == 0)
 			// 	// TODO cgogn::io::export_CGR();
-			// else if (ext.compare("skel") == 0)
+			// else if (filetype.compare("skel") == 0)
 			// 	// TODO cgogn::io::export_SKEL();
 		}
 	}
@@ -259,11 +260,13 @@ public:
 	void save_volume_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,
 							 const std::string& filename)
 	{
-		if constexpr (mesh_traits<MESH>::dimension == 1)
+		if constexpr (mesh_traits<MESH>::dimension == 3)
 		{
-			// if (ext.compare("tet") == 0)
+			if (filetype.compare("mesh") == 0)
+				cgogn::io::export_MESH(m, vertex_position, filename + ".mesh");
+			// else if (filetype.compare("tet") == 0)
 			// 	// TODO cgogn::io::export_TET();
-			// else if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
+			// else if (filetype.compare("meshb") == 0)
 			// 	// TODO cgogn::io::export_MESHB();
 		}
 	}
@@ -572,8 +575,8 @@ private:
 	std::vector<std::string> supported_surface_formats_ = {"off"};
 	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off"};
 
-	std::vector<std::string> supported_volume_formats_ = {"tet"};
-	std::vector<std::string> supported_volume_files_ = {"Volume", "*.tet"};
+	std::vector<std::string> supported_volume_formats_ = {"mesh"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"};
 
 	std::vector<std::string>* supported_formats_ = nullptr;
 

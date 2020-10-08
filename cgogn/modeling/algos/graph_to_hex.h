@@ -61,6 +61,7 @@ struct M2Attributes
 	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
 	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
+	std::shared_ptr<CMap2::Attribute<CMap2*>> ortho_scaffold;
 };
 
 struct M3Attributes
@@ -90,6 +91,7 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 
 void index_volume_cells(CMap2& m, CMap2::Volume vol);
 void sew_volumes(CMap3& m, Dart d0, Dart d1);
+void unsew_volumes(CMap3& m, Dart d0);
 Dart add_branch_section(CMap3& m3);
 void shift_frame(Mat3& frame, uint32 nb_shifts);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
@@ -114,22 +116,27 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 // void bloat(CMap3& m3);
 void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
+void padding(CMap3& m3);
+
+void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& m3);
+bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);
+bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttribs, Mat3& frame);
+
 /*****************************************************************************/
 /* subdivision                                                               */
 /*****************************************************************************/
 
-void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm);
+// void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm);
 
-void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						   GAttributes& gAttribs);
-void subdivide_width_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						  GAttributes& gAttribs);
-void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-						 GAttributes& gAttribs);
-void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path);
-void quadrisect_hex(CMap3& m3, CMap3::Volume w);
-void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
-			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
+// void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						   GAttributes& gAttribs);
+// void subdivide_width_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						  GAttributes& gAttribs);
+// void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 						 GAttributes& gAttribs);
+// void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path);
+// void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
+// 			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
 
 /*****************************************************************************/
 /* data preparation                                                          */
@@ -155,6 +162,8 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 // 							 Graph::Vertex v);
 void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 Graph::Vertex v);
+bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								 Graph::Vertex v);
 
 /*****************************************************************************/
 /* frames initialization & propagation                                       */
@@ -179,7 +188,7 @@ bool set_contact_surfaces_geometry_from_surface(const Graph& g, const GAttribute
 /*****************************************************************************/
 /* volume mesh generation                                                    */
 /*****************************************************************************/
-
+void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs);
