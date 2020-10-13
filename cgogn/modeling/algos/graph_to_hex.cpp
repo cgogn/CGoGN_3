@@ -882,7 +882,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 	bool res = true;
 	gAttribs.vertex_contact_surface->fill(Dart());
 
-	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
 		uint32 d = degree(g, v);
 		if (d == 1)
 		{
@@ -907,6 +907,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 		build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
 		return res;
 	});
+
 	return res;
 }
 
@@ -1807,7 +1808,7 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 {
 	insert_ortho_chunks(g, gAttribs, m2, m2Attribs, m3);
 
-	parallel_foreach_cell(g, [&](Graph::Edge e) -> bool {
+	foreach_cell(g, [&](Graph::Edge e) -> bool {
 		std::vector<Graph::HalfEdge> halfedges = incident_halfedges(g, e);
 
 		Dart m2f0 = value<Dart>(g, gAttribs.halfedge_contact_surface_face, halfedges[0]);
@@ -1840,7 +1841,7 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 
 bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
-	parallel_foreach_cell(m2, [&](CMap2::Edge e) -> bool {
+	foreach_cell(m2, [&](CMap2::Edge e) -> bool {
 		if (is_incident_to_boundary(m2, e))
 			return true;
 

@@ -91,7 +91,7 @@ std::shared_ptr<CMapBase::Attribute<T>> get_attribute(const CMapBase& m, const s
 //////////////
 
 template <typename CELL>
-void remove_attribute(CMapBase& m, std::shared_ptr<CMapBase::AttributeGen> attribute)
+void remove_attribute(CMapBase& m, const std::shared_ptr<CMapBase::AttributeGen>& attribute)
 {
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
