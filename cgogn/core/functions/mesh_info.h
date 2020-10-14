@@ -80,6 +80,177 @@ uint32 nb_cells(const MESH& m)
 
 /*****************************************************************************/
 
+// template <typename CELL, typename MESH>
+// void check_indexing(MESH& m);
+
+/*****************************************************************************/
+
+//////////////
+// CMapBase //
+//////////////
+
+template <typename CELL, typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+bool check_indexing(MESH& m)
+{
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<CMap3>::Cells>, "CELL not supported in this CMap3");
+
+	if (!is_indexed<CELL>(m))
+		return true;
+
+	bool result = true;
+
+	auto counter = add_attribute<uint32, CELL>(m, "__cell_counter");
+	counter->fill(0);
+
+	foreach_cell(
+		m,
+		[&](CELL c) -> bool {
+			const uint32 index = index_of(m, c);
+
+			++(*counter)[index];
+
+			bool valid_index = index != INVALID_INDEX;
+			if (!valid_index)
+				std::cerr << "Cell " << c << " (" << cell_name<CELL>(m) << ") has invalid index" << std::endl;
+
+			bool all_darts_same_index = true;
+			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
+				const uint32 index_d = index_of(m, CELL(d));
+				if (index_d != index)
+				{
+					std::cerr << "Cell " << c << " (" << cell_name<CELL>(m) << ") has darts with different indices"
+							  << std::endl;
+					all_darts_same_index = false;
+				}
+				return true;
+			});
+
+			result &= valid_index && all_darts_same_index;
+			return true;
+		},
+		CMapBase::TraversalPolicy::DART_MARKING);
+
+	// check that all lines of the attribute container are used
+	for (uint32 i = m.attribute_containers_[CELL::ORBIT].first_index(),
+				end = m.attribute_containers_[CELL::ORBIT].last_index();
+		 i != end; i = m.attribute_containers_[CELL::ORBIT].next_index(i))
+	{
+		if ((*counter)[i] == 0)
+		{
+			std::cerr << "Cell index " << i << " is not used in container " << cell_name<CELL>(m) << std::endl;
+			result = false;
+		}
+		else
+		{
+			if ((*counter)[i] >= 2ul)
+			{
+				std::cerr << "Multiple cells with same index " << i << " in container " << cell_name<CELL>(m)
+						  << std::endl;
+				result = false;
+			}
+		}
+	}
+
+	remove_attribute<CELL>(m, counter);
+
+	return result;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void check_integrity(MESH& m);
+
+/*****************************************************************************/
+
+///////////
+// CMap3 //
+///////////
+
+inline bool check_integrity(CMap3& m)
+{
+	bool result = true;
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		bool relations = true;
+		relations &= phi3(m, d) != d && phi<33>(m, d) == d && phi<3131>(m, d) == d;
+		relations &= phi2(m, d) != d && phi<22>(m, d) == d;
+		relations &= phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		if (!relations)
+			std::cerr << "Dart " << d << " has bad relations" << std::endl;
+
+		bool boundary = is_boundary(m, d) == is_boundary(m, phi1(m, d)) &&
+						is_boundary(m, d) == is_boundary(m, phi2(m, d)) &&
+						(!is_boundary(m, d) || !is_boundary(m, phi3(m, d)));
+		if (!boundary)
+			std::cerr << "Dart " << d << " has bad boundary" << std::endl;
+
+		result &= relations && boundary;
+	}
+	result &= check_indexing<CMap3::Vertex>(m);
+	result &= check_indexing<CMap3::Vertex2>(m);
+	result &= check_indexing<CMap3::HalfEdge>(m);
+	result &= check_indexing<CMap3::Edge>(m);
+	result &= check_indexing<CMap3::Edge2>(m);
+	result &= check_indexing<CMap3::Face>(m);
+	result &= check_indexing<CMap3::Face2>(m);
+	result &= check_indexing<CMap3::Volume>(m);
+	return result;
+}
+
+///////////
+// CMap2 //
+///////////
+
+inline bool check_integrity(CMap2& m)
+{
+	bool result = true;
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		bool relations = true;
+		relations &= phi2(m, d) != d && phi<22>(m, d) == d;
+		relations &= phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		if (!relations)
+			std::cerr << "Dart " << d << " has bad relations" << std::endl;
+
+		bool boundary =
+			is_boundary(m, d) == is_boundary(m, phi1(m, d)) && (!is_boundary(m, d) || !is_boundary(m, phi2(m, d)));
+		if (!boundary)
+			std::cerr << "Dart " << d << " has bad boundary" << std::endl;
+
+		result &= relations && boundary;
+	}
+	result &= check_indexing<CMap2::Vertex>(m);
+	result &= check_indexing<CMap2::HalfEdge>(m);
+	result &= check_indexing<CMap2::Edge>(m);
+	result &= check_indexing<CMap2::Face>(m);
+	result &= check_indexing<CMap2::Volume>(m);
+	return result;
+}
+
+///////////
+// CMap1 //
+///////////
+
+inline bool check_integrity(CMap1& m)
+{
+	bool result = true;
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		bool relations = phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		if (!relations)
+			std::cerr << "Dart " << d << " has bad relations" << std::endl;
+
+		result &= relations;
+	}
+	result &= check_indexing<CMap1::Vertex>(m);
+	result &= check_indexing<CMap1::Edge>(m);
+	result &= check_indexing<CMap1::Face>(m);
+	return result;
+}
+
+/*****************************************************************************/
+
 // template <typename MESH, typename CELL>
 // uint32 degree(const MESH& m, CELL c);
 

@@ -153,6 +153,7 @@ public:
 			return true;
 		});
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
 	GRAPH* resample_graph()
@@ -204,6 +205,9 @@ public:
 
 		// graph_vertex_radius_->swap(radius_copy.get());
 		// remove_attribute<GraphVertex>(*graph_, radius_copy);
+
+		if (check_integrity(*volume_))
+			std::cout << "Volume mesh OK!" << std::endl;
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
