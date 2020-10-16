@@ -79,12 +79,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 &&
 					   (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
 		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 &&
-					   std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
+					   (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>))
 	{
 		foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Edge2(c.dart),
 							  [&](Dart d) -> bool { return func(Vertex(d)); });
