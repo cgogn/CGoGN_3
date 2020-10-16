@@ -196,11 +196,11 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 
 		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-		if (degree(g, v) == 1)
-			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
-				center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
-		else
-			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+		// if (degree(g, v) == 1)
+		// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
+		// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
+		// else
+		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
 
 		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v) * 1.1;
 
@@ -882,7 +882,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 	bool res = true;
 	gAttribs.vertex_contact_surface->fill(Dart());
 
-	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
 		uint32 d = degree(g, v);
 		if (d == 1)
 		{
@@ -907,6 +907,7 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 		build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
 		return res;
 	});
+
 	return res;
 }
 
@@ -1716,11 +1717,11 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 
 		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-		if (degree(g, v) == 1)
-			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
-				center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
-		else
-			value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+		// if (degree(g, v) == 1)
+		// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
+		// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
+		// else
+		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
 
 		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v);
 
@@ -1766,7 +1767,7 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 
 void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
-	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+	foreach_cell(g, [&](Graph::Vertex v) -> bool {
 		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 		CMap2* scaffold = value<CMap2*>(m2, m2Attribs.ortho_scaffold, contact_surface);
 		if (scaffold)
@@ -1807,7 +1808,7 @@ bool build_branch_sections(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribu
 {
 	insert_ortho_chunks(g, gAttribs, m2, m2Attribs, m3);
 
-	parallel_foreach_cell(g, [&](Graph::Edge e) -> bool {
+	foreach_cell(g, [&](Graph::Edge e) -> bool {
 		std::vector<Graph::HalfEdge> halfedges = incident_halfedges(g, e);
 
 		Dart m2f0 = value<Dart>(g, gAttribs.halfedge_contact_surface_face, halfedges[0]);

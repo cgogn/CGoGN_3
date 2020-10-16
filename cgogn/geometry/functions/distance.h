@@ -46,6 +46,18 @@ inline Scalar distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
 }
 
 /**
+ * @brief signed distance plane point
+ * @param normal normal of the plane
+ * @param d distance to the origin of the plane
+ * @param p point to compute distance to plane
+ * @return distance
+ */
+inline Scalar signed_distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
+{
+	return normal.dot(p) + d;
+}
+
+/**
  * @brief squared distance line point (optimized version for testing many points with the same line)
  * @param A one point of line
  * @param AB normalized vector or line

@@ -82,7 +82,7 @@ class TubularMesh : public ViewModule
 	using Scalar = geometry::Scalar;
 	using Mat3 = geometry::Mat3;
 
-	using Grid = geometry::Grid<10, 10, 10, SURFACE>;
+	using Grid = geometry::Grid<30, 30, 30, SURFACE>;
 
 public:
 	TubularMesh(const App& app)
@@ -148,11 +148,12 @@ public:
 	{
 		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
 			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
-			Vec3 cp = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(), p);
+			Vec3 cp = geometry::closest_point_on_surface(*surface_, surface_vertex_position_.get(), *surface_grid_, p);
 			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
 			return true;
 		});
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
 	GRAPH* resample_graph()
@@ -204,6 +205,9 @@ public:
 
 		// graph_vertex_radius_->swap(radius_copy.get());
 		// remove_attribute<GraphVertex>(*graph_, radius_copy);
+
+		if (check_integrity(*volume_))
+			std::cout << "Volume mesh OK!" << std::endl;
 
 		surface_provider_->emit_connectivity_changed(contact_surface_);
 		volume_provider_->emit_connectivity_changed(volume_);
@@ -963,8 +967,8 @@ protected:
 				regularize_surface_vertices(regularize_fit_to_data);
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
-			static float optimize_fit_to_surface = 1.0f;
-			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 10.0);
+			static float optimize_fit_to_surface = 20.0f;
+			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0);
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);

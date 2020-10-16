@@ -51,11 +51,15 @@ target_link_libraries(simple_volume_viewer
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
-	target_link_libraries(simple_graph_viewer 
+	target_link_libraries(simple_graph_viewer
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(simple_volume_viewer 
+	target_link_libraries(simple_surface_viewer
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(simple_volume_viewer
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
@@ -64,5 +68,3 @@ if(APPLE)
 #		${CARBON}
 #	)
 endif()
-
-

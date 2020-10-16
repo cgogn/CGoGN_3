@@ -17,11 +17,13 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/convex_hull.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_utils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/hole_filling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/topstoc.h"
 )

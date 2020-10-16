@@ -32,6 +32,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
+#include <cgogn/modeling/algos/hole_filling.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/topstoc.h>
 
@@ -62,6 +63,18 @@ public:
 	}
 	~SurfaceModeling()
 	{
+	}
+
+	void fill_holes(MESH& m)
+	{
+		modeling::fill_holes(m);
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
+	void reverse_orientation(MESH& m)
+	{
+		cgogn::reverse_orientation(m);
+		mesh_provider_->emit_connectivity_changed(&m);
 	}
 
 	void triangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
@@ -110,6 +123,10 @@ protected:
 			{
 				if (ImGui::Button("Triangulate"))
 					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Fill holes"))
+					fill_holes(*selected_mesh_);
+				if (ImGui::Button("Reverse orientation"))
+					reverse_orientation(*selected_mesh_);
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Simplify"))
