@@ -148,6 +148,28 @@ public:
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
 	}
 
+	void recenter_graph_from_surface()
+	{
+		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
+			for(uint32 i = 0; i < 10; ++i){
+				const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+				Vec3 cp = surface_bvh_->closest_point(p);
+				Vec3 cp_p = p - cp;
+				value<Vec3>(*graph_, graph_vertex_position_, v) += 0.05 * cp_p;
+			}
+
+			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+			Vec3 cp = surface_bvh_->closest_point(p);
+			Vec3 cp_p = p - cp;
+			value<Scalar>(*graph_, graph_vertex_radius_, v) = cp_p.norm();
+			
+			return true;
+		});
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
+	}
+
 	void init_graph_radius_from_surface()
 	{
 		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
@@ -965,6 +987,8 @@ protected:
 		}
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_ && surface_ && surface_vertex_position_)
 		{
+			if (ImGui::Button("Recenter graph from surface"))
+				recenter_graph_from_surface();
 			if (ImGui::Button("Init radius from surface"))
 				init_graph_radius_from_surface();
 			if (ImGui::Button("Extend graph extremities"))
