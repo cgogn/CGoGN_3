@@ -21,9 +21,12 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
-#define CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
+#ifndef CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
+#define CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 
+#include <cgogn/core/functions/mesh_ops/volume.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
@@ -31,6 +34,10 @@ namespace cgogn
 
 namespace modeling
 {
+
+///////////
+// CMap2 //
+///////////
 
 inline void fill_holes(CMap2& m, bool set_indices = true)
 {
@@ -51,8 +58,36 @@ inline void fill_holes(CMap2& m, bool set_indices = true)
 	}
 }
 
+/////////////
+// GENERIC //
+/////////////
+
+template <typename MESH>
+void remove_small_components(MESH& m, uint32 min_vertices)
+{
+	if constexpr (mesh_traits<MESH>::dimension == 2)
+	{
+		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Volume = typename mesh_traits<MESH>::Volume;
+		foreach_cell(m, [&](Volume vol) -> bool {
+			uint32 n = 0;
+			foreach_incident_vertex(m, vol, [&](Vertex v) -> bool {
+				++n;
+				return true;
+			});
+			if (n < min_vertices)
+				remove_volume(m, vol);
+			return true;
+		});
+	}
+	else if constexpr (mesh_traits<MESH>::dimension == 3)
+	{
+		// TODO
+	}
+}
+
 } // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
+#endif // CGOGN_MODELING_ALGOS_MESH_REPAIR_H_

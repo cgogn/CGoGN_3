@@ -62,6 +62,20 @@ CMap2::Volume CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indice
 /*****************************************************************************/
 
 // template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// remove_volume(MESH& m, typename mesh_traits<MESH>::Volume v);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void CGOGN_CORE_EXPORT remove_volume(CMap2& m, CMap2::Volume v);
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Face
 // cut_volume(MESH& m, const std::vector<Dart>& path, bool set_indices = true);
 

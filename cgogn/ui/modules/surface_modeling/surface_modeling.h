@@ -33,6 +33,7 @@
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/hole_filling.h>
+#include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/topstoc.h>
 
@@ -68,6 +69,12 @@ public:
 	void fill_holes(MESH& m)
 	{
 		modeling::fill_holes(m);
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
+	void remove_small_components(MESH& m, uint32 min_vertices)
+	{
+		modeling::remove_small_components(m, min_vertices);
 		mesh_provider_->emit_connectivity_changed(&m);
 	}
 
@@ -125,6 +132,10 @@ protected:
 					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Fill holes"))
 					fill_holes(*selected_mesh_);
+				static int32 min_vertices = 1000;
+				ImGui::SliderInt("Min nb vertices", &min_vertices, 1, 10000);
+				if (ImGui::Button("Remove small components"))
+					remove_small_components(*selected_mesh_, uint32(min_vertices));
 				if (ImGui::Button("Reverse orientation"))
 					reverse_orientation(*selected_mesh_);
 				if (ImGui::Button("Decimate"))

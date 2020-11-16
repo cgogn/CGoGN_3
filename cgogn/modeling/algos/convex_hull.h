@@ -51,6 +51,10 @@ namespace modeling
 using Vec3 = geometry::Vec3;
 using Scalar = geometry::Scalar;
 
+///////////
+// CMap2 //
+///////////
+
 std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v)
 {
 	return {CMap2::Vertex(v.dart), CMap2::Vertex(phi1(m, v.dart)), CMap2::Vertex(phi_1(m, v.dart)),
@@ -140,6 +144,10 @@ CMap2::Vertex remove_visible_faces_and_fill(CMap2& m, std::vector<CMap2::HalfEdg
 
 	return CMap2::Vertex(phi2(m, x));
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 // adapted from https://github.com/akuukka/quickhull
 
