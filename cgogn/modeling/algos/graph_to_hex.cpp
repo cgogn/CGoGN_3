@@ -1385,6 +1385,24 @@ bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m
 	return true;
 }
 
+bool create_extremity_frame(const Graph& g, GAttributes& gAttribs, Graph::Vertex v)
+{
+	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+	Vec3 R, S, T, temp;
+	T = (value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart))) - center).normalized();
+	temp = Vec3(T[1], -T[0], T[2]);
+	
+	R = temp.cross(T).normalized();
+	S = T.cross(R).normalized();
+
+	Mat3& f = value<Mat3>(g, gAttribs.halfedge_frame, Graph::HalfEdge(v.dart));
+	f.col(0) = R;
+	f.col(1) = S;
+	f.col(2) = T;
+
+	return true;
+}
+
 bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gData, CMap2& m2)
 {
 	for (auto& branch : gData.branches)
@@ -1397,7 +1415,12 @@ bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gD
 				propagate_frame_n_n(g, gAttribs, m2, branch.first);
 		}
 		else
+		{
+			if (degree(g, Graph::Vertex(branch.second.dart)) == 1)
+				create_extremity_frame(g, gAttribs, Graph::Vertex(branch.second.dart));
+
 			propagate_frame_n_1(g, gAttribs, branch.second);
+		}
 	}
 	return true;
 }
