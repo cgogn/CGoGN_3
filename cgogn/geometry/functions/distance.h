@@ -42,6 +42,18 @@ namespace geometry
  */
 inline Scalar distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
 {
+	return abs(normal.dot(p) + d);
+}
+
+/**
+ * @brief signed distance plane point
+ * @param normal normal of the plane
+ * @param d distance to the origin of the plane
+ * @param p point to compute distance to plane
+ * @return distance
+ */
+inline Scalar signed_distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
+{
 	return normal.dot(p) + d;
 }
 

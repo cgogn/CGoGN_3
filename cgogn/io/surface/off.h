@@ -28,6 +28,7 @@
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/numerics.h>
 
@@ -78,7 +79,7 @@ bool import_OFF(MESH& m, const std::string& filename)
 	}
 
 	surface_data.reserve(nb_vertices, nb_faces);
-	auto position = add_attribute<geometry::Vec3, CMap2::Vertex>(m, "position");
+	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
 
 	// read vertices position
 	for (uint32 i = 0u; i < nb_vertices; ++i)
@@ -110,6 +111,48 @@ bool import_OFF(MESH& m, const std::string& filename)
 	import_surface_data(m, surface_data);
 
 	return true;
+}
+
+template <typename MESH>
+void export_OFF(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
+				const std::string& filename)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
+	using Vertex = typename MESH::Vertex;
+	using Face = typename MESH::Face;
+
+	auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
+
+	uint32 nb_vertices = nb_cells<Vertex>(m);
+	uint32 nb_faces = nb_cells<Face>(m);
+
+	std::ofstream out_file;
+	out_file.open(filename);
+	out_file << "OFF\n";
+	out_file << nb_vertices << " " << nb_faces << " " << 0 << "\n";
+
+	uint32 id = 0;
+	foreach_cell(m, [&](Vertex v) -> bool {
+		const geometry::Vec3& p = value<geometry::Vec3>(m, vertex_position, v);
+		value<uint32>(m, vertex_id, v) = id++;
+		out_file << p[0] << " " << p[1] << " " << p[2] << "\n";
+		return true;
+	});
+
+	foreach_cell(m, [&](Face f) -> bool {
+		out_file << codegree(m, f);
+		foreach_incident_vertex(m, f, [&](Vertex v) -> bool {
+			out_file << " " << value<uint32>(m, vertex_id, v);
+			return true;
+		});
+		out_file << "\n";
+		return true;
+	});
+
+	remove_attribute<Vertex>(m, vertex_id);
+
+	out_file.close();
 }
 
 } // namespace io

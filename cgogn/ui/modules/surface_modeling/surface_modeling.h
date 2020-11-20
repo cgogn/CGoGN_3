@@ -32,6 +32,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
+#include <cgogn/modeling/algos/hole_filling.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/topstoc.h>
 
@@ -64,11 +65,22 @@ public:
 	{
 	}
 
-	void subdivide_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	void fill_holes(MESH& m)
 	{
-		modeling::subdivide(m, vertex_position);
+		modeling::fill_holes(m);
 		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+	}
+
+	void reverse_orientation(MESH& m)
+	{
+		cgogn::reverse_orientation(m);
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
+	void triangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		geometry::apply_ear_triangulation(m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(&m);
 	}
 
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
@@ -109,8 +121,12 @@ protected:
 
 			if (selected_vertex_position_)
 			{
-				if (ImGui::Button("Subdivide"))
-					subdivide_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Triangulate"))
+					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Fill holes"))
+					fill_holes(*selected_mesh_);
+				if (ImGui::Button("Reverse orientation"))
+					reverse_orientation(*selected_mesh_);
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Simplify"))

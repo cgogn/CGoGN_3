@@ -329,16 +329,16 @@ App::App()
 		switch (a)
 		{
 		case GLFW_PRESS:
-			if (k == GLFW_KEY_SPACE)
+			if (k == GLFW_KEY_SPACE && that->inputs_.control_pressed_)
 				that->show_imgui_ = !that->show_imgui_;
-			if (k == GLFW_KEY_H)
+			if (k == GLFW_KEY_H && that->inputs_.control_pressed_)
 				that->show_demo_ = !that->show_demo_;
-			else if (k == GLFW_KEY_KP_ADD && that->inputs_.shift_pressed_)
+			else if (k == GLFW_KEY_KP_ADD && that->inputs_.control_pressed_)
 			{
 				that->interface_scaling_ += 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
 			}
-			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.shift_pressed_)
+			else if (k == GLFW_KEY_KP_SUBTRACT && that->inputs_.control_pressed_)
 			{
 				that->interface_scaling_ -= 0.1f;
 				ImGui::GetIO().FontGlobalScale = that->interface_scaling_;
@@ -567,6 +567,7 @@ int App::launch()
 									v->save_camera();
 								if (ImGui::MenuItem("Restore camera"))
 									v->restore_camera();
+								ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
 								ImGui::EndMenu();
 							}
 						}
@@ -578,7 +579,11 @@ int App::launch()
 					ImGui::EndMenu();
 				}
 				for (Module* m : modules_)
+				{
+					ImGui::PushID(m->name().c_str());
 					m->main_menu();
+					ImGui::PopID();
+				}
 				ImGui::EndMainMenuBar();
 			}
 
@@ -606,10 +611,9 @@ int App::launch()
 
 			ImGui::Begin("Modules", nullptr, ImGuiWindowFlags_NoSavedSettings);
 			ImGui::SetWindowSize({0, 0});
-			uint32 id = 0;
 			for (Module* m : modules_)
 			{
-				ImGui::PushID(id);
+				ImGui::PushID(m->name().c_str());
 				ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(255, 128, 0, 200));
 				ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 128, 0, 255));
 				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 128, 0, 128));
@@ -621,9 +625,15 @@ int App::launch()
 				else
 					ImGui::PopStyleColor(3);
 				ImGui::PopID();
-				++id;
 			}
 			ImGui::End();
+
+			for (Module* m : modules_)
+			{
+				ImGui::PushID(m->name().c_str());
+				m->popups();
+				ImGui::PopID();
+			}
 
 			if (first_render)
 				ImGui::DockBuilderDockWindow("Modules", dockIdLeft);

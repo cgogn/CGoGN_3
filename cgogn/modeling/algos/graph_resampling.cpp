@@ -41,19 +41,6 @@ namespace cgogn
 namespace modeling
 {
 
-void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_vertex_position,
-									   Graph::Attribute<Scalar>* g_vertex_radius, const CMap2& s,
-									   const CMap2::Attribute<Vec3>* s_vertex_position)
-{
-	using SelectedFace = std::tuple<CMap2::Face, Vec3, Scalar>;
-	foreach_cell(g, [&](Graph::Vertex v) -> bool {
-		const Vec3& p = value<Vec3>(g, g_vertex_position, v);
-		Vec3 cp = geometry::closest_point_on_surface(s, s_vertex_position, p);
-		value<Scalar>(g, g_vertex_radius, v) = (cp - p).norm();
-		return true;
-	});
-}
-
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
 					Graph::Attribute<Scalar>* new_g_vertex_radius)
@@ -116,7 +103,7 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 		{
 			if (value<Scalar>(new_g, new_g_vertex_radius, vertices[0]) + // and radiuses sum is greater than edge length
 					value<Scalar>(new_g, new_g_vertex_radius, vertices[1]) >
-				2.5 * length)
+				1.0 * length)
 			{
 				Vec3 mid_pos = geometry::centroid<Vec3>(new_g, e, new_g_vertex_position);
 				Scalar mid_radius = geometry::centroid<Scalar>(new_g, e, new_g_vertex_radius);
@@ -149,7 +136,7 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Gra
 	// if the radius of the current extremities are disjoint, bisect
 	if (value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.first)) +
 			value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.second)) <
-		0.7 * branch_length)
+		0.35 * branch_length)
 	{
 		// find the edge in which the 0.5 value lies
 		Scalar cur_length = 0;

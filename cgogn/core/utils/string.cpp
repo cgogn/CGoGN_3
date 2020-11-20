@@ -84,7 +84,7 @@ std::string filename_from_path(const std::string& s)
 		return (s.substr(i + 1, s.length() - i));
 #endif
 
-	return ("");
+	return s;
 }
 
 CGOGN_CORE_EXPORT std::string extension(const std::string& str)

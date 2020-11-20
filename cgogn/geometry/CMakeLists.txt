@@ -16,6 +16,7 @@ add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/types/grid.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"

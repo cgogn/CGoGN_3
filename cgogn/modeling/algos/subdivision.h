@@ -49,7 +49,7 @@ using Vec3 = geometry::Vec3;
 // CMap2 //
 ///////////
 
-void hexagon_to_triangles(CMap2& m, CMap2::Face f)
+inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 {
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
 	Dart d0 = phi1(m, f.dart);
@@ -71,7 +71,8 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	// cgogn_message_assert(codegree(m, f) == 8, "quadrangulate_face: given face should have 8 edges");
+	cgogn_message_assert(codegree(m, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
+
 	Dart d0 = phi1(m, f.dart);
 	Dart d1 = phi<11>(m, d0);
 
@@ -94,36 +95,12 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 // GENERIC //
 /////////////
 
-template <typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
-	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
-	using Face = typename cgogn::mesh_traits<MESH>::Face;
-
-	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
-	cache.template build<Face>();
-
-	foreach_cell(cache, [&](Edge e) -> bool {
-		std::vector<Vertex> vertices = incident_vertices(m, e);
-		Vertex v = cut_edge(m, e);
-		value<Vec3>(m, vertex_position, v) =
-			0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
-		return true;
-	});
-
-	foreach_cell(cache, [&](Face f) -> bool {
-		if (codegree(m, f) == 6)
-			hexagon_to_triangles(m, f);
-		return true;
-	});
-}
-
 template <typename MESH, typename FUNC>
 void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 {
+	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Given function should take a Vertex");
 
 	CellCache<MESH> cache(m);
 	cache.template build<Edge>();
@@ -140,6 +117,8 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
 	using Face = typename cgogn::mesh_traits<MESH>::Face;
+	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
 
 	CellCache<MESH> cache(m);
 	cache.template build<Face>();
@@ -163,6 +142,202 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	foreach_cell(cache, [&](Face f) -> bool {
 		on_face_cut(quadrangulate_face(m, f));
+		return true;
+	});
+}
+
+///////////
+// CMap3 //
+///////////
+
+template <typename FUNC1, typename FUNC2, typename FUNC3>
+void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+{
+	using HalfEdge = typename CMap3::HalfEdge;
+	using Vertex = typename CMap3::Vertex;
+	using Edge = typename CMap3::Edge;
+	using Face = typename CMap3::Face;
+	using Vertex2 = typename CMap3::Vertex2;
+	using Edge2 = typename CMap3::Edge2;
+	using Face2 = typename CMap3::Face2;
+	using Volume = typename CMap3::Volume;
+	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC3, Vertex>::value, "Given function should take a Vertex");
+
+	CellCache<CMap3> vol_cache(m);
+	vol_cache.template build<Volume>();
+
+	CellCache<CMap3> edge_vert_cache(m);
+	CellCache<CMap3> face_vert_cache(m);
+
+	CellMarker<CMap3, Volume> cm(m);
+	foreach_cell(vol_cache, [&](Volume w) -> bool {
+		cm.mark(w);
+		return true;
+	});
+
+	quadrangulate_all_faces(
+		m,
+		[&](Vertex v) -> void {
+			edge_vert_cache.add(v);
+			on_edge_cut(v);
+		},
+		[&](Vertex v) -> void {
+			face_vert_cache.add(v);
+			on_face_cut(v);
+		});
+
+	foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+		Dart d = ve.dart;
+		do
+		{
+			if (!is_boundary(m, d) && cm.is_marked(Volume(d)))
+			{
+				Dart d01 = phi_1(m, d);
+				Dart d02 = phi2(m, d01);
+				Dart d21 = phi<21>(m, d);
+				Dart d22 = phi2(m, d21);
+
+				Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart ee = f0;
+				Dart ff = f1;
+				do
+				{
+					phi3_sew(m, ee, ff);
+					ee = phi1(m, ee);
+					ff = phi_1(m, ff);
+				} while (ee != f0);
+
+				phi2_unsew(m, d01);
+				phi2_unsew(m, d21);
+
+				phi2_sew(m, d01, f0);
+				phi2_sew(m, d02, f1);
+
+				phi2_sew(m, d21, phi_1(m, f0));
+				phi2_sew(m, d22, phi1(m, f1));
+			}
+			d = phi<23>(m, d);
+		} while (d != ve.dart);
+		return true;
+	});
+
+	parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+		Dart d0 = vf.dart;
+		Dart d1 = phi<2323>(m, vf.dart);
+		Dart d;
+		if (cm.is_marked(Volume(d0)))
+		{
+			d = d0;
+			do
+			{
+				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
+				d = phi<2321>(m, d);
+			} while (d != d0);
+		}
+
+		if (!is_boundary(m, d1) && cm.is_marked(Volume(d1)))
+		{
+			d = d1;
+			do
+			{
+				phi2_sew(m, phi<21>(m, d), phi_1(m, phi2(m, phi_1(m, d))));
+				d = phi<2321>(m, d);
+			} while (d != d1);
+		}
+		return true;
+	});
+
+	CellCache<CMap3> vol_vert_cache(m);
+	foreach_cell(vol_cache, [&](Volume w) -> bool {
+		Dart d0 = w.dart;
+		Vertex vw = Vertex(phi_1(m, phi<12>(m, d0)));
+		vol_vert_cache.add(vw);
+		return true;
+	});
+
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		if (is_indexed<Vertex>(m))
+			set_index(m, v, new_index<Vertex>(m));
+
+		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+			if (is_indexed<Edge>(m))
+			{
+				if (index_of(m, Edge(d)) == INVALID_INDEX)
+					set_index(m, Edge(d), new_index<Edge>(m));
+			}
+			if (is_indexed<Face>(m))
+			{
+				if (index_of(m, Face(d)) == INVALID_INDEX)
+					set_index(m, Face(d), new_index<Face>(m));
+			}
+			if (is_indexed<Volume>(m))
+			{
+				if (index_of(m, Volume(d)) == INVALID_INDEX)
+					set_index(m, Volume(d), new_index<Volume>(m));
+			}
+			return true;
+		});
+
+		foreach_incident_volume(m, v, [&](Volume w) -> bool {
+			foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
+				if (is_indexed<HalfEdge>(m))
+				{
+					if (index_of(m, HalfEdge(d)) == INVALID_INDEX)
+						set_index<HalfEdge>(m, HalfEdge(d), new_index<HalfEdge>(m));
+				}
+				if (is_indexed<Vertex2>(m))
+				{
+					if (index_of(m, Vertex2(d)) == INVALID_INDEX)
+						set_index(m, Vertex2(d), new_index<Vertex2>(m));
+				}
+				if (is_indexed<Edge2>(m))
+				{
+					if (index_of(m, Edge2(d)) == INVALID_INDEX)
+						set_index(m, Edge2(d), new_index<Edge2>(m));
+				}
+				if (is_indexed<Face2>(m))
+				{
+					if (index_of(m, Face2(d)) == INVALID_INDEX)
+						set_index(m, Face2(d), new_index<Face2>(m));
+				}
+				return true;
+			});
+			return true;
+		});
+		return true;
+	});
+
+	if (is_indexed<Vertex>(m))
+	{
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			set_index<Vertex>(m, vf, index_of(m, vf));
+			return true;
+		});
+		parallel_foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+			set_index<Vertex>(m, ve, index_of(m, ve));
+			return true;
+		});
+	}
+
+	if (is_indexed<Edge>(m))
+	{
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			Dart d0 = vf.dart;
+			Dart d = d0;
+			do
+			{
+				set_index<Edge>(m, Edge(d), index_of(m, Edge(d)));
+				d = phi<2321>(m, d);
+			} while (d != d0);
+			return true;
+		});
+	}
+
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		on_vol_cut(v);
 		return true;
 	});
 }
@@ -621,8 +796,7 @@ auto subdivideVolume(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templ
 	cut_direction[2] = phi<1211>(m, right_cut_dir);
 	cut_direction[3] = phi<1212111>(m, right_cut_dir);
 
-	auto cutVolume = [&](Dart d) -> typename MESH::Face
-	{
+	auto cutVolume = [&](Dart d) -> typename MESH::Face {
 		std::vector<Dart> cut_path;
 		Dart t = d;
 		do
@@ -658,8 +832,8 @@ auto subdivideListEdges(MESH& m, std::vector<Dart>& edges, std::queue<Vec3>& edg
 	}
 }
 
-void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : edges)
@@ -682,8 +856,8 @@ auto subdivideListFaces(MESH& m, std::vector<Dart>& faces, std::queue<Vec3>& fac
 	}
 }
 
-void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : faces)
@@ -706,8 +880,8 @@ auto subdivideListVolumes(MESH& m, std::vector<Dart>& volumes, std::queue<Vec3>&
 	}
 }
 
-void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
-						  typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
+								 typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : volumes)

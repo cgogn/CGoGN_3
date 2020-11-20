@@ -54,6 +54,13 @@ template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
+	foreach_incident_vertex(m, c, func, CMapBase::TraversalPolicy::AUTO);
+}
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -72,12 +79,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 &&
 					   (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
 		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 &&
-					   std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
+					   (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>))
 	{
 		foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Edge2(c.dart),
 							  [&](Dart d) -> bool { return func(Vertex(d)); });
@@ -90,7 +99,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 	}
 	else
 	{
-		if (is_indexed<Vertex>(m))
+		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Vertex>(m))
 		{
 			CellMarkerStore<MESH, Vertex> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
@@ -137,6 +146,14 @@ template <typename MESH, typename FUNC>
 auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
+	foreach_adjacent_vertex_through_edge(m, v, func, CMapBase::TraversalPolicy::AUTO);
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func,
+										  CMapBase::TraversalPolicy traversal_policy)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
@@ -152,7 +169,7 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
-		if (is_indexed<Vertex>(m))
+		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Vertex>(m))
 		{
 			CellMarkerStore<MESH, Vertex> marker(m);
 			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {

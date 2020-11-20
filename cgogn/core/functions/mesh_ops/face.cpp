@@ -60,10 +60,13 @@ CMap1::Face add_face(CMap1& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap1::Vertex>(m))
 		{
-			foreach_incident_vertex(m, f, [&](CMap1::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap1::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, f,
+				[&](CMap1::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap1::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (is_indexed<CMap1::Face>(m))
@@ -93,24 +96,33 @@ CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap2::Vertex>(m))
 		{
-			foreach_incident_vertex(m, f, [&](CMap2::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, f,
+				[&](CMap2::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap2::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::HalfEdge>(m))
 		{
-			foreach_incident_edge(m, f, [&](CMap2::Edge e) -> bool {
-				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, f,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Edge>(m))
 		{
-			foreach_incident_edge(m, f, [&](CMap2::Edge e) -> bool {
-				set_index(m, e, new_index<CMap2::Edge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, f,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, e, new_index<CMap2::Edge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Face>(m))
 			set_index(m, f, new_index<CMap2::Face>(m));
@@ -479,6 +491,33 @@ uint32 close(CMap2& m, bool set_indices)
 	}
 
 	return nb_holes;
-} // namespace cgogn
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// reverse_orientation(MESH& m);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void reverse_orientation(CMap2& m)
+{
+	if (is_indexed<CMap2::Vertex>(m))
+	{
+		auto new_vertex_indices = m.darts_.add_attribute<uint32>("__new_vertex_indices");
+		new_vertex_indices->fill(INVALID_INDEX);
+		for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+			(*new_vertex_indices)[d.index] = index_of(m, CMap2::Vertex(phi1(m, d)));
+		m.cells_indices_[CMap2::Vertex::ORBIT]->swap(new_vertex_indices.get());
+		m.darts_.remove_attribute(new_vertex_indices);
+	}
+
+	m.phi1_->swap(m.phi_1_.get());
+}
 
 } // namespace cgogn

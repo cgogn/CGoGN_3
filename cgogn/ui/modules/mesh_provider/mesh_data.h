@@ -156,14 +156,14 @@ public:
 			bb_min_[i] = std::numeric_limits<float64>::max();
 			bb_max_[i] = std::numeric_limits<float64>::lowest();
 		}
-		for (const Vec3& v : *bb_vertex_position_)
+		for (const Vec3& p : *bb_vertex_position_)
 		{
 			for (uint32 i = 0; i < 3; ++i)
 			{
-				if (v[i] < bb_min_[i])
-					bb_min_[i] = v[i];
-				if (v[i] > bb_max_[i])
-					bb_max_[i] = v[i];
+				if (p[i] < bb_min_[i])
+					bb_min_[i] = p[i];
+				if (p[i] > bb_max_[i])
+					bb_max_[i] = p[i];
 			}
 		}
 	}

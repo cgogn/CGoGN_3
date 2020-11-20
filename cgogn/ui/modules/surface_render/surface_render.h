@@ -382,6 +382,27 @@ public:
 		v.request_update();
 	}
 
+	void set_render_vertices(View& v, const MESH& m, bool b)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.render_vertices_ = b;
+		v.request_update();
+	}
+
+	void set_render_edges(View& v, const MESH& m, bool b)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.render_edges_ = b;
+		v.request_update();
+	}
+
+	void set_render_faces(View& v, const MESH& m, bool b)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.render_faces_ = b;
+		v.request_update();
+	}
+
 protected:
 	void update_vertex_scalar_min_max_values(Parameters& p)
 	{

@@ -180,13 +180,13 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			set_index(m, v, new_index<CMap3::Vertex>(m));
 		if (is_indexed<CMap3::Vertex2>(m))
 		{
-			Dart d = e.dart;
+			Dart d = v.dart;
 			do
 			{
 				if (!is_boundary(m, d))
 					set_index(m, CMap3::Vertex2(d), new_index<CMap3::Vertex2>(m));
 				d = phi<23>(m, d);
-			} while (d != e.dart);
+			} while (d != v.dart);
 		}
 		if (is_indexed<CMap3::Edge>(m))
 		{

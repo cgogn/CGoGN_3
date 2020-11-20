@@ -79,7 +79,6 @@ void CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = t
 
 void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
-
 /*****************************************************************************/
 
 // template <typename MESH>
@@ -135,6 +134,20 @@ CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
 ///////////
 
 uint32 close(CMap2& m, bool set_indices = true);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// reverse_orientation(MESH& m);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void reverse_orientation(CMap2& m);
 
 } // namespace cgogn
 

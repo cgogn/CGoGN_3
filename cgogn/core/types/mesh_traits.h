@@ -143,15 +143,17 @@ struct mesh_traits<Graph>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
-template<typename MESH>
-constexpr uint8 dim_of(const MESH&) { return mesh_traits<MESH>::dimension; }
+template <typename MESH>
+constexpr uint8 dim_of(const MESH&)
+{
+	return mesh_traits<MESH>::dimension;
+}
 
-template<typename MESH>
+template <typename MESH>
 constexpr bool is_dimension_of(const MESH&, uint8 dim)
 {
 	return mesh_traits<MESH>::dimension == dim;
 }
-
 
 } // namespace cgogn
 

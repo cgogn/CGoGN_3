@@ -54,6 +54,13 @@ template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
+	foreach_incident_volume(m, c, func, CMapBase::TraversalPolicy::AUTO);
+}
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
 	using Volume = typename mesh_traits<MESH>::Volume;
 
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -91,7 +98,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 	}
 	else
 	{
-		if (is_indexed<Volume>(m))
+		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Volume>(m))
 		{
 			CellMarkerStore<MESH, Volume> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
