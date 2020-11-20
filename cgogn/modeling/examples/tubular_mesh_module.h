@@ -45,6 +45,7 @@
 #include <cgogn/modeling/algos/graph_resampling.h>
 #include <cgogn/modeling/algos/graph_to_hex.h>
 #include <cgogn/modeling/algos/subdivision.h>
+#include <cgogn/modeling/algos/volume_utils.h>
 
 #include <Eigen/Sparse>
 #include <libacc/bvh_tree.h>
@@ -150,24 +151,100 @@ public:
 
 	void recenter_graph_from_surface()
 	{
-		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
-			for(uint32 i = 0; i < 10; ++i){
-				const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+		auto graph_vertex_position_new = add_attribute<Vec3, GraphVertex>(*graph_, "position_new");
+		graph_vertex_position_new->copy(graph_vertex_position_.get());
+
+		foreach_cell(*graph_, [&](GraphVertex v) -> bool {
+			uint32 d = degree(*graph_, v);
+			if (d > 2)
+			{
+				// for (uint32 i = 0; i < 10; ++i)
+				{
+					Vec3& p = value<Vec3>(*graph_, graph_vertex_position_new, v);
+					Vec3 cp = surface_bvh_->closest_point(p);
+					p += 0.05 * (p - cp);
+				}
+
+				const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_new, v);
 				Vec3 cp = surface_bvh_->closest_point(p);
-				Vec3 cp_p = p - cp;
-				value<Vec3>(*graph_, graph_vertex_position_, v) += 0.05 * cp_p;
+				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
+			}
+			else if (d == 2)
+			{
+				Vec3 p = value<Vec3>(*graph_, graph_vertex_position_, v);
+
+				std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
+				Vec3 l = ((value<Vec3>(*graph_, graph_vertex_position_, av[0]) +
+						   value<Vec3>(*graph_, graph_vertex_position_, av[1])) /
+						  2.0) -
+						 p;
+				p += 0.05 * l;
+
+				Vec3 d1 = value<Vec3>(*graph_, graph_vertex_position_, av[1]) -
+						  value<Vec3>(*graph_, graph_vertex_position_, av[0]);
+				Vec3 d2 = d1.cross(Vec3{1, 0, 0});
+				Vec3 d3 = d1.cross(d2);
+				Vec3 avg(0, 0, 0);
+				uint32 nb = 0;
+				acc::BVHTree<uint32, Vec3>::Hit h;
+				acc::Ray<Vec3> r1{p, d2, 0, acc::inf};
+				if (surface_bvh_->intersect(r1, &h))
+				{
+					SurfaceFace f = surface_faces_[h.idx];
+					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
+					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					++nb;
+				}
+				acc::Ray<Vec3> r2{p, d3, 0, acc::inf};
+				if (surface_bvh_->intersect(r2, &h))
+				{
+					SurfaceFace f = surface_faces_[h.idx];
+					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
+					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					++nb;
+				}
+				acc::Ray<Vec3> r3{p, -d2, 0, acc::inf};
+				if (surface_bvh_->intersect(r3, &h))
+				{
+					SurfaceFace f = surface_faces_[h.idx];
+					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
+					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					++nb;
+				}
+				acc::Ray<Vec3> r4{p, -d3, 0, acc::inf};
+				if (surface_bvh_->intersect(r4, &h))
+				{
+					SurfaceFace f = surface_faces_[h.idx];
+					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
+					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					++nb;
+				}
+				if (nb > 0)
+				{
+					avg /= nb;
+					value<Vec3>(*graph_, graph_vertex_position_new, v) = avg;
+					Vec3 cp = surface_bvh_->closest_point(avg);
+					value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - avg).norm();
+				}
 			}
 
-			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
-			Vec3 cp = surface_bvh_->closest_point(p);
-			Vec3 cp_p = p - cp;
-			value<Scalar>(*graph_, graph_vertex_radius_, v) = cp_p.norm();
-			
 			return true;
 		});
+
+		graph_vertex_position_->swap(graph_vertex_position_new.get());
+		remove_attribute<GraphVertex>(*graph_, graph_vertex_position_new);
+
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
-		cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
+		// cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
 	void init_graph_radius_from_surface()
@@ -179,7 +256,7 @@ public:
 			return true;
 		});
 		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
-		cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
+		// cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
 	GRAPH* resample_graph(Scalar density)
@@ -214,8 +291,8 @@ public:
 		// radius_copy->copy(graph_vertex_radius_.get());
 		// graph_vertex_radius_->fill(min_radius);
 
-		for (Scalar& r : *graph_vertex_radius_)
-			r = r / 1.1;
+		// for (Scalar& r : *graph_vertex_radius_)
+		// 	r = r / 1.1;
 
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
@@ -256,15 +333,15 @@ public:
 										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 
-		// auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
+		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 
 		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
-		// geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
-		// geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
+		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
+		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
 		// volume_skin_vertex_normal->swap(normal_filtered.get());
 
-		// for (Vec3& n : *volume_skin_vertex_normal)
-		// 	n.normalize();
+		for (Vec3& n : *volume_skin_vertex_normal)
+			n.normalize();
 
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
@@ -280,7 +357,7 @@ public:
 			});
 			local_size /= nb_neigh;
 
-			acc::Ray<Vec3> r{p, n, 0, 1.5 * local_size};
+			acc::Ray<Vec3> r{p, n, 0, acc::inf}; // 1.5 * local_size};
 			acc::BVHTree<uint32, Vec3>::Hit h;
 			if (surface_bvh_->intersect(r, &h))
 			{
@@ -307,7 +384,7 @@ public:
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
-		refresh_edge_target_length_ = true;
+		// refresh_edge_target_length_ = true;
 	}
 
 	// void subdivide_volume_length_wise()
@@ -374,7 +451,7 @@ public:
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
-		refresh_edge_target_length_ = true;
+		// refresh_edge_target_length_ = true;
 	}
 
 	void smooth_volume_surface()
@@ -658,7 +735,7 @@ public:
 
 			return true;
 		});
-		refresh_edge_target_length_ = false;
+		// refresh_edge_target_length_ = false;
 	}
 
 	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
@@ -747,8 +824,8 @@ public:
 			Vec3 edge1 = (pos2 - pos1).normalized();
 			Vec3 edge2 = (pos1 - pos2).normalized();
 
-			Vec3 target_n1(0, 0, 0);
-			Vec3 target_n2(0, 0, 0);
+			Vec3 target_n1 = edge1; // (0, 0, 0);
+			Vec3 target_n2 = edge2; // (0, 0, 0);
 
 			// if (!(is_incident_to_boundary(*volume_, vertices[0]) && is_incident_to_boundary(*volume_, vertices[1])))
 			{
@@ -766,8 +843,8 @@ public:
 						if (edge1.dot(n) > 0)
 							target_n1 += n;
 					}
-					else
-						target_n1 += edge1;
+					// else
+					// 	target_n1 += edge1;
 					d = phi<32>(*volume_, d);
 				} while (d != e.dart);
 				target_n1.normalize();
@@ -786,8 +863,8 @@ public:
 						if (edge2.dot(n) > 0)
 							target_n2 += n;
 					}
-					else
-						target_n2 += edge2;
+					// else
+					// 	target_n2 += edge2;
 					d = phi<32>(*volume_, d);
 				} while (d != phi2(*volume_, e.dart));
 				target_n2.normalize();
@@ -823,7 +900,7 @@ public:
 			});
 			local_size /= nb_neigh;
 
-			acc::Ray<Vec3> r{p, n, 0, 1.5 * local_size};
+			acc::Ray<Vec3> r{p, n, 0, /*1.5 **/ local_size};
 			acc::BVHTree<uint32, Vec3>::Hit h;
 			if (surface_bvh_->intersect(r, &h))
 			{
@@ -1034,10 +1111,10 @@ protected:
 		}
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_ && surface_ && surface_vertex_position_)
 		{
-			if (ImGui::Button("Recenter graph from surface"))
-				recenter_graph_from_surface();
 			if (ImGui::Button("Init radius from surface"))
 				init_graph_radius_from_surface();
+			if (ImGui::Button("Recenter graph from surface"))
+				recenter_graph_from_surface();
 			if (ImGui::Button("Extend graph extremities"))
 				extend_graph_extremities();
 		}

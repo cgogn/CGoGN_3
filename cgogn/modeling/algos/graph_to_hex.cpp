@@ -192,50 +192,50 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 
 	// std::cout << "boundary cells: " << nb_vertices_b << " : " << nb_edges_b << " : " << nb_faces_b << std::endl;
 
-	parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
-		CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
+	// parallel_foreach_cell(g, [&](Graph::Vertex v) -> bool {
+	// 	CMap2::Volume contact_surface(value<Dart>(g, gAttribs.vertex_contact_surface, v));
 
-		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-		// if (degree(g, v) == 1)
-		// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
-		// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
-		// else
-		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+	// 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+	// 	// if (degree(g, v) == 1)
+	// 	// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
+	// 	// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
+	// 	// else
+	// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
 
-		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v) * 1.1;
+	// 	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v) * 1.1;
 
-		if (degree(g, v) < 3)
-		{
-			Graph::HalfEdge h(v.dart);
-			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
-			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
+	// 	if (degree(g, v) < 3)
+	// 	{
+	// 		Graph::HalfEdge h(v.dart);
+	// 		Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
+	// 		Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
 
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
-				center + frame.col(1) * radius;
-			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
-		}
-		else
-		{
-			foreach_incident_vertex(m2, contact_surface, [&](CMap2::Vertex v2) -> bool {
-				Vec3 pos = value<Vec3>(m2, m2Attribs.vertex_position, v2);
-				geometry::project_on_sphere(pos, center, radius);
-				value<Vec3>(m2, m2Attribs.vertex_position, v2) = pos;
-				return true;
-			});
-		}
+	// 		value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
+	// 		value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
+	// 		value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<11>(m2, csf))) =
+	// 			center + frame.col(1) * radius;
+	// 		value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
+	// 	}
+	// 	else
+	// 	{
+	// 		foreach_incident_vertex(m2, contact_surface, [&](CMap2::Vertex v2) -> bool {
+	// 			Vec3 pos = value<Vec3>(m2, m2Attribs.vertex_position, v2);
+	// 			geometry::project_on_sphere(pos, center, radius);
+	// 			value<Vec3>(m2, m2Attribs.vertex_position, v2) = pos;
+	// 			return true;
+	// 		});
+	// 	}
 
-		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
-			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
-			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
-							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
-			geometry::project_on_sphere(mid, center, radius);
-			value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
-			return true;
-		});
-		return true;
-	});
+	// 	foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
+	// 		std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
+	// 		Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
+	// 						  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
+	// 		geometry::project_on_sphere(mid, center, radius);
+	// 		value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
+	// 		return true;
+	// 	});
+	// 	return true;
+	// });
 
 	return {gAttribs, m2Attribs, m3Attribs};
 }
@@ -421,66 +421,6 @@ void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs)
 	//}
 	// return true;
 	//});
-}
-
-void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_position, CMap2& m2,
-							CMap2::Attribute<Vec3>* m2_vertex_position,
-							CMap2::Attribute<CMap3::Vertex>* m2_vertex_m3_vertex,
-							CMap3::Attribute<CMap2::Vertex>* m3_vertex_m2_vertex)
-{
-	auto m2_vertex_index = add_attribute<uint32, CMap3::Vertex>(m3, "m2_vertex_index");
-
-	cgogn::io::SurfaceImportData surface_data;
-
-	foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {
-		if (is_incident_to_boundary(m3, v3))
-		{
-			uint32 vertex_id = new_index<CMap2::Vertex>(m2);
-			value<uint32>(m3, m2_vertex_index, v3) = vertex_id;
-			Vec3 p = value<Vec3>(m3, m3_vertex_position, v3);
-			(*m2_vertex_position)[vertex_id] = p;
-			if (m2_vertex_m3_vertex)
-				(*m2_vertex_m3_vertex)[vertex_id] = v3;
-			surface_data.vertices_id_.push_back(vertex_id);
-		}
-		return true;
-	});
-
-	std::vector<uint32> indices;
-	indices.reserve(4);
-	foreach_cell(m3, [&](CMap3::Face f) -> bool {
-		if (is_incident_to_boundary(m3, f))
-		{
-			uint32 nbv = 0;
-			foreach_incident_vertex(m3, f, [&](CMap3::Vertex v3) -> bool {
-				++nbv;
-				indices.push_back(value<uint32>(m3, m2_vertex_index, v3));
-				return true;
-			});
-
-			surface_data.faces_nb_vertices_.push_back(nbv);
-			surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
-													  indices.end());
-			indices.clear();
-		}
-		return true;
-	});
-
-	import_surface_data(m2, surface_data);
-
-	if (m3_vertex_m2_vertex)
-	{
-		foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {
-			if (is_incident_to_boundary(m3, v3))
-			{
-				uint32 vertex_id = value<uint32>(m3, m2_vertex_index, v3);
-				value<CMap2::Vertex>(m3, m3_vertex_m2_vertex, v3) = of_index<CMap2::Vertex>(m2, vertex_id);
-			}
-			return true;
-		});
-	}
-
-	remove_attribute<CMap3::Vertex>(m3, m2_vertex_index);
 }
 
 void catmull_clark_approx(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint32 iterations)

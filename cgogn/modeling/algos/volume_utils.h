@@ -21,15 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
-#define CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
+#ifndef CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
+#define CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
@@ -37,51 +33,20 @@ namespace cgogn
 namespace modeling
 {
 
-struct GraphData
-{
-	std::vector<std::pair<Graph::HalfEdge, Graph::HalfEdge>> branches;
-	std::vector<Graph::Vertex> intersections;
-};
+using Vec3 = geometry::Vec3;
+using Scalar = geometry::Scalar;
 
-inline Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<Graph, Graph::Edge>& cm)
-{
-	Dart d = h.dart;
-	while (degree(g, Graph::Vertex(d)) == 2)
-	{
-		d = alpha0(g, alpha1(g, d));
-		cm.mark(Graph::Edge(d));
-	}
-	return Graph::HalfEdge(d);
-}
+//////////
+// CMap //
+//////////
 
-template <typename MESH>
-bool get_graph_data(const MESH& g, GraphData& graph_data)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	foreach_cell(g, [&](Vertex v) -> bool {
-		if (degree(g, v) > 2)
-			graph_data.intersections.push_back(v);
-		return true;
-	});
-
-	CellMarker<MESH, Edge> cm(g);
-	foreach_cell(g, [&](Edge e) -> bool {
-		if (cm.is_marked(e))
-			return true;
-		cm.mark(e);
-		std::vector<HalfEdge> halfedges = incident_halfedges(g, e);
-		graph_data.branches.push_back({branch_extremity(g, halfedges[0], cm), branch_extremity(g, halfedges[1], cm)});
-		return true;
-	});
-
-	return true;
-}
+void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_position, CMap2& m2,
+							CMap2::Attribute<Vec3>* m2_vertex_position,
+							CMap2::Attribute<CMap3::Vertex>* m2_vertex_m3_vertex = nullptr,
+							CMap3::Attribute<CMap2::Vertex>* m3_vertex_m2_vertex = nullptr);
 
 } // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
+#endif // CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
