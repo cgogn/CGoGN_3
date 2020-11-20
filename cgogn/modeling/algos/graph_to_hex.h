@@ -163,6 +163,7 @@ void build_contact_surface_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 bool create_intersection_frames(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
 bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 								 Graph::Vertex v);
+bool create_extremity_frame(const Graph& g, GAttributes& gAttribs, Graph::Vertex v);
 
 bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gData, CMap2& m2);
 void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start);
