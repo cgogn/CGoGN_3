@@ -417,6 +417,165 @@ public:
 	// 	refresh_edge_target_length_ = true;
 	// }
 
+	VolumeEdge find_dir(VOLUME m, VolumeFace f){
+		Dart dir0 = f.dart;
+		Dart dir1 = phi1(m, dir0);
+
+		Dart d0, d1;
+		do 
+		{
+			d0 = phi<12321>(m, d0);
+			d1 = phi<12321>(m, d1);
+		} while(d0 != dir0 && d1 != dir1);
+
+		return VolumeEdge(d0 == dir0? dir0 : dir1);
+	}
+
+	CellCache<VOLUME> get_slice(VOLUME m, VolumeEdge e)
+	{
+		CellCache<VOLUME> slice(m);
+
+		CellsSet<VOLUME, VolumeVolume> slice_volumes;
+		CellsSet<VOLUME, VolumeFace> slice_faces;
+		CellsSet<VOLUME, VolumeEdge> slice_edges;
+
+		std::vector<Dart> pending;
+		pending.push_back(e.dart);
+
+		for(uint32 i = 0; i < pending.size(); ++i)
+		{
+			Dart d0 = pending[i];
+			if(!slice_volumes.contains(VolumeVolume(d0)))
+			{
+				slice_volumes.select(VolumeVolume(d0));
+				Dart d1 = d0;
+				do {
+					slice_edges.select(VolumeEdge(d1));
+					slice_faces.select(VolumeFace(d1));
+					foreach_incident_volume(m, VolumeEdge(d1), [&](VolumeVolume w) -> bool {
+						if(!is_boundary(m, w) && !slice_volumes.contains(w))
+							pending.push_back(w);
+						return true;
+					});
+					d1 = phi<112>(m, d1);
+				} while (d1 != d0);
+			}
+		}
+
+		slice_volumes.foreach_cell([&](VolumeVolume w){
+			slice.add(w);
+		});
+		slice_faces.foreach_cell([&](VolumeFace f){
+			slice.add(f);
+		});
+		slice_edges.foreach_cell([&](VolumeVolume e){
+			slice.add(e);
+		});
+
+		return slice;
+	}
+
+	void cut_slice(CellCache<VOLUME> slice)
+	{
+		cut_all_edges(slice, 
+			[&](VolumeVertex v) {
+				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+					cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+			});
+
+		foreach_cell(slice, [&](VolumeFace f) -> bool {
+			Dart d0 = phi1(*volume_, f.dart);
+			Dart d1 = phi_1(*volume_, phi_1(*volume_, f.dart));
+			cut_face(*volume_, VolumeVertex(d0), VolumeVertex(d1));
+			return true;
+		});
+
+		foreach_cell(slice, [&](VolumeVolume w) -> bool {
+			Dart d0 = phi1(*volume_, w.dart);
+			std::vector<Dart> path;
+			Dart d1 = d0;
+			do
+			{
+				path.push_back(d1);
+				d1 = phi<121>(*volume_, d1);
+			} while (d1 != d0);
+
+			cut_volume(*volume_, path);
+			return true;
+		});
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
+
+	void test_slicer()
+	{
+
+	}
+
+	void subdivide_skin()
+	{
+		CellMarker<VOLUME, VolumeFace> visited_faces(*volume_);
+		CellCache<VOLUME> skin_cells(*volume_);
+
+		skin_cells.template build<VolumeVolume>([&](VolumeVolume w) {
+				bool adjacent_boundary = false;
+				foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
+					adjacent_boundary = is_incident_to_boundary(*volume_, wf);
+					return !adjacent_boundary;
+				});
+				return adjacent_boundary;
+			});
+		foreach_cell(skin_cells, [&](VolumeVolume w) {
+			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
+				if(!visited_faces.is_marked(wf)){
+					skin_cells.add(wf);
+					visited_faces.mark(wf);
+				}
+				return true;
+			});
+			return true;
+		});
+		modeling::primal_cut_all_volumes(
+			skin_cells,
+			[&](VolumeVertex v) {
+				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+						   cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			});
+
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+
+		return;
+	}
+	
 	void subdivide_volume()
 	{
 		CellCache<CMap3> cache(*volume_);
@@ -1182,6 +1341,8 @@ protected:
 			// 	subdivide_volume_width_wise();
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
+			if (ImGui::Button("Subdivide skin"))
+				subdivide_skin();
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;

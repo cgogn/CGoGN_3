@@ -127,10 +127,10 @@ bool import_CG(MESH& m, const std::string& filename)
 			iss >> a;
 			iss >> b;
 
-			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a - 1]);
-			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b - 1]);
-			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a]);
-			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b]);
+			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a - 1]);
+			graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b - 1]);
+			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a]);
+			// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b]);
 		}
 	}
 
