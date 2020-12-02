@@ -172,68 +172,72 @@ public:
 			else if (d == 2)
 			{
 				Vec3 p = value<Vec3>(*graph_, graph_vertex_position_, v);
+				Scalar r = value<Scalar>(*graph_, graph_vertex_radius_, v);
 
 				std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
 				Vec3 l = ((value<Vec3>(*graph_, graph_vertex_position_, av[0]) +
 						   value<Vec3>(*graph_, graph_vertex_position_, av[1])) /
 						  2.0) -
 						 p;
-				p += 0.05 * l;
+				p += 0.2 * l;
 
-				Vec3 d1 = value<Vec3>(*graph_, graph_vertex_position_, av[1]) -
-						  value<Vec3>(*graph_, graph_vertex_position_, av[0]);
-				Vec3 d2 = d1.cross(Vec3{1, 0, 0});
-				Vec3 d3 = d1.cross(d2);
+				Vec3 cp = surface_bvh_->closest_point(p);
+				p += 0.05 * (p - cp);
+
+				Vec3 d1 = (value<Vec3>(*graph_, graph_vertex_position_, av[1]) -
+						   value<Vec3>(*graph_, graph_vertex_position_, av[0]))
+							  .normalized();
+				Vec3 d2 = d1.cross(Vec3{d1[1], -d1[0], d1[2]}).normalized();
+				Vec3 d3 = d1.cross(d2).normalized();
 				Vec3 avg(0, 0, 0);
 				uint32 nb = 0;
-				acc::BVHTree<uint32, Vec3>::Hit h;
-				acc::Ray<Vec3> r1{p, d2, 0, acc::inf};
-				if (surface_bvh_->intersect(r1, &h))
+				acc::BVHTree<uint32, Vec3>::Hit h1;
+				acc::BVHTree<uint32, Vec3>::Hit h2;
+				acc::Ray<Vec3> r1{p, d2, 0, 5.0 * r};
+				acc::Ray<Vec3> r2{p, -d2, 0, 5.0 * r};
+				acc::Ray<Vec3> r3{p, d3, 0, 5.0 * r};
+				acc::Ray<Vec3> r4{p, -d3, 0, 5.0 * r};
+				if (surface_bvh_->intersect(r1, &h1) && surface_bvh_->intersect(r2, &h2))
 				{
-					SurfaceFace f = surface_faces_[h.idx];
+					SurfaceFace f = surface_faces_[h1.idx];
 					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					avg += h1.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h1.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h1.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					++nb;
+
+					f = surface_faces_[h2.idx];
+					iv = incident_vertices(*surface_, f);
+					avg += h2.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h2.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h2.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
 					++nb;
 				}
-				acc::Ray<Vec3> r2{p, d3, 0, acc::inf};
-				if (surface_bvh_->intersect(r2, &h))
+				if (surface_bvh_->intersect(r3, &h1) && surface_bvh_->intersect(r4, &h2))
 				{
-					SurfaceFace f = surface_faces_[h.idx];
+					SurfaceFace f = surface_faces_[h1.idx];
 					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+					avg += h1.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h1.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h1.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
 					++nb;
-				}
-				acc::Ray<Vec3> r3{p, -d2, 0, acc::inf};
-				if (surface_bvh_->intersect(r3, &h))
-				{
-					SurfaceFace f = surface_faces_[h.idx];
-					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
-					++nb;
-				}
-				acc::Ray<Vec3> r4{p, -d3, 0, acc::inf};
-				if (surface_bvh_->intersect(r4, &h))
-				{
-					SurfaceFace f = surface_faces_[h.idx];
-					std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-					avg += h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-						   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-						   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
+
+					f = surface_faces_[h2.idx];
+					iv = incident_vertices(*surface_, f);
+					avg += h2.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
+						   h2.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
+						   h2.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
 					++nb;
 				}
 				if (nb > 0)
 				{
 					avg /= nb;
-					value<Vec3>(*graph_, graph_vertex_position_new, v) = avg;
-					Vec3 cp = surface_bvh_->closest_point(avg);
-					value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - avg).norm();
+					p += 0.1 * (avg - p);
 				}
+
+				cp = surface_bvh_->closest_point(p);
+				value<Vec3>(*graph_, graph_vertex_position_new, v) = p;
+				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
 			}
 
 			return true;
@@ -343,7 +347,7 @@ public:
 		for (Vec3& n : *volume_skin_vertex_normal)
 			n.normalize();
 
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
 			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
 			Vec3 pos;
@@ -357,7 +361,7 @@ public:
 			});
 			local_size /= nb_neigh;
 
-			acc::Ray<Vec3> r{p, n, 0, acc::inf}; // 1.5 * local_size};
+			acc::Ray<Vec3> r{p - 0.01 * n, n, 0, acc::inf}; // 1.5 * local_size};
 			acc::BVHTree<uint32, Vec3>::Hit h;
 			if (surface_bvh_->intersect(r, &h))
 			{
@@ -415,8 +419,12 @@ public:
 
 	void subdivide_volume()
 	{
+		CellCache<CMap3> cache(*volume_);
+		cache.build<VolumeVolume>();
+		cache.build<VolumeFace>();
+
 		modeling::primal_cut_all_volumes(
-			*volume_,
+			cache,
 			[&](VolumeVertex v) {
 				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
 				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
@@ -502,6 +510,9 @@ public:
 		});
 
 		// Scalar fit_to_data = geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get()) * 5.0;
+		// Scalar bb_diag_length =
+		// 	(volume_provider_->mesh_data(volume_)->bb_max_ - volume_provider_->mesh_data(volume_)->bb_min_).norm();
+		// fit_to_data *= bb_diag_length / 10.0;
 
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
@@ -738,6 +749,24 @@ public:
 		// refresh_edge_target_length_ = false;
 	}
 
+	bool is_inside(const Vec3& p, const Vec3& n)
+	{
+		uint32 nb_inter = 0;
+		acc::Ray<Vec3> r{p + 0.0001 * n, n, 0, acc::inf};
+		acc::BVHTree<uint32, Vec3>::Hit h;
+		while (surface_bvh_->intersect(r, &h))
+		{
+			++nb_inter;
+			SurfaceFace f = surface_faces_[h.idx];
+			std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+			Vec3 pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+					   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+					   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+			r.origin = pos + 0.0001 * n;
+		}
+		return nb_inter % 2 == 1;
+	}
+
 	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
 	{
 		if (refresh_edge_target_length_)
@@ -765,6 +794,11 @@ public:
 		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
 		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
+
+		// fit_to_data *= geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get());
+		// Scalar bb_diag_length =
+		// 	(volume_provider_->mesh_data(volume_)->bb_max_ - volume_provider_->mesh_data(volume_)->bb_min_).norm();
+		// fit_to_data *= bb_diag_length / 10.0;
 
 		uint32 nb_oriented_edges = nb_cells<VolumeEdge>(*volume_) * 2;
 
@@ -889,7 +923,6 @@ public:
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
 			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
-			Vec3 pos;
 
 			Scalar local_size = 0.0;
 			uint32 nb_neigh = 0;
@@ -900,18 +933,28 @@ public:
 			});
 			local_size /= nb_neigh;
 
-			acc::Ray<Vec3> r{p, n, 0, /*1.5 **/ local_size};
-			acc::BVHTree<uint32, Vec3>::Hit h;
-			if (surface_bvh_->intersect(r, &h))
+			Vec3 pos = surface_bvh_->closest_point(p);
+			Scalar dist = (p - pos).norm();
+			if (dist > 0.01 * local_size)
 			{
-				SurfaceFace f = surface_faces_[h.idx];
-				std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
-				pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
-					  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
-					  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+				acc::Ray<Vec3> r1{p, n, 0, 1.5 * local_size};  // acc::inf};
+				acc::Ray<Vec3> r2{p, -n, 0, 1.5 * local_size}; // acc::inf};
+
+				// if (!is_inside(p, n))
+				// 	r.dir = -n;
+
+				// check n & -n and keep closest intersection hit
+				acc::BVHTree<uint32, Vec3>::Hit h;
+				if (surface_bvh_->intersect(r1, &h))
+				{
+					SurfaceFace f = surface_faces_[h.idx];
+					std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+					pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+						  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+						  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+				}
 			}
-			else
-				pos = surface_bvh_->closest_point(p);
+
 			b.coeffRef(oriented_edge_idx + boundary_vertex_idx, 0) = fit_to_data * pos[0];
 			b.coeffRef(oriented_edge_idx + boundary_vertex_idx, 1) = fit_to_data * pos[1];
 			b.coeffRef(oriented_edge_idx + boundary_vertex_idx, 2) = fit_to_data * pos[2];
@@ -1142,12 +1185,12 @@ protected:
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;
-			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
+			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 200.0);
 			if (ImGui::Button("Regularize surface vertices"))
 				regularize_surface_vertices(regularize_fit_to_data);
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
-			static float optimize_fit_to_surface = 20.0f;
+			static float optimize_fit_to_surface = 50.0f;
 			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0);
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))

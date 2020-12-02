@@ -32,7 +32,6 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
-#include <cgogn/modeling/algos/hole_filling.h>
 #include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/topstoc.h>

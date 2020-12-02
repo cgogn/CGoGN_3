@@ -121,8 +121,7 @@ inline Dart phi(const MESH& m, Dart d)
 // CMapBase //
 //////////////
 
-template <typename MESH>
-auto phi1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi1_sew(CMap1& m, Dart d, Dart e)
 {
 	Dart f = phi1(m, d);
 	Dart g = phi1(m, e);
@@ -132,8 +131,7 @@ auto phi1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi_1_))[f.index] = e;
 }
 
-template <typename MESH>
-auto phi1_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi1_unsew(CMap1& m, Dart d)
 {
 	Dart e = phi1(m, d);
 	Dart f = phi1(m, e);
@@ -143,8 +141,7 @@ auto phi1_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<
 	(*(m.phi_1_))[e.index] = e;
 }
 
-template <typename MESH>
-auto phi2_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi2_sew(CMap2& m, Dart d, Dart e)
 {
 	cgogn_assert(phi2(m, d) == d);
 	cgogn_assert(phi2(m, e) == e);
@@ -152,16 +149,14 @@ auto phi2_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi2_))[e.index] = d;
 }
 
-template <typename MESH>
-auto phi2_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi2_unsew(CMap2& m, Dart d)
 {
 	Dart e = phi2(m, d);
 	(*(m.phi2_))[d.index] = d;
 	(*(m.phi2_))[e.index] = e;
 }
 
-template <typename MESH>
-auto phi3_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi3_sew(CMap3& m, Dart d, Dart e)
 {
 	cgogn_assert(phi3(m, d) == d);
 	cgogn_assert(phi3(m, e) == e);
@@ -169,31 +164,27 @@ auto phi3_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base
 	(*(m.phi3_))[e.index] = d;
 }
 
-template <typename MESH>
-auto phi3_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void phi3_unsew(CMap3& m, Dart d)
 {
 	Dart e = phi3(m, d);
 	(*(m.phi3_))[d.index] = d;
 	(*(m.phi3_))[e.index] = e;
 }
 
-template <typename MESH>
-auto alpha0_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void alpha0_sew(Graph& m, Dart d, Dart e)
 {
 	(*m.alpha0_)[d.index] = e;
 	(*m.alpha0_)[e.index] = d;
 }
 
-template <typename MESH>
-auto alpha0_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void alpha0_unsew(Graph& m, Dart d)
 {
 	Dart e = alpha0(m, d);
 	(*m.alpha0_)[d.index] = d;
 	(*m.alpha0_)[e.index] = e;
 }
 
-template <typename MESH>
-auto alpha1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void alpha1_sew(Graph& m, Dart d, Dart e)
 {
 	Dart f = alpha1(m, d);
 	Dart g = alpha1(m, e);
@@ -203,8 +194,7 @@ auto alpha1_sew(MESH& m, Dart d, Dart e) -> typename std::enable_if_t<std::is_ba
 	(*m.alpha_1_)[f.index] = e;
 }
 
-template <typename MESH>
-auto alpha1_unsew(MESH& m, Dart d) -> typename std::enable_if_t<std::is_base_of_v<CMapBase, MESH>>
+inline void alpha1_unsew(Graph& m, Dart d)
 {
 	Dart e = alpha1(m, d);
 	Dart f = alpha_1(m, d);

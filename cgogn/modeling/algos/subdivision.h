@@ -122,6 +122,7 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	CellCache<MESH> cache(m);
 	cache.template build<Face>();
+
 	CellMarker<MESH, Edge> cm(m);
 	foreach_cell(cache, [&](Face f) -> bool {
 		foreach_incident_edge(m, f, [&](Edge ie) -> bool {
@@ -150,29 +151,30 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 // CMap3 //
 ///////////
 
-template <typename FUNC1, typename FUNC2, typename FUNC3>
-void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+template <typename MESH, typename FUNC1, typename FUNC2, typename FUNC3>
+auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMap3&>>
 {
-	using HalfEdge = typename CMap3::HalfEdge;
-	using Vertex = typename CMap3::Vertex;
-	using Edge = typename CMap3::Edge;
-	using Face = typename CMap3::Face;
-	using Vertex2 = typename CMap3::Vertex2;
-	using Edge2 = typename CMap3::Edge2;
-	using Face2 = typename CMap3::Face2;
-	using Volume = typename CMap3::Volume;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	using Vertex2 = typename mesh_traits<MESH>::Vertex2;
+	using Edge2 = typename mesh_traits<MESH>::Edge2;
+	using Face2 = typename mesh_traits<MESH>::Face2;
+	using Volume = typename mesh_traits<MESH>::Volume;
 	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
 	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
 	static_assert(is_func_parameter_same<FUNC3, Vertex>::value, "Given function should take a Vertex");
 
-	CellCache<CMap3> vol_cache(m);
-	vol_cache.template build<Volume>();
+	// CellCache<MESH> vol_cache(m);
+	// vol_cache.template build<Volume>();
 
-	CellCache<CMap3> edge_vert_cache(m);
-	CellCache<CMap3> face_vert_cache(m);
+	CellCache<MESH> edge_vert_cache(m);
+	CellCache<MESH> face_vert_cache(m);
 
-	CellMarker<CMap3, Volume> cm(m);
-	foreach_cell(vol_cache, [&](Volume w) -> bool {
+	CellMarker<MESH, Volume> cm(m);
+	foreach_cell(m, [&](Volume w) -> bool {
 		cm.mark(w);
 		return true;
 	});
@@ -250,8 +252,8 @@ void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_
 		return true;
 	});
 
-	CellCache<CMap3> vol_vert_cache(m);
-	foreach_cell(vol_cache, [&](Volume w) -> bool {
+	CellCache<MESH> vol_vert_cache(m);
+	foreach_cell(m, [&](Volume w) -> bool {
 		Dart d0 = w.dart;
 		Vertex vw = Vertex(phi_1(m, phi<12>(m, d0)));
 		vol_vert_cache.add(vw);
