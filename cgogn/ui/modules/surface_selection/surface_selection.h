@@ -521,6 +521,7 @@ protected:
 						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 						if (ImGui::Button("X##selected_vertices_set"))
 							p.selected_vertices_set_ = nullptr;
+						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 					}
 					if (ImGui::Button("Create set##vertices_set"))
 						md->template add_cells_set<Vertex>();
@@ -553,6 +554,7 @@ protected:
 						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 						if (ImGui::Button("X##selected_edges_set"))
 							p.selected_edges_set_ = nullptr;
+						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
 					}
 					if (ImGui::Button("Create set##edges_set"))
 						md->template add_cells_set<Edge>();
@@ -585,6 +587,7 @@ protected:
 						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 						if (ImGui::Button("X##selected_faces_set"))
 							p.selected_faces_set_ = nullptr;
+						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
 					}
 					if (ImGui::Button("Create set##faces_set"))
 						md->template add_cells_set<Face>();
