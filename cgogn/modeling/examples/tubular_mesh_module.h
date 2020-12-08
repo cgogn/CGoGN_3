@@ -749,22 +749,28 @@ public:
 		// refresh_edge_target_length_ = false;
 	}
 
-	bool is_inside(const Vec3& p, const Vec3& n)
+	bool is_inside(const Vec3& p)
 	{
-		uint32 nb_inter = 0;
-		acc::Ray<Vec3> r{p + 0.0001 * n, n, 0, acc::inf};
-		acc::BVHTree<uint32, Vec3>::Hit h;
-		while (surface_bvh_->intersect(r, &h))
-		{
-			++nb_inter;
-			SurfaceFace f = surface_faces_[h.idx];
-			std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
-			Vec3 pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
-					   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
-					   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
-			r.origin = pos + 0.0001 * n;
-		}
-		return nb_inter % 2 == 1;
+		// uint32 nb_inter = 0;
+		// acc::Ray<Vec3> r{p + 0.0001 * n, n, 0, acc::inf};
+		// acc::BVHTree<uint32, Vec3>::Hit h;
+		// while (surface_bvh_->intersect(r, &h))
+		// {
+		// 	++nb_inter;
+		// 	SurfaceFace f = surface_faces_[h.idx];
+		// 	std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+		// 	Vec3 pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+		// 			   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+		// 			   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+		// 	r.origin = pos + 0.0001 * n;
+		// }
+		// return nb_inter % 2 == 1;
+
+		std::pair<uint32, Vec3> cp;
+		surface_bvh_->closest_point(p, &cp);
+		Vec3 dir = (cp.second - p).normalized();
+		Vec3 n = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_);
+		return dir.dot(n) > 0;
 	}
 
 	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
@@ -933,17 +939,20 @@ public:
 			});
 			local_size /= nb_neigh;
 
-			Vec3 pos = surface_bvh_->closest_point(p);
-			Scalar dist = (p - pos).norm();
+			std::pair<uint32, Vec3> cp;
+			surface_bvh_->closest_point(p, &cp);
+			Vec3 pos = cp.second;
+			Vec3 dir = pos - p;
+			Scalar dist = dir.norm();
 			if (dist > 0.01 * local_size)
 			{
-				acc::Ray<Vec3> r1{p, n, 0, 1.5 * local_size};  // acc::inf};
-				acc::Ray<Vec3> r2{p, -n, 0, 1.5 * local_size}; // acc::inf};
+				acc::Ray<Vec3> r1{p, n, 0, 1.5 * local_size}; // acc::inf};
 
-				// if (!is_inside(p, n))
-				// 	r.dir = -n;
+				// Vec3 fnorm = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_.get());
+				// dir.normalize();
+				// if (dir.dot(fnorm) < 0)
+				// 	r1.dir = -n;
 
-				// check n & -n and keep closest intersection hit
 				acc::BVHTree<uint32, Vec3>::Hit h;
 				if (surface_bvh_->intersect(r1, &h))
 				{
@@ -1167,13 +1176,35 @@ protected:
 			ImGui::SliderFloat("Graph resampling density", &graph_resample_density, 0.0, 1.0);
 			if (ImGui::Button("Resample graph"))
 				resample_graph(graph_resample_density);
+			ImGui::Separator();
 			if (ImGui::Button("Build hex mesh"))
 				build_hex_mesh();
 		}
 		if (volume_)
 		{
+			MeshData<VOLUME>* md = volume_provider_->mesh_data(volume_);
+			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
 			if (ImGui::Button("Export subdivided skin"))
 				export_subdivided_skin();
+			if (ImGui::BeginCombo("Faces", selected_volume_faces_set_ ? selected_volume_faces_set_->name().c_str()
+																	  : "-- select --"))
+			{
+				md->template foreach_cells_set<VolumeFace>([&](CellsSet<VOLUME, VolumeFace>& cs) {
+					bool is_selected = &cs == selected_volume_faces_set_;
+					if (ImGui::Selectable(cs.name().c_str(), is_selected))
+						selected_volume_faces_set_ = &cs;
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				});
+				ImGui::EndCombo();
+			}
+			if (selected_volume_faces_set_)
+			{
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+				if (ImGui::Button("X##selected_faces_set"))
+					selected_volume_faces_set_ = nullptr;
+			}
 			if (ImGui::Button("Add volume padding"))
 				add_volume_padding();
 			// if (ImGui::Button("Subdivide length wise"))
@@ -1182,6 +1213,7 @@ protected:
 			// 	subdivide_volume_width_wise();
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
+			ImGui::Separator();
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;
@@ -1195,6 +1227,7 @@ protected:
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);
+			ImGui::Separator();
 			if (ImGui::Button("Compute volumes quality"))
 				compute_volumes_quality();
 		}
@@ -1222,6 +1255,8 @@ private:
 	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_;
 	bool refresh_edge_target_length_ = true;
 	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
+
+	CellsSet<VOLUME, VolumeFace>* selected_volume_faces_set_ = nullptr;
 
 	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
 };
