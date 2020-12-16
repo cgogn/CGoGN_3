@@ -417,27 +417,29 @@ public:
 	// 	refresh_edge_target_length_ = true;
 	// }
 
-	VolumeEdge find_dir(VOLUME m, VolumeFace f){
+	VolumeEdge find_dir(VOLUME& m, VolumeFace f){
 		Dart dir0 = f.dart;
 		Dart dir1 = phi1(m, dir0);
 
-		Dart d0, d1;
+		uint32 counter = 0;
+		Dart d0 = dir0, d1 = dir1;
 		do 
 		{
-			d0 = phi<12321>(m, d0);
-			d1 = phi<12321>(m, d1);
+			++counter;
+			d0 = phi<32311>(m, d0);
+			d1 = phi<32311>(m, d1);
 		} while(d0 != dir0 && d1 != dir1);
 
 		return VolumeEdge(d0 == dir0? dir0 : dir1);
 	}
 
-	CellCache<VOLUME> get_slice(VOLUME m, VolumeEdge e)
+	CellCache<VOLUME> get_slice(VOLUME& m, VolumeEdge e)
 	{
 		CellCache<VOLUME> slice(m);
 
-		CellsSet<VOLUME, VolumeVolume> slice_volumes;
-		CellsSet<VOLUME, VolumeFace> slice_faces;
-		CellsSet<VOLUME, VolumeEdge> slice_edges;
+		CellsSet<VOLUME, VolumeVolume> slice_volumes(m, "slice_w");
+		CellsSet<VOLUME, VolumeFace> slice_faces(m, "slice_f");
+		CellsSet<VOLUME, VolumeEdge> slice_edges(m, "slice_e");
 
 		std::vector<Dart> pending;
 		pending.push_back(e.dart);
@@ -453,8 +455,8 @@ public:
 					slice_edges.select(VolumeEdge(d1));
 					slice_faces.select(VolumeFace(d1));
 					foreach_incident_volume(m, VolumeEdge(d1), [&](VolumeVolume w) -> bool {
-						if(!is_boundary(m, w) && !slice_volumes.contains(w))
-							pending.push_back(w);
+						if(!is_boundary(m, w.dart) && !slice_volumes.contains(w))
+							pending.push_back(w.dart);
 						return true;
 					});
 					d1 = phi<112>(m, d1);
@@ -468,16 +470,16 @@ public:
 		slice_faces.foreach_cell([&](VolumeFace f){
 			slice.add(f);
 		});
-		slice_edges.foreach_cell([&](VolumeVolume e){
+		slice_edges.foreach_cell([&](VolumeEdge e){
 			slice.add(e);
 		});
 
 		return slice;
 	}
 
-	void cut_slice(CellCache<VOLUME> slice)
+	void cut_slice(CellCache<VOLUME>& slice)
 	{
-		cut_all_edges(slice, 
+		modeling::cut_all_edges(slice, 
 			[&](VolumeVertex v) {
 				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
 				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
@@ -488,7 +490,7 @@ public:
 		foreach_cell(slice, [&](VolumeFace f) -> bool {
 			Dart d0 = phi1(*volume_, f.dart);
 			Dart d1 = phi_1(*volume_, phi_1(*volume_, f.dart));
-			cut_face(*volume_, VolumeVertex(d0), VolumeVertex(d1));
+			cgogn::cut_face(*volume_, VolumeVertex(d0), VolumeVertex(d1));
 			return true;
 		});
 
@@ -502,16 +504,121 @@ public:
 				d1 = phi<121>(*volume_, d1);
 			} while (d1 != d0);
 
-			cut_volume(*volume_, path);
+			cgogn::cut_volume(*volume_, path);
 			return true;
 		});
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 	}
 
-	void test_slicer()
+	void subdivide_slice()
 	{
+		if(selected_volume_faces_set_->size() == 1)
+		{
+			VolumeEdge e = find_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			CellCache<VOLUME> slice = get_slice(*volume_, e);
+			cut_slice(slice);
+		}
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
+	}
+
+	uint32 get_ring_size(VOLUME& m, VolumeEdge e)
+	{
+		Dart d0 = e.dart;
+		uint32 n = 0;
+		Dart d = d0;
+		do {
+			++n;
+			d = phi<32311>(m, d);
+		} while(d != d0);
+		return n;
+	}
+
+	// possibly useless
+	bool check_ring(VOLUME &m, VolumeEdge e, uint32 max_size)
+	{
+		Dart d0 = e.dart;
+		uint32 n = 0;
+		Dart d = d0;
+		do {
+			++n;
+			d = phi<32311>(m, d);
+		} while(d != d0 && n < max_size);
+		return (d == d0 && n == max_size);
+	}
+
+	bool unchecked_ring(VOLUME& m, VolumeEdge e, uint32 ring_size, CellMarker<VOLUME, VolumeEdge>& visited_edge)
+	{
+		if(visited_edge.is_marked(e)/* || check_ring(m, e, ring_size)*/)
+			return false; // already explored || not a ring
+		
+		Dart d0 = e.dart;
+		uint32 n = 0;
+		Dart d = d0;
+		do {
+			visited_edge.mark(VolumeEdge(d));
+			++n;
+			d = phi<32311>(m, d);
+		} while(d != d0 && n < ring_size);
+		return (d == d0 && n == ring_size); // true if looped around ring, false otherwise
+	}
+
+	CellCache<VOLUME> surface_fiber_spread(VOLUME& m, VolumeEdge e0)
+	{
+		CellMarker<VOLUME, VolumeEdge> visited_edge(m);
+		CellCache<VOLUME> fibers_cache(m);
+		uint32 ring_size = get_ring_size(m, e0);
+		unchecked_ring(m, e0, ring_size, visited_edge);
+
+		std::vector<VolumeEdge> fibers;
+		fibers.push_back(e0);
+		for(uint32 i = 0; i < fibers.size(); ++i)
+		{
+			Dart d0 = fibers[i].dart;
+			fibers_cache.add(fibers[i]);
+
+			Dart d = d0;
+			do{
+				VolumeEdge e1 = VolumeEdge(phi<13231>(m, d));
+				VolumeEdge e_1 = VolumeEdge(phi<31213>(m, d));
+				if(unchecked_ring(m, e1, ring_size, visited_edge))
+					fibers.push_back(e1);
+				if(unchecked_ring(m, e_1, ring_size, visited_edge))
+					fibers.push_back(e_1);
+				d = phi<32311>(m, d);
+			}while (d != d0);
+		}
+		return fibers_cache;
+	}
+
+	void volume_fiber_spread(VOLUME& m, CellCache<VOLUME>& surface_fibers, CellMarker<VOLUME, VolumeEdge>& edge_fibers)
+	{
+		foreach_cell(surface_fibers, [&](VolumeEdge e0) -> bool {
+			CellCache<VOLUME> slice = get_slice(m, e0);
+			foreach_cell(slice, [&](VolumeEdge e1) -> bool {
+				edge_fibers.mark(e1);
+				return true;
+			});
+			return true;
+		});
+	}
+
+	void mark_mesh_fibers(VOLUME& m, VolumeEdge e, CellMarker<VOLUME, VolumeEdge>& edge_fibers)
+	{		
+		CellCache<VOLUME> surface_fibers = surface_fiber_spread(m, e);
+		volume_fiber_spread(m, surface_fibers, edge_fibers);
+	}
+
+	void find_fibers_from_input()
+	{
+		if(selected_volume_faces_set_->size() == 1)
+		{
+			CellMarker<VOLUME, VolumeEdge> edge_fibers(*volume_);
+			VolumeEdge e = find_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			mark_mesh_fibers(*volume_, e, edge_fibers);
+		}
 	}
 
 	void subdivide_skin()
@@ -1370,11 +1477,17 @@ protected:
 			// 	subdivide_volume_length_wise();
 			// if (ImGui::Button("Subdivide width wise"))
 			// 	subdivide_volume_width_wise();
+			if(ImGui::Button("Find Fibers"))
+				find_fibers_from_input();
+
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
 
 			if (ImGui::Button("Subdivide skin"))
 				subdivide_skin();
+
+			if(ImGui::Button("Subdivide slice"))
+				subdivide_slice();
 
 			ImGui::Separator();
 
