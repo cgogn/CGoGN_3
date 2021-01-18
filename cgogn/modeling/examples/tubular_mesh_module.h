@@ -790,8 +790,18 @@ public:
 		});
 
 		foreach_cell(volumes_to_oct, [&](VolumeVolume w) -> bool {
-			Dart d0 = phi<11>(m, w.dart);
-			
+			VolumeVertex v = modeling::octosect_hex(m, w);
+			Vec3 center;
+			center.setZero();
+			uint32 count = 0;
+			foreach_adjacent_vertex_through_edge(m, v, [&](VolumeVertex av) -> bool {
+				center += cgogn::value<Vec3>(m, vertex_position, av);
+				++count;
+				return true;
+			});
+			center /= Scalar(count);
+			cgogn::value<Vec3>(m, vertex_position, v) = center;
+
 			return true;
 		});
 
