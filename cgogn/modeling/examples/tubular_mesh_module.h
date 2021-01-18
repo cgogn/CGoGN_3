@@ -618,6 +618,27 @@ public:
 			CellMarker<VOLUME, VolumeEdge> edge_fibers(*volume_);
 			VolumeEdge e = find_dir(*volume_, *(selected_volume_faces_set_->begin()));
 			mark_mesh_fibers(*volume_, e, edge_fibers);
+
+			// CellCache<VOLUME> edges_to_cut(*volume_);
+			// edges_to_cut.template build<VolumeEdge>([&](VolumeEdge e) {
+			// 	return !edge_fibers.is_marked(e);
+			// });
+
+			// modeling::cut_all_edges(edges_to_cut, 
+			// [&](VolumeVertex v) {
+			// 	std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+			// 	cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+			// 		0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+			// 		cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+			// });
+
+			// volume_provider_->emit_connectivity_changed(volume_);
+			// volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+			fiber_aligned_subdivision(*volume_, edge_fibers);
+			check_integrity(*volume_);
+			volume_provider_->emit_connectivity_changed(volume_);
+			volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		
 		}
 	}
 
@@ -681,6 +702,106 @@ public:
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
 		return;
+	}
+
+	void fiber_aligned_subdivision(VOLUME& m, CellMarker<VOLUME, VolumeEdge>& fibers)
+	{
+		// CellCache<VOLUME> edge_vert_cache(m);
+		// CellCache<VOLUME> face_vert_cache(m);
+
+		// find all non fibrous edges -> they will be cut
+		// find all non fibrous faces -> they will be quadrangulated
+		// sort volumes between fibrous and non fibrous
+		//		fibrous will be cut in 4
+		//		non fibrous will be cut in 8
+		//
+		// cut all non fibrous edges
+		// quadrangulate all non fibrous faces
+		// "cut" all volumes by adding leaflets
+
+
+		CellMarker<VOLUME, VolumeEdge> new_edges(m);	
+		CellMarker<VOLUME, VolumeEdge> new_vertices(m);
+
+		CellCache<VOLUME> edges_to_cut(m);
+		edges_to_cut.template build<VolumeEdge>([&](VolumeEdge e) {
+			return !fibers.is_marked(e);
+		});
+
+		CellCache<VOLUME> faces_to_quad(m);
+		CellCache<VOLUME> faces_to_bi(m);
+		faces_to_quad.template build<VolumeFace>([&](VolumeFace f) {
+			bool fiber = false;
+			foreach_incident_edge(m, f, [&](VolumeEdge e) -> bool {
+				fiber = fibers.is_marked(e);
+				if(fiber)
+					faces_to_bi.add(VolumeFace(e.dart));
+				return !(fiber);
+			});
+			return !(fiber);
+		});
+
+		CellCache<VOLUME> volumes_to_oct(m);
+		CellCache<VOLUME> volumes_to_quad(m);
+
+		foreach_cell(m, [&](VolumeVolume w) {
+			bool fiber = false;
+			foreach_incident_edge(m, w, [&](VolumeEdge we) -> bool{
+				fiber = fibers.is_marked(we);
+				if(fiber) 
+					volumes_to_quad.add(VolumeVolume(we.dart));
+					// volumes are grabbed by the fiber for orientation
+				return !fiber;
+			});
+			if(!fiber)
+				volumes_to_oct.add(w);
+			return true;
+		});
+
+		auto vertex_position = get_attribute<Vec3, VolumeVertex>(m, "position");
+
+		modeling::quadrangulate_all_faces(
+			faces_to_quad,
+			[&](VolumeVertex v) {
+				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(m, v);
+				cgogn::value<Vec3>(m, vertex_position, v) =
+					0.5 * (cgogn::value<Vec3>(m, vertex_position, av[0]) +
+						   cgogn::value<Vec3>(m, vertex_position, av[1]));
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(m, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(m, vertex_position, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(m, vertex_position, v) = center;
+			}
+		);
+
+		foreach_cell(faces_to_bi, [&](VolumeFace f) -> bool {
+			VolumeVertex v0(phi<11>(m, f.dart));
+			VolumeVertex v1(phi_1(m, f.dart));
+			cut_face(m, v0, v1);
+			return true;
+		});
+
+		foreach_cell(volumes_to_oct, [&](VolumeVolume w) -> bool {
+			Dart d0 = phi<11>(m, w.dart);
+			
+			return true;
+		});
+
+		std::cout << "quadrisections start" << std::endl;
+		foreach_cell(volumes_to_quad, [&](VolumeVolume w) -> bool {
+			modeling::quadrisect_hex(m, w);
+			return true;
+		});
+		std::cout << "quadrisections end" << std::endl;
+
 	}
 	
 	void subdivide_volume()

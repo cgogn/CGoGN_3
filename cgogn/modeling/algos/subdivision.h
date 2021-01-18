@@ -150,6 +150,170 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 ///////////
 // CMap3 //
 ///////////
+ 
+
+/// Pre cut hex, input: original dart from edge along the direction of the cut
+inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
+	Dart d0 = phi<1211>(m, w.dart);
+	Dart d1 = d0;
+	Dart d2, d3, d4;
+	do {
+		d1 = phi1(m, d1);
+		d2 = phi2(m, d1);
+
+		Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+		Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+		Dart ee = f0;
+		Dart ff = f1;
+		do
+		{
+			phi3_sew(m, ee, ff);
+			ee = phi1(m, ee);
+			ff = phi_1(m, ff);
+		} while (ee != f0);
+
+		phi2_unsew(m, d1);
+		phi2_sew(m, d1, f0);
+		phi2_sew(m, d2, f1);
+		f0 = phi1(m, f0);
+		f1 = phi_1(m, f1);
+		
+		d3 = phi<121>(m, d1);
+		d4 = phi2(m, d3);
+
+		phi2_unsew(m, d3);
+		phi2_sew(m, d3, f0);
+		phi2_sew(m, d4, f1);
+		f0 = phi1(m, f0);
+		f1 = phi_1(m, f1);
+
+		d3 = phi<121>(m, d3);
+		d4 = phi2(m, d3);
+
+		phi2_unsew(m, d3);
+		phi2_sew(m, d3, f0);
+		phi2_sew(m, d4, f1);
+
+		d1 = d2;
+	} while(d1 != d0);
+
+	do{
+		d2 = phi1(m, d1);
+		
+		d3 = phi_1(m, phi2(m, d1));
+		d4 = phi<21>(m, d2);
+		phi2_sew(m, d3, d4);
+
+		d1 = phi<232>(m, d2);
+	}while(d1 != d0);
+
+
+
+	d0 = phi_1(m, phi<12112>(m, w.dart));
+	d1 = d0;
+	d2 = phi2(m, d1);
+
+	if (is_indexed<CMap3::Vertex>(m))
+	{
+		do{
+			set_index<CMap3::Vertex>(m, d1, index_of(m, CMap3::Vertex(phi1(m, d2))));
+			set_index<CMap3::Vertex>(m, d2, index_of(m, CMap3::Vertex(phi1(m, d1))));
+			d3 = phi1(m, d1);
+			do{
+				d4 = phi3(m, d3);
+				set_index<CMap3::Vertex>(m, d3, index_of(m, CMap3::Vertex(phi<21>(m, d3))));
+				set_index<CMap3::Vertex>(m, d4, index_of(m, CMap3::Vertex(phi<21>(m, d4))));
+				d3 = phi1(m, d3);
+			} while(d3 != d1);
+			d1 = phi3(m, d2);
+			d2 = phi2(m, d1);
+		} while(d1 != d0);
+	}
+
+	if (is_indexed<CMap3::Vertex2>(m))
+	{
+		do {
+			set_index<CMap3::Vertex2>(m, d1, index_of(m, CMap3::Vertex2(phi1(m, d2))));
+			set_index<CMap3::Vertex2>(m, d2, index_of(m, CMap3::Vertex2(phi1(m, d1))));
+			d3 = phi1(m, d1);
+			do {
+				d4 = phi3(m, d3);
+				set_index<CMap3::Vertex2>(m, d3, index_of(m, CMap3::Vertex2(phi<21>(m, d3))));
+				set_index<CMap3::Vertex2>(m, d4, index_of(m, CMap3::Vertex2(phi<21>(m, d4))));
+				d3 = phi1(m, d3);
+			} while(d3 != d1);
+			d1 = phi3(m, d2);
+			d2 = phi2(m, d1);
+		} while(d1 != d0);
+	}
+
+	if(is_indexed<CMap3::Edge>(m))
+	{
+		set_index<CMap3::Edge>(m, CMap3::Edge(d0), new_index<CMap3::Edge>(m));
+		do{
+			d3 = phi1(m, d1);
+			do{
+				d4 = phi3(m, d3);
+				set_index<CMap3::Edge>(m, d3, index_of(m, CMap3::Edge(phi2(m, d3))));
+				set_index<CMap3::Edge>(m, d4, index_of(m, CMap3::Edge(phi2(m, d4))));
+				d3 = phi1(m, d3);
+			}while(d3 != d1);
+			d1 = phi<23>(m, d1);
+		}while(d1 != d0);
+	}
+
+	if (is_indexed<CMap3::Edge2>(m))
+	{
+		do{
+		}while(d1 != d0);
+
+		do{
+			set_index<CMap3::Edge2>(m, CMap3::Edge2(d1), new_index<CMap3::Edge2>(m));
+			d3 = phi1(m, d1);
+			do{
+				d4 = phi3(m, d3);
+				set_index<CMap3::Edge2>(m, CMap3::Edge2(d3), new_index<CMap3::Edge2>(m));
+				set_index<CMap3::Edge2>(m, CMap3::Edge2(d4), new_index<CMap3::Edge2>(m));
+				d3 = phi1(m, d3);
+			}while(d3 != d1);
+			d1 = phi<23>(m, d1);
+		}while(d1 != d0);
+	}
+
+	if (is_indexed<CMap3::Face>(m))
+	{
+		do{
+			set_index<CMap3::Face>(m, CMap3::Face(d1), new_index<CMap3::Face>(m));
+			d1 = phi<23>(m, d1);
+		}while(d1 != d0);
+	}
+
+	if (is_indexed<CMap3::Face2>(m))
+	{
+		do{
+			set_index<CMap3::Face2>(m, CMap3::Face2(d1), new_index<CMap3::Face2>(m));
+			set_index<CMap3::Face2>(m, CMap3::Face2(d2), new_index<CMap3::Face2>(m));
+			d1 = phi3(m, d2);
+			d2 = phi2(m, d1);
+		}while(d1 != d0);
+	}
+
+	if (is_indexed<CMap3::Volume>(m))
+	{
+		do{
+			set_index<CMap3::Volume>(m, CMap3::Volume(d1), new_index<CMap3::Volume>(m));
+			d1 = phi3(m, d2);
+			d2 = phi2(m, d1);
+		}while(d1 != d0);
+	}
+}
+
+/// Pre cut hex, input: original vertex dart 
+inline void octosect_hex(CMap3& m, CMap3::Volume w){
+
+}
+
+
 
 template <typename MESH, typename FUNC1, typename FUNC2, typename FUNC3>
 auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
