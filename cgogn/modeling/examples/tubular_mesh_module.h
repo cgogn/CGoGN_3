@@ -391,254 +391,30 @@ public:
 		// refresh_edge_target_length_ = true;
 	}
 
-	// void subdivide_volume_length_wise()
-	// {
-	// 	modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-	// 									*graph_, std::get<0>(hex_building_attributes_));
-
-	// 	volume_provider_->emit_connectivity_changed(volume_);
-	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-
-	// 	refresh_edge_target_length_ = true;
-	// }
-
-	// void subdivide_volume_width_wise()
-	// {
-	// 	modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-	// 								   *graph_, std::get<0>(hex_building_attributes_));
-
-	// 	graph_provider_->emit_connectivity_changed(graph_);
-	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
-	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
-
-	// 	volume_provider_->emit_connectivity_changed(volume_);
-	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-
-	// 	refresh_edge_target_length_ = true;
-	// }
-
-	VolumeEdge find_dir(VOLUME& m, VolumeFace f){
-		Dart dir0 = f.dart;
-		Dart dir1 = phi1(m, dir0);
-
-		uint32 counter = 0;
-		Dart d0 = dir0, d1 = dir1;
-		do 
-		{
-			++counter;
-			d0 = phi<32311>(m, d0);
-			d1 = phi<32311>(m, d1);
-		} while(d0 != dir0 && d1 != dir1);
-
-		return VolumeEdge(d0 == dir0? dir0 : dir1);
-	}
-
-	CellCache<VOLUME> get_slice(VOLUME& m, VolumeEdge e)
-	{
-		CellCache<VOLUME> slice(m);
-
-		CellsSet<VOLUME, VolumeVolume> slice_volumes(m, "slice_w");
-		CellsSet<VOLUME, VolumeFace> slice_faces(m, "slice_f");
-		CellsSet<VOLUME, VolumeEdge> slice_edges(m, "slice_e");
-
-		std::vector<Dart> pending;
-		pending.push_back(e.dart);
-
-		for(uint32 i = 0; i < pending.size(); ++i)
-		{
-			Dart d0 = pending[i];
-			if(!slice_volumes.contains(VolumeVolume(d0)))
-			{
-				slice_volumes.select(VolumeVolume(d0));
-				Dart d1 = d0;
-				do {
-					slice_edges.select(VolumeEdge(d1));
-					slice_faces.select(VolumeFace(d1));
-					foreach_incident_volume(m, VolumeEdge(d1), [&](VolumeVolume w) -> bool {
-						if(!is_boundary(m, w.dart) && !slice_volumes.contains(w))
-							pending.push_back(w.dart);
-						return true;
-					});
-					d1 = phi<112>(m, d1);
-				} while (d1 != d0);
-			}
-		}
-
-		slice_volumes.foreach_cell([&](VolumeVolume w){
-			slice.add(w);
-		});
-		slice_faces.foreach_cell([&](VolumeFace f){
-			slice.add(f);
-		});
-		slice_edges.foreach_cell([&](VolumeEdge e){
-			slice.add(e);
-		});
-
-		return slice;
-	}
-
-	void cut_slice(CellCache<VOLUME>& slice)
-	{
-		modeling::cut_all_edges(slice, 
-			[&](VolumeVertex v) {
-				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
-				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
-					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
-					cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
-			});
-
-		foreach_cell(slice, [&](VolumeFace f) -> bool {
-			Dart d0 = phi1(*volume_, f.dart);
-			Dart d1 = phi_1(*volume_, phi_1(*volume_, f.dart));
-			cgogn::cut_face(*volume_, VolumeVertex(d0), VolumeVertex(d1));
-			return true;
-		});
-
-		foreach_cell(slice, [&](VolumeVolume w) -> bool {
-			Dart d0 = phi1(*volume_, w.dart);
-			std::vector<Dart> path;
-			Dart d1 = d0;
-			do
-			{
-				path.push_back(d1);
-				d1 = phi<121>(*volume_, d1);
-			} while (d1 != d0);
-
-			cgogn::cut_volume(*volume_, path);
-			return true;
-		});
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-	}
-
 	void subdivide_slice()
 	{
 		if(selected_volume_faces_set_->size() == 1)
 		{
-			VolumeEdge e = find_dir(*volume_, *(selected_volume_faces_set_->begin()));
-			CellCache<VOLUME> slice = get_slice(*volume_, e);
-			cut_slice(slice);
+			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
+			modeling::cut_slice(*volume_, volume_vertex_position_.get(), slice);
 		}
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
 	}
 
-	uint32 get_ring_size(VOLUME& m, VolumeEdge e)
-	{
-		Dart d0 = e.dart;
-		uint32 n = 0;
-		Dart d = d0;
-		do {
-			++n;
-			d = phi<32311>(m, d);
-		} while(d != d0);
-		return n;
-	}
-
-	// possibly useless
-	bool check_ring(VOLUME &m, VolumeEdge e, uint32 max_size)
-	{
-		Dart d0 = e.dart;
-		uint32 n = 0;
-		Dart d = d0;
-		do {
-			++n;
-			d = phi<32311>(m, d);
-		} while(d != d0 && n < max_size);
-		return (d == d0 && n == max_size);
-	}
-
-	bool unchecked_ring(VOLUME& m, VolumeEdge e, uint32 ring_size, CellMarker<VOLUME, VolumeEdge>& visited_edge)
-	{
-		if(visited_edge.is_marked(e)/* || check_ring(m, e, ring_size)*/)
-			return false; // already explored || not a ring
-		
-		Dart d0 = e.dart;
-		uint32 n = 0;
-		Dart d = d0;
-		do {
-			visited_edge.mark(VolumeEdge(d));
-			++n;
-			d = phi<32311>(m, d);
-		} while(d != d0 && n < ring_size);
-		return (d == d0 && n == ring_size); // true if looped around ring, false otherwise
-	}
-
-	CellCache<VOLUME> surface_fiber_spread(VOLUME& m, VolumeEdge e0)
-	{
-		CellMarker<VOLUME, VolumeEdge> visited_edge(m);
-		CellCache<VOLUME> fibers_cache(m);
-		uint32 ring_size = get_ring_size(m, e0);
-		unchecked_ring(m, e0, ring_size, visited_edge);
-
-		std::vector<VolumeEdge> fibers;
-		fibers.push_back(e0);
-		for(uint32 i = 0; i < fibers.size(); ++i)
-		{
-			Dart d0 = fibers[i].dart;
-			fibers_cache.add(fibers[i]);
-
-			Dart d = d0;
-			do{
-				VolumeEdge e1 = VolumeEdge(phi<13231>(m, d));
-				VolumeEdge e_1 = VolumeEdge(phi<31213>(m, d));
-				if(unchecked_ring(m, e1, ring_size, visited_edge))
-					fibers.push_back(e1);
-				if(unchecked_ring(m, e_1, ring_size, visited_edge))
-					fibers.push_back(e_1);
-				d = phi<32311>(m, d);
-			}while (d != d0);
-		}
-		return fibers_cache;
-	}
-
-	void volume_fiber_spread(VOLUME& m, CellCache<VOLUME>& surface_fibers, CellMarker<VOLUME, VolumeEdge>& edge_fibers)
-	{
-		foreach_cell(surface_fibers, [&](VolumeEdge e0) -> bool {
-			CellCache<VOLUME> slice = get_slice(m, e0);
-			foreach_cell(slice, [&](VolumeEdge e1) -> bool {
-				edge_fibers.mark(e1);
-				return true;
-			});
-			return true;
-		});
-	}
-
-	void mark_mesh_fibers(VOLUME& m, VolumeEdge e, CellMarker<VOLUME, VolumeEdge>& edge_fibers)
-	{		
-		CellCache<VOLUME> surface_fibers = surface_fiber_spread(m, e);
-		volume_fiber_spread(m, surface_fibers, edge_fibers);
-	}
-
-	void find_fibers_from_input()
+	void fiber_aligned_subdivision_from_input()
 	{
 		if(selected_volume_faces_set_->size() == 1)
 		{
 			CellMarker<VOLUME, VolumeEdge> edge_fibers(*volume_);
-			VolumeEdge e = find_dir(*volume_, *(selected_volume_faces_set_->begin()));
-			mark_mesh_fibers(*volume_, e, edge_fibers);
+			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			modeling::mark_mesh_fibers(*volume_, e, edge_fibers);
 
-			// CellCache<VOLUME> edges_to_cut(*volume_);
-			// edges_to_cut.template build<VolumeEdge>([&](VolumeEdge e) {
-			// 	return !edge_fibers.is_marked(e);
-			// });
-
-			// modeling::cut_all_edges(edges_to_cut, 
-			// [&](VolumeVertex v) {
-			// 	std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
-			// 	cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
-			// 		0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
-			// 		cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
-			// });
-
-			// volume_provider_->emit_connectivity_changed(volume_);
-			// volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-			fiber_aligned_subdivision(*volume_, edge_fibers);
-			check_integrity(*volume_);
+			modeling::fiber_aligned_subdivision(*volume_, edge_fibers);
 			volume_provider_->emit_connectivity_changed(volume_);
 			volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-		
 		}
 	}
 
@@ -704,116 +480,6 @@ public:
 		return;
 	}
 
-	void fiber_aligned_subdivision(VOLUME& m, CellMarker<VOLUME, VolumeEdge>& fibers)
-	{
-		// CellCache<VOLUME> edge_vert_cache(m);
-		// CellCache<VOLUME> face_vert_cache(m);
-
-		// find all non fibrous edges -> they will be cut
-		// find all non fibrous faces -> they will be quadrangulated
-		// sort volumes between fibrous and non fibrous
-		//		fibrous will be cut in 4
-		//		non fibrous will be cut in 8
-		//
-		// cut all non fibrous edges
-		// quadrangulate all non fibrous faces
-		// "cut" all volumes by adding leaflets
-
-
-		CellMarker<VOLUME, VolumeEdge> new_edges(m);	
-		CellMarker<VOLUME, VolumeEdge> new_vertices(m);
-
-		CellCache<VOLUME> edges_to_cut(m);
-		edges_to_cut.template build<VolumeEdge>([&](VolumeEdge e) {
-			return !fibers.is_marked(e);
-		});
-
-		CellCache<VOLUME> faces_to_quad(m);
-		CellCache<VOLUME> faces_to_bi(m);
-		faces_to_quad.template build<VolumeFace>([&](VolumeFace f) {
-			bool fiber = false;
-			foreach_incident_edge(m, f, [&](VolumeEdge e) -> bool {
-				fiber = fibers.is_marked(e);
-				if(fiber)
-					faces_to_bi.add(VolumeFace(e.dart));
-				return !(fiber);
-			});
-			return !(fiber);
-		});
-
-		CellCache<VOLUME> volumes_to_oct(m);
-		CellCache<VOLUME> volumes_to_quad(m);
-
-		foreach_cell(m, [&](VolumeVolume w) {
-			bool fiber = false;
-			foreach_incident_edge(m, w, [&](VolumeEdge we) -> bool{
-				fiber = fibers.is_marked(we);
-				if(fiber) 
-					volumes_to_quad.add(VolumeVolume(we.dart));
-					// volumes are grabbed by the fiber for orientation
-				return !fiber;
-			});
-			if(!fiber)
-				volumes_to_oct.add(w);
-			return true;
-		});
-
-		auto vertex_position = get_attribute<Vec3, VolumeVertex>(m, "position");
-
-		modeling::quadrangulate_all_faces(
-			faces_to_quad,
-			[&](VolumeVertex v) {
-				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(m, v);
-				cgogn::value<Vec3>(m, vertex_position, v) =
-					0.5 * (cgogn::value<Vec3>(m, vertex_position, av[0]) +
-						   cgogn::value<Vec3>(m, vertex_position, av[1]));
-			},
-			[&](VolumeVertex v) {
-				Vec3 center;
-				center.setZero();
-				uint32 count = 0;
-				foreach_adjacent_vertex_through_edge(m, v, [&](VolumeVertex av) -> bool {
-					center += cgogn::value<Vec3>(m, vertex_position, av);
-					++count;
-					return true;
-				});
-				center /= Scalar(count);
-				cgogn::value<Vec3>(m, vertex_position, v) = center;
-			}
-		);
-
-		foreach_cell(faces_to_bi, [&](VolumeFace f) -> bool {
-			VolumeVertex v0(phi<11>(m, f.dart));
-			VolumeVertex v1(phi_1(m, f.dart));
-			cut_face(m, v0, v1);
-			return true;
-		});
-
-		foreach_cell(volumes_to_oct, [&](VolumeVolume w) -> bool {
-			VolumeVertex v = modeling::octosect_hex(m, w);
-			Vec3 center;
-			center.setZero();
-			uint32 count = 0;
-			foreach_adjacent_vertex_through_edge(m, v, [&](VolumeVertex av) -> bool {
-				center += cgogn::value<Vec3>(m, vertex_position, av);
-				++count;
-				return true;
-			});
-			center /= Scalar(count);
-			cgogn::value<Vec3>(m, vertex_position, v) = center;
-
-			return true;
-		});
-
-		std::cout << "quadrisections start" << std::endl;
-		foreach_cell(volumes_to_quad, [&](VolumeVolume w) -> bool {
-			modeling::quadrisect_hex(m, w);
-			return true;
-		});
-		std::cout << "quadrisections end" << std::endl;
-
-	}
-	
 	void subdivide_volume()
 	{
 		CellCache<CMap3> cache(*volume_);
@@ -1609,7 +1275,7 @@ protected:
 			// if (ImGui::Button("Subdivide width wise"))
 			// 	subdivide_volume_width_wise();
 			if(ImGui::Button("Find Fibers"))
-				find_fibers_from_input();
+				fiber_aligned_subdivision_from_input();
 
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
