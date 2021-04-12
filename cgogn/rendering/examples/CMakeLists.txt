@@ -21,6 +21,17 @@ target_link_libraries(simple_graph_viewer
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(simple_incidence_graph_viewer simple_incidence_graph_viewer.cpp)
+target_link_libraries(simple_incidence_graph_viewer
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	${CMAKE_DL_LIBS}
+)
+
+
 add_executable(simple_surface_viewer simple_surface_viewer.cpp)
 target_link_libraries(simple_surface_viewer
 	cgogn::core
@@ -52,6 +63,10 @@ if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
 	target_link_libraries(simple_graph_viewer
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(simple_incidence_graph_viewer
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

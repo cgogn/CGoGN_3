@@ -133,6 +133,11 @@ void import_surface_data(CMap2& m, const SurfaceImportData& surface_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
+void import_surface_data(IncidenceGraph& m, const SurfaceImportData& surface_data)
+{
+
+}
+
 } // namespace io
 
 } // namespace cgogn

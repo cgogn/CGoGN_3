@@ -142,6 +142,24 @@ void foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 	});
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename FUNC>
+auto foreach_cell(const IncidenceGraph& ig, const FUNC& f)
+{
+	using CELL = func_parameter_type<FUNC>;
+	for (uint32 i = ig.attribute_containers_[CELL::CELL_INDEX].first_index(),
+				end = ig.attribute_containers_[CELL::CELL_INDEX].last_index();
+		 i != end; i = ig.attribute_containers_[CELL::CELL_INDEX].next_index(i))
+	{
+		CELL c(i);
+		if(c.is_valid() && !f(c))
+			break;
+	}
+}
+
 /*****************************************************************************/
 
 // template <typename MESH, typename FUNC>

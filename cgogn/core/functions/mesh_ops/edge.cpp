@@ -27,6 +27,7 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 namespace cgogn
 {
@@ -38,6 +39,32 @@ namespace cgogn
 // cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, bool set_indices)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	Vertex v = add_vertex(ig);
+	std::vector<Face> faces = incident_faces(ig, e0);
+
+	std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[e0.index_];
+	Vertex v0 = evs.first;
+	Vertex v1 = evs.second;
+	(*ig.edge_incident_vertices_)[e0.index_] = {v0, v};
+	Edge e1 = add_edge(ig, v, v1);
+	for(Face f : faces)
+	{
+		(*ig.face_incident_edges_)[f.index_].push_back(e1);
+	}
+	return v;
+}
+
 
 ///////////
 // Graph //

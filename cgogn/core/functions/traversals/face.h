@@ -235,6 +235,45 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 	}
 }
 
+//////////////////////
+/// IncidenceGraph ///
+//////////////////////
+
+template <typename CELL, typename FUNC>
+auto foreach_incident_face(const IncidenceGraph& ig, CELL c, const FUNC& func)
+{
+	using Face = mesh_traits<IncidenceGraph>::Face;
+
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this IncidenceGraph");
+	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Vertex>)
+	{
+		CellMarkerStore<IncidenceGraph, Face> marker(ig);
+		for(auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		{
+			bool stop = false;
+			for(auto& fp : (*ig.edge_incident_faces_)[ep.second.index_])
+			{
+				stop = !func(fp.second);
+				if(stop)
+					break;
+			}
+			if(stop)
+				break;
+		}
+	}
+	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Edge>)
+	{
+		for(auto& fp : (*ig.edge_incident_faces_)[c.index_])
+		{
+			if(!func(fp.second))
+				break;
+		}
+	}
+}
+
 /*****************************************************************************/
 
 // template <typename MESH, typename CELL>
