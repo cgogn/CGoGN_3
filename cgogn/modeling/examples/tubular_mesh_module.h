@@ -944,25 +944,25 @@ public:
 			Vec3 pos = cp.second;
 			Vec3 dir = pos - p;
 			Scalar dist = dir.norm();
-			if (dist > 0.01 * local_size)
+			// if (dist > 0.01 * local_size)
+			// {
+			acc::Ray<Vec3> r1{p, n, 0, 1 * local_size}; // acc::inf};
+
+			Vec3 fnorm = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_.get());
+			dir.normalize();
+			if (dir.dot(fnorm) < 0)
+				r1.dir = -n;
+
+			acc::BVHTree<uint32, Vec3>::Hit h;
+			if (surface_bvh_->intersect(r1, &h))
 			{
-				acc::Ray<Vec3> r1{p, n, 0, 1.5 * local_size}; // acc::inf};
-
-				// Vec3 fnorm = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_.get());
-				// dir.normalize();
-				// if (dir.dot(fnorm) < 0)
-				// 	r1.dir = -n;
-
-				acc::BVHTree<uint32, Vec3>::Hit h;
-				if (surface_bvh_->intersect(r1, &h))
-				{
-					SurfaceFace f = surface_faces_[h.idx];
-					std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
-					pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
-						  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
-						  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
-				}
+				SurfaceFace f = surface_faces_[h.idx];
+				std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+				pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+					  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+					  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
 			}
+			// }
 
 			b.coeffRef(oriented_edge_idx + boundary_vertex_idx, 0) = fit_to_data * pos[0];
 			b.coeffRef(oriented_edge_idx + boundary_vertex_idx, 1) = fit_to_data * pos[1];
