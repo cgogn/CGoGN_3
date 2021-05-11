@@ -57,6 +57,21 @@ inline void triangulate_incident_faces(CMap2& m, CMap2::Vertex v)
 		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<11>(m, f.dart)));
 }
 
+inline bool should_edge_flip(CMap2& m, CMap2::Edge e)
+{
+	std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
+	const uint32 w = degree(m, iv[0]);
+	const uint32 x = degree(m, iv[1]);
+	const uint32 y = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[0].dart))));
+	const uint32 z = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[1].dart))));
+	int32 flip = 0;
+	flip += w > 6 ? 1 : (w < 6 ? -1 : 0);
+	flip += x > 6 ? 1 : (x < 6 ? -1 : 0);
+	flip += y < 6 ? 1 : (y > 6 ? -1 : 0);
+	flip += z < 6 ? 1 : (z > 6 ? -1 : 0);
+	return flip > 1;
+}
+
 /////////////
 // GENERIC //
 /////////////
@@ -66,6 +81,7 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
 	Scalar mean_edge_length = geometry::mean_edge_length(m, vertex_position);
 
@@ -114,6 +130,65 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		}
 		return collapse;
 	};
+
+	cache.template build<Edge>(short_edges_selection);
+	// while (cache.template size<Edge>() > 0)
+	// {
+	foreach_cell(cache, [&](Edge e) -> bool {
+		std::vector<Vertex> iv = incident_vertices(m, e);
+		bool collapse = true;
+		const Vec3& p = value<Vec3>(m, vertex_position, iv[0]);
+		foreach_adjacent_vertex_through_edge(m, iv[1], [&](Vertex v) -> bool {
+			const Vec3& vec = p - value<Vec3>(m, vertex_position, v);
+			if (vec.squaredNorm() > squared_max_edge_length)
+				collapse = false;
+			return true;
+		});
+		if (collapse)
+		{
+			if (edge_can_collapse(m, e))
+			{
+				Vertex cv = collapse_edge(m, e);
+				value<Vec3>(m, vertex_position, cv) = p;
+			}
+		}
+		return true;
+	});
+	// 	cache.template build<Edge>(short_edges_selection);
+	// }
+
+	// equalize valences with edge flips
+	CellMarker<MESH, Edge> cm(m);
+	foreach_cell(m, [&](Edge e) -> bool {
+		if (!cm.is_marked(e) && should_edge_flip(m, e))
+		{
+			flip_edge(m, e); // flip edge
+
+			// foreach_incident_face(m, e, [&](Face f) -> bool {
+			// 	foreach_incident_edge(m, f, [&](Edge ie) -> bool {
+			// 		cm.mark(ie);
+			// 		return true;
+			// 	});
+			// 	return true;
+			// });
+		}
+		return true;
+	});
+
+	// tangential relaxation
+	foreach_cell(m, [&](Vertex v) -> bool {
+		Vec3 c(0, 0, 0);
+		uint32 count = 0;
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+			c += value<Vec3>(m, vertex_position, av);
+			++count;
+			return true;
+		});
+		c /= Scalar(count);
+		Vec3 n = geometry::normal(m, v, vertex_position);
+		value<Vec3>(m, vertex_position, v) = c + n.dot(value<Vec3>(m, vertex_position, v) - c) * n;
+		return true;
+	});
 }
 
 } // namespace modeling
