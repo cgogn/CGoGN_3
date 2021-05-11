@@ -222,8 +222,7 @@ class EarTriangulation
 
 	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, CMapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
-		MESHTYPE& m, const typename mesh_traits<MESHTYPE>::Face f,
-		const typename mesh_traits<MESHTYPE>::template Attribute<Vec3>* position)
+		MESHTYPE& m, const typename mesh_traits<MESHTYPE>::Face f)
 	{
 		VertexPoly* vpp = nullptr;
 		VertexPoly* prem = nullptr;
@@ -257,6 +256,45 @@ class EarTriangulation
 		return {vpp, prem, nb_verts, convex};
 	}
 
+	////////////////////
+	// IncidenceGraph //
+	////////////////////
+
+	// std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
+	// 	IncidenceGraph& m, const IncidenceGraph::Face f)
+	// {
+	// 	VertexPoly* vpp = nullptr;
+	// 	VertexPoly* prem = nullptr;
+	// 	uint32 nb_verts = 0;
+	// 	bool convex = true;
+
+	// 	Dart a = f.dart;
+	// 	Dart b = phi1(m_, a);
+	// 	Dart c = phi1(m_, b);
+	// 	do
+	// 	{
+	// 		const Vec3& P1 = POSITION(Vertex(a));
+	// 		const Vec3& P2 = POSITION(Vertex(b));
+	// 		const Vec3& P3 = POSITION(Vertex(c));
+
+	// 		Scalar val = ear_angle(P1, P2, P3);
+	// 		VertexPoly* vp = new VertexPoly(Vertex(b), val, Scalar((P3 - P1).squaredNorm()), vpp);
+
+	// 		if (vp->value_ > Scalar(5)) // concav angle
+	// 			convex = false;
+
+	// 		if (vpp == nullptr)
+	// 			prem = vp;
+	// 		vpp = vp;
+	// 		a = b;
+	// 		b = c;
+	// 		c = phi1(m_, c);
+	// 		nb_verts++;
+	// 	} while (a != f.dart);
+
+	// 	return {vpp, prem, nb_verts, convex};
+	// }
+
 public:
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(EarTriangulation);
 
@@ -283,7 +321,7 @@ public:
 		normalPoly_ = normal(m_, f, position_);
 
 		// first pass create polygon in chained list with angle computation
-		auto [vpp, prem, nb_verts, convex] = init_chained_vertexpoly_list(mesh, f, position);
+		auto [vpp, prem, nb_verts, convex] = init_chained_vertexpoly_list(mesh, f);
 		nb_verts_ = nb_verts;
 		convex_ = convex;
 

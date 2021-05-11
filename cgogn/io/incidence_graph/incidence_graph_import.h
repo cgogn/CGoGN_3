@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_
+#define CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_
 
 #include <cgogn/io/cgogn_io_export.h>
 
@@ -36,25 +36,23 @@ namespace cgogn
 namespace io
 {
 
-struct SurfaceImportData
+struct IncidenceGraphImportData
 {
 	std::vector<uint32> vertices_id_;
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
+	std::vector<uint32> edges_vertex_indices_;
+	std::vector<uint32> faces_edge_indices_;
 
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	inline void reserve(uint32 nb_vertices)
 	{
 		vertices_id_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
+		edges_vertex_indices_.reserve(nb_vertices * 2u);
 	}
 };
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, const SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, const SurfaceImportData& surface_data);
+void CGOGN_IO_EXPORT import_incidence_graph_data(IncidenceGraph& ig, const IncidenceGraphImportData& graph_data);
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_

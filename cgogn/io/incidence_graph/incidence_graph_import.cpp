@@ -21,12 +21,13 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#include <cgogn/io/incidence_graph/incidence_graph_import.h>
 
-#include <cgogn/io/cgogn_io_export.h>
-
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
+
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 #include <vector>
 
@@ -36,25 +37,38 @@ namespace cgogn
 namespace io
 {
 
-struct SurfaceImportData
+void import_incidence_graph_data(IncidenceGraph& ig, const IncidenceGraphImportData& incidence_graph_data)
 {
-	std::vector<uint32> vertices_id_;
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
 
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	// for (uint32 vertex_id : incidence_graph_data.vertices_id_)
+	// {
+	// }
+
+	std::vector<Edge> edges;
+	edges.reserve(incidence_graph_data.edges_vertex_indices_.size()/2);
+	for (uint32 i = 0; i < uint32(incidence_graph_data.edges_vertex_indices_.size()); i += 2)
 	{
-		vertices_id_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
+		Edge e = add_edge(ig, incidence_graph_data.edges_vertex_indices_[i], incidence_graph_data.edges_vertex_indices_[i+1]);
+		edges.push_back(e);
 	}
-};
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, const SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, const SurfaceImportData& surface_data);
+	for (uint32 i = 0; i < uint32(incidence_graph_data.faces_edge_indices_.size());)
+	{
+		std::vector<Edge> face;
+		uint32 nbe = incidence_graph_data.faces_edge_indices_[i];
+		for(uint32 j = 0; j < nbe; ++j)
+		{
+			face.push_back(edges[incidence_graph_data.faces_edge_indices_[i + j + 1]]);
+		}
+		Face f = add_face(ig, face);
+		i += nbe + 1;
+	}
+
+}
 
 } // namespace io
 
 } // namespace cgogn
-
-#endif // CGOGN_IO_SURFACE_IMPORT_H_

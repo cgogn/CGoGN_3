@@ -39,6 +39,13 @@ namespace cgogn
 
 /*****************************************************************************/
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Vertex CGOGN_CORE_EXPORT cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
+
+
 ///////////
 // Graph //
 ///////////
