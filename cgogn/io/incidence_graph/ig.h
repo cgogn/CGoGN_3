@@ -82,52 +82,50 @@ bool import_IG(MESH& m, const std::string& filename)
 	incidence_graph_data.reserve(nb_vertices);
 	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
 
-	// // read vertices
-	// for (uint32 i = 0; i < nb_vertices; ++i)
-	// {
-	// 	getline_safe(fp, line);
-	// 	std::stringstream iss(line);
+	// read vertices
+// read vertices position
+	for (uint32 i = 0u; i < nb_vertices; ++i)
+	{
+		float64 x = read_double(fp, line);
+		float64 y = read_double(fp, line);
+		float64 z = read_double(fp, line);
 
-	// 	std::string tag;
-	// 	iss >> tag;
+		uint32 vertex_id = new_index<Vertex>(m);
+		(*position)[vertex_id] = {x, y, z};
 
-	// 	if (tag == std::string("v"))
-	// 	{
-	// 		float64 x, y, z;
-	// 		iss >> x;
-	// 		iss >> y;
-	// 		iss >> z;
+		incidence_graph_data.vertices_id_.push_back(vertex_id);
+	}
 
-	// 		uint32 vertex_id = new_index<Vertex>(m);
-	// 		(*position)[vertex_id] = {x, y, z};
+	// read edges
+	for (uint32 i = 0; i < nb_edges; ++i)
+	{
+		const uint32 a = read_uint(fp, line);
+		const uint32 b = read_uint(fp, line);
 
-	// 		incidence_graph_data.vertices_id_.push_back(vertex_id);
-	// 	}
-	// }
+		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[a]);
+		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[b]);
+	}
 
-	// // read edges
-	// for (uint32 i = 0; i < nb_edges; ++i)
-	// {
-	// 	getline_safe(fp, line);
-	// 	std::stringstream iss(line);
 
-	// 	std::string tag;
-	// 	iss >> tag;
+	// read faces
+	for (uint32 i = 0; i < nb_faces; ++i)
+	{
+		const uint32 nbe = read_uint(fp, line);
+		incidence_graph_data.faces_edge_indices_.push_back(nbe);
+		std::cout << "face: " << nbe << "\n";
+		for(uint32 j = 0; j < nbe; ++j)
+		{
+			const uint32 e = read_uint(fp, line);
+			std::cout << e << " ";
+			incidence_graph_data.faces_edge_indices_.push_back(e);
+		}
+		std::cout << std::endl;
+	}
 
-	// 	if (tag == std::string("e"))
-	// 	{
-	// 		uint32 a, b;
-	// 		iss >> a;
-	// 		iss >> b;
 
-	// 		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[a - 1]);
-	// 		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[b - 1]);
-	// 		// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[a]);
-	// 		// graph_data.edges_vertex_indices_.push_back(graph_data.vertices_id_[b]);
-	// 	}
-	// }
+	std::cout << "nbv: " << incidence_graph_data.vertices_id_.size() << " nbe: " << incidence_graph_data.edges_vertex_indices_.size() << std::endl;
 
-	// import_incidence_graph_data(m, incidence_graph_data);
+	import_incidence_graph_data(m, incidence_graph_data);
 
 	return true;
 }

@@ -158,6 +158,36 @@ inline void remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
     (*ig.vertices_)[v.index_] = INVALID_INDEX;   
 }
 
+inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1)
+{
+    uint32 vid0 = (*ig.edge_incident_vertices_)[e0.index_].first.index_;
+    uint32 vid1 = (*ig.edge_incident_vertices_)[e0.index_].second.index_;
+    uint32 vid2 = (*ig.edge_incident_vertices_)[e1.index_].first.index_;
+    uint32 vid3 = (*ig.edge_incident_vertices_)[e1.index_].second.index_;
+    
+    if(vid0 == vid2 || vid0 == vid3)
+        return IncidenceGraph::Vertex(vid0);
+
+    if(vid1 == vid2 || vid1 == vid3)
+        return IncidenceGraph::Vertex(vid1);
+    
+    return IncidenceGraph::Vertex();
+}
+
+inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> face_edges, std::vector<IncidenceGraph::Vertex> sorted_vertices)
+{
+    for(uint32 i = 0; i < face_edges.size(); ++i)
+    {
+        sorted_vertices.push_back(
+            common_vertex(ig, face_edges[i], face_edges[(i + 1) % face_edges.size()])
+        );
+    }
+
+    sorted_vertices.insert(sorted_vertices.begin(), sorted_vertices.back());
+    sorted_vertices.pop_back();
+    return;
+}
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_

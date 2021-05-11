@@ -82,7 +82,7 @@ class SurfaceRender : public ViewModule
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
-	using Volume = typename mesh_traits<MESH>::Volume;
+	// using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;

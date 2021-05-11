@@ -88,6 +88,13 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 
 /*****************************************************************************/
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2, bool set_indices = true);
+
+
 ///////////
 // CMap2 //
 ///////////

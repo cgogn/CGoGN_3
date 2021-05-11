@@ -40,21 +40,33 @@ namespace io
 void import_incidence_graph_data(IncidenceGraph& ig, const IncidenceGraphImportData& incidence_graph_data)
 {
 	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
 
-	for (uint32 vertex_id : incidence_graph_data.vertices_id_)
-	{
-	}
+	// for (uint32 vertex_id : incidence_graph_data.vertices_id_)
+	// {
+	// }
 
+	std::vector<Edge> edges;
+	edges.reserve(incidence_graph_data.edges_vertex_indices_.size()/2);
 	for (uint32 i = 0; i < uint32(incidence_graph_data.edges_vertex_indices_.size()); i += 2)
 	{
+		Edge e = add_edge(ig, incidence_graph_data.edges_vertex_indices_[i], incidence_graph_data.edges_vertex_indices_[i+1]);
+		edges.push_back(e);
 	}
 
-	for (uint32 i = 0; i < uint32(incidence_graph_data.faces_edge_indices_.size()); i += 2)
+	for (uint32 i = 0; i < uint32(incidence_graph_data.faces_edge_indices_.size());)
 	{
+		std::vector<Edge> face;
+		uint32 nbe = incidence_graph_data.faces_edge_indices_[i];
+		for(uint32 j = 0; j < nbe; ++j)
+		{
+			face.push_back(edges[incidence_graph_data.faces_edge_indices_[i + j + 1]]);
+		}
+		Face f = add_face(ig, face);
+		i += nbe + 1;
 	}
 
-
-	// remove_attribute<Vertex>(ig, vertex_dart);
 }
 
 } // namespace io
