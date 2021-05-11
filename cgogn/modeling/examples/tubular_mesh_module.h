@@ -391,31 +391,94 @@ public:
 		// refresh_edge_target_length_ = true;
 	}
 
-	// void subdivide_volume_length_wise()
-	// {
-	// 	modeling::subdivide_length_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-	// 									*graph_, std::get<0>(hex_building_attributes_));
+	void subdivide_slice()
+	{
+		if(selected_volume_faces_set_->size() == 1)
+		{
+			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
+			modeling::cut_slice(*volume_, volume_vertex_position_.get(), slice);
+		}
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
 
-	// 	volume_provider_->emit_connectivity_changed(volume_);
-	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	}
 
-	// 	refresh_edge_target_length_ = true;
-	// }
+	void fiber_aligned_subdivision_from_input()
+	{
+		if(selected_volume_faces_set_->size() == 1)
+		{
+			CellMarker<VOLUME, VolumeEdge> edge_fibers(*volume_);
+			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			modeling::mark_mesh_fibers(*volume_, e, edge_fibers);
 
-	// void subdivide_volume_width_wise()
-	// {
-	// 	modeling::subdivide_width_wise(*volume_, std::get<2>(hex_building_attributes_), *transversal_faces_marker_,
-	// 								   *graph_, std::get<0>(hex_building_attributes_));
+			modeling::fiber_aligned_subdivision(*volume_, edge_fibers);
+			volume_provider_->emit_connectivity_changed(volume_);
+			volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		}
+	}
 
-	// 	graph_provider_->emit_connectivity_changed(graph_);
-	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
-	// 	graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+	void subdivide_skin()
+	{
+		CellMarker<VOLUME, VolumeFace> visited_faces(*volume_);
+		CellCache<VOLUME> skin_cells(*volume_);
 
-	// 	volume_provider_->emit_connectivity_changed(volume_);
-	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		skin_cells.template build<VolumeVolume>([&](VolumeVolume w) {
+				bool adjacent_boundary = false;
+				foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
+					adjacent_boundary = is_incident_to_boundary(*volume_, wf);
+					return !adjacent_boundary;
+				});
+				return adjacent_boundary;
+			});
+		foreach_cell(skin_cells, [&](VolumeVolume w) {
+			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
+				if(!visited_faces.is_marked(wf)){
+					skin_cells.add(wf);
+					visited_faces.mark(wf);
+				}
+				return true;
+			});
+			return true;
+		});
+		modeling::primal_cut_all_volumes(
+			skin_cells,
+			[&](VolumeVertex v) {
+				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+						   cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			},
+			[&](VolumeVertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+			});
 
-	// 	refresh_edge_target_length_ = true;
-	// }
+		volume_provider_->emit_connectivity_changed(volume_);
+		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+
+		return;
+	}
 
 	void subdivide_volume()
 	{
@@ -1211,9 +1274,20 @@ protected:
 			// 	subdivide_volume_length_wise();
 			// if (ImGui::Button("Subdivide width wise"))
 			// 	subdivide_volume_width_wise();
+			if(ImGui::Button("Find Fibers"))
+				fiber_aligned_subdivision_from_input();
+
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
+
+			if (ImGui::Button("Subdivide skin"))
+				subdivide_skin();
+
+			if(ImGui::Button("Subdivide slice"))
+				subdivide_slice();
+
 			ImGui::Separator();
+
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;
