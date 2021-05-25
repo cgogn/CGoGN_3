@@ -231,6 +231,8 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 			break;
 	}
 
+	std::cout << "face found " << face.index_ << std::endl;
+
 	if(!face.is_valid())
 		return IncidenceGraph::Edge();
 
@@ -238,6 +240,8 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 	sort_edges(ig, edges);
 	std::vector<IncidenceGraph::Vertex> vertices;
 	sorted_face_vertices(ig, edges, vertices);
+
+	std::cout << "sorted edges " << edges.size() << " and vertices " << vertices.size() << std::endl;
 
 
 	std::vector<IncidenceGraph::Edge> face_edge0;

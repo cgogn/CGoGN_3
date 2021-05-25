@@ -90,6 +90,7 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	std::shared_ptr<Attribute<std::unordered_map<uint32, Edge>>> vertex_incident_edges_;
 	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
 	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
+	std::shared_ptr<Attribute<std::vector<uint32>>> face_incident_edges_dir_;
 	std::shared_ptr<Attribute<std::unordered_map<uint32, Face>>> edge_incident_faces_;
     IncidenceGraph() {
 		vertices_ = attribute_containers_[Vertex::CELL_INDEX].add_attribute<uint32>("vertex_id");
@@ -104,6 +105,7 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		edge_incident_vertices_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
 		edge_incident_faces_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<std::unordered_map<uint32, Face>>("incident_faces");
 		face_incident_edges_ = attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
+		face_incident_edges_dir_ = attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint32>>("incident_edges_dir");
 	};
     // ~IncidenceGraph();
 

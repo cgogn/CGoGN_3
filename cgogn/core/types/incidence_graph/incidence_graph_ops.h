@@ -94,16 +94,30 @@ inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& ed
 
 inline IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> edges)
 {
+    using Vertex = IncidenceGraph::Vertex;
+    using Edge = IncidenceGraph::Edge;
     if(sort_edges(ig, edges))
     {
         uint32 id = ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].new_index();
         (*ig.faces_)[id] = id;
         (*ig.face_incident_edges_)[id] = edges;
         IncidenceGraph::Face f(id);
-        for(IncidenceGraph::Edge e : edges)
+        std::vector<uint32> dir;
+        dir.reserve(edges.size());
+
+        for(uint32 i = 0; i < edges.size(); ++i) 
         {
-            (*ig.edge_incident_faces_)[e.index_][id] = f;
+            (*ig.edge_incident_faces_)[edges[i].index_][id] = f;
+            std::pair<Vertex, Vertex> evs0 = (*ig.edge_incident_vertices_)[edges[i].index_];
+            std::pair<Vertex, Vertex> evs1 = (*ig.edge_incident_vertices_)[edges[(i+1)%edges.size()].index_];
+
+            if(evs0.second.index_ == evs1.first.index_ ||evs0.second.index_ == evs1.second.index_)
+                dir.push_back(0);
+            else
+                dir.push_back(1);
         }
+        (*ig.face_incident_edges_dir_)[id] = dir;
+
         return f;
     }
     return IncidenceGraph::Face();
@@ -174,7 +188,7 @@ inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::
     return IncidenceGraph::Vertex();
 }
 
-inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> face_edges, std::vector<IncidenceGraph::Vertex> sorted_vertices)
+inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> face_edges, std::vector<IncidenceGraph::Vertex>& sorted_vertices)
 {
     for(uint32 i = 0; i < face_edges.size(); ++i)
     {

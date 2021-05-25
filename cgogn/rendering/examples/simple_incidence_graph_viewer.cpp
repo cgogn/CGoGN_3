@@ -71,12 +71,6 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
 
-	cgogn::cut_face(*ig, Mesh::Vertex(0), Mesh::Vertex(2));
-	// cgogn::remove_face(*ig, Mesh::Face(0));
-	// Mesh::Vertex v = cgogn::cut_edge(*ig, Mesh::Edge(0));
-	// (*vertex_position)[v.index_] = Vec3(1, 2, 3);
-	
-
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
