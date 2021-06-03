@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 
+#include <cgogn/core/types/cells_set.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/io/surface/surface_import.h>
@@ -97,18 +98,14 @@ void shift_frame(Mat3& frame, uint32 nb_shifts);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
 bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
 				   std::shared_ptr<CMap2::Attribute<uint32>> dist);
-Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data);
+Dart convex_hull_around_vertex(const Graph& g, Graph::Vertex v, CMap2& m2, M2Attributes& m2Attribs,
+							   std::vector<Vec3>& Ppos);
 Dart remesh(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs);
 Vec3 slerp(Vec3 A, Vec3 B, Scalar coef, bool in);
 Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C);
 Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs);
 Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs);
 Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations);
-
-void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_position, CMap2& m2,
-							CMap2::Attribute<Vec3>* m2_vertex_position,
-							CMap2::Attribute<CMap3::Vertex>* m2_vertex_m3_vertex = nullptr,
-							CMap3::Attribute<CMap2::Vertex>* m3_vertex_m2_vertex = nullptr);
 
 void catmull_clark_approx(CMap2& m2, CMap2::Attribute<Vec3>* vertex_position, uint32 iterations);
 void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint32 iterations);
@@ -137,6 +134,19 @@ bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttr
 // void get_loop_path(CMap3& m3, Dart d0, std::vector<Dart>& path);
 // void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face>& trans_faces, Graph& g,
 // 			   GAttributes& gAttribs, Graph::Edge eg, Scalar slice);
+
+CMap3::Edge find_fiber_dir(CMap3& m3, CMap3::Face f);
+uint32 get_ring_size(CMap3& m3, CMap3::Edge e);
+bool unchecked_ring(CMap3& m3, CMap3::Edge e, uint32 ring_size, CellMarker<CMap3, CMap3::Edge>& visited_edge);
+void cut_slice(CMap3& m3, CMap3::Attribute<Vec3>* vertex_position, CellCache<CMap3>& slice);
+CellCache<CMap3> get_slice(CMap3& m, CMap3::Edge e);
+void volume_fiber_spread(CMap3& m, CellCache<CMap3>& surface_fibers, CellMarker<CMap3, CMap3::Edge>& edge_fibers);
+CellCache<CMap3> surface_fiber_spread(CMap3& m, CMap3::Edge e0);
+void mark_mesh_fibers(CMap3& m3, CMap3::Edge e, CellMarker<CMap3, CMap3::Edge>& edge_fibers);
+void fiber_aligned_subdivision(CMap3& m, CellMarker<CMap3, CMap3::Edge>& fibers);
+
+// void mark_fibers_from_input();
+// void fiber_aligned_subdivision(CMap3& m3);
 
 /*****************************************************************************/
 /* data preparation                                                          */
@@ -172,6 +182,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 bool create_intersection_frames(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs);
 bool create_intersection_frame_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 								 Graph::Vertex v);
+bool create_extremity_frame(const Graph& g, GAttributes& gAttribs, Graph::Vertex v);
 
 bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gData, CMap2& m2);
 void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start);

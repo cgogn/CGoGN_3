@@ -43,7 +43,7 @@ namespace modeling
 
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
-					Graph::Attribute<Scalar>* new_g_vertex_radius)
+					Graph::Attribute<Scalar>* new_g_vertex_radius, Scalar density)
 {
 	GraphData g_data;
 	get_graph_data(g, g_data);
@@ -79,7 +79,7 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 			value<Scalar>(g, g_vertex_radius, Graph::Vertex(branch.second.dart));
 
 		resample_branch(g, {branch.first.dart, branch.second.dart}, new_g, Graph::Edge(ed), g_vertex_position,
-						g_vertex_radius, new_g_vertex_position, new_g_vertex_radius);
+						g_vertex_radius, new_g_vertex_position, new_g_vertex_radius, density);
 	}
 
 	for (auto& intersection : g_data.intersections)
@@ -118,7 +118,8 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 
 void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Graph::Edge new_g_edge,
 					 Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
-					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius)
+					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius,
+					 Scalar density)
 {
 	// compute the length of the branch
 	Scalar branch_length = 0;
@@ -136,7 +137,7 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Gra
 	// if the radius of the current extremities are disjoint, bisect
 	if (value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.first)) +
 			value<Scalar>(g, g_vertex_radius, Graph::Vertex(g_branch.second)) <
-		0.35 * branch_length)
+		density * branch_length)
 	{
 		// find the edge in which the 0.5 value lies
 		Scalar cur_length = 0;
@@ -172,9 +173,9 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Gra
 		value<Scalar>(new_g, new_g_vertex_radius, new_g_v) = mid_radius;
 		// recursive calls on the right and left branches
 		resample_branch(g, {g_v.dart, g_branch.first}, new_g, Graph::Edge(new_g_v.dart), g_vertex_position,
-						g_vertex_radius, new_g_vertex_position, new_g_vertex_radius);
+						g_vertex_radius, new_g_vertex_position, new_g_vertex_radius, density);
 		resample_branch(g, {alpha1(g, g_v.dart), g_branch.second}, new_g, Graph::Edge(alpha1(new_g, new_g_v.dart)),
-						g_vertex_position, g_vertex_radius, new_g_vertex_position, new_g_vertex_radius);
+						g_vertex_position, g_vertex_radius, new_g_vertex_position, new_g_vertex_radius, density);
 	}
 }
 

@@ -107,7 +107,9 @@ int main(int argc, char** argv)
 	v->link_module(&tm);
 
 	// load graph
+	std::cout << "load graph" << std::endl;
 	Graph* g = mpg.load_graph_from_file(graph_filename);
+	std::cout << "graph loaded" << std::endl;
 	if (!g)
 	{
 		std::cout << "Graph file could not be loaded" << std::endl;
@@ -118,6 +120,7 @@ int main(int argc, char** argv)
 	if (argc >= 3)
 	{
 		Surface* s = mps.load_surface_from_file(surface_filename);
+		std::cout << "surface loaded" << std::endl;
 		if (!s)
 		{
 			std::cout << "Surface file could not be loaded" << std::endl;

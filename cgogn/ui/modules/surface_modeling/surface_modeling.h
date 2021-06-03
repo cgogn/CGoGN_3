@@ -32,9 +32,10 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
-#include <cgogn/modeling/algos/hole_filling.h>
+#include <cgogn/modeling/algos/mesh_repair.h>
+#include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
+#include <cgogn/modeling/algos/remeshing/topstoc.h>
 #include <cgogn/modeling/algos/subdivision.h>
-#include <cgogn/modeling/algos/topstoc.h>
 
 namespace cgogn
 {
@@ -71,6 +72,12 @@ public:
 		mesh_provider_->emit_connectivity_changed(&m);
 	}
 
+	void remove_small_components(MESH& m, uint32 min_vertices)
+	{
+		modeling::remove_small_components(m, min_vertices);
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
 	void reverse_orientation(MESH& m)
 	{
 		cgogn::reverse_orientation(m);
@@ -94,6 +101,13 @@ public:
 	{
 		modeling::topstoc(mesh_provider_, m, vertex_position,
 						  0.5 * mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>());
+		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+	}
+
+	void remesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		modeling::pliant_remeshing(m, vertex_position);
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
@@ -125,12 +139,18 @@ protected:
 					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Fill holes"))
 					fill_holes(*selected_mesh_);
+				static int32 min_vertices = 1000;
+				ImGui::SliderInt("Min nb vertices", &min_vertices, 1, 10000);
+				if (ImGui::Button("Remove small components"))
+					remove_small_components(*selected_mesh_, uint32(min_vertices));
 				if (ImGui::Button("Reverse orientation"))
 					reverse_orientation(*selected_mesh_);
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Simplify"))
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Remesh"))
+					remesh(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
 	}

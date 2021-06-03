@@ -469,19 +469,19 @@ public:
 			{
 				if (is_indexed<typename mesh_traits<MESH>::Face>(m))
 				{
-					if (position == nullptr)
+					// if (position == nullptr)
 						init_triangles<true>(m, table_indices, table_indices_emb);
-					else
-						init_ear_triangles<true>(m, table_indices, table_indices_emb, position);
-					func_update_ebo(INDEX_FACES, table_indices_emb);
+					// else
+					// 	init_ear_triangles<true>(m, table_indices, table_indices_emb, position);
+					// func_update_ebo(INDEX_FACES, table_indices_emb);
 				}
 				else
 				{
-					if (position == nullptr)
+					// if (position == nullptr)
 						init_triangles<false>(m, table_indices, table_indices_emb);
-					else
-						init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
-					func_update_ebo2(INDEX_FACES, table_indices_emb);
+					// else
+					// 	init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
+					// func_update_ebo2(INDEX_FACES, table_indices_emb);
 				}
 				func_update_ebo(TRIANGLES, table_indices);
 			}
@@ -490,7 +490,7 @@ public:
 		case VOLUMES_EDGES:
 		case VOLUMES_FACES:
 		case INDEX_VOLUMES:
-			if constexpr (mesh_traits<MESH>::dimension >= 2)
+			if constexpr (mesh_traits<MESH>::dimension >= 3)
 			{
 				if (is_indexed<typename mesh_traits<MESH>::Volume>(m))
 				{

@@ -29,6 +29,7 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 #include <cgogn/core/types/cmap/orbit_traversal.h>
 
 namespace cgogn
@@ -204,6 +205,68 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 // true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1, bool set_indices)
+{
+	/// find face in common
+	std::vector<IncidenceGraph::Face> faces0 = incident_faces(ig, v0);
+	std::vector<IncidenceGraph::Face> faces1 = incident_faces(ig, v1);
+
+	IncidenceGraph::Face face;
+	for(uint32 i = 0; i < faces0.size(); ++i)
+	{
+		for(uint32 j = 0; j < faces1.size(); ++j)
+		{
+			if(faces0[i].index_ == faces1[j].index_)
+			{
+				face = faces0[i];
+				break;
+			}
+		}
+		if(face.is_valid())
+			break;
+	}
+
+	if(!face.is_valid())
+		return IncidenceGraph::Edge();
+
+	std::vector<IncidenceGraph::Edge> edges = incident_edges(ig, face);
+	sort_edges(ig, edges);
+	std::vector<IncidenceGraph::Vertex> vertices;
+	sorted_face_vertices(ig, edges, vertices);
+
+
+	std::vector<IncidenceGraph::Edge> face_edge0;
+	std::vector<IncidenceGraph::Edge> face_edge1;
+
+	bool inside = false;
+	for(uint32 i = 0; i < edges.size(); ++i)
+	{
+		if(vertices[i].index_ == v0.index_ || vertices[i].index_ == v1.index_)
+		{
+			inside = !inside;
+		}
+		
+		if(inside)
+			face_edge1.push_back(edges[i]);
+		else 
+			face_edge0.push_back(edges[i]);
+	}
+
+	remove_face(ig, face);
+	IncidenceGraph::Edge new_edge = add_edge(ig, v0, v1);
+	face_edge0.push_back(new_edge);
+	face_edge1.push_back(new_edge);
+	add_face(ig, face_edge0);
+	add_face(ig, face_edge1);
+
+	return new_edge;
+}
+
 
 ///////////
 // CMap2 //

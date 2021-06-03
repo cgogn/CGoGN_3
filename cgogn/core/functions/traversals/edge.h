@@ -124,6 +124,38 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 	}
 }
 
+//////////////////////
+/// IncidenceGraph ///
+//////////////////////
+
+template <typename CELL, typename FUNC>
+auto foreach_incident_edge(const IncidenceGraph& ig, CELL c, const FUNC& func)
+{
+	using Edge = mesh_traits<IncidenceGraph>::Edge;
+
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this IncidenceGraph");
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Vertex>)
+	{
+		for(auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		{
+			if(!func(ep))
+				break;
+		}
+	}
+	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Face>)
+	{
+		for(auto& ep : (*ig.face_incident_edges_)[c.index_])
+		{
+			if(!func(ep))
+				break;
+		}
+	}
+}
+
+
 /*****************************************************************************/
 
 // template <typename MESH, typename CELL>

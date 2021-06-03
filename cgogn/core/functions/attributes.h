@@ -58,6 +58,19 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute
 	return mb.attribute_containers_[CELL::ORBIT].template add_attribute<T>(name);
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename T, typename CELL, typename MESH,
+		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>* = nullptr>
+std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	IncidenceGraph& mb = static_cast<IncidenceGraph&>(m);
+	return mb.attribute_containers_[CELL::CELL_INDEX].template add_attribute<T>(name);
+}
+
 /*****************************************************************************/
 
 // template <typename T, typename CELL, typename MESH>
@@ -74,6 +87,16 @@ template <typename T, typename CELL>
 std::shared_ptr<CMapBase::Attribute<T>> get_attribute(const CMapBase& m, const std::string& name)
 {
 	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename T, typename CELL>
+std::shared_ptr<IncidenceGraph::Attribute<T>> get_attribute(const IncidenceGraph& m, const std::string& name)
+{
+	return m.attribute_containers_[CELL::CELL_INDEX].template get_attribute<T>(name);
 }
 
 /*****************************************************************************/
@@ -102,6 +125,23 @@ void remove_attribute(CMapBase& m, CMapBase::AttributeGen* attribute)
 	m.attribute_containers_[CELL::ORBIT].remove_attribute(attribute);
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename CELL>
+void remove_attribute(IncidenceGraph& m, const std::shared_ptr<IncidenceGraph::AttributeGen>& attribute)
+{
+	m.attribute_containers_[CELL::CELL_INDEX].remove_attribute(attribute);
+}
+
+template <typename CELL>
+void remove_attribute(IncidenceGraph& m, IncidenceGraph::AttributeGen* attribute)
+{
+	m.attribute_containers_[CELL::CELL_INDEX].remove_attribute(attribute);
+}
+
+
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH, typename FUNC>
@@ -120,6 +160,20 @@ void foreach_attribute(const CMapBase& m, const FUNC& f)
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeGen>&>::value,
 				  "Wrong function attribute parameter type");
 	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
+		f(a);
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename CELL, typename FUNC>
+void foreach_attribute(const IncidenceGraph& m, const FUNC& f)
+{
+	using AttributeGen = IncidenceGraph::AttributeGen;
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeGen>&>::value,
+				  "Wrong function attribute parameter type");
+	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::CELL_INDEX])
 		f(a);
 }
 
@@ -142,6 +196,25 @@ void foreach_attribute(const CMapBase& m, const FUNC& f)
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value,
 				  "Wrong function attribute parameter type");
 	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::ORBIT])
+	{
+		std::shared_ptr<AttributeT> at = std::dynamic_pointer_cast<AttributeT>(a);
+		if (at)
+			f(at);
+	}
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename T, typename CELL, typename FUNC>
+void foreach_attribute(const IncidenceGraph& m, const FUNC& f)
+{
+	using AttributeT = IncidenceGraph::Attribute<T>;
+	using AttributeGen = IncidenceGraph::AttributeGen;
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value,
+				  "Wrong function attribute parameter type");
+	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::CELL_INDEX])
 	{
 		std::shared_ptr<AttributeT> at = std::dynamic_pointer_cast<AttributeT>(a);
 		if (at)
@@ -198,6 +271,8 @@ T& get_attribute(CMapBase& m, const std::string& name)
 {
 	return m.get_attribute<T>(name);
 }
+
+
 
 } // namespace cgogn
 

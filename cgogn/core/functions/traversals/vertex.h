@@ -131,6 +131,48 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	}
 }
 
+///////////////////////////////
+// CMapBase (or convertible) //
+///////////////////////////////
+
+template <typename CELL, typename FUNC>
+auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
+{
+	using Vertex = IncidenceGraph::Vertex;
+
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Edge>)
+	{
+		std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[c.index_];
+		if(func(evs.first))
+			func(evs.second);
+	}
+	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Face>)
+	{
+		CellMarkerStore<IncidenceGraph, Vertex> marker(ig);
+		for(auto& ep : (*ig.face_incident_edges_)[c.index_])
+		{
+			std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[ep.index_];
+			bool stop = false;
+			if (!marker.is_marked(evs.first))
+			{
+				marker.mark(evs.first);
+				stop = !func(evs.first);
+			}
+			if (!marker.is_marked(evs.second) && !stop)
+			{
+				marker.mark(evs.second);
+				stop = !func(evs.second);
+			}
+			if(stop)
+				break;
+		}
+	}
+}
+
 /*****************************************************************************/
 
 // template <typename MESH, typename FUNC>
@@ -200,6 +242,9 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 		}
 	}
 }
+
+
+
 
 /*****************************************************************************/
 

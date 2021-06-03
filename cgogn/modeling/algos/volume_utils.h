@@ -21,71 +21,31 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_LENGTH_H_
-#define CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#ifndef CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
+#define CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
 
-template <typename MESH>
-Scalar length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-			  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
-}
+using Vec3 = geometry::Vec3;
 
-template <typename MESH>
-Scalar squared_length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-					  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
-}
+//////////
+// CMap //
+//////////
 
-template <typename MESH>
-Scalar mean_edge_length(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Edge = typename mesh_traits<MESH>::Edge;
+void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_position, CMap2& m2,
+							CMap2::Attribute<Vec3>* m2_vertex_position,
+							CMap2::Attribute<CMap3::Vertex>* m2_vertex_m3_vertex = nullptr,
+							CMap3::Attribute<CMap2::Vertex>* m3_vertex_m2_vertex = nullptr);
 
-	thread_pool()->execute_all([]() {
-		float64_value() = 0.0;
-		uint32_value() = 0;
-	});
-
-	parallel_foreach_cell(m, [&](Edge e) -> bool {
-		float64_value() += length(m, e, vertex_position);
-		++uint32_value();
-		return true;
-	});
-
-	Scalar length_sum = 0.0;
-	uint32 nbe = 0;
-
-	std::mutex mutex;
-	thread_pool()->execute_all([&]() {
-		std::lock_guard<std::mutex> lock(mutex);
-		length_sum += float64_value();
-		nbe += uint32_value();
-	});
-
-	return length_sum / Scalar(nbe);
-}
-
-} // namespace geometry
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#endif // CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_

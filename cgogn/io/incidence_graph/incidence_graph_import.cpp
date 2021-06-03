@@ -21,71 +21,60 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_LENGTH_H_
-#define CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#include <cgogn/io/incidence_graph/incidence_graph_import.h>
 
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+
+#include <vector>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace io
 {
 
-template <typename MESH>
-Scalar length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-			  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+void import_incidence_graph_data(IncidenceGraph& ig, IncidenceGraphImportData& incidence_graph_data)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	auto position = get_attribute<geometry::Vec3, Vertex>(ig, incidence_graph_data.vertex_position_attribute_name_);
+	if (!position)
+		position = add_attribute<geometry::Vec3, Vertex>(ig, incidence_graph_data.vertex_position_attribute_name_);
+
+	std::vector<Vertex> vertices;
+	vertices.reserve(incidence_graph_data.nb_vertices_);
+	for (uint32 i = 0u; i < incidence_graph_data.nb_vertices_; ++i)
+	{
+		Vertex v = add_vertex(ig);
+		(*position)[v.index_] = incidence_graph_data.vertex_position_[i];
+		vertices.push_back(v);
+	}
+
+	std::vector<Edge> edges;
+	edges.reserve(incidence_graph_data.nb_edges_);
+	for (uint32 i = 0; i < incidence_graph_data.nb_edges_; ++i)
+	{
+		Edge e = add_edge(ig, vertices[incidence_graph_data.edges_vertex_indices_[2 * i]],
+						  vertices[incidence_graph_data.edges_vertex_indices_[2 * i + 1]]);
+		edges.push_back(e);
+	}
+
+	uint32 faces_edge_index = 0u;
+	for (uint32 i = 0; i < incidence_graph_data.nb_faces_; ++i)
+	{
+		uint32 nbe = incidence_graph_data.faces_nb_edges_[i];
+		std::vector<Edge> face;
+		face.reserve(nbe);
+		for (uint32 j = 0; j < nbe; ++j)
+			face.push_back(edges[incidence_graph_data.faces_edge_indices_[faces_edge_index++]]);
+		Face f = add_face(ig, face);
+	}
 }
 
-template <typename MESH>
-Scalar squared_length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-					  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
-}
-
-template <typename MESH>
-Scalar mean_edge_length(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	thread_pool()->execute_all([]() {
-		float64_value() = 0.0;
-		uint32_value() = 0;
-	});
-
-	parallel_foreach_cell(m, [&](Edge e) -> bool {
-		float64_value() += length(m, e, vertex_position);
-		++uint32_value();
-		return true;
-	});
-
-	Scalar length_sum = 0.0;
-	uint32 nbe = 0;
-
-	std::mutex mutex;
-	thread_pool()->execute_all([&]() {
-		std::lock_guard<std::mutex> lock(mutex);
-		length_sum += float64_value();
-		nbe += uint32_value();
-	});
-
-	return length_sum / Scalar(nbe);
-}
-
-} // namespace geometry
+} // namespace io
 
 } // namespace cgogn
-
-#endif // CGOGN_GEOMETRY_ALGOS_LENGTH_H_

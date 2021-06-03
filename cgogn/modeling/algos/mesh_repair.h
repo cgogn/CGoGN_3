@@ -21,71 +21,73 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_LENGTH_H_
-#define CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#ifndef CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
+#define CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
-
-#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace geometry
+namespace modeling
 {
 
-template <typename MESH>
-Scalar length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-			  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+///////////
+// CMap2 //
+///////////
+
+inline void fill_holes(CMap2& m, bool set_indices = true)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (is_boundary(m, d))
+		{
+			set_boundary(m, d, false);
+			if (set_indices)
+			{
+				if (is_indexed<CMap2::Face>(m))
+				{
+					if (index_of(m, CMap2::Face(d)) == INVALID_INDEX)
+						set_index(m, CMap2::Face(d), new_index<CMap2::Face>(m));
+				}
+			}
+		}
+	}
 }
 
-template <typename MESH>
-Scalar squared_length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-					  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
-}
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
-Scalar mean_edge_length(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+void remove_small_components(MESH& m, uint32 min_vertices)
 {
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	thread_pool()->execute_all([]() {
-		float64_value() = 0.0;
-		uint32_value() = 0;
-	});
-
-	parallel_foreach_cell(m, [&](Edge e) -> bool {
-		float64_value() += length(m, e, vertex_position);
-		++uint32_value();
-		return true;
-	});
-
-	Scalar length_sum = 0.0;
-	uint32 nbe = 0;
-
-	std::mutex mutex;
-	thread_pool()->execute_all([&]() {
-		std::lock_guard<std::mutex> lock(mutex);
-		length_sum += float64_value();
-		nbe += uint32_value();
-	});
-
-	return length_sum / Scalar(nbe);
+	if constexpr (mesh_traits<MESH>::dimension == 2)
+	{
+		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Volume = typename mesh_traits<MESH>::Volume;
+		foreach_cell(m, [&](Volume vol) -> bool {
+			uint32 n = 0;
+			foreach_incident_vertex(m, vol, [&](Vertex v) -> bool {
+				++n;
+				return true;
+			});
+			if (n < min_vertices)
+				remove_volume(m, vol);
+			return true;
+		});
+	}
+	else if constexpr (mesh_traits<MESH>::dimension == 3)
+	{
+		// TODO
+	}
 }
 
-} // namespace geometry
+} // namespace modeling
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_LENGTH_H_
+#endif // CGOGN_MODELING_ALGOS_MESH_REPAIR_H_

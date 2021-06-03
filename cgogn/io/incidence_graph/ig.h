@@ -21,14 +21,13 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_OFF_H_
-#define CGOGN_IO_SURFACE_OFF_H_
+#ifndef CGOGN_IO_INCIDENCE_GRAPH_IG_H_
+#define CGOGN_IO_INCIDENCE_GRAPH_IG_H_
 
-#include <cgogn/io/surface/surface_import.h>
+#include <cgogn/io/incidence_graph/incidence_graph_import.h>
 #include <cgogn/io/utils.h>
 
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/numerics.h>
 
@@ -44,33 +43,34 @@ namespace io
 {
 
 template <typename MESH>
-bool import_OFF(MESH& m, const std::string& filename)
+bool import_IG(MESH& m, const std::string& filename)
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 1");
 
 	using Vertex = typename MESH::Vertex;
 
 	Scoped_C_Locale loc;
 
-	SurfaceImportData surface_data;
+	IncidenceGraphImportData incidence_graph_data;
 
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
 	std::string line;
-	line.reserve(512u);
+	line.reserve(512);
 
-	// read OFF header
 	getline_safe(fp, line);
-	if (line.rfind("OFF") == std::string::npos)
+	if (line.rfind("IG") == std::string::npos)
 	{
-		std::cerr << "File \"" << filename << "\" is not a valid off file." << std::endl;
+		std::cerr << "File \"" << filename << "\" is not a valid ig file." << std::endl;
 		return false;
 	}
 
 	// read number of vertices, edges, faces
 	const uint32 nb_vertices = read_uint(fp, line);
+	const uint32 nb_edges = read_uint(fp, line);
 	const uint32 nb_faces = read_uint(fp, line);
-	/*const uint32 nb_edges_ =*/read_uint(fp, line);
+
+	std::cout << "import ig: " << nb_vertices << " " << nb_edges << " " << nb_faces << std::endl;
 
 	if (nb_vertices == 0u)
 	{
@@ -78,7 +78,7 @@ bool import_OFF(MESH& m, const std::string& filename)
 		return false;
 	}
 
-	surface_data.reserve(nb_vertices, nb_faces);
+	incidence_graph_data.reserve(nb_vertices, nb_edges, nb_faces);
 
 	// read vertices position
 	for (uint32 i = 0u; i < nb_vertices; ++i)
@@ -86,72 +86,80 @@ bool import_OFF(MESH& m, const std::string& filename)
 		float64 x = read_double(fp, line);
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
-		surface_data.vertex_position_.push_back({x, y, z});
+		incidence_graph_data.vertex_position_.push_back({x, y, z});
 	}
 
-	// read faces (vertex indices)
-	for (uint32 i = 0u; i < nb_faces; ++i)
+	// read edges
+	for (uint32 i = 0; i < nb_edges; ++i)
 	{
-		uint32 n = read_uint(fp, line);
-
-		std::vector<uint32> indices(n);
-		for (uint32 j = 0u; j < n; ++j)
-			indices[j] = read_uint(fp, line);
-
-		surface_data.faces_nb_vertices_.push_back(n);
-		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
-												  indices.end());
+		const uint32 a = read_uint(fp, line);
+		const uint32 b = read_uint(fp, line);
+		incidence_graph_data.edges_vertex_indices_.push_back(a);
+		incidence_graph_data.edges_vertex_indices_.push_back(b);
 	}
 
-	import_surface_data(m, surface_data);
+	// read faces
+	for (uint32 i = 0; i < nb_faces; ++i)
+	{
+		const uint32 nbe = read_uint(fp, line);
+		incidence_graph_data.faces_nb_edges_.push_back(nbe);
+		for (uint32 j = 0; j < nbe; ++j)
+		{
+			const uint32 e = read_uint(fp, line);
+			incidence_graph_data.faces_edge_indices_.push_back(e);
+		}
+	}
+
+	import_incidence_graph_data(m, incidence_graph_data);
 
 	return true;
 }
 
 template <typename MESH>
-void export_OFF(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
-				const std::string& filename)
+void export_IG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
+			   const std::string& filename)
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+	// static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
 
-	using Vertex = typename MESH::Vertex;
-	using Face = typename MESH::Face;
+	// using Vertex = typename MESH::Vertex;
+	// using Edge = typename MESH::Edge;
 
-	auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
+	// auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
 
-	uint32 nb_vertices = nb_cells<Vertex>(m);
-	uint32 nb_faces = nb_cells<Face>(m);
+	// uint32 nb_vertices = nb_cells<Vertex>(m);
+	// uint32 nb_edges = nb_cells<Edge>(m);
 
-	std::ofstream out_file;
-	out_file.open(filename);
-	out_file << "OFF\n";
-	out_file << nb_vertices << " " << nb_faces << " " << 0 << "\n";
+	// std::ofstream out_file;
+	// out_file.open(filename);
+	// out_file << "# D:3 NV:" << nb_vertices << " NE:" << nb_edges << "\n";
 
-	uint32 id = 0;
-	foreach_cell(m, [&](Vertex v) -> bool {
-		const geometry::Vec3& p = value<geometry::Vec3>(m, vertex_position, v);
-		value<uint32>(m, vertex_id, v) = id++;
-		out_file << p[0] << " " << p[1] << " " << p[2] << "\n";
-		return true;
-	});
+	// uint32 id = 0;
+	// // uint32 id = 1;
+	// foreach_cell(m, [&](Vertex v) -> bool {
+	// 	const geometry::Vec3& pos = value<geometry::Vec3>(m, vertex_position, v);
+	// 	value<uint32>(m, vertex_id, v) = id++;
+	// 	out_file << "v " << pos[0] << " " << pos[1] << " " << pos[2] << " "
+	// 			 << "\n";
+	// 	return true;
+	// });
 
-	foreach_cell(m, [&](Face f) -> bool {
-		out_file << codegree(m, f);
-		foreach_incident_vertex(m, f, [&](Vertex v) -> bool {
-			out_file << " " << value<uint32>(m, vertex_id, v);
-			return true;
-		});
-		out_file << "\n";
-		return true;
-	});
+	// foreach_cell(m, [&](Edge e) -> bool {
+	// 	out_file << "e";
+	// 	foreach_incident_vertex(m, e, [&](Vertex v) -> bool {
+	// 		out_file << " " << value<uint32>(m, vertex_id, v);
+	// 		return true;
+	// 	});
+	// 	out_file << "\n";
+	// 	return true;
+	// });
 
-	remove_attribute<Vertex>(m, vertex_id);
+	// remove_attribute<Vertex>(m, vertex_id);
 
-	out_file.close();
+	// out_file.close();
 }
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_OFF_H_
+#endif // CGOGN_IO_INCIDENCE_GRAPH_IG_H_

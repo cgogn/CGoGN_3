@@ -21,38 +21,53 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
-#define CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
+#ifndef CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_
+#define CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_
+
+#include <cgogn/io/cgogn_io_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
+
+#include <vector>
 
 namespace cgogn
 {
 
-namespace modeling
+namespace io
 {
 
-inline void fill_holes(CMap2& m, bool set_indices = true)
+using Vec3 = geometry::Vec3;
+
+struct IncidenceGraphImportData
 {
-	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	uint32 nb_vertices_ = 0;
+	uint32 nb_edges_ = 0;
+	uint32 nb_faces_ = 0;
+
+	std::vector<Vec3> vertex_position_;
+	std::string vertex_position_attribute_name_ = "position";
+
+	std::vector<uint32> edges_vertex_indices_;
+	std::vector<uint32> faces_nb_edges_;
+	std::vector<uint32> faces_edge_indices_;
+
+	inline void reserve(uint32 nb_vertices, uint32 nb_edges, uint32 nb_faces)
 	{
-		if (is_boundary(m, d))
-		{
-			set_boundary(m, d, false);
-			if (set_indices)
-			{
-				if (is_indexed<CMap2::Face>(m))
-				{
-					if (index_of(m, CMap2::Face(d)) == INVALID_INDEX)
-						set_index(m, CMap2::Face(d), new_index<CMap2::Face>(m));
-				}
-			}
-		}
+		nb_vertices_ = nb_vertices;
+		nb_edges_ = nb_edges;
+		nb_faces_ = nb_faces;
+		vertex_position_.reserve(nb_vertices);
+		edges_vertex_indices_.reserve(nb_edges * 2u);
+		faces_nb_edges_.reserve(nb_faces);
+		faces_edge_indices_.reserve(nb_faces * 4u);
 	}
-}
+};
 
-} // namespace modeling
+void CGOGN_IO_EXPORT import_incidence_graph_data(IncidenceGraph& ig, IncidenceGraphImportData& graph_data);
+
+} // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_HOLE_FILLING_H_
+#endif // CGOGN_IO_INCIDENCE_GRAPH_IMPORT_H_

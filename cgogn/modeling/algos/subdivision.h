@@ -122,6 +122,7 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 
 	CellCache<MESH> cache(m);
 	cache.template build<Face>();
+
 	CellMarker<MESH, Edge> cm(m);
 	foreach_cell(cache, [&](Face f) -> bool {
 		foreach_incident_edge(m, f, [&](Edge ie) -> bool {
@@ -149,30 +150,283 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 ///////////
 // CMap3 //
 ///////////
+ 
 
-template <typename FUNC1, typename FUNC2, typename FUNC3>
-void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+/// Pre cut hex, input: original dart from edge along the direction of the cut
+inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
+	Dart d0 = phi<12111>(m, w.dart);
+	std::vector<Dart> path0;
+	Dart d1 = d0;
+	do {
+		path0.push_back(d1);
+		d1 = phi<121>(m, d1);
+	} while(d1 != d0);
+
+	cut_volume(m, path0);
+	path0.clear();
+
+	d1 = phi<21>(m, d0);
+	Dart d2 = phi<111>(m, d1);
+	CMap3::Edge e = cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(d2));
+
+	std::vector<Dart> path1;
+	d1 = e.dart;
+	d2 = phi3(m, d1);
+	do {
+		path0.push_back(d1);
+		path1.push_back(d2);
+		d1 = phi<121>(m, d1);
+		d2 = phi<121>(m, d2);
+	} while(d1 != e.dart);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+
+
+	// Dart d0 = phi<1211>(m, w.dart);
+	// Dart d1 = d0;
+	// Dart d2, d3, d4;
+	// do {
+	// 	d1 = phi1(m, d1);
+	// 	d2 = phi2(m, d1);
+
+	// 	Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+	// 	Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+	// 	Dart ee = f0;
+	// 	Dart ff = f1;
+	// 	do
+	// 	{
+	// 		phi3_sew(m, ee, ff);
+	// 		ee = phi1(m, ee);
+	// 		ff = phi_1(m, ff);
+	// 	} while (ee != f0);
+
+	// 	phi2_unsew(m, d1);
+	// 	phi2_sew(m, d1, f0);
+	// 	phi2_sew(m, d2, f1);
+	// 	f0 = phi1(m, f0);
+	// 	f1 = phi_1(m, f1);
+		
+	// 	d3 = phi<121>(m, d1);
+	// 	d4 = phi2(m, d3);
+
+	// 	phi2_unsew(m, d3);
+	// 	phi2_sew(m, d3, f0);
+	// 	phi2_sew(m, d4, f1);
+	// 	f0 = phi1(m, f0);
+	// 	f1 = phi_1(m, f1);
+
+	// 	d3 = phi<121>(m, d3);
+	// 	d4 = phi2(m, d3);
+
+	// 	phi2_unsew(m, d3);
+	// 	phi2_sew(m, d3, f0);
+	// 	phi2_sew(m, d4, f1);
+
+	// 	d1 = d2;
+	// } while(d1 != d0);
+
+	// do{
+	// 	d2 = phi1(m, d1);
+		
+	// 	d3 = phi_1(m, phi2(m, d1));
+	// 	d4 = phi<21>(m, d2);
+	// 	phi2_sew(m, d3, d4);
+
+	// 	d1 = phi<232>(m, d2);
+	// }while(d1 != d0);
+
+
+
+	// d0 = phi_1(m, phi<12112>(m, w.dart));
+	// d1 = d0;
+	// d2 = phi2(m, d1);
+
+	// if (is_indexed<CMap3::Vertex>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Vertex>(m, d1, index_of(m, CMap3::Vertex(phi1(m, d2))));
+	// 		set_index<CMap3::Vertex>(m, d2, index_of(m, CMap3::Vertex(phi1(m, d1))));
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Vertex>(m, d3, index_of(m, CMap3::Vertex(phi<21>(m, d3))));
+	// 			set_index<CMap3::Vertex>(m, d4, index_of(m, CMap3::Vertex(phi<21>(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		} while(d3 != d1);
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	} while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Vertex2>(m))
+	// {
+	// 	do {
+	// 		set_index<CMap3::Vertex2>(m, d1, index_of(m, CMap3::Vertex2(phi1(m, d2))));
+	// 		set_index<CMap3::Vertex2>(m, d2, index_of(m, CMap3::Vertex2(phi1(m, d1))));
+	// 		d3 = phi1(m, d1);
+	// 		do {
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Vertex2>(m, d3, index_of(m, CMap3::Vertex2(phi<21>(m, d3))));
+	// 			set_index<CMap3::Vertex2>(m, d4, index_of(m, CMap3::Vertex2(phi<21>(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		} while(d3 != d1);
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	} while(d1 != d0);
+	// }
+
+	// if(is_indexed<CMap3::Edge>(m))
+	// {
+	// 	set_index<CMap3::Edge>(m, CMap3::Edge(d0), new_index<CMap3::Edge>(m));
+	// 	do{
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Edge>(m, d3, index_of(m, CMap3::Edge(phi2(m, d3))));
+	// 			set_index<CMap3::Edge>(m, d4, index_of(m, CMap3::Edge(phi2(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		}while(d3 != d1);
+	// 		d1 = phi<23>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Edge2>(m))
+	// {
+	// 	do{
+	// 	}while(d1 != d0);
+
+	// 	do{
+	// 		set_index<CMap3::Edge2>(m, CMap3::Edge2(d1), new_index<CMap3::Edge2>(m));
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Edge2>(m, CMap3::Edge2(d3), new_index<CMap3::Edge2>(m));
+	// 			set_index<CMap3::Edge2>(m, CMap3::Edge2(d4), new_index<CMap3::Edge2>(m));
+	// 			d3 = phi1(m, d3);
+	// 		}while(d3 != d1);
+	// 		d1 = phi<23>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Face>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Face>(m, CMap3::Face(d1), new_index<CMap3::Face>(m));
+	// 		d1 = phi<23>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Face2>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Face2>(m, CMap3::Face2(d1), new_index<CMap3::Face2>(m));
+	// 		set_index<CMap3::Face2>(m, CMap3::Face2(d2), new_index<CMap3::Face2>(m));
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Volume>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Volume>(m, CMap3::Volume(d1), new_index<CMap3::Volume>(m));
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	}while(d1 != d0);
+	// }
+}
+
+/// Pre cut hex, input: original vertex dart 
+inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
+	Dart d0, d10, d11, d20, d21, d22, d23;
+	Dart d1, d2, d3, d4;
+	std::vector<Dart> path0, path1, path2, path3;
+
+	d0 = phi<11>(m, w.dart);
+	d10 = phi<21>(m, d0);
+	d11 = phi<12>(m, w.dart);
+	d20 = phi<1211>(m, d10);
+	d21 = phi<2121>(m, d20);
+	d22 = phi<1211>(m, d11);
+	d23 = phi<2121>(m, d22);
+
+	d1 = d0;
+	do {
+		path0.push_back(d1);
+		d1 = phi<121>(m, d1);
+	} while (d1 != d0);
+
+	cut_volume(m, path0);
+	path0.clear();
+	CMap3::Vertex v = quadrangulate_face(m, CMap3::Face(phi<2>(m, d0)));
+
+	d1 = d10;
+	d2 = d11;
+	do {
+		path0.push_back(d1);
+		path1.push_back(d2);
+		d1 = phi<121>(m, d1);
+		d2 = phi<121>(m, d2);
+	} while (d1 != d10);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+	path0.clear();
+	path1.clear();
+
+	d1 = phi2(m, phi_1(m, d20));
+	cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(phi<111>(m, d1)));
+	d1 = phi2(m, phi_1(m, d22));
+	cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(phi<111>(m, d1)));
+
+	d1 = d20;
+	d2 = d21;
+	d3 = d22;
+	d4 = d23;
+	do {
+		path0.push_back(d1);
+		path1.push_back(d2);
+		path2.push_back(d3);
+		path3.push_back(d4);
+		d1 = phi<121>(m, d1);
+		d2 = phi<121>(m, d2);
+		d3 = phi<121>(m, d3);
+		d4 = phi<121>(m, d4);
+	} while (d1 != d20);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+	cut_volume(m, path2);
+	cut_volume(m, path3);
+	
+	
+	return v;
+}
+
+
+
+template <typename MESH, typename FUNC1, typename FUNC2, typename FUNC3>
+auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMap3&>>
 {
-	using HalfEdge = typename CMap3::HalfEdge;
-	using Vertex = typename CMap3::Vertex;
-	using Edge = typename CMap3::Edge;
-	using Face = typename CMap3::Face;
-	using Vertex2 = typename CMap3::Vertex2;
-	using Edge2 = typename CMap3::Edge2;
-	using Face2 = typename CMap3::Face2;
-	using Volume = typename CMap3::Volume;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	using Vertex2 = typename mesh_traits<MESH>::Vertex2;
+	using Edge2 = typename mesh_traits<MESH>::Edge2;
+	using Face2 = typename mesh_traits<MESH>::Face2;
+	using Volume = typename mesh_traits<MESH>::Volume;
 	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
 	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
 	static_assert(is_func_parameter_same<FUNC3, Vertex>::value, "Given function should take a Vertex");
 
-	CellCache<CMap3> vol_cache(m);
-	vol_cache.template build<Volume>();
+	// CellCache<MESH> vol_cache(m);
+	// vol_cache.template build<Volume>();
 
-	CellCache<CMap3> edge_vert_cache(m);
-	CellCache<CMap3> face_vert_cache(m);
+	CellCache<MESH> edge_vert_cache(m);
+	CellCache<MESH> face_vert_cache(m);
 
-	CellMarker<CMap3, Volume> cm(m);
-	foreach_cell(vol_cache, [&](Volume w) -> bool {
+	CellMarker<MESH, Volume> cm(m);
+	foreach_cell(m, [&](Volume w) -> bool {
 		cm.mark(w);
 		return true;
 	});
@@ -250,8 +504,8 @@ void primal_cut_all_volumes(CMap3& m, const FUNC1& on_edge_cut, const FUNC2& on_
 		return true;
 	});
 
-	CellCache<CMap3> vol_vert_cache(m);
-	foreach_cell(vol_cache, [&](Volume w) -> bool {
+	CellCache<MESH> vol_vert_cache(m);
+	foreach_cell(m, [&](Volume w) -> bool {
 		Dart d0 = w.dart;
 		Vertex vw = Vertex(phi_1(m, phi<12>(m, d0)));
 		vol_vert_cache.add(vw);

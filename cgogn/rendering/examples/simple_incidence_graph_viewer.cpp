@@ -21,71 +21,70 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_LENGTH_H_
-#define CGOGN_GEOMETRY_ALGOS_LENGTH_H_
-
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
-namespace cgogn
-{
+#include <cgogn/core/functions/attributes.h>
 
-namespace geometry
-{
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-template <typename MESH>
-Scalar length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-			  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+#include <cgogn/ui/modules/surface_render/surface_render.h>
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+
+
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+
+using Mesh = cgogn::IncidenceGraph;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).norm();
+	std::string filename;
+	if (argc < 2)
+	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
+	}
+	else
+		filename = std::string(argv[1]);
+
+	cgogn::thread_start();
+
+	cgogn::ui::App app;
+	app.set_window_title("Simple graph viewer");
+	app.set_window_size(1000, 800);
+
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> gr(app);
+	Mesh* ig = mp.load_surface_from_file(filename);
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
+
+	cgogn::cut_face(*ig, Mesh::Vertex(0), Mesh::Vertex(2));
+	// cgogn::remove_face(*ig, Mesh::Face(0));
+	// Mesh::Vertex v = cgogn::cut_edge(*ig, Mesh::Edge(0));
+	// (*vertex_position)[v.index_] = Vec3(1, 2, 3);
+	
+
+	app.init_modules();
+
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&gr);
+
+	mp.set_mesh_bb_vertex_position(ig, vertex_position);
+	gr.set_vertex_position(*v1, *ig, vertex_position);
+
+	return app.launch();
 }
-
-template <typename MESH>
-Scalar squared_length(const MESH& m, typename mesh_traits<MESH>::Edge e,
-					  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	std::vector<Vertex> vertices = incident_vertices(m, e);
-	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
-}
-
-template <typename MESH>
-Scalar mean_edge_length(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-{
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	thread_pool()->execute_all([]() {
-		float64_value() = 0.0;
-		uint32_value() = 0;
-	});
-
-	parallel_foreach_cell(m, [&](Edge e) -> bool {
-		float64_value() += length(m, e, vertex_position);
-		++uint32_value();
-		return true;
-	});
-
-	Scalar length_sum = 0.0;
-	uint32 nbe = 0;
-
-	std::mutex mutex;
-	thread_pool()->execute_all([&]() {
-		std::lock_guard<std::mutex> lock(mutex);
-		length_sum += float64_value();
-		nbe += uint32_value();
-	});
-
-	return length_sum / Scalar(nbe);
-}
-
-} // namespace geometry
-
-} // namespace cgogn
-
-#endif // CGOGN_GEOMETRY_ALGOS_LENGTH_H_

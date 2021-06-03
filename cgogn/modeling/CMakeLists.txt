@@ -23,9 +23,12 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_utils.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/hole_filling.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/mesh_repair.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/topstoc.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/topstoc.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/pliant_remeshing.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/volume_utils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/volume_utils.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
