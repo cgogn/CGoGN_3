@@ -82,7 +82,6 @@ bool import_MESHB(MESH& m, const std::string& filename)
 	}
 
 	volume_data.reserve(number_of_vertices, nb_volumes);
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
 	GmfGotoKwd(mesh_index, GmfVertices);
 	int32 ref;
 
@@ -90,24 +89,16 @@ bool import_MESHB(MESH& m, const std::string& filename)
 	if (use_floats)
 		for (uint32 i = 0u; i < number_of_vertices; ++i)
 		{
-			uint32 idx = new_index<Vertex>(m);
 			std::array<float32, 3> v;
 			(void)GmfGetLin(mesh_index, GmfVertices, &v[0], &v[1], &v[2], &ref);
-			position->operator[](idx)[0] = v[0];
-			position->operator[](idx)[1] = v[1];
-			position->operator[](idx)[2] = v[2];
-			volume_data.vertices_id_.push_back(idx);
+			volume_data.vertex_position_.push_back({v[0], v[1], v[2]});
 		}
 	else
 		for (uint32 i = 0u; i < number_of_vertices; ++i)
 		{
-			uint32 idx = new_index<Vertex>(m);
 			std::array<float64, 3> v;
 			(void)GmfGetLin(mesh_index, GmfVertices, &v[0], &v[1], &v[2], &ref);
-			position->operator[](idx)[0] = v[0];
-			position->operator[](idx)[1] = v[1];
-			position->operator[](idx)[2] = v[2];
-			volume_data.vertices_id_.push_back(idx);
+			volume_data.vertex_position_.push_back({v[0], v[1], v[2]});
 		}
 
 	// read volumes
@@ -119,12 +110,11 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		{
 			(void)GmfGetLin(mesh_index, GmfTetrahedra, &ids[0], &ids[1], &ids[2], &ids[3], &ref);
 			for (auto& id : ids)
-			{
 				--id;
-				id = volume_data.vertices_id_[id];
-			}
-			if (geometry::test_orientation_3D((*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]],
-											  (*position)[ids[3]]) == geometry::Orientation3D::UNDER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]],
+											  volume_data.vertex_position_[ids[3]]) == geometry::Orientation3D::UNDER)
 				std::swap(ids[1], ids[2]);
 			volume_data.volumes_types_.push_back(VolumeType::Tetra);
 			volume_data.volumes_vertex_indices_.insert(volume_data.volumes_vertex_indices_.end(), ids.begin(),
@@ -141,12 +131,11 @@ bool import_MESHB(MESH& m, const std::string& filename)
 			(void)GmfGetLin(mesh_index, GmfHexahedra, &ids[0], &ids[1], &ids[2], &ids[3], &ids[4], &ids[5], &ids[6],
 							&ids[7], &ref);
 			for (auto& id : ids)
-			{
 				--id;
-				id = volume_data.vertices_id_[id];
-			}
-			if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[4]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 			{
 				std::swap(ids[0], ids[3]);
 				std::swap(ids[1], ids[2]);
@@ -167,12 +156,11 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		{
 			(void)GmfGetLin(mesh_index, GmfPrisms, &ids[0], &ids[1], &ids[2], &ids[3], &ids[4], &ids[5], &ref);
 			for (auto& id : ids)
-			{
 				--id;
-				id = volume_data.vertices_id_[id];
-			}
-			if (geometry::test_orientation_3D((*position)[ids[3]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[3]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 			{
 				std::swap(ids[1], ids[2]);
 				std::swap(ids[4], ids[5]);
@@ -191,12 +179,11 @@ bool import_MESHB(MESH& m, const std::string& filename)
 		{
 			(void)GmfGetLin(mesh_index, GmfPyramids, &ids[0], &ids[1], &ids[2], &ids[3], &ids[4], &ref);
 			for (auto& id : ids)
-			{
 				--id;
-				id = volume_data.vertices_id_[id];
-			}
-			if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[4]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 				std::swap(ids[1], ids[3]);
 			volume_data.volumes_types_.push_back(VolumeType::Pyramid);
 			volume_data.volumes_vertex_indices_.insert(volume_data.volumes_vertex_indices_.end(), ids.begin(),

@@ -66,7 +66,6 @@ bool import_IG(MESH& m, const std::string& filename)
 	}
 
 	// read number of vertices, edges, faces
-	// getline_safe(fp, line);
 	const uint32 nb_vertices = read_uint(fp, line);
 	const uint32 nb_edges = read_uint(fp, line);
 	const uint32 nb_faces = read_uint(fp, line);
@@ -79,21 +78,15 @@ bool import_IG(MESH& m, const std::string& filename)
 		return false;
 	}
 
-	incidence_graph_data.reserve(nb_vertices);
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
+	incidence_graph_data.reserve(nb_vertices, nb_edges, nb_faces);
 
-	// read vertices
-// read vertices position
+	// read vertices position
 	for (uint32 i = 0u; i < nb_vertices; ++i)
 	{
 		float64 x = read_double(fp, line);
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
-
-		uint32 vertex_id = new_index<Vertex>(m);
-		(*position)[vertex_id] = {x, y, z};
-
-		incidence_graph_data.vertices_id_.push_back(vertex_id);
+		incidence_graph_data.vertex_position_.push_back({x, y, z});
 	}
 
 	// read edges
@@ -101,29 +94,21 @@ bool import_IG(MESH& m, const std::string& filename)
 	{
 		const uint32 a = read_uint(fp, line);
 		const uint32 b = read_uint(fp, line);
-
-		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[a]);
-		incidence_graph_data.edges_vertex_indices_.push_back(incidence_graph_data.vertices_id_[b]);
+		incidence_graph_data.edges_vertex_indices_.push_back(a);
+		incidence_graph_data.edges_vertex_indices_.push_back(b);
 	}
-
 
 	// read faces
 	for (uint32 i = 0; i < nb_faces; ++i)
 	{
 		const uint32 nbe = read_uint(fp, line);
-		incidence_graph_data.faces_edge_indices_.push_back(nbe);
-		std::cout << "face: " << nbe << "\n";
-		for(uint32 j = 0; j < nbe; ++j)
+		incidence_graph_data.faces_nb_edges_.push_back(nbe);
+		for (uint32 j = 0; j < nbe; ++j)
 		{
 			const uint32 e = read_uint(fp, line);
-			std::cout << e << " ";
 			incidence_graph_data.faces_edge_indices_.push_back(e);
 		}
-		std::cout << std::endl;
 	}
-
-
-	std::cout << "nbv: " << incidence_graph_data.vertices_id_.size() << " nbe: " << incidence_graph_data.edges_vertex_indices_.size() << std::endl;
 
 	import_incidence_graph_data(m, incidence_graph_data);
 

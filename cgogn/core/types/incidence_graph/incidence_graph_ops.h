@@ -32,160 +32,155 @@ namespace cgogn
 inline IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig)
 {
 	uint32 id = ig.attribute_containers_[IncidenceGraph::Vertex::CELL_INDEX].new_index();
-    (*ig.vertices_)[id] = id;
+	(*ig.vertices_)[id] = id;
 	return IncidenceGraph::Vertex(id);
 }
 
-
-inline IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1) 
+inline IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1)
 {
 	uint32 id = ig.attribute_containers_[IncidenceGraph::Edge::CELL_INDEX].new_index();
-    (*ig.edges_)[id] = id;
-    IncidenceGraph::Edge e(id);
-    (*ig.edge_incident_vertices_)[id] = {v0, v1};
-    (*ig.vertex_incident_edges_)[v0.index_][id] = e; 
-    (*ig.vertex_incident_edges_)[v1.index_][id] = e;
+	(*ig.edges_)[id] = id;
+	IncidenceGraph::Edge e(id);
+	(*ig.edge_incident_vertices_)[id] = {v0, v1};
+	(*ig.vertex_incident_edges_)[v0.index_][id] = e;
+	(*ig.vertex_incident_edges_)[v1.index_][id] = e;
 
-    return e; 
+	return e;
 }
 
 inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges)
 {
-    using Vertex = IncidenceGraph::Vertex;
-    using Edge = IncidenceGraph::Edge;
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
 
-    std::vector<Edge> unordered_edges;
-    unordered_edges.swap(edges);
+	std::vector<Edge> unordered_edges;
+	unordered_edges.swap(edges);
 
-    edges.push_back(unordered_edges.front());
-    unordered_edges.erase(unordered_edges.begin());
-    uint32 vid0 = (*ig.edge_incident_vertices_)[edges.front().index_].first.index_;
-    uint32 vid1 = (*ig.edge_incident_vertices_)[edges.front().index_].second.index_;
-    bool broken = false;
+	edges.push_back(unordered_edges.front());
+	unordered_edges.erase(unordered_edges.begin());
+	uint32 vid0 = (*ig.edge_incident_vertices_)[edges.front().index_].first.index_;
+	uint32 vid1 = (*ig.edge_incident_vertices_)[edges.front().index_].second.index_;
+	bool broken = false;
 
-    while(unordered_edges.size())
-    {
-        uint32 i, end;
-        for(i = 0, end = unordered_edges.size(); i < unordered_edges.size(); ++i)
-        {
-            Edge e = unordered_edges[i];
-            std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[e.index_];
-            uint32 ev = ( evs.first.index_ == vid1 ? 
-                evs.second.index_ : ( evs.second.index_ == vid1 ?
-                evs.first.index_ : INVALID_INDEX) );
-            
-            if(ev != INVALID_INDEX)
-            {
-                vid1 = ev;
-                edges.push_back(e);
-                unordered_edges.erase(unordered_edges.begin() + i);
-                break;
-            }
-        }
+	while (unordered_edges.size())
+	{
+		uint32 i, end;
+		for (i = 0, end = unordered_edges.size(); i < unordered_edges.size(); ++i)
+		{
+			Edge e = unordered_edges[i];
+			std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[e.index_];
+			uint32 ev = (evs.first.index_ == vid1 ? evs.second.index_
+												  : (evs.second.index_ == vid1 ? evs.first.index_ : INVALID_INDEX));
 
-        broken = (vid1 == vid0) || (i == end);
-        if(broken)
-            break;
-    }
+			if (ev != INVALID_INDEX)
+			{
+				vid1 = ev;
+				edges.push_back(e);
+				unordered_edges.erase(unordered_edges.begin() + i);
+				break;
+			}
+		}
 
+		broken = (vid1 == vid0) || (i == end);
+		if (broken)
+			break;
+	}
 
-    return (broken && unordered_edges.size() == 0);
+	return (broken && unordered_edges.size() == 0);
 }
 
 inline IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> edges)
 {
-    if(sort_edges(ig, edges))
-    {
-        uint32 id = ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].new_index();
-        (*ig.faces_)[id] = id;
-        (*ig.face_incident_edges_)[id] = edges;
-        IncidenceGraph::Face f(id);
-        for(IncidenceGraph::Edge e : edges)
-        {
-            (*ig.edge_incident_faces_)[e.index_][id] = f;
-        }
-        return f;
-    }
-    return IncidenceGraph::Face();
+	if (sort_edges(ig, edges))
+	{
+		uint32 id = ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].new_index();
+		(*ig.faces_)[id] = id;
+		(*ig.face_incident_edges_)[id] = edges;
+		IncidenceGraph::Face f(id);
+		for (IncidenceGraph::Edge e : edges)
+		{
+			(*ig.edge_incident_faces_)[e.index_][id] = f;
+		}
+		return f;
+	}
+	return IncidenceGraph::Face();
 }
 
 inline void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
 {
-    if(f.is_valid())
-    {
-        std::vector<IncidenceGraph::Edge>& edges = (*ig.face_incident_edges_)[f.index_]; 
-        for(IncidenceGraph::Edge e : edges)
-        {
-            (*ig.edge_incident_faces_)[e.index_].erase(f.index_);
-        }
-        for(IncidenceGraph::Edge e : edges)
-        {
-            std::cout << (*ig.edge_incident_faces_)[e.index_].size() << std::endl;
-        }
-        
-        (*ig.faces_)[f.index_] = INVALID_INDEX;
-        ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].release_index(f.index_);
-    }
+	if (f.is_valid())
+	{
+		std::vector<IncidenceGraph::Edge>& edges = (*ig.face_incident_edges_)[f.index_];
+		for (IncidenceGraph::Edge e : edges)
+		{
+			(*ig.edge_incident_faces_)[e.index_].erase(f.index_);
+		}
+		for (IncidenceGraph::Edge e : edges)
+		{
+			std::cout << (*ig.edge_incident_faces_)[e.index_].size() << std::endl;
+		}
+
+		(*ig.faces_)[f.index_] = INVALID_INDEX;
+		ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].release_index(f.index_);
+	}
 }
 
 inline void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e)
 {
-    while((*ig.edge_incident_faces_)[e.index_].size())
-    {
-        remove_face(ig, (*ig.edge_incident_faces_)[e.index_].begin()->second);
-    }
+	while ((*ig.edge_incident_faces_)[e.index_].size())
+	{
+		remove_face(ig, (*ig.edge_incident_faces_)[e.index_].begin()->second);
+	}
 
-    auto [v0, v1] = (*ig.edge_incident_vertices_)[e.index_];
-    // std::pair<IncidenceGraph::Vertex, IncidenceGraph::Vertex> evs = (*ig.edge_incident_vertices_)[e.index_];
-    // (*ig.vertex_incident_edges_)[evs.first.index_].erase(e.index_);
-    // (*ig.vertex_incident_edges_)[evs.second.index_].erase(e.index_);
+	auto [v0, v1] = (*ig.edge_incident_vertices_)[e.index_];
+	// std::pair<IncidenceGraph::Vertex, IncidenceGraph::Vertex> evs = (*ig.edge_incident_vertices_)[e.index_];
+	// (*ig.vertex_incident_edges_)[evs.first.index_].erase(e.index_);
+	// (*ig.vertex_incident_edges_)[evs.second.index_].erase(e.index_);
 
-    (*ig.vertex_incident_edges_)[v0.index_].erase(e.index_);
-    (*ig.vertex_incident_edges_)[v1.index_].erase(e.index_);
+	(*ig.vertex_incident_edges_)[v0.index_].erase(e.index_);
+	(*ig.vertex_incident_edges_)[v1.index_].erase(e.index_);
 
-
-    (*ig.edges_)[e.index_] = INVALID_INDEX;
-    ig.attribute_containers_[IncidenceGraph::Edge::CELL_INDEX].release_index(e.index_);
+	(*ig.edges_)[e.index_] = INVALID_INDEX;
+	ig.attribute_containers_[IncidenceGraph::Edge::CELL_INDEX].release_index(e.index_);
 }
 
 inline void remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
 {
-    while((*ig.vertex_incident_edges_)[v.index_].size())
-    {
-        remove_edge(ig, (*ig.vertex_incident_edges_)[v.index_].begin()->second);
-    }
-     ig.attribute_containers_[IncidenceGraph::Vertex::CELL_INDEX].release_index(v.index_);
-    (*ig.vertices_)[v.index_] = INVALID_INDEX;   
+	while ((*ig.vertex_incident_edges_)[v.index_].size())
+	{
+		remove_edge(ig, (*ig.vertex_incident_edges_)[v.index_].begin()->second);
+	}
+	ig.attribute_containers_[IncidenceGraph::Vertex::CELL_INDEX].release_index(v.index_);
+	(*ig.vertices_)[v.index_] = INVALID_INDEX;
 }
 
 inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1)
 {
-    uint32 vid0 = (*ig.edge_incident_vertices_)[e0.index_].first.index_;
-    uint32 vid1 = (*ig.edge_incident_vertices_)[e0.index_].second.index_;
-    uint32 vid2 = (*ig.edge_incident_vertices_)[e1.index_].first.index_;
-    uint32 vid3 = (*ig.edge_incident_vertices_)[e1.index_].second.index_;
-    
-    if(vid0 == vid2 || vid0 == vid3)
-        return IncidenceGraph::Vertex(vid0);
+	uint32 vid0 = (*ig.edge_incident_vertices_)[e0.index_].first.index_;
+	uint32 vid1 = (*ig.edge_incident_vertices_)[e0.index_].second.index_;
+	uint32 vid2 = (*ig.edge_incident_vertices_)[e1.index_].first.index_;
+	uint32 vid3 = (*ig.edge_incident_vertices_)[e1.index_].second.index_;
 
-    if(vid1 == vid2 || vid1 == vid3)
-        return IncidenceGraph::Vertex(vid1);
-    
-    return IncidenceGraph::Vertex();
+	if (vid0 == vid2 || vid0 == vid3)
+		return IncidenceGraph::Vertex(vid0);
+
+	if (vid1 == vid2 || vid1 == vid3)
+		return IncidenceGraph::Vertex(vid1);
+
+	return IncidenceGraph::Vertex();
 }
 
-inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> face_edges, std::vector<IncidenceGraph::Vertex> sorted_vertices)
+inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> face_edges,
+								 std::vector<IncidenceGraph::Vertex> sorted_vertices)
 {
-    for(uint32 i = 0; i < face_edges.size(); ++i)
-    {
-        sorted_vertices.push_back(
-            common_vertex(ig, face_edges[i], face_edges[(i + 1) % face_edges.size()])
-        );
-    }
+	for (uint32 i = 0; i < face_edges.size(); ++i)
+	{
+		sorted_vertices.push_back(common_vertex(ig, face_edges[i], face_edges[(i + 1) % face_edges.size()]));
+	}
 
-    sorted_vertices.insert(sorted_vertices.begin(), sorted_vertices.back());
-    sorted_vertices.pop_back();
-    return;
+	sorted_vertices.insert(sorted_vertices.begin(), sorted_vertices.back());
+	sorted_vertices.pop_back();
+	return;
 }
 
 } // namespace cgogn

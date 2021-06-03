@@ -27,6 +27,7 @@
 #include <cgogn/io/cgogn_io_export.h>
 
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
@@ -35,6 +36,8 @@ namespace cgogn
 
 namespace io
 {
+
+using Vec3 = geometry::Vec3;
 
 enum VolumeType
 {
@@ -47,19 +50,29 @@ enum VolumeType
 
 struct VolumeImportData
 {
-	std::vector<uint32> vertices_id_;
+	uint32 nb_vertices_ = 0;
+	uint32 nb_volumes_ = 0;
+
+	std::vector<Vec3> vertex_position_;
+	std::string vertex_position_attribute_name_ = "position";
+
 	std::vector<VolumeType> volumes_types_;
 	std::vector<uint32> volumes_vertex_indices_;
 
+	std::vector<uint32> vertex_id_after_import_;
+
 	inline void reserve(uint32 nb_vertices, uint32 nb_volumes)
 	{
-		vertices_id_.reserve(nb_vertices);
+		nb_vertices_ = nb_vertices;
+		nb_volumes_ = nb_volumes;
+		vertex_position_.reserve(nb_vertices);
 		volumes_types_.reserve(nb_volumes);
 		volumes_vertex_indices_.reserve(nb_volumes * 8u);
+		vertex_id_after_import_.reserve(nb_vertices);
 	}
 };
 
-void CGOGN_IO_EXPORT import_volume_data(CMap3& m, const VolumeImportData& volume_data);
+void CGOGN_IO_EXPORT import_volume_data(CMap3& m, VolumeImportData& volume_data);
 
 } // namespace io
 

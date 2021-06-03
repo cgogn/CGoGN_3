@@ -264,24 +264,13 @@ void compute_surface_data(MESH& _m, MESH& _new_m,
 	// map to link the old mesh vertices to the new ones
 	std::unordered_map<uint32, uint32> vmap;
 
-	typename mesh_traits<MESH>::template Attribute<Vec3>* new_normal =
-		add_attribute<Vec3, Vertex>(_new_m, "normal").get();
-	typename mesh_traits<MESH>::template Attribute<Vec3>* normal = get_attribute<Vec3, Vertex>(_m, "normal").get();
+	uint32 vertex_id = 0;
 	for (std::vector<uint32>::const_iterator it = cm_selected.marked_cells().begin();
 		 it != cm_selected.marked_cells().end(); it++)
 	{
-		// add new indices to the new mesh
-		uint32 id = new_index<Vertex>(_new_m);
-		// reposition the new vertices
-		(*_new_vertex_position)[id] = (*_vertex_position)[*it];
-
-		// transfer normals
-		(*new_normal)[id] = (*normal)[*it];
-
-		// put in the map
-		vmap.emplace(*it, id);
-		// prepare for surface import
-		surface_data.vertices_id_.push_back(id);
+		surface_data.nb_vertices_++;
+		vmap.emplace(*it, vertex_id++);
+		surface_data.vertex_position_.push_back((*_vertex_position)[*it]);
 	}
 
 	// push faces for surface import
@@ -291,6 +280,7 @@ void compute_surface_data(MESH& _m, MESH& _new_m,
 			value<uint32>(_m, _vertex_anchor, iv[0]) != value<uint32>(_m, _vertex_anchor, iv[2]) &&
 			value<uint32>(_m, _vertex_anchor, iv[1]) != value<uint32>(_m, _vertex_anchor, iv[2]))
 		{
+			surface_data.nb_faces_++;
 			surface_data.faces_nb_vertices_.push_back(3);
 			surface_data.faces_vertex_indices_.push_back(vmap[value<uint32>(_m, _vertex_anchor, iv[0])]);
 			surface_data.faces_vertex_indices_.push_back(vmap[value<uint32>(_m, _vertex_anchor, iv[1])]);

@@ -47,37 +47,48 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	using AttributeGen = AttributeContainer::AttributeGen;
 	using MarkAttribute = AttributeContainer::MarkAttribute;
 
-
 	/*************************************************************************/
 	// Graph attributes container
 	/*************************************************************************/
 	// std::unordered_map<std::string, std::any> attributes_;
 
-	struct Vertex {
+	struct Vertex
+	{
 		static const uint32 CELL_INDEX = 0;
 		uint32 index_;
-		inline Vertex() : index_(INVALID_INDEX) {};
-		inline Vertex(uint32 id) : index_(id) {};
+		inline Vertex() : index_(INVALID_INDEX){};
+		inline Vertex(uint32 id) : index_(id){};
 
-		inline bool is_valid() const { return index_ != INVALID_INDEX; }
+		inline bool is_valid() const
+		{
+			return index_ != INVALID_INDEX;
+		}
 	};
 
-	struct Edge {
+	struct Edge
+	{
 		static const uint32 CELL_INDEX = 1;
 		uint32 index_;
-		inline Edge() : index_(INVALID_INDEX) {};
-		inline Edge(uint32 id) : index_(id) {};
+		inline Edge() : index_(INVALID_INDEX){};
+		inline Edge(uint32 id) : index_(id){};
 
-		inline bool is_valid() const { return index_ != INVALID_INDEX; }
+		inline bool is_valid() const
+		{
+			return index_ != INVALID_INDEX;
+		}
 	};
 
-	struct Face {
+	struct Face
+	{
 		static const uint32 CELL_INDEX = 2;
 		uint32 index_;
-		inline Face() : index_(INVALID_INDEX) {};
-		inline Face(uint32 id) : index_(id) {};
+		inline Face() : index_(INVALID_INDEX){};
+		inline Face(uint32 id) : index_(id){};
 
-		inline bool is_valid() const { return index_ != INVALID_INDEX; }
+		inline bool is_valid() const
+		{
+			return index_ != INVALID_INDEX;
+		}
 	};
 
 	std::shared_ptr<Attribute<uint32>> vertices_;
@@ -91,7 +102,8 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
 	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
 	std::shared_ptr<Attribute<std::unordered_map<uint32, Face>>> edge_incident_faces_;
-    IncidenceGraph() {
+	IncidenceGraph()
+	{
 		vertices_ = attribute_containers_[Vertex::CELL_INDEX].add_attribute<uint32>("vertex_id");
 		edges_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<uint32>("edge_id");
 		faces_ = attribute_containers_[Face::CELL_INDEX].add_attribute<uint32>("face_id");
@@ -100,13 +112,16 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		cells_indices_[Edge::CELL_INDEX] = edges_;
 		cells_indices_[Face::CELL_INDEX] = faces_;
 
-		vertex_incident_edges_ = attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::unordered_map<uint32, Edge>>("incident_edges");
-		edge_incident_vertices_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
-		edge_incident_faces_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<std::unordered_map<uint32, Face>>("incident_faces");
-		face_incident_edges_ = attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
+		vertex_incident_edges_ =
+			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::unordered_map<uint32, Edge>>("incident_edges");
+		edge_incident_vertices_ =
+			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
+		edge_incident_faces_ =
+			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::unordered_map<uint32, Face>>("incident_faces");
+		face_incident_edges_ =
+			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 	};
-    // ~IncidenceGraph();
-
+	// ~IncidenceGraph();
 };
 
 } // namespace cgogn

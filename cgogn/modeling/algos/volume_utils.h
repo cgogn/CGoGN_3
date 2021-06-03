@@ -34,7 +34,6 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
 
 //////////
 // CMap //
