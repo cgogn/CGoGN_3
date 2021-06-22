@@ -73,7 +73,6 @@ bool import_TET(MESH& m, const std::string& filename)
 	}
 
 	volume_data.reserve(nb_vertices, nb_volumes);
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
 
 	// read vertices position
 	for (uint32 i = 0u; i < nb_vertices; ++i)
@@ -81,11 +80,7 @@ bool import_TET(MESH& m, const std::string& filename)
 		float64 x = read_double(fp, line);
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
-
-		uint32 vertex_id = new_index<Vertex>(m);
-		(*position)[vertex_id] = {x, y, z};
-
-		volume_data.vertices_id_.push_back(vertex_id);
+		volume_data.vertex_position_.push_back({x, y, z});
 	}
 
 	// read volumes
@@ -94,13 +89,15 @@ bool import_TET(MESH& m, const std::string& filename)
 		uint32 n = read_uint(fp, line);
 		std::vector<uint32> ids(n);
 		for (uint32 j = 0u; j < n; ++j)
-			ids[j] = volume_data.vertices_id_[read_uint(fp, line)];
+			ids[j] = read_uint(fp, line);
 
 		switch (n)
 		{
 		case 4: {
-			if (geometry::test_orientation_3D((*position)[ids[0]], (*position)[ids[1]], (*position)[ids[2]],
-											  (*position)[ids[3]]) == geometry::Orientation3D::UNDER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]],
+											  volume_data.vertex_position_[ids[3]]) == geometry::Orientation3D::UNDER)
 				std::swap(ids[1], ids[2]);
 			volume_data.volumes_types_.push_back(VolumeType::Tetra);
 			volume_data.volumes_vertex_indices_.insert(volume_data.volumes_vertex_indices_.end(), ids.begin(),
@@ -108,8 +105,10 @@ bool import_TET(MESH& m, const std::string& filename)
 			break;
 		}
 		case 5: {
-			if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[4]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 				std::swap(ids[1], ids[3]);
 			volume_data.volumes_types_.push_back(VolumeType::Pyramid);
 			volume_data.volumes_vertex_indices_.insert(volume_data.volumes_vertex_indices_.end(), ids.begin(),
@@ -117,8 +116,10 @@ bool import_TET(MESH& m, const std::string& filename)
 			break;
 		}
 		case 6: {
-			if (geometry::test_orientation_3D((*position)[ids[3]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[3]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 			{
 				std::swap(ids[1], ids[2]);
 				std::swap(ids[4], ids[5]);
@@ -129,8 +130,10 @@ bool import_TET(MESH& m, const std::string& filename)
 			break;
 		}
 		case 8: {
-			if (geometry::test_orientation_3D((*position)[ids[4]], (*position)[ids[0]], (*position)[ids[1]],
-											  (*position)[ids[2]]) == geometry::Orientation3D::OVER)
+			if (geometry::test_orientation_3D(volume_data.vertex_position_[ids[4]],
+											  volume_data.vertex_position_[ids[0]],
+											  volume_data.vertex_position_[ids[1]],
+											  volume_data.vertex_position_[ids[2]]) == geometry::Orientation3D::OVER)
 			{
 				std::swap(ids[0], ids[3]);
 				std::swap(ids[1], ids[2]);

@@ -48,16 +48,13 @@ void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_positio
 
 	cgogn::io::SurfaceImportData surface_data;
 
+	uint32 vertex_id = 0;
 	foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {
 		if (is_incident_to_boundary(m3, v3))
 		{
-			uint32 vertex_id = new_index<CMap2::Vertex>(m2);
-			value<uint32>(m3, m2_vertex_index, v3) = vertex_id;
-			Vec3 p = value<Vec3>(m3, m3_vertex_position, v3);
-			(*m2_vertex_position)[vertex_id] = p;
-			if (m2_vertex_m3_vertex)
-				(*m2_vertex_m3_vertex)[vertex_id] = v3;
-			surface_data.vertices_id_.push_back(vertex_id);
+			surface_data.nb_vertices_++;
+			value<uint32>(m3, m2_vertex_index, v3) = vertex_id++;
+			surface_data.vertex_position_.push_back(value<Vec3>(m3, m3_vertex_position, v3));
 		}
 		return true;
 	});
@@ -67,6 +64,7 @@ void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_positio
 	foreach_cell(m3, [&](CMap3::Face f) -> bool {
 		if (is_incident_to_boundary(m3, f))
 		{
+			surface_data.nb_faces_++;
 			uint32 nbv = 0;
 			foreach_incident_vertex(m3, f, [&](CMap3::Vertex v3) -> bool {
 				++nbv;
@@ -84,13 +82,16 @@ void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_positio
 
 	import_surface_data(m2, surface_data);
 
-	if (m3_vertex_m2_vertex)
+	if (m2_vertex_m3_vertex || m3_vertex_m2_vertex)
 	{
 		foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {
 			if (is_incident_to_boundary(m3, v3))
 			{
-				uint32 vertex_id = value<uint32>(m3, m2_vertex_index, v3);
-				value<CMap2::Vertex>(m3, m3_vertex_m2_vertex, v3) = of_index<CMap2::Vertex>(m2, vertex_id);
+				uint32 vertex_id = surface_data.vertex_id_after_import_[value<uint32>(m3, m2_vertex_index, v3)];
+				if (m2_vertex_m3_vertex)
+					(*m2_vertex_m3_vertex)[vertex_id] = v3;
+				if (m3_vertex_m2_vertex)
+					value<CMap2::Vertex>(m3, m3_vertex_m2_vertex, v3) = of_index<CMap2::Vertex>(m2, vertex_id);
 			}
 			return true;
 		});

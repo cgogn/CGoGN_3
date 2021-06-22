@@ -98,7 +98,8 @@ void shift_frame(Mat3& frame, uint32 nb_shifts);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const Graph& g, GAttributes& gAttribs);
 bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
 				   std::shared_ptr<CMap2::Attribute<uint32>> dist);
-Dart convex_hull(CMap2& m2, const cgogn::io::SurfaceImportData& surface_data);
+Dart convex_hull_around_vertex(const Graph& g, Graph::Vertex v, CMap2& m2, M2Attributes& m2Attribs,
+							   std::vector<Vec3>& Ppos);
 Dart remesh(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs);
 Vec3 slerp(Vec3 A, Vec3 B, Scalar coef, bool in);
 Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C);
@@ -143,7 +144,6 @@ void volume_fiber_spread(CMap3& m, CellCache<CMap3>& surface_fibers, CellMarker<
 CellCache<CMap3> surface_fiber_spread(CMap3& m, CMap3::Edge e0);
 void mark_mesh_fibers(CMap3& m3, CMap3::Edge e, CellMarker<CMap3, CMap3::Edge>& edge_fibers);
 void fiber_aligned_subdivision(CMap3& m, CellMarker<CMap3, CMap3::Edge>& fibers);
-
 
 // void mark_fibers_from_input();
 // void fiber_aligned_subdivision(CMap3& m3);

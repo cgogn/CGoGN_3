@@ -465,4 +465,65 @@ CMap2::Vertex collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	return v;
 }
 
+/*****************************************************************************/
+
+// template <typename MESH>
+// bool
+// flip_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+bool flip_edge(CMap2& m, CMap2::Edge e, bool set_indices)
+{
+	if (!is_incident_to_boundary(m, e))
+	{
+		Dart d = e.dart;
+		Dart dd = phi2(m, d);
+		Dart d1 = phi1(m, d);
+		Dart d_1 = phi_1(m, d);
+		Dart dd1 = phi1(m, dd);
+		Dart dd_1 = phi_1(m, dd);
+
+		// Cannot flip edge whose incident faces have co-degree 1
+		if (d == d1 || dd == dd1)
+			return false;
+
+		// Both vertices have degree 1 and thus nothing is done // TODO may return true ?
+		if (d == dd_1 && dd == d_1)
+			return false;
+
+		if (d != dd_1)
+			phi1_sew(m, d, dd_1); // Detach the edge from its
+		if (dd != d_1)
+			phi1_sew(m, dd, d_1); // two incident vertices
+
+		if (d != dd_1)
+			phi1_sew(m, d, d1); // Insert the first end in its new vertices
+		if (dd != d_1)
+			phi1_sew(m, dd, dd1); // Insert the second end in its new vertices
+
+		if (set_indices)
+		{
+			if (is_indexed<CMap2::Vertex>(m))
+			{
+				copy_index<CMap2::Vertex>(m, d, phi1(m, dd));
+				copy_index<CMap2::Vertex>(m, dd, phi1(m, d));
+			}
+
+			if (is_indexed<CMap2::Face>(m))
+			{
+				copy_index<CMap2::Face>(m, phi_1(m, d), d);
+				copy_index<CMap2::Face>(m, phi_1(m, dd), dd);
+			}
+		}
+
+		return true;
+	}
+	return false;
+}
+
 } // namespace cgogn
