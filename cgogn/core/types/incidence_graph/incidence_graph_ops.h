@@ -101,6 +101,18 @@ inline IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGr
 		{
 			(*ig.edge_incident_faces_)[e.index_][id] = f;
 		}
+		(*face_incident_edges_dir_)[id] = new std::vector<uint32>(edges.size());
+		
+		for (i = 0; i < edges.size(); ++i)
+		{
+			std::pair<Vertex, Vertex> evs0 = (*ig.edge_incident_vertices_)[edges[i].index_];
+			std::pair<Vertex, Vertex> evs1 = (*ig.edge_incident_vertices_)[edges[(i+1)%edges.size()].index_];
+			if(evs0.first.index_ == evs1.first.index_ || evs0.first.index_ == evs1.second.index_)
+				(*face_incident_edges_dir_)[id][i] = 1;
+			else
+				(*face_incident_edges_dir_)[id][i] = 0;
+		}
+
 		return f;
 	}
 	return IncidenceGraph::Face();
