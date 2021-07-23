@@ -30,6 +30,7 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/functions/normal.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -117,7 +118,7 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 	// 			 .normalized();
 	// }
 	foreach_incident_face(m, v, [&](Face f) -> bool {
-		n += normal(m, f, vertex_position);
+		n += normal(m, f, vertex_position) * area(m, f, vertex_position);
 		return true;
 	});
 	n.normalize();

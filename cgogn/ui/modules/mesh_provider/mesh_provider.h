@@ -34,9 +34,9 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/io/graph/cg.h>
-#include <cgogn/io/incidence_graph/ig.h>
 #include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/graph/skel.h>
+#include <cgogn/io/incidence_graph/ig.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
@@ -192,7 +192,6 @@ public:
 			{
 				if constexpr (std::is_same_v<MESH, IncidenceGraph>)
 					imported = cgogn::io::import_IG(*m, filename);
-
 			}
 
 			if (imported)
