@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_utils.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/medial_axis.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/mesh_repair.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/skeleton.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/topstoc.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/pliant_remeshing.h"

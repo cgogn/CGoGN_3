@@ -129,9 +129,6 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 		else
 			std::cout << "intersection point not found !!!";
 
-		// std::cout << "Vertex " << index_of(m, v) << " :" << std::endl;
-		// std::cout << " " << j << "- r: " << r << std::endl;
-
 		Vec3 c = p - (r * n);
 
 		while (true)
@@ -149,8 +146,6 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 			// Vec3 q = cp_res.second;
 			// Scalar d = (q - c).norm();
 
-			// std::cout << " " << j << "- d: " << d << std::endl;
-
 			// This should handle all (special) cases where we want to break the loop
 			// - normal case when ball no longer shrinks
 			// - the case where q == p
@@ -160,8 +155,6 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 
 			// Compute next ball center
 			r = compute_radius(p, n, q);
-
-			// std::cout << " " << j << "- r: " << r << std::endl;
 
 			Vec3 c_next = p - (r * n);
 
@@ -177,14 +170,12 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 			}
 
 			// // Stop iteration if this looks like an infinite loop:
-			// if (j > iteration_limit)
-			// 	break;
+			if (j > iteration_limit)
+				break;
 
 			c = c_next;
 			j++;
 		}
-
-		// std::cout << "j = " << j << std::endl;
 
 		value<Vec3>(m, vertex_shrinking_ball_center, v) = c;
 

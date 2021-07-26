@@ -36,6 +36,7 @@
 #include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/topstoc.h>
+#include <cgogn/modeling/algos/skeleton.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
 namespace cgogn
@@ -121,6 +122,13 @@ public:
 		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
 	}
 
+	void skeletonize(MESH& m, Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
+	{
+		modeling::mean_curvature_skeleton(m, vertex_position, vertex_normal);
+		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+	}
+
 protected:
 	void init() override
 	{
@@ -171,6 +179,8 @@ protected:
 				{
 					if (ImGui::Button("Medial axis"))
 						medial_axis(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
+					if (ImGui::Button("Skeletonize"))
+						skeletonize(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
 			}
 		}
