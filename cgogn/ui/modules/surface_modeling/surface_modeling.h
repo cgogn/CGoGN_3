@@ -124,7 +124,18 @@ public:
 
 	void skeletonize(MESH& m, Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
 	{
-		modeling::mean_curvature_skeleton(m, vertex_position, vertex_normal);
+		modeling::pliant_remeshing(m, vertex_position);
+		geometry::compute_normal(m, vertex_position, vertex_normal);
+
+		auto sbc = get_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
+		if (!sbc)
+			sbc = add_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
+		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
+
+		modeling::mean_curvature_skeleton(m, vertex_position, vertex_normal, sbc.get());
+
+		remove_attribute<Vertex>(m, sbc);
+
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
