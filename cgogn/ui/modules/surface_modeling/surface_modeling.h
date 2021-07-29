@@ -127,12 +127,10 @@ public:
 		modeling::pliant_remeshing(m, vertex_position);
 		geometry::compute_normal(m, vertex_position, vertex_normal);
 
-		auto sbc = get_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
-		if (!sbc)
-			sbc = add_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
+		auto sbc = add_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
 		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
 
-		modeling::mean_curvature_skeleton(m, vertex_position, vertex_normal, sbc.get());
+		modeling::mean_curvature_skeleton(m, vertex_position, sbc.get());
 
 		remove_attribute<Vertex>(m, sbc);
 
