@@ -123,10 +123,10 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 	for (uint32 i = 0; i < 5; ++i)
 	{
 		// cut long edges (and adjacent faces)
-		cache.template build<Edge>();
 		bool has_long_edge = false;
 		do
 		{
+			cache.template build<Edge>();
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				if (geometry::squared_length(m, e, vertex_position) > squared_max_edge_length)
@@ -140,14 +140,13 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 				}
 				return true;
 			});
-			cache.template build<Edge>();
 		} while (has_long_edge);
 
 		// collapse short edges
-		cache.template build<Edge>();
 		bool has_short_edge = false;
 		do
 		{
+			cache.template build<Edge>();
 			has_short_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				if (geometry::squared_length(m, e, vertex_position) < squared_min_edge_length)
@@ -172,7 +171,6 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 				}
 				return true;
 			});
-			cache.template build<Edge>();
 		} while (has_short_edge);
 
 		// equalize valences with edge flips
