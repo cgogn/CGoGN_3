@@ -22,6 +22,8 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_to_hex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/incidenceGraph_to_hex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/incidenceGraph_to_hex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_utils.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/mesh_repair.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision.h"

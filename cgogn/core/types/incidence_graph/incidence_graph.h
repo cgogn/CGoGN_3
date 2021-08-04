@@ -121,6 +121,8 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::unordered_map<uint32, Face>>("incident_faces");
 		face_incident_edges_ =
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
+		face_incident_edges_dir_ =
+			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint32>>("incident_edges_dir");
 	};
 	// ~IncidenceGraph();
 };

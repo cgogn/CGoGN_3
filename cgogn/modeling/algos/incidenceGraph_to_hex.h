@@ -4,6 +4,7 @@
 #define CGOGN_MODELING_ALGOS_INCIDENCEGRAPH_TO_HEX_H_
 
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -14,16 +15,160 @@ class CellMarker;
 namespace modeling
 {
 
+using Vec3 = geometry::Vec3;
+
+
+struct IGAttributes
+{
+	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> vertex_position;
+	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_normal;
+	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_center;
+	std::shared_ptr<IncidenceGraph::Attribute<std::vector<Vec3>>> face_vertex_tangent;
+	// std::shared_ptr<IncidenceGraph::Attribute<Scalar>> vertex_radius;
+	// std::shared_ptr<IncidenceGraph::Attribute<Dart>> vertex_contact_surface;
+	std::shared_ptr<IncidenceGraph::Attribute<Dart>> vertex_contact_surface;
+
+	// std::shared_ptr<IncidenceGraph::Attribute<Dart>> halfedge_volume_connection;
+	std::shared_ptr<IncidenceGraph::Attribute<std::pair<Dart, Dart>>> halfedge_contact_surface_face;
+	// std::shared_ptr<IncidenceGraph::Attribute<Mat3>> halfedge_frame;
+};
+
+struct M2Attributes
+{
+	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position;
+	// std::shared_ptr<CMap2::Attribute<Dart>> dual_vertex_graph_branch;
+	std::shared_ptr<CMap2::Attribute<IncidenceGraph::Vertex>> volume_igvertex;
+	// std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
+	// std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
+	// std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
+	// std::shared_ptr<CMap2::Attribute<CMap2*>> ortho_scaffold;
+};
+
+struct M3Attributes
+{
+	// std::shared_ptr<CMap3::Attribute<Vec3>> vertex_position;
+	// std::shared_ptr<CMap3::Attribute<Graph::HalfEdge>> volume_graph_connection;
+
+	// std::shared_ptr<CMap3::Attribute<Mat3>> corner_frame;
+	// std::shared_ptr<CMap3::Attribute<Mat3>> hex_frame;
+
+	// std::shared_ptr<CMap3::Attribute<Scalar>> scaled_jacobian;
+	// std::shared_ptr<CMap3::Attribute<Scalar>> jacobian;
+	// std::shared_ptr<CMap3::Attribute<Scalar>> max_frobenius;
+	// std::shared_ptr<CMap3::Attribute<Scalar>> mean_frobenius;
+
+	// std::shared_ptr<CMap3::Attribute<Vec3>> color_scaled_jacobian;
+	// std::shared_ptr<CMap3::Attribute<Vec3>> color_jacobian;
+	// std::shared_ptr<CMap3::Attribute<Vec3>> color_max_frobenius;
+	// std::shared_ptr<CMap3::Attribute<Vec3>> color_mean_frobenius;
+};
+
+
 struct IncidenceGraphData
 {
 	std::vector<std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge>> branches;
-	std::vector<Graph::Vertex> efjunctures;
-	std::vector<Graph::Vertex> ffjunctures;
-	std::vector<Graph::Vertex> intersections;
+	std::vector<IncidenceGraph::Vertex> efjunctures;
+	std::vector<IncidenceGraph::Vertex> ffjunctures;
+	std::vector<IncidenceGraph::Vertex> intersections;
 	std::vector<IncidenceGraph::Face> leaflets;
 };
 
-bool get_incidenceGraph_data(const MESH& ig, IncidenceGraphData& incidenceGraph_data);
+// struct VertexData
+// {
+// 	uint32 degree;
+// 	uint32 isolatedEdge;
+// };
+
+// inline uint32 pseudoDegree(IncidenceGraph& ig, IncidenceGraph::Vertex v)
+// {
+// 	uint32 degree = 0;
+
+// 	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
+// 		uint32 count = 0;
+// 		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f) -> bool {
+// 			++count;
+// 			return true;
+// 		});
+		
+// 		switch(count)
+// 		{
+// 			case 0: 
+// 				++degree;
+// 				break;
+// 			case 1:
+// 				degree += 0.5;
+// 				break;
+// 			case 2:
+// 				break;
+// 			default:
+// 				degree = -1;
+// 				break;
+// 		}
+
+// 		return (degree != -1);
+// 	});
+
+// 	return degree;
+// }
+
+std::tuple<IGAttributes, M2Attributes, M3Attributes> incidenceGraph_to_hex(IncidenceGraph& ig, CMap2& m2/*, CMap3& m3*/);
+
+/*****************************************************************************/
+/* data preparation                                                          */
+/*****************************************************************************/
+
+bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& incidenceGraph_data);
+bool add_incidenceGraph_attributes(IncidenceGraph& ig, IGAttributes& igAttributes);
+bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
+bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& incidenceGraph_data, IGAttributes& igAttributes);
+
+/*****************************************************************************/
+/* utils                                                                     */
+/*****************************************************************************/
+
+std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge> find_branch_extremities(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Edge e0, CellMarker<IncidenceGraph, IncidenceGraph::Edge>& cm);
+std::vector<IncidenceGraph::Face> incident_leaflets(const IncidenceGraph& ig, IncidenceGraph::Vertex v0);
+std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
+bool contains_vertex(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
+std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
+std::vector<IncidenceGraph::Edge> incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Edge e0);
+void index_volume_cells(CMap2& m, CMap2::Volume vol);
+Dart convex_hull_around_vertex(const IncidenceGraph& g, IncidenceGraph::Vertex v, CMap2& m2, M2Attributes& m2Attribs,
+							   std::vector<Vec3>& Ppos);
+void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const IncidenceGraph& ig, IGAttributes& igAttribs);
+
+
+
+
+/*****************************************************************************/
+/* contact surfaces generation                                               */
+/*****************************************************************************/
+
+
+bool build_contact_surfaces(const IncidenceGraph& ig, IGAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data, CMap2& m2, M2Attributes& m2Attribs);
+void build_contact_surface_1(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 IncidenceGraph::Vertex v);
+void build_contact_surface_2(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs,
+							 IncidenceGraph::Vertex v);
+void build_contact_surface_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, IncidenceGraph::Vertex v);
+// void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+// 								  Graph::Vertex v);
+// bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
+// 								 Graph::Vertex v);
+
+/*****************************************************************************/
+/* frames initialization & propagation                                       */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/* contact surfaces geometry                                                 */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/* volume mesh generation                                                    */
+/*****************************************************************************/
 
 
 } // namespace modeling

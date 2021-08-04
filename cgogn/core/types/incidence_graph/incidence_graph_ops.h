@@ -25,7 +25,9 @@
 #define CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_
 
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
-
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 namespace cgogn
 {
 
@@ -91,31 +93,35 @@ inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& ed
 
 inline IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge> edges)
 {
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
 	if (sort_edges(ig, edges))
 	{
-		uint32 id = ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].new_index();
+		uint32 id = ig.attribute_containers_[Face::CELL_INDEX].new_index();
 		(*ig.faces_)[id] = id;
 		(*ig.face_incident_edges_)[id] = edges;
-		IncidenceGraph::Face f(id);
-		for (IncidenceGraph::Edge e : edges)
+		Face f(id);
+		for (Edge e : edges)
 		{
 			(*ig.edge_incident_faces_)[e.index_][id] = f;
 		}
-		(*face_incident_edges_dir_)[id] = new std::vector<uint32>(edges.size());
+		(*ig.face_incident_edges_dir_)[id] = std::vector<uint32>(edges.size());
 		
-		for (i = 0; i < edges.size(); ++i)
+		for (uint32 i = 0; i < edges.size(); ++i)
 		{
 			std::pair<Vertex, Vertex> evs0 = (*ig.edge_incident_vertices_)[edges[i].index_];
 			std::pair<Vertex, Vertex> evs1 = (*ig.edge_incident_vertices_)[edges[(i+1)%edges.size()].index_];
 			if(evs0.first.index_ == evs1.first.index_ || evs0.first.index_ == evs1.second.index_)
-				(*face_incident_edges_dir_)[id][i] = 1;
+				(*ig.face_incident_edges_dir_)[id][i] = 1;
 			else
-				(*face_incident_edges_dir_)[id][i] = 0;
+				(*ig.face_incident_edges_dir_)[id][i] = 0;
 		}
 
 		return f;
 	}
-	return IncidenceGraph::Face();
+	return Face();
 }
 
 inline void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
@@ -193,6 +199,42 @@ inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph:
 	sorted_vertices.insert(sorted_vertices.begin(), sorted_vertices.back());
 	sorted_vertices.pop_back();
 	return;
+}
+
+inline std::pair<uint32, uint32> pseudoDegree(const IncidenceGraph& ig, IncidenceGraph::Vertex v)
+{
+	std::pair<uint32, uint32> info;
+	info.first = 0; // incident 2D connex elements 
+	info.second = 0; // incident isolated branches
+	// uint32 degree = 0;
+
+	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
+		uint32 count = 0;
+		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f) -> bool {
+			++count;
+			return true;
+		});
+		
+		switch(count)
+		{
+			case 0: 
+				++info.first;
+				break;
+			case 1: 
+				info.first += 0.5;
+				++info.second;
+				break;
+			case 2:
+				break;
+			default:
+				info.first = INVALID_INDEX;
+				break;
+		}
+
+		return (info.first != INVALID_INDEX);
+	});
+
+	return info;
 }
 
 } // namespace cgogn

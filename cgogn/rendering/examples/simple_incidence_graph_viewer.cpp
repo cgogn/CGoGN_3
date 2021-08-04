@@ -34,16 +34,19 @@
 
 
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+#include <cgogn/modeling/algos/incidenceGraph_to_hex.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-using Mesh = cgogn::IncidenceGraph;
+using IGraph = cgogn::IncidenceGraph;
+using Surface = cgogn::CMap2;
+using Volume = cgogn::CMap3;
 
 template <typename T>
-using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Attribute = typename cgogn::mesh_traits<IGraph>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<IGraph>::Vertex;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -65,20 +68,32 @@ int main(int argc, char** argv)
 	app.set_window_title("Simple graph viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> gr(app);
-	Mesh* ig = mp.load_surface_from_file(filename);
+	cgogn::ui::MeshProvider<IGraph> mpig(app);
+	cgogn::ui::MeshProvider<Surface> mps(app);
+	cgogn::ui::MeshProvider<Volume> mpv(app);
+
+	cgogn::ui::SurfaceRender<IGraph> gr(app);
+	cgogn::ui::SurfaceRender<Surface> sr(app);
+	cgogn::ui::SurfaceRender<Volume> vr(app);
+
+	IGraph* ig = mpig.load_surface_from_file(filename);
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
+	v1->link_module(&mpig);
 	v1->link_module(&gr);
 
-	mp.set_mesh_bb_vertex_position(ig, vertex_position);
+	mpig.set_mesh_bb_vertex_position(ig, vertex_position);
 	gr.set_vertex_position(*v1, *ig, vertex_position);
+
+	Surface* m2 = mps.add_mesh("surface");
+	Volume* m3 = mpv.add_mesh("volumes");
+	// Surface m2 = Surface();
+	// Volume m3 = Volume();
+	cgogn::modeling::incidenceGraph_to_hex(*ig, *m2/*, Volume()*/);
 
 	return app.launch();
 }
