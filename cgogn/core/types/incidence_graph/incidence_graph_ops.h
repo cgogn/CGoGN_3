@@ -204,8 +204,8 @@ inline void sorted_face_vertices(IncidenceGraph& ig, std::vector<IncidenceGraph:
 inline std::pair<uint32, uint32> pseudoDegree(const IncidenceGraph& ig, IncidenceGraph::Vertex v)
 {
 	std::pair<uint32, uint32> info;
-	info.first = 0; // incident 2D connex elements 
-	info.second = 0; // incident isolated branches
+	info.first = 0; // incident leaflets + isolated edges
+	info.second = 0; // incident isolated branches  
 	// uint32 degree = 0;
 
 	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
@@ -214,15 +214,14 @@ inline std::pair<uint32, uint32> pseudoDegree(const IncidenceGraph& ig, Incidenc
 			++count;
 			return true;
 		});
-		
 		switch(count)
 		{
 			case 0: 
-				++info.first;
+				info.first += 2;
+				++info.second;
 				break;
 			case 1: 
-				info.first += 0.5;
-				++info.second;
+				info.first += 1;
 				break;
 			case 2:
 				break;
@@ -233,7 +232,7 @@ inline std::pair<uint32, uint32> pseudoDegree(const IncidenceGraph& ig, Incidenc
 
 		return (info.first != INVALID_INDEX);
 	});
-
+	info.first /= 2;
 	return info;
 }
 

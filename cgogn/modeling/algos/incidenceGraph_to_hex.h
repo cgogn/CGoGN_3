@@ -16,6 +16,8 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
+using Scalar = geometry::Scalar;
+using Mat3 = geometry::Mat3;
 
 
 struct IGAttributes
@@ -36,7 +38,7 @@ struct IGAttributes
 struct M2Attributes
 {
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position;
-	// std::shared_ptr<CMap2::Attribute<Dart>> dual_vertex_graph_branch;
+	std::shared_ptr<CMap2::Attribute<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>>> dual_vertex_graph_branch;
 	std::shared_ptr<CMap2::Attribute<IncidenceGraph::Vertex>> volume_igvertex;
 	// std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
 	// std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
@@ -132,10 +134,18 @@ std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, Inc
 bool contains_vertex(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
 std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
 std::vector<IncidenceGraph::Edge> incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Edge e0);
-void index_volume_cells(CMap2& m, CMap2::Volume vol);
+void index_volume_cells_igh(CMap2& m, CMap2::Volume vol);
+bool dijkstra_topo_igh(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
+				   std::shared_ptr<CMap2::Attribute<uint32>> dist);
 Dart convex_hull_around_vertex(const IncidenceGraph& g, IncidenceGraph::Vertex v, CMap2& m2, M2Attributes& m2Attribs,
 							   std::vector<Vec3>& Ppos);
 void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const IncidenceGraph& ig, IGAttributes& igAttribs);
+Dart remesh_igh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs);
+Vec3 slerp_igh(Vec3 A, Vec3 B, Scalar coef, bool in);
+Scalar angle_on_sphere_igh(Vec3 A, Vec3 B, Vec3 C);
+Scalar edge_max_angle_igh(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs);
+Scalar min_cut_angle_igh(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes& m2Attribs);
+Vec3 spherical_barycenter_igh(std::vector<Vec3>& points, uint32 iterations);
 
 
 
@@ -151,8 +161,8 @@ void build_contact_surface_1(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 void build_contact_surface_2(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs,
 							 IncidenceGraph::Vertex v);
 void build_contact_surface_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, IncidenceGraph::Vertex v);
-// void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
-// 								  Graph::Vertex v);
+void build_contact_surface_orange(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs,
+								  IncidenceGraph::Vertex v);
 // bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
 // 								 Graph::Vertex v);
 
