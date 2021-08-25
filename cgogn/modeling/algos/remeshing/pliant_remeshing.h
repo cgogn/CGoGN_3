@@ -146,9 +146,8 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		bool has_short_edge = false;
 		do
 		{
-			cache.template build<Edge>();
 			has_short_edge = false;
-			foreach_cell(cache, [&](Edge e) -> bool {
+			foreach_cell(m, [&](Edge e) -> bool {
 				if (geometry::squared_length(m, e, vertex_position) < squared_min_edge_length)
 				{
 					std::vector<Vertex> iv = incident_vertices(m, e);
@@ -174,8 +173,7 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		} while (has_short_edge);
 
 		// equalize valences with edge flips
-		cache.template build<Edge>();
-		foreach_cell(cache, [&](Edge e) -> bool {
+		foreach_cell(m, [&](Edge e) -> bool {
 			if (should_edge_flip(m, e))
 				flip_edge(m, e);
 			return true;

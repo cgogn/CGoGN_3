@@ -163,9 +163,9 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 	vertex_is_fixed->fill(false);
 	// vertex_is_split->fill(false);
 
-	CellCache<MESH> cache(m);
+	// CellCache<MESH> cache(m);
 
-	for (uint32 i = 0; i < 5; ++i)
+	for (uint32 i = 0; i < 10; ++i)
 	{
 		std::cout << i << " - index vertices" << std::endl;
 		uint32 nb_vertices = 0;
@@ -304,30 +304,36 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		// 	return true;
 		// });
 
-		std::cout << i << " - flip flat edges" << std::endl;
-		uint32 nb_flip_edges = 0;
-		bool has_flat_edge = false;
-		do
-		{
-			cache.template build<Edge>();
-			has_flat_edge = false;
-			foreach_cell(cache, [&](Edge e) -> bool {
-				std::vector<Vertex> op_vertices = opposite_vertices(m, e);
-				std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
-				Scalar alpha0 = op_angles[0];
-				Scalar alpha1 = op_angles[1];
-				Scalar flip_threshold_low = 120.0 * M_PI / 180.0;
+		// std::cout << i << " - flip flat edges" << std::endl;
+		// uint32 nb_flip_edges = 0;
+		// bool has_flat_edge = false;
+		// do
+		// {
+		// 	has_flat_edge = false;
+		// 	foreach_cell(m, [&](Edge e) -> bool {
+		// 		std::vector<Vertex> iv = incident_vertices(m, e);
+		// 		if (value<bool>(m, vertex_is_fixed, iv[0]) || value<bool>(m, vertex_is_fixed, iv[1]))
+		// 			return true;
+		// 		if (degree(m, iv[0]) < 5 || degree(m, iv[1]) < 5)
+		// 			return true;
 
-				if (alpha0 > flip_threshold_low && alpha1 > flip_threshold_low)
-				{
-					has_flat_edge = true;
-					flip_edge(m, e);
-					++nb_flip_edges;
-				}
-				return true;
-			});
-		} while (has_flat_edge);
-		std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
+		// 		std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+		// 		Scalar flip_threshold_low = 120.0 * M_PI / 180.0;
+		// 		if (op_angles[0] > flip_threshold_low && op_angles[1] > flip_threshold_low)
+		// 		{
+		// 			if (flip_edge(m, e))
+		// 			{
+		// 				has_flat_edge = true;
+		// 				++nb_flip_edges;
+		// 			}
+		// 		}
+		// 		return true;
+		// 	});
+		// } while (has_flat_edge);
+		// std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
+
+		std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
+		std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
 
 		// std::cout << i << " - cut long edges" << std::endl;
 		// uint32 nb_cut_edges = 0;
@@ -391,9 +397,8 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		bool has_short_edge = false;
 		do
 		{
-			cache.template build<Edge>();
 			has_short_edge = false;
-			foreach_cell(cache, [&](Edge e) -> bool {
+			foreach_cell(m, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
 				// if (value<bool>(m, vertex_is_fixed, iv[0]) && value<bool>(m, vertex_is_fixed, iv[1]))
 				// 	return true;
@@ -416,12 +421,19 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 						// medial_points_kdt->find_nn(mp, &k_res);
 						// value<Vec3>(m, vertex_medial_point, cv) = medial_points_kdt->vertex(k_res.first);
 						++nb_collapsed_edges;
+						// bool integrity = check_integrity(m, false);
+						// if (!integrity)
+						// {
+						// }
 					}
 				}
 				return true;
 			});
 		} while (has_short_edge);
 		std::cout << i << " -   nb collapsed edges: " << nb_collapsed_edges << std::endl;
+
+		std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
+		std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
 
 		std::cout << i << " - detect & mark degeneracies" << std::endl;
 		nb_fixed_vertices = 0;
