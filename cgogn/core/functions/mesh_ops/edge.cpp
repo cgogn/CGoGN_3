@@ -56,16 +56,15 @@ IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, boo
 	auto [v0, v1] = (*ig.edge_incident_vertices_)[e0.index_];
 	(*ig.edge_incident_vertices_)[e0.index_] = {v0, v};
 	Edge e1 = add_edge(ig, v, v1);
-	for(Face f : faces)
+	for (Face f : faces)
 	{
 		// std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
 		// auto it = std::find(edges.begin(), edges.end(), e0);
-		
+
 		(*ig.face_incident_edges_)[f.index_].push_back(e1);
 	}
 	return v;
 }
-
 
 ///////////
 // Graph //
