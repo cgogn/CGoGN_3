@@ -24,20 +24,17 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
-
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
 
-
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
+// #include <cgogn/core/functions/mesh_ops/edge.h>
+// #include <cgogn/core/functions/mesh_ops/face.h>
+// #include <cgogn/core/functions/traversals/global.h>
+// #include <cgogn/core/functions/traversals/vertex.h>
+// #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 using Mesh = cgogn::IncidenceGraph;
 
@@ -62,26 +59,26 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Simple graph viewer");
+	app.set_window_title("Simple incidence graph viewer");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> gr(app);
-	Mesh* ig = mp.load_surface_from_file(filename);
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
-
-	cgogn::cut_face(*ig, Mesh::Vertex(0), Mesh::Vertex(2));
-	// cgogn::remove_face(*ig, Mesh::Face(0));
-	// Mesh::Vertex v = cgogn::cut_edge(*ig, Mesh::Edge(0));
-	// (*vertex_position)[v.index_] = Vec3(1, 2, 3);
-	
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&gr);
+
+	Mesh* ig = mp.load_surface_from_file(filename);
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
+
+	// cgogn::cut_face(*ig, Mesh::Vertex(0), Mesh::Vertex(2));
+	// cgogn::remove_face(*ig, Mesh::Face(0));
+	// Mesh::Vertex v = cgogn::cut_edge(*ig, Mesh::Edge(0));
+	// (*vertex_position)[v.index_] = Vec3(1, 2, 3);
 
 	mp.set_mesh_bb_vertex_position(ig, vertex_position);
 	gr.set_vertex_position(*v1, *ig, vertex_position);

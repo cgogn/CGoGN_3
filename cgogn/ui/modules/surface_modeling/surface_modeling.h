@@ -54,6 +54,7 @@ class SurfaceModeling : public Module
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -92,6 +93,47 @@ public:
 		mesh_provider_->emit_connectivity_changed(&m);
 	}
 
+	void quadrangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		cgogn::modeling::quadrangulate_all_faces(
+			m,
+			[&](Vertex v) {
+				std::vector<Vertex> av = adjacent_vertices_through_edge(m, v);
+				cgogn::value<Vec3>(m, vertex_position, v) = 0.5 * (cgogn::value<Vec3>(m, vertex_position, av[0]) +
+																   cgogn::value<Vec3>(m, vertex_position, av[1]));
+			},
+			[&](Vertex v) {
+				Vec3 center;
+				center.setZero();
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+					center += cgogn::value<Vec3>(m, vertex_position, av);
+					++count;
+					return true;
+				});
+				center /= Scalar(count);
+				cgogn::value<Vec3>(m, vertex_position, v) = center;
+			});
+
+		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+	}
+
+	void delaunay_flips(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		foreach_cell(m, [&](Edge e) -> bool {
+			std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
+			if (degree(m, iv[0]) < 4 || degree(m, iv[1]) < 4)
+				return true;
+			std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+			if (op_angles[0] + op_angles[1] > M_PI)
+				flip_edge(m, e);
+			return true;
+		});
+
+		mesh_provider_->emit_connectivity_changed(&m);
+	}
+
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>() / 10);
@@ -109,7 +151,7 @@ public:
 
 	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio)
 	{
-		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio);
+		modeling::pliant_remeshing(m, vertex_position, 0.727); // edge_length_ratio);
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
@@ -168,6 +210,10 @@ protected:
 			{
 				if (ImGui::Button("Triangulate"))
 					triangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Quadrangulate"))
+					quadrangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Delaunay flips"))
+					delaunay_flips(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Fill holes"))
 					fill_holes(*selected_mesh_);
 				static int32 min_vertices = 1000;

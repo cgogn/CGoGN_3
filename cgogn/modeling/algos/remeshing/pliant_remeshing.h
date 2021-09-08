@@ -67,6 +67,9 @@ inline bool should_edge_flip(CMap2& m, CMap2::Edge e)
 	const int32 y = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[0].dart))));
 	const int32 z = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[1].dart))));
 
+	if (w < 4 || x < 4)
+		return false;
+
 	// int32 flip = 0;
 	// flip += w > 6 ? 1 : (w < 6 ? -1 : 0);
 	// flip += x > 6 ? 1 : (x < 6 ? -1 : 0);
@@ -117,8 +120,6 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		return true;
 	});
 	acc::BVHTree<uint32, Vec3>* surface_bvh = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, bvh_vertex_position);
-
-	auto vertex_barycenter = add_attribute<Vec3, Vertex>(m, "__vertex_barycenter");
 
 	for (uint32 i = 0; i < 5; ++i)
 	{
@@ -174,12 +175,13 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 
 		// equalize valences with edge flips
 		foreach_cell(m, [&](Edge e) -> bool {
-			if (should_edge_flip(m, e))
+			if (should_edge_flip(m, e) && edge_can_flip(m, e))
 				flip_edge(m, e);
 			return true;
 		});
 
 		// tangential relaxation
+		// + project back on surface
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			Vec3 q(0, 0, 0);
 			uint32 count = 0;
@@ -189,24 +191,13 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 				return true;
 			});
 			q /= Scalar(count);
-			value<Vec3>(m, vertex_barycenter, v) = q;
-			return true;
-		});
-		foreach_cell(m, [&](Vertex v) -> bool {
 			Vec3 n = geometry::normal(m, v, vertex_position);
-			const Vec3& q = value<Vec3>(m, vertex_barycenter, v);
-			value<Vec3>(m, vertex_position, v) = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-			return true;
-		});
-
-		// project back on surface
-		foreach_cell(m, [&](Vertex v) -> bool {
-			value<Vec3>(m, vertex_position, v) = surface_bvh->closest_point(value<Vec3>(m, vertex_position, v));
+			Vec3 r = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
+			value<Vec3>(m, vertex_position, v) = surface_bvh->closest_point(r);
 			return true;
 		});
 	}
 
-	remove_attribute<Vertex>(m, vertex_barycenter);
 	remove_attribute<Vertex>(m, bvh_vertex_index);
 	delete surface_bvh;
 }

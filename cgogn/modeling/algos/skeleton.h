@@ -130,7 +130,7 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 	// acc::KDTree<3, uint32>* medial_points_kdt = new acc::KDTree<3, uint32>(medial_points);
 
 	Vec3 bb_min, bb_max;
-	for (uint32 i = 0; i < 3; ++i)
+	for (uint32 i = 0; i < 2; ++i)
 	{
 		bb_min[i] = std::numeric_limits<float64>::max();
 		bb_max[i] = std::numeric_limits<float64>::lowest();
@@ -148,33 +148,22 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 	Scalar bb_diag = (bb_max - bb_min).norm();
 
 	Scalar wL = 1.0;
-	Scalar wH = 0.17;
-	Scalar wM = 0.2;
+	Scalar wH = 0.11;
+	Scalar wM = 0.17;
 	Scalar edge_collapse_threshold = 0.004 * bb_diag;
 	Scalar zero_threshold = 1e-5;
 
 	auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
-	// auto halfedge_opposite_angle = add_attribute<Scalar, HalfEdge>(m, "__halfedge_opposite_angle");
 	auto edge_weight = add_attribute<Scalar, Edge>(m, "__edge_weight");
-	auto vertex_is_fixed = add_attribute<bool, Vertex>(m, "__vertex_is_fixed");
-	// auto vertex_is_split = add_attribute<bool, Vertex>(m, "__vertex_is_split");
-	auto vertex_is_fixed_color = add_attribute<Vec3, Vertex>(m, "__vertex_is_fixed_color");
-
-	vertex_is_fixed->fill(false);
-	// vertex_is_split->fill(false);
-
-	// CellCache<MESH> cache(m);
 
 	for (uint32 i = 0; i < 10; ++i)
 	{
-		std::cout << i << " - index vertices" << std::endl;
 		uint32 nb_vertices = 0;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			value<uint32>(m, vertex_index, v) = nb_vertices++;
 			return true;
 		});
 
-		std::cout << i << " - compute laplacian edge weights" << std::endl;
 		foreach_cell(m, [&](Edge e) -> bool {
 			std::vector<Scalar> angles = geometry::opposite_angles(m, e, vertex_position);
 			Scalar weight = 0.0;
@@ -191,27 +180,19 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		Acoeffs.reserve(nb_vertices * 10);
 
 		// smooth
-		std::cout << i << " - setup matrix laplacian coeffs" << std::endl;
 		foreach_cell(m, [&](Edge e) -> bool {
 			Scalar w = value<Scalar>(m, edge_weight, e);
 			auto iv = incident_vertices(m, e);
 			uint32 vidx1 = value<uint32>(m, vertex_index, iv[0]);
 			uint32 vidx2 = value<uint32>(m, vertex_index, iv[1]);
-			if (!value<bool>(m, vertex_is_fixed, iv[0]))
-			{
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w* wL));
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w* wL));
-			}
-			if (!value<bool>(m, vertex_is_fixed, iv[1]))
-			{
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w* wL));
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w* wL));
-			}
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w* wL));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w* wL));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w* wL));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w* wL));
 			return true;
 		});
 
 		// velocity
-		std::cout << i << " - setup matrix velocity coeffs" << std::endl;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			uint32 vidx = value<uint32>(m, vertex_index, v);
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), wH));
@@ -219,21 +200,18 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		});
 
 		// medial
-		std::cout << i << " - setup matrix medial coeffs" << std::endl;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			uint32 vidx = value<uint32>(m, vertex_index, v);
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(2 * nb_vertices + vidx), int(vidx), wM));
 			return true;
 		});
 
-		std::cout << i << " - setup matrix" << std::endl;
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(3 * nb_vertices, nb_vertices);
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
 		Eigen::MatrixXd x(nb_vertices, 3);
 		Eigen::MatrixXd b(3 * nb_vertices, 3);
 
-		std::cout << i << " - setup right hand side" << std::endl;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			uint32 vidx = value<uint32>(m, vertex_index, v);
 			b(vidx, 0) = 0;
@@ -247,20 +225,13 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 			b(2 * nb_vertices + vidx, 0) = wM * medp[0];
 			b(2 * nb_vertices + vidx, 1) = wM * medp[1];
 			b(2 * nb_vertices + vidx, 2) = wM * medp[2];
-			// x(vidx, 0) = pos[0];
-			// x(vidx, 1) = pos[1];
-			// x(vidx, 2) = pos[2];
 			return true;
 		});
 
-		std::cout << i << " - solve least squares problem" << std::endl;
-		// Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
-		// x = solver.solveWithGuess(b, x);
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
 		x = solver.solve(At * b);
 
-		std::cout << i << " - store solution" << std::endl;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			uint32 vidx = value<uint32>(m, vertex_index, v);
 			Vec3& pos = value<Vec3>(m, vertex_position, v);
@@ -270,70 +241,62 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 			return true;
 		});
 
-		std::cout << i << " - detect & mark degeneracies" << std::endl;
-		uint32 nb_fixed_vertices = 0;
-		foreach_cell(m, [&](Vertex v) -> bool {
-			if (value<bool>(m, vertex_is_fixed, v))
-				return true;
-			uint32 count = 0;
-			foreach_incident_edge(m, v, [&](Edge ie) -> bool {
-				Scalar l = geometry::length(m, ie, vertex_position);
-				if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
-					++count;
-				return true;
-			});
-			bool is_fixed = count > 1;
-			if (is_fixed)
-			{
-				value<bool>(m, vertex_is_fixed, v) = true;
-				value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
-				++nb_fixed_vertices;
-			}
-			else
-			{
-				value<bool>(m, vertex_is_fixed, v) = false;
-				value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
-			}
-			return true;
-		});
-		std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
-
-		// std::cout << i << " - compute angles" << std::endl;
-		// foreach_cell(m, [&](Face f) -> bool {
-		// 	compute_halfedges_opposite_angle(m, f, vertex_position, halfedge_opposite_angle.get());
-		// 	return true;
-		// });
-
-		// std::cout << i << " - flip flat edges" << std::endl;
-		// uint32 nb_flip_edges = 0;
-		// bool has_flat_edge = false;
-		// do
-		// {
-		// 	has_flat_edge = false;
-		// 	foreach_cell(m, [&](Edge e) -> bool {
-		// 		std::vector<Vertex> iv = incident_vertices(m, e);
-		// 		if (value<bool>(m, vertex_is_fixed, iv[0]) || value<bool>(m, vertex_is_fixed, iv[1]))
-		// 			return true;
-		// 		if (degree(m, iv[0]) < 5 || degree(m, iv[1]) < 5)
-		// 			return true;
-
-		// 		std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
-		// 		Scalar flip_threshold_low = 120.0 * M_PI / 180.0;
-		// 		if (op_angles[0] > flip_threshold_low && op_angles[1] > flip_threshold_low)
-		// 		{
-		// 			if (flip_edge(m, e))
-		// 			{
-		// 				has_flat_edge = true;
-		// 				++nb_flip_edges;
-		// 			}
-		// 		}
+		// std::cout << i << " - detect & mark degeneracies" << std::endl;
+		// uint32 nb_fixed_vertices = 0;
+		// foreach_cell(m, [&](Vertex v) -> bool {
+		// 	if (value<bool>(m, vertex_is_fixed, v))
+		// 		return true;
+		// 	uint32 count = 0;
+		// 	foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+		// 		Scalar l = geometry::length(m, ie, vertex_position);
+		// 		if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
+		// 			++count;
 		// 		return true;
 		// 	});
-		// } while (has_flat_edge);
-		// std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
+		// 	bool is_fixed = count > 1;
+		// 	if (is_fixed)
+		// 	{
+		// 		value<bool>(m, vertex_is_fixed, v) = true;
+		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
+		// 		++nb_fixed_vertices;
+		// 	}
+		// 	else
+		// 	{
+		// 		value<bool>(m, vertex_is_fixed, v) = false;
+		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
+		// 	}
+		// 	return true;
+		// });
+		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
 
-		std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
-		std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
+		std::cout << i << " - flip flat edges" << std::endl;
+		uint32 nb_flip_edges = 0;
+		bool has_flat_edge = false;
+		do
+		{
+			has_flat_edge = false;
+			foreach_cell(m, [&](Edge e) -> bool {
+				std::vector<Vertex> iv = incident_vertices(m, e);
+				if (degree(m, iv[0]) < 5 || degree(m, iv[1]) < 5)
+					return true;
+
+				std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+				Scalar flip_threshold_low = 140.0 * M_PI / 180.0;
+				if (op_angles[0] > flip_threshold_low && op_angles[1] > flip_threshold_low)
+				{
+					if (edge_can_flip(m, e))
+					{
+						if (flip_edge(m, e))
+						{
+							has_flat_edge = true;
+							++nb_flip_edges;
+						}
+					}
+				}
+				return true;
+			});
+		} while (has_flat_edge);
+		std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
 
 		// std::cout << i << " - cut long edges" << std::endl;
 		// uint32 nb_cut_edges = 0;
@@ -350,7 +313,7 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		// 		// std::vector<HalfEdge> ihe = incident_halfedges(m, e);
 		// 		// Scalar alpha0 = value<Scalar>(m, halfedge_opposite_angle, ihe[0]);
 		// 		// Scalar alpha1 = value<Scalar>(m, halfedge_opposite_angle, ihe[1]);
-		// 		Scalar cut_threshold_low = 110.0 * M_PI / 180.0;
+		// 		Scalar cut_threshold_low = 120.0 * M_PI / 180.0;
 		// 		Scalar cut_threshold_high = 178.0 * M_PI / 180.0;
 
 		// 		if (alpha0 < cut_threshold_low || alpha1 < cut_threshold_low || alpha0 > cut_threshold_high ||
@@ -383,14 +346,17 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		// 		// std::pair<uint32, Scalar> k_res;
 		// 		// medial_points_kdt->find_nn(mp, &k_res);
 		// 		// value<Vec3>(m, vertex_medial_point, cv) = medial_points_kdt->vertex(k_res.first);
-		// 		value<bool>(m, vertex_is_split, cv) = true;
-		// 		value<bool>(m, vertex_is_fixed, cv) = false;
+
+		// 		// value<bool>(m, vertex_is_split, cv) = true;
+		// 		// value<bool>(m, vertex_is_fixed, cv) = false;
 
 		// 		++nb_cut_edges;
 		// 		return true;
 		// 	});
 		// } while (has_long_edge);
 		// std::cout << i << " -   nb cut edges: " << nb_cut_edges << std::endl;
+		// std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
+		// std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
 
 		std::cout << i << " - collapse short edges" << std::endl;
 		uint32 nb_collapsed_edges = 0;
@@ -400,8 +366,6 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 			has_short_edge = false;
 			foreach_cell(m, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				// if (value<bool>(m, vertex_is_fixed, iv[0]) && value<bool>(m, vertex_is_fixed, iv[1]))
-				// 	return true;
 				if (geometry::length(m, e, vertex_position) < edge_collapse_threshold)
 				{
 					if (edge_can_collapse(m, e))
@@ -421,10 +385,6 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 						// medial_points_kdt->find_nn(mp, &k_res);
 						// value<Vec3>(m, vertex_medial_point, cv) = medial_points_kdt->vertex(k_res.first);
 						++nb_collapsed_edges;
-						// bool integrity = check_integrity(m, false);
-						// if (!integrity)
-						// {
-						// }
 					}
 				}
 				return true;
@@ -432,43 +392,37 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		} while (has_short_edge);
 		std::cout << i << " -   nb collapsed edges: " << nb_collapsed_edges << std::endl;
 
-		std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
-		std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
-
-		std::cout << i << " - detect & mark degeneracies" << std::endl;
-		nb_fixed_vertices = 0;
-		foreach_cell(m, [&](Vertex v) -> bool {
-			if (value<bool>(m, vertex_is_fixed, v))
-				return true;
-			uint32 count = 0;
-			foreach_incident_edge(m, v, [&](Edge ie) -> bool {
-				Scalar l = geometry::length(m, ie, vertex_position);
-				if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
-					++count;
-				return true;
-			});
-			bool is_fixed = count > 1;
-			if (is_fixed)
-			{
-				value<bool>(m, vertex_is_fixed, v) = true;
-				value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
-				++nb_fixed_vertices;
-			}
-			else
-			{
-				value<bool>(m, vertex_is_fixed, v) = false;
-				value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
-			}
-			return true;
-		});
-		std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
+		// std::cout << i << " - detect & mark degeneracies" << std::endl;
+		// nb_fixed_vertices = 0;
+		// foreach_cell(m, [&](Vertex v) -> bool {
+		// 	if (value<bool>(m, vertex_is_fixed, v))
+		// 		return true;
+		// 	uint32 count = 0;
+		// 	foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+		// 		Scalar l = geometry::length(m, ie, vertex_position);
+		// 		if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
+		// 			++count;
+		// 		return true;
+		// 	});
+		// 	bool is_fixed = count > 1;
+		// 	if (is_fixed)
+		// 	{
+		// 		value<bool>(m, vertex_is_fixed, v) = true;
+		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
+		// 		++nb_fixed_vertices;
+		// 	}
+		// 	else
+		// 	{
+		// 		value<bool>(m, vertex_is_fixed, v) = false;
+		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
+		// 	}
+		// 	return true;
+		// });
+		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
 	}
 
 	remove_attribute<Vertex>(m, vertex_index);
 	remove_attribute<Edge>(m, edge_weight);
-	// remove_attribute<HalfEdge>(m, halfedge_opposite_angle);
-	remove_attribute<Vertex>(m, vertex_is_fixed);
-	// remove_attribute<Vertex>(m, vertex_is_split);
 
 	// delete medial_points_kdt;
 }

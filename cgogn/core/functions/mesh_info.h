@@ -434,13 +434,11 @@ inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
 
 	Dart e1 = e.dart;
 	Dart e2 = phi2(m, e.dart);
-
 	if (codegree(m, Face(e1)) == 3)
 	{
 		if (degree(m, Vertex(phi_1(m, e1))) < 4)
 			return false;
 	}
-
 	if (codegree(m, Face(e2)) == 3)
 	{
 		if (degree(m, Vertex(phi_1(m, e2))) < 4)
@@ -467,6 +465,43 @@ inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
 			return false;
 		it = next_edge(it);
 	} while (it != end);
+
+	return true;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// bool edge_can_flip(const MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+inline bool edge_can_flip(const CMap2& m, CMap2::Edge e)
+{
+	if (is_incident_to_boundary(m, e))
+		return false;
+
+	Dart e1 = e.dart;
+	Dart e2 = phi2(m, e1);
+
+	auto next_edge = [&m](Dart d) { return phi2(m, phi_1(m, d)); };
+
+	if (codegree(m, CMap2::Face(e1)) == 3 && codegree(m, CMap2::Face(e2)) == 3)
+	{
+		uint32 idxv2 = index_of(m, CMap2::Vertex(phi_1(m, e2)));
+		Dart d = phi_1(m, e1);
+		Dart it = d;
+		do
+		{
+			if (index_of(m, CMap2::Vertex(phi1(m, it))) == idxv2)
+				return false;
+			it = next_edge(it);
+		} while (it != d);
+	}
 
 	return true;
 }

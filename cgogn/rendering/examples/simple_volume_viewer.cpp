@@ -33,6 +33,8 @@
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/distance.h>
 
+#include <cgogn/modeling/algos/volume_utils.h>
+
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using Mesh = cgogn::CMap3;
@@ -94,6 +96,17 @@ int main(int argc, char** argv)
 	vr.set_vertex_position(*v1, *m, vertex_position);
 	vr.set_volume_scalar(*v1, *m, volume_scalar);
 	vr.set_volume_color(*v1, *m, volume_color);
+
+	/********************************/
+
+	cgogn::ui::MeshProvider<cgogn::CMap2> mps(app);
+	cgogn::CMap2 volume_skin;
+	auto volume_skin_vertex_position = cgogn::add_attribute<Vec3, cgogn::CMap2::Vertex>(volume_skin, "position");
+
+	cgogn::modeling::extract_volume_surface(*m, vertex_position.get(), volume_skin, volume_skin_vertex_position.get());
+	// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
+	cgogn::geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+	mps.save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 
 	return app.launch();
 }
