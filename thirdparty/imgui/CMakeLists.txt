@@ -9,6 +9,7 @@ set(HEADER_FILES
 	imgui.h
 	imgui_impl_glfw.h
 	imgui_impl_opengl3.h
+	imgui_impl_opengl3_loader.h
 	imgui_internal.h
 	imstb_rectpack.h
 	imstb_textedit.h

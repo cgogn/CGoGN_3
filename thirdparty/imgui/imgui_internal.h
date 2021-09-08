@@ -1,4 +1,4 @@
-// dear imgui, v1.84 WIP
+// dear imgui, v1.85 WIP
 // (internal structures/api)
 
 // You may use this file to debug, understand or extend ImGui features but we don't provide any guarantee of forward compatibility!
@@ -18,6 +18,7 @@ Index of this file:
 // [SECTION] Generic helpers
 // [SECTION] ImDrawList support
 // [SECTION] Widgets support: flags, enums, data structures
+// [SECTION] Navigation support
 // [SECTION] Columns support
 // [SECTION] Multi-select support
 // [SECTION] Docking support
@@ -43,7 +44,7 @@ Index of this file:
 //-----------------------------------------------------------------------------
 
 #ifndef IMGUI_VERSION
-#error Must include imgui.h before imgui_internal.h
+#include "imgui.h"
 #endif
 
 #include <stdio.h>      // FILE*, sscanf
@@ -82,6 +83,7 @@ Index of this file:
 #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #pragma clang diagnostic ignored "-Wdouble-promotion"
 #pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"  // warning: implicit conversion from 'xxx' to 'float' may lose precision
+#pragma clang diagnostic ignored "-Wmissing-noreturn"               // warning: function 'xxx' could be declared with attribute 'noreturn'
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"              // warning: unknown option after '#pragma GCC diagnostic' kind
@@ -747,7 +749,7 @@ enum ImGuiItemFlags_
     ImGuiItemFlags_None                     = 0,
     ImGuiItemFlags_NoTabStop                = 1 << 0,  // false     // Disable keyboard tabbing (FIXME: should merge with _NoNav)
     ImGuiItemFlags_ButtonRepeat             = 1 << 1,  // false     // Button() will return true multiple times based on io.KeyRepeatDelay and io.KeyRepeatRate settings.
-    ImGuiItemFlags_Disabled                 = 1 << 2,  // false     // Disable interactions but doesn't affect visuals. See PushDisabled()/PushDisabled(). See github.com/ocornut/imgui/issues/211
+    ImGuiItemFlags_Disabled                 = 1 << 2,  // false     // Disable interactions but doesn't affect visuals. See BeginDisabled()/EndDisabled(). See github.com/ocornut/imgui/issues/211
     ImGuiItemFlags_NoNav                    = 1 << 3,  // false     // Disable keyboard/gamepad directional navigation (FIXME: should merge with _NoTabStop)
     ImGuiItemFlags_NoNavDefaultFocus        = 1 << 4,  // false     // Disable item being a candidate for default focus (e.g. used by title bar items)
     ImGuiItemFlags_SelectableDontClosePopup = 1 << 5,  // false     // Disable MenuItem/Selectable() automatically closing their popup window
@@ -810,7 +812,7 @@ enum ImGuiButtonFlagsPrivate_
     ImGuiButtonFlags_FlattenChildren        = 1 << 11,  // allow interactions even if a child window is overlapping
     ImGuiButtonFlags_AllowItemOverlap       = 1 << 12,  // require previous frame HoveredId to either match id or be null before being usable, use along with SetItemAllowOverlap()
     ImGuiButtonFlags_DontClosePopups        = 1 << 13,  // disable automatically closing parent popup on press // [UNUSED]
-    //ImGuiButtonFlags_Disabled             = 1 << 14,  // disable interactions -> use PushDisabled() or ImGuiItemFlags_Disabled
+    //ImGuiButtonFlags_Disabled             = 1 << 14,  // disable interactions -> use BeginDisabled() or ImGuiItemFlags_Disabled
     ImGuiButtonFlags_AlignTextBaseLine      = 1 << 15,  // vertically align button to match text baseline - ButtonEx() only // FIXME: Should be removed and handled by SmallButton(), not possible currently because of DC.CursorPosPrevLine
     ImGuiButtonFlags_NoKeyModifiers         = 1 << 16,  // disable mouse interaction if a key modifier is held
     ImGuiButtonFlags_NoHoldingActiveId      = 1 << 17,  // don't set ActiveId while holding the mouse (ImGuiButtonFlags_PressedOnClick only)
@@ -924,49 +926,6 @@ enum ImGuiInputReadMode
     ImGuiInputReadMode_Repeat,
     ImGuiInputReadMode_RepeatSlow,
     ImGuiInputReadMode_RepeatFast
-};
-
-enum ImGuiNavHighlightFlags_
-{
-    ImGuiNavHighlightFlags_None         = 0,
-    ImGuiNavHighlightFlags_TypeDefault  = 1 << 0,
-    ImGuiNavHighlightFlags_TypeThin     = 1 << 1,
-    ImGuiNavHighlightFlags_AlwaysDraw   = 1 << 2,       // Draw rectangular highlight if (g.NavId == id) _even_ when using the mouse.
-    ImGuiNavHighlightFlags_NoRounding   = 1 << 3
-};
-
-enum ImGuiNavDirSourceFlags_
-{
-    ImGuiNavDirSourceFlags_None         = 0,
-    ImGuiNavDirSourceFlags_Keyboard     = 1 << 0,
-    ImGuiNavDirSourceFlags_PadDPad      = 1 << 1,
-    ImGuiNavDirSourceFlags_PadLStick    = 1 << 2
-};
-
-enum ImGuiNavMoveFlags_
-{
-    ImGuiNavMoveFlags_None                  = 0,
-    ImGuiNavMoveFlags_LoopX                 = 1 << 0,   // On failed request, restart from opposite side
-    ImGuiNavMoveFlags_LoopY                 = 1 << 1,
-    ImGuiNavMoveFlags_WrapX                 = 1 << 2,   // On failed request, request from opposite side one line down (when NavDir==right) or one line up (when NavDir==left)
-    ImGuiNavMoveFlags_WrapY                 = 1 << 3,   // This is not super useful for provided for completeness
-    ImGuiNavMoveFlags_AllowCurrentNavId     = 1 << 4,   // Allow scoring and considering the current NavId as a move target candidate. This is used when the move source is offset (e.g. pressing PageDown actually needs to send a Up move request, if we are pressing PageDown from the bottom-most item we need to stay in place)
-    ImGuiNavMoveFlags_AlsoScoreVisibleSet   = 1 << 5,   // Store alternate result in NavMoveResultLocalVisibleSet that only comprise elements that are already fully visible.
-    ImGuiNavMoveFlags_ScrollToEdge          = 1 << 6
-};
-
-enum ImGuiNavForward
-{
-    ImGuiNavForward_None,
-    ImGuiNavForward_ForwardQueued,
-    ImGuiNavForward_ForwardActive
-};
-
-enum ImGuiNavLayer
-{
-    ImGuiNavLayer_Main  = 0,    // Main scrolling layer
-    ImGuiNavLayer_Menu  = 1,    // Menu layer (access with Alt/ImGuiNavInput_Menu)
-    ImGuiNavLayer_COUNT
 };
 
 enum ImGuiPopupPositionPolicy
@@ -1115,20 +1074,6 @@ struct ImGuiPopupData
     ImGuiPopupData()    { memset(this, 0, sizeof(*this)); OpenFrameCount = -1; }
 };
 
-struct ImGuiNavItemData
-{
-    ImGuiWindow*        Window;         // Init,Move    // Best candidate window (result->ItemWindow->RootWindowForNav == request->Window)
-    ImGuiID             ID;             // Init,Move    // Best candidate item ID
-    ImGuiID             FocusScopeId;   // Init,Move    // Best candidate focus scope ID
-    ImRect              RectRel;        // Init,Move    // Best candidate bounding box in window relative space
-    float               DistBox;        //      Move    // Best candidate box distance to current NavId
-    float               DistCenter;     //      Move    // Best candidate center distance to current NavId
-    float               DistAxial;      //      Move    // Best candidate axial distance to current NavId
-
-    ImGuiNavItemData()  { Clear(); }
-    void Clear()        { Window = NULL; ID = FocusScopeId = 0; RectRel = ImRect(); DistBox = DistCenter = DistAxial = FLT_MAX; }
-};
-
 enum ImGuiNextWindowDataFlags_
 {
     ImGuiNextWindowDataFlags_None               = 0,
@@ -1224,6 +1169,61 @@ struct ImGuiPtrOrIndex
 
     ImGuiPtrOrIndex(void* ptr)  { Ptr = ptr; Index = -1; }
     ImGuiPtrOrIndex(int index)  { Ptr = NULL; Index = index; }
+};
+
+//-----------------------------------------------------------------------------
+// [SECTION] Navigation support
+//-----------------------------------------------------------------------------
+
+enum ImGuiNavHighlightFlags_
+{
+    ImGuiNavHighlightFlags_None             = 0,
+    ImGuiNavHighlightFlags_TypeDefault      = 1 << 0,
+    ImGuiNavHighlightFlags_TypeThin         = 1 << 1,
+    ImGuiNavHighlightFlags_AlwaysDraw       = 1 << 2,       // Draw rectangular highlight if (g.NavId == id) _even_ when using the mouse.
+    ImGuiNavHighlightFlags_NoRounding       = 1 << 3
+};
+
+enum ImGuiNavDirSourceFlags_
+{
+    ImGuiNavDirSourceFlags_None             = 0,
+    ImGuiNavDirSourceFlags_Keyboard         = 1 << 0,
+    ImGuiNavDirSourceFlags_PadDPad          = 1 << 1,
+    ImGuiNavDirSourceFlags_PadLStick        = 1 << 2
+};
+
+enum ImGuiNavMoveFlags_
+{
+    ImGuiNavMoveFlags_None                  = 0,
+    ImGuiNavMoveFlags_LoopX                 = 1 << 0,   // On failed request, restart from opposite side
+    ImGuiNavMoveFlags_LoopY                 = 1 << 1,
+    ImGuiNavMoveFlags_WrapX                 = 1 << 2,   // On failed request, request from opposite side one line down (when NavDir==right) or one line up (when NavDir==left)
+    ImGuiNavMoveFlags_WrapY                 = 1 << 3,   // This is not super useful but provided for completeness
+    ImGuiNavMoveFlags_AllowCurrentNavId     = 1 << 4,   // Allow scoring and considering the current NavId as a move target candidate. This is used when the move source is offset (e.g. pressing PageDown actually needs to send a Up move request, if we are pressing PageDown from the bottom-most item we need to stay in place)
+    ImGuiNavMoveFlags_AlsoScoreVisibleSet   = 1 << 5,   // Store alternate result in NavMoveResultLocalVisibleSet that only comprise elements that are already fully visible (used by PageUp/PageDown)
+    ImGuiNavMoveFlags_ScrollToEdge          = 1 << 6,
+    ImGuiNavMoveFlags_Forwarded             = 1 << 7
+};
+
+enum ImGuiNavLayer
+{
+    ImGuiNavLayer_Main  = 0,    // Main scrolling layer
+    ImGuiNavLayer_Menu  = 1,    // Menu layer (access with Alt/ImGuiNavInput_Menu)
+    ImGuiNavLayer_COUNT
+};
+
+struct ImGuiNavItemData
+{
+    ImGuiWindow*        Window;         // Init,Move    // Best candidate window (result->ItemWindow->RootWindowForNav == request->Window)
+    ImGuiID             ID;             // Init,Move    // Best candidate item ID
+    ImGuiID             FocusScopeId;   // Init,Move    // Best candidate focus scope ID
+    ImRect              RectRel;        // Init,Move    // Best candidate bounding box in window relative space
+    float               DistBox;        //      Move    // Best candidate box distance to current NavId
+    float               DistCenter;     //      Move    // Best candidate center distance to current NavId
+    float               DistAxial;      //      Move    // Best candidate axial distance to current NavId
+
+    ImGuiNavItemData()  { Clear(); }
+    void Clear()        { Window = NULL; ID = FocusScopeId = 0; RectRel = ImRect(); DistBox = DistCenter = DistAxial = FLT_MAX; }
 };
 
 //-----------------------------------------------------------------------------
@@ -1701,22 +1701,20 @@ struct ImGuiContext
     bool                    NavMousePosDirty;                   // When set we will update mouse position if (io.ConfigFlags & ImGuiConfigFlags_NavEnableSetMousePos) if set (NB: this not enabled by default)
     bool                    NavDisableHighlight;                // When user starts using mouse, we hide gamepad/keyboard highlight (NB: but they are still available, which is why NavDisableHighlight isn't always != NavDisableMouseHover)
     bool                    NavDisableMouseHover;               // When user starts using gamepad/keyboard, we hide mouse hovering highlight until mouse is touched again.
-    bool                    NavAnyRequest;                      // ~~ NavMoveRequest || NavInitRequest
+    bool                    NavAnyRequest;                      // ~~ NavMoveRequest || NavInitRequest this is to perform early out in ItemAdd()
     bool                    NavInitRequest;                     // Init request for appearing window to select first item
     bool                    NavInitRequestFromMove;
     ImGuiID                 NavInitResultId;                    // Init request result (first item of the window, or one for which SetItemDefaultFocus() was called)
     ImRect                  NavInitResultRectRel;               // Init request result rectangle (relative to parent window)
     bool                    NavMoveRequest;                     // Move request for this frame
+    bool                    NavMoveRequestForwardToNextFrame;
     ImGuiNavMoveFlags       NavMoveRequestFlags;
-    ImGuiNavForward         NavMoveRequestForward;              // None / ForwardQueued / ForwardActive (this is used to navigate sibling parent menus from a child menu)
     ImGuiKeyModFlags        NavMoveRequestKeyMods;
     ImGuiDir                NavMoveDir, NavMoveDirLast;         // Direction of the move request (left/right/up/down), direction of the previous move request
     ImGuiDir                NavMoveClipDir;                     // FIXME-NAV: Describe the purpose of this better. Might want to rename?
     ImGuiNavItemData        NavMoveResultLocal;                 // Best move request candidate within NavWindow
     ImGuiNavItemData        NavMoveResultLocalVisibleSet;       // Best move request candidate within NavWindow that are mostly visible (when using ImGuiNavMoveFlags_AlsoScoreVisibleSet flag)
     ImGuiNavItemData        NavMoveResultOther;                 // Best move request candidate within NavWindow's flattened hierarchy (when using ImGuiWindowFlags_NavFlattened flag)
-    ImGuiWindow*            NavWrapRequestWindow;               // Window which requested trying nav wrap-around.
-    ImGuiNavMoveFlags       NavWrapRequestFlags;                // Wrap-around operation flags.
 
     // Navigation: Windowing (CTRL+TAB for list, or Menu button + keys or directional pads to move/resize)
     ImGuiWindow*            NavWindowingTarget;                 // Target window when doing CTRL+Tab (or Pad Menu + FocusPrev/Next), this window is temporarily displayed top-most!
@@ -1788,6 +1786,7 @@ struct ImGuiContext
     bool                    DragCurrentAccumDirty;
     float                   DragCurrentAccum;                   // Accumulator for dragging modification. Always high-precision, not rounded by end-user precision settings
     float                   DragSpeedDefaultRatio;              // If speed == 0.0f, uses (max-min) * DragSpeedDefaultRatio
+    float                   DisabledAlphaBackup;                // Backup for style.Alpha for BeginDisabled()
     float                   ScrollbarClickDeltaToGrabCenter;    // Distance between mouse and center of grab box, normalized in parent space. Use storage?
     int                     TooltipOverrideCount;
     float                   TooltipSlowDelay;                   // Time before slow tooltips appears (FIXME: This is temporary until we merge in tooltip timer+priority work)
@@ -1923,12 +1922,10 @@ struct ImGuiContext
         NavInitRequestFromMove = false;
         NavInitResultId = 0;
         NavMoveRequest = false;
+        NavMoveRequestForwardToNextFrame = false;
         NavMoveRequestFlags = ImGuiNavMoveFlags_None;
-        NavMoveRequestForward = ImGuiNavForward_None;
         NavMoveRequestKeyMods = ImGuiKeyModFlags_None;
         NavMoveDir = NavMoveDirLast = NavMoveClipDir = ImGuiDir_None;
-        NavWrapRequestWindow = NULL;
-        NavWrapRequestFlags = ImGuiNavMoveFlags_None;
 
         NavWindowingTarget = NavWindowingTargetAnim = NavWindowingListWindow = NULL;
         NavWindowingTimer = NavWindowingHighlightAlpha = 0.0f;
@@ -1960,7 +1957,7 @@ struct ImGuiContext
 
         LastValidMousePos = ImVec2(0.0f, 0.0f);
         TempInputId = 0;
-        ColorEditOptions = ImGuiColorEditFlags__OptionsDefault;
+        ColorEditOptions = ImGuiColorEditFlags_DefaultOptions_;
         ColorEditLastHue = ColorEditLastSat = 0.0f;
         ColorEditLastColor[0] = ColorEditLastColor[1] = ColorEditLastColor[2] = FLT_MAX;
         SliderCurrentAccum = 0.0f;
@@ -1968,6 +1965,7 @@ struct ImGuiContext
         DragCurrentAccumDirty = false;
         DragCurrentAccum = 0.0f;
         DragSpeedDefaultRatio = 1.0f / 100.0f;
+        DisabledAlphaBackup = 0.0f;
         ScrollbarClickDeltaToGrabCenter = 0.0f;
         TooltipOverrideCount = 0;
         TooltipSlowDelay = 0.50f;
@@ -2644,8 +2642,6 @@ namespace ImGui
     // Parameter stacks
     IMGUI_API void          PushItemFlag(ImGuiItemFlags option, bool enabled);
     IMGUI_API void          PopItemFlag();
-    IMGUI_API void          PushDisabled(bool disabled = true);
-    IMGUI_API void          PopDisabled();
 
 #ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
     // If you have old/custom copy-and-pasted widgets that used FocusableItemRegister():
@@ -2677,6 +2673,7 @@ namespace ImGui
     IMGUI_API bool          BeginViewportSideBar(const char* name, ImGuiViewport* viewport, ImGuiDir dir, float size, ImGuiWindowFlags window_flags);
 
     // Menus
+    IMGUI_API bool          BeginMenuEx(const char* label, const char* icon, bool enabled = true);
     IMGUI_API bool          MenuItemEx(const char* label, const char* icon, const char* shortcut = NULL, bool selected = false, bool enabled = true);
 
     // Combos
@@ -2686,9 +2683,10 @@ namespace ImGui
 
     // Gamepad/Keyboard Navigation
     IMGUI_API void          NavInitWindow(ImGuiWindow* window, bool force_reinit);
-    IMGUI_API bool          NavMoveRequestButNoResultYet();
+    IMGUI_API bool          NavMoveRequestButNoResultYet(); // Should be called ~NavMoveRequestIsActiveButNoResultYet()
+    IMGUI_API void          NavMoveRequestForward(ImGuiDir move_dir, ImGuiDir clip_dir, ImGuiNavMoveFlags move_flags);
     IMGUI_API void          NavMoveRequestCancel();
-    IMGUI_API void          NavMoveRequestForward(ImGuiDir move_dir, ImGuiDir clip_dir, const ImRect& bb_rel, ImGuiNavMoveFlags move_flags);
+    IMGUI_API void          NavMoveRequestApplyResult();
     IMGUI_API void          NavMoveRequestTryWrapping(ImGuiWindow* window, ImGuiNavMoveFlags move_flags);
     IMGUI_API float         GetNavInputAmount(ImGuiNavInput n, ImGuiInputReadMode mode);
     IMGUI_API ImVec2        GetNavInputAmount2d(ImGuiNavDirSourceFlags dir_sources, ImGuiInputReadMode mode, float slow_factor = 0.0f, float fast_factor = 0.0f);
