@@ -470,18 +470,18 @@ public:
 				if (is_indexed<typename mesh_traits<MESH>::Face>(m))
 				{
 					// if (position == nullptr)
-						init_triangles<true>(m, table_indices, table_indices_emb);
+					init_triangles<true>(m, table_indices, table_indices_emb);
 					// else
 					// 	init_ear_triangles<true>(m, table_indices, table_indices_emb, position);
-					// func_update_ebo(INDEX_FACES, table_indices_emb);
+					func_update_ebo(INDEX_FACES, table_indices_emb);
 				}
 				else
 				{
 					// if (position == nullptr)
-						init_triangles<false>(m, table_indices, table_indices_emb);
+					init_triangles<false>(m, table_indices, table_indices_emb);
 					// else
 					// 	init_ear_triangles<false>(m, table_indices, table_indices_emb, position);
-					// func_update_ebo2(INDEX_FACES, table_indices_emb);
+					func_update_ebo2(INDEX_FACES, table_indices_emb);
 				}
 				func_update_ebo(TRIANGLES, table_indices);
 			}

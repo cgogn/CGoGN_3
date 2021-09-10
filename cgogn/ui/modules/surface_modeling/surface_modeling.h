@@ -151,7 +151,7 @@ public:
 
 	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio)
 	{
-		modeling::pliant_remeshing(m, vertex_position, 0.727); // edge_length_ratio);
+		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio);
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}

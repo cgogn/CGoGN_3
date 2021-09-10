@@ -32,6 +32,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
+#include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -59,7 +60,7 @@ inline void triangulate_incident_faces(CMap2& m, CMap2::Vertex v)
 		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<11>(m, f.dart)));
 }
 
-inline bool should_edge_flip(CMap2& m, CMap2::Edge e)
+inline bool edge_should_flip(CMap2& m, CMap2::Edge e)
 {
 	std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
 	const int32 w = degree(m, iv[0]);
@@ -69,13 +70,6 @@ inline bool should_edge_flip(CMap2& m, CMap2::Edge e)
 
 	if (w < 4 || x < 4)
 		return false;
-
-	// int32 flip = 0;
-	// flip += w > 6 ? 1 : (w < 6 ? -1 : 0);
-	// flip += x > 6 ? 1 : (x < 6 ? -1 : 0);
-	// flip += y < 6 ? 1 : (y > 6 ? -1 : 0);
-	// flip += z < 6 ? 1 : (z > 6 ? -1 : 0);
-	// return flip > 1;
 
 	int32 dev_pre = abs(w - 6) + abs(x - 6) + abs(y - 6) + abs(z - 6);
 	int32 dev_post = abs(w - 1 - 6) + abs(x - 1 - 6) + abs(y + 1 - 6) + abs(z + 1 - 6);
@@ -121,6 +115,15 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 	});
 	acc::BVHTree<uint32, Vec3>* surface_bvh = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, bvh_vertex_position);
 
+	auto feature_edge = add_attribute<bool, Edge>(m, "__feature_edge");
+	feature_edge->fill(false);
+	Scalar angle_threshold = 44.0 * M_PI / 180.0;
+	foreach_cell(m, [&](Edge e) -> bool {
+		if (std::fabs(geometry::angle(m, e, vertex_position)) > angle_threshold)
+			value<bool>(m, feature_edge, e) = true;
+		return true;
+	});
+
 	for (uint32 i = 0; i < 5; ++i)
 	{
 		// cut long edges (and adjacent faces)
@@ -135,9 +138,21 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 					has_long_edge = true;
 					std::vector<Vertex> iv = incident_vertices(m, e);
 					Vertex v = cut_edge(m, e);
+					if (value<bool>(m, feature_edge, e))
+					{
+						foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+							value<bool>(m, feature_edge, ie) = true;
+							return true;
+						});
+					}
 					value<Vec3>(m, vertex_position, v) =
 						(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
 					triangulate_incident_faces(m, v);
+					foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+						if (std::fabs(geometry::angle(m, ie, vertex_position)) > angle_threshold)
+							value<bool>(m, feature_edge, ie) = true;
+						return true;
+					});
 				}
 				return true;
 			});
@@ -149,6 +164,8 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		{
 			has_short_edge = false;
 			foreach_cell(m, [&](Edge e) -> bool {
+				if (value<bool>(m, feature_edge, e))
+					return true;
 				if (geometry::squared_length(m, e, vertex_position) < squared_min_edge_length)
 				{
 					std::vector<Vertex> iv = incident_vertices(m, e);
@@ -158,7 +175,12 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 						const Vec3& vec = p - value<Vec3>(m, vertex_position, v);
 						if (vec.squaredNorm() > squared_max_edge_length)
 							collapse = false;
-						return true;
+						return collapse;
+					});
+					foreach_incident_edge(m, iv[0], [&](Edge ie) -> bool {
+						if (value<bool>(m, feature_edge, ie))
+							collapse = false;
+						return collapse;
 					});
 					if (collapse && edge_can_collapse(m, e))
 					{
@@ -175,7 +197,7 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 
 		// equalize valences with edge flips
 		foreach_cell(m, [&](Edge e) -> bool {
-			if (should_edge_flip(m, e) && edge_can_flip(m, e))
+			if (!value<bool>(m, feature_edge, e) && edge_should_flip(m, e) && edge_can_flip(m, e))
 				flip_edge(m, e);
 			return true;
 		});
@@ -183,21 +205,31 @@ void pliant_remeshing(MESH& m, typename mesh_traits<MESH>::template Attribute<Ve
 		// tangential relaxation
 		// + project back on surface
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			Vec3 q(0, 0, 0);
-			uint32 count = 0;
-			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-				q += value<Vec3>(m, vertex_position, av);
-				++count;
-				return true;
+			bool move_vertex = true;
+			foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+				if (value<bool>(m, feature_edge, ie))
+					move_vertex = false;
+				return move_vertex;
 			});
-			q /= Scalar(count);
-			Vec3 n = geometry::normal(m, v, vertex_position);
-			Vec3 r = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-			value<Vec3>(m, vertex_position, v) = surface_bvh->closest_point(r);
+			if (move_vertex && !is_incident_to_boundary(m, v))
+			{
+				Vec3 q(0, 0, 0);
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+					q += value<Vec3>(m, vertex_position, av);
+					++count;
+					return true;
+				});
+				q /= Scalar(count);
+				Vec3 n = geometry::normal(m, v, vertex_position);
+				Vec3 r = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
+				value<Vec3>(m, vertex_position, v) = surface_bvh->closest_point(r);
+			}
 			return true;
 		});
 	}
 
+	remove_attribute<Edge>(m, feature_edge);
 	remove_attribute<Vertex>(m, bvh_vertex_index);
 	delete surface_bvh;
 }
