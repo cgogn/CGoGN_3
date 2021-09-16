@@ -32,14 +32,14 @@ namespace cgogn
 inline IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig)
 {
 	uint32 id = ig.attribute_containers_[IncidenceGraph::Vertex::CELL_INDEX].new_index();
-	(*ig.vertices_)[id] = id;
+	// (*ig.vertices_)[id] = id;
 	return IncidenceGraph::Vertex(id);
 }
 
 inline IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1)
 {
 	uint32 id = ig.attribute_containers_[IncidenceGraph::Edge::CELL_INDEX].new_index();
-	(*ig.edges_)[id] = id;
+	// (*ig.edges_)[id] = id;
 	IncidenceGraph::Edge e(id);
 	(*ig.edge_incident_vertices_)[id] = {v0, v1};
 	(*ig.vertex_incident_edges_)[v0.index_][id] = e;
@@ -94,7 +94,7 @@ inline IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGr
 	if (sort_edges(ig, edges))
 	{
 		uint32 id = ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].new_index();
-		(*ig.faces_)[id] = id;
+		// (*ig.faces_)[id] = id;
 		(*ig.face_incident_edges_)[id] = edges;
 		IncidenceGraph::Face f(id);
 		for (IncidenceGraph::Edge e : edges)
@@ -120,7 +120,7 @@ inline void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
 			std::cout << (*ig.edge_incident_faces_)[e.index_].size() << std::endl;
 		}
 
-		(*ig.faces_)[f.index_] = INVALID_INDEX;
+		// (*ig.faces_)[f.index_] = INVALID_INDEX;
 		ig.attribute_containers_[IncidenceGraph::Face::CELL_INDEX].release_index(f.index_);
 	}
 }
@@ -140,7 +140,7 @@ inline void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e)
 	(*ig.vertex_incident_edges_)[v0.index_].erase(e.index_);
 	(*ig.vertex_incident_edges_)[v1.index_].erase(e.index_);
 
-	(*ig.edges_)[e.index_] = INVALID_INDEX;
+	// (*ig.edges_)[e.index_] = INVALID_INDEX;
 	ig.attribute_containers_[IncidenceGraph::Edge::CELL_INDEX].release_index(e.index_);
 }
 
@@ -150,8 +150,8 @@ inline void remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
 	{
 		remove_edge(ig, (*ig.vertex_incident_edges_)[v.index_].begin()->second);
 	}
+	// (*ig.vertices_)[v.index_] = INVALID_INDEX;
 	ig.attribute_containers_[IncidenceGraph::Vertex::CELL_INDEX].release_index(v.index_);
-	(*ig.vertices_)[v.index_] = INVALID_INDEX;
 }
 
 inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1)

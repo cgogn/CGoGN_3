@@ -26,6 +26,7 @@
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 namespace cgogn
 {
@@ -66,6 +67,15 @@ Graph::Vertex add_vertex(Graph& g, bool set_indices)
 
 	return v;
 }
+
+// ////////////////////
+// // IncidenceGraph //
+// ////////////////////
+
+// IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig, bool set_indices)
+// {
+// 	return add_vertex(ig);
+// }
 
 /*****************************************************************************/
 

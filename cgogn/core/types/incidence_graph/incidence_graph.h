@@ -95,7 +95,7 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	std::shared_ptr<Attribute<uint32>> edges_;
 	std::shared_ptr<Attribute<uint32>> faces_;
 
-	std::array<std::shared_ptr<Attribute<uint32>>, 3> cells_indices_;
+	// std::array<std::shared_ptr<Attribute<uint32>>, 3> cells_indices_;
 	mutable std::array<AttributeContainer, 3> attribute_containers_;
 
 	std::shared_ptr<Attribute<std::unordered_map<uint32, Edge>>> vertex_incident_edges_;
@@ -104,13 +104,13 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	std::shared_ptr<Attribute<std::unordered_map<uint32, Face>>> edge_incident_faces_;
 	IncidenceGraph()
 	{
-		vertices_ = attribute_containers_[Vertex::CELL_INDEX].add_attribute<uint32>("vertex_id");
-		edges_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<uint32>("edge_id");
-		faces_ = attribute_containers_[Face::CELL_INDEX].add_attribute<uint32>("face_id");
+		// vertices_ = attribute_containers_[Vertex::CELL_INDEX].add_attribute<uint32>("vertex_id");
+		// edges_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<uint32>("edge_id");
+		// faces_ = attribute_containers_[Face::CELL_INDEX].add_attribute<uint32>("face_id");
 
-		cells_indices_[Vertex::CELL_INDEX] = vertices_;
-		cells_indices_[Edge::CELL_INDEX] = edges_;
-		cells_indices_[Face::CELL_INDEX] = faces_;
+		// cells_indices_[Vertex::CELL_INDEX] = vertices_;
+		// cells_indices_[Edge::CELL_INDEX] = edges_;
+		// cells_indices_[Face::CELL_INDEX] = faces_;
 
 		vertex_incident_edges_ =
 			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::unordered_map<uint32, Edge>>("incident_edges");

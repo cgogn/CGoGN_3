@@ -54,9 +54,9 @@ bool is_indexed(const CMapBase& m)
 	return m.cells_indices_[orbit] != nullptr;
 }
 
-//////////////
+////////////////////
 // IncidenceGraph //
-//////////////
+////////////////////
 
 template <typename CELL>
 bool is_indexed(const IncidenceGraph& m)
@@ -187,7 +187,7 @@ template <typename CELL>
 uint32 new_index(const IncidenceGraph& ig)
 {
 	uint32 id = ig.attribute_containers_[CELL::CELL_INDEX].new_index();
-	(*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
+	// (*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
 	return id;
 }
 

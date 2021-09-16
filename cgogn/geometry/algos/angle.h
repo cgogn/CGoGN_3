@@ -81,30 +81,6 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	edge.normalize();
 
 	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
-
-	// Scalar s = edge.dot(n1.cross(n2));
-	// Scalar c = n1.dot(n2);
-	// Scalar a(0);
-
-	// // the following trick is useful to avoid NaNs (due to floating point errors)
-	// if (c > Scalar(0.5))
-	// 	a = std::asin(s);
-	// else
-	// {
-	// 	if (c < -1)
-	// 		c = -1;
-	// 	if (s >= 0)
-	// 		a = std::acos(c);
-	// 	else
-	// 		a = -std::acos(c);
-	// }
-
-	// return a;
-
-	// return angle(
-	//	 normal(m, faces[0], vertex_position),
-	//	 normal(m, faces[1], vertex_position)
-	// );
 }
 
 template <typename MESH>
@@ -131,24 +107,8 @@ Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 	Vec3 edge = value<Vec3>(m, vertex_position, typename MESH::Vertex(f2.dart)) -
 				value<Vec3>(m, vertex_position, typename MESH::Vertex(f1.dart));
 	edge.normalize();
-	Scalar s = edge.dot(n1.cross(n2));
-	Scalar c = n1.dot(n2);
-	Scalar a(0);
 
-	// the following trick is useful to avoid NaNs (due to floating point errors)
-	if (c > Scalar(0.5))
-		a = std::asin(s);
-	else
-	{
-		if (c < -1)
-			c = -1;
-		if (s >= 0)
-			a = std::acos(c);
-		else
-			a = -std::acos(c);
-	}
-
-	return a;
+	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
 
 template <typename MESH>

@@ -31,6 +31,7 @@
 #include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -164,17 +165,9 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 			return true;
 		});
 
-		foreach_cell(m, [&](Edge e) -> bool {
-			std::vector<Scalar> angles = geometry::opposite_angles(m, e, vertex_position);
-			Scalar weight = 0.0;
-			for (Scalar a : angles)
-				weight += 1.0 / std::tan(std::clamp(a, Scalar(-0.99), Scalar(0.99)));
-			// if (weight < 0.0)
-			// 	weight = 0.0;
-			weight = std::clamp(weight, 0.0, 1.0);
-			value<Scalar>(m, edge_weight, e) = weight;
-			return true;
-		});
+		geometry::compute_edge_cotan_weight(m, vertex_position, edge_weight.get());
+		for (Scalar& w : *edge_weight)
+			w = std::clamp(w, 0.0, 1.0);
 
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);

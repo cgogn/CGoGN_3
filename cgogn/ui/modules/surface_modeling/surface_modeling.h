@@ -32,11 +32,9 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
-#include <cgogn/modeling/algos/medial_axis.h>
 #include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/topstoc.h>
-#include <cgogn/modeling/algos/skeleton.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
 namespace cgogn
@@ -55,6 +53,7 @@ class SurfaceModeling : public Module
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -149,33 +148,9 @@ public:
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
 
-	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio)
+	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio, bool preserve_features)
 	{
-		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio);
-		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
-	}
-
-	void medial_axis(MESH& m, Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
-	{
-		auto sbc = get_attribute<Vec3, Vertex>(m, "shrinking_ball_centers");
-		if (!sbc)
-			sbc = add_attribute<Vec3, Vertex>(m, "shrinking_ball_centers");
-		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
-	}
-
-	void skeletonize(MESH& m, Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
-	{
-		modeling::pliant_remeshing(m, vertex_position);
-		geometry::compute_normal(m, vertex_position, vertex_normal);
-
-		auto sbc = add_attribute<Vec3, Vertex>(m, "__shrinking_ball_centers");
-		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
-
-		modeling::mean_curvature_skeleton(m, vertex_position, sbc.get());
-
-		remove_attribute<Vertex>(m, sbc);
-
+		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features);
 		mesh_provider_->emit_connectivity_changed(&m);
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
@@ -192,7 +167,7 @@ protected:
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
 			selected_mesh_ = m;
 			selected_vertex_position_.reset();
-			selected_vertex_normal_.reset();
+			// selected_vertex_normal_.reset();
 			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
 		});
 
@@ -202,9 +177,9 @@ protected:
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
 
-			imgui_combo_attribute<Vertex, Vec3>(
-				*selected_mesh_, selected_vertex_normal_, "Normal",
-				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_normal_ = attribute; });
+			// imgui_combo_attribute<Vertex, Vec3>(
+			// 	*selected_mesh_, selected_vertex_normal_, "Normal",
+			// 	[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_normal_ = attribute; });
 
 			if (selected_vertex_position_)
 			{
@@ -228,15 +203,11 @@ protected:
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
 				static float remesh_edge_length_ratio = 1.0f;
 				ImGui::SliderFloat("Edge length target w.r.t. mean", &remesh_edge_length_ratio, 0.0, 3.0);
+				static bool preserve_features = false;
+				ImGui::Checkbox("Preserve features", &preserve_features);
 				if (ImGui::Button("Remesh"))
-					remesh(*selected_mesh_, selected_vertex_position_.get(), remesh_edge_length_ratio);
-				if (selected_vertex_normal_)
-				{
-					if (ImGui::Button("Medial axis"))
-						medial_axis(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
-					if (ImGui::Button("Skeletonize"))
-						skeletonize(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
-				}
+					remesh(*selected_mesh_, selected_vertex_position_.get(), remesh_edge_length_ratio,
+						   preserve_features);
 			}
 		}
 	}
@@ -244,7 +215,7 @@ protected:
 private:
 	MESH* selected_mesh_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
-	std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
+	// std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

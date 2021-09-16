@@ -59,7 +59,7 @@ public:
 	{
 	}
 
-	// set to 64 bit to avoid converesion warning, can be 32 but need cast on insertion
+	// set to 64 bit to avoid conversion warning, can be 32 but need cast on insertion
 	std::multimap<cgogn::float64, CELL> cells_;
 
 	class const_iterator

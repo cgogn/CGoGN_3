@@ -45,6 +45,12 @@ namespace cgogn
 
 Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
 
+// ////////////////////
+// // IncidenceGraph //
+// ////////////////////
+
+// IncidenceGraph::Vertex CGOGN_CORE_EXPORT add_vertex(IncidenceGraph& ig, bool set_indices = true);
+
 /*****************************************************************************/
 
 // template <typename MESH>

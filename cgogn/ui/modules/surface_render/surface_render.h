@@ -633,6 +633,8 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 				break;
@@ -696,9 +698,13 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 				break;
+				default:
+					cgogn_assert_not_reached("");
 				}
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
@@ -726,6 +732,8 @@ protected:
 					}
 				}
 				break;
+				default:
+					cgogn_assert_not_reached("");
 				}
 			}
 
@@ -753,6 +761,8 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 				else
@@ -779,6 +789,8 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 			}

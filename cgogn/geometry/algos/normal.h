@@ -109,14 +109,6 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
-	// const Vec3& p = value<Vec3>(m, vertex_position, v);
-	// std::vector<Vertex> adjacent_vertices = adjacent_vertices_through_edge(m, v);
-	// for (uint32 i = 0, nb = uint32(adjacent_vertices.size()); i < nb; ++i)
-	// {
-	// 	n += normal(p, value<Vec3>(m, vertex_position, adjacent_vertices[i]),
-	// 				value<Vec3>(m, vertex_position, adjacent_vertices[(i + 1) % nb]))
-	// 			 .normalized();
-	// }
 	foreach_incident_face(m, v, [&](Face f) -> bool {
 		n += normal(m, f, vertex_position) * area(m, f, vertex_position);
 		return true;

@@ -393,7 +393,7 @@ public:
 
 	void subdivide_slice()
 	{
-		if(selected_volume_faces_set_->size() == 1)
+		if (selected_volume_faces_set_->size() == 1)
 		{
 			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
 			CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
@@ -401,12 +401,11 @@ public:
 		}
 		volume_provider_->emit_connectivity_changed(volume_);
 		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-
 	}
 
 	void fiber_aligned_subdivision_from_input()
 	{
-		if(selected_volume_faces_set_->size() == 1)
+		if (selected_volume_faces_set_->size() == 1)
 		{
 			CellMarker<VOLUME, VolumeEdge> edge_fibers(*volume_);
 			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
@@ -424,16 +423,17 @@ public:
 		CellCache<VOLUME> skin_cells(*volume_);
 
 		skin_cells.template build<VolumeVolume>([&](VolumeVolume w) {
-				bool adjacent_boundary = false;
-				foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
-					adjacent_boundary = is_incident_to_boundary(*volume_, wf);
-					return !adjacent_boundary;
-				});
-				return adjacent_boundary;
+			bool adjacent_boundary = false;
+			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
+				adjacent_boundary = is_incident_to_boundary(*volume_, wf);
+				return !adjacent_boundary;
 			});
+			return adjacent_boundary;
+		});
 		foreach_cell(skin_cells, [&](VolumeVolume w) {
-			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool{
-				if(!visited_faces.is_marked(wf)){
+			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
+				if (!visited_faces.is_marked(wf))
+				{
 					skin_cells.add(wf);
 					visited_faces.mark(wf);
 				}
@@ -525,33 +525,33 @@ public:
 		// refresh_edge_target_length_ = true;
 	}
 
-	void smooth_volume_surface()
-	{
-		SURFACE volume_skin;
-		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-		auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
-		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
+	// void smooth_volume_surface()
+	// {
+	// 	SURFACE volume_skin;
+	// 	auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
+	// 	auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
+	// 	auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
 
-		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
-										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
-		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+	// 	modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
+	// 									 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
+	// 	geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 
-		geometry::compute_laplacian(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_laplacian.get());
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			value<Vec3>(volume_skin, volume_skin_vertex_position, v) +=
-				0.15 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
-			return true;
-		});
+	// 	geometry::compute_laplacian(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_laplacian.get());
+	// 	parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+	// 		value<Vec3>(volume_skin, volume_skin_vertex_position, v) +=
+	// 			0.15 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
+	// 		return true;
+	// 	});
 
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			Vec3 cp = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
-			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = cp;
-			return true;
-		});
+	// 	foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+	// 		Vec3 cp = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
+	// 		value<Vec3>(*volume_, volume_vertex_position_,
+	// 					value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = cp;
+	// 		return true;
+	// 	});
 
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
-	}
+	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	// }
 
 	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
 	{
@@ -1274,7 +1274,7 @@ protected:
 			// 	subdivide_volume_length_wise();
 			// if (ImGui::Button("Subdivide width wise"))
 			// 	subdivide_volume_width_wise();
-			if(ImGui::Button("Find Fibers"))
+			if (ImGui::Button("Find Fibers"))
 				fiber_aligned_subdivision_from_input();
 
 			if (ImGui::Button("Subdivide volume"))
@@ -1283,7 +1283,7 @@ protected:
 			if (ImGui::Button("Subdivide skin"))
 				subdivide_skin();
 
-			if(ImGui::Button("Subdivide slice"))
+			if (ImGui::Button("Subdivide slice"))
 				subdivide_slice();
 
 			ImGui::Separator();
@@ -1322,7 +1322,6 @@ private:
 	std::vector<SurfaceFace> surface_faces_;
 
 	SURFACE* contact_surface_;
-	SURFACE* contact_surface_2;
 
 	VOLUME* volume_;
 	std::shared_ptr<VolumeAttribute<Vec3>> volume_vertex_position_;
