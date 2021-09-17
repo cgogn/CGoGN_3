@@ -27,50 +27,81 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
 
+#include <cgogn/ui/modules/graph_render/graph_render.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
+#include <cgogn/ui/modules/surface_filtering/surface_filtering.h>
+#include <cgogn/ui/modules/surface_modeling/surface_modeling.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 
-using Mesh = cgogn::IncidenceGraph;
+#include <cgogn/modeling/examples/skeleton_extractor_module.h>
+
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/utils/string.h>
+
+using Graph = cgogn::IncidenceGraph;
+using Surface = cgogn::CMap2;
 
 template <typename T>
-using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using GraphAttribute = typename cgogn::mesh_traits<Graph>::Attribute<T>;
+template <typename T>
+using SurfaceAttribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
-	std::string filename;
+	std::string graph_filename, surface_filename;
 	if (argc < 2)
 	{
-		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		std::cout << "Usage: " << argv[0] << " surface_file" << std::endl;
 		return 1;
 	}
-	else
-		filename = std::string(argv[1]);
+	surface_filename = std::string(argv[1]);
 
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Simple incidence graph viewer");
+	app.set_window_title("Skeleton extractor");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> gr(app);
+	cgogn::ui::MeshProvider<Graph> mpig(app);
+	cgogn::ui::MeshProvider<Surface> mps(app);
+
+	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
+	cgogn::ui::SurfaceModeling<Surface> sm(app);
+	cgogn::ui::SurfaceFiltering<Surface> sf(app);
+
+	cgogn::ui::GraphRender<Graph> gr(app);
+	cgogn::ui::SurfaceRender<Surface> sr(app);
+
+	cgogn::ui::SkeletonExtractor<Graph, Surface> se(app);
 
 	app.init_modules();
 
-	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
-	v1->link_module(&gr);
+	cgogn::ui::View* v = app.current_view();
 
-	Mesh* ig = mp.load_surface_from_file(filename);
+	v->link_module(&mpig);
+	v->link_module(&mps);
+	v->link_module(&gr);
+	v->link_module(&sr);
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
+	// load surface
+	Surface* s = mps.load_surface_from_file(surface_filename);
+	std::cout << "surface loaded" << std::endl;
+	if (!s)
+	{
+		std::cout << "Surface file could not be loaded" << std::endl;
+		return 1;
+	}
 
-	mp.set_mesh_bb_vertex_position(ig, vertex_position);
-	gr.set_vertex_position(*v1, *ig, vertex_position);
+	sr.set_render_vertices(*v, *s, false);
+
+	auto surface_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
+	auto surface_vertex_normal = cgogn::add_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "normal");
+
+	sdp.compute_normal(*s, surface_vertex_position.get(), surface_vertex_normal.get());
 
 	return app.launch();
 }

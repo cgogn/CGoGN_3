@@ -164,7 +164,7 @@ struct mesh_traits<IncidenceGraph>
 };
 
 template <typename MESH>
-constexpr uint8 dim_of(const MESH&)
+constexpr uint8 dimension_of(const MESH&)
 {
 	return mesh_traits<MESH>::dimension;
 }

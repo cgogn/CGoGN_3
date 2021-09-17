@@ -277,6 +277,8 @@ public:
 	}
 
 	void load(const std::string& vertex_program_src, const std::string& fragment_program_src);
+	void load3(const std::string& vertex_program_src, const std::string& fragment_program_src,
+			   const std::string& geometry_program_src);
 
 	template <typename... Ts>
 	void load3_bind(const std::string& vertex_program_src, const std::string& fragment_program_src,

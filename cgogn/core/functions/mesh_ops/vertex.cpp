@@ -22,10 +22,12 @@
  *******************************************************************************/
 
 #include <cgogn/core/functions/cells.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 namespace cgogn
 {
@@ -67,6 +69,15 @@ Graph::Vertex add_vertex(Graph& g, bool set_indices)
 	return v;
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig)
+{
+	return add_cell<IncidenceGraph::Vertex>(ig);
+}
+
 /*****************************************************************************/
 
 // template <typename MESH>
@@ -89,6 +100,20 @@ void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 	if (set_indices)
 	{
 	}
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
+{
+	using Vertex = IncidenceGraph::Vertex;
+
+	while ((*ig.vertex_incident_edges_)[v.index_].size() > 0)
+		remove_edge(ig, *(*ig.vertex_incident_edges_)[v.index_].begin());
+
+	remove_cell<Vertex>(ig, v);
 }
 
 /*****************************************************************************/

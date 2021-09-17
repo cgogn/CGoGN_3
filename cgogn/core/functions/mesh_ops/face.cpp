@@ -29,8 +29,8 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 #include <cgogn/core/types/cmap/orbit_traversal.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 namespace cgogn
 {
@@ -138,9 +138,53 @@ CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 
 // template <typename MESH>
 // typename mesh_traits<MESH>::Face
+// add_face(MESH& m, std::vector<typename mesh_traits<MESH>::Edge edges);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges)
+{
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	if (sort_edges(ig, edges))
+	{
+		Face f = add_cell<Face>(ig);
+		(*ig.face_incident_edges_)[f.index_] = edges;
+		for (Edge e : edges)
+			(*ig.edge_incident_faces_)[e.index_].insert(f);
+		return f;
+	}
+	return Face();
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Face
 // remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
+{
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
+	for (Edge e : edges)
+		(*ig.edge_incident_faces_)[e.index_].erase(f);
+
+	remove_cell<Face>(ig, f);
+}
 
 ///////////
 // CMap1 //
@@ -210,55 +254,55 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 // IncidenceGraph //
 ////////////////////
 
-IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1, bool set_indices)
+IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGraph::Vertex v0,
+												IncidenceGraph::Vertex v1)
 {
-	/// find face in common
-	std::vector<IncidenceGraph::Face> faces0 = incident_faces(ig, v0);
-	std::vector<IncidenceGraph::Face> faces1 = incident_faces(ig, v1);
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
 
-	IncidenceGraph::Face face;
-	for(uint32 i = 0; i < faces0.size(); ++i)
+	// find common face
+	std::vector<Face> faces0 = incident_faces(ig, v0);
+	std::vector<Face> faces1 = incident_faces(ig, v1);
+
+	Face face;
+	for (uint32 i = 0; i < faces0.size(); ++i)
 	{
-		for(uint32 j = 0; j < faces1.size(); ++j)
+		for (uint32 j = 0; j < faces1.size(); ++j)
 		{
-			if(faces0[i].index_ == faces1[j].index_)
+			if (faces0[i].index_ == faces1[j].index_)
 			{
 				face = faces0[i];
 				break;
 			}
 		}
-		if(face.is_valid())
+		if (face.is_valid())
 			break;
 	}
 
-	if(!face.is_valid())
-		return IncidenceGraph::Edge();
+	if (!face.is_valid())
+		return Edge();
 
-	std::vector<IncidenceGraph::Edge> edges = incident_edges(ig, face);
-	sort_edges(ig, edges);
-	std::vector<IncidenceGraph::Vertex> vertices;
-	sorted_face_vertices(ig, edges, vertices);
+	std::vector<Edge>& edges = (*ig.face_incident_edges_)[face.index_];
+	std::vector<Vertex> vertices = sorted_face_vertices(ig, face);
 
-
-	std::vector<IncidenceGraph::Edge> face_edge0;
-	std::vector<IncidenceGraph::Edge> face_edge1;
+	std::vector<Edge> face_edge0;
+	std::vector<Edge> face_edge1;
 
 	bool inside = false;
-	for(uint32 i = 0; i < edges.size(); ++i)
+	for (uint32 i = 0; i < edges.size(); ++i)
 	{
-		if(vertices[i].index_ == v0.index_ || vertices[i].index_ == v1.index_)
-		{
+		if (vertices[i].index_ == v0.index_ || vertices[i].index_ == v1.index_)
 			inside = !inside;
-		}
-		
-		if(inside)
+
+		if (inside)
 			face_edge1.push_back(edges[i]);
-		else 
+		else
 			face_edge0.push_back(edges[i]);
 	}
 
 	remove_face(ig, face);
-	IncidenceGraph::Edge new_edge = add_edge(ig, v0, v1);
+	Edge new_edge = add_edge(ig, v0, v1);
 	face_edge0.push_back(new_edge);
 	face_edge1.push_back(new_edge);
 	add_face(ig, face_edge0);
@@ -266,7 +310,6 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 
 	return new_edge;
 }
-
 
 ///////////
 // CMap2 //

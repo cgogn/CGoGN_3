@@ -28,12 +28,13 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
+// #include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
+// using Mesh = cgogn::IncidenceGraph;
 using Mesh = cgogn::CMap2;
 
 template <typename T>
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
-	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	// cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
 
@@ -93,7 +94,7 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
 
-	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);

@@ -34,6 +34,35 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// add_edge(MESH& m, typename mesh_traits<MESH>::Vertex v0, typename mesh_traits<MESH>::Vertex v1);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0,
+												IncidenceGraph::Vertex v1);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// remove_edge(MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void CGOGN_CORE_EXPORT remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Vertex
 // cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
@@ -44,7 +73,6 @@ namespace cgogn
 ////////////////////
 
 IncidenceGraph::Vertex CGOGN_CORE_EXPORT cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
-
 
 ///////////
 // Graph //

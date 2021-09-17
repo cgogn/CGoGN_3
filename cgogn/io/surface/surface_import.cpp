@@ -24,7 +24,9 @@
 #include <cgogn/io/surface/surface_import.h>
 
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
@@ -146,21 +148,21 @@ void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
-void import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data)
+void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
 {
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 
-	auto position = get_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
+	auto position = get_attribute<geometry::Vec3, Vertex>(ig, surface_data.vertex_position_attribute_name_);
 	if (!position)
-		position = add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
+		position = add_attribute<geometry::Vec3, Vertex>(ig, surface_data.vertex_position_attribute_name_);
 
 	for (uint32 i = 0u; i < surface_data.nb_vertices_; ++i)
 	{
-		uint32 vertex_id = new_index<Vertex>(m);
-		(*position)[vertex_id] = surface_data.vertex_position_[i];
-		surface_data.vertex_id_after_import_.push_back(vertex_id);
+		Vertex v = add_vertex(ig);
+		(*position)[v.index_] = surface_data.vertex_position_[i];
+		surface_data.vertex_id_after_import_.push_back(v.index_);
 	}
 
 	uint32 faces_vertex_index = 0u;
@@ -206,12 +208,12 @@ void import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data)
 				std::pair<uint32, uint32> e(vertex_index_1, vertex_index_2);
 				if (edges.find(e) == edges.end())
 				{
-					Edge edge = add_edge(m, e.first, e.second);
+					Edge edge = add_edge(ig, e.first, e.second);
 					face_edges.push_back(edge);
 				}
 			}
 
-			add_face(m, face_edges);
+			add_face(ig, face_edges);
 		}
 	}
 }

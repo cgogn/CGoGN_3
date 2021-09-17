@@ -54,10 +54,30 @@ CMap2::Face CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices =
 /*****************************************************************************/
 
 // template <typename MESH>
-// void
-// remove_face(MESH& m, typename mesh_traits<MESH>::Face f, bool set_indices = true);
+// typename mesh_traits<MESH>::Face
+// add_face(MESH& m, std::vector<typename mesh_traits<MESH>::Edge edges);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Face CGOGN_CORE_EXPORT add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// remove_face(MESH& m, typename mesh_traits<MESH>::Face f);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void CGOGN_CORE_EXPORT remove_face(IncidenceGraph& ig, IncidenceGraph::Face f);
 
 ///////////
 // CMap1 //
@@ -92,8 +112,8 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 // IncidenceGraph //
 ////////////////////
 
-IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2, bool set_indices = true);
-
+IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1,
+												IncidenceGraph::Vertex v2);
 
 ///////////
 // CMap2 //

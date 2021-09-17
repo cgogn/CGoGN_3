@@ -47,6 +47,7 @@ target_link_libraries(simple_volume_viewer
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 

@@ -31,6 +31,7 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <GLFW/glfw3.h>
@@ -176,37 +177,19 @@ private:
 		p.vertex_rotation_matrix_->fill(rm);
 
 		// compute edges weight
-		parallel_foreach_cell(*m, [&](Edge e) -> bool {
-			std::vector<Scalar> angles = geometry::opposite_angles(*m, e, p.vertex_position_.get());
-			Scalar& weight = value<Scalar>(*m, p.edge_weight_, e);
-			for (Scalar a : angles)
-				weight += std::tan(M_PI_2 - a);
-			weight /= uint32(angles.size());
-			return true;
-		});
+		geometry::compute_edge_cotan_weight(*m, p.vertex_position_.get(), p.edge_weight_.get());
 
-		// compute vertices laplacian
+		// index vertices
 		uint32 nb_vertices = 0;
 		foreach_cell(*m, [&](Vertex v) -> bool {
 			value<uint32>(*m, p.vertex_index_, v) = nb_vertices++;
 			return true;
 		});
 
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
-		std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
-		LAPLcoeffs.reserve(nb_vertices * 10);
-		foreach_cell(*m, [&](Edge e) -> bool {
-			Scalar w = value<Scalar>(*m, p.edge_weight_, e);
-			auto vertices = incident_vertices(*m, e);
-			uint32 vidx1 = value<uint32>(*m, p.vertex_index_, vertices[0]);
-			uint32 vidx2 = value<uint32>(*m, p.vertex_index_, vertices[1]);
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w));
-			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w));
-			return true;
-		});
-		LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+		// compute vertices position laplacian
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+			geometry::cotan_laplacian_matrix(*m, p.vertex_index_.get(), p.vertex_position_.get(), p.edge_weight_.get());
+
 		Eigen::MatrixXd vpos(nb_vertices, 3);
 		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
 			const Vec3& pv = value<Vec3>(*m, p.vertex_position_, v);
@@ -216,28 +199,28 @@ private:
 			vpos(vidx, 2) = pv[2];
 			return true;
 		});
-		Eigen::MatrixXd lapl(nb_vertices, 3);
-		lapl = LAPL * vpos;
+		Eigen::MatrixXd poslapl(nb_vertices, 3);
+		poslapl = LAPL * vpos;
 		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
 			Vec3& dcv = value<Vec3>(*m, p.vertex_diff_coord_, v);
 			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
-			dcv[0] = lapl(vidx, 0);
-			dcv[1] = lapl(vidx, 1);
-			dcv[2] = lapl(vidx, 2);
+			dcv[0] = poslapl(vidx, 0);
+			dcv[1] = poslapl(vidx, 1);
+			dcv[2] = poslapl(vidx, 2);
 			return true;
 		});
 
-		// compute vertices bi-laplacian
+		// compute vertices position bi-laplacian
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> BILAPL(nb_vertices, nb_vertices);
 		BILAPL = LAPL * LAPL;
-		Eigen::MatrixXd bilapl(nb_vertices, 3);
-		bilapl = BILAPL * vpos;
+		Eigen::MatrixXd posbilapl(nb_vertices, 3);
+		posbilapl = BILAPL * vpos;
 		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
 			Vec3& bdcv = value<Vec3>(*m, p.vertex_bi_diff_coord_, v);
 			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
-			bdcv[0] = bilapl(vidx, 0);
-			bdcv[1] = bilapl(vidx, 1);
-			bdcv[2] = bilapl(vidx, 2);
+			bdcv[0] = posbilapl(vidx, 0);
+			bdcv[1] = posbilapl(vidx, 1);
+			bdcv[2] = posbilapl(vidx, 2);
 			return true;
 		});
 
@@ -336,22 +319,8 @@ private:
 			});
 
 			// init laplacian matrix
-			p.working_LAPL_.setZero();
-			p.working_LAPL_.resize(nb_vertices, nb_vertices);
-			std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
-			LAPLcoeffs.reserve(nb_vertices * 10);
-			foreach_cell(*p.working_cells_, [&](Edge e) -> bool {
-				Scalar w = value<Scalar>(*m, p.edge_weight_, e);
-				auto vertices = incident_vertices(*m, e);
-				uint32 vidx1 = value<uint32>(*m, p.vertex_index_, vertices[0]);
-				uint32 vidx2 = value<uint32>(*m, p.vertex_index_, vertices[1]);
-				LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w));
-				LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w));
-				LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w));
-				LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w));
-				return true;
-			});
-			p.working_LAPL_.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+			p.working_LAPL_ = geometry::cotan_laplacian_matrix(*p.working_cells_, p.vertex_index_.get(),
+															   p.vertex_position_.get(), p.edge_weight_.get());
 
 			// init bi-laplacian matrix
 			p.working_BILAPL_.setZero();
