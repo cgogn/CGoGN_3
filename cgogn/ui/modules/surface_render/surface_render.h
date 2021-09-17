@@ -68,6 +68,7 @@ class SurfaceRender : public ViewModule
 	{
 		GLOBAL = 0,
 		PER_VERTEX,
+		PER_EDGE,
 		PER_FACE
 	};
 	enum ColorType
@@ -82,7 +83,7 @@ class SurfaceRender : public ViewModule
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
-	using Volume = typename mesh_traits<MESH>::Volume;
+	// using Volume = typename mesh_traits<MESH>::Volume;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -92,16 +93,28 @@ class SurfaceRender : public ViewModule
 		Parameters()
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_normal_(nullptr),
 			  vertex_normal_vbo_(nullptr), vertex_scalar_(nullptr), vertex_scalar_vbo_(nullptr), vertex_color_(nullptr),
-			  vertex_color_vbo_(nullptr), face_scalar_(nullptr), face_scalar_vbo_(nullptr), face_color_(nullptr),
-			  face_color_vbo_(nullptr), render_vertices_(true), render_edges_(true), render_faces_(true),
-			  normal_per_cell_(PER_FACE), color_per_cell_(GLOBAL), color_type_(SCALAR), vertex_scale_factor_(1.0f),
+			  vertex_color_vbo_(nullptr), edge_color_(nullptr), edge_color_vbo_(nullptr), face_scalar_(nullptr),
+			  face_scalar_vbo_(nullptr), face_color_(nullptr), face_color_vbo_(nullptr), vertex_radius_(nullptr),
+			  vertex_radius_vbo_(nullptr), vertex_point_color_(nullptr), vertex_point_color_vbo_(nullptr),
+			  render_vertices_(true), render_edges_(true), render_faces_(true), normal_per_cell_(PER_FACE),
+			  color_per_cell_(GLOBAL), color_type_(SCALAR), point_color_per_cell_(GLOBAL), point_color_type_(VECTOR),
+			  edge_color_per_cell_(GLOBAL), edge_color_type_(VECTOR), vertex_scale_factor_(1.0f),
 			  auto_update_vertex_scalar_min_max_(true), auto_update_face_scalar_min_max_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
 
+			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
+			param_point_sprite_size_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
+
+			param_point_sprite_color_ = rendering::ShaderPointSpriteColor::generate_param();
+
+			param_point_sprite_color_size_ = rendering::ShaderPointSpriteColorSize::generate_param();
+
 			param_bold_line_ = rendering::ShaderBoldLine::generate_param();
 			param_bold_line_->color_ = {0.0f, 0.0f, 0.0f, 1.0f};
+
+			param_bold_line_color_ = rendering::ShaderBoldLineColor::generate_param();
 
 			param_flat_ = rendering::ShaderFlat::generate_param();
 			param_flat_->front_color_ = {0.4f, 0.8f, 1.0f, 1.0f};
@@ -138,13 +151,23 @@ class SurfaceRender : public ViewModule
 		rendering::VBO* vertex_scalar_vbo_;
 		std::shared_ptr<Attribute<Vec3>> vertex_color_;
 		rendering::VBO* vertex_color_vbo_;
+		std::shared_ptr<Attribute<Vec3>> edge_color_;
+		rendering::VBO* edge_color_vbo_;
 		std::shared_ptr<Attribute<Scalar>> face_scalar_;
 		rendering::VBO* face_scalar_vbo_;
 		std::shared_ptr<Attribute<Vec3>> face_color_;
 		rendering::VBO* face_color_vbo_;
+		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
+		rendering::VBO* vertex_radius_vbo_;
+		std::shared_ptr<Attribute<Vec3>> vertex_point_color_;
+		rendering::VBO* vertex_point_color_vbo_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderPointSpriteSize::Param> param_point_sprite_size_;
+		std::unique_ptr<rendering::ShaderPointSpriteColor::Param> param_point_sprite_color_;
+		std::unique_ptr<rendering::ShaderPointSpriteColorSize::Param> param_point_sprite_color_size_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_bold_line_;
+		std::unique_ptr<rendering::ShaderBoldLineColor::Param> param_bold_line_color_;
 		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 		std::unique_ptr<rendering::ShaderFlatColorPerVertex::Param> param_flat_color_per_vertex_;
 		std::unique_ptr<rendering::ShaderFlatScalarPerVertex::Param> param_flat_scalar_per_vertex_;
@@ -163,6 +186,10 @@ class SurfaceRender : public ViewModule
 		AttributePerCell normal_per_cell_;
 		AttributePerCell color_per_cell_;
 		ColorType color_type_;
+		AttributePerCell point_color_per_cell_;
+		ColorType point_color_type_; // TODO: manage scalar point color
+		AttributePerCell edge_color_per_cell_;
+		ColorType edge_color_type_; // TODO: manage scalar edge color
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
@@ -198,6 +225,11 @@ private:
 					Parameters& p = parameters_[v][m];
 					if (p.vertex_position_)
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+					if (p.vertex_base_size_ == 0.0)
+					{
+						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+						p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+					}
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
@@ -205,8 +237,15 @@ private:
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
+						{
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							if (p.vertex_base_size_ == 0.0)
+							{
+								MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+								p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+							}
+						}
 						v->request_update();
 					}));
 			mesh_connections_[m].push_back(
@@ -235,12 +274,19 @@ public:
 			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
 			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
+			if (p.vertex_base_size_ == 0.0)
+				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
 
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
+		p.param_point_sprite_size_->set_vbos({p.vertex_position_vbo_, p.vertex_radius_vbo_});
+		p.param_point_sprite_color_->set_vbos({p.vertex_position_vbo_, p.vertex_point_color_vbo_});
+		p.param_point_sprite_color_size_->set_vbos(
+			{p.vertex_position_vbo_, p.vertex_point_color_vbo_, p.vertex_radius_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
+		p.param_bold_line_color_->set_vbos({p.vertex_position_vbo_, p.edge_color_vbo_});
 		p.param_flat_->set_vbos({p.vertex_position_vbo_});
 		p.param_flat_color_per_vertex_->set_vbos({p.vertex_position_vbo_, p.vertex_color_vbo_});
 		p.param_flat_scalar_per_vertex_->set_vbos({p.vertex_position_vbo_, p.vertex_scalar_vbo_});
@@ -332,6 +378,26 @@ public:
 		v.request_update();
 	}
 
+	void set_edge_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& edge_color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		if (p.edge_color_ == edge_color)
+			return;
+
+		p.edge_color_ = edge_color;
+		if (p.edge_color_)
+		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.edge_color_vbo_ = md->update_vbo(p.edge_color_.get(), true);
+		}
+		else
+			p.edge_color_vbo_ = nullptr;
+
+		p.param_bold_line_color_->set_vbos({p.vertex_position_vbo_, p.edge_color_vbo_});
+
+		v.request_update();
+	}
+
 	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_color)
 	{
 		Parameters& p = parameters_[&v][&m];
@@ -378,6 +444,50 @@ public:
 
 		p.param_flat_scalar_per_face_->set_vbos({p.vertex_position_vbo_, p.face_scalar_vbo_});
 		p.param_phong_scalar_per_face_->set_vbos({p.vertex_position_vbo_, p.vertex_normal_vbo_, p.face_scalar_vbo_});
+
+		v.request_update();
+	}
+
+	void set_vertex_radius(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_radius)
+	{
+		Parameters& p = parameters_[&v][&m];
+		if (p.vertex_radius_ == vertex_radius)
+			return;
+
+		p.vertex_radius_ = vertex_radius;
+		if (p.vertex_radius_)
+		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_radius_vbo_ = md->update_vbo(vertex_radius.get(), true);
+		}
+		else
+			p.vertex_radius_vbo_ = nullptr;
+
+		p.param_point_sprite_size_->set_vbos({p.vertex_position_vbo_, p.vertex_radius_vbo_});
+		p.param_point_sprite_color_size_->set_vbos(
+			{p.vertex_position_vbo_, p.vertex_point_color_vbo_, p.vertex_radius_vbo_});
+
+		v.request_update();
+	}
+
+	void set_vertex_point_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_point_color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		if (p.vertex_point_color_ == vertex_point_color)
+			return;
+
+		p.vertex_point_color_ = vertex_point_color;
+		if (p.vertex_point_color_)
+		{
+			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+			p.vertex_point_color_vbo_ = md->update_vbo(p.vertex_point_color_.get(), true);
+		}
+		else
+			p.vertex_point_color_vbo_ = nullptr;
+
+		p.param_point_sprite_color_->set_vbos({p.vertex_position_vbo_, p.vertex_point_color_vbo_});
+		p.param_point_sprite_color_size_->set_vbos(
+			{p.vertex_position_vbo_, p.vertex_point_color_vbo_, p.vertex_radius_vbo_});
 
 		v.request_update();
 	}
@@ -523,6 +633,8 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 				break;
@@ -586,28 +698,110 @@ protected:
 						}
 					}
 					break;
+					default:
+						cgogn_assert_not_reached("");
 					}
 				}
 				break;
+				default:
+					cgogn_assert_not_reached("");
 				}
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 
-			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
+			if (p.render_edges_)
 			{
-				p.param_bold_line_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::LINES);
-				p.param_bold_line_->release();
+				switch (p.edge_color_per_cell_)
+				{
+				case GLOBAL: {
+					if (p.param_bold_line_->attributes_initialized())
+					{
+						p.param_bold_line_->bind(proj_matrix, view_matrix);
+						md->draw(rendering::LINES);
+						p.param_bold_line_->release();
+					}
+				}
+				break;
+				case PER_EDGE: {
+					if (p.param_bold_line_color_->attributes_initialized())
+					{
+						p.param_bold_line_color_->bind(proj_matrix, view_matrix);
+						md->draw(rendering::LINES_TB);
+						p.param_bold_line_color_->release();
+					}
+				}
+				break;
+				default:
+					cgogn_assert_not_reached("");
+				}
 			}
 
-			if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
+			if (p.render_vertices_)
 			{
-				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
-				p.param_point_sprite_->release();
+				if (p.vertex_radius_)
+				{
+					switch (p.point_color_per_cell_)
+					{
+					case GLOBAL: {
+						if (p.param_point_sprite_size_->attributes_initialized())
+						{
+							p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::POINTS);
+							p.param_point_sprite_size_->release();
+						}
+					}
+					break;
+					case PER_VERTEX: {
+						if (p.param_point_sprite_color_size_->attributes_initialized())
+						{
+							p.param_point_sprite_color_size_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::POINTS);
+							p.param_point_sprite_color_size_->release();
+						}
+					}
+					break;
+					default:
+						cgogn_assert_not_reached("");
+					}
+				}
+				else
+				{
+					switch (p.point_color_per_cell_)
+					{
+					case GLOBAL: {
+						if (p.param_point_sprite_->attributes_initialized())
+						{
+							p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+							p.param_point_sprite_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::POINTS);
+							p.param_point_sprite_->release();
+						}
+					}
+					break;
+					case PER_VERTEX: {
+						if (p.param_point_sprite_color_->attributes_initialized())
+						{
+							p.param_point_sprite_color_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+							p.param_point_sprite_color_->bind(proj_matrix, view_matrix);
+							md->draw(rendering::POINTS);
+							p.param_point_sprite_color_->release();
+						}
+					}
+					break;
+					default:
+						cgogn_assert_not_reached("");
+					}
+				}
 			}
+
+			// if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
+			// {
+			// 	p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
+			// 	p.param_point_sprite_->bind(proj_matrix, view_matrix);
+			// 	md->draw(rendering::POINTS);
+			// 	p.param_point_sprite_->release();
+			// }
 
 			float64 remain = md->outlined_until_ - App::frame_time_;
 			if (remain > 0 && p.vertex_position_vbo_)
@@ -646,18 +840,86 @@ protected:
 			need_update |= ImGui::Checkbox("Vertices", &p.render_vertices_);
 			if (p.render_vertices_)
 			{
-				need_update |= ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
-												 ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("Size##vertices", &p.vertex_scale_factor_, 0.1f, 2.0f);
+				imgui_combo_attribute<Vertex, Scalar>(*selected_mesh_, p.vertex_radius_, "Radius",
+													  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
+														  set_vertex_radius(*selected_view_, *selected_mesh_,
+																			attribute);
+													  });
+
+				if (!p.vertex_radius_)
+					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+
+				ImGui::TextUnformatted("Colors");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Global##pointcolor", p.point_color_per_cell_ == GLOBAL))
+				{
+					p.point_color_per_cell_ = GLOBAL;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per vertex##pointcolor", p.point_color_per_cell_ == PER_VERTEX))
+				{
+					p.point_color_per_cell_ = PER_VERTEX;
+					need_update = true;
+				}
+				ImGui::EndGroup();
+
+				if (p.point_color_per_cell_ == GLOBAL)
+				{
+					if (ImGui::ColorEdit3("Color##vertices", p.param_point_sprite_->color_.data(),
+										  ImGuiColorEditFlags_NoInputs))
+					{
+						p.param_point_sprite_size_->color_ = p.param_point_sprite_->color_;
+						need_update = true;
+					}
+				}
+				else if (p.point_color_per_cell_ == PER_VERTEX)
+				{
+					imgui_combo_attribute<Vertex, Vec3>(
+						*selected_mesh_, p.vertex_point_color_, "Attribute##vectorvertexpointcolor",
+						[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+							set_vertex_point_color(*selected_view_, *selected_mesh_, attribute);
+						});
+				}
 			}
 
 			ImGui::Separator();
 			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
 			if (p.render_edges_)
 			{
-				need_update |=
-					ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(), ImGuiColorEditFlags_NoInputs);
-				need_update |= ImGui::SliderFloat("Width##edges", &p.param_bold_line_->width_, 1.0f, 10.0f);
+				ImGui::TextUnformatted("Colors");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Global##edgecolor", p.edge_color_per_cell_ == GLOBAL))
+				{
+					p.edge_color_per_cell_ = GLOBAL;
+					need_update = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Per edge##edgecolor", p.edge_color_per_cell_ == PER_EDGE))
+				{
+					p.edge_color_per_cell_ = PER_EDGE;
+					need_update = true;
+				}
+				ImGui::EndGroup();
+
+				if (p.edge_color_per_cell_ == GLOBAL)
+				{
+					need_update |= ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
+				}
+				else if (p.edge_color_per_cell_ == PER_EDGE)
+				{
+					imgui_combo_attribute<Edge, Vec3>(*selected_mesh_, p.edge_color_, "Attribute##vectoredgecolor",
+													  [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+														  set_edge_color(*selected_view_, *selected_mesh_, attribute);
+													  });
+				}
+
+				if (ImGui::SliderFloat("Width##edges", &p.param_bold_line_->width_, 1.0f, 10.0f))
+				{
+					p.param_bold_line_color_->width_ = p.param_bold_line_->width_;
+					need_update = true;
+				}
 			}
 
 			ImGui::Separator();

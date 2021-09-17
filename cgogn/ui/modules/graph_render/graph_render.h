@@ -79,10 +79,10 @@ class GraphRender : public ViewModule
 			  render_edges_(true), color_per_cell_(GLOBAL), color_type_(VECTOR), vertex_scale_factor_(1.0)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = {1, 0.5f, 0, 1};
+			param_point_sprite_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
 
 			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
-			param_point_sprite_size_->color_ = {1, 0.5f, 0, 1};
+			param_point_sprite_size_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
 
 			param_point_sprite_color_ = rendering::ShaderPointSpriteColor::generate_param();
 

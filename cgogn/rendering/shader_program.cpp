@@ -240,6 +240,54 @@ void ShaderProgram::load(const std::string& vert_src, const std::string& frag_sr
 	get_matrices_uniforms();
 }
 
+void ShaderProgram::load3(const std::string& vert_src, const std::string& frag_src, const std::string& geom_src)
+{
+	vertex_shader_ = new Shader(GL_VERTEX_SHADER);
+	vertex_shader_->compile(vert_src, name());
+
+	geometry_shader_ = new Shader(GL_GEOMETRY_SHADER);
+	geometry_shader_->compile(geom_src, name());
+
+	fragment_shader_ = new Shader(GL_FRAGMENT_SHADER);
+	fragment_shader_->compile(frag_src, name());
+
+	glAttachShader(id_, vertex_shader_->id());
+	glAttachShader(id_, geometry_shader_->id());
+	glAttachShader(id_, fragment_shader_->id());
+
+	glLinkProgram(id_);
+
+	// puis detache (?)
+	glDetachShader(id_, fragment_shader_->id());
+	glDetachShader(id_, geometry_shader_->id());
+	glDetachShader(id_, vertex_shader_->id());
+
+	// glValidateProgram(id_);
+	// // Print log if needed
+	// GLint infologLength = 0;
+	// glGetProgramiv(id_, GL_LINK_STATUS, &infologLength);
+	// if (infologLength != GL_TRUE)
+	// 	std::cerr << "PB GL_LINK_STATUS load " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_VALIDATE_STATUS, &infologLength);
+	// if (infologLength != GL_TRUE)
+	// 	std::cerr << "PB GL_VALIDATE_STATUS load " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_ATTACHED_SHADERS, &infologLength);
+	// std::cerr << "NB ATTACHED SHADERS in " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_ACTIVE_UNIFORMS, &infologLength);
+	// std::cerr << "NB ACTIVE UNIFORMS in " << name() << " " << infologLength << std::endl;
+	// glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &infologLength);
+	// if (infologLength > 1)
+	// {
+	// 	char* infoLog = new char[infologLength];
+	// 	int charsWritten = 0;
+	// 	glGetProgramInfoLog(id_, infologLength, &charsWritten, infoLog);
+	// 	std::cerr << "Link message: " << infoLog << std::endl;
+	// 	delete[] infoLog;
+	// }
+
+	get_matrices_uniforms();
+}
+
 /*****************************************************************************/
 // ShaderParam
 /*****************************************************************************/

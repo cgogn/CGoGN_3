@@ -79,7 +79,6 @@ bool import_OFF(MESH& m, const std::string& filename)
 	}
 
 	surface_data.reserve(nb_vertices, nb_faces);
-	auto position = add_attribute<geometry::Vec3, Vertex>(m, "position");
 
 	// read vertices position
 	for (uint32 i = 0u; i < nb_vertices; ++i)
@@ -87,11 +86,7 @@ bool import_OFF(MESH& m, const std::string& filename)
 		float64 x = read_double(fp, line);
 		float64 y = read_double(fp, line);
 		float64 z = read_double(fp, line);
-
-		uint32 vertex_id = new_index<Vertex>(m);
-		(*position)[vertex_id] = {x, y, z};
-
-		surface_data.vertices_id_.push_back(vertex_id);
+		surface_data.vertex_position_.push_back({x, y, z});
 	}
 
 	// read faces (vertex indices)
@@ -101,7 +96,7 @@ bool import_OFF(MESH& m, const std::string& filename)
 
 		std::vector<uint32> indices(n);
 		for (uint32 j = 0u; j < n; ++j)
-			indices[j] = surface_data.vertices_id_[read_uint(fp, line)];
+			indices[j] = read_uint(fp, line);
 
 		surface_data.faces_nb_vertices_.push_back(n);
 		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),

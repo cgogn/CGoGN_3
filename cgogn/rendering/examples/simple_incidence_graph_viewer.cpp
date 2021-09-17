@@ -21,39 +21,56 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_
-#define CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shader_program.h>
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-namespace cgogn
+#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
+#include <cgogn/ui/modules/surface_render/surface_render.h>
+
+using Mesh = cgogn::IncidenceGraph;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
-
-namespace rendering
-{
-
-DECLARE_SHADER_CLASS(BoldLineColor, false, CGOGN_STR(BoldLineColor))
-
-class CGOGN_RENDERING_EXPORT ShaderParamBoldLineColor : public ShaderParam
-{
-	void set_uniforms() override;
-
-public:
-	float32 width_;
-	GLVec4 plane_clip_;
-	GLVec4 plane_clip2_;
-
-	using ShaderType = ShaderBoldLineColor;
-
-	ShaderParamBoldLineColor(ShaderType* sh)
-		: ShaderParam(sh), width_(2.0f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	std::string filename;
+	if (argc < 2)
 	{
+		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
+		return 1;
 	}
-};
+	else
+		filename = std::string(argv[1]);
 
-} // namespace rendering
+	cgogn::thread_start();
 
-} // namespace cgogn
+	cgogn::ui::App app;
+	app.set_window_title("Simple incidence graph viewer");
+	app.set_window_size(1000, 800);
 
-#endif // CGOGN_RENDERING_SHADERS_BOLD_LINE_COLOR_H_
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> gr(app);
+
+	app.init_modules();
+
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&gr);
+
+	Mesh* ig = mp.load_surface_from_file(filename);
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
+
+	mp.set_mesh_bb_vertex_position(ig, vertex_position);
+	gr.set_vertex_position(*v1, *ig, vertex_position);
+
+	return app.launch();
+}

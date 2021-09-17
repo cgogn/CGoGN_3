@@ -29,6 +29,7 @@
 #include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/core/types/cmap/cph3.h>
 #include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
@@ -143,8 +144,27 @@ struct mesh_traits<Graph>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
+template <>
+struct mesh_traits<IncidenceGraph>
+{
+	static constexpr const char* name = "IncidenceGraph";
+	static constexpr const uint8 dimension = 2;
+
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	using Cells = std::tuple<Vertex, Edge, Face>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
+
+	template <typename T>
+	using Attribute = IncidenceGraph::Attribute<T>;
+	using AttributeGen = IncidenceGraph::AttributeGen;
+	using MarkAttribute = IncidenceGraph::MarkAttribute;
+};
+
 template <typename MESH>
-constexpr uint8 dim_of(const MESH&)
+constexpr uint8 dimension_of(const MESH&)
 {
 	return mesh_traits<MESH>::dimension;
 }

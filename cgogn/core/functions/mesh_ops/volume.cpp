@@ -193,6 +193,29 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 /*****************************************************************************/
 
 // template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// remove_volume(MESH& m, typename mesh_traits<MESH>::Volume v);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void remove_volume(CMap2& m, CMap2::Volume v)
+{
+	std::vector<Dart> darts;
+	foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+		darts.push_back(d);
+		return true;
+	});
+	for (Dart d : darts)
+		remove_dart(m, d);
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Face
 // cut_volume(MESH& m, const std::vector<Dart>& path, bool set_indices = true);
 

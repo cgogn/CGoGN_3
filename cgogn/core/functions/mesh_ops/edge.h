@@ -34,10 +34,45 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// add_edge(MESH& m, typename mesh_traits<MESH>::Vertex v0, typename mesh_traits<MESH>::Vertex v1);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0,
+												IncidenceGraph::Vertex v1);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// remove_edge(MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void CGOGN_CORE_EXPORT remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Vertex
 // cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Vertex CGOGN_CORE_EXPORT cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
 
 ///////////
 // Graph //
@@ -94,6 +129,20 @@ CMap1::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_
 ///////////
 
 CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// bool
+// flip_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+bool CGOGN_CORE_EXPORT flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
 } // namespace cgogn
 

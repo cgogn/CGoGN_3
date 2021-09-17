@@ -91,7 +91,7 @@ inline Dart add_dart(CPH3& m)
 
 inline void remove_dart(CMapBase& m, Dart d)
 {
-	for (uint32 orbit = 0; orbit < uint32(m.attribute_containers_.size()); ++orbit)
+	for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
 	{
 		if (m.cells_indices_[orbit])
 		{

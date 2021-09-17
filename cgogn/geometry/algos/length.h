@@ -47,6 +47,15 @@ Scalar length(const MESH& m, typename mesh_traits<MESH>::Edge e,
 }
 
 template <typename MESH>
+Scalar squared_length(const MESH& m, typename mesh_traits<MESH>::Edge e,
+					  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	std::vector<Vertex> vertices = incident_vertices(m, e);
+	return (value<Vec3>(m, vertex_position, vertices[0]) - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
+}
+
+template <typename MESH>
 Scalar mean_edge_length(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
 	using Edge = typename mesh_traits<MESH>::Edge;

@@ -31,10 +31,12 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/geometry/algos/ear_triangulation.h>
 #include <cgogn/geometry/algos/picking.h>
 #include <cgogn/geometry/algos/selection.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 #include <cgogn/rendering/vbo_update.h>
 
@@ -62,7 +64,8 @@ class VolumeSelection : public ViewModule
 
 	enum SelectingCell
 	{
-		VertexSelect
+		VertexSelect,
+		FaceSelect
 	};
 
 	enum SelectionMethod
@@ -77,11 +80,19 @@ class VolumeSelection : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), vertex_scale_factor_(1.0), selected_vertices_set_(nullptr),
-			  selecting_cell_(VertexSelect), selection_method_(SingleCell), choosing_vertex_(false)
+			  selected_faces_set_(nullptr), selecting_cell_(VertexSelect), selection_method_(SingleCell),
+			  choosing_cell_(false)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
 			param_point_sprite_->set_vbos({&selected_vertices_vbo_});
+
+			param_flat_ = rendering::ShaderFlat::generate_param();
+			param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+			param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+			param_flat_->double_side_ = true;
+			param_flat_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+			param_flat_->set_vbos({&selected_faces_vbo_});
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
@@ -99,25 +110,52 @@ class VolumeSelection : public ViewModule
 			}
 		}
 
+		void update_selected_faces_vbo()
+		{
+			if (selected_faces_set_)
+			{
+				selected_faces_nb_triangles_ = 0;
+
+				std::vector<uint32> selected_faces_vertex_indices;
+				selected_faces_vertex_indices.reserve(selected_faces_set_->size() * 6);
+				selected_faces_set_->foreach_cell([&](Face f) {
+					geometry::append_ear_triangulation(*mesh_, f, vertex_position_.get(), selected_faces_vertex_indices,
+													   [&]() { ++selected_faces_nb_triangles_; });
+				});
+
+				std::vector<Vec3> selected_faces_vertex_positions;
+				selected_faces_vertex_positions.reserve(selected_faces_vertex_indices.size());
+				for (uint32 idx : selected_faces_vertex_indices)
+					selected_faces_vertex_positions.push_back((*vertex_position_)[idx]);
+
+				rendering::update_vbo(selected_faces_vertex_positions, &selected_faces_vbo_);
+			}
+		}
+
 		MESH* mesh_;
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
+		std::unique_ptr<rendering::ShaderFlat::Param> param_flat_;
 
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
 
 		rendering::VBO selected_vertices_vbo_;
+		rendering::VBO selected_faces_vbo_;
 
 		CellsSet<MESH, Vertex>* selected_vertices_set_;
+		CellsSet<MESH, Face>* selected_faces_set_;
+		uint32 selected_faces_nb_triangles_;
 
 		SelectingCell selecting_cell_;
 		SelectionMethod selection_method_;
 
 		std::vector<Vertex> picked_vertices_;
+		std::vector<Face> picked_faces_;
 		uint32 current_candidate_index_;
 		bool current_candidate_state_;
-		bool choosing_vertex_;
+		bool choosing_cell_;
 		int32 clicked_button_;
 	};
 
@@ -144,6 +182,7 @@ private:
 					{
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 6);
 						p.update_selected_vertices_vbo();
+						p.update_selected_faces_vbo();
 					}
 
 					for (View* v : linked_views_)
@@ -160,6 +199,17 @@ private:
 							v->request_update();
 					}
 				}));
+		mesh_connections_[m].push_back(
+			boost::synapse::connect<typename MeshProvider<MESH>::template cells_set_changed<Face>>(
+				m, [this, m](CellsSet<MESH, Face>* set) {
+					Parameters& p = parameters_[m];
+					if (p.selected_faces_set_ == set && p.vertex_position_)
+					{
+						p.update_selected_faces_vbo();
+						for (View* v : linked_views_)
+							v->request_update();
+					}
+				}));
 	}
 
 public:
@@ -172,6 +222,7 @@ public:
 		{
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 6);
 			p.update_selected_vertices_vbo();
+			p.update_selected_faces_vbo();
 		}
 
 		for (View* v : linked_views_)
@@ -194,8 +245,8 @@ protected:
 		{
 			Parameters& p = parameters_[selected_mesh_];
 
-			if (p.choosing_vertex_)
-				p.choosing_vertex_ = false;
+			if (p.choosing_cell_)
+				p.choosing_cell_ = false;
 			else if (view->shift_pressed())
 			{
 				if (p.vertex_position_)
@@ -217,7 +268,7 @@ protected:
 														 p.picked_vertices_);
 								if (!p.picked_vertices_.empty())
 								{
-									p.choosing_vertex_ = true;
+									p.choosing_cell_ = true;
 									p.clicked_button_ = button;
 									p.current_candidate_index_ = 0;
 									p.current_candidate_state_ = p.selected_vertices_set_->contains(
@@ -237,6 +288,31 @@ protected:
 								}
 							}
 							break;
+						case FaceSelect:
+							if (p.selected_faces_set_)
+							{
+								cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B,
+														 p.picked_faces_);
+								if (!p.picked_faces_.empty())
+								{
+									p.choosing_cell_ = true;
+									p.clicked_button_ = button;
+									p.current_candidate_index_ = 0;
+									p.current_candidate_state_ =
+										p.selected_faces_set_->contains(p.picked_faces_[p.current_candidate_index_]);
+									switch (button)
+									{
+									case 0:
+										p.selected_faces_set_->select(p.picked_faces_[p.current_candidate_index_]);
+										break;
+									case 1:
+										p.selected_faces_set_->unselect(p.picked_faces_[p.current_candidate_index_]);
+										break;
+									}
+									mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
+								}
+							}
+							break;
 						}
 						break;
 					}
@@ -251,31 +327,59 @@ protected:
 		if (selected_mesh_)
 		{
 			Parameters& p = parameters_[selected_mesh_];
-			if (p.choosing_vertex_)
+			if (p.choosing_cell_)
 			{
 				uint32 bak_index = p.current_candidate_index_;
 				bool bak_state = p.current_candidate_state_;
-				if (dy > 0)
-					p.current_candidate_index_ = (p.current_candidate_index_ + 1) % p.picked_vertices_.size();
-				else if (dy < 0)
-					p.current_candidate_index_ =
-						(p.current_candidate_index_ + p.picked_vertices_.size() - 1) % p.picked_vertices_.size();
-				p.current_candidate_state_ =
-					p.selected_vertices_set_->contains(p.picked_vertices_[p.current_candidate_index_]);
-				switch (p.clicked_button_)
+				switch (p.selecting_cell_)
 				{
-				case 0:
-					if (!bak_state)
-						p.selected_vertices_set_->unselect(p.picked_vertices_[bak_index]);
-					p.selected_vertices_set_->select(p.picked_vertices_[p.current_candidate_index_]);
+				case VertexSelect:
+					if (dy > 0)
+						p.current_candidate_index_ = (p.current_candidate_index_ + 1) % p.picked_vertices_.size();
+					else if (dy < 0)
+						p.current_candidate_index_ =
+							(p.current_candidate_index_ + p.picked_vertices_.size() - 1) % p.picked_vertices_.size();
+					p.current_candidate_state_ =
+						p.selected_vertices_set_->contains(p.picked_vertices_[p.current_candidate_index_]);
+					switch (p.clicked_button_)
+					{
+					case 0:
+						if (!bak_state)
+							p.selected_vertices_set_->unselect(p.picked_vertices_[bak_index]);
+						p.selected_vertices_set_->select(p.picked_vertices_[p.current_candidate_index_]);
+						break;
+					case 1:
+						if (bak_state)
+							p.selected_vertices_set_->select(p.picked_vertices_[bak_index]);
+						p.selected_vertices_set_->unselect(p.picked_vertices_[p.current_candidate_index_]);
+						break;
+					}
+					mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
 					break;
-				case 1:
-					if (bak_state)
-						p.selected_vertices_set_->select(p.picked_vertices_[bak_index]);
-					p.selected_vertices_set_->unselect(p.picked_vertices_[p.current_candidate_index_]);
+				case FaceSelect:
+					if (dy > 0)
+						p.current_candidate_index_ = (p.current_candidate_index_ + 1) % p.picked_faces_.size();
+					else if (dy < 0)
+						p.current_candidate_index_ =
+							(p.current_candidate_index_ + p.picked_faces_.size() - 1) % p.picked_faces_.size();
+					p.current_candidate_state_ =
+						p.selected_faces_set_->contains(p.picked_faces_[p.current_candidate_index_]);
+					switch (p.clicked_button_)
+					{
+					case 0:
+						if (!bak_state)
+							p.selected_faces_set_->unselect(p.picked_faces_[bak_index]);
+						p.selected_faces_set_->select(p.picked_faces_[p.current_candidate_index_]);
+						break;
+					case 1:
+						if (bak_state)
+							p.selected_faces_set_->select(p.picked_faces_[bak_index]);
+						p.selected_faces_set_->unselect(p.picked_faces_[p.current_candidate_index_]);
+						break;
+					}
+					mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
 					break;
 				}
-				mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
 				view->stop_event();
 			}
 		}
@@ -291,7 +395,7 @@ protected:
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
 				p.param_point_sprite_->attributes_initialized())
 			{
-				if (p.choosing_vertex_)
+				if (p.choosing_cell_)
 					p.param_point_sprite_->color_ = rendering::GLColor(1, 1, 0, 0.65f);
 				else
 					p.param_point_sprite_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
@@ -299,6 +403,23 @@ protected:
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_POINTS, 0, p.selected_vertices_set_->size());
 				p.param_point_sprite_->release();
+			}
+			else if (p.selecting_cell_ == FaceSelect && p.selected_faces_set_ && p.selected_faces_set_->size() > 0 &&
+					 p.param_flat_->attributes_initialized())
+			{
+				if (p.choosing_cell_)
+				{
+					p.param_flat_->front_color_ = rendering::GLColor(1, 1, 0, 0.65f);
+					p.param_flat_->back_color_ = rendering::GLColor(1, 1, 0, 0.65f);
+				}
+				else
+				{
+					p.param_flat_->front_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+					p.param_flat_->back_color_ = rendering::GLColor(1, 0, 0, 0.65f);
+				}
+				p.param_flat_->bind(proj_matrix, view_matrix);
+				glDrawArrays(GL_TRIANGLES, 0, p.selected_faces_nb_triangles_ * 3);
+				p.param_flat_->release();
 			}
 		}
 	}
@@ -328,6 +449,7 @@ protected:
 				int* ptr_sel_cell = reinterpret_cast<int*>(&p.selecting_cell_);
 				need_update |= ImGui::RadioButton("Vertex", ptr_sel_cell, VertexSelect);
 				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("Face", ptr_sel_cell, FaceSelect);
 
 				ImGui::RadioButton("Single", reinterpret_cast<int*>(&p.selection_method_), SingleCell);
 
@@ -357,6 +479,7 @@ protected:
 						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 						if (ImGui::Button("X##selected_vertices_set"))
 							p.selected_vertices_set_ = nullptr;
+						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 					}
 					if (ImGui::Button("Create set##vertices_set"))
 						md->template add_cells_set<Vertex>();
@@ -364,6 +487,38 @@ protected:
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
 					need_update |= ImGui::SliderFloat("size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+				}
+				else if (p.selecting_cell_ == FaceSelect)
+				{
+					if (ImGui::BeginCombo("Sets", p.selected_faces_set_ ? p.selected_faces_set_->name().c_str()
+																		: "-- select --"))
+					{
+						md->template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
+							bool is_selected = &cs == p.selected_faces_set_;
+							if (ImGui::Selectable(cs.name().c_str(), is_selected))
+							{
+								p.selected_faces_set_ = &cs;
+								p.update_selected_faces_vbo();
+								for (View* v : linked_views_)
+									v->request_update();
+							}
+							if (is_selected)
+								ImGui::SetItemDefaultFocus();
+						});
+						ImGui::EndCombo();
+					}
+					if (p.selected_faces_set_)
+					{
+						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+						if (ImGui::Button("X##selected_faces_set"))
+							p.selected_faces_set_ = nullptr;
+						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
+					}
+					if (ImGui::Button("Create set##faces_set"))
+						md->template add_cells_set<Face>();
+					ImGui::TextUnformatted("Drawing parameters");
+					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
+													 ImGuiColorEditFlags_NoInputs);
 				}
 			}
 		}

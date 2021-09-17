@@ -45,7 +45,7 @@ class Grid
 
 public:
 	Grid(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
-		: mesh_(m), vertex_position_(vertex_position)
+		: mesh_(m), vertex_position_(vertex_position), nb_registered_faces_(0)
 	{
 		for (uint32 i = 0; i < 3; ++i)
 		{
@@ -68,6 +68,7 @@ public:
 		bb_size_ = bb_max_ - bb_min_;
 
 		foreach_cell(mesh_, [&](Face f) {
+			++nb_registered_faces_;
 			Vec3 face_bb_min, face_bb_max;
 			for (uint32 i = 0; i < 3; ++i)
 			{
@@ -114,7 +115,10 @@ public:
 	void foreach_face_around(const Vec3& p, const FUNC& func) const
 	{
 		static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function parameter type");
+		if (nb_registered_faces_ == 0)
+			return;
 		Vec3i coord = point_cell_coord(p);
+		bool all_empty = true;
 		std::array<int, 3> start{coord[0] > 0 ? coord[0] - 1 : 0, coord[1] > 0 ? coord[1] - 1 : 0,
 								 coord[2] > 0 ? coord[2] - 1 : 0};
 		std::array<int, 3> end{coord[0] < I - 1 ? coord[0] + 1 : int(I - 1),
@@ -123,8 +127,32 @@ public:
 		for (int i = start[0]; i <= end[0]; ++i)
 			for (int j = start[1]; j <= end[1]; ++j)
 				for (int k = start[2]; k <= end[2]; ++k)
+				{
+					if (cells_[i][j][k].size() > 0)
+						all_empty = false;
 					for (Face f : cells_[i][j][k])
 						func(f);
+				}
+
+		while (all_empty)
+		{
+			start = {start[0] > 0 ? start[0] - 1 : 0, start[1] > 0 ? start[1] - 1 : 0, start[2] > 0 ? start[2] - 1 : 0};
+			end = {end[0] < I - 1 ? end[0] + 1 : int(I - 1), end[1] < J - 1 ? end[1] + 1 : int(J - 1),
+				   end[2] < K - 1 ? end[2] + 1 : int(K - 1)};
+			for (int i = start[0]; i <= end[0]; ++i)
+				for (int j = start[1]; j <= end[1]; ++j)
+					for (int k = start[2]; k <= end[2]; ++k)
+					{
+						if (i == start[0] || i == end[0] || j == start[1] || j == end[1] || k == start[2] ||
+							k == end[2])
+						{
+							if (cells_[i][j][k].size() > 0)
+								all_empty = false;
+							for (Face f : cells_[i][j][k])
+								func(f);
+						}
+					}
+		}
 	}
 
 private:
@@ -132,6 +160,7 @@ private:
 	std::shared_ptr<Attribute<Vec3>> vertex_position_;
 	Vec3 bb_min_, bb_max_, bb_size_;
 	std::vector<Face> cells_[I][J][K];
+	uint32 nb_registered_faces_;
 };
 
 } // namespace geometry

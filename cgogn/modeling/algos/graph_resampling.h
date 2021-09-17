@@ -38,15 +38,16 @@ using Scalar = geometry::Scalar;
 
 void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_vertex_position,
 									   Graph::Attribute<Scalar>* g_vertex_radius, const CMap2& s,
-									   const CMap2::Attribute<Vec3>* s_vertex_position);
+									   const CMap2::Attribute<Vec3>* s_vertex_position, Scalar density);
 
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
-					Graph::Attribute<Scalar>* new_g_vertex_radius);
+					Graph::Attribute<Scalar>* new_g_vertex_radius, Scalar density);
 
 void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Graph::Edge new_g_edge,
 					 Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
-					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius);
+					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius,
+					 Scalar density);
 
 } // namespace modeling
 

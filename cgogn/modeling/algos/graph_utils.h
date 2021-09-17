@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_GRAPH_DATA_H_
-#define CGOGN_MODELING_ALGOS_GRAPH_DATA_H_
+#ifndef CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
+#define CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -84,4 +84,4 @@ bool get_graph_data(const MESH& g, GraphData& graph_data)
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_GRAPH_DATA_H_
+#endif // CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_

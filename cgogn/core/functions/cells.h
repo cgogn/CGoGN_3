@@ -54,6 +54,16 @@ bool is_indexed(const CMapBase& m)
 	return m.cells_indices_[orbit] != nullptr;
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename CELL>
+bool is_indexed(const IncidenceGraph& m)
+{
+	return true;
+}
+
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
@@ -92,6 +102,16 @@ uint32 index_of(const CMapBase& m, CELL c)
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
 	return (*m.cells_indices_[orbit])[c.dart.index];
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename CELL>
+uint32 index_of(const IncidenceGraph& m, CELL c)
+{
+	return c.index_;
 }
 
 //////////
@@ -157,6 +177,18 @@ template <typename CELL>
 uint32 new_index(const CMapBase& m)
 {
 	return m.attribute_containers_[CELL::ORBIT].new_index();
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename CELL>
+uint32 new_index(const IncidenceGraph& ig)
+{
+	uint32 id = ig.attribute_containers_[CELL::CELL_INDEX].new_index();
+	// (*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
+	return id;
 }
 
 /*****************************************************************************/

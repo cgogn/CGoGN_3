@@ -59,6 +59,46 @@ public:
 	}
 };
 
+DECLARE_SHADER_CLASS(BoldLineColor, true, CGOGN_STR(BoldLineColor))
+
+class CGOGN_RENDERING_EXPORT ShaderParamBoldLineColor : public ShaderParam
+{
+	void set_uniforms() override;
+
+	std::array<VBO*, 2> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
+	{
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		EDGE_COLOR
+	};
+
+public:
+	float32 width_;
+	float32 lighted_;
+	GLVec4 plane_clip_;
+	GLVec4 plane_clip2_;
+
+	using ShaderType = ShaderBoldLineColor;
+
+	ShaderParamBoldLineColor(ShaderType* sh)
+		: ShaderParam(sh), width_(2.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	{
+		for (auto& v : vbos_)
+			v = nullptr;
+	}
+
+	inline ~ShaderParamBoldLineColor() override
+	{
+	}
+};
+
 } // namespace rendering
 
 } // namespace cgogn

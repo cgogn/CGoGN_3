@@ -32,7 +32,7 @@
 #include <cgogn/ui/modules/surface_modeling/surface_modeling.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 #include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
-#include <cgogn/ui/modules/surface_selection/surface_selection.h>
+// #include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
 #include <cgogn/core/types/mesh_views/cell_filter.h>
 #include <cgogn/modeling/algos/subdivision.h>
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Subdivision");
+	app.set_window_title("Modeling");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 	cgogn::ui::SurfaceModeling<Mesh> sm(app);
-	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	// cgogn::ui::SurfaceSelection<Mesh> ss(app);
 
 	app.init_modules();
 
@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srv);
-	v1->link_module(&ss);
+	// v1->link_module(&ss);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)

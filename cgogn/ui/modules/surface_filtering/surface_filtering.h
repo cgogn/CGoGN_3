@@ -78,13 +78,33 @@ public:
 	void regularize(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
-		auto vertex_laplacian = add_attribute<Vec3, Vertex>(m, "__laplacian");
-
-		geometry::compute_laplacian(m, vertex_position, vertex_laplacian.get());
+		auto vertex_position_laplacian = add_attribute<Vec3, Vertex>(m, "__vertex_position_laplacian");
 
 		uint32 nb_vertices = 0;
 		foreach_cell(m, [&](Vertex v) -> bool {
 			value<uint32>(m, vertex_index, v) = nb_vertices++;
+			return true;
+		});
+
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+			geometry::cotan_laplacian_matrix(m, vertex_index.get(), vertex_position);
+		Eigen::MatrixXd vpos(nb_vertices, 3);
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			const Vec3& pv = value<Vec3>(m, vertex_position, v);
+			uint32 vidx = value<uint32>(m, vertex_index, v);
+			vpos(vidx, 0) = pv[0];
+			vpos(vidx, 1) = pv[1];
+			vpos(vidx, 2) = pv[2];
+			return true;
+		});
+		Eigen::MatrixXd poslapl(nb_vertices, 3);
+		poslapl = LAPL * vpos;
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			Vec3& vplapl = value<Vec3>(m, vertex_position_laplacian, v);
+			uint32 vidx = value<uint32>(m, vertex_index, v);
+			vplapl[0] = poslapl(vidx, 0);
+			vplapl[1] = poslapl(vidx, 1);
+			vplapl[2] = poslapl(vidx, 2);
 			return true;
 		});
 
@@ -113,7 +133,7 @@ public:
 
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			uint32 vidx = value<uint32>(m, vertex_index, v);
-			const Vec3& l = value<Vec3>(m, vertex_laplacian, v);
+			const Vec3& l = value<Vec3>(m, vertex_position_laplacian, v);
 			b(vidx, 0) = l[0];
 			b(vidx, 1) = l[1];
 			b(vidx, 2) = l[2];
@@ -139,7 +159,7 @@ public:
 		});
 
 		remove_attribute<Vertex>(m, vertex_index);
-		remove_attribute<Vertex>(m, vertex_laplacian);
+		remove_attribute<Vertex>(m, vertex_position_laplacian);
 
 		mesh_provider_->emit_attribute_changed(&m, vertex_position);
 	}
