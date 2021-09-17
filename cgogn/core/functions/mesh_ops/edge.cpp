@@ -35,6 +35,57 @@ namespace cgogn
 /*****************************************************************************/
 
 // template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// add_edge(MESH& m, typename mesh_traits<MESH>::Vertex v0, typename mesh_traits<MESH>::Vertex v1);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	Edge e = add_cell<Edge>(ig);
+	(*ig.edge_incident_vertices_)[e.index_] = {v0, v1};
+	(*ig.vertex_incident_edges_)[v0.index_].insert(e);
+	(*ig.vertex_incident_edges_)[v1.index_].insert(e);
+
+	return e;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// remove_edge(MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+
+	while ((*ig.edge_incident_faces_)[e.index_].size() > 0)
+		remove_face(ig, *(*ig.edge_incident_faces_)[e.index_].begin());
+
+	auto [v0, v1] = (*ig.edge_incident_vertices_)[e.index_];
+	(*ig.vertex_incident_edges_)[v0.index_].erase(e);
+	(*ig.vertex_incident_edges_)[v1.index_].erase(e);
+
+	remove_cell<Edge>(ig, e);
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
 // typename mesh_traits<MESH>::Vertex
 // cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
@@ -50,18 +101,15 @@ IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, boo
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 
-	Vertex v = add_vertex(ig);
-	std::vector<Face> faces = incident_faces(ig, e0);
-
 	auto [v0, v1] = (*ig.edge_incident_vertices_)[e0.index_];
+	Vertex v = add_cell<Vertex>(ig);
 	(*ig.edge_incident_vertices_)[e0.index_] = {v0, v};
 	Edge e1 = add_edge(ig, v, v1);
-	for (Face f : faces)
+	for (Face f : (*ig.edge_incident_faces_)[e0.index_])
 	{
-		// std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-		// auto it = std::find(edges.begin(), edges.end(), e0);
-
-		(*ig.face_incident_edges_)[f.index_].push_back(e1);
+		std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
+		edges.push_back(e1);
+		sort_edges(ig, edges); // TODO: could do more efficient
 	}
 	return v;
 }

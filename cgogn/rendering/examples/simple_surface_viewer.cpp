@@ -34,6 +34,7 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
+// using Mesh = cgogn::IncidenceGraph;
 using Mesh = cgogn::CMap2;
 
 template <typename T>

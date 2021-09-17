@@ -45,11 +45,11 @@ namespace cgogn
 
 Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
 
-// ////////////////////
-// // IncidenceGraph //
-// ////////////////////
+////////////////////
+// IncidenceGraph //
+////////////////////
 
-// IncidenceGraph::Vertex CGOGN_CORE_EXPORT add_vertex(IncidenceGraph& ig, bool set_indices = true);
+IncidenceGraph::Vertex CGOGN_CORE_EXPORT add_vertex(IncidenceGraph& ig);
 
 /*****************************************************************************/
 
@@ -64,6 +64,12 @@ Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
 ///////////
 
 void CGOGN_CORE_EXPORT remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v);
 
 /*****************************************************************************/
 

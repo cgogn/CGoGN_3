@@ -155,7 +155,7 @@ auto foreach_cell(const IncidenceGraph& ig, const FUNC& f)
 		 i != end; i = ig.attribute_containers_[CELL::CELL_INDEX].next_index(i))
 	{
 		CELL c(i);
-		if(c.is_valid() && !f(c))
+		if (/*c.is_valid() && */ !f(c))
 			break;
 	}
 }
@@ -295,8 +295,6 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 		buffers->release_buffer(b);
 }
 
-
-
 /////////////////////////////////////
 // IncidenceGraph (or convertible) //
 /////////////////////////////////////
@@ -305,7 +303,8 @@ template <typename FUNC>
 auto parallel_foreach_cell(const IncidenceGraph& m, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -372,8 +371,6 @@ auto parallel_foreach_cell(const IncidenceGraph& m, const FUNC& f)
 	for (auto& b : cells_buffers[1u])
 		buffers->release_buffer(b);
 }
-
-
 
 ///////////////
 // CellCache //

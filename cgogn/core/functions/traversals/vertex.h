@@ -147,13 +147,13 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Edge>)
 	{
 		std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[c.index_];
-		if(func(evs.first))
+		if (func(evs.first))
 			func(evs.second);
 	}
 	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Face>)
 	{
 		CellMarkerStore<IncidenceGraph, Vertex> marker(ig);
-		for(auto& ep : (*ig.face_incident_edges_)[c.index_])
+		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
 		{
 			std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[ep.index_];
 			bool stop = false;
@@ -167,7 +167,7 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 				marker.mark(evs.second);
 				stop = !func(evs.second);
 			}
-			if(stop)
+			if (stop)
 				break;
 		}
 	}
@@ -243,9 +243,6 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 	}
 }
 
-
-
-
 /*****************************************************************************/
 
 // template <typename CELL, typename MESH>
@@ -270,11 +267,22 @@ std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m,
 	return vertices;
 }
 
+/*****************************************************************************/
+
+// template <typename CELL, typename MESH>
+// std::vector<typename mesh_traits<MESH>::Vertex> append_incident_vertices(const MESH& m, CELL c, std::vector<typename
+// mesh_traits<MESH>::Vertex>& vertices);
+
+/*****************************************************************************/
+
+/////////////
+// GENERIC //
+/////////////
+
 template <typename MESH, typename CELL>
-void incident_vertices(const MESH& m, CELL c, std::vector<typename mesh_traits<MESH>::Vertex>& vertices)
+void append_incident_vertices(const MESH& m, CELL c, std::vector<typename mesh_traits<MESH>::Vertex>& vertices)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-
 	foreach_incident_vertex(m, c, [&vertices](Vertex v) -> bool {
 		vertices.push_back(v);
 		return true;

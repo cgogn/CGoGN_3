@@ -178,7 +178,7 @@ protected:
 					i_f[worker_index] = index_of(m, f);
 				auto& vertices = vvertices[worker_index];
 				vertices.clear();
-				incident_vertices(m, f, vertices);
+				append_incident_vertices(m, f, vertices);
 				for (uint32 i = 1; i < uint32(vertices.size()) - 1; ++i)
 				{
 					auto& tif = table_indices[worker_index];
@@ -291,7 +291,7 @@ protected:
 					if (codegree(m, f) == 3)
 					{
 						vertices.clear();
-						incident_vertices(m, f, vertices);
+						append_incident_vertices(m, f, vertices);
 						tif.push_back(index_of(m, vertices[0]));
 						tif.push_back(index_of(m, vertices[1]));
 						tif.push_back(index_of(m, vertices[2]));
@@ -304,7 +304,7 @@ protected:
 
 				foreach_incident_edge(m, vol, [&](Edge e) -> bool {
 					vertices.clear();
-					incident_vertices(m, e, vertices);
+					append_incident_vertices(m, e, vertices);
 					auto& ted = table_indices_e[worker_index];
 					ted.push_back(index_of(m, vertices[0]));
 					ted.push_back(index_of(m, vertices[1]));
