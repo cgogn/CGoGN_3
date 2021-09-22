@@ -74,7 +74,8 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceFiltering<Surface> sf(app);
 
 	cgogn::ui::GraphRender<Graph> gr(app);
-	cgogn::ui::SurfaceRender<Surface> sr(app);
+	cgogn::ui::SurfaceRender<Surface> srs(app);
+	cgogn::ui::SurfaceRender<Graph> srg(app);
 
 	cgogn::ui::SkeletonExtractor<Graph, Surface> se(app);
 
@@ -85,7 +86,8 @@ int main(int argc, char** argv)
 	v->link_module(&mpig);
 	v->link_module(&mps);
 	v->link_module(&gr);
-	v->link_module(&sr);
+	v->link_module(&srs);
+	v->link_module(&srg);
 
 	// load surface
 	Surface* s = mps.load_surface_from_file(surface_filename);
@@ -96,7 +98,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	sr.set_render_vertices(*v, *s, false);
+	srs.set_render_vertices(*v, *s, false);
 
 	auto surface_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
 	auto surface_vertex_normal = cgogn::add_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "normal");

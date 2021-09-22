@@ -28,6 +28,13 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
+#include <cgogn/core/functions/mesh_ops/edge.h>
+#include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
+
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
+
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -37,7 +44,7 @@
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/skeleton.h>
 
-#include <queue>
+#include <map>
 
 namespace cgogn
 {
@@ -54,6 +61,8 @@ class SkeletonExtractor : public Module
 	using SurfaceAttribute = typename mesh_traits<SURFACE>::template Attribute<T>;
 
 	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
+	using GraphEdge = typename mesh_traits<GRAPH>::Edge;
+	using GraphFace = typename mesh_traits<GRAPH>::Face;
 
 	using SurfaceVertex = typename mesh_traits<SURFACE>::Vertex;
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
@@ -99,21 +108,117 @@ public:
 		surface_provider_->emit_attribute_changed(&m, vertex_position);
 	}
 
-	void graph_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position, GRAPH& g,
-							GraphAttribute<Vec3>* graph_vertex_position)
+	void graph_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position)
 	{
-		using WeightedEdge = std::tuple<Scalar, SurfaceEdge>;
-		std::priority_queue<WeightedEdge> queue;
+		graph_ = graph_provider_->add_mesh("extracted_graph");
+		graph_vertex_position_ = add_attribute<Vec3, GraphVertex>(*graph_, "position");
+
+		auto surface_graph_vertex = add_attribute<GraphVertex, SurfaceVertex>(s, "__graph_vertex");
+		foreach_cell(s, [&](SurfaceVertex v) -> bool {
+			GraphVertex gv = add_vertex(*graph_);
+			value<GraphVertex>(s, surface_graph_vertex, v) = gv;
+			value<Vec3>(*graph_, graph_vertex_position_, gv) = value<Vec3>(s, surface_vertex_position, v);
+			return true;
+		});
+		auto surface_graph_edge = add_attribute<GraphEdge, SurfaceEdge>(s, "__graph_edge");
 		foreach_cell(s, [&](SurfaceEdge e) -> bool {
-			queue.emplace(geometry::length(s, e, surface_vertex_position), e);
+			std::vector<SurfaceVertex> iv = incident_vertices(s, e);
+			value<GraphEdge>(s, surface_graph_edge, e) =
+				add_edge(*graph_, value<GraphVertex>(s, surface_graph_vertex, iv[0]),
+						 value<GraphVertex>(s, surface_graph_vertex, iv[1]));
+			return true;
+		});
+		foreach_cell(s, [&](SurfaceFace f) -> bool {
+			std::vector<SurfaceEdge> ie = incident_edges(s, f);
+			std::vector<GraphEdge> edges;
+			std::transform(ie.begin(), ie.end(), std::back_inserter(edges),
+						   [&](SurfaceEdge e) { return value<GraphEdge>(s, surface_graph_edge, e); });
+			add_face(*graph_, edges);
+			return true;
+		});
+		remove_attribute<SurfaceVertex>(s, surface_graph_vertex);
+		remove_attribute<SurfaceEdge>(s, surface_graph_edge);
+
+		graph_provider_->emit_connectivity_changed(graph_);
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+	}
+
+	void collapse_graph()
+	{
+		using EdgeQueue = std::multimap<Scalar, GraphEdge>;
+		using EdgeQueueIt = typename EdgeQueue::const_iterator;
+		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
+
+		EdgeQueue queue;
+		auto edge_queue_it = add_attribute<EdgeInfo, GraphEdge>(*graph_, "__graph_edge_queue_it");
+		foreach_cell(*graph_, [&](GraphEdge e) -> bool {
+			value<EdgeInfo>(*graph_, edge_queue_it,
+							e) = {true, queue.emplace(geometry::length(*graph_, e, graph_vertex_position_.get()), e)};
 			return true;
 		});
 
-		// GRAPH* g = graph_provider_->add_mesh("extracted_graph");
-		// foreach_cell(s, [&](SurfaceVertex v) -> bool {
-		// 	add_vertex();
-		// 	return true;
-		// });
+		using PositionAccu = std::vector<Vec3>;
+		auto vertex_position_accu = add_attribute<PositionAccu, GraphVertex>(*graph_, "__graph_vertex_position_accu");
+		foreach_cell(*graph_, [&](GraphVertex v) -> bool {
+			value<PositionAccu>(*graph_, vertex_position_accu, v) = {value<Vec3>(*graph_, graph_vertex_position_, v)};
+			return true;
+		});
+
+		while (!queue.empty())
+		{
+			auto it = queue.begin();
+			GraphEdge e = (*it).second;
+			queue.erase(it);
+			value<EdgeInfo>(*graph_, edge_queue_it, e).first = false;
+
+			// if (graph_->attribute_containers_[GraphEdge::CELL_INDEX].nb_refs(e.index_) == 0)
+			// 	continue;
+			std::vector<GraphFace> ifaces = incident_faces(*graph_, e);
+			if (ifaces.size() == 0)
+				continue;
+
+			// iv[0] will be removed and iv[1] will survive
+			std::vector<GraphVertex> iv = incident_vertices(*graph_, e);
+			PositionAccu& accu0 = value<PositionAccu>(*graph_, vertex_position_accu, iv[0]);
+			PositionAccu& accu1 = value<PositionAccu>(*graph_, vertex_position_accu, iv[1]);
+			accu1.insert(accu1.end(), accu0.begin(), accu0.end());
+
+			auto [v, removed_edges] = collapse_edge(*graph_, e);
+			for (GraphEdge re : removed_edges)
+			{
+				EdgeInfo einfo = value<EdgeInfo>(*graph_, edge_queue_it, re);
+				if (einfo.first)
+					queue.erase(einfo.second);
+			}
+
+			foreach_incident_edge(*graph_, v, [&](GraphEdge ie) -> bool {
+				EdgeInfo einfo = value<EdgeInfo>(*graph_, edge_queue_it, ie);
+				if (einfo.first)
+					queue.erase(einfo.second);
+				value<EdgeInfo>(*graph_, edge_queue_it, ie) = {
+					true, queue.emplace(geometry::length(*graph_, ie, graph_vertex_position_.get()), ie)};
+				return true;
+			});
+		}
+
+		foreach_cell(*graph_, [&](GraphVertex v) -> bool {
+			Vec3 mean{0, 0, 0};
+			uint32 count = 0;
+			for (Vec3& p : value<PositionAccu>(*graph_, vertex_position_accu, v))
+			{
+				mean += p;
+				++count;
+			}
+			mean /= count;
+			value<Vec3>(*graph_, graph_vertex_position_, v) = mean;
+			return true;
+		});
+
+		remove_attribute<GraphEdge>(*graph_, edge_queue_it);
+		remove_attribute<GraphVertex>(*graph_, vertex_position_accu);
+
+		graph_provider_->emit_connectivity_changed(graph_);
+		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
 	}
 
 protected:
@@ -133,6 +238,12 @@ protected:
 			selected_surface_vertex_normal_.reset();
 			surface_provider_->mesh_data(selected_surface_)->outlined_until_ = App::frame_time_ + 1.0;
 		});
+
+		// imgui_mesh_selector(graph_provider_, selected_graph_, "Graph", [&](GRAPH* m) {
+		// 	selected_graph_ = m;
+		// 	selected_graph_vertex_position_.reset();
+		// 	graph_provider_->mesh_data(selected_graph_)->outlined_until_ = App::frame_time_ + 1.0;
+		// });
 
 		if (selected_surface_)
 		{
@@ -158,20 +269,27 @@ protected:
 						skeletonize(*selected_surface_, selected_surface_vertex_position_.get(),
 									selected_surface_vertex_normal_.get());
 				}
+				if (ImGui::Button("Graph from surface"))
+					graph_from_surface(*selected_surface_, selected_surface_vertex_position_.get());
+			}
+			if (graph_)
+			{
+				if (ImGui::Button("Collapse graph"))
+					collapse_graph();
 			}
 		}
 	}
 
 private:
-	MeshProvider<GRAPH>* graph_provider_;
-	MeshProvider<SURFACE>* surface_provider_;
+	MeshProvider<GRAPH>* graph_provider_ = nullptr;
+	MeshProvider<SURFACE>* surface_provider_ = nullptr;
 
-	GRAPH* graph_;
-	std::shared_ptr<GraphAttribute<Vec3>> graph_vertex_position_;
+	GRAPH* graph_ = nullptr;
+	std::shared_ptr<GraphAttribute<Vec3>> graph_vertex_position_ = nullptr;
 
-	SURFACE* selected_surface_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_position_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_normal_;
+	SURFACE* selected_surface_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_position_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_normal_ = nullptr;
 };
 
 } // namespace ui
