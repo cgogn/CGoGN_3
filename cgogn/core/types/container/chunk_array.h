@@ -91,15 +91,23 @@ public:
 			std::fill(chunk, chunk + CHUNK_SIZE, value);
 	}
 
+	inline void clear() override
+	{
+		for (auto chunk : chunks_)
+			delete[] chunk;
+		chunks_.clear();
+		capacity_ = 0;
+	}
+
 	inline void swap(ChunkArray<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only swap from same container
 			chunks_.swap(ca->chunks_);
 	}
 
 	inline void copy(ChunkArray<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only copy from same container
 			for (uint32 i = 0; i < uint32(chunks_.size()); ++i)
 				std::copy(ca->chunks_[i], ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
 	}

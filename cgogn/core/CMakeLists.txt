@@ -48,6 +48,7 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/global.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"

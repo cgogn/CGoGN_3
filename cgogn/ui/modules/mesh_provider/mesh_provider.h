@@ -29,8 +29,10 @@
 #include <cgogn/ui/modules/mesh_provider/mesh_data.h>
 #include <cgogn/ui/portable-file-dialogs.h>
 
+#include <cgogn/core/functions/mesh_ops/global.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/string.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/io/graph/cg.h>
@@ -104,6 +106,18 @@ public:
 			return nullptr;
 	}
 
+	MESH* clone_mesh(MESH& m)
+	{
+		const std::string& m_name = mesh_name(&m);
+		std::string name = remove_extension(m_name) + "_" + std::to_string(number_of_meshes()) + extension(m_name);
+		MESH* result = add_mesh(name);
+		copy(*result, m);
+		boost::synapse::emit<mesh_added>(this, result);
+		emit_connectivity_changed(result);
+		// TODO: emit attributes changed ?
+		return result;
+	}
+
 	void register_mesh(MESH* m, const std::string& name)
 	{
 		const auto [it, inserted] = meshes_.emplace(name, std::unique_ptr<MESH>(m));
@@ -118,6 +132,19 @@ public:
 		}
 	}
 
+	void clear_mesh(MESH* m)
+	{
+		clear(m);
+		emit_connectivity_changed(m);
+		// TODO: emit attributes changed ?
+	}
+
+	void copy_mesh(MESH& dst, const MESH& src)
+	{
+		copy(dst, src);
+		emit_connectivity_changed(dst);
+	}
+
 	bool has_mesh(const std::string& name) const
 	{
 		return meshes_.count(name) == 1;
@@ -128,6 +155,8 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 1 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
+			if (has_mesh(name))
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 
@@ -181,6 +210,8 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
+			if (has_mesh(name))
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 
@@ -229,6 +260,8 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 3 && std::is_default_constructible_v<MESH>)
 		{
 			std::string name = filename_from_path(filename);
+			if (has_mesh(name))
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 

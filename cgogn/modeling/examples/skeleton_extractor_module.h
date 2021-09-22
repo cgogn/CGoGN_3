@@ -92,20 +92,13 @@ public:
 		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
 	}
 
-	void skeletonize(SURFACE& m, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
+	void skeletonize(SURFACE& m, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
+					 Scalar wM)
 	{
-		modeling::pliant_remeshing(m, vertex_position);
-		geometry::compute_normal(m, vertex_position, vertex_normal);
-
-		auto sbc = get_attribute<Vec3, SurfaceVertex>(m, "shrinking_ball_centers");
-		if (!sbc)
-			sbc = add_attribute<Vec3, SurfaceVertex>(m, "shrinking_ball_centers");
-		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
-
-		modeling::mean_curvature_skeleton(m, vertex_position, sbc.get());
+		modeling::mean_curvature_skeleton(m, vertex_position, wL, wH, wM);
 
 		surface_provider_->emit_connectivity_changed(&m);
-		surface_provider_->emit_attribute_changed(&m, vertex_position);
+		surface_provider_->emit_attribute_changed(&m, vertex_position.get());
 	}
 
 	void graph_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position)
@@ -260,17 +253,21 @@ protected:
 
 			if (selected_surface_vertex_position_)
 			{
+				static float wL = 1.0, wH = 0.15, wM = 0.10;
+				ImGui::SliderFloat("Smoothness", &wL, 0.01f, 1.0f);
+				ImGui::SliderFloat("Velocity", &wH, 0.01f, 1.0f);
+				ImGui::SliderFloat("Medial attraction", &wM, 0.01f, 1.0f);
+				if (ImGui::Button("Skeletonize"))
+					skeletonize(*selected_surface_, selected_surface_vertex_position_, wL, wH, wM);
+				if (ImGui::Button("Graph from surface"))
+					graph_from_surface(*selected_surface_, selected_surface_vertex_position_.get());
+
 				if (selected_surface_vertex_normal_)
 				{
 					if (ImGui::Button("Medial axis"))
 						medial_axis(*selected_surface_, selected_surface_vertex_position_.get(),
 									selected_surface_vertex_normal_.get());
-					if (ImGui::Button("Skeletonize"))
-						skeletonize(*selected_surface_, selected_surface_vertex_position_.get(),
-									selected_surface_vertex_normal_.get());
 				}
-				if (ImGui::Button("Graph from surface"))
-					graph_from_surface(*selected_surface_, selected_surface_vertex_position_.get());
 			}
 			if (graph_)
 			{

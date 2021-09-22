@@ -80,15 +80,22 @@ public:
 		std::fill(data_.begin(), data_.end(), value);
 	}
 
+	inline void clear() override
+	{
+		data_.clear();
+		data_.reserve(512u);
+		data_.shrink_to_fit();
+	}
+
 	inline void swap(Vector<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only swap from same container
 			data_.swap(ca->data_);
 	}
 
 	inline void copy(Vector<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only copy from same container
 			data_ = ca->data_;
 	}
 

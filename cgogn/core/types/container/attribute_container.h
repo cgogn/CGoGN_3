@@ -59,6 +59,8 @@ public:
 	uint32 maximum_index() const;
 	uint32 size() const;
 
+	virtual void clear() = 0;
+
 protected:
 	AttributeContainerGen* container_;
 	std::string name_;
@@ -95,6 +97,8 @@ public:
 
 	void remove_attribute(const std::shared_ptr<AttributeGenT>& attribute);
 	void remove_attribute(AttributeGenT* attribute);
+
+	void clear_attributes();
 
 	using const_iterator = std::vector<std::shared_ptr<AttributeGenT>>::const_iterator;
 	inline const_iterator begin() const
@@ -164,7 +168,7 @@ public:
 	using AttributeGen = AttributeGenT;
 	using MarkAttribute = Attribute<uint8>;
 
-public:
+protected:
 	std::unique_ptr<Attribute<uint32>> ref_counter_;
 
 	inline void init_ref_counter(uint32 index) override

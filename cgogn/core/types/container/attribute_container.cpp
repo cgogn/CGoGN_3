@@ -148,6 +148,20 @@ void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 	}
 }
 
+void AttributeContainerGen::clear_attributes()
+{
+	for (AttributeGenT* attribute : attributes_)
+		attribute->clear();
+	for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
+	{
+		for (AttributeGenT* mark_attribute : mark_attributes_[i])
+			mark_attribute->clear();
+	}
+	available_indices_.clear();
+	nb_elements_ = 0;
+	maximum_index_ = 0;
+}
+
 void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
 	auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);
