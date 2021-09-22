@@ -109,7 +109,8 @@ public:
 	MESH* clone_mesh(MESH& m)
 	{
 		const std::string& m_name = mesh_name(&m);
-		std::string name = remove_extension(m_name) + "_" + std::to_string(number_of_meshes()) + extension(m_name);
+		std::string name =
+			remove_extension(m_name) + "_" + std::to_string(number_of_meshes()) + "." + extension(m_name);
 		MESH* result = add_mesh(name);
 		copy(*result, m);
 		boost::synapse::emit<mesh_added>(this, result);
@@ -156,7 +157,7 @@ public:
 		{
 			std::string name = filename_from_path(filename);
 			if (has_mesh(name))
-				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 
@@ -211,7 +212,7 @@ public:
 		{
 			std::string name = filename_from_path(filename);
 			if (has_mesh(name))
-				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 
@@ -261,7 +262,7 @@ public:
 		{
 			std::string name = filename_from_path(filename);
 			if (has_mesh(name))
-				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + extension(name);
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m = it->second.get();
 
