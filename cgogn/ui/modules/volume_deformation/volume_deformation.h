@@ -109,7 +109,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &VolumeDeformation<MESH>::init_mesh));
 	}
@@ -171,22 +171,22 @@ protected:
 				[&](Vertex v) { value<Vec3>(*selected_mesh_, p.vertex_position_, v) += t; });
 			previous_drag_pos_ = drag_pos;
 
-			mesh_provider_->emit_attribute_changed(selected_mesh_, p.vertex_position_.get());
+			mesh_provider_->emit_attribute_changed(*selected_mesh_, p.vertex_position_.get());
 		}
 	}
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
 		{
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
-			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
@@ -202,7 +202,7 @@ protected:
 															 ? p.selected_handle_vertices_set_->name().c_str()
 															 : "-- select --"))
 				{
-					md->template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
+					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
 						bool is_selected = &cs == p.selected_handle_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							set_selected_handle_vertices_set(*selected_mesh_, &cs);

@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	std::shared_ptr<Attribute<Scalar>> vertex_radius = cgogn::get_attribute<Scalar, Vertex>(*m, "radius");
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
+	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 	gr.set_vertex_position(*v1, *m, vertex_position);
 	gr.set_vertex_radius(*v1, *m, vertex_radius);
 

@@ -112,7 +112,7 @@ public:
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
 		graph_vertex_radius_->fill(l / 4.0);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 	}
 
 	void extend_graph_extremities()
@@ -145,8 +145,8 @@ public:
 			return true;
 		});
 
-		graph_provider_->emit_connectivity_changed(graph_);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+		graph_provider_->emit_connectivity_changed(*graph_);
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
 	}
 
 	void recenter_graph_from_surface()
@@ -246,8 +246,8 @@ public:
 		graph_vertex_position_->swap(graph_vertex_position_new.get());
 		remove_attribute<GraphVertex>(*graph_, graph_vertex_position_new);
 
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 		// cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
@@ -259,7 +259,7 @@ public:
 			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
 			return true;
 		});
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 		// cgogn::io::export_CGR(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), "export.cgr");
 	}
 
@@ -273,13 +273,13 @@ public:
 		modeling::resample_graph(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), *resampled_graph,
 								 resampled_graph_vertex_position.get(), resampled_graph_vertex_radius.get(), density);
 
-		graph_provider_->emit_connectivity_changed(graph_);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_radius_.get());
+		graph_provider_->emit_connectivity_changed(*graph_);
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 
-		graph_provider_->emit_connectivity_changed(resampled_graph);
-		graph_provider_->emit_attribute_changed(resampled_graph, resampled_graph_vertex_position.get());
-		graph_provider_->emit_attribute_changed(resampled_graph, resampled_graph_vertex_radius.get());
+		graph_provider_->emit_connectivity_changed(*resampled_graph);
+		graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_position.get());
+		graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_radius.get());
 
 		return resampled_graph;
 	}
@@ -316,12 +316,12 @@ public:
 		if (check_integrity(*volume_))
 			std::cout << "Volume mesh OK!" << std::endl;
 
-		surface_provider_->emit_connectivity_changed(contact_surface_);
-		volume_provider_->emit_connectivity_changed(volume_);
+		surface_provider_->emit_connectivity_changed(*contact_surface_);
+		volume_provider_->emit_connectivity_changed(*volume_);
 
 		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
 		volume_edge_target_length_ = add_attribute<Scalar, VolumeEdge>(*volume_, "target_length");
-		volume_provider_->set_mesh_bb_vertex_position(volume_, volume_vertex_position_);
+		volume_provider_->set_mesh_bb_vertex_position(*volume_, volume_vertex_position_);
 
 		return volume_;
 	}
@@ -378,15 +378,15 @@ public:
 			return true;
 		});
 
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void add_volume_padding()
 	{
 		modeling::padding(*volume_);
 
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_connectivity_changed(*volume_);
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
 		// refresh_edge_target_length_ = true;
 	}
@@ -399,8 +399,8 @@ public:
 			CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
 			modeling::cut_slice(*volume_, volume_vertex_position_.get(), slice);
 		}
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_connectivity_changed(*volume_);
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void fiber_aligned_subdivision_from_input()
@@ -412,8 +412,8 @@ public:
 			modeling::mark_mesh_fibers(*volume_, e, edge_fibers);
 
 			modeling::fiber_aligned_subdivision(*volume_, edge_fibers);
-			volume_provider_->emit_connectivity_changed(volume_);
-			volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+			volume_provider_->emit_connectivity_changed(*volume_);
+			volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 		}
 	}
 
@@ -474,8 +474,8 @@ public:
 				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
 			});
 
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_connectivity_changed(*volume_);
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
 		return;
 	}
@@ -519,8 +519,8 @@ public:
 				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
 			});
 
-		volume_provider_->emit_connectivity_changed(volume_);
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_connectivity_changed(*volume_);
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
 		// refresh_edge_target_length_ = true;
 	}
@@ -550,7 +550,7 @@ public:
 	// 		return true;
 	// 	});
 
-	// 	volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+	// 	volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	// }
 
 	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
@@ -638,7 +638,7 @@ public:
 			return true;
 		});
 
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void relocate_interior_vertices()
@@ -757,7 +757,7 @@ public:
 
 		remove_attribute<VolumeVertex>(*volume_, vertex_index);
 
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void compute_target_edge_length()
@@ -1056,7 +1056,7 @@ public:
 
 		remove_attribute<VolumeVertex>(*volume_, vertex_index);
 
-		volume_provider_->emit_attribute_changed(volume_, volume_vertex_position_.get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void compute_volumes_quality()
@@ -1092,10 +1092,10 @@ public:
 		mean_scaled_jacobian /= scaled_jacobian->size();
 		std::cout << "mean scaled jacobian = " << mean_scaled_jacobian << std::endl;
 
-		volume_provider_->emit_attribute_changed(volume_, scaled_jacobian.get());
-		volume_provider_->emit_attribute_changed(volume_, jacobian.get());
-		volume_provider_->emit_attribute_changed(volume_, max_froebnius.get());
-		volume_provider_->emit_attribute_changed(volume_, mean_froebnius.get());
+		volume_provider_->emit_attribute_changed(*volume_, scaled_jacobian.get());
+		volume_provider_->emit_attribute_changed(*volume_, jacobian.get());
+		volume_provider_->emit_attribute_changed(*volume_, max_froebnius.get());
+		volume_provider_->emit_attribute_changed(*volume_, mean_froebnius.get());
 
 		remove_attribute<VolumeVolume>(*volume_, hex_frame.get());
 		remove_attribute<VolumeVertex2>(*volume_, corner_frame.get());
@@ -1153,8 +1153,8 @@ public:
 			if (surface_bvh_)
 				delete surface_bvh_;
 
-			uint32 nb_vertices = surface_provider_->mesh_data(surface_)->template nb_cells<SurfaceVertex>();
-			uint32 nb_faces = surface_provider_->mesh_data(surface_)->template nb_cells<SurfaceFace>();
+			uint32 nb_vertices = surface_provider_->mesh_data(*surface_).template nb_cells<SurfaceVertex>();
+			uint32 nb_faces = surface_provider_->mesh_data(*surface_).template nb_cells<SurfaceFace>();
 
 			auto vertex_index = add_attribute<uint32, SurfaceVertex>(*surface_, "__vertex_index");
 
@@ -1188,7 +1188,7 @@ protected:
 	void interface() override
 	{
 		ImGui::TextUnformatted("Graph");
-		imgui_mesh_selector(graph_provider_, graph_, "Graph", [&](GRAPH* g) { set_current_graph(g); });
+		imgui_mesh_selector(graph_provider_, graph_, "Graph", [&](GRAPH& g) { set_current_graph(&g); });
 
 		if (graph_)
 		{
@@ -1207,7 +1207,7 @@ protected:
 
 		ImGui::Separator();
 		ImGui::TextUnformatted("Surface");
-		imgui_mesh_selector(surface_provider_, surface_, "Surface", [&](SURFACE* s) { set_current_surface(s); });
+		imgui_mesh_selector(surface_provider_, surface_, "Surface", [&](SURFACE& s) { set_current_surface(&s); });
 
 		if (surface_)
 		{
@@ -1245,7 +1245,7 @@ protected:
 		}
 		if (volume_)
 		{
-			MeshData<VOLUME>* md = volume_provider_->mesh_data(volume_);
+			MeshData<VOLUME>& md = volume_provider_->mesh_data(*volume_);
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			if (ImGui::Button("Export subdivided skin"))
@@ -1253,7 +1253,7 @@ protected:
 			if (ImGui::BeginCombo("Faces", selected_volume_faces_set_ ? selected_volume_faces_set_->name().c_str()
 																	  : "-- select --"))
 			{
-				md->template foreach_cells_set<VolumeFace>([&](CellsSet<VOLUME, VolumeFace>& cs) {
+				md.template foreach_cells_set<VolumeFace>([&](CellsSet<VOLUME, VolumeFace>& cs) {
 					bool is_selected = &cs == selected_volume_faces_set_;
 					if (ImGui::Selectable(cs.name().c_str(), is_selected))
 						selected_volume_faces_set_ = &cs;

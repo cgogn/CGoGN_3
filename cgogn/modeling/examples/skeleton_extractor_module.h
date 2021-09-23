@@ -84,21 +84,21 @@ public:
 	{
 	}
 
-	void medial_axis(SURFACE& m, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
+	void medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
 	{
-		auto sbc = get_attribute<Vec3, SurfaceVertex>(m, "shrinking_ball_centers");
+		auto sbc = get_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
 		if (!sbc)
-			sbc = add_attribute<Vec3, SurfaceVertex>(m, "shrinking_ball_centers");
-		modeling::shrinking_ball_centers(m, vertex_position, vertex_normal, sbc.get());
+			sbc = add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
+		modeling::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
 	}
 
-	void skeletonize(SURFACE& m, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
+	void skeletonize(SURFACE& s, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
 					 Scalar wM)
 	{
-		modeling::mean_curvature_skeleton(m, vertex_position, wL, wH, wM);
+		modeling::mean_curvature_skeleton(s, vertex_position, wL, wH, wM);
 
-		surface_provider_->emit_connectivity_changed(&m);
-		surface_provider_->emit_attribute_changed(&m, vertex_position.get());
+		surface_provider_->emit_connectivity_changed(s);
+		surface_provider_->emit_attribute_changed(s, vertex_position.get());
 	}
 
 	void graph_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position)
@@ -132,8 +132,8 @@ public:
 		remove_attribute<SurfaceVertex>(s, surface_graph_vertex);
 		remove_attribute<SurfaceEdge>(s, surface_graph_edge);
 
-		graph_provider_->emit_connectivity_changed(graph_);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+		graph_provider_->emit_connectivity_changed(*graph_);
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
 	}
 
 	void collapse_graph()
@@ -210,8 +210,8 @@ public:
 		remove_attribute<GraphEdge>(*graph_, edge_queue_it);
 		remove_attribute<GraphVertex>(*graph_, vertex_position_accu);
 
-		graph_provider_->emit_connectivity_changed(graph_);
-		graph_provider_->emit_attribute_changed(graph_, graph_vertex_position_.get());
+		graph_provider_->emit_connectivity_changed(*graph_);
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
 	}
 
 protected:
@@ -225,18 +225,12 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(surface_provider_, selected_surface_, "Surface", [&](SURFACE* m) {
-			selected_surface_ = m;
+		imgui_mesh_selector(surface_provider_, selected_surface_, "Surface", [&](SURFACE& m) {
+			selected_surface_ = &m;
 			selected_surface_vertex_position_.reset();
 			selected_surface_vertex_normal_.reset();
-			surface_provider_->mesh_data(selected_surface_)->outlined_until_ = App::frame_time_ + 1.0;
+			surface_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
-
-		// imgui_mesh_selector(graph_provider_, selected_graph_, "Graph", [&](GRAPH* m) {
-		// 	selected_graph_ = m;
-		// 	selected_graph_vertex_position_.reset();
-		// 	graph_provider_->mesh_data(selected_graph_)->outlined_until_ = App::frame_time_ + 1.0;
-		// });
 
 		if (selected_surface_)
 		{

@@ -74,7 +74,7 @@ public:
 	void compute_normal(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
 	{
 		geometry::compute_normal(m, vertex_position, vertex_normal);
-		mesh_provider_->emit_attribute_changed(&m, vertex_normal);
+		mesh_provider_->emit_attribute_changed(m, vertex_normal);
 	}
 
 	void compute_curvature(const MESH& m, Scalar radius, const Attribute<Vec3>* vertex_position,
@@ -84,11 +84,11 @@ public:
 	{
 		geometry::compute_curvature(m, radius, vertex_position, vertex_normal, edge_angle, vertex_kmax, vertex_kmin,
 									vertex_Kmax, vertex_Kmin, vertex_Knormal);
-		mesh_provider_->emit_attribute_changed(&m, vertex_kmax);
-		mesh_provider_->emit_attribute_changed(&m, vertex_kmin);
-		mesh_provider_->emit_attribute_changed(&m, vertex_Kmax);
-		mesh_provider_->emit_attribute_changed(&m, vertex_Kmin);
-		mesh_provider_->emit_attribute_changed(&m, vertex_Knormal);
+		mesh_provider_->emit_attribute_changed(m, vertex_kmax);
+		mesh_provider_->emit_attribute_changed(m, vertex_kmin);
+		mesh_provider_->emit_attribute_changed(m, vertex_Kmax);
+		mesh_provider_->emit_attribute_changed(m, vertex_Kmin);
+		mesh_provider_->emit_attribute_changed(m, vertex_Knormal);
 	}
 
 protected:
@@ -100,8 +100,8 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
 			selected_vertex_position_.reset();
 			selected_vertex_normal_.reset();
 			selected_vertex_kmax_.reset();
@@ -109,7 +109,7 @@ protected:
 			selected_vertex_Kmax_.reset();
 			selected_vertex_Kmin_.reset();
 			selected_vertex_Knormal_.reset();
-			mesh_provider_->mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)

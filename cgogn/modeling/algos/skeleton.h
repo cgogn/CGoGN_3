@@ -123,7 +123,7 @@ struct MeanCurvatureSkeleton_Helper
 	MeanCurvatureSkeleton_Helper(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
 		: vertex_position_(vertex_position)
 	{
-		modeling::pliant_remeshing(m, vertex_position_.get());
+		modeling::pliant_remeshing(m, vertex_position_.get(), 0.9, false);
 
 		vertex_normal_ = add_attribute<Vec3, Vertex>(m, "__vertex_normal");
 		geometry::compute_normal(m, vertex_position_.get(), vertex_normal_.get());
@@ -293,7 +293,6 @@ void mean_curvature_skeleton(MESH& m,
 		// });
 		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
 
-		std::cout << i << " - flip flat edges" << std::endl;
 		uint32 nb_flip_edges = 0;
 		bool has_flat_edge = false;
 		do
@@ -320,9 +319,7 @@ void mean_curvature_skeleton(MESH& m,
 				return true;
 			});
 		} while (has_flat_edge);
-		std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
 
-		// std::cout << i << " - cut long edges" << std::endl;
 		// uint32 nb_cut_edges = 0;
 		// bool has_long_edge = false;
 		// do
@@ -378,11 +375,7 @@ void mean_curvature_skeleton(MESH& m,
 		// 		return true;
 		// 	});
 		// } while (has_long_edge);
-		// std::cout << i << " -   nb cut edges: " << nb_cut_edges << std::endl;
-		// std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
-		// std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
 
-		std::cout << i << " - collapse short edges" << std::endl;
 		uint32 nb_collapsed_edges = 0;
 		bool has_short_edge = false;
 		do
@@ -415,9 +408,7 @@ void mean_curvature_skeleton(MESH& m,
 				return true;
 			});
 		} while (has_short_edge);
-		std::cout << i << " -   nb collapsed edges: " << nb_collapsed_edges << std::endl;
 
-		// std::cout << i << " - detect & mark degeneracies" << std::endl;
 		// nb_fixed_vertices = 0;
 		// foreach_cell(m, [&](Vertex v) -> bool {
 		// 	if (value<bool>(m, vertex_is_fixed, v))
@@ -443,7 +434,6 @@ void mean_curvature_skeleton(MESH& m,
 		// 	}
 		// 	return true;
 		// });
-		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
 	}
 
 	// delete medial_points_kdt;

@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
 
-	mp.set_mesh_bb_vertex_position(ig, vertex_position);
+	mp.set_mesh_bb_vertex_position(*ig, vertex_position);
 	gr.set_vertex_position(*v1, *ig, vertex_position);
 
 	return app.launch();

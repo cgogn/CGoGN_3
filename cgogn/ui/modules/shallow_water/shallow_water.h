@@ -173,9 +173,9 @@ protected:
 			return true;
 		});
 
-		mesh_provider_->emit_attribute_changed(domain_, vertex_water_position_.get());
-		mesh_provider_->emit_attribute_changed(domain_, vertex_water_flux_.get());
-		mesh_provider_->emit_attribute_changed(domain_, sw_attributes_.face_h_.get());
+		mesh_provider_->emit_attribute_changed(*domain_, vertex_water_position_.get());
+		mesh_provider_->emit_attribute_changed(*domain_, vertex_water_flux_.get());
+		mesh_provider_->emit_attribute_changed(*domain_, sw_attributes_.face_h_.get());
 	}
 
 	void interface() override
@@ -183,7 +183,7 @@ protected:
 		if (domain_initialized_)
 		{
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-			MeshData<MESH>* md = mesh_provider_->mesh_data(domain_);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*domain_);
 
 			if (!running_)
 			{
@@ -208,7 +208,7 @@ protected:
 
 			if (ImGui::BeginCombo("Faces", selected_faces_set_ ? selected_faces_set_->name().c_str() : "-- select --"))
 			{
-				md->template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
+				md.template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
 					bool is_selected = &cs == selected_faces_set_;
 					if (ImGui::Selectable(cs.name().c_str(), is_selected))
 						selected_faces_set_ = &cs;
@@ -234,7 +234,7 @@ protected:
 
 			if (ImGui::BeginCombo("Edges", selected_edges_set_ ? selected_edges_set_->name().c_str() : "-- select --"))
 			{
-				md->template foreach_cells_set<Edge>([&](CellsSet<MESH, Edge>& cs) {
+				md.template foreach_cells_set<Edge>([&](CellsSet<MESH, Edge>& cs) {
 					bool is_selected = &cs == selected_edges_set_;
 					if (ImGui::Selectable(cs.name().c_str(), is_selected))
 						selected_edges_set_ = &cs;

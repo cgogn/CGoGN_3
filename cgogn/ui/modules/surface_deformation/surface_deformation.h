@@ -132,41 +132,41 @@ private:
 				});
 	}
 
-	void initialize_mesh_data(MESH* m)
+	void initialize_mesh_data(MESH& m)
 	{
-		Parameters& p = parameters_[m];
+		Parameters& p = parameters_[&m];
 
-		p.vertex_position_init_ = get_attribute<Vec3, Vertex>(*m, "position_init");
+		p.vertex_position_init_ = get_attribute<Vec3, Vertex>(m, "position_init");
 		if (!p.vertex_position_init_)
-			p.vertex_position_init_ = add_attribute<Vec3, Vertex>(*m, "position_init");
+			p.vertex_position_init_ = add_attribute<Vec3, Vertex>(m, "position_init");
 
-		p.vertex_diff_coord_ = get_attribute<Vec3, Vertex>(*m, "diff_coord");
+		p.vertex_diff_coord_ = get_attribute<Vec3, Vertex>(m, "diff_coord");
 		if (!p.vertex_diff_coord_)
-			p.vertex_diff_coord_ = add_attribute<Vec3, Vertex>(*m, "diff_coord");
+			p.vertex_diff_coord_ = add_attribute<Vec3, Vertex>(m, "diff_coord");
 
-		p.vertex_bi_diff_coord_ = get_attribute<Vec3, Vertex>(*m, "bi_diff_coord");
+		p.vertex_bi_diff_coord_ = get_attribute<Vec3, Vertex>(m, "bi_diff_coord");
 		if (!p.vertex_bi_diff_coord_)
-			p.vertex_bi_diff_coord_ = add_attribute<Vec3, Vertex>(*m, "bi_diff_coord");
+			p.vertex_bi_diff_coord_ = add_attribute<Vec3, Vertex>(m, "bi_diff_coord");
 
-		p.vertex_rotation_matrix_ = get_attribute<Mat3, Vertex>(*m, "vertex_rotation_matrix");
+		p.vertex_rotation_matrix_ = get_attribute<Mat3, Vertex>(m, "vertex_rotation_matrix");
 		if (!p.vertex_rotation_matrix_)
-			p.vertex_rotation_matrix_ = add_attribute<Mat3, Vertex>(*m, "vertex_rotation_matrix");
+			p.vertex_rotation_matrix_ = add_attribute<Mat3, Vertex>(m, "vertex_rotation_matrix");
 
-		p.vertex_rotated_diff_coord_ = get_attribute<Vec3, Vertex>(*m, "rotated_diff_coord");
+		p.vertex_rotated_diff_coord_ = get_attribute<Vec3, Vertex>(m, "rotated_diff_coord");
 		if (!p.vertex_rotated_diff_coord_)
-			p.vertex_rotated_diff_coord_ = add_attribute<Vec3, Vertex>(*m, "rotated_diff_coord");
+			p.vertex_rotated_diff_coord_ = add_attribute<Vec3, Vertex>(m, "rotated_diff_coord");
 
-		p.vertex_rotated_bi_diff_coord_ = get_attribute<Vec3, Vertex>(*m, "rotated_bi_diff_coord");
+		p.vertex_rotated_bi_diff_coord_ = get_attribute<Vec3, Vertex>(m, "rotated_bi_diff_coord");
 		if (!p.vertex_rotated_bi_diff_coord_)
-			p.vertex_rotated_bi_diff_coord_ = add_attribute<Vec3, Vertex>(*m, "rotated_bi_diff_coord");
+			p.vertex_rotated_bi_diff_coord_ = add_attribute<Vec3, Vertex>(m, "rotated_bi_diff_coord");
 
-		p.edge_weight_ = get_attribute<Scalar, Edge>(*m, "edge_weight");
+		p.edge_weight_ = get_attribute<Scalar, Edge>(m, "edge_weight");
 		if (!p.edge_weight_)
-			p.edge_weight_ = add_attribute<Scalar, Edge>(*m, "edge_weight");
+			p.edge_weight_ = add_attribute<Scalar, Edge>(m, "edge_weight");
 
-		p.vertex_index_ = get_attribute<uint32, Vertex>(*m, "vertex_index");
+		p.vertex_index_ = get_attribute<uint32, Vertex>(m, "vertex_index");
 		if (!p.vertex_index_)
-			p.vertex_index_ = add_attribute<uint32, Vertex>(*m, "vertex_index");
+			p.vertex_index_ = add_attribute<uint32, Vertex>(m, "vertex_index");
 
 		// initialize position init values
 		p.vertex_position_init_->copy(p.vertex_position_.get());
@@ -177,23 +177,23 @@ private:
 		p.vertex_rotation_matrix_->fill(rm);
 
 		// compute edges weight
-		geometry::compute_edge_cotan_weight(*m, p.vertex_position_.get(), p.edge_weight_.get());
+		geometry::compute_edge_cotan_weight(m, p.vertex_position_.get(), p.edge_weight_.get());
 
 		// index vertices
 		uint32 nb_vertices = 0;
-		foreach_cell(*m, [&](Vertex v) -> bool {
-			value<uint32>(*m, p.vertex_index_, v) = nb_vertices++;
+		foreach_cell(m, [&](Vertex v) -> bool {
+			value<uint32>(m, p.vertex_index_, v) = nb_vertices++;
 			return true;
 		});
 
 		// compute vertices position laplacian
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
-			geometry::cotan_laplacian_matrix(*m, p.vertex_index_.get(), p.vertex_position_.get(), p.edge_weight_.get());
+			geometry::cotan_laplacian_matrix(m, p.vertex_index_.get(), p.vertex_position_.get(), p.edge_weight_.get());
 
 		Eigen::MatrixXd vpos(nb_vertices, 3);
-		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
-			const Vec3& pv = value<Vec3>(*m, p.vertex_position_, v);
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			const Vec3& pv = value<Vec3>(m, p.vertex_position_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			vpos(vidx, 0) = pv[0];
 			vpos(vidx, 1) = pv[1];
 			vpos(vidx, 2) = pv[2];
@@ -201,9 +201,9 @@ private:
 		});
 		Eigen::MatrixXd poslapl(nb_vertices, 3);
 		poslapl = LAPL * vpos;
-		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
-			Vec3& dcv = value<Vec3>(*m, p.vertex_diff_coord_, v);
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			Vec3& dcv = value<Vec3>(m, p.vertex_diff_coord_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			dcv[0] = poslapl(vidx, 0);
 			dcv[1] = poslapl(vidx, 1);
 			dcv[2] = poslapl(vidx, 2);
@@ -215,9 +215,9 @@ private:
 		BILAPL = LAPL * LAPL;
 		Eigen::MatrixXd posbilapl(nb_vertices, 3);
 		posbilapl = BILAPL * vpos;
-		parallel_foreach_cell(*m, [&](Vertex v) -> bool {
-			Vec3& bdcv = value<Vec3>(*m, p.vertex_bi_diff_coord_, v);
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			Vec3& bdcv = value<Vec3>(m, p.vertex_bi_diff_coord_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			bdcv[0] = posbilapl(vidx, 0);
 			bdcv[1] = posbilapl(vidx, 1);
 			bdcv[2] = posbilapl(vidx, 2);
@@ -228,22 +228,22 @@ private:
 		p.solver_ready_ = false;
 	}
 
-	void build_solver(MESH* m)
+	void build_solver(MESH& m)
 	{
-		Parameters& p = parameters_[m];
+		Parameters& p = parameters_[&m];
 
 		if (p.initialized_ && !p.solver_ready_ && p.selected_free_vertices_set_ &&
 			p.selected_free_vertices_set_->size() > 0 && p.selected_handle_vertices_set_ &&
 			p.selected_handle_vertices_set_->size() > 0)
 		{
-			CellMarkerStore<MESH, Vertex> working_vertices_marker(*m);
+			CellMarkerStore<MESH, Vertex> working_vertices_marker(m);
 
 			// check that handle vertices are surrounded only by handle or free vertices
 			bool handle_ok = true;
-			foreach_cell(*m, [&](Vertex v) -> bool {
+			foreach_cell(m, [&](Vertex v) -> bool {
 				if (p.selected_handle_vertices_set_->contains(v))
 				{
-					foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
+					foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 						if (!p.selected_handle_vertices_set_->contains(av) &&
 							!p.selected_free_vertices_set_->contains(av))
 							handle_ok = false;
@@ -269,7 +269,7 @@ private:
 				{
 					working_vertices_marker.mark(v);
 					foreach_adjacent_vertex_through_edge(
-						*m, v,
+						m, v,
 						[&](Vertex av) -> bool // and their 2-ring
 						{
 							if (!p.selected_free_vertices_set_->contains(av) &&
@@ -278,7 +278,7 @@ private:
 							{
 								p.working_cells_->add(av);
 								working_vertices_marker.mark(av);
-								foreach_adjacent_vertex_through_edge(*m, av, [&](Vertex aav) -> bool {
+								foreach_adjacent_vertex_through_edge(m, av, [&](Vertex aav) -> bool {
 									if (!p.selected_free_vertices_set_->contains(aav) &&
 										!p.selected_handle_vertices_set_->contains(aav) &&
 										!working_vertices_marker.is_marked(aav))
@@ -298,7 +298,7 @@ private:
 
 			// build the cell cache of working area edges
 			p.working_cells_->template build<Edge>([&](Edge e) -> bool {
-				auto vertices = incident_vertices(*m, e);
+				auto vertices = incident_vertices(m, e);
 				return (working_vertices_marker.is_marked(vertices[0]) &&
 						working_vertices_marker.is_marked(vertices[1]));
 			});
@@ -308,13 +308,13 @@ private:
 			// start with the free vertices
 			foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
 				if (p.selected_free_vertices_set_->contains(v))
-					value<uint32>(*m, p.vertex_index_, v) = nb_vertices++;
+					value<uint32>(m, p.vertex_index_, v) = nb_vertices++;
 				return true;
 			});
 			// then the others (handle & area boundary <=> constrained)
 			foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
 				if (!p.selected_free_vertices_set_->contains(v))
-					value<uint32>(*m, p.vertex_index_, v) = nb_vertices++;
+					value<uint32>(m, p.vertex_index_, v) = nb_vertices++;
 				return true;
 			});
 
@@ -331,7 +331,7 @@ private:
 			foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
 				if (!p.selected_free_vertices_set_->contains(v))
 				{
-					int idx = int(value<uint32>(*m, p.vertex_index_, v));
+					int idx = int(value<uint32>(m, p.vertex_index_, v));
 					p.working_LAPL_.prune([&](int i, int, Scalar) { return i != idx; });
 					p.working_LAPL_.coeffRef(idx, idx) = 1.0;
 					p.working_BILAPL_.prune([&](int i, int, Scalar) { return i != idx; });
@@ -351,9 +351,9 @@ private:
 		}
 	}
 
-	void as_rigid_as_possible(MESH* m)
+	void as_rigid_as_possible(MESH& m)
 	{
-		Parameters& p = parameters_[m];
+		Parameters& p = parameters_[&m];
 
 		if (!p.initialized_)
 			return;
@@ -367,11 +367,11 @@ private:
 		parallel_foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
 			Mat3 cov;
 			cov.setZero();
-			const Vec3& pos = value<Vec3>(*m, p.vertex_position_, v);
-			const Vec3& pos_i = value<Vec3>(*m, p.vertex_position_init_, v);
-			foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
-				Vec3 vec = value<Vec3>(*m, p.vertex_position_, av) - pos;
-				Vec3 vec_i = value<Vec3>(*m, p.vertex_position_init_, av) - pos_i;
+			const Vec3& pos = value<Vec3>(m, p.vertex_position_, v);
+			const Vec3& pos_i = value<Vec3>(m, p.vertex_position_init_, v);
+			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+				Vec3 vec = value<Vec3>(m, p.vertex_position_, av) - pos;
+				Vec3 vec_i = value<Vec3>(m, p.vertex_position_init_, av) - pos_i;
 				for (uint32 i = 0; i < 3; ++i)
 					for (uint32 j = 0; j < 3; ++j)
 						cov(i, j) += vec[i] * vec_i[j];
@@ -386,7 +386,7 @@ private:
 					U(i, 2) *= -1;
 				R = U * svd.matrixV().transpose();
 			}
-			value<Mat3>(*m, p.vertex_rotation_matrix_, v) = R;
+			value<Mat3>(m, p.vertex_rotation_matrix_, v) = R;
 			return true;
 		});
 
@@ -394,14 +394,14 @@ private:
 			uint32 degree = 0;
 			Mat3 r;
 			r.setZero();
-			foreach_adjacent_vertex_through_edge(*m, v, [&](Vertex av) -> bool {
-				r += value<Mat3>(*m, p.vertex_rotation_matrix_, av);
+			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+				r += value<Mat3>(m, p.vertex_rotation_matrix_, av);
 				++degree;
 				return true;
 			});
-			r += value<Mat3>(*m, p.vertex_rotation_matrix_, v);
+			r += value<Mat3>(m, p.vertex_rotation_matrix_, v);
 			r /= degree + 1;
-			value<Vec3>(*m, p.vertex_rotated_diff_coord_, v) = r * value<Vec3>(*m, p.vertex_diff_coord_, v);
+			value<Vec3>(m, p.vertex_rotated_diff_coord_, v) = r * value<Vec3>(m, p.vertex_diff_coord_, v);
 			return true;
 		});
 
@@ -409,8 +409,8 @@ private:
 
 		Eigen::MatrixXd rdiff(nb_vertices, 3);
 		parallel_foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
-			const Vec3& rdcv = value<Vec3>(*m, p.vertex_rotated_diff_coord_, v);
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+			const Vec3& rdcv = value<Vec3>(m, p.vertex_rotated_diff_coord_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			rdiff(vidx, 0) = rdcv[0];
 			rdiff(vidx, 1) = rdcv[1];
 			rdiff(vidx, 2) = rdcv[2];
@@ -419,8 +419,8 @@ private:
 		Eigen::MatrixXd rbdiff(nb_vertices, 3);
 		rbdiff = p.working_LAPL_ * rdiff;
 		parallel_foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
-			Vec3& rbdcv = value<Vec3>(*m, p.vertex_rotated_bi_diff_coord_, v);
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+			Vec3& rbdcv = value<Vec3>(m, p.vertex_rotated_bi_diff_coord_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			rbdcv[0] = rbdiff(vidx, 0);
 			rbdcv[1] = rbdiff(vidx, 1);
 			rbdcv[2] = rbdiff(vidx, 2);
@@ -431,17 +431,17 @@ private:
 		Eigen::MatrixXd b(nb_vertices, 3);
 
 		parallel_foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
 			if (p.selected_free_vertices_set_->contains(v))
 			{
-				const Vec3& rbdc = value<Vec3>(*m, p.vertex_rotated_bi_diff_coord_, v);
+				const Vec3& rbdc = value<Vec3>(m, p.vertex_rotated_bi_diff_coord_, v);
 				b.coeffRef(vidx, 0) = rbdc[0];
 				b.coeffRef(vidx, 1) = rbdc[1];
 				b.coeffRef(vidx, 2) = rbdc[2];
 			}
 			else
 			{
-				const Vec3& pos = value<Vec3>(*m, p.vertex_position_, v);
+				const Vec3& pos = value<Vec3>(m, p.vertex_position_, v);
 				b.coeffRef(vidx, 0) = pos[0];
 				b.coeffRef(vidx, 1) = pos[1];
 				b.coeffRef(vidx, 2) = pos[2];
@@ -452,8 +452,8 @@ private:
 		x = p.solver_->solve(b);
 
 		parallel_foreach_cell(*p.working_cells_, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(*m, p.vertex_index_, v);
-			Vec3& pos = value<Vec3>(*m, p.vertex_position_, v);
+			uint32 vidx = value<uint32>(m, p.vertex_index_, v);
+			Vec3& pos = value<Vec3>(m, p.vertex_position_, v);
 			pos[0] = x(vidx, 0);
 			pos[1] = x(vidx, 1);
 			pos[2] = x(vidx, 2);
@@ -485,7 +485,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceDeformation<MESH>::init_mesh));
 	}
@@ -545,25 +545,25 @@ protected:
 			Vec3 t = drag_pos - previous_drag_pos_;
 			p.selected_handle_vertices_set_->foreach_cell(
 				[&](Vertex v) { value<Vec3>(*selected_mesh_, p.vertex_position_, v) += t; });
-			as_rigid_as_possible(selected_mesh_);
+			as_rigid_as_possible(*selected_mesh_);
 			previous_drag_pos_ = drag_pos;
 
-			mesh_provider_->emit_attribute_changed(selected_mesh_, p.vertex_position_.get());
+			mesh_provider_->emit_attribute_changed(*selected_mesh_, p.vertex_position_.get());
 		}
 	}
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
 		{
 			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
-			MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
@@ -576,7 +576,7 @@ protected:
 				ImGui::Separator();
 
 				if (ImGui::Button("Initialize"))
-					initialize_mesh_data(selected_mesh_);
+					initialize_mesh_data(*selected_mesh_);
 
 				ImGui::Separator();
 
@@ -584,7 +584,7 @@ protected:
 														   ? p.selected_free_vertices_set_->name().c_str()
 														   : "-- select --"))
 				{
-					md->template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
+					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
 						bool is_selected = &cs == p.selected_free_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							set_selected_free_vertices_set(*selected_mesh_, &cs);
@@ -604,7 +604,7 @@ protected:
 															 ? p.selected_handle_vertices_set_->name().c_str()
 															 : "-- select --"))
 				{
-					md->template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
+					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
 						bool is_selected = &cs == p.selected_handle_vertices_set_;
 						if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							set_selected_handle_vertices_set(*selected_mesh_, &cs);

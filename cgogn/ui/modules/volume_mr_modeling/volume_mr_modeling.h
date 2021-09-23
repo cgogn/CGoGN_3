@@ -84,7 +84,7 @@ public:
 		m.current_level_ = cur;
 
 		cph3_provider_->emit_connectivity_changed(&m);
-		cph3_provider_->emit_attribute_changed(&m, vertex_position);
+		cph3_provider_->emit_attribute_changed(m, vertex_position);
 
 		cmap3_provider_->emit_connectivity_changed(&static_cast<CPH3::CMAP&>(m));
 		cmap3_provider_->emit_attribute_changed(&static_cast<CPH3::CMAP&>(m), vertex_position);

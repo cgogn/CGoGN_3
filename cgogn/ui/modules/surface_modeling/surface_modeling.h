@@ -71,25 +71,25 @@ public:
 	void fill_holes(MESH& m)
 	{
 		modeling::fill_holes(m);
-		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_connectivity_changed(m);
 	}
 
 	void remove_small_components(MESH& m, uint32 min_vertices)
 	{
 		modeling::remove_small_components(m, min_vertices);
-		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_connectivity_changed(m);
 	}
 
 	void reverse_orientation(MESH& m)
 	{
 		cgogn::reverse_orientation(m);
-		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_connectivity_changed(m);
 	}
 
 	void triangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		geometry::apply_ear_triangulation(m, vertex_position);
-		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_connectivity_changed(m);
 	}
 
 	void quadrangulate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
@@ -114,8 +114,8 @@ public:
 				cgogn::value<Vec3>(m, vertex_position, v) = center;
 			});
 
-		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 	void delaunay_flips(MESH& m, Attribute<Vec3>* vertex_position)
@@ -130,29 +130,29 @@ public:
 			return true;
 		});
 
-		mesh_provider_->emit_connectivity_changed(&m);
+		mesh_provider_->emit_connectivity_changed(m);
 	}
 
 	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
-		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>() / 10);
-		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(m).template nb_cells<Vertex>() / 10);
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 	void simplify_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		modeling::topstoc(mesh_provider_, m, vertex_position,
-						  0.5 * mesh_provider_->mesh_data(&m)->template nb_cells<Vertex>());
-		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+						  0.5 * mesh_provider_->mesh_data(m).template nb_cells<Vertex>());
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio, bool preserve_features)
 	{
 		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features);
-		mesh_provider_->emit_connectivity_changed(&m);
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 protected:
@@ -164,11 +164,11 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
 			selected_vertex_position_.reset();
 			// selected_vertex_normal_.reset();
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)

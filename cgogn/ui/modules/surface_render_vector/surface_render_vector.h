@@ -126,14 +126,14 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
 			p.vector_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 2.0);
-			md->update_vbo(p.vertex_position_.get(), true);
-			p.vertex_position_vbo_ = md->vbo(p.vertex_position_.get());
+			md.update_vbo(p.vertex_position_.get(), true);
+			p.vertex_position_vbo_ = md.vbo(p.vertex_position_.get());
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -146,13 +146,13 @@ public:
 	void set_vertex_vector(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_vector)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 		p.vertex_vector_ = vertex_vector;
 		if (p.vertex_vector_)
 		{
-			md->update_vbo(vertex_vector.get(), true);
-			p.vertex_vector_vbo_ = md->vbo(p.vertex_vector_.get());
+			md.update_vbo(vertex_vector.get(), true);
+			p.vertex_vector_vbo_ = md.vbo(p.vertex_vector_.get());
 		}
 		else
 			p.vertex_vector_vbo_ = nullptr;
@@ -167,7 +167,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh));
 	}
@@ -176,7 +176,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
@@ -185,7 +185,7 @@ protected:
 			{
 				p.param_vector_per_vertex_->length_ = p.vector_base_size_ * p.vector_scale_factor_;
 				p.param_vector_per_vertex_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
+				md.draw(rendering::POINTS);
 				p.param_vector_per_vertex_->release();
 			}
 		}
@@ -198,9 +198,9 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_view_ && selected_mesh_)
@@ -225,7 +225,7 @@ protected:
 			need_update |= ImGui::SliderFloat("width", &p.param_vector_per_vertex_->width_, 1.0f, 9.0f);
 			need_update |= ImGui::SliderFloat("lighted", &p.param_vector_per_vertex_->lighted_, 0.0f, 1.0f);
 
-			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			float64 remain = mesh_provider_->mesh_data(*selected_mesh_).outlined_until_ - App::frame_time_;
 			if (remain > 0)
 				need_update = true;
 

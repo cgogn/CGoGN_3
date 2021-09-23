@@ -136,7 +136,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &TopoRender<MESH>::init_mesh));
 	}
@@ -145,7 +145,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			// MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			// MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();

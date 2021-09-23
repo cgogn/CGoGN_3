@@ -227,8 +227,8 @@ private:
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 					if (p.vertex_base_size_ == 0.0)
 					{
-						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-						p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+						MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
+						p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 					}
 					v->request_update();
 				}));
@@ -242,8 +242,8 @@ private:
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 							if (p.vertex_base_size_ == 0.0)
 							{
-								MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-								p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+								MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
+								p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 							}
 						}
 						v->request_update();
@@ -271,11 +271,11 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
 			if (p.vertex_base_size_ == 0.0)
-				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+				p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -311,8 +311,8 @@ public:
 		p.vertex_normal_ = vertex_normal;
 		if (p.vertex_normal_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_normal_vbo_ = md->update_vbo(p.vertex_normal_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_normal_vbo_ = md.update_vbo(p.vertex_normal_.get(), true);
 		}
 		else
 			p.vertex_normal_vbo_ = nullptr;
@@ -336,8 +336,8 @@ public:
 		p.vertex_color_ = vertex_color;
 		if (p.vertex_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_color_vbo_ = md->update_vbo(p.vertex_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_color_vbo_ = md.update_vbo(p.vertex_color_.get(), true);
 		}
 		else
 			p.vertex_color_vbo_ = nullptr;
@@ -357,8 +357,8 @@ public:
 		p.vertex_scalar_ = vertex_scalar;
 		if (p.vertex_scalar_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_scalar_vbo_ = md->update_vbo(p.vertex_scalar_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_scalar_vbo_ = md.update_vbo(p.vertex_scalar_.get(), true);
 			if (p.auto_update_vertex_scalar_min_max_)
 				update_vertex_scalar_min_max_values(p);
 		}
@@ -387,8 +387,8 @@ public:
 		p.edge_color_ = edge_color;
 		if (p.edge_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.edge_color_vbo_ = md->update_vbo(p.edge_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.edge_color_vbo_ = md.update_vbo(p.edge_color_.get(), true);
 		}
 		else
 			p.edge_color_vbo_ = nullptr;
@@ -407,8 +407,8 @@ public:
 		p.face_color_ = face_color;
 		if (p.face_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.face_color_vbo_ = md->update_vbo(p.face_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.face_color_vbo_ = md.update_vbo(p.face_color_.get(), true);
 		}
 		else
 			p.face_color_vbo_ = nullptr;
@@ -428,8 +428,8 @@ public:
 		p.face_scalar_ = face_scalar;
 		if (p.face_scalar_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.face_scalar_vbo_ = md->update_vbo(p.face_scalar_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.face_scalar_vbo_ = md.update_vbo(p.face_scalar_.get(), true);
 			if (p.auto_update_face_scalar_min_max_)
 				update_face_scalar_min_max_values(p);
 		}
@@ -457,8 +457,8 @@ public:
 		p.vertex_radius_ = vertex_radius;
 		if (p.vertex_radius_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_radius_vbo_ = md->update_vbo(vertex_radius.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_radius_vbo_ = md.update_vbo(vertex_radius.get(), true);
 		}
 		else
 			p.vertex_radius_vbo_ = nullptr;
@@ -479,8 +479,8 @@ public:
 		p.vertex_point_color_ = vertex_point_color;
 		if (p.vertex_point_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_point_color_vbo_ = md->update_vbo(p.vertex_point_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_point_color_vbo_ = md.update_vbo(p.vertex_point_color_.get(), true);
 		}
 		else
 			p.vertex_point_color_vbo_ = nullptr;
@@ -552,7 +552,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceRender<MESH>::init_mesh));
 	}
@@ -561,7 +561,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
@@ -580,7 +580,7 @@ protected:
 						if (p.param_phong_->attributes_initialized())
 						{
 							p.param_phong_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::TRIANGLES, p.vertex_position_);
+							md.draw(rendering::TRIANGLES, p.vertex_position_);
 							p.param_phong_->release();
 						}
 					}
@@ -592,7 +592,7 @@ protected:
 							if (p.param_phong_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								md.draw(rendering::TRIANGLES, p.vertex_position_);
 								p.param_phong_scalar_per_vertex_->release();
 							}
 						}
@@ -601,7 +601,7 @@ protected:
 							if (p.param_phong_color_per_vertex_->attributes_initialized())
 							{
 								p.param_phong_color_per_vertex_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								md.draw(rendering::TRIANGLES, p.vertex_position_);
 								p.param_phong_color_per_vertex_->release();
 							}
 						}
@@ -616,7 +616,7 @@ protected:
 							if (p.param_phong_scalar_per_face_->attributes_initialized())
 							{
 								p.param_phong_scalar_per_face_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								md.draw(rendering::TRIANGLES_TB, p.vertex_position_);
 								p.param_phong_scalar_per_face_->release();
 							}
 						}
@@ -625,7 +625,7 @@ protected:
 							if (p.param_phong_color_per_face_->attributes_initialized())
 							{
 								p.param_phong_color_per_face_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								md.draw(rendering::TRIANGLES_TB, p.vertex_position_);
 								p.param_phong_color_per_face_->release();
 							}
 						}
@@ -645,7 +645,7 @@ protected:
 						if (p.param_flat_->attributes_initialized())
 						{
 							p.param_flat_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::TRIANGLES, p.vertex_position_);
+							md.draw(rendering::TRIANGLES, p.vertex_position_);
 							p.param_flat_->release();
 						}
 					}
@@ -657,7 +657,7 @@ protected:
 							if (p.param_flat_scalar_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_vertex_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								md.draw(rendering::TRIANGLES, p.vertex_position_);
 								p.param_flat_scalar_per_vertex_->release();
 							}
 						}
@@ -666,7 +666,7 @@ protected:
 							if (p.param_flat_color_per_vertex_->attributes_initialized())
 							{
 								p.param_flat_color_per_vertex_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES, p.vertex_position_);
+								md.draw(rendering::TRIANGLES, p.vertex_position_);
 								p.param_flat_color_per_vertex_->release();
 							}
 						}
@@ -681,7 +681,7 @@ protected:
 							if (p.param_flat_scalar_per_face_->attributes_initialized())
 							{
 								p.param_flat_scalar_per_face_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								md.draw(rendering::TRIANGLES_TB, p.vertex_position_);
 								p.param_flat_scalar_per_face_->release();
 							}
 						}
@@ -690,7 +690,7 @@ protected:
 							if (p.param_flat_color_per_face_->attributes_initialized())
 							{
 								p.param_flat_color_per_face_->bind(proj_matrix, view_matrix);
-								md->draw(rendering::TRIANGLES_TB, p.vertex_position_);
+								md.draw(rendering::TRIANGLES_TB, p.vertex_position_);
 								p.param_flat_color_per_face_->release();
 							}
 						}
@@ -718,7 +718,7 @@ protected:
 					if (p.param_bold_line_->attributes_initialized())
 					{
 						p.param_bold_line_->bind(proj_matrix, view_matrix);
-						md->draw(rendering::LINES);
+						md.draw(rendering::LINES);
 						p.param_bold_line_->release();
 					}
 				}
@@ -727,7 +727,7 @@ protected:
 					if (p.param_bold_line_color_->attributes_initialized())
 					{
 						p.param_bold_line_color_->bind(proj_matrix, view_matrix);
-						md->draw(rendering::LINES_TB);
+						md.draw(rendering::LINES_TB);
 						p.param_bold_line_color_->release();
 					}
 				}
@@ -747,7 +747,7 @@ protected:
 						if (p.param_point_sprite_size_->attributes_initialized())
 						{
 							p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_size_->release();
 						}
 					}
@@ -756,7 +756,7 @@ protected:
 						if (p.param_point_sprite_color_size_->attributes_initialized())
 						{
 							p.param_point_sprite_color_size_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_color_size_->release();
 						}
 					}
@@ -774,7 +774,7 @@ protected:
 						{
 							p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_->release();
 						}
 					}
@@ -784,7 +784,7 @@ protected:
 						{
 							p.param_point_sprite_color_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_color_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_color_->release();
 						}
 					}
@@ -799,18 +799,18 @@ protected:
 			// {
 			// 	p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 			// 	p.param_point_sprite_->bind(proj_matrix, view_matrix);
-			// 	md->draw(rendering::POINTS);
+			// 	md.draw(rendering::POINTS);
 			// 	p.param_point_sprite_->release();
 			// }
 
-			float64 remain = md->outlined_until_ - App::frame_time_;
+			float64 remain = md.outlined_until_ - App::frame_time_;
 			if (remain > 0 && p.vertex_position_vbo_)
 			{
 				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
 				color *= float(remain * 2);
-				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
-					md->init_primitives(rendering::TRIANGLES);
-				outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
+				if (!md.is_primitive_uptodate(rendering::TRIANGLES))
+					md.init_primitives(rendering::TRIANGLES);
+				outline_engine_->draw(p.vertex_position_vbo_, md.mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -822,9 +822,9 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_view_ && selected_mesh_)
@@ -1105,7 +1105,7 @@ protected:
 				}
 			}
 
-			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			float64 remain = mesh_provider_->mesh_data(*selected_mesh_).outlined_until_ - App::frame_time_;
 			if (remain > 0)
 				need_update = true;
 

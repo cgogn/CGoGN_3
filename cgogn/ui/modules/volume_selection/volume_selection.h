@@ -234,7 +234,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &VolumeSelection<MESH>::init_mesh));
 	}
@@ -284,7 +284,7 @@ protected:
 											p.picked_vertices_[p.current_candidate_index_]);
 										break;
 									}
-									mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
+									mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 								}
 							}
 							break;
@@ -309,7 +309,7 @@ protected:
 										p.selected_faces_set_->unselect(p.picked_faces_[p.current_candidate_index_]);
 										break;
 									}
-									mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
+									mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 								}
 							}
 							break;
@@ -354,7 +354,7 @@ protected:
 						p.selected_vertices_set_->unselect(p.picked_vertices_[p.current_candidate_index_]);
 						break;
 					}
-					mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
+					mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 					break;
 				case FaceSelect:
 					if (dy > 0)
@@ -377,7 +377,7 @@ protected:
 						p.selected_faces_set_->unselect(p.picked_faces_[p.current_candidate_index_]);
 						break;
 					}
-					mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
+					mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 					break;
 				}
 				view->stop_event();
@@ -428,9 +428,9 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Volume", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Volume", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
@@ -453,14 +453,14 @@ protected:
 
 				ImGui::RadioButton("Single", reinterpret_cast<int*>(&p.selection_method_), SingleCell);
 
-				MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
 					if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str()
 																		   : "-- select --"))
 					{
-						md->template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
+						md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
 							bool is_selected = &cs == p.selected_vertices_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							{
@@ -482,7 +482,7 @@ protected:
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 					}
 					if (ImGui::Button("Create set##vertices_set"))
-						md->template add_cells_set<Vertex>();
+						md.template add_cells_set<Vertex>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
@@ -493,7 +493,7 @@ protected:
 					if (ImGui::BeginCombo("Sets", p.selected_faces_set_ ? p.selected_faces_set_->name().c_str()
 																		: "-- select --"))
 					{
-						md->template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
+						md.template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
 							bool is_selected = &cs == p.selected_faces_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							{
@@ -515,7 +515,7 @@ protected:
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
 					}
 					if (ImGui::Button("Create set##faces_set"))
-						md->template add_cells_set<Face>();
+						md.template add_cells_set<Face>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);

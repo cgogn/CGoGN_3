@@ -146,8 +146,8 @@ private:
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 					if (p.vertex_base_size_ == 0.0)
 					{
-						MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-						p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+						MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
+						p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 					}
 					v->request_update();
 				}));
@@ -161,8 +161,8 @@ private:
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 							if (p.vertex_base_size_ == 0.0)
 							{
-								MeshData<MESH>* md = mesh_provider_->mesh_data(m);
-								p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+								MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
+								p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 							}
 						}
 						v->request_update();
@@ -180,11 +180,11 @@ public:
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_position_vbo_ = md->update_vbo(p.vertex_position_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
 			if (p.vertex_base_size_ == 0.0)
-				p.vertex_base_size_ = float32((md->bb_max_ - md->bb_min_).norm() / 20.0);
+				p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -207,8 +207,8 @@ public:
 		p.vertex_radius_ = vertex_radius;
 		if (p.vertex_radius_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_radius_vbo_ = md->update_vbo(vertex_radius.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_radius_vbo_ = md.update_vbo(vertex_radius.get(), true);
 		}
 		else
 			p.vertex_radius_vbo_ = nullptr;
@@ -228,8 +228,8 @@ public:
 		p.vertex_color_ = vertex_color;
 		if (p.vertex_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.vertex_color_vbo_ = md->update_vbo(p.vertex_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_color_vbo_ = md.update_vbo(p.vertex_color_.get(), true);
 		}
 		else
 			p.vertex_color_vbo_ = nullptr;
@@ -245,7 +245,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &GraphRender<MESH>::init_mesh));
 	}
@@ -254,7 +254,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
@@ -262,7 +262,7 @@ protected:
 			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::LINES);
+				md.draw(rendering::LINES);
 				p.param_bold_line_->release();
 			}
 
@@ -276,7 +276,7 @@ protected:
 						if (p.param_point_sprite_size_->attributes_initialized())
 						{
 							p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_size_->release();
 						}
 					}
@@ -285,7 +285,7 @@ protected:
 						if (p.param_point_sprite_color_size_->attributes_initialized())
 						{
 							p.param_point_sprite_color_size_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_color_size_->release();
 						}
 					}
@@ -301,7 +301,7 @@ protected:
 						{
 							p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_->release();
 						}
 					}
@@ -311,7 +311,7 @@ protected:
 						{
 							p.param_point_sprite_color_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_color_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::POINTS);
+							md.draw(rendering::POINTS);
 							p.param_point_sprite_color_->release();
 						}
 					}
@@ -329,7 +329,7 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Graph", [&](MESH* m) { selected_mesh_ = m; });
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Graph", [&](MESH& m) { selected_mesh_ = &m; });
 
 		if (selected_view_ && selected_mesh_)
 		{

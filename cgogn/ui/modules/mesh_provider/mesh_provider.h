@@ -96,7 +96,7 @@ public:
 			MESH* m = it->second.get();
 			if (inserted)
 			{
-				MeshData<MESH>& md = mesh_data_[m];
+				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
 				boost::synapse::emit<mesh_added>(this, m);
 			}
@@ -133,10 +133,10 @@ public:
 		}
 	}
 
-	void clear_mesh(MESH* m)
+	void clear_mesh(MESH& m)
 	{
-		clear(m);
-		emit_connectivity_changed(m);
+		clear(&m);
+		emit_connectivity_changed(&m);
 		// TODO: emit attributes changed ?
 	}
 
@@ -144,6 +144,10 @@ public:
 	{
 		copy(dst, src);
 		emit_connectivity_changed(dst);
+	}
+
+	void remove_mesh(MESH& m)
+	{
 	}
 
 	bool has_mesh(const std::string& name) const
@@ -174,11 +178,11 @@ public:
 
 			if (imported)
 			{
-				MeshData<MESH>& md = mesh_data_[m];
+				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
-					set_mesh_bb_vertex_position(m, vertex_position);
+					set_mesh_bb_vertex_position(*m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -228,11 +232,11 @@ public:
 
 			if (imported)
 			{
-				MeshData<MESH>& md = mesh_data_[m];
+				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
-					set_mesh_bb_vertex_position(m, vertex_position);
+					set_mesh_bb_vertex_position(*m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -277,11 +281,11 @@ public:
 
 			if (imported)
 			{
-				MeshData<MESH>& md = mesh_data_[m];
+				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
-					set_mesh_bb_vertex_position(m, vertex_position);
+					set_mesh_bb_vertex_position(*m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -312,10 +316,10 @@ public:
 	template <typename FUNC>
 	void foreach_mesh(const FUNC& f)
 	{
-		static_assert(is_ith_func_parameter_same<FUNC, 0, MESH*>::value, "Wrong function parameter type");
+		static_assert(is_ith_func_parameter_same<FUNC, 0, MESH&>::value, "Wrong function parameter type");
 		static_assert(is_ith_func_parameter_same<FUNC, 1, const std::string&>::value, "Wrong function parameter type");
-		for (const auto& [name, m] : meshes_)
-			f(m.get(), name);
+		for (auto& [name, m] : meshes_)
+			f(*m, name);
 	}
 
 	inline uint32 number_of_meshes()
@@ -323,23 +327,24 @@ public:
 		return uint32(meshes_.size());
 	}
 
-	std::string mesh_name(const MESH* m) const
+	std::string mesh_name(const MESH& m) const
 	{
 		auto it =
-			std::find_if(meshes_.begin(), meshes_.end(), [&](const auto& pair) { return pair.second.get() == m; });
+			std::find_if(meshes_.begin(), meshes_.end(), [&](const auto& pair) { return pair.second.get() == &m; });
 		if (it != meshes_.end())
 			return it->first;
 		else
 			return "";
 	}
 
-	MeshData<MESH>* mesh_data(const MESH* m)
+	MeshData<MESH>& mesh_data(const MESH& m)
 	{
-		auto it = mesh_data_.find(m);
-		if (it != mesh_data_.end())
-			return &(it->second);
-		else
-			return nullptr;
+		// auto it = mesh_data_.find(&m);
+		// if (it != mesh_data_.end())
+		// 	return &(it->second);
+		// else
+		// 	return nullptr;
+		return mesh_data_[&m];
 	}
 
 	std::pair<Vec3, Vec3> meshes_bb() const override
@@ -368,9 +373,9 @@ private:
 	}
 
 public:
-	void set_mesh_bb_vertex_position(const MESH* m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	void set_mesh_bb_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		MeshData<MESH>& md = mesh_data_[m];
+		MeshData<MESH>& md = mesh_data(m);
 		md.bb_vertex_position_ = vertex_position;
 		md.update_bb();
 		update_meshes_bb();
@@ -391,9 +396,9 @@ public:
 	using cells_set_changed = struct cells_set_changed_ (*)(CellsSet<MESH, CELL>* set);
 
 	template <typename T>
-	void emit_attribute_changed(const MESH* m, Attribute<T>* attribute)
+	void emit_attribute_changed(const MESH& m, Attribute<T>* attribute)
 	{
-		MeshData<MESH>& md = mesh_data_[m];
+		MeshData<MESH>& md = mesh_data(m);
 		md.update_vbo(attribute);
 		if (static_cast<AttributeGen*>(md.bb_vertex_position_.get()) == static_cast<AttributeGen*>(attribute))
 		{
@@ -406,27 +411,27 @@ public:
 		for (View* v : linked_views_)
 			v->request_update();
 
-		boost::synapse::emit<attribute_changed>(m, attribute);
-		boost::synapse::emit<attribute_changed_t<T>>(m, attribute);
+		boost::synapse::emit<attribute_changed>(&m, attribute);
+		boost::synapse::emit<attribute_changed_t<T>>(&m, attribute);
 	}
 
-	void emit_connectivity_changed(const MESH* m)
+	void emit_connectivity_changed(const MESH& m)
 	{
-		MeshData<MESH>* md = mesh_data(m);
-		md->update_nb_cells();
-		md->rebuild_cells_sets();
-		md->set_all_primitives_dirty();
+		MeshData<MESH>& md = mesh_data(m);
+		md.update_nb_cells();
+		md.rebuild_cells_sets();
+		md.set_all_primitives_dirty();
 
 		for (View* v : linked_views_)
 			v->request_update();
 
-		boost::synapse::emit<connectivity_changed>(m);
+		boost::synapse::emit<connectivity_changed>(&m);
 	}
 
 	template <typename CELL>
-	void emit_cells_set_changed(const MESH* m, CellsSet<MESH, CELL>* set)
+	void emit_cells_set_changed(const MESH& m, CellsSet<MESH, CELL>* set)
 	{
-		boost::synapse::emit<cells_set_changed<CELL>>(m, set);
+		boost::synapse::emit<cells_set_changed<CELL>>(&m, set);
 	}
 
 protected:
@@ -483,7 +488,7 @@ protected:
 			static std::function<void()> cleanup = []() {};
 			bool close_popup = false;
 
-			imgui_mesh_selector(this, selected_mesh, "Mesh", [&](MESH* m) { selected_mesh = m; });
+			imgui_mesh_selector(this, selected_mesh, "Mesh", [&](MESH& m) { selected_mesh = &m; });
 			if (ImGui::BeginCombo("Filetype", filetype.c_str()))
 			{
 				for (const std::string& t : *supported_formats_)
@@ -501,7 +506,6 @@ protected:
 			if (selected_mesh)
 			{
 				static std::shared_ptr<Attribute<Vec3>> selected_vertex_position = nullptr;
-				MeshData<MESH>* md = mesh_data(selected_mesh);
 				imgui_combo_attribute<Vertex, Vec3>(
 					*selected_mesh, selected_vertex_position, "Position",
 					[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position = attribute; });
@@ -537,18 +541,18 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(this, selected_mesh_, "Mesh", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_data(m)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(this, selected_mesh_, "Mesh", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
 		{
-			MeshData<MESH>* md = mesh_data(selected_mesh_);
+			MeshData<MESH>& md = mesh_data(*selected_mesh_);
 
-			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, md->bb_vertex_position_, "Position",
+			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, md.bb_vertex_position_, "Position",
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													set_mesh_bb_vertex_position(selected_mesh_, attribute);
+													set_mesh_bb_vertex_position(*selected_mesh_, attribute);
 												});
 
 			ImGui::Separator();
@@ -566,7 +570,7 @@ protected:
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted(mesh_traits<MESH>::cell_names[i]);
 					ImGui::TableNextColumn();
-					ImGui::Text("%d", md->nb_cells_[i]);
+					ImGui::Text("%d", md.nb_cells_[i]);
 				}
 				ImGui::EndTable();
 			}
@@ -581,7 +585,7 @@ protected:
 				ImGui::TableSetupColumn("Name");
 				ImGui::TableHeadersRow();
 
-				auto names = md->attributes_names();
+				auto names = md.attributes_names();
 				for (uint32 i = 0; i < std::tuple_size<typename mesh_traits<MESH>::Cells>::value; ++i)
 				{
 					ImGui::TableNextColumn();

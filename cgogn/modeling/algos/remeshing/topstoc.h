@@ -305,31 +305,26 @@ void topstoc(ui::MeshProvider<MESH>* mp, MESH& m, typename mesh_traits<MESH>::te
 	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
 	using Face = typename cgogn::mesh_traits<MESH>::Face;
 
-	//*new mesh creation
-	std::string name = "simplified_";
-	mp->foreach_mesh([&](MESH* _m, const std::string& _name) -> bool {
-		if (_m == &m)
-			name += _name;
-		return true;
-	});
+	// new mesh creation
+	std::string name = "simplified_" + mp->mesh_name(m);
 	MESH* new_m = mp->add_mesh(name);
 
 	CellMarkerStore<MESH, Vertex> cm_selected(m);
 
-	//*vertex selection
+	// vertex selection
 	vertex_selection(m, cm_selected, nb_vertices_to_keep);
 
-	//*region growth
+	// region growth
 	auto vertex_anchor = add_attribute<uint32, Vertex>(m, "anchor");
 	region_growth(m, vertex_anchor.get(), cm_selected);
 
-	//*surface data
+	// surface data
 	auto new_vertex_position = add_attribute<geometry::Vec3, CMap2::Vertex>(*new_m, "position");
 	compute_surface_data<MESH, Vertex, Face>(m, *new_m, vertex_position, new_vertex_position.get(), vertex_anchor.get(),
 											 cm_selected);
 
-	//*finish and cleanup
-	mp->set_mesh_bb_vertex_position(new_m, new_vertex_position);
+	// finish and cleanup
+	mp->set_mesh_bb_vertex_position(*new_m, new_vertex_position);
 	remove_attribute<Vertex>(m, vertex_anchor);
 }
 

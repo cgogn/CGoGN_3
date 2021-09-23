@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 		return true;
 	});
 
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
+	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
 	vr.set_vertex_position(*v1, *m, vertex_position);
 	vr.set_volume_scalar(*v1, *m, volume_scalar);

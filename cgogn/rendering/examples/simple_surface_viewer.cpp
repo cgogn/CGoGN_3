@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 		return true;
 	});
 
-	mp.set_mesh_bb_vertex_position(m, vertex_position);
+	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
 	// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 

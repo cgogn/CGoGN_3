@@ -75,21 +75,21 @@ int main(int argc, char** argv)
 	{
 		std::shared_ptr<Attribute<Vec3>> m_vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 		std::vector<Vec3> points;
-		points.reserve(mp.mesh_data(m)->nb_cells<Vertex>());
+		points.reserve(mp.mesh_data(*m).nb_cells<Vertex>());
 		for (const Vec3& p : *m_vertex_position)
 			points.push_back(p);
 		cgogn::modeling::convex_hull(points, *hull, vertex_position.get());
 
-		mp.set_mesh_bb_vertex_position(m, m_vertex_position);
+		mp.set_mesh_bb_vertex_position(*m, m_vertex_position);
 		sr.set_vertex_position(*v1, *m, m_vertex_position);
 	}
 	else
 		cgogn::modeling::convex_hull({{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}}, *hull, vertex_position.get());
 
-	mp.emit_connectivity_changed(hull);
-	mp.emit_attribute_changed(hull, vertex_position.get());
+	mp.emit_connectivity_changed(*hull);
+	mp.emit_attribute_changed(*hull, vertex_position.get());
 
-	mp.set_mesh_bb_vertex_position(hull, vertex_position);
+	mp.set_mesh_bb_vertex_position(*hull, vertex_position);
 	sr.set_vertex_position(*v1, *hull, vertex_position);
 
 	return app.launch();

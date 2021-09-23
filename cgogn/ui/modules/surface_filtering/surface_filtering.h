@@ -72,7 +72,7 @@ public:
 		vertex_attribute->swap(filtered_vertex_attribute.get());
 		remove_attribute<Vertex>(m, filtered_vertex_attribute);
 
-		mesh_provider_->emit_attribute_changed(&m, vertex_attribute);
+		mesh_provider_->emit_attribute_changed(m, vertex_attribute);
 	}
 
 	void regularize(MESH& m, Attribute<Vec3>* vertex_position)
@@ -161,7 +161,7 @@ public:
 		remove_attribute<Vertex>(m, vertex_index);
 		remove_attribute<Vertex>(m, vertex_position_laplacian);
 
-		mesh_provider_->emit_attribute_changed(&m, vertex_position);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 protected:
@@ -173,10 +173,10 @@ protected:
 
 	void interface() override
 	{
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
 			selected_vertex_attribute_.reset();
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)

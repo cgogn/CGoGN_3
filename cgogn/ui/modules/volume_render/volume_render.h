@@ -213,12 +213,12 @@ public:
 		if (p.vertex_position_ == vertex_position)
 			return;
 
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
-			p.vertex_position_vbo_ = md->update_vbo(vertex_position.get(), true);
+			p.vertex_position_vbo_ = md.update_vbo(vertex_position.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7.0);
 			update_volume_center(v, m);
 		}
@@ -232,8 +232,8 @@ public:
 		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
 		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
 
-		Scalar size = (md->bb_max_ - md->bb_min_).norm() / 25;
-		Vec3 position = 0.2 * md->bb_min_ + 0.8 * md->bb_max_;
+		Scalar size = (md.bb_max_ - md.bb_min_).norm() / 25;
+		Vec3 position = 0.2 * md.bb_min_ + 0.8 * md.bb_max_;
 		p.frame_manipulator_.set_size(size);
 		p.frame_manipulator_.set_position(position);
 
@@ -249,8 +249,8 @@ public:
 		p.volume_color_ = volume_color;
 		if (p.volume_color_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.volume_color_vbo_ = md->update_vbo(p.volume_color_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.volume_color_vbo_ = md.update_vbo(p.volume_color_.get(), true);
 		}
 		else
 			p.volume_color_vbo_ = nullptr;
@@ -269,8 +269,8 @@ public:
 		p.volume_scalar_ = volume_scalar;
 		if (p.volume_scalar_)
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
-			p.volume_scalar_vbo_ = md->update_vbo(p.volume_scalar_.get(), true);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.volume_scalar_vbo_ = md.update_vbo(p.volume_scalar_.get(), true);
 			if (p.auto_update_volume_scalar_min_max_)
 				update_volume_scalar_min_max_values(p);
 		}
@@ -305,21 +305,21 @@ protected:
 	void update_volume_center(View& v, const MESH& m)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>* md = mesh_provider_->mesh_data(&m);
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 		if (p.vertex_position_)
 		{
 			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
-			p.volume_center_vbo_ = md->update_vbo(p.volume_center_.get(), true);
+			p.volume_center_vbo_ = md.update_vbo(p.volume_center_.get(), true);
 
 			// uint32 nb_elements = is_indexed<Volume>(m) ? maximum_index<Volume>(m) : nb_cells<Volume>(m);
 			// p.volume_center_vbo_->bind();
 			// p.volume_center_vbo_->allocate(nb_elements, 3);
 			// p.volume_center_vbo_->release();
 
-			// if (!md->is_primitive_uptodate(rendering::VOLUMES_VERTICES))
-			// 	md->init_primitives(rendering::VOLUMES_VERTICES, p.vertex_position_);
-			// compute_volume_center_engine_->compute(p.vertex_position_vbo_, md->mesh_render(),
+			// if (!md.is_primitive_uptodate(rendering::VOLUMES_VERTICES))
+			// 	md.init_primitives(rendering::VOLUMES_VERTICES, p.vertex_position_);
+			// compute_volume_center_engine_->compute(p.vertex_position_vbo_, md.mesh_render(),
 			// 									   p.volume_center_vbo_.get());
 		}
 	}
@@ -328,7 +328,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &VolumeRender<MESH>::init_mesh));
 	}
@@ -337,7 +337,7 @@ protected:
 	{
 		for (auto& [m, p] : parameters_[view])
 		{
-			MeshData<MESH>* md = mesh_provider_->mesh_data(m);
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
@@ -353,7 +353,7 @@ protected:
 					if (p.param_volume_->attributes_initialized())
 					{
 						p.param_volume_->bind(proj_matrix, view_matrix);
-						md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
+						md.draw(rendering::VOLUMES_FACES, p.vertex_position_);
 						p.param_volume_->release();
 					}
 				}
@@ -365,7 +365,7 @@ protected:
 						if (p.param_volume_scalar_->attributes_initialized())
 						{
 							p.param_volume_scalar_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
+							md.draw(rendering::VOLUMES_FACES, p.vertex_position_);
 							p.param_volume_scalar_->release();
 						}
 					}
@@ -374,7 +374,7 @@ protected:
 						if (p.param_volume_color_->attributes_initialized())
 						{
 							p.param_volume_color_->bind(proj_matrix, view_matrix);
-							md->draw(rendering::VOLUMES_FACES, p.vertex_position_);
+							md.draw(rendering::VOLUMES_FACES, p.vertex_position_);
 							p.param_volume_color_->release();
 						}
 					}
@@ -389,7 +389,7 @@ protected:
 				if (p.render_volume_lines_ && p.param_volume_line_->attributes_initialized())
 				{
 					p.param_volume_line_->bind(proj_matrix, view_matrix);
-					md->draw(rendering::VOLUMES_EDGES);
+					md.draw(rendering::VOLUMES_EDGES);
 					p.param_volume_line_->release();
 				}
 			}
@@ -397,7 +397,7 @@ protected:
 			if (p.render_edges_ && p.param_bold_line_->attributes_initialized())
 			{
 				p.param_bold_line_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::LINES);
+				md.draw(rendering::LINES);
 				p.param_bold_line_->release();
 			}
 
@@ -405,21 +405,21 @@ protected:
 			{
 				p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 				p.param_point_sprite_->bind(proj_matrix, view_matrix);
-				md->draw(rendering::POINTS);
+				md.draw(rendering::POINTS);
 				p.param_point_sprite_->release();
 			}
 
 			if (p.show_frame_manipulator_)
 				p.frame_manipulator_.draw(true, true, proj_matrix, view_matrix);
 
-			float64 remain = md->outlined_until_ - App::frame_time_;
+			float64 remain = md.outlined_until_ - App::frame_time_;
 			if (remain > 0 && p.vertex_position_vbo_)
 			{
 				rendering::GLColor color{0.9f, 0.9f, 0.1f, 1};
 				color *= float(remain * 2);
-				if (!md->is_primitive_uptodate(rendering::TRIANGLES))
-					md->init_primitives(rendering::TRIANGLES);
-				outline_engine_->draw(p.vertex_position_vbo_, md->mesh_render(), proj_matrix, view_matrix, color);
+				if (!md.is_primitive_uptodate(rendering::TRIANGLES))
+					md.init_primitives(rendering::TRIANGLES);
+				outline_engine_->draw(p.vertex_position_vbo_, md.mesh_render(), proj_matrix, view_matrix, color);
 			}
 		}
 	}
@@ -509,9 +509,9 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Volume", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Volume", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_view_ && selected_mesh_)
@@ -656,7 +656,7 @@ protected:
 				ImGui::EndGroup();
 			}
 
-			float64 remain = mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ - App::frame_time_;
+			float64 remain = mesh_provider_->mesh_data(*selected_mesh_).outlined_until_ - App::frame_time_;
 			if (remain > 0)
 				need_update = true;
 

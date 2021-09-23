@@ -259,7 +259,7 @@ protected:
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		mesh_provider_->foreach_mesh([this](MESH* m, const std::string&) { init_mesh(m); });
+		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceSelection<MESH>::init_mesh));
 	}
@@ -268,7 +268,7 @@ protected:
 	{
 		if (selected_mesh_ && view->shift_pressed())
 		{
-			// MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+			// MeshData<MESH>* md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
 			if (p.vertex_position_)
@@ -299,7 +299,7 @@ protected:
 									p.selected_vertices_set_->unselect(picked[0]);
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 							}
 						}
 						break;
@@ -319,7 +319,7 @@ protected:
 									p.selected_edges_set_->unselect(picked[0]);
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_edges_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
 							}
 						}
 						break;
@@ -339,7 +339,7 @@ protected:
 									p.selected_faces_set_->unselect(picked[0]);
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 							}
 						}
 						break;
@@ -374,7 +374,7 @@ protected:
 									});
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_vertices_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 							}
 							break;
 						case EdgeSelect:
@@ -395,7 +395,7 @@ protected:
 									});
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_edges_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
 							}
 							break;
 						case FaceSelect:
@@ -416,7 +416,7 @@ protected:
 									});
 									break;
 								}
-								mesh_provider_->emit_cells_set_changed(selected_mesh_, p.selected_faces_set_);
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 							}
 							break;
 						}
@@ -463,9 +463,9 @@ protected:
 	{
 		bool need_update = false;
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH* m) {
-			selected_mesh_ = m;
-			mesh_provider_->mesh_data(selected_mesh_)->outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+			selected_mesh_ = &m;
+			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
@@ -495,14 +495,14 @@ protected:
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
 
-				MeshData<MESH>* md = mesh_provider_->mesh_data(selected_mesh_);
+				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
 					if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str()
 																		   : "-- select --"))
 					{
-						md->template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
+						md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
 							bool is_selected = &cs == p.selected_vertices_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							{
@@ -524,7 +524,7 @@ protected:
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 					}
 					if (ImGui::Button("Create set##vertices_set"))
-						md->template add_cells_set<Vertex>();
+						md.template add_cells_set<Vertex>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
@@ -535,7 +535,7 @@ protected:
 					if (ImGui::BeginCombo("Sets", p.selected_edges_set_ ? p.selected_edges_set_->name().c_str()
 																		: "-- select --"))
 					{
-						md->template foreach_cells_set<Edge>([&](CellsSet<MESH, Edge>& cs) {
+						md.template foreach_cells_set<Edge>([&](CellsSet<MESH, Edge>& cs) {
 							bool is_selected = &cs == p.selected_edges_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							{
@@ -557,7 +557,7 @@ protected:
 						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
 					}
 					if (ImGui::Button("Create set##edges_set"))
-						md->template add_cells_set<Edge>();
+						md.template add_cells_set<Edge>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |=
 						ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
@@ -568,7 +568,7 @@ protected:
 					if (ImGui::BeginCombo("Sets", p.selected_faces_set_ ? p.selected_faces_set_->name().c_str()
 																		: "-- select --"))
 					{
-						md->template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
+						md.template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
 							bool is_selected = &cs == p.selected_faces_set_;
 							if (ImGui::Selectable(cs.name().c_str(), is_selected))
 							{
@@ -590,7 +590,7 @@ protected:
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
 					}
 					if (ImGui::Button("Create set##faces_set"))
-						md->template add_cells_set<Face>();
+						md.template add_cells_set<Face>();
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
