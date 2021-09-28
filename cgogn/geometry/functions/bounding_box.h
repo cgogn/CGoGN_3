@@ -21,95 +21,44 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
-#define CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#ifndef CGOGN_GEOMETRY_FUNCTIONS_BOUNDING_BOX_H_
+#define CGOGN_GEOMETRY_FUNCTIONS_BOUNDING_BOX_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
-
-#include <map>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace modeling
+namespace geometry
 {
 
-template <typename CELL>
-class CellQueue
+template <template <typename VEC> typename CONTAINER, typename VEC>
+std::pair<VEC, VEC> bounding_box(const CONTAINER<VEC>& container)
 {
-public:
-	using Self = CellQueue<CELL>;
-	using CellCostMap = std::multimap<cgogn::float64, CELL>;
+	using Scalar = typename vector_traits<VEC>::Scalar;
+	const std::size_t dimension = vector_traits<VEC>::SIZE;
 
-	struct CellQueueInfo
+	VEC bb_min, bb_max;
+	for (std::size_t i = 0; i < dimension; ++i)
 	{
-		typename CellCostMap::const_iterator it_;
-		bool valid_;
-		CellQueueInfo() : valid_(false)
-		{
-		}
-	};
-
-	inline CellQueue()
-	{
+		bb_min[i] = std::numeric_limits<Scalar>::max();
+		bb_max[i] = std::numeric_limits<Scalar>::lowest();
 	}
-	virtual ~CellQueue()
+	for (const VEC& v : container)
 	{
+		for (std::size_t i = 0; i < dimension; ++i)
+		{
+			if (v[i] < bb_min[i])
+				bb_min[i] = v[i];
+			if (v[i] > bb_max[i])
+				bb_max[i] = v[i];
+		}
 	}
+	return {bb_min, bb_max};
+}
 
-	// set to 64 bit to avoid conversion warning, can be 32 but need cast on insertion
-	CellCostMap cells_;
-
-	class const_iterator
-	{
-	public:
-		const Self* const queue_ptr_;
-		typename CellCostMap::const_iterator cell_it_;
-
-		inline const_iterator(const Self* trav, typename CellCostMap::const_iterator it)
-			: queue_ptr_(trav), cell_it_(it)
-		{
-		}
-		inline const_iterator(const const_iterator& it) : queue_ptr_(it.queue_ptr_), cell_it_(it.cell_it_)
-		{
-		}
-
-		inline const_iterator& operator=(const const_iterator& it)
-		{
-			queue_ptr_ = it.queue_ptr_;
-			cell_it_ = it.cell_it_;
-			return *this;
-		}
-		inline const_iterator& operator++()
-		{
-			cell_it_ = queue_ptr_->cells_.begin();
-			return *this;
-		}
-		inline const CELL& operator*() const
-		{
-			return (*cell_it_).second;
-		}
-		inline bool operator!=(const_iterator it) const
-		{
-			cgogn_assert(queue_ptr_ == it.queue_ptr_);
-			return cell_it_ != it.cell_it_;
-		}
-	};
-
-	const_iterator begin() const
-	{
-		return const_iterator(this, cells_.begin());
-	}
-	const_iterator end() const
-	{
-		return const_iterator(this, cells_.end());
-	}
-};
-
-} // namespace modeling
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#endif // CGOGN_GEOMETRY_FUNCTIONS_BOUNDING_BOX_H_

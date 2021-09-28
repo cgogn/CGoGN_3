@@ -34,6 +34,8 @@
 #include <cgogn/rendering/mesh_render.h>
 #include <cgogn/rendering/vbo_update.h>
 
+#include <cgogn/geometry/functions/bounding_box.h>
+
 #include <boost/synapse/emit.hpp>
 
 #include <list>
@@ -148,24 +150,9 @@ public:
 		{
 			bb_min_ = {0, 0, 0};
 			bb_max_ = {0, 0, 0};
-			return;
 		}
-
-		for (uint32 i = 0; i < 3; ++i)
-		{
-			bb_min_[i] = std::numeric_limits<float64>::max();
-			bb_max_[i] = std::numeric_limits<float64>::lowest();
-		}
-		for (const Vec3& p : *bb_vertex_position_)
-		{
-			for (uint32 i = 0; i < 3; ++i)
-			{
-				if (p[i] < bb_min_[i])
-					bb_min_[i] = p[i];
-				if (p[i] > bb_max_[i])
-					bb_max_[i] = p[i];
-			}
-		}
+		else
+			std::tie(bb_min_, bb_max_) = geometry::bounding_box(*bb_vertex_position_);
 	}
 
 	rendering::VBO* vbo(AttributeGen* attribute)

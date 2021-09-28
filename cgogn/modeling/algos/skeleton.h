@@ -34,6 +34,7 @@
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/medial_axis.h>
@@ -120,40 +121,34 @@ struct MeanCurvatureSkeleton_Helper
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	MeanCurvatureSkeleton_Helper(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
-		: vertex_position_(vertex_position)
+	MeanCurvatureSkeleton_Helper(MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+		: m_(m), vertex_position_(vertex_position)
 	{
-		modeling::pliant_remeshing(m, vertex_position_.get(), 0.9, false);
+		modeling::pliant_remeshing(m_, vertex_position_.get(), 0.9, false);
 
-		vertex_normal_ = add_attribute<Vec3, Vertex>(m, "__vertex_normal");
-		geometry::compute_normal(m, vertex_position_.get(), vertex_normal_.get());
+		vertex_normal_ = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
+		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
 
-		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m, "__vertex_medial_point");
-		modeling::shrinking_ball_centers(m, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
+		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
+		modeling::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
 
-		Vec3 bb_min, bb_max;
-		for (uint32 i = 0; i < 2; ++i)
-		{
-			bb_min[i] = std::numeric_limits<float64>::max();
-			bb_max[i] = std::numeric_limits<float64>::lowest();
-		}
-		for (const Vec3& p : *vertex_position_)
-		{
-			for (uint32 i = 0; i < 3; ++i)
-			{
-				if (p[i] < bb_min[i])
-					bb_min[i] = p[i];
-				if (p[i] > bb_max[i])
-					bb_max[i] = p[i];
-			}
-		}
+		auto [bb_min, bb_max] = geometry::bounding_box(*vertex_position);
 		Scalar bb_diag = (bb_max - bb_min).norm();
 
 		edge_collapse_threshold_ = 0.004 * bb_diag;
 
-		vertex_index_ = add_attribute<uint32, Vertex>(m, "__vertex_index");
-		edge_weight_ = add_attribute<Scalar, Edge>(m, "__edge_weight");
+		vertex_index_ = add_attribute<uint32, Vertex>(m_, "__vertex_index");
+		edge_weight_ = add_attribute<Scalar, Edge>(m_, "__edge_weight");
 	}
+	~MeanCurvatureSkeleton_Helper()
+	{
+		remove_attribute<Vertex>(m_, vertex_normal_);
+		remove_attribute<Vertex>(m_, vertex_medial_point_);
+		remove_attribute<Vertex>(m_, vertex_index_);
+		remove_attribute<Edge>(m_, edge_weight_);
+	}
+
+	MESH& m_;
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position_;
 	std::shared_ptr<Attribute<Vec3>> vertex_normal_;

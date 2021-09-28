@@ -21,19 +21,14 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_DECIMATION_EDGE_QUEUE_EDGE_LENGTH_H_
-#define CGOGN_MODELING_DECIMATION_EDGE_QUEUE_EDGE_LENGTH_H_
+#ifndef CGOGN_MODELING_DECIMATION_EDGE_QUEUE_UPDATE_H_
+#define CGOGN_MODELING_DECIMATION_EDGE_QUEUE_UPDATE_H_
 
 #include <cgogn/modeling/algos/decimation/cell_queue.h>
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/types/mesh_traits.h>
-
-#include <cgogn/geometry/algos/length.h>
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <map>
 
 namespace cgogn
 {
@@ -88,7 +83,7 @@ void update_edge_queue(
 //////////////
 
 template <typename MESH, typename std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
-void pre_collapse_edge_length(
+void pre_collapse(
 	const MESH& m, typename mesh_traits<MESH>::Edge e, typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2, CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
@@ -140,7 +135,7 @@ void pre_collapse_edge_length(
 }
 
 template <typename MESH, typename FUNC, typename std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
-void post_collapse_edge_length(
+void post_collapse(
 	const MESH& m, typename mesh_traits<MESH>::Edge& e1, typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
@@ -180,7 +175,7 @@ void post_collapse_edge_length(
 
 template <typename MESH, typename FUNC,
 		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-void post_collapse_edge_length(
+void post_collapse(
 	const CellFilter<MESH>& cf, typename mesh_traits<MESH>::Edge& e1, typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
@@ -232,4 +227,4 @@ void post_collapse_edge_length(
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_DECIMATION_EDGE_QUEUE_EDGE_LENGTH_H_
+#endif // CGOGN_MODELING_DECIMATION_EDGE_QUEUE_UPDATE_H_

@@ -343,11 +343,6 @@ public:
 
 	MeshData<MESH>& mesh_data(const MESH& m)
 	{
-		// auto it = mesh_data_.find(&m);
-		// if (it != mesh_data_.end())
-		// 	return &(it->second);
-		// else
-		// 	return nullptr;
 		return mesh_data_[&m];
 	}
 

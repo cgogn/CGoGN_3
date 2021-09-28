@@ -133,9 +133,11 @@ public:
 		mesh_provider_->emit_connectivity_changed(m);
 	}
 
-	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	void decimate_mesh(MESH& m, Attribute<Vec3>* vertex_position, uint32 percent_vertices_to_remove)
 	{
-		modeling::decimate(m, vertex_position, mesh_provider_->mesh_data(m).template nb_cells<Vertex>() / 10);
+		modeling::decimate(m, vertex_position,
+						   mesh_provider_->mesh_data(m).template nb_cells<Vertex>() *
+							   (percent_vertices_to_remove / 100.0));
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
@@ -197,8 +199,10 @@ protected:
 					remove_small_components(*selected_mesh_, uint32(min_vertices));
 				if (ImGui::Button("Reverse orientation"))
 					reverse_orientation(*selected_mesh_);
+				static int32 percent_vertices_to_keep = 90;
+				ImGui::SliderInt("% vertices to keep", &percent_vertices_to_keep, 1, 99);
 				if (ImGui::Button("Decimate"))
-					decimate_mesh(*selected_mesh_, selected_vertex_position_.get());
+					decimate_mesh(*selected_mesh_, selected_vertex_position_.get(), 100 - percent_vertices_to_keep);
 				if (ImGui::Button("Simplify"))
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
 				static float remesh_edge_length_ratio = 1.0f;

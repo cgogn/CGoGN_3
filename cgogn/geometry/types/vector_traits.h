@@ -98,7 +98,7 @@ using Vec4 = Eigen::Vector4d;
 
 using Mat2 = Eigen::Matrix2d;
 using Mat3 = Eigen::Matrix3d;
-using Mat4 = Eigen::Matrix3d;
+using Mat4 = Eigen::Matrix4d;
 
 using Scalar = vector_traits<Vec3>::Scalar;
 

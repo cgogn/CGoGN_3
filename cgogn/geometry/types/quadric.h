@@ -21,95 +21,102 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
-#define CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#ifndef CGOGN_GEOMETRY_TYPES_QUADRIC_H_
+#define CGOGN_GEOMETRY_TYPES_QUADRIC_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
-
-#include <map>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace modeling
+namespace geometry
 {
 
-template <typename CELL>
-class CellQueue
+class Quadric
 {
 public:
-	using Self = CellQueue<CELL>;
-	using CellCostMap = std::multimap<cgogn::float64, CELL>;
-
-	struct CellQueueInfo
+	inline Quadric()
 	{
-		typename CellCostMap::const_iterator it_;
-		bool valid_;
-		CellQueueInfo() : valid_(false)
-		{
-		}
-	};
-
-	inline CellQueue()
-	{
-	}
-	virtual ~CellQueue()
-	{
+		matrix_.setZero();
 	}
 
-	// set to 64 bit to avoid conversion warning, can be 32 but need cast on insertion
-	CellCostMap cells_;
-
-	class const_iterator
+	inline Quadric(const Vec3& p1, const Vec3& p2, const Vec3& p3)
 	{
-	public:
-		const Self* const queue_ptr_;
-		typename CellCostMap::const_iterator cell_it_;
-
-		inline const_iterator(const Self* trav, typename CellCostMap::const_iterator it)
-			: queue_ptr_(trav), cell_it_(it)
-		{
-		}
-		inline const_iterator(const const_iterator& it) : queue_ptr_(it.queue_ptr_), cell_it_(it.cell_it_)
-		{
-		}
-
-		inline const_iterator& operator=(const const_iterator& it)
-		{
-			queue_ptr_ = it.queue_ptr_;
-			cell_it_ = it.cell_it_;
-			return *this;
-		}
-		inline const_iterator& operator++()
-		{
-			cell_it_ = queue_ptr_->cells_.begin();
-			return *this;
-		}
-		inline const CELL& operator*() const
-		{
-			return (*cell_it_).second;
-		}
-		inline bool operator!=(const_iterator it) const
-		{
-			cgogn_assert(queue_ptr_ == it.queue_ptr_);
-			return cell_it_ != it.cell_it_;
-		}
-	};
-
-	const_iterator begin() const
-	{
-		return const_iterator(this, cells_.begin());
+		Vec3 u = p2 - p1;
+		Vec3 v = p3 - p1;
+		Vec3 n = u.cross(v);
+		n.normalize();
+		Scalar d = -(p1.dot(n));
+		Vec4 p = Vec4(n[0], n[1], n[2], d);
+		matrix_ = p * p.transpose();
 	}
-	const_iterator end() const
+
+	Quadric(const Quadric& q)
 	{
-		return const_iterator(this, cells_.end());
+		matrix_ = q.matrix_;
 	}
+
+	inline void zero()
+	{
+		matrix_.setZero();
+	}
+
+	Quadric& operator=(const Quadric& q)
+	{
+		matrix_ = q.matrix_;
+		return *this;
+	}
+
+	Quadric& operator+=(const Quadric& q)
+	{
+		matrix_ += q.matrix_;
+		return *this;
+	}
+
+	Scalar eval(const Vec3& v)
+	{
+		return eval(Vec4{v[0], v[1], v[2], 1.});
+	}
+
+	inline Scalar eval(const Vec4& v)
+	{
+		return v.transpose() * matrix_ * v;
+	}
+
+	bool optimized(Vec3& v)
+	{
+		Vec4 hv;
+		bool b = optimized(hv);
+		if (b)
+		{
+			v[0] = hv[0];
+			v[1] = hv[1];
+			v[2] = hv[2];
+		}
+		return b;
+	}
+
+	bool optimized(Vec4& v)
+	{
+		Mat4 m(matrix_);
+		for (uint32 i = 0; i < 3; ++i)
+			m(3, i) = 0.;
+		m(3, 3) = 1.;
+		Mat4 inverse;
+		Scalar determinant;
+		bool invertible;
+		m.computeInverseAndDetWithCheck(inverse, determinant, invertible, 0.01);
+		if (invertible)
+			v = inverse * Vec4(0., 0., 0., 1.);
+		return invertible;
+	}
+
+private:
+	Mat4 matrix_;
 };
 
-} // namespace modeling
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
+#endif // CGOGN_GEOMETRY_TYPES_QUADRIC_H_
