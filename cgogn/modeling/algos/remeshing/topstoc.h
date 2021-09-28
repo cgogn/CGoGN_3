@@ -35,9 +35,9 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/io/surface/surface_import.h>
 #include <cgogn/modeling/algos/subdivision.h>
-#include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
 
 #include <algorithm>
 #include <cstdlib>
