@@ -45,9 +45,9 @@ struct CGOGN_CORE_EXPORT CMapBase
 	using AttributeContainer = AttributeContainerT<ChunkArray>;
 
 	template <typename T>
-	using Attribute = AttributeContainer::Attribute<T>;
-	using AttributeGen = AttributeContainer::AttributeGen;
-	using MarkAttribute = AttributeContainer::MarkAttribute;
+	using Attribute = typename AttributeContainer::Attribute<T>;
+	using AttributeGen = typename AttributeContainer::AttributeGen;
+	using MarkAttribute = typename AttributeContainer::MarkAttribute;
 
 	/*************************************************************************/
 	// Map attributes container
