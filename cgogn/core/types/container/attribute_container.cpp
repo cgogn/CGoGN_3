@@ -162,6 +162,12 @@ void AttributeContainerGen::clear_attributes()
 	maximum_index_ = 0;
 }
 
+void AttributeContainerGen::remove_attributes()
+{
+	attributes_shared_ptr_.clear();
+}
+
+// only called by AttributeGenT destructor (called when last shared_ptr is destroyed)
 void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
 	auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);

@@ -147,7 +147,7 @@ protected:
 				if (ImGui::Button("Compute normal"))
 				{
 					if (!selected_vertex_normal_)
-						selected_vertex_normal_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
+						selected_vertex_normal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
 					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
 			}
@@ -157,15 +157,15 @@ protected:
 				if (ImGui::Button("Compute curvature"))
 				{
 					if (!selected_vertex_kmax_)
-						selected_vertex_kmax_ = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmax");
+						selected_vertex_kmax_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kmax");
 					if (!selected_vertex_kmin_)
-						selected_vertex_kmin_ = add_attribute<Scalar, Vertex>(*selected_mesh_, "kmin");
+						selected_vertex_kmin_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kmin");
 					if (!selected_vertex_Kmax_)
-						selected_vertex_Kmax_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmax");
+						selected_vertex_Kmax_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmax");
 					if (!selected_vertex_Kmin_)
-						selected_vertex_Kmin_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmin");
+						selected_vertex_Kmin_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmin");
 					if (!selected_vertex_Knormal_)
-						selected_vertex_Knormal_ = add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
+						selected_vertex_Knormal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
 
 					std::shared_ptr<Attribute<Scalar>> edge_angle =
 						add_attribute<Scalar, Edge>(*selected_mesh_, "__edge_angle");

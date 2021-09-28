@@ -106,15 +106,18 @@ public:
 			return nullptr;
 	}
 
-	MESH* clone_mesh(MESH& m)
+	MESH* clone_mesh(const MESH& m)
 	{
-		const std::string& m_name = mesh_name(&m);
+		const std::string& m_name = mesh_name(m);
 		std::string name =
 			remove_extension(m_name) + "_" + std::to_string(number_of_meshes()) + "." + extension(m_name);
 		MESH* result = add_mesh(name);
 		copy(*result, m);
+		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*result, "position");
+		if (vertex_position)
+			set_mesh_bb_vertex_position(*result, vertex_position);
 		boost::synapse::emit<mesh_added>(this, result);
-		emit_connectivity_changed(result);
+		emit_connectivity_changed(*result);
 		// TODO: emit attributes changed ?
 		return result;
 	}
@@ -148,6 +151,7 @@ public:
 
 	void remove_mesh(MESH& m)
 	{
+		// TODO
 	}
 
 	bool has_mesh(const std::string& name) const
@@ -554,6 +558,9 @@ protected:
 												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
 													set_mesh_bb_vertex_position(*selected_mesh_, attribute);
 												});
+
+			if (ImGui::Button("Clone"))
+				clone_mesh(*selected_mesh_);
 
 			ImGui::Separator();
 			ImGui::TextUnformatted("Size");

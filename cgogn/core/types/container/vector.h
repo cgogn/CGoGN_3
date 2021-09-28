@@ -44,6 +44,8 @@ namespace cgogn
 template <typename T>
 class CGOGN_CORE_EXPORT Vector : public AttributeGenT
 {
+	using AttributeContainer = AttributeContainerT<Vector>;
+
 private:
 	std::vector<T> data_;
 
@@ -54,7 +56,7 @@ private:
 	}
 
 public:
-	Vector(AttributeContainerGen* container, const std::string& name) : AttributeGenT(container, name)
+	Vector(AttributeContainer* container, const std::string& name) : AttributeGenT(container, name)
 	{
 		data_.reserve(512u);
 	}
@@ -80,6 +82,18 @@ public:
 		std::fill(data_.begin(), data_.end(), value);
 	}
 
+	inline void swap(Vector<T>* vector)
+	{
+		if (vector->container_ == this->container_) // only swap from same container
+			data_.swap(vector->data_);
+	}
+
+	inline void copy(Vector<T>* vector)
+	{
+		if (vector->container_ == this->container_) // only copy from same container
+			data_ = vector->data_;
+	}
+
 	inline void clear() override
 	{
 		data_.clear();
@@ -87,16 +101,27 @@ public:
 		data_.shrink_to_fit();
 	}
 
-	inline void swap(Vector<T>* ca)
+	inline std::shared_ptr<AttributeGenT> create_in(AttributeContainerGen& dst) const override
 	{
-		if (ca->container_ == this->container_) // only swap from same container
-			data_.swap(ca->data_);
+		AttributeContainer* dst_container = dynamic_cast<AttributeContainer*>(&dst);
+		if (dst_container)
+		{
+			auto attribute = dst_container->get_attribute<T>(name_);
+			if (!attribute)
+				attribute = dst_container->add_attribute<T>(name_);
+			return attribute;
+		}
+		return nullptr;
 	}
 
-	inline void copy(Vector<T>* ca)
+	inline void copy(const AttributeGenT& src) override
 	{
-		if (ca->container_ == this->container_) // only copy from same container
-			data_ = ca->data_;
+		const Vector<T>* src_vector = dynamic_cast<const Vector<T>*>(&src);
+		if (src_vector)
+		{
+			cgogn_message_assert(src_vector->data_.size() == data_.size(), "Copy from src with different capacity");
+			data_ = src_vector->data_;
+		}
 	}
 
 	inline const void* data_pointer() const
@@ -106,35 +131,35 @@ public:
 
 	class const_iterator
 	{
-		const Vector<T>* ca_;
+		const Vector<T>* vector_;
 		uint32 index_;
 
 	public:
-		inline const_iterator(const Vector<T>* ca, uint32 index) : ca_(ca), index_(index)
+		inline const_iterator(const Vector<T>* vector, uint32 index) : vector_(vector), index_(index)
 		{
 		}
-		inline const_iterator(const const_iterator& it) : ca_(it.ca_), index_(it.index_)
+		inline const_iterator(const const_iterator& it) : vector_(it.vector_), index_(it.index_)
 		{
 		}
 		inline const_iterator& operator=(const const_iterator& it)
 		{
-			ca_ = it.ca_;
+			vector_ = it.vector_;
 			index_ = it.index_;
 			return *this;
 		}
 		inline bool operator!=(const_iterator it) const
 		{
-			cgogn_assert(ca_ == it.ca_);
+			cgogn_assert(vector_ == it.vector_);
 			return index_ != it.index_;
 		}
 		inline const_iterator& operator++()
 		{
-			index_ = ca_->container_->next_index(index_);
+			index_ = vector_->container_->next_index(index_);
 			return *this;
 		}
 		inline const T& operator*() const
 		{
-			return ca_->operator[](index_);
+			return vector_->operator[](index_);
 		}
 		inline uint32 index()
 		{
@@ -152,35 +177,35 @@ public:
 
 	class iterator
 	{
-		Vector<T>* ca_;
+		Vector<T>* vector_;
 		uint32 index_;
 
 	public:
-		inline iterator(Vector<T>* ca, uint32 index) : ca_(ca), index_(index)
+		inline iterator(Vector<T>* vector, uint32 index) : vector_(vector), index_(index)
 		{
 		}
-		inline iterator(const iterator& it) : ca_(it.ca_), index_(it.index_)
+		inline iterator(const iterator& it) : vector_(it.vector_), index_(it.index_)
 		{
 		}
 		inline iterator& operator=(const iterator& it)
 		{
-			ca_ = it.ca_;
+			vector_ = it.vector_;
 			index_ = it.index_;
 			return *this;
 		}
 		inline bool operator!=(iterator it) const
 		{
-			cgogn_assert(ca_ == it.ca_);
+			cgogn_assert(vector_ == it.vector_);
 			return index_ != it.index_;
 		}
 		inline iterator& operator++()
 		{
-			index_ = ca_->container_->next_index(index_);
+			index_ = vector_->container_->next_index(index_);
 			return *this;
 		}
 		inline T& operator*() const
 		{
-			return ca_->operator[](index_);
+			return vector_->operator[](index_);
 		}
 		inline uint32 index()
 		{
