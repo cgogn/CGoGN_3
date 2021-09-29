@@ -34,6 +34,7 @@
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/medial_axis.h>
@@ -112,8 +113,62 @@ inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
 /////////////
 
 template <typename MESH>
-void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-							 typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_medial_point)
+struct MeanCurvatureSkeleton_Helper
+{
+	template <typename T>
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	MeanCurvatureSkeleton_Helper(MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position,
+								 Scalar surface_resampling_ratio)
+		: m_(m), vertex_position_(vertex_position)
+	{
+		modeling::pliant_remeshing(m_, vertex_position_.get(), surface_resampling_ratio, false);
+
+		vertex_normal_ = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
+		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
+
+		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
+		modeling::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
+
+		vertex_is_fixed_ = add_attribute<bool, Vertex>(m_, "__vertex_is_fixed");
+		vertex_is_fixed_->fill(false);
+
+		auto [bb_min, bb_max] = geometry::bounding_box(*vertex_position);
+		Scalar bb_diag = (bb_max - bb_min).norm();
+
+		edge_collapse_threshold_ = 0.004 * bb_diag;
+
+		vertex_index_ = add_attribute<uint32, Vertex>(m_, "__vertex_index");
+		edge_weight_ = add_attribute<Scalar, Edge>(m_, "__edge_weight");
+	}
+	~MeanCurvatureSkeleton_Helper()
+	{
+		remove_attribute<Vertex>(m_, vertex_normal_);
+		remove_attribute<Vertex>(m_, vertex_medial_point_);
+		remove_attribute<Vertex>(m_, vertex_is_fixed_);
+		remove_attribute<Vertex>(m_, vertex_index_);
+		remove_attribute<Edge>(m_, edge_weight_);
+	}
+
+	MESH& m_;
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position_;
+	std::shared_ptr<Attribute<Vec3>> vertex_normal_;
+	std::shared_ptr<Attribute<Vec3>> vertex_medial_point_;
+	std::shared_ptr<Attribute<bool>> vertex_is_fixed_;
+	std::shared_ptr<Attribute<uint32>> vertex_index_;
+	std::shared_ptr<Attribute<Scalar>> edge_weight_;
+
+	Scalar wL_, wH_, wM_, edge_collapse_threshold_;
+};
+
+template <typename MESH>
+void mean_curvature_skeleton(MESH& m,
+							 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position,
+							 Scalar wL, Scalar wH, Scalar wM, Scalar surface_resampling_ratio = 0.9)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
@@ -122,62 +177,33 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 	using Face = typename mesh_traits<MESH>::Face;
 	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
 
-	// std::vector<Vec3> medial_points;
-	// medial_points.reserve(nb_cells<Vertex>(m));
-	// foreach_cell(m, [&](Vertex v) -> bool {
-	// 	medial_points.push_back(value<Vec3>(m, vertex_medial_point, v));
-	// 	return true;
-	// });
-	// acc::KDTree<3, uint32>* medial_points_kdt = new acc::KDTree<3, uint32>(medial_points);
+	// static map to store helpers associated to meshes
+	// allows to store context without polluting outer context and function api
+	static std::unordered_map<MESH*, MeanCurvatureSkeleton_Helper<MESH>> helpers_;
+	auto [it, inserted] = helpers_.try_emplace(&m, m, vertex_position, surface_resampling_ratio);
+	MeanCurvatureSkeleton_Helper<MESH>& helper = it->second;
 
-	Vec3 bb_min, bb_max;
-	for (uint32 i = 0; i < 2; ++i)
-	{
-		bb_min[i] = std::numeric_limits<float64>::max();
-		bb_max[i] = std::numeric_limits<float64>::lowest();
-	}
-	for (const Vec3& p : *vertex_position)
-	{
-		for (uint32 i = 0; i < 3; ++i)
-		{
-			if (p[i] < bb_min[i])
-				bb_min[i] = p[i];
-			if (p[i] > bb_max[i])
-				bb_max[i] = p[i];
-		}
-	}
-	Scalar bb_diag = (bb_max - bb_min).norm();
-
-	Scalar wL = 1.0;
-	Scalar wH = 0.11;
-	Scalar wM = 0.17;
-	Scalar edge_collapse_threshold = 0.004 * bb_diag;
-	Scalar zero_threshold = 1e-5;
-
-	auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
-	auto edge_weight = add_attribute<Scalar, Edge>(m, "__edge_weight");
-
-	for (uint32 i = 0; i < 10; ++i)
+	for (uint32 i = 0; i < 1; ++i)
 	{
 		uint32 nb_vertices = 0;
 		foreach_cell(m, [&](Vertex v) -> bool {
-			value<uint32>(m, vertex_index, v) = nb_vertices++;
+			value<uint32>(m, helper.vertex_index_, v) = nb_vertices++;
 			return true;
 		});
 
-		geometry::compute_edge_cotan_weight(m, vertex_position, edge_weight.get());
-		for (Scalar& w : *edge_weight)
+		geometry::compute_edge_cotan_weight(m, helper.vertex_position_.get(), helper.edge_weight_.get());
+		for (Scalar& w : *helper.edge_weight_)
 			w = std::clamp(w, 0.0, 1.0);
 
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);
 
-		// smooth
+		// smoothness
 		foreach_cell(m, [&](Edge e) -> bool {
-			Scalar w = value<Scalar>(m, edge_weight, e);
+			Scalar w = value<Scalar>(m, helper.edge_weight_, e);
 			auto iv = incident_vertices(m, e);
-			uint32 vidx1 = value<uint32>(m, vertex_index, iv[0]);
-			uint32 vidx2 = value<uint32>(m, vertex_index, iv[1]);
+			uint32 vidx1 = value<uint32>(m, helper.vertex_index_, iv[0]);
+			uint32 vidx2 = value<uint32>(m, helper.vertex_index_, iv[1]);
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w* wL));
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w* wL));
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w* wL));
@@ -187,15 +213,17 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 
 		// velocity
 		foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), wH));
+			uint32 vidx = value<uint32>(m, helper.vertex_index_, v);
+			Scalar v_wH = value<bool>(m, helper.vertex_is_fixed_, v) ? 10000.0 : wH;
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), v_wH));
 			return true;
 		});
 
-		// medial
+		// medial attraction
 		foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(2 * nb_vertices + vidx), int(vidx), wM));
+			uint32 vidx = value<uint32>(m, helper.vertex_index_, v);
+			Scalar v_wM = value<bool>(m, helper.vertex_is_fixed_, v) ? 0.0 : wM;
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(2 * nb_vertices + vidx), int(vidx), v_wM));
 			return true;
 		});
 
@@ -206,15 +234,15 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		Eigen::MatrixXd b(3 * nb_vertices, 3);
 
 		foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
+			uint32 vidx = value<uint32>(m, helper.vertex_index_, v);
 			b(vidx, 0) = 0;
 			b(vidx, 1) = 0;
 			b(vidx, 2) = 0;
-			const Vec3& pos = value<Vec3>(m, vertex_position, v);
+			const Vec3& pos = value<Vec3>(m, helper.vertex_position_, v);
 			b(nb_vertices + vidx, 0) = wH * pos[0];
 			b(nb_vertices + vidx, 1) = wH * pos[1];
 			b(nb_vertices + vidx, 2) = wH * pos[2];
-			const Vec3& medp = value<Vec3>(m, vertex_medial_point, v);
+			const Vec3& medp = value<Vec3>(m, helper.vertex_medial_point_, v);
 			b(2 * nb_vertices + vidx, 0) = wM * medp[0];
 			b(2 * nb_vertices + vidx, 1) = wM * medp[1];
 			b(2 * nb_vertices + vidx, 2) = wM * medp[2];
@@ -226,44 +254,14 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		x = solver.solve(At * b);
 
 		foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			Vec3& pos = value<Vec3>(m, vertex_position, v);
+			uint32 vidx = value<uint32>(m, helper.vertex_index_, v);
+			Vec3& pos = value<Vec3>(m, helper.vertex_position_, v);
 			pos[0] = x(vidx, 0);
 			pos[1] = x(vidx, 1);
 			pos[2] = x(vidx, 2);
 			return true;
 		});
 
-		// std::cout << i << " - detect & mark degeneracies" << std::endl;
-		// uint32 nb_fixed_vertices = 0;
-		// foreach_cell(m, [&](Vertex v) -> bool {
-		// 	if (value<bool>(m, vertex_is_fixed, v))
-		// 		return true;
-		// 	uint32 count = 0;
-		// 	foreach_incident_edge(m, v, [&](Edge ie) -> bool {
-		// 		Scalar l = geometry::length(m, ie, vertex_position);
-		// 		if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
-		// 			++count;
-		// 		return true;
-		// 	});
-		// 	bool is_fixed = count > 1;
-		// 	if (is_fixed)
-		// 	{
-		// 		value<bool>(m, vertex_is_fixed, v) = true;
-		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
-		// 		++nb_fixed_vertices;
-		// 	}
-		// 	else
-		// 	{
-		// 		value<bool>(m, vertex_is_fixed, v) = false;
-		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
-		// 	}
-		// 	return true;
-		// });
-		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
-
-		std::cout << i << " - flip flat edges" << std::endl;
-		uint32 nb_flip_edges = 0;
 		bool has_flat_edge = false;
 		do
 		{
@@ -273,25 +271,20 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 				if (degree(m, iv[0]) < 5 || degree(m, iv[1]) < 5)
 					return true;
 
-				std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+				std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, helper.vertex_position_.get());
 				Scalar flip_threshold_low = 140.0 * M_PI / 180.0;
 				if (op_angles[0] > flip_threshold_low && op_angles[1] > flip_threshold_low)
 				{
 					if (edge_can_flip(m, e))
 					{
 						if (flip_edge(m, e))
-						{
 							has_flat_edge = true;
-							++nb_flip_edges;
-						}
 					}
 				}
 				return true;
 			});
 		} while (has_flat_edge);
-		std::cout << i << " -   nb flip edges: " << nb_flip_edges << std::endl;
 
-		// std::cout << i << " - cut long edges" << std::endl;
 		// uint32 nb_cut_edges = 0;
 		// bool has_long_edge = false;
 		// do
@@ -300,7 +293,7 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		// 	has_long_edge = false;
 		// 	foreach_cell(cache, [&](Edge e) -> bool {
 		// 		std::vector<Vertex> op_vertices = opposite_vertices(m, e);
-		// 		std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+		// 		std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, helper.vertex_position_);
 		// 		Scalar alpha0 = op_angles[0];
 		// 		Scalar alpha1 = op_angles[1];
 		// 		// std::vector<HalfEdge> ihe = incident_halfedges(m, e);
@@ -315,30 +308,30 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 
 		// 		has_long_edge = true;
 		// 		std::vector<Vertex> iv = incident_vertices(m, e);
-		// 		const Vec3& p0 = value<Vec3>(m, vertex_position, iv[0]);
-		// 		const Vec3& p1 = value<Vec3>(m, vertex_position, iv[1]);
+		// 		const Vec3& p0 = value<Vec3>(m, helper.vertex_position_, iv[0]);
+		// 		const Vec3& p1 = value<Vec3>(m, helper.vertex_position_, iv[1]);
 
 		// 		// uint32 largest = alpha0 > alpha1 ? 0 : 1;
 		// 		// Vertex op_vertex = op_vertices[largest]; // opposite_vertex(m, ihe[largest]);
 		// 		// Vec3 vec = (p1 - p0).normalized();
-		// 		// Vec3 proj = value<Vec3>(m, vertex_position, op_vertex) - p0;
+		// 		// Vec3 proj = value<Vec3>(m, helper.vertex_position_, op_vertex) - p0;
 		// 		// Scalar t = vec.dot(proj);
 		// 		// Vec3 newp = p0 + t * vec;
 		// 		Vec3 newp = (p0 + p1) * 0.5;
 
-		// 		const Vec3& mp0 = value<Vec3>(m, vertex_medial_point, iv[0]);
-		// 		const Vec3& mp1 = value<Vec3>(m, vertex_medial_point, iv[1]);
+		// 		const Vec3& mp0 = value<Vec3>(m, helper.vertex_medial_point_, iv[0]);
+		// 		const Vec3& mp1 = value<Vec3>(m, helper.vertex_medial_point_, iv[1]);
 		// 		// vec = (mp1 - mp0).normalized();
 		// 		// Vec3 newmp = mp0 + t * vec;
 		// 		Vec3 newmp = (mp0 + mp1) * 0.5;
 
 		// 		Vertex cv = cut_edge(m, e);
 		// 		cut_incident_faces(m, cv);
-		// 		value<Vec3>(m, vertex_position, cv) = newp;
-		// 		value<Vec3>(m, vertex_medial_point, cv) = newmp;
+		// 		value<Vec3>(m, helper.vertex_position_, cv) = newp;
+		// 		value<Vec3>(m, helper.vertex_medial_point_, cv) = newmp;
 		// 		// std::pair<uint32, Scalar> k_res;
 		// 		// medial_points_kdt->find_nn(mp, &k_res);
-		// 		// value<Vec3>(m, vertex_medial_point, cv) = medial_points_kdt->vertex(k_res.first);
+		// 		// value<Vec3>(m, helper.vertex_medial_point_, cv) = medial_points_kdt->vertex(k_res.first);
 
 		// 		// value<bool>(m, vertex_is_split, cv) = true;
 		// 		// value<bool>(m, vertex_is_fixed, cv) = false;
@@ -347,77 +340,49 @@ void mean_curvature_skeleton(MESH& m, typename mesh_traits<MESH>::template Attri
 		// 		return true;
 		// 	});
 		// } while (has_long_edge);
-		// std::cout << i << " -   nb cut edges: " << nb_cut_edges << std::endl;
-		// std::cout << std::boolalpha << "integrity: " << check_integrity(m) << std::endl;
-		// std::cout << std::boolalpha << "triangular: " << is_simplicial(m) << std::endl;
 
-		std::cout << i << " - collapse short edges" << std::endl;
-		uint32 nb_collapsed_edges = 0;
 		bool has_short_edge = false;
 		do
 		{
 			has_short_edge = false;
 			foreach_cell(m, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				if (geometry::length(m, e, vertex_position) < edge_collapse_threshold)
+				if (geometry::length(m, e, helper.vertex_position_.get()) < helper.edge_collapse_threshold_)
 				{
 					if (edge_can_collapse(m, e))
 					{
 						has_short_edge = true;
-						Vec3 newp =
-							(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
-						const Vec3& mp0 = value<Vec3>(m, vertex_medial_point, iv[0]);
-						const Vec3& mp1 = value<Vec3>(m, vertex_medial_point, iv[1]);
+						Vec3 newp = (value<Vec3>(m, helper.vertex_position_, iv[0]) +
+									 value<Vec3>(m, helper.vertex_position_, iv[1])) *
+									0.5;
+						const Vec3& mp0 = value<Vec3>(m, helper.vertex_medial_point_, iv[0]);
+						const Vec3& mp1 = value<Vec3>(m, helper.vertex_medial_point_, iv[1]);
 						Scalar d0 = (mp0 - newp).squaredNorm();
 						Scalar d1 = (mp1 - newp).squaredNorm();
 						Vec3 newmp = d0 < d1 ? mp0 : mp1;
 						Vertex cv = collapse_edge(m, e);
-						value<Vec3>(m, vertex_position, cv) = newp;
-						value<Vec3>(m, vertex_medial_point, cv) = newmp;
-						// std::pair<uint32, Scalar> k_res;
-						// medial_points_kdt->find_nn(mp, &k_res);
-						// value<Vec3>(m, vertex_medial_point, cv) = medial_points_kdt->vertex(k_res.first);
-						++nb_collapsed_edges;
+						value<Vec3>(m, helper.vertex_position_, cv) = newp;
+						value<Vec3>(m, helper.vertex_medial_point_, cv) = newmp;
 					}
 				}
 				return true;
 			});
 		} while (has_short_edge);
-		std::cout << i << " -   nb collapsed edges: " << nb_collapsed_edges << std::endl;
 
-		// std::cout << i << " - detect & mark degeneracies" << std::endl;
-		// nb_fixed_vertices = 0;
-		// foreach_cell(m, [&](Vertex v) -> bool {
-		// 	if (value<bool>(m, vertex_is_fixed, v))
-		// 		return true;
-		// 	uint32 count = 0;
-		// 	foreach_incident_edge(m, v, [&](Edge ie) -> bool {
-		// 		Scalar l = geometry::length(m, ie, vertex_position);
-		// 		if (l < edge_collapse_threshold / 5.0 && !edge_can_collapse(m, ie))
-		// 			++count;
-		// 		return true;
-		// 	});
-		// 	bool is_fixed = count > 1;
-		// 	if (is_fixed)
-		// 	{
-		// 		value<bool>(m, vertex_is_fixed, v) = true;
-		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {1.0, 0.0, 0.0};
-		// 		++nb_fixed_vertices;
-		// 	}
-		// 	else
-		// 	{
-		// 		value<bool>(m, vertex_is_fixed, v) = false;
-		// 		value<Vec3>(m, vertex_is_fixed_color, v) = {0.0, 0.0, 0.0};
-		// 	}
-		// 	return true;
-		// });
-		// std::cout << i << " -   nb fixed vertices: " << nb_fixed_vertices << std::endl;
+		foreach_cell(m, [&](Vertex v) -> bool {
+			if (value<bool>(m, helper.vertex_is_fixed_, v))
+				return true;
+			uint32 count = 0;
+			foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+				Scalar l = geometry::length(m, ie, helper.vertex_position_.get());
+				if (l < helper.edge_collapse_threshold_ / 5.0 && !edge_can_collapse(m, ie))
+					++count;
+				return true;
+			});
+			value<bool>(m, helper.vertex_is_fixed_, v) = (count > 2);
+			return true;
+		});
 	}
-
-	remove_attribute<Vertex>(m, vertex_index);
-	remove_attribute<Edge>(m, edge_weight);
-
-	// delete medial_points_kdt;
 }
 
 } // namespace modeling

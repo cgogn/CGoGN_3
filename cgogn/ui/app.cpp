@@ -567,7 +567,9 @@ int App::launch()
 									v->save_camera();
 								if (ImGui::MenuItem("Restore camera"))
 									v->restore_camera();
-								ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
+								if (ImGui::Button("Show entire scene"))
+									v->show_entire_scene();
+								// ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
 								ImGui::EndMenu();
 							}
 						}

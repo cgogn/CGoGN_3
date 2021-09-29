@@ -114,6 +114,7 @@ public:
 	inline void show_entire_scene()
 	{
 		camera_.show_entire_scene();
+		request_update();
 	}
 
 	inline int32 viewport_width() const

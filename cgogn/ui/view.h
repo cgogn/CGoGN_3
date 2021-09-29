@@ -82,9 +82,6 @@ public:
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
 
 	void update_scene_bb();
-	void lock_scene_bb();
-	void unlock_scene_bb();
-	bool scene_bb_locked() const;
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
 	virtual std::pair<rendering::GLVec3d, rendering::GLVec3d> pixel_ray(int32 x, int32 y) const override;
@@ -119,7 +116,7 @@ protected:
 	std::vector<ViewModule*> linked_view_modules_;
 	std::vector<ProviderModule*> linked_provider_modules_;
 
-	bool scene_bb_locked_;
+	// bool scene_bb_locked_;
 
 	bool event_stopped_;
 	bool closing_;

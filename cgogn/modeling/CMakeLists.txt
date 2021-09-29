@@ -16,7 +16,8 @@ target_sources(${PROJECT_NAME}	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/algos/decimation/decimation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/cell_queue.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_edge_length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_QEM.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_update.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/convex_hull.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.cpp"
@@ -31,6 +32,13 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/pliant_remeshing.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/volume_utils.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/volume_utils.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_modeling.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_deformation.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/skeleton_extractor_module.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/tubular_mesh_module.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_deformation.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_mr_modeling.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

@@ -113,7 +113,7 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 		const Vec3& n = value<Vec3>(m, vertex_normal, v);
 
 		uint32 j = 0;
-		Scalar r = 200.0;
+		Scalar r = 0.;
 
 		acc::Ray<Vec3> ray{p, -n, 1e-10, acc::inf};
 		acc::BVHTree<uint32, Vec3>::Hit h;
@@ -126,8 +126,8 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 					  h.bcoords[2] * value<Vec3>(m, vertex_position, vertices[2]);
 			r = (p - ip).norm() * 0.51;
 		}
-		else
-			std::cout << "intersection point not found !!!";
+		// else
+		// 	std::cout << "intersection point not found !!!";
 
 		Vec3 c = p - (r * n);
 
@@ -155,7 +155,6 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 
 			// Compute next ball center
 			r = compute_radius(p, n, q);
-
 			Vec3 c_next = p - (r * n);
 
 			// // Denoising

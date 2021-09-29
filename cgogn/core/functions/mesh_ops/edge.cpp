@@ -50,8 +50,9 @@ IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, Inc
 
 	Edge e = add_cell<Edge>(ig);
 	(*ig.edge_incident_vertices_)[e.index_] = {v0, v1};
-	(*ig.vertex_incident_edges_)[v0.index_].insert(e);
-	(*ig.vertex_incident_edges_)[v1.index_].insert(e);
+	(*ig.edge_incident_faces_)[e.index_].clear();
+	(*ig.vertex_incident_edges_)[v0.index_].push_back(e);
+	(*ig.vertex_incident_edges_)[v1.index_].push_back(e);
 
 	return e;
 }
@@ -74,11 +75,11 @@ void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e)
 	using Edge = IncidenceGraph::Edge;
 
 	while ((*ig.edge_incident_faces_)[e.index_].size() > 0)
-		remove_face(ig, *(*ig.edge_incident_faces_)[e.index_].begin());
+		remove_face(ig, (*ig.edge_incident_faces_)[e.index_].back());
 
 	auto [v0, v1] = (*ig.edge_incident_vertices_)[e.index_];
-	(*ig.vertex_incident_edges_)[v0.index_].erase(e);
-	(*ig.vertex_incident_edges_)[v1.index_].erase(e);
+	remove_edge_in_vertex(ig, v0, e);
+	remove_edge_in_vertex(ig, v1, e);
 
 	remove_cell<Edge>(ig, e);
 }
@@ -107,9 +108,8 @@ IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, boo
 	Edge e1 = add_edge(ig, v, v1);
 	for (Face f : (*ig.edge_incident_faces_)[e0.index_])
 	{
-		std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-		edges.push_back(e1);
-		sort_edges(ig, edges); // TODO: could do more efficient
+		(*ig.face_incident_edges_)[f.index_].push_back(e1);
+		sort_face_edges(ig, f); // TODO: could do more efficient (insert)
 	}
 	return v;
 }
@@ -404,6 +404,80 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 // collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
+																				   IncidenceGraph::Edge e,
+																				   bool set_indices)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	std::vector<Edge> removed_edges;
+
+	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+
+	// remove e from its incident vertices
+	remove_edge_in_vertex(ig, v1, e);
+	remove_edge_in_vertex(ig, v2, e);
+
+	// remove e from its incident faces
+	for (Face iface : (*ig.edge_incident_faces_)[e.index_])
+	{
+		remove_edge_in_face(ig, iface, e);
+		// remove degenerate faces
+		if ((*ig.face_incident_edges_)[iface.index_].size() < 3)
+			remove_face(ig, iface);
+	}
+
+	// replace v1 by v2 in incident edges of v1
+	for (Edge iev1 : (*ig.vertex_incident_edges_)[v1.index_])
+	{
+		replace_vertex_in_edge(ig, iev1, v1, v2);
+		// check for duplicate edges around v2
+		Edge similar_edge_in_v2;
+		for (uint32 i = 0; !similar_edge_in_v2.is_valid() && i < (*ig.vertex_incident_edges_)[v2.index_].size(); ++i)
+		{
+			Edge iev2 = (*ig.vertex_incident_edges_)[v2.index_][i];
+			if (same_edge(ig, iev1, iev2))
+				similar_edge_in_v2 = iev2;
+		}
+		if (!similar_edge_in_v2.is_valid())
+			(*ig.vertex_incident_edges_)[v2.index_].push_back(iev1);
+		else
+		{
+			// migrate faces of iev1 to the similar edge in v2
+			for (Face iface : (*ig.edge_incident_faces_)[iev1.index_])
+			{
+				auto fit = std::find((*ig.edge_incident_faces_)[similar_edge_in_v2.index_].begin(),
+									 (*ig.edge_incident_faces_)[similar_edge_in_v2.index_].end(), iface);
+				if (fit == (*ig.edge_incident_faces_)[similar_edge_in_v2.index_].end())
+				{
+					replace_edge_in_face(ig, iface, iev1, similar_edge_in_v2);
+					(*ig.edge_incident_faces_)[similar_edge_in_v2.index_].push_back(iface);
+				}
+			}
+			// remove iev1 from its vertices
+			auto [iev1v1, iev1v2] = (*ig.edge_incident_vertices_)[iev1.index_];
+			remove_edge_in_vertex(ig, iev1v1, iev1);
+			remove_edge_in_vertex(ig, iev1v2, iev1);
+			// remove iev1
+			remove_cell<Edge>(ig, iev1);
+			removed_edges.push_back(iev1);
+		}
+	}
+
+	// remove v1
+	remove_cell<Vertex>(ig, v1);
+	// remove e
+	remove_cell<Edge>(ig, e);
+
+	return {v2, removed_edges};
+}
 
 ///////////
 // Graph //

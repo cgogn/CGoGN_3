@@ -16,6 +16,8 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/shallow_water.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
