@@ -121,10 +121,11 @@ struct MeanCurvatureSkeleton_Helper
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	MeanCurvatureSkeleton_Helper(MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	MeanCurvatureSkeleton_Helper(MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position,
+								 Scalar surface_resampling_ratio)
 		: m_(m), vertex_position_(vertex_position)
 	{
-		modeling::pliant_remeshing(m_, vertex_position_.get(), 0.9, false);
+		modeling::pliant_remeshing(m_, vertex_position_.get(), surface_resampling_ratio, false);
 
 		vertex_normal_ = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
@@ -167,7 +168,7 @@ struct MeanCurvatureSkeleton_Helper
 template <typename MESH>
 void mean_curvature_skeleton(MESH& m,
 							 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position,
-							 Scalar wL, Scalar wH, Scalar wM)
+							 Scalar wL, Scalar wH, Scalar wM, Scalar surface_resampling_ratio = 0.9)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
@@ -179,7 +180,7 @@ void mean_curvature_skeleton(MESH& m,
 	// static map to store helpers associated to meshes
 	// allows to store context without polluting outer context and function api
 	static std::unordered_map<MESH*, MeanCurvatureSkeleton_Helper<MESH>> helpers_;
-	auto [it, inserted] = helpers_.try_emplace(&m, m, vertex_position);
+	auto [it, inserted] = helpers_.try_emplace(&m, m, vertex_position, surface_resampling_ratio);
 	MeanCurvatureSkeleton_Helper<MESH>& helper = it->second;
 
 	for (uint32 i = 0; i < 1; ++i)
@@ -261,7 +262,6 @@ void mean_curvature_skeleton(MESH& m,
 			return true;
 		});
 
-		uint32 nb_flip_edges = 0;
 		bool has_flat_edge = false;
 		do
 		{
@@ -278,10 +278,7 @@ void mean_curvature_skeleton(MESH& m,
 					if (edge_can_flip(m, e))
 					{
 						if (flip_edge(m, e))
-						{
 							has_flat_edge = true;
-							++nb_flip_edges;
-						}
 					}
 				}
 				return true;
@@ -344,7 +341,6 @@ void mean_curvature_skeleton(MESH& m,
 		// 	});
 		// } while (has_long_edge);
 
-		uint32 nb_collapsed_edges = 0;
 		bool has_short_edge = false;
 		do
 		{
@@ -367,10 +363,6 @@ void mean_curvature_skeleton(MESH& m,
 						Vertex cv = collapse_edge(m, e);
 						value<Vec3>(m, helper.vertex_position_, cv) = newp;
 						value<Vec3>(m, helper.vertex_medial_point_, cv) = newmp;
-						// std::pair<uint32, Scalar> k_res;
-						// medial_points_kdt->find_nn(mp, &k_res);
-						// value<Vec3>(m, helper.vertex_medial_point_, cv) = medial_points_kdt->vertex(k_res.first);
-						++nb_collapsed_edges;
 					}
 				}
 				return true;

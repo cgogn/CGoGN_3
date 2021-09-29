@@ -31,8 +31,7 @@ namespace ui
 
 View::View(Inputs* inputs, const std::string& name)
 	: GLViewer(inputs), name_(name), ratio_x_offset_(0), ratio_y_offset_(0), ratio_width_(1), ratio_height_(1),
-	  param_full_screen_texture_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), event_stopped_(false),
-	  closing_(false)
+	  param_full_screen_texture_(nullptr), fbo_(nullptr), tex_(nullptr), event_stopped_(false), closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
 	tex_->allocate(1, 1, GL_RGBA8, GL_RGBA);
@@ -197,48 +196,28 @@ void View::link_module(ProviderModule* m)
 
 void View::update_scene_bb()
 {
-	if (!scene_bb_locked_)
+	geometry::Vec3 min, max;
+	for (uint32 i = 0; i < 3; ++i)
 	{
-		geometry::Vec3 min, max;
+		min[i] = std::numeric_limits<float64>::max();
+		max[i] = std::numeric_limits<float64>::lowest();
+	}
+	for (ProviderModule* m : linked_provider_modules_)
+	{
+		auto [pmin, pmax] = m->meshes_bb();
 		for (uint32 i = 0; i < 3; ++i)
 		{
-			min[i] = std::numeric_limits<float64>::max();
-			max[i] = std::numeric_limits<float64>::lowest();
+			if (pmin[i] < min[i])
+				min[i] = pmin[i];
+			if (pmax[i] > max[i])
+				max[i] = pmax[i];
 		}
-		for (ProviderModule* m : linked_provider_modules_)
-		{
-			auto [pmin, pmax] = m->meshes_bb();
-			for (uint32 i = 0; i < 3; ++i)
-			{
-				if (pmin[i] < min[i])
-					min[i] = pmin[i];
-				if (pmax[i] > max[i])
-					max[i] = pmax[i];
-			}
-		}
-		geometry::Scalar radius = (max - min).norm() / 2.0;
-		geometry::Vec3 center = (max + min) / 2.0;
-		set_scene_radius(radius);
-		set_scene_center(center);
-		show_entire_scene();
-		request_update();
 	}
-}
-
-void View::lock_scene_bb()
-{
-	scene_bb_locked_ = true;
-}
-
-void View::unlock_scene_bb()
-{
-	scene_bb_locked_ = false;
-	update_scene_bb();
-}
-
-bool View::scene_bb_locked() const
-{
-	return scene_bb_locked_;
+	geometry::Scalar radius = (max - min).norm() / 2.0;
+	geometry::Vec3 center = (max + min) / 2.0;
+	set_scene_radius(radius);
+	set_scene_center(center);
+	request_update();
 }
 
 bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const

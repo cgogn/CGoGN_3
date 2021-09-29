@@ -38,13 +38,9 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
 
-using Graph = cgogn::IncidenceGraph;
+using Graph = cgogn::Graph;
+using NonManifold = cgogn::IncidenceGraph;
 using Surface = cgogn::CMap2;
-
-template <typename T>
-using GraphAttribute = typename cgogn::mesh_traits<Graph>::Attribute<T>;
-template <typename T>
-using SurfaceAttribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -65,7 +61,8 @@ int main(int argc, char** argv)
 	app.set_window_title("Skeleton extractor");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Graph> mpig(app);
+	cgogn::ui::MeshProvider<Graph> mpg(app);
+	cgogn::ui::MeshProvider<NonManifold> mpnm(app);
 	cgogn::ui::MeshProvider<Surface> mps(app);
 
 	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
@@ -73,20 +70,21 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceFiltering<Surface> sf(app);
 
 	cgogn::ui::GraphRender<Graph> gr(app);
+	cgogn::ui::SurfaceRender<NonManifold> srnm(app);
 	cgogn::ui::SurfaceRender<Surface> srs(app);
-	cgogn::ui::SurfaceRender<Graph> srg(app);
 
-	cgogn::ui::SkeletonExtractor<Graph, Surface> se(app);
+	cgogn::ui::SkeletonExtractor<Surface, NonManifold, Graph> se(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v = app.current_view();
 
-	v->link_module(&mpig);
+	v->link_module(&mpg);
+	v->link_module(&mpnm);
 	v->link_module(&mps);
 	v->link_module(&gr);
+	v->link_module(&srnm);
 	v->link_module(&srs);
-	v->link_module(&srg);
 
 	// load surface
 	Surface* s = mps.load_surface_from_file(surface_filename);

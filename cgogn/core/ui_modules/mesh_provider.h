@@ -261,6 +261,8 @@ public:
 		{
 			if (filetype.compare("off") == 0)
 				cgogn::io::export_OFF(m, vertex_position, filename + ".off");
+			else if (filetype.compare("ig") == 0)
+				cgogn::io::export_IG(m, vertex_position, filename + ".ig");
 		}
 	}
 
@@ -379,7 +381,10 @@ public:
 		md.update_bb();
 		update_meshes_bb();
 		for (View* v : linked_views_)
+		{
 			v->update_scene_bb();
+			v->show_entire_scene();
+		}
 	}
 
 	/////////////

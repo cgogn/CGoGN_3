@@ -510,10 +510,6 @@ protected:
 					});
 					drag_z_ /= p.selected_handle_vertices_set_->size();
 					previous_drag_pos_ = view->unproject(view->previous_mouse_x(), view->previous_mouse_y(), drag_z_);
-
-					for (View* v : linked_views_)
-						v->lock_scene_bb();
-
 					dragging_ = true;
 				}
 			}
@@ -526,12 +522,7 @@ protected:
 		if (key_code == GLFW_KEY_D)
 		{
 			if (dragging_)
-			{
 				dragging_ = false;
-
-				for (View* v : linked_views_)
-					v->unlock_scene_bb();
-			}
 		}
 	}
 
