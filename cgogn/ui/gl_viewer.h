@@ -92,24 +92,14 @@ public:
 	inline void set_scene_center(const rendering::GLVec3d& center)
 	{
 		scene_center_ = center;
-		camera_.set_pivot_point(scene_center_);
+		if (!camera_.pivot_point_initialized())
+			camera_.set_pivot_point(scene_center_);
 	}
 	inline void set_scene_center(const rendering::GLVec3& center)
 	{
 		scene_center_ = center.cast<float64>();
-		camera_.set_pivot_point(scene_center_);
-	}
-	inline void set_scene_pivot(const rendering::GLVec3d& pivot)
-	{
-		camera_.change_pivot_point(pivot);
-	}
-	inline void set_scene_pivot(const rendering::GLVec3& pivot)
-	{
-		camera_.change_pivot_point(pivot.cast<float64>());
-	}
-	inline void center_scene()
-	{
-		camera_.center_scene();
+		if (!camera_.pivot_point_initialized())
+			camera_.set_pivot_point(scene_center_);
 	}
 	inline void show_entire_scene()
 	{
