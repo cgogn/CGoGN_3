@@ -130,6 +130,7 @@ private:
 	rendering::GLVec4 background_color_;
 
 	float32 interface_scaling_;
+	float32 mouse_scroll_speed_;
 
 	float64 time_last_50_frames_;
 	static float64 fps_;

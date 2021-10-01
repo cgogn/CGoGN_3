@@ -49,7 +49,7 @@ public:
 	using ShaderType = ShaderBoldLine;
 
 	ShaderParamBoldLine(ShaderType* sh)
-		: ShaderParam(sh), color_(1, 1, 0, 1), width_(2.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0),
+		: ShaderParam(sh), color_(1, 1, 0, 1), width_(1.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0),
 		  plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -88,7 +88,7 @@ public:
 	using ShaderType = ShaderBoldLineColor;
 
 	ShaderParamBoldLineColor(ShaderType* sh)
-		: ShaderParam(sh), width_(2.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+		: ShaderParam(sh), width_(1.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
