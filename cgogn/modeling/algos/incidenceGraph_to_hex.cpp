@@ -78,6 +78,9 @@ std::tuple<IGAttributes, M2Attributes, M3Attributes> incidenceGraph_to_hex(Incid
 	bool okay = get_incidenceGraph_data(ig, igData);
 	std::cout << uint32(igData.intersections.size()) << " intersections" << std::endl;
 	std::cout << uint32(igData.branches.size()) << " branches" << std::endl;
+	std::cout << uint32(igData.efjunctures.size()) << " efjunctures" << std::endl;
+	std::cout << uint32(igData.ffjunctures.size()) << " ffjunctures" << std::endl;
+	std::cout << uint32(igData.leaflets.size()) << " leaflets" << std::endl;
 
 	if (!okay)
 		std::cout << "error incidenceGraph_to_hex: get_incidenceGraph_data" << std::endl;
@@ -262,6 +265,7 @@ bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& ig_da
 	return success;
 }
 
+/// Get a face-cell from each leaflet incident to the vertex
 std::vector<IncidenceGraph::Face> incident_leaflets(const IncidenceGraph& ig, IncidenceGraph::Vertex v0)
 {
 	std::vector<IncidenceGraph::Face> leaflets;
@@ -285,6 +289,7 @@ std::vector<IncidenceGraph::Face> incident_leaflets(const IncidenceGraph& ig, In
 	return leaflets;
 }
 
+// Get all face-cells from a input leaflet f0
 std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0)
 {
 	std::vector<IncidenceGraph::Face> leaflet = {f0};
@@ -308,6 +313,7 @@ std::vector<IncidenceGraph::Face> incident_leaflet(const IncidenceGraph& ig, Inc
 	return leaflet;
 }
 
+// Get all edges belonging to the same leaflet as e0 that are also incident to v0
 std::vector<IncidenceGraph::Edge> incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Edge e0)
 {
 	std::vector<IncidenceGraph::Edge> edges = {e0};
@@ -332,7 +338,7 @@ std::vector<IncidenceGraph::Edge> incident_leaflet_edges(const IncidenceGraph& i
 	return edges;
 }
 
-
+/// Check if a face contains given vertex
 bool contains_vertex(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0)
 {
 	bool found = false;
