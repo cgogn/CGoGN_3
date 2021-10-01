@@ -113,8 +113,8 @@ float64 App::fps_ = 0.0;
 
 App::App()
 	: window_(nullptr), context_(nullptr), window_name_("CGoGN"), window_width_(512), window_height_(512),
-	  framebuffer_width_(0), framebuffer_height_(0), background_color_(0.25f, 0.25f, 0.25f, 1.0f),
-	  interface_scaling_(1.0), show_imgui_(true), show_demo_(false), current_view_(nullptr)
+	  framebuffer_width_(0), framebuffer_height_(0), background_color_(0.35f, 0.35f, 0.35f, 1.0f),
+	  interface_scaling_(1.0f), mouse_scroll_speed_(5.0f), show_imgui_(true), show_demo_(false), current_view_(nullptr)
 {
 #ifdef WIN32
 	{
@@ -285,14 +285,14 @@ App::App()
 	glfwSetScrollCallback(window_, [](GLFWwindow* wi, double dx, double dy) {
 		App* that = static_cast<App*>(glfwGetWindowUserPointer(wi));
 
-		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsAnyWindowFocused())
+		if (ImGui::GetIO().WantCaptureMouse || ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
 		{
 			that->inputs_.mouse_buttons_ = 0;
 			return;
 		}
 
 		if (that->current_view_)
-			that->current_view_->mouse_wheel_event(dx, 100 * dy);
+			that->current_view_->mouse_wheel_event(dx, that->mouse_scroll_speed_ * dy);
 	});
 
 	glfwSetCursorEnterCallback(window_, [](GLFWwindow* wi, int enter) {
@@ -555,6 +555,9 @@ int App::launch()
 							for (const auto& v : views_)
 								v->request_update();
 						}
+						ImGui::InputFloat("Scroll speed", &mouse_scroll_speed_, 0.1f, 1.0f);
+						if (ImGui::InputFloat("Interface scale", &interface_scaling_, 0.1f, 1.0f))
+							ImGui::GetIO().FontGlobalScale = interface_scaling_;
 						ImGui::EndMenu();
 					}
 					if (ImGui::BeginMenu("Views"))
@@ -567,7 +570,9 @@ int App::launch()
 									v->save_camera();
 								if (ImGui::MenuItem("Restore camera"))
 									v->restore_camera();
-								ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
+								if (ImGui::Button("Show entire scene"))
+									v->show_entire_scene();
+								// ImGui::Checkbox("Lock view BB", &v->scene_bb_locked_);
 								ImGui::EndMenu();
 							}
 						}

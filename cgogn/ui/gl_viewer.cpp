@@ -92,7 +92,7 @@ void GLViewer::mouse_dbl_click_event(int32 /*buttons*/, int32 x, int32 y)
 		rendering::GLVec3d P;
 		if (pixel_scene_position(x, y, P))
 		{
-			set_scene_pivot(P);
+			camera_.set_pivot_point(P);
 			need_redraw_ = true;
 		}
 	}

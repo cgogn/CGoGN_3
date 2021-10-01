@@ -36,6 +36,12 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shader_program.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/graph_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render_vector.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/topo_render.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_vertex.h"
@@ -74,8 +80,6 @@ target_sources(${PROJECT_NAME}
 		
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line_color.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line_color.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.cpp"

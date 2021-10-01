@@ -17,6 +17,7 @@ target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/types/grid.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/types/quadric.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
@@ -41,6 +42,11 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/picking.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_differential_properties.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_filtering.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_selection.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_selection.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

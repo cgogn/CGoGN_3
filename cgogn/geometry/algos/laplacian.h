@@ -29,7 +29,9 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 
-#include <cgogn/geometry/algos/angle.h>
+// #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/area.h>
+#include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <Eigen/Sparse>
@@ -40,40 +42,81 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename MESH>
-void compute_laplacian(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-					   typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_laplacian)
+///////////
+// CMap2 //
+///////////
+
+Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<Vec3>* vertex_position)
 {
-	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+	Scalar result = 0.0;
+
+	Dart d1 = e.dart;
+	Dart d2 = phi2(m, d1);
+
+	// Scalar el = length(m, e, vertex_position);
+
+	const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(d1));
+	const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(d2));
+
+	const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, d1)));
+	Vec3 vecR = p1 - p3;
+	Vec3 vecL = p2 - p3;
+	Scalar e1value = vecR.dot(vecL) / vecR.cross(vecL).norm();
+
+	// Scalar f1area = area(m, CMap2::Face(d1), vertex_position);
+	// Scalar e1nl = length(m, CMap2::Edge(phi1(m, d1)), vertex_position);
+	// Scalar e1pl = length(m, CMap2::Edge(phi_1(m, d1)), vertex_position);
+	// Scalar e1value = (-el * el + e1nl * e1nl + e1pl * e1pl) / (4.0 * f1area);
+
+	result += e1value / 2.0;
+
+	if (!is_boundary(m, d2))
+	{
+		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, d2)));
+		Vec3 vecR = p2 - p4;
+		Vec3 vecL = p1 - p4;
+		Scalar e2value = vecR.dot(vecL) / vecR.cross(vecL).norm();
+
+		// Scalar f2area = area(m, CMap2::Face(d2), vertex_position);
+		// Scalar e2nl = length(m, CMap2::Edge(phi1(m, d2)), vertex_position);
+		// Scalar e2pl = length(m, CMap2::Edge(phi_1(m, d2)), vertex_position);
+		// Scalar e2value = (-el * el + e2nl * e2nl + e2pl * e2pl) / (4.0 * f2area);
+
+		result += e2value / 2.0;
+	}
+
+	return result;
+}
+
+/////////////
+// GENERIC //
+/////////////
+
+template <typename MESH>
+void compute_edge_cotan_weight(const MESH& m,
+							   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+							   typename mesh_traits<MESH>::template Attribute<Scalar>* edge_weight)
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	parallel_foreach_cell(m, [&](Edge e) -> bool {
+		value<Scalar>(m, edge_weight, e) = edge_cotan_weight(m, e, vertex_position);
+		return true;
+	});
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_weight)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	auto vertex_index = get_attribute<uint32, Vertex>(m, "vertex_index");
-	if (!vertex_index)
-		vertex_index = add_attribute<uint32, Vertex>(m, "vertex_index");
-
-	auto edge_weight = get_attribute<Scalar, Edge>(m, "edge_weight");
-	if (!edge_weight)
-		edge_weight = add_attribute<Scalar, Edge>(m, "edge_weight");
-
-	// compute edges weight
-	parallel_foreach_cell(m, [&](Edge e) -> bool {
-		std::vector<Scalar> angles = geometry::opposite_angles(m, e, vertex_position);
-		Scalar& weight = value<Scalar>(m, edge_weight, e);
-		for (Scalar a : angles)
-			weight += std::tan(M_PI_2 - a);
-		weight /= uint32(angles.size());
-		return true;
-	});
-
-	// compute vertices laplacian
-	uint32 nb_vertices = 0;
-	foreach_cell(m, [&](Vertex v) -> bool {
-		value<uint32>(m, vertex_index, v) = nb_vertices++;
-		return true;
-	});
-
+	// setup matrix
+	uint32 nb_vertices = nb_cells<Vertex>(m);
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
 	std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
 	LAPLcoeffs.reserve(nb_vertices * 10);
@@ -90,27 +133,25 @@ void compute_laplacian(MESH& m, const typename mesh_traits<MESH>::template Attri
 	});
 	LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
 
-	Eigen::MatrixXd vpos(nb_vertices, 3);
-	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		const Vec3& pv = value<Vec3>(m, vertex_position, v);
-		uint32 vidx = value<uint32>(m, vertex_index, v);
-		vpos(vidx, 0) = pv[0];
-		vpos(vidx, 1) = pv[1];
-		vpos(vidx, 2) = pv[2];
-		return true;
-	});
+	return LAPL;
+}
 
-	Eigen::MatrixXd lapl(nb_vertices, 3);
-	lapl = LAPL * vpos;
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
-	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		Vec3& dcv = value<Vec3>(m, vertex_laplacian, v);
-		uint32 vidx = value<uint32>(m, vertex_index, v);
-		dcv[0] = lapl(vidx, 0);
-		dcv[1] = lapl(vidx, 1);
-		dcv[2] = lapl(vidx, 2);
-		return true;
-	});
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	auto edge_weight = add_attribute<Scalar, Edge>(m, "__edge_weight");
+	compute_edge_cotan_weight(m, vertex_position, edge_weight.get());
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+		cotan_laplacian_matrix(m, vertex_index, vertex_position, edge_weight.get());
+	remove_attribute<Edge>(m, edge_weight);
+	return LAPL;
 }
 
 } // namespace geometry

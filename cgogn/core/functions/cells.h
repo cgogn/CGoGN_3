@@ -54,9 +54,15 @@ bool is_indexed(const CMapBase& m)
 	return m.cells_indices_[orbit] != nullptr;
 }
 
-//////////////
+inline bool is_indexed(const CMapBase& m, Orbit orbit)
+{
+	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	return m.cells_indices_[orbit] != nullptr;
+}
+
+////////////////////
 // IncidenceGraph //
-//////////////
+////////////////////
 
 template <typename CELL>
 bool is_indexed(const IncidenceGraph& m)
@@ -113,7 +119,6 @@ uint32 index_of(const IncidenceGraph& m, CELL c)
 {
 	return c.index_;
 }
-
 
 //////////
 // CPH3 //
@@ -180,20 +185,17 @@ uint32 new_index(const CMapBase& m)
 	return m.attribute_containers_[CELL::ORBIT].new_index();
 }
 
-//////////////
+////////////////////
 // IncidenceGraph //
-//////////////
+////////////////////
 
 template <typename CELL>
 uint32 new_index(const IncidenceGraph& ig)
 {
 	uint32 id = ig.attribute_containers_[CELL::CELL_INDEX].new_index();
-    (*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
+	// (*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
 	return id;
 }
-
-
-
 
 /*****************************************************************************/
 
@@ -207,11 +209,23 @@ uint32 new_index(const IncidenceGraph& ig)
 //////////////
 
 template <typename CELL>
-inline void init_cells_indexing(CMapBase& m)
+void init_cells_indexing(CMapBase& m)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	if (!is_indexed<CELL>(m))
+	{
+		std::ostringstream oss;
+		oss << "__index_" << orbit_name(orbit);
+		m.cells_indices_[orbit] = m.darts_.add_attribute<uint32>(oss.str());
+		m.cells_indices_[orbit]->fill(INVALID_INDEX);
+	}
+}
+
+inline void init_cells_indexing(CMapBase& m, Orbit orbit)
+{
+	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	if (!is_indexed(m, orbit))
 	{
 		std::ostringstream oss;
 		oss << "__index_" << orbit_name(orbit);

@@ -27,6 +27,7 @@
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 
+#include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -47,21 +48,7 @@ public:
 	Grid(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 		: mesh_(m), vertex_position_(vertex_position), nb_registered_faces_(0)
 	{
-		for (uint32 i = 0; i < 3; ++i)
-		{
-			bb_min_[i] = std::numeric_limits<float64>::max();
-			bb_max_[i] = std::numeric_limits<float64>::lowest();
-		}
-		for (const Vec3& p : *vertex_position_)
-		{
-			for (uint32 i = 0; i < 3; ++i)
-			{
-				if (p[i] < bb_min_[i])
-					bb_min_[i] = p[i];
-				if (p[i] > bb_max_[i])
-					bb_max_[i] = p[i];
-			}
-		}
+		std::tie(bb_min_, bb_max_) = bounding_box(*vertex_position_);
 		Vec3 center = (bb_min_ + bb_max_) / Scalar(2);
 		bb_min_ = ((bb_min_ - center) * 1.1) + center;
 		bb_max_ = ((bb_max_ - center) * 1.1) + center;

@@ -44,6 +44,8 @@ namespace cgogn
 template <typename T>
 class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
+	using AttributeContainer = AttributeContainerT<ChunkArray>;
+
 public:
 	static const uint32 CHUNK_SIZE = 1024u;
 
@@ -61,7 +63,7 @@ private:
 	}
 
 public:
-	ChunkArray(AttributeContainerGen* container, const std::string& name) : AttributeGenT(container, name)
+	ChunkArray(AttributeContainer* container, const std::string& name) : AttributeGenT(container, name)
 	{
 		chunks_.reserve(512u);
 		capacity_ = 0u;
@@ -93,15 +95,47 @@ public:
 
 	inline void swap(ChunkArray<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only swap from same container
 			chunks_.swap(ca->chunks_);
 	}
 
 	inline void copy(ChunkArray<T>* ca)
 	{
-		if (ca->container_ == this->container_)
+		if (ca->container_ == this->container_) // only copy from same container
 			for (uint32 i = 0; i < uint32(chunks_.size()); ++i)
 				std::copy(ca->chunks_[i], ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
+	}
+
+	inline void clear() override
+	{
+		for (auto chunk : chunks_)
+			delete[] chunk;
+		chunks_.clear();
+		capacity_ = 0;
+	}
+
+	inline std::shared_ptr<AttributeGenT> create_in(AttributeContainerGen& dst) const override
+	{
+		AttributeContainer* dst_container = dynamic_cast<AttributeContainer*>(&dst);
+		if (dst_container)
+		{
+			auto attribute = dst_container->get_attribute<T>(name_);
+			if (!attribute)
+				attribute = dst_container->add_attribute<T>(name_);
+			return attribute;
+		}
+		return nullptr;
+	}
+
+	inline void copy(const AttributeGenT& src) override
+	{
+		const ChunkArray<T>* src_ca = dynamic_cast<const ChunkArray<T>*>(&src);
+		if (src_ca)
+		{
+			cgogn_message_assert(src_ca->capacity_ == capacity_, "Copy from src with different capacity");
+			for (uint32 i = 0; i < uint32(src_ca->chunks_.size()); ++i)
+				std::copy(src_ca->chunks_[i], src_ca->chunks_[i] + CHUNK_SIZE, chunks_[i]);
+		}
 	}
 
 	inline uint32 nb_chunks() const
