@@ -150,11 +150,12 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
-	void remesh(MESH& m, Attribute<Vec3>* vertex_position, Scalar edge_length_ratio, bool preserve_features)
+	void remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position, Scalar edge_length_ratio,
+				bool preserve_features)
 	{
 		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features);
 		mesh_provider_->emit_connectivity_changed(m);
-		mesh_provider_->emit_attribute_changed(m, vertex_position);
+		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
 	}
 
 protected:
@@ -210,8 +211,7 @@ protected:
 				static bool preserve_features = false;
 				ImGui::Checkbox("Preserve features", &preserve_features);
 				if (ImGui::Button("Remesh"))
-					remesh(*selected_mesh_, selected_vertex_position_.get(), remesh_edge_length_ratio,
-						   preserve_features);
+					remesh(*selected_mesh_, selected_vertex_position_, remesh_edge_length_ratio, preserve_features);
 			}
 		}
 	}

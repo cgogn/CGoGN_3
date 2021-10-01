@@ -125,7 +125,7 @@ struct MeanCurvatureSkeleton_Helper
 								 Scalar surface_resampling_ratio)
 		: m_(m), vertex_position_(vertex_position)
 	{
-		modeling::pliant_remeshing(m_, vertex_position_.get(), surface_resampling_ratio, false);
+		modeling::pliant_remeshing(m_, vertex_position_, surface_resampling_ratio, false, true);
 
 		vertex_normal_ = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
