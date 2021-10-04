@@ -39,6 +39,7 @@
 #include <cgogn/io/graph/cgr.h>
 #include <cgogn/io/graph/skel.h>
 #include <cgogn/io/incidence_graph/ig.h>
+#include <cgogn/io/surface/obj.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
@@ -228,6 +229,8 @@ public:
 			bool imported = false;
 			if (ext.compare("off") == 0)
 				imported = cgogn::io::import_OFF(*m, filename);
+			else if (ext.compare("obj") == 0)
+				imported = cgogn::io::import_OBJ(*m, filename);
 			else if (ext.compare("ig") == 0)
 			{
 				if constexpr (std::is_same_v<MESH, IncidenceGraph>)
@@ -625,8 +628,8 @@ private:
 	std::vector<std::string> supported_graph_formats_ = {"cg", "cgr", "skel"};
 	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.cgr *.skel"};
 
-	std::vector<std::string> supported_surface_formats_ = {"off", "ig"};
-	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.ig"};
+	std::vector<std::string> supported_surface_formats_ = {"off", "obj", "ig"};
+	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.obj *.ig"};
 
 	std::vector<std::string> supported_volume_formats_ = {"mesh"};
 	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"};

@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_OFF_H_
-#define CGOGN_IO_SURFACE_OFF_H_
+#ifndef CGOGN_IO_SURFACE_OBJ_H_
+#define CGOGN_IO_SURFACE_OBJ_H_
 
 #include <cgogn/io/surface/surface_import.h>
 #include <cgogn/io/utils.h>
@@ -44,7 +44,7 @@ namespace io
 {
 
 template <typename MESH>
-bool import_OFF(MESH& m, const std::string& filename)
+bool import_OBJ(MESH& m, const std::string& filename)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
@@ -56,56 +56,70 @@ bool import_OFF(MESH& m, const std::string& filename)
 
 	std::ifstream fp(filename.c_str(), std::ios::in);
 
-	std::string line;
+	std::string line, tag;
 	line.reserve(512u);
 
-	// read OFF header
-	getline_safe(fp, line);
-	if (line.rfind("OFF") == std::string::npos)
+	// read vertices position
+	do
 	{
-		std::cerr << "File \"" << filename << "\" is not a valid off file." << std::endl;
-		return false;
-	}
+		fp >> tag;
+		if (tag == std::string("v"))
+		{
+			surface_data.nb_vertices_++;
+			float64 x = read_double(fp, line);
+			float64 y = read_double(fp, line);
+			float64 z = read_double(fp, line);
+			surface_data.vertex_position_.push_back({x, y, z});
+		}
+		getline_safe(fp, line); // flush line
+	} while (!fp.eof());
 
-	// read number of vertices, edges, faces
-	const uint32 nb_vertices = read_uint(fp, line);
-	const uint32 nb_faces = read_uint(fp, line);
-	/*const uint32 nb_edges_ =*/read_uint(fp, line);
-
-	if (nb_vertices == 0u)
+	if (surface_data.nb_vertices_ == 0u)
 	{
 		std::cerr << "File \"" << filename << " has no vertices." << std::endl;
 		return false;
 	}
-	if (nb_faces == 0u)
+
+	// rewind
+	fp.clear();
+	fp.seekg(0, std::ios::beg);
+
+	// read faces (vertex indices)
+	uint32 nb_faces = 0;
+	do
+	{
+		fp >> tag;
+		getline_safe(fp, line);
+		if (tag == std::string("f"))
+		{
+			surface_data.nb_faces_++;
+			std::vector<uint32> indices;
+			std::istringstream iss(line);
+			std::string str;
+			while (!iss.eof())
+			{
+				iss >> str;
+				uint32 ind = 0;
+				while ((ind < str.length()) && (str[ind] != '/'))
+					ind++;
+				if (ind > 0)
+				{
+					uint32 index;
+					std::stringstream iss(str.substr(0, ind));
+					iss >> index;
+					indices.push_back(index - 1);
+				}
+			}
+			surface_data.faces_nb_vertices_.push_back(indices.size());
+			surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
+													  indices.end());
+		}
+	} while (!fp.eof());
+
+	if (surface_data.nb_faces_ == 0u)
 	{
 		std::cerr << "File \"" << filename << " has no faces." << std::endl;
 		return false;
-	}
-
-	surface_data.reserve(nb_vertices, nb_faces);
-
-	// read vertices position
-	for (uint32 i = 0u; i < nb_vertices; ++i)
-	{
-		float64 x = read_double(fp, line);
-		float64 y = read_double(fp, line);
-		float64 z = read_double(fp, line);
-		surface_data.vertex_position_.push_back({x, y, z});
-	}
-
-	// read faces (vertex indices)
-	for (uint32 i = 0u; i < nb_faces; ++i)
-	{
-		uint32 n = read_uint(fp, line);
-
-		std::vector<uint32> indices(n);
-		for (uint32 j = 0u; j < n; ++j)
-			indices[j] = read_uint(fp, line);
-
-		surface_data.faces_nb_vertices_.push_back(n);
-		surface_data.faces_vertex_indices_.insert(surface_data.faces_vertex_indices_.end(), indices.begin(),
-												  indices.end());
 	}
 
 	import_surface_data(m, surface_data);
@@ -114,49 +128,16 @@ bool import_OFF(MESH& m, const std::string& filename)
 }
 
 template <typename MESH>
-void export_OFF(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
+void export_OBJ(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
 				const std::string& filename)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
-	using Vertex = typename MESH::Vertex;
-	using Face = typename MESH::Face;
-
-	auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
-
-	uint32 nb_vertices = nb_cells<Vertex>(m);
-	uint32 nb_faces = nb_cells<Face>(m);
-
-	std::ofstream out_file;
-	out_file.open(filename);
-	out_file << "OFF\n";
-	out_file << nb_vertices << " " << nb_faces << " " << 0 << "\n";
-
-	uint32 id = 0;
-	foreach_cell(m, [&](Vertex v) -> bool {
-		const geometry::Vec3& p = value<geometry::Vec3>(m, vertex_position, v);
-		value<uint32>(m, vertex_id, v) = id++;
-		out_file << p[0] << " " << p[1] << " " << p[2] << "\n";
-		return true;
-	});
-
-	foreach_cell(m, [&](Face f) -> bool {
-		out_file << codegree(m, f);
-		foreach_incident_vertex(m, f, [&](Vertex v) -> bool {
-			out_file << " " << value<uint32>(m, vertex_id, v);
-			return true;
-		});
-		out_file << "\n";
-		return true;
-	});
-
-	remove_attribute<Vertex>(m, vertex_id);
-
-	out_file.close();
+	// TODO
 }
 
 } // namespace io
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_OFF_H_
+#endif // CGOGN_IO_SURFACE_OBJ_H_

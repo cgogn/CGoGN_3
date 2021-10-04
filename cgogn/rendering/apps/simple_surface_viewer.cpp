@@ -30,7 +30,7 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 // #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/surface_render_vector.h>
+// #include <cgogn/rendering/ui_modules/surface_render_vector.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	// cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	// cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
+	// v1->link_module(&srv);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
@@ -99,8 +99,8 @@ int main(int argc, char** argv)
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
-	srv.set_vertex_position(*v1, *m, vertex_position);
-	srv.set_vertex_vector(*v1, *m, vertex_normal);
+	// srv.set_vertex_position(*v1, *m, vertex_position);
+	// srv.set_vertex_vector(*v1, *m, vertex_normal);
 
 	return app.launch();
 }

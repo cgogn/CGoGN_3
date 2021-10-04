@@ -95,10 +95,14 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	Surface* clone = mps.clone_mesh(*s);
+
 	srs.set_render_vertices(*v, *s, false);
+	srs.set_render_vertices(*v, *clone, false);
+	srs.set_render_faces(*v, *clone, false);
 
 	auto surface_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
-	auto surface_vertex_normal = cgogn::add_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "normal");
+	auto surface_vertex_normal = cgogn::get_or_add_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "normal");
 
 	sdp.compute_normal(*s, surface_vertex_position.get(), surface_vertex_normal.get());
 
