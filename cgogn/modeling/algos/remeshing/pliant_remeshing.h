@@ -34,6 +34,7 @@
 
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/length.h>
+#include <cgogn/geometry/algos/medial_axis.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
@@ -101,6 +102,8 @@ struct PliantRemeshing_Helper
 			delete surface_bvh_;
 		if (feature_edge_)
 			remove_attribute<Edge>(m_, feature_edge_);
+		if (vertex_lfs_)
+			remove_attribute<Vertex>(m_, vertex_lfs_);
 	}
 
 	void compute_bvh()
@@ -127,6 +130,41 @@ struct PliantRemeshing_Helper
 		});
 		surface_bvh_ = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, bvh_vertex_position);
 		remove_attribute<Vertex>(m_, bvh_vertex_index);
+	}
+
+	void compute_lfs()
+	{
+		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
+		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal.get());
+
+		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
+		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
+
+		vertex_lfs_ = add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
+		lfs_min_ = std::numeric_limits<float64>::max();
+		lfs_max_ = std::numeric_limits<float64>::lowest();
+		lfs_mean_ = 0.0;
+		uint32 nbv = 0;
+		foreach_cell(m_, [&](Vertex v) -> bool {
+			++nbv;
+			uint32 vidx = index_of(m_, v);
+			Scalar lfs = ((*vertex_medial_point)[vidx] - (*vertex_position_)[vidx]).norm();
+			if (lfs < lfs_min_)
+				lfs_min_ = lfs;
+			if (lfs > lfs_max_)
+				lfs_max_ = lfs;
+			lfs_mean_ += lfs;
+			(*vertex_lfs_)[vidx] = lfs;
+			return true;
+		});
+		lfs_mean_ /= Scalar(nbv);
+
+		remove_attribute<Vertex>(m_, vertex_normal);
+		remove_attribute<Vertex>(m_, vertex_medial_point);
+
+		std::cout << "lfs min: " << lfs_min_ << std::endl;
+		std::cout << "lfs max: " << lfs_max_ << std::endl;
+		std::cout << "lfs mean: " << lfs_mean_ << std::endl;
 	}
 
 	void detect_features()
@@ -171,12 +209,15 @@ struct PliantRemeshing_Helper
 	std::shared_ptr<Attribute<bool>> feature_edge_;
 	std::shared_ptr<Attribute<bool>> feature_vertex_;
 	std::shared_ptr<Attribute<bool>> feature_corner_;
+	std::shared_ptr<Attribute<Scalar>> vertex_lfs_;
+	Scalar lfs_min_, lfs_max_, lfs_mean_;
 	acc::BVHTree<uint32, Vec3>* surface_bvh_;
 };
 
 template <typename MESH>
 void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position,
-					  Scalar edge_length_target_ratio = 1.0, bool preserve_features = false, bool recompute_bvh = false)
+					  Scalar edge_length_target_ratio = 1.0, bool preserve_features = false, bool lfs_adaptive = false,
+					  bool recompute_bvh = false)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -191,6 +232,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		helper.compute_bvh();
 	if (preserve_features)
 		helper.detect_features();
+	if (lfs_adaptive)
+		helper.compute_lfs();
 
 	Scalar edge_length_target = geometry::mean_edge_length(m, vertex_position.get()) * edge_length_target_ratio;
 
@@ -199,7 +242,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 
 	CellCache<MESH> cache(m);
 
-	for (uint32 i = 0; i < 5; ++i)
+	for (uint32 i = 0; i < 3; ++i)
 	{
 		// cut long edges (and adjacent faces)
 		bool has_long_edge = false;
@@ -208,10 +251,22 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			cache.template build<Edge>();
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
-				if (geometry::squared_length(m, e, vertex_position.get()) > squared_max_edge_length)
+				std::vector<Vertex> iv = incident_vertices(m, e);
+				Scalar lfs;
+				Scalar coeff = 1.0;
+				if (lfs_adaptive)
+				{
+					lfs = (value<Scalar>(m, helper.vertex_lfs_, iv[0]) + value<Scalar>(m, helper.vertex_lfs_, iv[1])) *
+						  0.5;
+					if (lfs < helper.lfs_mean_)
+						coeff = 0.25 + ((lfs - helper.lfs_min_) / (helper.lfs_mean_ - helper.lfs_min_) * 0.75);
+					else
+						coeff = 1 + ((lfs - helper.lfs_mean_) / (helper.lfs_max_ - helper.lfs_mean_) * 3.0);
+				}
+				Scalar threshold = squared_max_edge_length * coeff;
+				if (geometry::squared_length(m, e, vertex_position.get()) > threshold)
 				{
 					has_long_edge = true;
-					std::vector<Vertex> iv = incident_vertices(m, e);
 					Vertex v = cut_edge(m, e);
 					if (preserve_features)
 					{
@@ -225,6 +280,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 					}
 					value<Vec3>(m, vertex_position, v) =
 						(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
+					if (lfs_adaptive)
+						value<Scalar>(m, helper.vertex_lfs_, v) = lfs;
 					if (preserve_features)
 					{
 						value<bool>(m, helper.feature_corner_, v) = false;
@@ -245,14 +302,26 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			foreach_cell(m, [&](Edge e) -> bool {
 				if (preserve_features && value<bool>(m, helper.feature_edge_, e))
 					return true;
-				if (geometry::squared_length(m, e, vertex_position.get()) < squared_min_edge_length)
+				std::vector<Vertex> iv = incident_vertices(m, e);
+				Scalar lfs;
+				Scalar coeff = 1.0;
+				if (lfs_adaptive)
 				{
-					std::vector<Vertex> iv = incident_vertices(m, e);
+					lfs = (value<Scalar>(m, helper.vertex_lfs_, iv[0]) + value<Scalar>(m, helper.vertex_lfs_, iv[1])) *
+						  0.5;
+					if (lfs < helper.lfs_mean_)
+						coeff = 0.25 + ((lfs - helper.lfs_min_) / (helper.lfs_mean_ - helper.lfs_min_) * 0.75);
+					else
+						coeff = 1 + ((lfs - helper.lfs_mean_) / (helper.lfs_max_ - helper.lfs_mean_) * 3.0);
+				}
+				Scalar threshold = squared_min_edge_length * coeff;
+				if (geometry::squared_length(m, e, vertex_position.get()) < threshold)
+				{
 					bool collapse = true;
 					const Vec3& p = value<Vec3>(m, vertex_position, iv[0]);
 					foreach_adjacent_vertex_through_edge(m, iv[1], [&](Vertex v) -> bool {
 						const Vec3& vec = p - value<Vec3>(m, vertex_position, v);
-						if (vec.squaredNorm() > squared_max_edge_length)
+						if (vec.squaredNorm() > threshold)
 							collapse = false;
 						return collapse;
 					});
@@ -292,8 +361,19 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		foreach_cell(m, [&](Edge e) -> bool {
 			if (preserve_features && value<bool>(m, helper.feature_edge_, e))
 				return true;
-			if (edge_should_flip(m, e) && edge_can_flip(m, e))
+
+			if (!edge_can_flip(m, e))
+				return true;
+
+			if (edge_should_flip(m, e))
 				flip_edge(m, e);
+
+			// Delaunay flips
+			std::vector<Vertex> iv = incident_vertices(m, e);
+			std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position.get());
+			if (op_angles[0] + op_angles[1] > M_PI)
+				flip_edge(m, e);
+
 			return true;
 		});
 

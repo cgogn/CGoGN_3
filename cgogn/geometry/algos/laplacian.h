@@ -53,8 +53,6 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 	Dart d1 = e.dart;
 	Dart d2 = phi2(m, d1);
 
-	// Scalar el = length(m, e, vertex_position);
-
 	const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(d1));
 	const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(d2));
 
@@ -62,11 +60,6 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 	Vec3 vecR = p1 - p3;
 	Vec3 vecL = p2 - p3;
 	Scalar e1value = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-	// Scalar f1area = area(m, CMap2::Face(d1), vertex_position);
-	// Scalar e1nl = length(m, CMap2::Edge(phi1(m, d1)), vertex_position);
-	// Scalar e1pl = length(m, CMap2::Edge(phi_1(m, d1)), vertex_position);
-	// Scalar e1value = (-el * el + e1nl * e1nl + e1pl * e1pl) / (4.0 * f1area);
 
 	result += e1value / 2.0;
 
@@ -77,15 +70,10 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 		Vec3 vecL = p1 - p4;
 		Scalar e2value = vecR.dot(vecL) / vecR.cross(vecL).norm();
 
-		// Scalar f2area = area(m, CMap2::Face(d2), vertex_position);
-		// Scalar e2nl = length(m, CMap2::Edge(phi1(m, d2)), vertex_position);
-		// Scalar e2pl = length(m, CMap2::Edge(phi_1(m, d2)), vertex_position);
-		// Scalar e2value = (-el * el + e2nl * e2nl + e2pl * e2pl) / (4.0 * f2area);
-
 		result += e2value / 2.0;
 	}
 
-	return result;
+	return std::clamp(result, 0.0, 1.0);
 }
 
 /////////////
@@ -151,6 +139,34 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
 		cotan_laplacian_matrix(m, vertex_index, vertex_position, edge_weight.get());
 	remove_attribute<Edge>(m, edge_weight);
+	return LAPL;
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> topo_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	uint32 nb_vertices = nb_cells<Vertex>(m);
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
+	std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
+	LAPLcoeffs.reserve(nb_vertices * 10);
+	foreach_cell(m, [&](Edge e) -> bool {
+		auto vertices = incident_vertices(m, e);
+		uint32 vidx1 = value<uint32>(m, vertex_index, vertices[0]);
+		uint32 vidx2 = value<uint32>(m, vertex_index, vertices[1]);
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+		return true;
+	});
+	LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+
 	return LAPL;
 }
 

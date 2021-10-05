@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_MEDIAL_AXIS_H_
-#define CGOGN_MODELING_ALGOS_MEDIAL_AXIS_H_
+#ifndef CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
+#define CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
@@ -40,7 +40,7 @@
 namespace cgogn
 {
 
-namespace modeling
+namespace geometry
 {
 
 using Vec3 = geometry::Vec3;
@@ -187,8 +187,8 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 	delete surface_bvh;
 }
 
-} // namespace modeling
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_MODELING_ALGOS_MEDIAL_AXIS_H_
+#endif // CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_

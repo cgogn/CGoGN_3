@@ -33,11 +33,11 @@
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
+#include <cgogn/geometry/algos/medial_axis.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/modeling/algos/medial_axis.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 
 #include <Eigen/Sparse>
@@ -131,7 +131,7 @@ struct MeanCurvatureSkeleton_Helper
 		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
 
 		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
-		modeling::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
+		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
 
 		vertex_is_fixed_ = add_attribute<bool, Vertex>(m_, "__vertex_is_fixed");
 		vertex_is_fixed_color_ = add_attribute<Vec3, Vertex>(m_, "__vertex_is_fixed_color");
@@ -193,8 +193,6 @@ void mean_curvature_skeleton(MESH& m,
 	});
 
 	geometry::compute_edge_cotan_weight(m, helper.vertex_position_.get(), helper.edge_weight_.get());
-	for (Scalar& w : *helper.edge_weight_)
-		w = std::clamp(w, 0.0, 1.0);
 
 	std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 	Acoeffs.reserve(nb_vertices * 10);

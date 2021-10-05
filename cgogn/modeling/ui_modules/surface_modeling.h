@@ -31,6 +31,9 @@
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/geometry/algos/filtering.h>
+#include <cgogn/geometry/algos/laplacian.h>
+
 #include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
@@ -121,7 +124,7 @@ public:
 	void delaunay_flips(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		foreach_cell(m, [&](Edge e) -> bool {
-			std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
+			std::vector<Vertex> iv = incident_vertices(m, e);
 			if (degree(m, iv[0]) < 4 || degree(m, iv[1]) < 4)
 				return true;
 			std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
@@ -151,11 +154,17 @@ public:
 	}
 
 	void remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position, Scalar edge_length_ratio,
-				bool preserve_features)
+				bool preserve_features, bool lfs_adaptive)
 	{
-		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features);
+		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features, lfs_adaptive);
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
+	}
+
+	void regularize_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		geometry::filter_regularize(m, vertex_position);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
 protected:
@@ -209,9 +218,14 @@ protected:
 				static float remesh_edge_length_ratio = 1.0f;
 				ImGui::SliderFloat("Edge length target w.r.t. mean", &remesh_edge_length_ratio, 0.0, 3.0);
 				static bool preserve_features = false;
+				static bool lfs_adaptive = true;
 				ImGui::Checkbox("Preserve features", &preserve_features);
+				ImGui::Checkbox("LFS adaptive", &lfs_adaptive);
 				if (ImGui::Button("Remesh"))
-					remesh(*selected_mesh_, selected_vertex_position_, remesh_edge_length_ratio, preserve_features);
+					remesh(*selected_mesh_, selected_vertex_position_, remesh_edge_length_ratio, preserve_features,
+						   lfs_adaptive);
+				if (ImGui::Button("Regularize"))
+					regularize_mesh(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
 	}

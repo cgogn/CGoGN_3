@@ -39,8 +39,8 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/geometry/algos/length.h>
+#include <cgogn/geometry/algos/medial_axis.h>
 
-#include <cgogn/modeling/algos/medial_axis.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/skeleton.h>
 
@@ -90,10 +90,8 @@ public:
 
 	void medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
 	{
-		auto sbc = get_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		if (!sbc)
-			sbc = add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		modeling::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
+		auto sbc = get_or_add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
+		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
 	}
 
 	void skeletonize(SURFACE& s, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,

@@ -29,7 +29,10 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <Eigen/Sparse>
 
 namespace cgogn
 {
@@ -42,6 +45,7 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 					typename mesh_traits<MESH>::template Attribute<T>* attribute_out)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		T sum;
 		sum.setZero();
@@ -54,6 +58,76 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 		value<T>(m, attribute_out, v) = sum / count;
 		return true;
 	});
+}
+
+template <typename MESH>
+void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
+	uint32 nb_vertices = 0;
+	foreach_cell(m, [&](Vertex v) -> bool {
+		value<uint32>(m, vertex_index, v) = nb_vertices++;
+		return true;
+	});
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL_COT =
+		geometry::cotan_laplacian_matrix(m, vertex_index.get(), vertex_position);
+
+	Eigen::MatrixXd vpos(nb_vertices, 3);
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		const Vec3& pv = value<Vec3>(m, vertex_position, v);
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		vpos(vidx, 0) = pv[0];
+		vpos(vidx, 1) = pv[1];
+		vpos(vidx, 2) = pv[2];
+		return true;
+	});
+	Eigen::MatrixXd poslapl(nb_vertices, 3);
+	poslapl = LAPL_COT * vpos;
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
+	std::vector<Eigen::Triplet<Scalar>> Acoeffs;
+	Acoeffs.reserve(nb_vertices * 10);
+	Eigen::MatrixXd b(2 * nb_vertices, 3);
+
+	foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		uint32 nbv = 0;
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+			uint32 avidx = value<uint32>(m, vertex_index, av);
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+			++nbv;
+			return true;
+		});
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), 10.0));
+		const Vec3& pv = value<Vec3>(m, vertex_position, v);
+		b(vidx, 0) = poslapl(vidx, 0);
+		b(vidx, 1) = poslapl(vidx, 1);
+		b(vidx, 2) = poslapl(vidx, 2);
+		b(nb_vertices + vidx, 0) = 10.0 * pv[0];
+		b(nb_vertices + vidx, 1) = 10.0 * pv[1];
+		b(nb_vertices + vidx, 2) = 10.0 * pv[2];
+		return true;
+	});
+	A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
+	vpos = solver.solve(At * b);
+
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		Vec3& pos = value<Vec3>(m, vertex_position, v);
+		pos[0] = vpos(vidx, 0);
+		pos[1] = vpos(vidx, 1);
+		pos[2] = vpos(vidx, 2);
+		return true;
+	});
+
+	remove_attribute<Vertex>(m, vertex_index);
 }
 
 // template <typename MAP, typename MASK, typename VERTEX_ATTR>
@@ -107,153 +181,6 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 //		position_out[v] = position_in[v] + ((sum / normalizer) * n);
 //	},
 //	mask);
-//}
-
-// template <typename MAP, typename MASK, typename VERTEX_ATTR>
-// void filter_taubin(
-//	const MAP& map,
-//	const MASK& mask,
-//	VERTEX_ATTR& position,
-//	VERTEX_ATTR& position_tmp)
-//{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position & position_tmp must be a vertex
-// attribute");
-
-//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-//	using Scalar = ScalarOf<VEC3>;
-//	using Vertex = typename MAP::Vertex;
-
-//	const Scalar lambda = 0.6307;
-//	const Scalar mu = -0.6532;
-
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		VEC3 avg;
-//		set_zero(avg);
-//		uint32 count = 0;
-//		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
-//		{
-//			avg += position[av];
-//			++count;
-//		});
-//		avg /= Scalar(count);
-//		const VEC3& p = position[v];
-//		position_tmp[v] = p + ((avg - p) * lambda);
-//	},
-//	mask);
-
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		VEC3 avg;
-//		set_zero(avg);
-//		uint32 count = 0;
-//		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
-//		{
-//			avg += position_tmp[av];
-//			++count;
-//		});
-//		avg /= Scalar(count);
-//		const VEC3& p = position_tmp[v];
-//		position[v] = p + ((avg - p) * mu);
-//	},
-//	mask);
-//}
-
-// template <typename MAP, typename MASK, typename VERTEX_ATTR>
-// void filter_laplacian(
-//	MAP& map,
-//	const MASK& mask,
-//	VERTEX_ATTR& position_in,
-//	VERTEX_ATTR& position_out
-//)
-//{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in & position_out must be a vertex
-// attribute");
-
-//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-//	using Scalar = ScalarOf<VEC3>;
-//	using CDart = typename MAP::CDart;
-//	using Vertex = typename MAP::Vertex;
-//	using Edge = typename MAP::Edge;
-
-//	typename MAP::template EdgeAttribute<Scalar> edge_weight = map.template add_attribute<Scalar,
-// Edge::ORBIT>("__edge_weight"); 	typename MAP::template VertexAttribute<uint32> vertex_index = map.template
-// add_attribute<uint32, Vertex::ORBIT>("__vertex_index"); 	typename MAP::template VertexAttribute<VEC3> vertex_lapl =
-// map.template add_attribute<VEC3, Vertex::ORBIT>("__vertex_lapl");
-
-//	// compute edge weights
-//	map.parallel_foreach_cell([&] (Edge e)
-//	{
-//		if (!map.is_incident_to_boundary(e))
-//		{
-//			edge_weight[e] = (
-//				std::tan(M_PI_2 - angle(map, CDart(map.phi_1(e.dart)), position_in)) +
-//				std::tan(M_PI_2 - angle(map, CDart(map.phi_1(map.phi2(e.dart))), position_in))
-//			) / 2.0;
-//		}
-//		else
-//		{
-//			cgogn::Dart d = map.boundary_dart(e);
-//			edge_weight[e] = std::tan(M_PI_2 - angle(map, CDart(map.phi_1(map.phi2(d))), position_in));
-//		}
-//	},
-//	mask);
-
-//	// compute vertices laplacian
-//	uint32 nb_vertices = 0;
-//	map.foreach_cell([&] (Vertex v) { vertex_index[v] = nb_vertices++; }, mask);
-//	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
-//	std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
-//	LAPLcoeffs.reserve(nb_vertices * 10);
-//	map.foreach_cell([&] (Vertex v)
-//	{
-//		uint32 vidx = vertex_index[v];
-//		Scalar wsum = 0;
-//		Scalar a = 1. / (4. * area(map, v, position_in));
-//		map.foreach_incident_edge(v, [&] (Edge e) { wsum += a * edge_weight[e]; });
-//		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
-//		{
-//			LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vertex_index[av], (a * edge_weight[Edge(av.dart)]) /
-// wsum));
-//		});
-//		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(vidx, vidx, -1.));
-//	},
-//	mask);
-//	LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
-
-//	Eigen::MatrixXd vpos(nb_vertices, 3);
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		const VEC3& pv = position_in[v];
-//		uint32 vidx = vertex_index[v];
-//		vpos(vidx, 0) = pv[0];
-//		vpos(vidx, 1) = pv[1];
-//		vpos(vidx, 2) = pv[2];
-//	},
-//	mask);
-
-//	Eigen::MatrixXd lapl(nb_vertices, 3);
-//	lapl = LAPL * vpos;
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		VEC3& vl = vertex_lapl[v];
-//		uint32 vidx = vertex_index[v];
-//		vl[0] = lapl(vidx, 0);
-//		vl[1] = lapl(vidx, 1);
-//		vl[2] = lapl(vidx, 2);
-//	},
-//	mask);
-
-//	// vertices displacement
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		position_out[v] = position_in[v] + 0.1 * vertex_lapl[v];
-//	},
-//	mask);
-
-//	map.remove_attribute(edge_weight);
-//	map.remove_attribute(vertex_index);
-//	map.remove_attribute(vertex_lapl);
 //}
 
 } // namespace geometry
