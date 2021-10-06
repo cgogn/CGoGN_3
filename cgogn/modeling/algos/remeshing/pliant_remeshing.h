@@ -299,8 +299,6 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		{
 			has_short_edge = false;
 			foreach_cell(m, [&](Edge e) -> bool {
-				// if (preserve_features && value<bool>(m, helper.feature_edge_, e))
-				// 	return true;
 				std::vector<Vertex> iv = incident_vertices(m, e);
 				Scalar lfs;
 				Scalar coeff = 1.0;
@@ -342,14 +340,6 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 							(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
 						Vertex cv = collapse_edge(m, e);
 						value<Vec3>(m, vertex_position, cv) = mp;
-						// if (preserve_features)
-						// {
-						// 	foreach_incident_edge(m, cv, [&](Edge ie) -> bool {
-						// 		if (std::fabs(geometry::angle(m, ie, vertex_position.get())) > angle_threshold)
-						// 			value<bool>(m, helper.feature_edge_, ie) = true;
-						// 		return true;
-						// 	});
-						// }
 					}
 				}
 				return true;
