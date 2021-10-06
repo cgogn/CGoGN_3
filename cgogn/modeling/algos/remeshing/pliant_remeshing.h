@@ -136,11 +136,10 @@ struct PliantRemeshing_Helper
 	{
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal.get());
-
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
 
-		vertex_lfs_ = add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
+		vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
 		lfs_min_ = std::numeric_limits<float64>::max();
 		lfs_max_ = std::numeric_limits<float64>::lowest();
 		lfs_mean_ = 0.0;
@@ -300,8 +299,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		{
 			has_short_edge = false;
 			foreach_cell(m, [&](Edge e) -> bool {
-				if (preserve_features && value<bool>(m, helper.feature_edge_, e))
-					return true;
+				// if (preserve_features && value<bool>(m, helper.feature_edge_, e))
+				// 	return true;
 				std::vector<Vertex> iv = incident_vertices(m, e);
 				Scalar lfs;
 				Scalar coeff = 1.0;
@@ -367,12 +366,17 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 
 			if (edge_should_flip(m, e))
 				flip_edge(m, e);
-
-			// Delaunay flips
-			std::vector<Vertex> iv = incident_vertices(m, e);
-			std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position.get());
-			if (op_angles[0] + op_angles[1] > M_PI)
-				flip_edge(m, e);
+			else
+			{
+				// Delaunay flips
+				std::vector<Vertex> iv = incident_vertices(m, e);
+				if (degree(m, iv[0]) > 4 && degree(m, iv[1]) > 4)
+				{
+					std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position.get());
+					if (op_angles[0] + op_angles[1] > M_PI)
+						flip_edge(m, e);
+				}
+			}
 
 			return true;
 		});
@@ -418,6 +422,19 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 						new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 					}
 				}
+			}
+			else
+			{
+				Vec3 q(0, 0, 0);
+				uint32 count = 0;
+				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+					q += value<Vec3>(m, vertex_position, av);
+					++count;
+					return true;
+				});
+				q /= Scalar(count);
+				Vec3 n = geometry::normal(m, v, vertex_position.get());
+				new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 			}
 			value<Vec3>(m, vertex_position, v) = helper.surface_bvh_->closest_point(new_pos);
 			return true;
