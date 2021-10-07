@@ -27,7 +27,6 @@
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/functions/cells.h>
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
@@ -61,7 +60,8 @@ auto get_mark_attribute(const MESH& m)
 template <typename CELL>
 auto get_mark_attribute(const IncidenceGraph& ig)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this MESH");
 	return ig.attribute_containers_[CELL::CELL_INDEX].get_mark_attribute();
 }
 

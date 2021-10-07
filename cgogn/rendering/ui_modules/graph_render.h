@@ -30,7 +30,6 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/rendering/shaders/shader_bold_line.h>

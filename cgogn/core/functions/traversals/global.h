@@ -31,8 +31,8 @@
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/types/cell_marker.h>
-#include <cgogn/core/types/mesh_traits.h>
 
+#include <cgogn/core/types/cmap/cmap_base.h>
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/cmap/orbit_traversal.h>

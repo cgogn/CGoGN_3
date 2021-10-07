@@ -26,7 +26,7 @@
 
 #include <cgogn/io/cgogn_io_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/graph.h>
 
 #include <vector>
 

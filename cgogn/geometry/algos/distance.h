@@ -26,7 +26,6 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/thread_pool.h>
 
 #include <cgogn/geometry/functions/distance.h>

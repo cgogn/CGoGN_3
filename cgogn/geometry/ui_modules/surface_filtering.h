@@ -24,11 +24,11 @@
 #ifndef CGOGN_MODULE_SURFACE_FILTERING_H_
 #define CGOGN_MODULE_SURFACE_FILTERING_H_
 
-#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/geometry/algos/filtering.h>

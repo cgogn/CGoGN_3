@@ -24,7 +24,6 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/mesh_info.h>

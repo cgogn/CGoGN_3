@@ -24,7 +24,6 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/geometry/algos/angle.h>
@@ -150,17 +149,18 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 ///////////
 // CMap3 //
 ///////////
- 
 
 /// Pre cut hex, input: original dart from edge along the direction of the cut
-inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
+inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
+{
 	Dart d0 = phi<12111>(m, w.dart);
 	std::vector<Dart> path0;
 	Dart d1 = d0;
-	do {
+	do
+	{
 		path0.push_back(d1);
 		d1 = phi<121>(m, d1);
-	} while(d1 != d0);
+	} while (d1 != d0);
 
 	cut_volume(m, path0);
 	path0.clear();
@@ -172,15 +172,15 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
 	std::vector<Dart> path1;
 	d1 = e.dart;
 	d2 = phi3(m, d1);
-	do {
+	do
+	{
 		path0.push_back(d1);
 		path1.push_back(d2);
 		d1 = phi<121>(m, d1);
 		d2 = phi<121>(m, d2);
-	} while(d1 != e.dart);
+	} while (d1 != e.dart);
 	cut_volume(m, path0);
 	cut_volume(m, path1);
-
 
 	// Dart d0 = phi<1211>(m, w.dart);
 	// Dart d1 = d0;
@@ -205,7 +205,7 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
 	// 	phi2_sew(m, d2, f1);
 	// 	f0 = phi1(m, f0);
 	// 	f1 = phi_1(m, f1);
-		
+
 	// 	d3 = phi<121>(m, d1);
 	// 	d4 = phi2(m, d3);
 
@@ -227,15 +227,13 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
 
 	// do{
 	// 	d2 = phi1(m, d1);
-		
+
 	// 	d3 = phi_1(m, phi2(m, d1));
 	// 	d4 = phi<21>(m, d2);
 	// 	phi2_sew(m, d3, d4);
 
 	// 	d1 = phi<232>(m, d2);
 	// }while(d1 != d0);
-
-
 
 	// d0 = phi_1(m, phi<12112>(m, w.dart));
 	// d1 = d0;
@@ -336,8 +334,9 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w){
 	// }
 }
 
-/// Pre cut hex, input: original vertex dart 
-inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
+/// Pre cut hex, input: original vertex dart
+inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w)
+{
 	Dart d0, d10, d11, d20, d21, d22, d23;
 	Dart d1, d2, d3, d4;
 	std::vector<Dart> path0, path1, path2, path3;
@@ -351,7 +350,8 @@ inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
 	d23 = phi<2121>(m, d22);
 
 	d1 = d0;
-	do {
+	do
+	{
 		path0.push_back(d1);
 		d1 = phi<121>(m, d1);
 	} while (d1 != d0);
@@ -362,7 +362,8 @@ inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
 
 	d1 = d10;
 	d2 = d11;
-	do {
+	do
+	{
 		path0.push_back(d1);
 		path1.push_back(d2);
 		d1 = phi<121>(m, d1);
@@ -382,7 +383,8 @@ inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
 	d2 = d21;
 	d3 = d22;
 	d4 = d23;
-	do {
+	do
+	{
 		path0.push_back(d1);
 		path1.push_back(d2);
 		path2.push_back(d3);
@@ -396,12 +398,9 @@ inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w){
 	cut_volume(m, path1);
 	cut_volume(m, path2);
 	cut_volume(m, path3);
-	
-	
+
 	return v;
 }
-
-
 
 template <typename MESH, typename FUNC1, typename FUNC2, typename FUNC3>
 auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)

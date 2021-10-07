@@ -27,7 +27,6 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>

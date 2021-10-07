@@ -30,7 +30,6 @@
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/types/cell_marker.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
@@ -133,28 +132,28 @@ auto foreach_incident_edge(const IncidenceGraph& ig, CELL c, const FUNC& func)
 {
 	using Edge = mesh_traits<IncidenceGraph>::Edge;
 
-	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this IncidenceGraph");
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this IncidenceGraph");
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Vertex>)
 	{
-		for(auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		for (auto& ep : (*ig.vertex_incident_edges_)[c.index_])
 		{
-			if(!func(ep))
+			if (!func(ep))
 				break;
 		}
 	}
 	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Face>)
 	{
-		for(auto& ep : (*ig.face_incident_edges_)[c.index_])
+		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
 		{
-			if(!func(ep))
+			if (!func(ep))
 				break;
 		}
 	}
 }
-
 
 /*****************************************************************************/
 

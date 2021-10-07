@@ -25,7 +25,6 @@
 #define CGOGN_CORE_TYPES_CELLS_SET_H_
 
 #include <cgogn/core/types/cell_marker.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/functions/traversals/global.h>
 

@@ -24,7 +24,6 @@
 #ifndef CGOGN_MODELING_ALGOS_TOPSTOC_H_
 #define CGOGN_MODELING_ALGOS_TOPSTOC_H_
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
@@ -36,7 +35,9 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/ui_modules/mesh_provider.h>
+
 #include <cgogn/io/surface/surface_import.h>
+
 #include <cgogn/modeling/algos/subdivision.h>
 
 #include <algorithm>

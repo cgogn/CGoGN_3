@@ -25,8 +25,6 @@
 #define CGOGN_MODULE_MESH_PROVIDER_MESH_DATA_H_
 
 #include <cgogn/core/types/cells_set.h>
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
@@ -35,6 +33,7 @@
 #include <cgogn/rendering/vbo_update.h>
 
 #include <cgogn/geometry/functions/bounding_box.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <boost/synapse/emit.hpp>
 

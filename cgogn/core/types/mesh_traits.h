@@ -25,142 +25,34 @@
 #define CGOGN_CORE_TYPES_MESH_TRAITS_H_
 
 #include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/cmap/cmap3.h>
-#include <cgogn/core/types/cmap/cph3.h>
-#include <cgogn/core/types/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/utils/numerics.h>
 
 namespace cgogn
 {
 
 template <typename MESH>
-struct mesh_traits;
-
-template <>
-struct mesh_traits<CMap0>
+struct mesh_traits
 {
-	static constexpr const char* name = "CMap0";
-	static constexpr const uint8 dimension = 0;
+	// static constexpr const char* name;
+	// static constexpr const uint8 dimension;
 
-	using Vertex = typename CMap0::Vertex;
+	// Cell Types
+	// using Vertex = Graph::Vertex;
+	// using HalfEdge = Graph::HalfEdge;
+	// using Edge = Graph::Edge;
+	// ...
 
-	using Cells = std::tuple<Vertex>;
-	static constexpr const char* cell_names[] = {"Vertex"};
+	// Cells tuple definition
+	// using Cells = std::tuple<Vertex, HalfEdge, Edge>;
 
-	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
-};
+	// Cells names
+	// static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge"};
 
-template <>
-struct mesh_traits<CMap1>
-{
-	static constexpr const char* name = "CMap1";
-	static constexpr const uint8 dimension = 1;
-
-	using Vertex = CMap1::Vertex;
-	using Edge = CMap1::Edge;
-	using Face = CMap1::Face;
-
-	using Cells = std::tuple<Vertex, Edge, Face>;
-	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
-
-	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
-};
-
-template <>
-struct mesh_traits<CMap2>
-{
-	static constexpr const char* name = "CMap2";
-	static constexpr const uint8 dimension = 2;
-
-	using Vertex = CMap2::Vertex;
-	using HalfEdge = CMap2::HalfEdge;
-	using Edge = CMap2::Edge;
-	using Face = CMap2::Face;
-	using Volume = CMap2::Volume;
-
-	using Cells = std::tuple<Vertex, HalfEdge, Edge, Face, Volume>;
-	static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge", "Face", "Volume"};
-
-	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
-};
-
-template <>
-struct mesh_traits<CMap3>
-{
-	static constexpr const char* name = "CMap3";
-	static constexpr const uint8 dimension = 3;
-
-	using Vertex = CMap3::Vertex;
-	using Vertex2 = CMap3::Vertex2;
-	using HalfEdge = CMap3::HalfEdge;
-	using Edge = CMap3::Edge;
-	using Edge2 = CMap3::Edge2;
-	using Face = CMap3::Face;
-	using Face2 = CMap3::Face2;
-	using Volume = CMap3::Volume;
-
-	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
-	static constexpr const char* cell_names[] = {"Vertex", "Vertex2", "HalfEdge", "Edge",
-												 "Edge2",  "Face",	  "Face2",	  "Volume"};
-
-	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
-};
-
-template <>
-struct mesh_traits<CPH3> : public mesh_traits<CMap3>
-{
-	static constexpr const char* name = "CPH3";
-};
-
-template <>
-struct mesh_traits<Graph>
-{
-	static constexpr const char* name = "Graph";
-	static constexpr const uint8 dimension = 1;
-
-	using Vertex = Graph::Vertex;
-	using HalfEdge = Graph::HalfEdge;
-	using Edge = Graph::Edge;
-
-	using Cells = std::tuple<Vertex, HalfEdge, Edge>;
-	static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge"};
-
-	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
-};
-
-template <>
-struct mesh_traits<IncidenceGraph>
-{
-	static constexpr const char* name = "IncidenceGraph";
-	static constexpr const uint8 dimension = 2;
-
-	using Vertex = IncidenceGraph::Vertex;
-	using Edge = IncidenceGraph::Edge;
-	using Face = IncidenceGraph::Face;
-
-	using Cells = std::tuple<Vertex, Edge, Face>;
-	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
-
-	template <typename T>
-	using Attribute = IncidenceGraph::Attribute<T>;
-	using AttributeGen = IncidenceGraph::AttributeGen;
-	using MarkAttribute = IncidenceGraph::MarkAttribute;
+	// Attribute types
+	// template <typename T>
+	// using Attribute;
+	// using AttributeGen;
+	// using MarkAttribute;
 };
 
 template <typename MESH>

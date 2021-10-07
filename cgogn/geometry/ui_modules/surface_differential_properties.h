@@ -24,18 +24,17 @@
 #ifndef CGOGN_MODULE_SURFACE_DIFFERENTIAL_PROPERTIES_H_
 #define CGOGN_MODULE_SURFACE_DIFFERENTIAL_PROPERTIES_H_
 
-#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/curvature.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {

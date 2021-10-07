@@ -29,7 +29,6 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/rendering/topo_drawer.h>
 
