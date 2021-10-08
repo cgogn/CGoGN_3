@@ -28,7 +28,6 @@
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/functions/normal.h>

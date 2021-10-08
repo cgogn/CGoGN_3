@@ -27,7 +27,6 @@
 #include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {

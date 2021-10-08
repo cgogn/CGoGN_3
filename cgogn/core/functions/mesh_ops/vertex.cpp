@@ -75,7 +75,11 @@ Graph::Vertex add_vertex(Graph& g, bool set_indices)
 
 IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig)
 {
-	return add_cell<IncidenceGraph::Vertex>(ig);
+	using Vertex = IncidenceGraph::Vertex;
+
+	Vertex v = add_cell<Vertex>(ig);
+	(*ig.vertex_incident_edges_)[v.index_].clear();
+	return v;
 }
 
 /*****************************************************************************/
@@ -106,13 +110,12 @@ void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 // IncidenceGraph //
 ////////////////////
 
-void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
+void remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v)
 {
 	using Vertex = IncidenceGraph::Vertex;
 
 	while ((*ig.vertex_incident_edges_)[v.index_].size() > 0)
-		remove_edge(ig, *(*ig.vertex_incident_edges_)[v.index_].begin());
-
+		remove_edge(ig, (*ig.vertex_incident_edges_)[v.index_].back());
 	remove_cell<Vertex>(ig, v);
 }
 

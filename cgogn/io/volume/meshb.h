@@ -33,7 +33,6 @@ extern "C"
 #include <cgogn/io/volume/volume_import.h>
 
 #include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/numerics.h>
 
 #include <cgogn/geometry/functions/orientation.h>

@@ -151,15 +151,19 @@ IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Ed
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 
-	if (sort_edges(ig, edges))
+	Face f = add_cell<Face>(ig);
+	(*ig.face_incident_edges_)[f.index_] = edges;
+	if (sort_face_edges(ig, f))
 	{
-		Face f = add_cell<Face>(ig);
-		(*ig.face_incident_edges_)[f.index_] = edges;
 		for (Edge e : edges)
-			(*ig.edge_incident_faces_)[e.index_].insert(f);
+			(*ig.edge_incident_faces_)[e.index_].push_back(f);
 		return f;
 	}
-	return Face();
+	else
+	{
+		remove_cell<Face>(ig, f);
+		return Face();
+	}
 }
 
 /*****************************************************************************/
@@ -179,10 +183,8 @@ void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 
-	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-	for (Edge e : edges)
-		(*ig.edge_incident_faces_)[e.index_].erase(f);
-
+	for (Edge e : (*ig.face_incident_edges_)[f.index_])
+		remove_face_in_edge(ig, e, f);
 	remove_cell<Face>(ig, f);
 }
 
@@ -270,7 +272,7 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 	{
 		for (uint32 j = 0; j < faces1.size(); ++j)
 		{
-			if (faces0[i].index_ == faces1[j].index_)
+			if (faces0[i] == faces1[j])
 			{
 				face = faces0[i];
 				break;
@@ -292,7 +294,7 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 	bool inside = false;
 	for (uint32 i = 0; i < edges.size(); ++i)
 	{
-		if (vertices[i].index_ == v0.index_ || vertices[i].index_ == v1.index_)
+		if (vertices[i] == v0 || vertices[i] == v1)
 			inside = !inside;
 
 		if (inside)

@@ -29,7 +29,6 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/numerics.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
@@ -75,6 +74,11 @@ bool import_OFF(MESH& m, const std::string& filename)
 	if (nb_vertices == 0u)
 	{
 		std::cerr << "File \"" << filename << " has no vertices." << std::endl;
+		return false;
+	}
+	if (nb_faces == 0u)
+	{
+		std::cerr << "File \"" << filename << " has no faces." << std::endl;
 		return false;
 	}
 

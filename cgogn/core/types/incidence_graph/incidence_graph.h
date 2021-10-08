@@ -29,10 +29,10 @@
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/container/vector.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <any>
 #include <array>
-#include <set>
 
 namespace cgogn
 {
@@ -67,6 +67,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		{
 			return index_ < v.index_;
 		}
+		bool operator==(Vertex v) const
+		{
+			return index_ == v.index_;
+		}
 		inline bool is_valid() const
 		{
 			return index_ != INVALID_INDEX;
@@ -86,6 +90,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		bool operator<(Edge e) const
 		{
 			return index_ < e.index_;
+		}
+		bool operator==(Edge e) const
+		{
+			return index_ == e.index_;
 		}
 		inline bool is_valid() const
 		{
@@ -107,6 +115,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		{
 			return index_ < f.index_;
 		}
+		bool operator==(Face f) const
+		{
+			return index_ == f.index_;
+		}
 		inline bool is_valid() const
 		{
 			return index_ != INVALID_INDEX;
@@ -115,22 +127,42 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 
 	mutable std::array<AttributeContainer, 3> attribute_containers_;
 
-	std::shared_ptr<Attribute<std::set<Edge>>> vertex_incident_edges_;
+	std::shared_ptr<Attribute<std::vector<Edge>>> vertex_incident_edges_;
 	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
+	std::shared_ptr<Attribute<std::vector<Face>>> edge_incident_faces_;
 	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
-	std::shared_ptr<Attribute<std::set<Face>>> edge_incident_faces_;
 
 	IncidenceGraph()
 	{
 		vertex_incident_edges_ =
-			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::set<Edge>>("incident_edges");
+			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 		edge_incident_vertices_ =
 			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
-		edge_incident_faces_ = attribute_containers_[Edge::CELL_INDEX].add_attribute<std::set<Face>>("incident_faces");
+		edge_incident_faces_ =
+			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::vector<Face>>("incident_faces");
 		face_incident_edges_ =
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 	};
 	// ~IncidenceGraph();
+};
+
+template <>
+struct mesh_traits<IncidenceGraph>
+{
+	static constexpr const char* name = "IncidenceGraph";
+	static constexpr const uint8 dimension = 2;
+
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	using Cells = std::tuple<Vertex, Edge, Face>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
+
+	template <typename T>
+	using Attribute = IncidenceGraph::Attribute<T>;
+	using AttributeGen = IncidenceGraph::AttributeGen;
+	using MarkAttribute = IncidenceGraph::MarkAttribute;
 };
 
 } // namespace cgogn

@@ -177,6 +177,12 @@ struct CPH3
 	bool volume_is_subdivided(Dart d) const;
 };
 
+template <>
+struct mesh_traits<CPH3> : public mesh_traits<CMap3>
+{
+	static constexpr const char* name = "CPH3";
+};
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_CPH3_H_

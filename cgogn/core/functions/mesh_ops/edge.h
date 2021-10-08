@@ -26,7 +26,10 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
@@ -111,6 +114,15 @@ CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool 
 // collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+// returns a vector of removed edges (except e) in addition to the resulting vertex
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
+																				   IncidenceGraph::Edge e,
+																				   bool set_indices = true);
 
 ///////////
 // Graph //

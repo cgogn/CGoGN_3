@@ -28,7 +28,6 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
@@ -54,6 +53,8 @@ void imgui_combo_attribute(const MESH& m,
 						   const std::string& label, const FUNC& on_change)
 {
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<Attribute>&>::value,
+				  "Wrong function attribute parameter type");
 
 	if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
 	{
@@ -75,14 +76,15 @@ void imgui_combo_attribute(const MESH& m,
 	}
 }
 
-template <typename MESH_PROVIDER, typename MESH, typename FUNC>
-bool imgui_mesh_selector(MESH_PROVIDER* mesh_provider, const MESH* selected_mesh, const std::string& label,
+template <template <typename MESH> typename MESH_PROVIDER, typename MESH, typename FUNC>
+bool imgui_mesh_selector(MESH_PROVIDER<MESH>* mesh_provider, const MESH* selected_mesh, const std::string& label,
 						 const FUNC& on_change)
 {
+	static_assert(is_func_parameter_same<FUNC, MESH&>::value, "Wrong function parameter type");
 	if (ImGui::ListBoxHeader(label.c_str(), mesh_provider->number_of_meshes()))
 	{
-		mesh_provider->foreach_mesh([&](MESH* m, const std::string& name) {
-			if (ImGui::Selectable(name.c_str(), m == selected_mesh))
+		mesh_provider->foreach_mesh([&](MESH& m, const std::string& name) {
+			if (ImGui::Selectable(name.c_str(), &m == selected_mesh))
 				on_change(m);
 		});
 		ImGui::ListBoxFooter();
@@ -94,6 +96,7 @@ bool imgui_mesh_selector(MESH_PROVIDER* mesh_provider, const MESH* selected_mesh
 template <typename FUNC>
 bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& on_change)
 {
+	static_assert(is_func_parameter_same<FUNC, View*>::value, "Wrong function parameter type");
 	if (ImGui::BeginCombo("View", selected->name().c_str()))
 	{
 		for (View* v : vm->linked_views())

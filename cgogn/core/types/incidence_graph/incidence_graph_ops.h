@@ -32,8 +32,7 @@ namespace cgogn
 template <typename CELL>
 CELL add_cell(IncidenceGraph& ig)
 {
-	uint32 id = ig.attribute_containers_[CELL::CELL_INDEX].new_index();
-	return CELL(id);
+	return CELL(ig.attribute_containers_[CELL::CELL_INDEX].new_index());
 }
 
 template <typename CELL>
@@ -42,11 +41,12 @@ void remove_cell(IncidenceGraph& ig, CELL c)
 	ig.attribute_containers_[CELL::CELL_INDEX].release_index(c.index_);
 }
 
-inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges)
+inline bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f)
 {
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 
+	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
 	std::vector<Edge> unordered_edges;
 	unordered_edges.swap(edges);
 
@@ -56,7 +56,7 @@ inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& ed
 	uint32 vid1 = (*ig.edge_incident_vertices_)[edges.front().index_].second.index_;
 	bool broken = false;
 
-	while (unordered_edges.size())
+	while (unordered_edges.size() > 0)
 	{
 		uint32 i, end;
 		for (i = 0, end = unordered_edges.size(); i < unordered_edges.size(); ++i)
@@ -83,20 +83,84 @@ inline bool sort_edges(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& ed
 	return (broken && unordered_edges.size() == 0);
 }
 
+inline bool same_edge(IncidenceGraph& ig, IncidenceGraph::Edge e1, IncidenceGraph::Edge e2)
+{
+	using Vertex = IncidenceGraph::Vertex;
+
+	Vertex e1v1 = (*ig.edge_incident_vertices_)[e1.index_].first;
+	Vertex e1v2 = (*ig.edge_incident_vertices_)[e1.index_].second;
+	Vertex e2v1 = (*ig.edge_incident_vertices_)[e2.index_].first;
+	Vertex e2v2 = (*ig.edge_incident_vertices_)[e2.index_].second;
+
+	return (e1v1 == e2v1 && e1v2 == e2v2) || (e1v1 == e2v2 && e1v2 == e2v1);
+}
+
+inline void remove_edge_in_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v, IncidenceGraph::Edge edge_to_remove)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	std::vector<Edge>& edges = (*ig.vertex_incident_edges_)[v.index_];
+	auto eit = std::find(edges.begin(), edges.end(), edge_to_remove);
+	if (eit != edges.end())
+		edges.erase(eit);
+}
+
+inline void remove_face_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Face face_to_remove)
+{
+	using Face = IncidenceGraph::Face;
+
+	std::vector<Face>& faces = (*ig.edge_incident_faces_)[e.index_];
+	auto fit = std::find(faces.begin(), faces.end(), face_to_remove);
+	if (fit != faces.end())
+		faces.erase(fit);
+}
+
+inline void remove_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge edge_to_remove)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
+	auto eit = std::find(edges.begin(), edges.end(), edge_to_remove);
+	if (eit != edges.end())
+		edges.erase(eit);
+}
+
+inline void replace_vertex_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex old_vertex,
+								   IncidenceGraph::Vertex new_vertex)
+{
+	if ((*ig.edge_incident_vertices_)[e.index_].first == old_vertex)
+		(*ig.edge_incident_vertices_)[e.index_].first = new_vertex;
+	if ((*ig.edge_incident_vertices_)[e.index_].second == old_vertex)
+		(*ig.edge_incident_vertices_)[e.index_].second = new_vertex;
+}
+
+inline void replace_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge old_edge,
+								 IncidenceGraph::Edge new_edge)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
+	auto eit = std::find(edges.begin(), edges.end(), old_edge);
+	if (eit != edges.end())
+		*eit = new_edge;
+}
+
 inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1)
 {
-	uint32 vid0 = (*ig.edge_incident_vertices_)[e0.index_].first.index_;
-	uint32 vid1 = (*ig.edge_incident_vertices_)[e0.index_].second.index_;
-	uint32 vid2 = (*ig.edge_incident_vertices_)[e1.index_].first.index_;
-	uint32 vid3 = (*ig.edge_incident_vertices_)[e1.index_].second.index_;
+	using Vertex = IncidenceGraph::Vertex;
 
-	if (vid0 == vid2 || vid0 == vid3)
-		return IncidenceGraph::Vertex(vid0);
+	Vertex v0 = (*ig.edge_incident_vertices_)[e0.index_].first;
+	Vertex v1 = (*ig.edge_incident_vertices_)[e0.index_].second;
+	Vertex v2 = (*ig.edge_incident_vertices_)[e1.index_].first;
+	Vertex v3 = (*ig.edge_incident_vertices_)[e1.index_].second;
 
-	if (vid1 == vid2 || vid1 == vid3)
-		return IncidenceGraph::Vertex(vid1);
+	if (v0 == v2 || v0 == v3)
+		return v0;
 
-	return IncidenceGraph::Vertex();
+	if (v1 == v2 || v1 == v3)
+		return v1;
+
+	return Vertex();
 }
 
 inline std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& ig, IncidenceGraph::Face f)

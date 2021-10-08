@@ -20,6 +20,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cells_set.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
@@ -41,6 +42,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_ops.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
@@ -48,6 +52,7 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/global.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
@@ -76,6 +81,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/utils/thread.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/tuples.h"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/type_traits.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_provider.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_data.h"
 )
 
 # use of target_compile_options to have transitive flags

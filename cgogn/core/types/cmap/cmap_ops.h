@@ -27,9 +27,6 @@
 #include <cgogn/core/types/cmap/cmap_base.h>
 #include <cgogn/core/types/cmap/cph3.h>
 #include <cgogn/core/types/cmap/orbit_traversal.h>
-#include <cgogn/core/types/mesh_traits.h>
-
-#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
