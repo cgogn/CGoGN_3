@@ -26,6 +26,11 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
+#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+
 namespace cgogn
 {
 

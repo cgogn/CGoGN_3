@@ -38,6 +38,7 @@
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/topstoc.h>
 #include <cgogn/modeling/algos/subdivision.h>
+#include <cgogn/modeling/algos/subdivision/surface_catmull_clark.h>
 #include <cgogn/modeling/algos/subdivision/surface_loop.h>
 
 namespace cgogn
@@ -128,6 +129,13 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
+	void subdivide_catmull_clark(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		modeling::subdivide_catmull_clark(m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
+	}
+
 	void delaunay_flips(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		foreach_cell(m, [&](Edge e) -> bool {
@@ -211,6 +219,8 @@ protected:
 					quadrangulate_mesh(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Loop subdivision"))
 					subdivide_loop(*selected_mesh_, selected_vertex_position_.get());
+				if (ImGui::Button("Catmull-Clark subdivision"))
+					subdivide_catmull_clark(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Delaunay flips"))
 					delaunay_flips(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Fill holes"))

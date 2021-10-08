@@ -30,8 +30,6 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
-
 namespace cgogn
 {
 
@@ -84,7 +82,7 @@ void subdivide_loop(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 		Vec3 sum{0, 0, 0};
 
 		Dart boundary;
-		int nb_e = 0;
+		uint32 nb_e = 0;
 		foreach_incident_edge(m, v, [&](CMap2::Edge e) -> bool {
 			nb_e++;
 			sum += value<Vec3>(m, vertex_position, CMap2::Vertex(phi<11>(m, e.dart)));
