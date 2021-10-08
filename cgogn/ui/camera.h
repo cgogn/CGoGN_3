@@ -51,7 +51,9 @@ private:
 	float64 field_of_view_;
 	float64 aspect_ratio_; // width/height
 	rendering::GLVec3d pivot_point_;
+	bool pivot_point_initialized_;
 	float64 scene_radius_;
+	bool scene_radius_initialized_;
 	float64 focal_distance_;
 	mutable rendering::GLMat4d proj_d_;
 	mutable rendering::GLMat4d mv_d_;
@@ -62,7 +64,9 @@ private:
 	rendering::GLMat4d orthographic(float64 znear, float64 zfar) const;
 
 public:
-	inline Camera() : type_(PERSPECTIVE), field_of_view_(0.65), aspect_ratio_(1.0)
+	inline Camera()
+		: type_(PERSPECTIVE), field_of_view_(0.65), aspect_ratio_(1.0), pivot_point_initialized_(false),
+		  scene_radius_initialized_(false)
 	{
 	}
 
@@ -78,7 +82,7 @@ public:
 	inline void update_matrices()
 	{
 		float64 d = focal_distance_ - frame_.translation().z();
-		float64 znear = std::max(0.1, d - 2.0 * scene_radius_);
+		float64 znear = std::max(0.05, d - 2.0 * scene_radius_);
 		float64 zfar = d + 2.0 * scene_radius_;
 		proj_d_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : orthographic(znear, zfar));
 		proj_ = proj_d_.cast<float32>();
@@ -115,27 +119,29 @@ public:
 	inline void set_scene_radius(float64 radius)
 	{
 		scene_radius_ = radius;
-		focal_distance_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
+		if (!scene_radius_initialized_)
+		{
+			focal_distance_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
+			frame_.translation().z() -= focal_distance_;
+			scene_radius_initialized_ = true;
+		}
 		update_matrices();
 	}
 
-	inline void change_pivot_point(const rendering::GLVec3d& pivot)
+	inline bool pivot_point_initialized() const
 	{
-		rendering::GLVec3d pivot_shift = pivot - pivot_point_;
-		frame_ *= Eigen::Translation3d(pivot_shift);
-		pivot_point_ = pivot;
-		update_matrices();
+		return pivot_point_initialized_;
 	}
 
 	inline void set_pivot_point(const rendering::GLVec3d& pivot)
 	{
+		if (pivot_point_initialized_)
+		{
+			rendering::GLVec3d pivot_shift = pivot - pivot_point_;
+			frame_ *= Eigen::Translation3d(pivot_shift);
+		}
 		pivot_point_ = pivot;
-		update_matrices();
-	}
-
-	inline void center_scene()
-	{
-		frame_.matrix().block<3, 1>(0, 3).setZero();
+		pivot_point_initialized_ = true;
 		update_matrices();
 	}
 

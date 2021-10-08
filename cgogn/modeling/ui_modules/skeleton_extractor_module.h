@@ -35,12 +35,11 @@
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/geometry/algos/length.h>
+#include <cgogn/geometry/algos/medial_axis.h>
 
-#include <cgogn/modeling/algos/medial_axis.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/skeleton.h>
 
@@ -90,10 +89,8 @@ public:
 
 	void medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
 	{
-		auto sbc = get_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		if (!sbc)
-			sbc = add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		modeling::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
+		auto sbc = get_or_add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
+		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
 	}
 
 	void skeletonize(SURFACE& s, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
@@ -281,7 +278,7 @@ protected:
 
 			if (selected_surface_vertex_position_)
 			{
-				static float wL = 1.0, wH = 0.1, wM = 0.25, resampling_ratio = 0.9;
+				static float wL = 0.6, wH = 0.06, wM = 0.15, resampling_ratio = 0.9;
 				ImGui::SliderFloat("Smoothness", &wL, 0.01f, 1.0f);
 				ImGui::SliderFloat("Velocity", &wH, 0.01f, 1.0f);
 				ImGui::SliderFloat("Medial attraction", &wM, 0.01f, 1.0f);

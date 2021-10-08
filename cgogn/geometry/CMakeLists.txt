@@ -39,6 +39,7 @@ target_sources(${PROJECT_NAME}
         "${CMAKE_CURRENT_LIST_DIR}/algos/hex_quality.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/laplacian.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/medial_axis.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/picking.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"

@@ -27,7 +27,6 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/types/quadric.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -49,6 +48,7 @@ struct DecimationQEM_Helper
 	using Face = typename mesh_traits<MESH>::Face;
 
 	using Vec3 = typename geometry::Vec3;
+	using Scalar = typename geometry::Scalar;
 	using Quadric = typename geometry::Quadric;
 
 	DecimationQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position) : m_(m), vertex_position_(vertex_position)

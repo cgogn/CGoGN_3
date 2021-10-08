@@ -29,7 +29,6 @@
 #include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>

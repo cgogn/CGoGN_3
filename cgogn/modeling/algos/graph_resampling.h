@@ -24,7 +24,8 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/cmap/graph.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn

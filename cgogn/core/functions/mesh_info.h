@@ -24,9 +24,8 @@
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/types/cmap/cmap3.h>
 
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -124,7 +123,7 @@ bool is_simplicial(const MESH& m)
 template <typename CELL, typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 bool check_indexing(MESH& m, bool verbose = true)
 {
-	static_assert(is_in_tuple_v<CELL, typename mesh_traits<CMap3>::Cells>, "CELL not supported in this CMap3");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	if (!is_indexed<CELL>(m))
 		return true;

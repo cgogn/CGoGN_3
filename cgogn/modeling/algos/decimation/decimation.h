@@ -26,12 +26,11 @@
 
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/modeling/algos/decimation/QEM_helper.h>
 #include <cgogn/modeling/algos/decimation/edge_approximator.h>
-#include <cgogn/modeling/algos/decimation/edge_queue_QEM.h>
 #include <cgogn/modeling/algos/decimation/edge_queue_update.h>
 
 namespace cgogn
@@ -58,11 +57,16 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
 
-	DecimationQEM_Helper decimation_helper(m, vertex_position);
-	auto before = [&](Edge e) { decimation_helper.before_collapse(e); };
-	auto approx = [&](Edge e) -> Vec3 { return decimation_helper.edge_optimal(e); };
-	auto edge_cost = [&](Edge e) -> Scalar { return decimation_helper.edge_cost(e, approx(e)); };
-	auto after = [&](Vertex v) { decimation_helper.after_collapse(v); };
+	// static map to store helpers associated to meshes
+	// allows to store context without polluting outer context and function api
+	static std::unordered_map<MESH*, DecimationQEM_Helper<MESH>> helpers_;
+	auto [it, inserted] = helpers_.try_emplace(&m, m, vertex_position);
+	DecimationQEM_Helper<MESH>& helper = it->second;
+
+	auto before = [&](Edge e) { helper.before_collapse(e); };
+	auto approx = [&](Edge e) -> Vec3 { return helper.edge_optimal(e); };
+	auto edge_cost = [&](Edge e) -> Scalar { return helper.edge_cost(e, approx(e)); };
+	auto after = [&](Vertex v) { helper.after_collapse(v); };
 
 	// auto before = [](Edge e) {};
 	// auto approx = [&](Edge e) -> Vec3 { return mid_edge(m, e, vertex_position); };
