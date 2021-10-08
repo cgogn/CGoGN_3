@@ -143,7 +143,7 @@ struct PliantRemeshing_Helper
 		lfs_max_ = std::numeric_limits<float64>::lowest();
 		lfs_mean_ = 0.0;
 		uint32 nbv = 0;
-		foreach_cell(m_, [&](Vertex v) -> bool {
+		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
 			++nbv;
 			uint32 vidx = index_of(m_, v);
 			Scalar lfs = ((*vertex_medial_point)[vidx] - (*vertex_position_)[vidx]).norm();
@@ -374,9 +374,11 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		// + project back on surface
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
+			if (is_incident_to_boundary(m, v))
+				return true;
 			if (preserve_features)
 			{
-				if (!value<bool>(m, helper.feature_corner_, v) && !is_incident_to_boundary(m, v))
+				if (!value<bool>(m, helper.feature_corner_, v))
 				{
 					if (value<bool>(m, helper.feature_vertex_, v))
 					{

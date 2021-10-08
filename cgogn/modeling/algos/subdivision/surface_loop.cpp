@@ -61,7 +61,7 @@ void subdivide_loop(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 		return true;
 	});
 
-	foreach_cell(cache_new, [&](CMap2::Vertex v) -> bool {
+	parallel_foreach_cell(cache_new, [&](CMap2::Vertex v) -> bool {
 		CMap2::Vertex v1 = CMap2::Vertex(phi_1(m, v.dart));
 		CMap2::Vertex v2 = CMap2::Vertex(phi1(m, v.dart));
 		if (is_incident_to_boundary(m, v))
@@ -80,7 +80,7 @@ void subdivide_loop(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 		return true;
 	});
 
-	foreach_cell(cache_old, [&](CMap2::Vertex v) -> bool {
+	parallel_foreach_cell(cache_old, [&](CMap2::Vertex v) -> bool {
 		Vec3 sum{0, 0, 0};
 
 		Dart boundary;

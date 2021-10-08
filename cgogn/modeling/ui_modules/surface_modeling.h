@@ -131,12 +131,15 @@ public:
 	void delaunay_flips(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		foreach_cell(m, [&](Edge e) -> bool {
-			std::vector<Vertex> iv = incident_vertices(m, e);
-			if (degree(m, iv[0]) < 4 || degree(m, iv[1]) < 4)
-				return true;
-			std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
-			if (op_angles[0] + op_angles[1] > M_PI)
-				flip_edge(m, e);
+			if (edge_can_flip(m, e))
+			{
+				std::vector<Vertex> iv = incident_vertices(m, e);
+				if (degree(m, iv[0]) < 4 || degree(m, iv[1]) < 4)
+					return true;
+				std::vector<Scalar> op_angles = geometry::opposite_angles(m, e, vertex_position);
+				if (op_angles[0] + op_angles[1] > M_PI)
+					flip_edge(m, e);
+			}
 			return true;
 		});
 

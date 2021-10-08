@@ -28,7 +28,10 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
+#include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/laplacian.h>
+#include <cgogn/geometry/algos/length.h>
+#include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <Eigen/Sparse>
@@ -93,19 +96,22 @@ void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<V
 
 	foreach_cell(m, [&](Vertex v) -> bool {
 		uint32 vidx = value<uint32>(m, vertex_index, v);
-		uint32 nbv = 0;
-		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-			uint32 avidx = value<uint32>(m, vertex_index, av);
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
-			++nbv;
-			return true;
-		});
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
+		if (!is_incident_to_boundary(m, v))
+		{
+			uint32 nbv = 0;
+			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+				uint32 avidx = value<uint32>(m, vertex_index, av);
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+				++nbv;
+				return true;
+			});
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
+			b(vidx, 0) = poslapl(vidx, 0);
+			b(vidx, 1) = poslapl(vidx, 1);
+			b(vidx, 2) = poslapl(vidx, 2);
+		}
 		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), 10.0));
 		const Vec3& pv = value<Vec3>(m, vertex_position, v);
-		b(vidx, 0) = poslapl(vidx, 0);
-		b(vidx, 1) = poslapl(vidx, 1);
-		b(vidx, 2) = poslapl(vidx, 2);
 		b(nb_vertices + vidx, 0) = 10.0 * pv[0];
 		b(nb_vertices + vidx, 1) = 10.0 * pv[1];
 		b(nb_vertices + vidx, 2) = 10.0 * pv[2];
@@ -129,58 +135,41 @@ void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<V
 	remove_attribute<Vertex>(m, vertex_index);
 }
 
-// template <typename MAP, typename MASK, typename VERTEX_ATTR>
-// void filter_bilateral(
-//	const MAP& map,
-//	const MASK& mask,
-//	const VERTEX_ATTR& position_in,
-//	VERTEX_ATTR& position_out,
-//	const VERTEX_ATTR& normal
-//)
-//{
-//	static_assert(is_orbit_of<VERTEX_ATTR, MAP::Vertex::ORBIT>::value, "position_in, position_out & normal must be a
-// vertex attribute");
+template <typename MESH>
+void filter_bilateral(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position_in,
+					  typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position_out)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
-//	using VEC3 = InsideTypeOf<VERTEX_ATTR>;
-//	using Scalar = ScalarOf<VEC3>;
-//	using Vertex = typename MAP::Vertex;
-//	using Edge = typename MAP::Edge;
+	Scalar length_sum = 0;
+	Scalar angle_sum = 0;
+	uint32 nb_edges = 0;
 
-//	Scalar length_sum = 0;
-//	Scalar angle_sum = 0;
-//	uint32 nb_edges = 0;
+	foreach_cell(m, [&](Edge e) {
+		length_sum += length(m, e, vertex_position_in);
+		angle_sum += angle(m, e, vertex_position_in);
+		++nb_edges;
+	});
 
-//	map.foreach_cell([&] (Edge e)
-//	{
-//		std::pair<Vertex, Vertex> v = map.vertices(e);
-//		VEC3 edge = position_in[v.first] - position_in[v.second];
-//		length_sum += edge.norm();
-//		angle_sum += angle(normal[v.first], normal[v.second]);
-//		++nb_edges;
-//	},
-//	mask);
+	Scalar sigmaC = 1.0 * (length_sum / Scalar(nb_edges));
+	Scalar sigmaS = 2.5 * (angle_sum / Scalar(nb_edges));
 
-//	Scalar sigmaC = 1.0 * (length_sum / Scalar(nb_edges));
-//	Scalar sigmaS = 2.5 * (angle_sum / Scalar(nb_edges));
-
-//	map.parallel_foreach_cell([&] (Vertex v)
-//	{
-//		const VEC3& n = normal[v];
-
-//		Scalar sum = 0, normalizer = 0;
-//		map.foreach_adjacent_vertex_through_edge(v, [&] (Vertex av)
-//		{
-//			VEC3 edge = position_in[av] - position_in[v];
-//			Scalar t = edge.norm();
-//			Scalar h = n.dot(edge);
-//			Scalar wcs = std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS *
-// sigmaS))); 			sum += wcs * h; 			normalizer += wcs;
-//		});
-
-//		position_out[v] = position_in[v] + ((sum / normalizer) * n);
-//	},
-//	mask);
-//}
+	parallel_foreach_cell(m, [&](Vertex v) {
+		Vec3 n = normal(m, v, vertex_position_in);
+		Scalar sum = 0, normalizer = 0;
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) {
+			Vec3 edge = value<Vec3>(m, vertex_position_in, av) - value<Vec3>(m, vertex_position_in, v);
+			Scalar t = edge.norm();
+			Scalar h = n.dot(edge);
+			Scalar wcs =
+				std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS * sigmaS)));
+			sum += wcs * h;
+			normalizer += wcs;
+		});
+		value<Vec3>(m, vertex_position_out, v) = value<Vec3>(m, vertex_position_in, v) + ((sum / normalizer) * n);
+	});
+}
 
 } // namespace geometry
 

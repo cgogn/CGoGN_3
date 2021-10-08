@@ -107,7 +107,7 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 	const Scalar delta_convergence = 1e-5;
 	const uint32 iteration_limit = 30;
 
-	foreach_cell(m, [&](Vertex v) -> bool {
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		const Vec3& p = value<Vec3>(m, vertex_position, v);
 		const Vec3& n = value<Vec3>(m, vertex_normal, v);
 

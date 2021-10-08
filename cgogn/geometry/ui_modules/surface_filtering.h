@@ -64,11 +64,22 @@ public:
 	{
 	}
 
-	void filter_mesh(MESH& m, Attribute<Vec3>* vertex_attribute)
+	void filter_average(MESH& m, Attribute<Vec3>* vertex_attribute)
 	{
 		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute =
 			add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
 		geometry::filter_average<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
+		vertex_attribute->swap(filtered_vertex_attribute.get());
+		remove_attribute<Vertex>(m, filtered_vertex_attribute);
+
+		mesh_provider_->emit_attribute_changed(m, vertex_attribute);
+	}
+
+	void filter_bilateral(MESH& m, Attribute<Vec3>* vertex_attribute)
+	{
+		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute =
+			add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
+		geometry::filter_bilateral<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
 		vertex_attribute->swap(filtered_vertex_attribute.get());
 		remove_attribute<Vertex>(m, filtered_vertex_attribute);
 
@@ -104,8 +115,10 @@ protected:
 
 			if (selected_vertex_attribute_)
 			{
-				if (ImGui::Button("Filter"))
-					filter_mesh(*selected_mesh_, selected_vertex_attribute_.get());
+				if (ImGui::Button("Filter average"))
+					filter_average(*selected_mesh_, selected_vertex_attribute_.get());
+				if (ImGui::Button("Filter bilateral"))
+					filter_average(*selected_mesh_, selected_vertex_attribute_.get());
 				if (ImGui::Button("Regularize"))
 					regularize(*selected_mesh_, selected_vertex_attribute_.get());
 			}
