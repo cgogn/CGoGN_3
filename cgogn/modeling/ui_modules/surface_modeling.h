@@ -181,7 +181,7 @@ public:
 
 	void regularize_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
-		geometry::filter_regularize(m, vertex_position);
+		geometry::filter_regularize(m, vertex_position, vertex_position, 8.0);
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 

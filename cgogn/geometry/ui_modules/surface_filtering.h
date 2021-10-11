@@ -75,21 +75,22 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_attribute);
 	}
 
-	void filter_bilateral(MESH& m, Attribute<Vec3>* vertex_attribute)
+	void filter_bilateral(MESH& m, Attribute<Vec3>* vertex_position)
 	{
-		std::shared_ptr<Attribute<Vec3>> filtered_vertex_attribute =
-			add_attribute<Vec3, Vertex>(m, "__filtered_attribute");
-		geometry::filter_bilateral<Vec3>(m, vertex_attribute, filtered_vertex_attribute.get());
-		vertex_attribute->swap(filtered_vertex_attribute.get());
-		remove_attribute<Vertex>(m, filtered_vertex_attribute);
+		std::shared_ptr<Attribute<Vec3>> filtered_vertex_position =
+			add_attribute<Vec3, Vertex>(m, "__filtered_position");
+		geometry::filter_bilateral(m, vertex_position, filtered_vertex_position.get());
+		vertex_position->swap(filtered_vertex_position.get());
+		remove_attribute<Vertex>(m, filtered_vertex_position);
 
-		mesh_provider_->emit_attribute_changed(m, vertex_attribute);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
-	void regularize(MESH& m, Attribute<Vec3>* vertex_position)
+	void regularize(MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_attribute,
+					Scalar fit_to_data)
 	{
-		geometry::filter_regularize(m, vertex_position);
-		mesh_provider_->emit_attribute_changed(m, vertex_position);
+		geometry::filter_regularize(m, vertex_position, vertex_attribute, fit_to_data);
+		mesh_provider_->emit_attribute_changed(m, vertex_attribute);
 	}
 
 protected:
@@ -110,17 +111,29 @@ protected:
 		if (selected_mesh_)
 		{
 			imgui_combo_attribute<Vertex, Vec3>(
-				*selected_mesh_, selected_vertex_attribute_, "Attribute",
+				*selected_mesh_, selected_vertex_attribute_, "Attribute to filter",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_attribute_ = attribute; });
 
 			if (selected_vertex_attribute_)
 			{
 				if (ImGui::Button("Filter average"))
 					filter_average(*selected_mesh_, selected_vertex_attribute_.get());
-				if (ImGui::Button("Filter bilateral"))
-					filter_average(*selected_mesh_, selected_vertex_attribute_.get());
+			}
+
+			imgui_combo_attribute<Vertex, Vec3>(
+				*selected_mesh_, selected_vertex_position_, "Position",
+				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
+
+			if (selected_vertex_position_)
+			{
+				static float fit_to_data = 10.0;
+				ImGui::SliderFloat("Fit to data", &fit_to_data, 0.0, 20.0);
 				if (ImGui::Button("Regularize"))
-					regularize(*selected_mesh_, selected_vertex_attribute_.get());
+					regularize(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_attribute_.get(),
+							   fit_to_data);
+
+				if (ImGui::Button("Filter bilateral"))
+					filter_bilateral(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
 	}
@@ -128,6 +141,7 @@ protected:
 private:
 	MESH* selected_mesh_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_attribute_;
+	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

@@ -45,9 +45,10 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
 					Graph::Attribute<Scalar>* new_g_vertex_radius, Scalar density);
 
-void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, Graph& new_g, Graph::Edge new_g_edge,
-					 Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
-					 Graph::Attribute<Vec3>* new_g_vertex_position, Graph::Attribute<Scalar>* new_g_vertex_radius,
+void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, std::pair<Scalar, Scalar> g_branch_arclength,
+					 Graph& new_g, Graph::Edge new_g_edge, Graph::Attribute<Vec3>* g_vertex_position,
+					 Graph::Attribute<Scalar>* g_vertex_radius, Graph::Attribute<Vec3>* new_g_vertex_position,
+					 Graph::Attribute<Scalar>* new_g_vertex_radius, Graph::Attribute<Scalar>* new_g_vertex_arclength,
 					 Scalar density);
 
 } // namespace modeling

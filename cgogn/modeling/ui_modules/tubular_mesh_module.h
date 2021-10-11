@@ -339,9 +339,8 @@ public:
 		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 
 		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
-		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
-		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
-		// volume_skin_vertex_normal->swap(normal_filtered.get());
+		geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
+									5.0);
 
 		for (Vec3& n : *volume_skin_vertex_normal)
 			n.normalize();
@@ -524,34 +523,6 @@ public:
 		// refresh_edge_target_length_ = true;
 	}
 
-	// void smooth_volume_surface()
-	// {
-	// 	SURFACE volume_skin;
-	// 	auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-	// 	auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
-	// 	auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
-
-	// 	modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
-	// 									 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
-	// 	geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-
-	// 	geometry::compute_laplacian(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_laplacian.get());
-	// 	parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-	// 		value<Vec3>(volume_skin, volume_skin_vertex_position, v) +=
-	// 			0.15 * value<Vec3>(volume_skin, volume_skin_vertex_laplacian, v);
-	// 		return true;
-	// 	});
-
-	// 	foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-	// 		Vec3 cp = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
-	// 		value<Vec3>(*volume_, volume_vertex_position_,
-	// 					value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = cp;
-	// 		return true;
-	// 	});
-
-	// 	volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
-	// }
-
 	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
 	{
 		SURFACE volume_skin;
@@ -571,6 +542,21 @@ public:
 			return true;
 		});
 
+		// Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL_COT =
+		// 	geometry::cotan_laplacian_matrix(volume_skin, vertex_index.get(), volume_skin_vertex_position.get());
+
+		// Eigen::MatrixXd vpos(nb_vertices, 3);
+		// parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
+		// 	const Vec3& pv = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+		// 	uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
+		// 	vpos(vidx, 0) = pv[0];
+		// 	vpos(vidx, 1) = pv[1];
+		// 	vpos(vidx, 2) = pv[2];
+		// 	return true;
+		// });
+		// Eigen::MatrixXd poslapl(nb_vertices, 3);
+		// poslapl = LAPL_COT * vpos;
+
 		// Scalar fit_to_data = geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get()) * 5.0;
 		// Scalar bb_diag_length =
 		// 	(volume_provider_->mesh_data(volume_)->bb_max_ - volume_provider_->mesh_data(volume_)->bb_min_).norm();
@@ -579,61 +565,51 @@ public:
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);
+		Eigen::MatrixXd b(2 * nb_vertices, 3);
+
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
-			// const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			auto vertices = adjacent_vertices_through_edge(volume_skin, v);
-			// Scalar d = 0;
-			auto d = vertices.size();
-			for (SurfaceVertex av : vertices)
-			{
+			uint32 nbv = 0;
+			foreach_adjacent_vertex_through_edge(volume_skin, v, [&](SurfaceVertex av) -> bool {
 				uint32 avidx = value<uint32>(volume_skin, vertex_index, av);
-				// Scalar dist = (value<Vec3>(volume_skin, volume_skin_vertex_position, av) - p).norm();
-				// Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), dist));
-				// d += dist;
 				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
-			}
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
+				++nbv;
+				return true;
+			});
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), fit_to_data));
+			b(vidx, 0) = 0; // poslapl(vidx, 0);
+			b(vidx, 1) = 0; // poslapl(vidx, 1);
+			b(vidx, 2) = 0; // poslapl(vidx, 2);
+			// const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+			Vec3 pos = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
+			b(nb_vertices + vidx, 0) = fit_to_data * pos[0];
+			b(nb_vertices + vidx, 1) = fit_to_data * pos[1];
+			b(nb_vertices + vidx, 2) = fit_to_data * pos[2];
 			return true;
 		});
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
-		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
+		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
 
-		Eigen::MatrixXd x(nb_vertices, 3);
-		Eigen::MatrixXd b(2 * nb_vertices, 3);
-
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
-			b(vidx, 0) = 0;
-			b(vidx, 1) = 0;
-			b(vidx, 2) = 0;
-			const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			b(nb_vertices + vidx, 0) = fit_to_data * pos[0];
-			b(nb_vertices + vidx, 1) = fit_to_data * pos[1];
-			b(nb_vertices + vidx, 2) = fit_to_data * pos[2];
-			x(vidx, 0) = pos[0];
-			x(vidx, 1) = pos[1];
-			x(vidx, 2) = pos[2];
-			return true;
-		});
-
-		x = solver.solveWithGuess(b, x);
+		Eigen::MatrixXd vpos(nb_vertices, 3);
+		vpos = solver.solve(At * b);
 
 		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
 			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
 			Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			pos[0] = x(vidx, 0);
-			pos[1] = x(vidx, 1);
-			pos[2] = x(vidx, 2);
+			pos[0] = vpos(vidx, 0);
+			pos[1] = vpos(vidx, 1);
+			pos[2] = vpos(vidx, 2);
 			return true;
 		});
 
 		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			Vec3 cp = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
+			const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
+			// Vec3 cp = surface_bvh_->closest_point(pos);
 			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = cp;
+						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = pos;
 			return true;
 		});
 
@@ -654,18 +630,7 @@ public:
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
 		Acoeffs.reserve(nb_vertices * 10);
-		// foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-		// 	auto vertices = adjacent_vertices_through_edge(*volume_, v);
-		// 	auto d = vertices.size();
-		// 	for (VolumeVertex av : vertices)
-		// 	{
-		// 		uint32 avidx = value<uint32>(*volume_, vertex_index, av);
-		// 		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
-		// 	}
-		// 	Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(d)));
-		// 	return true;
-		// });
+
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			auto vertices = incident_vertices(*volume_, e);
 			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
@@ -677,47 +642,6 @@ public:
 			return true;
 		});
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
-
-		// // set constrained vertices
-		// foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-		// 	if (is_incident_to_boundary(*volume_, v))
-		// 	{
-		// 		int idx = int(value<uint32>(*volume_, vertex_index, v));
-		// 		A.prune([&](int i, int, Scalar) { return i != idx; });
-		// 		A.coeffRef(idx, idx) = 1.0;
-		// 	}
-		// 	return true;
-		// });
-		// A.makeCompressed();
-
-		// Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
-		// Eigen::SparseLU<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(LAPL);
-
-		// Eigen::MatrixXd x(nb_vertices, 3);
-		// Eigen::MatrixXd b(nb_vertices, 3);
-
-		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-		// 	const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-		// 	if (is_incident_to_boundary(*volume_, v))
-		// 	{
-		// 		b.coeffRef(vidx, 0) = pos[0];
-		// 		b.coeffRef(vidx, 1) = pos[1];
-		// 		b.coeffRef(vidx, 2) = pos[2];
-		// 	}
-		// 	else
-		// 	{
-		// 		b.coeffRef(vidx, 0) = 0;
-		// 		b.coeffRef(vidx, 1) = 0;
-		// 		b.coeffRef(vidx, 2) = 0;
-		// 	}
-		// 	x(vidx, 0) = pos[0];
-		// 	x(vidx, 1) = pos[1];
-		// 	x(vidx, 2) = pos[2];
-		// 	return true;
-		// });
-
-		// x = solver.solveWithGuess(b, x);
 
 		Eigen::MatrixXd vpos(nb_vertices, 3);
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
@@ -744,15 +668,6 @@ public:
 			}
 			return true;
 		});
-
-		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-		// 	Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-		// 	pos[0] = x(vidx, 0);
-		// 	pos[1] = x(vidx, 1);
-		// 	pos[2] = x(vidx, 2);
-		// 	return true;
-		// });
 
 		remove_attribute<VolumeVertex>(*volume_, vertex_index);
 
@@ -909,7 +824,9 @@ public:
 
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
-		Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
+		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
+		// Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
 
 		Eigen::MatrixXd x(nb_vertices, 3);
 		Eigen::MatrixXd b(nb_oriented_edges + nb_boundary_vertices, 3);
@@ -1033,16 +950,17 @@ public:
 			return true;
 		});
 
-		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-			const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-			x(vidx, 0) = pos[0];
-			x(vidx, 1) = pos[1];
-			x(vidx, 2) = pos[2];
-			return true;
-		});
+		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+		// 	const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
+		// 	x(vidx, 0) = pos[0];
+		// 	x(vidx, 1) = pos[1];
+		// 	x(vidx, 2) = pos[2];
+		// 	return true;
+		// });
 
-		x = solver.solveWithGuess(b, x);
+		// x = solver.solveWithGuess(b, x);
+		x = solver.solve(At * b);
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
 			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
@@ -1235,7 +1153,7 @@ protected:
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_)
 		{
 			static float graph_resample_density = 0.5f;
-			ImGui::SliderFloat("Graph resampling density", &graph_resample_density, 0.0, 1.0);
+			ImGui::SliderFloat("Graph resampling density", &graph_resample_density, 0.0, 2.0);
 			if (ImGui::Button("Resample graph"))
 				resample_graph(graph_resample_density);
 			ImGui::Separator();
