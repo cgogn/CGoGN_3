@@ -345,23 +345,21 @@ public:
 			for (const auto& t : table)
 				total_size += uint32(t.size());
 
-			indices_buffers_uptodate_[pr] = true;
-			if (total_size > 0)
-			{
-				if (!indices_buffers_[pr]->is_created())
-					indices_buffers_[pr]->create();
+			if (!indices_buffers_[pr]->is_created())
+				indices_buffers_[pr]->create();
 
-				indices_buffers_[pr]->bind();
-				indices_buffers_[pr]->allocate(total_size);
-				uint32 beg = 0;
-				for (const auto& t : table)
-				{
-					indices_buffers_[pr]->copy_data(beg, uint32(t.size()), t.data());
-					beg += uint32(t.size());
-				}
-				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
-				indices_buffers_[pr]->release();
+			indices_buffers_[pr]->bind();
+			indices_buffers_[pr]->allocate(total_size);
+			uint32 beg = 0;
+			for (const auto& t : table)
+			{
+				indices_buffers_[pr]->copy_data(beg, uint32(t.size()), t.data());
+				beg += uint32(t.size());
 			}
+			indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+			indices_buffers_[pr]->release();
+
+			indices_buffers_uptodate_[pr] = true;
 		};
 
 		auto func_update_ebo2 = [&](DrawingType pr, const TablesIndices& table) -> void {
@@ -369,26 +367,24 @@ public:
 			for (const auto& t : table)
 				total_size += uint32(t.size());
 
-			indices_buffers_uptodate_[pr] = true;
-			if (total_size > 0)
-			{
-				if (!indices_buffers_[pr]->is_created())
-					indices_buffers_[pr]->create();
+			if (!indices_buffers_[pr]->is_created())
+				indices_buffers_[pr]->create();
 
-				indices_buffers_[pr]->bind();
-				indices_buffers_[pr]->allocate(total_size);
-				uint32* ptr = indices_buffers_[pr]->lock_pointer();
-				uint32 beg = 0;
-				for (const auto& t : table)
-				{
-					for (uint32 i : t)
-						*ptr++ = i + beg;
-					beg += t.empty() ? 0 : t.back() + 1;
-				}
-				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
-				indices_buffers_[pr]->release_pointer();
-				indices_buffers_[pr]->release();
+			indices_buffers_[pr]->bind();
+			indices_buffers_[pr]->allocate(total_size);
+			uint32* ptr = indices_buffers_[pr]->lock_pointer();
+			uint32 beg = 0;
+			for (const auto& t : table)
+			{
+				for (uint32 i : t)
+					*ptr++ = i + beg;
+				beg += t.empty() ? 0 : t.back() + 1;
 			}
+			indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+			indices_buffers_[pr]->release_pointer();
+			indices_buffers_[pr]->release();
+
+			indices_buffers_uptodate_[pr] = true;
 		};
 
 		auto func_update_ebo3 = [&](DrawingType pr, const TablesIndices& table1, const TablesIndices& table2,
@@ -397,30 +393,28 @@ public:
 			for (const auto& t : table1)
 				total_size += uint32(t.size());
 
-			indices_buffers_uptodate_[pr] = true;
-			if (total_size > 0)
+			if (!indices_buffers_[pr]->is_created())
+				indices_buffers_[pr]->create();
+
+			indices_buffers_[pr]->bind();
+			indices_buffers_[pr]->allocate(total_size);
+			uint32* ptr1 = indices_buffers_[pr]->lock_pointer();
+			uint32 beg = 0;
+			uint32 nb = uint32(table1.size());
+			for (uint32 j = 0; j < nb; ++j)
 			{
-				if (!indices_buffers_[pr]->is_created())
-					indices_buffers_[pr]->create();
+				const auto& t1 = table1[j];
+				uint32 sz = uint32(t1.size());
+				for (uint32 k = 0; k < sz; ++k)
+					*ptr1++ = (k % interv == interv - 1) ? t1[k] + beg : t1[k];
 
-				indices_buffers_[pr]->bind();
-				indices_buffers_[pr]->allocate(total_size);
-				uint32* ptr1 = indices_buffers_[pr]->lock_pointer();
-				uint32 beg = 0;
-				uint32 nb = uint32(table1.size());
-				for (uint32 j = 0; j < nb; ++j)
-				{
-					const auto& t1 = table1[j];
-					uint32 sz = uint32(t1.size());
-					for (uint32 k = 0; k < sz; ++k)
-						*ptr1++ = (k % interv == interv - 1) ? t1[k] + beg : t1[k];
-
-					beg += table2[j].empty() ? 0 : table2[j].back() + 1;
-				}
-				indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
-				indices_buffers_[pr]->release_pointer();
-				indices_buffers_[pr]->release();
+				beg += table2[j].empty() ? 0 : table2[j].back() + 1;
 			}
+			indices_buffers_[pr]->set_name("EBO_" + primitives_names[pr]);
+			indices_buffers_[pr]->release_pointer();
+			indices_buffers_[pr]->release();
+
+			indices_buffers_uptodate_[pr] = true;
 		};
 
 		// auto start_timer = std::chrono::high_resolution_clock::now();
