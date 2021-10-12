@@ -774,6 +774,8 @@ public:
 										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
+		// geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
+		// 							5.0);
 		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
 		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
@@ -792,11 +794,11 @@ public:
 
 		uint32 oriented_edge_idx = 0;
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
+			Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
+
 			auto vertices = incident_vertices(*volume_, e);
 			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
 			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
-
-			Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
 
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx1), -1 / target_length));
 			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx2), 1 / target_length));
@@ -834,7 +836,6 @@ public:
 		oriented_edge_idx = 0;
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			auto vertices = incident_vertices(*volume_, e);
-
 			// uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
 			const Vec3& pos1 = value<Vec3>(*volume_, volume_vertex_position_, vertices[0]);
 			// uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);

@@ -570,46 +570,16 @@ protected:
 
 				ImGui::Separator();
 
-				if (ImGui::BeginCombo("Free vertices", p.selected_free_vertices_set_
-														   ? p.selected_free_vertices_set_->name().c_str()
-														   : "-- select --"))
-				{
-					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-						bool is_selected = &cs == p.selected_free_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							set_selected_free_vertices_set(*selected_mesh_, &cs);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
-				}
-				if (p.selected_free_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_free_vertices_set"))
-						set_selected_free_vertices_set(*selected_mesh_, nullptr);
-				}
+				imgui_combo_cells_set(
+					md, p.selected_free_vertices_set_, "Free vertices",
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_free_vertices_set(*selected_mesh_, cs); });
 
-				if (ImGui::BeginCombo("Handle vertices", p.selected_handle_vertices_set_
-															 ? p.selected_handle_vertices_set_->name().c_str()
-															 : "-- select --"))
-				{
-					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-						bool is_selected = &cs == p.selected_handle_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							set_selected_handle_vertices_set(*selected_mesh_, &cs);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
-				}
+				imgui_combo_cells_set(
+					md, p.selected_handle_vertices_set_, "Handle vertices",
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, cs); });
+
 				if (p.selected_handle_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_handle_vertices_set"))
-						set_selected_handle_vertices_set(*selected_mesh_, nullptr);
 					ImGui::TextUnformatted("Press D to drag the handle");
-				}
 			}
 		}
 	}

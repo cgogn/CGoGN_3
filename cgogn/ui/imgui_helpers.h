@@ -28,6 +28,7 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/ui_modules/mesh_data.h>
 
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
@@ -71,6 +72,32 @@ void imgui_combo_attribute(const MESH& m,
 	{
 		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - float32(X_button_width));
+		if (ImGui::Button(("X##" + label).c_str()))
+			on_change(nullptr);
+	}
+}
+
+template <typename CELL, typename MESH, typename FUNC>
+void imgui_combo_cells_set(MeshData<MESH>& md, const CellsSet<MESH, CELL>* selected_set, const std::string& label,
+						   const FUNC& on_change)
+{
+	static_assert(is_func_parameter_same<FUNC, CellsSet<MESH, CELL>*>::value, "Wrong function CellsSet parameter type");
+
+	if (ImGui::BeginCombo(label.c_str(), selected_set ? selected_set->name().c_str() : "-- select --"))
+	{
+		md.template foreach_cells_set<CELL>([&](CellsSet<MESH, CELL>& cs) {
+			bool is_selected = &cs == selected_set;
+			if (ImGui::Selectable(cs.name().c_str(), is_selected))
+				on_change(&cs);
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		});
+		ImGui::EndCombo();
+	}
+	if (selected_set)
+	{
+		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
 		if (ImGui::Button(("X##" + label).c_str()))
 			on_change(nullptr);
 	}
