@@ -29,6 +29,7 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
@@ -76,7 +77,7 @@ void filter_regularize(MESH& m, const typename mesh_traits<MESH>::template Attri
 	});
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL_COT =
-		geometry::cotan_laplacian_matrix(m, vertex_index.get(), vertex_position);
+		geometry::cotan_operator_matrix(m, vertex_index.get(), vertex_position);
 
 	Eigen::MatrixXd vattr(nb_vertices, 3);
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
@@ -102,11 +103,11 @@ void filter_regularize(MESH& m, const typename mesh_traits<MESH>::template Attri
 			uint32 nbv = 0;
 			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 				uint32 avidx = value<uint32>(m, vertex_index, av);
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1.0));
 				++nbv;
 				return true;
 			});
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), (-1.0 * Scalar(nbv))));
 			b(vidx, 0) = attr_lapl(vidx, 0);
 			b(vidx, 1) = attr_lapl(vidx, 1);
 			b(vidx, 2) = attr_lapl(vidx, 2);

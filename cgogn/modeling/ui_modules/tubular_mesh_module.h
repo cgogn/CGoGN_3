@@ -338,7 +338,8 @@ public:
 
 		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
 
-		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
+		geometry::compute_normal<SurfaceVertex>(volume_skin, volume_skin_vertex_position.get(),
+												volume_skin_vertex_normal.get());
 		geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
 									5.0);
 
@@ -773,7 +774,8 @@ public:
 		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
 										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-		geometry::compute_normal(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get());
+		geometry::compute_normal<SurfaceVertex>(volume_skin, volume_skin_vertex_position.get(),
+												volume_skin_vertex_normal.get());
 		// geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
 		// 							5.0);
 		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");

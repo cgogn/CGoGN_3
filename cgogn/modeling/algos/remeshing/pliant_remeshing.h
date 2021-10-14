@@ -134,7 +134,7 @@ struct PliantRemeshing_Helper
 	void compute_lfs()
 	{
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
-		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal.get());
+		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
 
