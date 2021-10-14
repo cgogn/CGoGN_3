@@ -776,11 +776,12 @@ public:
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 		geometry::compute_normal<SurfaceVertex>(volume_skin, volume_skin_vertex_position.get(),
 												volume_skin_vertex_normal.get());
+
 		// geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
 		// 							5.0);
-		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
-		geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
-		geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
+		// auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
+		// geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
+		// geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
 
 		// fit_to_data *= geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get());
 		// Scalar bb_diag_length =
@@ -830,7 +831,6 @@ public:
 
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
-		// Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(A);
 
 		Eigen::MatrixXd x(nb_vertices, 3);
 		Eigen::MatrixXd b(nb_oriented_edges + nb_boundary_vertices, 3);
@@ -953,16 +953,6 @@ public:
 			return true;
 		});
 
-		// parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-		// 	uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-		// 	const Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
-		// 	x(vidx, 0) = pos[0];
-		// 	x(vidx, 1) = pos[1];
-		// 	x(vidx, 2) = pos[2];
-		// 	return true;
-		// });
-
-		// x = solver.solveWithGuess(b, x);
 		x = solver.solve(At * b);
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
