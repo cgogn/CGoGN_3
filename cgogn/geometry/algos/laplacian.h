@@ -202,8 +202,6 @@ template <typename MESH>
 Eigen::SparseMatrix<Scalar, Eigen::ColMajor> topo_laplacian_matrix(
 	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index)
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
-
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 

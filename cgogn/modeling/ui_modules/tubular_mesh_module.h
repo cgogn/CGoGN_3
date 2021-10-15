@@ -82,10 +82,7 @@ class TubularMesh : public ViewModule
 	using Mat3 = geometry::Mat3;
 
 public:
-	TubularMesh(const App& app)
-		: ViewModule(app, "TubularMesh"), graph_(nullptr), graph_vertex_position_(nullptr),
-		  graph_vertex_radius_(nullptr), surface_(nullptr), surface_vertex_position_(nullptr), surface_bvh_(nullptr),
-		  volume_vertex_position_(nullptr), volume_edge_target_length_(nullptr), volume_(nullptr)
+	TubularMesh(const App& app) : ViewModule(app, "TubularMesh")
 	{
 	}
 
@@ -319,65 +316,17 @@ public:
 		volume_provider_->emit_connectivity_changed(*volume_);
 
 		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
+		volume_vertex_index_ = add_attribute<uint32, VolumeVertex>(*volume_, "vertex_index");
 		volume_edge_target_length_ = add_attribute<Scalar, VolumeEdge>(*volume_, "target_length");
+
 		volume_provider_->set_mesh_bb_vertex_position(*volume_, volume_vertex_position_);
 
+		refresh_edge_target_length_ = true;
+		refresh_volume_vertex_indexing_ = true;
+		refresh_volume_skin_ = true;
+		refresh_solver_ = true;
+
 		return volume_;
-	}
-
-	void project_on_surface()
-	{
-		SURFACE volume_skin;
-		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-		auto volume_skin_vertex_normal = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal");
-		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
-
-		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
-										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
-		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-
-		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
-
-		geometry::compute_normal<SurfaceVertex>(volume_skin, volume_skin_vertex_position.get(),
-												volume_skin_vertex_normal.get());
-		geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
-									5.0);
-
-		for (Vec3& n : *volume_skin_vertex_normal)
-			n.normalize();
-
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
-			Vec3 pos;
-
-			Scalar local_size = 0.0;
-			uint32 nb_neigh = 0;
-			foreach_adjacent_vertex_through_edge(volume_skin, v, [&](SurfaceVertex av) -> bool {
-				local_size += (value<Vec3>(volume_skin, volume_skin_vertex_position, av) - p).norm();
-				++nb_neigh;
-				return true;
-			});
-			local_size /= nb_neigh;
-
-			acc::Ray<Vec3> r{p - 0.01 * n, n, 0, acc::inf}; // 1.5 * local_size};
-			acc::BVHTree<uint32, Vec3>::Hit h;
-			if (surface_bvh_->intersect(r, &h))
-			{
-				SurfaceFace f = surface_faces_[h.idx];
-				std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
-				pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
-					  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
-					  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
-			}
-			else
-				pos = surface_bvh_->closest_point(p);
-			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = pos;
-			return true;
-		});
-
-		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
 	void add_volume_padding()
@@ -387,7 +336,10 @@ public:
 		volume_provider_->emit_connectivity_changed(*volume_);
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
-		// refresh_edge_target_length_ = true;
+		refresh_edge_target_length_ = true;
+		refresh_volume_vertex_indexing_ = true;
+		refresh_volume_skin_ = true;
+		refresh_solver_ = true;
 	}
 
 	void subdivide_slice()
@@ -400,6 +352,11 @@ public:
 		}
 		volume_provider_->emit_connectivity_changed(*volume_);
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+		refresh_edge_target_length_ = true;
+		refresh_volume_vertex_indexing_ = true;
+		refresh_volume_skin_ = true;
+		refresh_solver_ = true;
 	}
 
 	void fiber_aligned_subdivision_from_input()
@@ -413,71 +370,76 @@ public:
 			modeling::fiber_aligned_subdivision(*volume_, edge_fibers);
 			volume_provider_->emit_connectivity_changed(*volume_);
 			volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+			refresh_edge_target_length_ = true;
+			refresh_volume_vertex_indexing_ = true;
+			refresh_volume_skin_ = true;
+			refresh_solver_ = true;
 		}
 	}
 
-	void subdivide_skin()
-	{
-		CellMarker<VOLUME, VolumeFace> visited_faces(*volume_);
-		CellCache<VOLUME> skin_cells(*volume_);
+	// void subdivide_skin()
+	// {
+	// 	CellMarker<VOLUME, VolumeFace> visited_faces(*volume_);
+	// 	CellCache<VOLUME> skin_cells(*volume_);
 
-		skin_cells.template build<VolumeVolume>([&](VolumeVolume w) {
-			bool adjacent_boundary = false;
-			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
-				adjacent_boundary = is_incident_to_boundary(*volume_, wf);
-				return !adjacent_boundary;
-			});
-			return adjacent_boundary;
-		});
-		foreach_cell(skin_cells, [&](VolumeVolume w) {
-			foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
-				if (!visited_faces.is_marked(wf))
-				{
-					skin_cells.add(wf);
-					visited_faces.mark(wf);
-				}
-				return true;
-			});
-			return true;
-		});
-		modeling::primal_cut_all_volumes(
-			skin_cells,
-			[&](VolumeVertex v) {
-				std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
-				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
-					0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
-						   cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
-			},
-			[&](VolumeVertex v) {
-				Vec3 center;
-				center.setZero();
-				uint32 count = 0;
-				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
-					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
-					++count;
-					return true;
-				});
-				center /= Scalar(count);
-				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
-			},
-			[&](VolumeVertex v) {
-				Vec3 center;
-				center.setZero();
-				uint32 count = 0;
-				foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
-					center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
-					++count;
-					return true;
-				});
-				center /= Scalar(count);
-				cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
-			});
+	// 	skin_cells.template build<VolumeVolume>([&](VolumeVolume w) {
+	// 		bool adjacent_boundary = false;
+	// 		foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
+	// 			adjacent_boundary = is_incident_to_boundary(*volume_, wf);
+	// 			return !adjacent_boundary;
+	// 		});
+	// 		return adjacent_boundary;
+	// 	});
+	// 	foreach_cell(skin_cells, [&](VolumeVolume w) {
+	// 		foreach_incident_face(*volume_, w, [&](VolumeFace wf) -> bool {
+	// 			if (!visited_faces.is_marked(wf))
+	// 			{
+	// 				skin_cells.add(wf);
+	// 				visited_faces.mark(wf);
+	// 			}
+	// 			return true;
+	// 		});
+	// 		return true;
+	// 	});
+	// 	modeling::primal_cut_all_volumes(
+	// 		skin_cells,
+	// 		[&](VolumeVertex v) {
+	// 			std::vector<VolumeVertex> av = adjacent_vertices_through_edge(*volume_, v);
+	// 			cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) =
+	// 				0.5 * (cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[0]) +
+	// 					   cgogn::value<Vec3>(*volume_, volume_vertex_position_, av[1]));
+	// 		},
+	// 		[&](VolumeVertex v) {
+	// 			Vec3 center;
+	// 			center.setZero();
+	// 			uint32 count = 0;
+	// 			foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+	// 				center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+	// 				++count;
+	// 				return true;
+	// 			});
+	// 			center /= Scalar(count);
+	// 			cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+	// 		},
+	// 		[&](VolumeVertex v) {
+	// 			Vec3 center;
+	// 			center.setZero();
+	// 			uint32 count = 0;
+	// 			foreach_adjacent_vertex_through_edge(*volume_, v, [&](VolumeVertex av) -> bool {
+	// 				center += cgogn::value<Vec3>(*volume_, volume_vertex_position_, av);
+	// 				++count;
+	// 				return true;
+	// 			});
+	// 			center /= Scalar(count);
+	// 			cgogn::value<Vec3>(*volume_, volume_vertex_position_, v) = center;
+	// 		});
 
-		volume_provider_->emit_connectivity_changed(*volume_);
-		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+	// 	volume_provider_->emit_connectivity_changed(*volume_);
+	// 	volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
-		return;
-	}
+	// 	return;
+	// }
 
 	void subdivide_volume()
 	{
@@ -521,161 +483,22 @@ public:
 		volume_provider_->emit_connectivity_changed(*volume_);
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
-		// refresh_edge_target_length_ = true;
+		refresh_edge_target_length_ = true;
+		refresh_volume_vertex_indexing_ = true;
+		refresh_volume_skin_ = true;
+		refresh_solver_ = true;
 	}
 
-	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
+	void refresh_volume_vertex_indexing()
 	{
-		SURFACE volume_skin;
-		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-		auto volume_skin_vertex_laplacian = add_attribute<Vec3, SurfaceVertex>(volume_skin, "laplacian");
-		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
-
-		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
-										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
-		// geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-
-		auto vertex_index = add_attribute<uint32, SurfaceVertex>(volume_skin, "__vertex_index");
-
-		uint32 nb_vertices = 0;
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			value<uint32>(volume_skin, vertex_index, v) = nb_vertices++;
-			return true;
-		});
-
-		// Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL_COT =
-		// 	geometry::cotan_laplacian_matrix(volume_skin, vertex_index.get(), volume_skin_vertex_position.get());
-
-		// Eigen::MatrixXd vpos(nb_vertices, 3);
-		// parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-		// 	const Vec3& pv = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-		// 	uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
-		// 	vpos(vidx, 0) = pv[0];
-		// 	vpos(vidx, 1) = pv[1];
-		// 	vpos(vidx, 2) = pv[2];
-		// 	return true;
-		// });
-		// Eigen::MatrixXd poslapl(nb_vertices, 3);
-		// poslapl = LAPL_COT * vpos;
-
-		// Scalar fit_to_data = geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get()) * 5.0;
-		// Scalar bb_diag_length =
-		// 	(volume_provider_->mesh_data(volume_)->bb_max_ - volume_provider_->mesh_data(volume_)->bb_min_).norm();
-		// fit_to_data *= bb_diag_length / 10.0;
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
-		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
-		Acoeffs.reserve(nb_vertices * 10);
-		Eigen::MatrixXd b(2 * nb_vertices, 3);
-
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
-			uint32 nbv = 0;
-			foreach_adjacent_vertex_through_edge(volume_skin, v, [&](SurfaceVertex av) -> bool {
-				uint32 avidx = value<uint32>(volume_skin, vertex_index, av);
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
-				++nbv;
-				return true;
-			});
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), fit_to_data));
-			b(vidx, 0) = 0; // poslapl(vidx, 0);
-			b(vidx, 1) = 0; // poslapl(vidx, 1);
-			b(vidx, 2) = 0; // poslapl(vidx, 2);
-			// const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			Vec3 pos = surface_bvh_->closest_point(value<Vec3>(volume_skin, volume_skin_vertex_position, v));
-			b(nb_vertices + vidx, 0) = fit_to_data * pos[0];
-			b(nb_vertices + vidx, 1) = fit_to_data * pos[1];
-			b(nb_vertices + vidx, 2) = fit_to_data * pos[2];
-			return true;
-		});
-		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
-		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
-
-		Eigen::MatrixXd vpos(nb_vertices, 3);
-		vpos = solver.solve(At * b);
-
-		parallel_foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			uint32 vidx = value<uint32>(volume_skin, vertex_index, v);
-			Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			pos[0] = vpos(vidx, 0);
-			pos[1] = vpos(vidx, 1);
-			pos[2] = vpos(vidx, 2);
-			return true;
-		});
-
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			const Vec3& pos = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			// Vec3 cp = surface_bvh_->closest_point(pos);
-			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v)) = pos;
-			return true;
-		});
-
-		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
-	}
-
-	void relocate_interior_vertices()
-	{
-		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
-		auto vertex_laplacian = add_attribute<Vec3, VolumeVertex>(*volume_, "laplacian");
-
 		uint32 nb_vertices = 0;
 		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
+			value<uint32>(*volume_, volume_vertex_index_, v) = nb_vertices++;
 			return true;
 		});
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_vertices, nb_vertices);
-		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
-		Acoeffs.reserve(nb_vertices * 10);
-
-		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
-			auto vertices = incident_vertices(*volume_, e);
-			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
-			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
-			return true;
-		});
-		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
-
-		Eigen::MatrixXd vpos(nb_vertices, 3);
-		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			const Vec3& pv = value<Vec3>(*volume_, volume_vertex_position_, v);
-			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-			vpos(vidx, 0) = pv[0];
-			vpos(vidx, 1) = pv[1];
-			vpos(vidx, 2) = pv[2];
-			return true;
-		});
-
-		Eigen::MatrixXd lapl(nb_vertices, 3);
-		lapl = A * vpos;
-
-		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			if (!is_incident_to_boundary(*volume_, v))
-			{
-				uint32 vidx = value<uint32>(*volume_, vertex_index, v);
-				Vec3 l;
-				l[0] = lapl(vidx, 0);
-				l[1] = lapl(vidx, 1);
-				l[2] = lapl(vidx, 2);
-				value<Vec3>(*volume_, volume_vertex_position_, v) += 0.1 * l;
-			}
-			return true;
-		});
-
-		remove_attribute<VolumeVertex>(*volume_, vertex_index);
-
-		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
 
-	void compute_target_edge_length()
+	void refresh_target_edge_length()
 	{
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			// auto vertices = incident_vertices(*volume_, e);
@@ -687,14 +510,23 @@ public:
 
 			Dart ed = e.dart;
 			parallel_edges.push_back(VolumeEdge(ed)); // the edge itself
+			// Dart c = phi<123>(*volume_, ed);
+			// if (!is_boundary(*volume_, c))
+			// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
 			do
 			{
 				Dart vd = phi<211>(*volume_, ed);
 				parallel_edges.push_back(VolumeEdge(vd));
+				// c = phi<123>(*volume_, vd);
+				// if (!is_boundary(*volume_, c))
+				// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
 				if (!is_boundary(*volume_, ed))
 				{
 					vd = phi<211>(*volume_, vd);
 					parallel_edges.push_back(VolumeEdge(vd));
+					// c = phi<123>(*volume_, vd);
+					// if (!is_boundary(*volume_, c))
+					// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
 				}
 				else
 					parallel_edges.push_back(VolumeEdge(ed)); // edge is on the boundary -> count twice
@@ -702,6 +534,26 @@ public:
 				// perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
 				ed = phi<32>(*volume_, ed);
 			} while (ed != e.dart);
+
+			// Dart ed2 = phi2(*volume_, e.dart);
+			// c = phi<123>(*volume_, ed2);
+			// if (!is_boundary(*volume_, c))
+			// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// do
+			// {
+			// 	Dart vd = phi<211>(*volume_, ed2);
+			// 	c = phi<123>(*volume_, vd);
+			// 	if (!is_boundary(*volume_, c))
+			// 		parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 	if (!is_boundary(*volume_, ed))
+			// 	{
+			// 		vd = phi<211>(*volume_, vd);
+			// 		c = phi<123>(*volume_, vd);
+			// 		if (!is_boundary(*volume_, c))
+			// 			parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 	}
+			// 	ed2 = phi<32>(*volume_, ed2);
+			// } while (ed2 != phi2(*volume_, e.dart));
 
 			Scalar parallel_edges_mean_length = 0.0;
 			for (VolumeEdge pe : parallel_edges)
@@ -720,127 +572,317 @@ public:
 			// 	target_length = parallel_edges_mean_length;
 
 			value<Scalar>(*volume_, volume_edge_target_length_, e) = parallel_edges_mean_length;
-			// 0.5 * (parallel_edges_mean_length + perpendicular_edges_mean_length);
+			// value<Scalar>(*volume_, volume_edge_target_length_, e) =
+			// 	(2.0 * parallel_edges_mean_length + perpendicular_edges_mean_length) / 3.0;
 
 			return true;
 		});
-		// refresh_edge_target_length_ = false;
+
+		refresh_edge_target_length_ = false;
+		refresh_solver_ = true;
 	}
 
-	bool is_inside(const Vec3& p)
-	{
-		// uint32 nb_inter = 0;
-		// acc::Ray<Vec3> r{p + 0.0001 * n, n, 0, acc::inf};
-		// acc::BVHTree<uint32, Vec3>::Hit h;
-		// while (surface_bvh_->intersect(r, &h))
-		// {
-		// 	++nb_inter;
-		// 	SurfaceFace f = surface_faces_[h.idx];
-		// 	std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
-		// 	Vec3 pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
-		// 			   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
-		// 			   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
-		// 	r.origin = pos + 0.0001 * n;
-		// }
-		// return nb_inter % 2 == 1;
+	// bool is_inside(const Vec3& p)
+	// {
+	// 	// uint32 nb_inter = 0;
+	// 	// acc::Ray<Vec3> r{p + 0.0001 * n, n, 0, acc::inf};
+	// 	// acc::BVHTree<uint32, Vec3>::Hit h;
+	// 	// while (surface_bvh_->intersect(r, &h))
+	// 	// {
+	// 	// 	++nb_inter;
+	// 	// 	SurfaceFace f = surface_faces_[h.idx];
+	// 	// 	std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+	// 	// 	Vec3 pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+	// 	// 			   h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+	// 	// 			   h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+	// 	// 	r.origin = pos + 0.0001 * n;
+	// 	// }
+	// 	// return nb_inter % 2 == 1;
 
-		std::pair<uint32, Vec3> cp;
-		surface_bvh_->closest_point(p, &cp);
-		Vec3 dir = (cp.second - p).normalized();
-		Vec3 n = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_);
-		return dir.dot(n) > 0;
+	// 	std::pair<uint32, Vec3> cp;
+	// 	surface_bvh_->closest_point(p, &cp);
+	// 	Vec3 dir = (cp.second - p).normalized();
+	// 	Vec3 n = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_);
+	// 	return dir.dot(n) > 0;
+	// }
+
+	void refresh_volume_skin()
+	{
+		if (volume_skin_)
+			delete volume_skin_;
+		volume_skin_ = new SURFACE();
+		volume_skin_vertex_position_ = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "position");
+		volume_skin_vertex_normal_ = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal");
+		volume_skin_vertex_index_ = add_attribute<uint32, SurfaceVertex>(*volume_skin_, "vertex_index");
+		volume_skin_vertex_volume_vertex_ = add_attribute<VolumeVertex, SurfaceVertex>(*volume_skin_, "hex_vertex");
+		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), *volume_skin_,
+										 volume_skin_vertex_position_.get(), volume_skin_vertex_volume_vertex_.get());
+
+		uint32 nb_vertices = 0;
+		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			value<uint32>(*volume_skin_, volume_skin_vertex_index_, v) = nb_vertices++;
+			return true;
+		});
 	}
 
-	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
+	void refresh_solver(Scalar fit_to_data)
 	{
-		if (refresh_edge_target_length_)
-			compute_target_edge_length();
-
-		auto vertex_index = add_attribute<uint32, VolumeVertex>(*volume_, "__vertex_index");
+		if (refresh_volume_vertex_indexing_)
+			refresh_volume_vertex_indexing();
 
 		uint32 nb_vertices = 0;
 		uint32 nb_boundary_vertices = 0;
 		foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			value<uint32>(*volume_, vertex_index, v) = nb_vertices++;
+			nb_vertices++;
 			if (is_incident_to_boundary(*volume_, v))
 				++nb_boundary_vertices;
 			return true;
 		});
 
-		SURFACE volume_skin;
-		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-		auto volume_skin_vertex_normal = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal");
-		auto volume_skin_vertex_volume_vertex = add_attribute<VolumeVertex, SurfaceVertex>(volume_skin, "hex_vertex");
-		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
-										 volume_skin_vertex_position.get(), volume_skin_vertex_volume_vertex.get());
-		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-		geometry::compute_normal<SurfaceVertex>(volume_skin, volume_skin_vertex_position.get(),
-												volume_skin_vertex_normal.get());
+		uint32 nb_volume_edges = nb_cells<VolumeEdge>(*volume_);
+		uint32 nb_oriented_edges = nb_volume_edges * 2;
 
-		// geometry::filter_regularize(volume_skin, volume_skin_vertex_position.get(), volume_skin_vertex_normal.get(),
-		// 							5.0);
-		// auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(volume_skin, "normal_filtered");
-		// geometry::filter_average<Vec3>(volume_skin, volume_skin_vertex_normal.get(), normal_filtered.get());
-		// geometry::filter_average<Vec3>(volume_skin, normal_filtered.get(), volume_skin_vertex_normal.get());
+		geometry::compute_normal<SurfaceVertex>(*volume_skin_, volume_skin_vertex_position_.get(),
+												volume_skin_vertex_normal_.get());
+		// geometry::filter_regularize(*volume_skin_, volume_skin_vertex_position_.get(),
+		// volume_skin_vertex_normal.get(), 							5.0);
+		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal_filtered");
+		geometry::filter_average<Vec3>(*volume_skin_, volume_skin_vertex_normal_.get(), normal_filtered.get());
+		geometry::filter_average<Vec3>(*volume_skin_, normal_filtered.get(), volume_skin_vertex_normal_.get());
+		remove_attribute<SurfaceVertex>(*volume_skin_, normal_filtered);
 
-		// fit_to_data *= geometry::mean_edge_length(volume_skin, volume_skin_vertex_position.get());
-		// Scalar bb_diag_length =
-		// 	(volume_provider_->mesh_data(volume_)->bb_max_ - volume_provider_->mesh_data(volume_)->bb_min_).norm();
-		// fit_to_data *= bb_diag_length / 10.0;
-
-		uint32 nb_oriented_edges = nb_cells<VolumeEdge>(*volume_) * 2;
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(nb_oriented_edges + nb_boundary_vertices, nb_vertices);
-
-		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
-		Acoeffs.reserve(nb_oriented_edges * 2);
+		std::vector<Eigen::Triplet<Scalar>> triplets;
+		triplets.reserve(nb_oriented_edges * 2 + nb_boundary_vertices);
 
 		uint32 oriented_edge_idx = 0;
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
 
 			auto vertices = incident_vertices(*volume_, e);
-			uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
-			uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
+			uint32 vidx1 = value<uint32>(*volume_, volume_vertex_index_, vertices[0]);
+			uint32 vidx2 = value<uint32>(*volume_, volume_vertex_index_, vertices[1]);
 
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx1), -1 / target_length));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx2), 1 / target_length));
-
-			++oriented_edge_idx;
-
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx1), 1 / target_length));
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx2), -1 / target_length));
+			triplets.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx1), -1 / target_length));
+			triplets.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx2), 1 / target_length));
 
 			++oriented_edge_idx;
 
+			triplets.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx1), 1 / target_length));
+			triplets.push_back(Eigen::Triplet<Scalar>(int(oriented_edge_idx), int(vidx2), -1 / target_length));
+
+			++oriented_edge_idx;
 			return true;
 		});
 
 		// set constrained vertices
 		uint32 boundary_vertex_idx = 0;
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			uint32 vidx = value<uint32>(*volume_, vertex_index,
-										value<VolumeVertex>(volume_skin, volume_skin_vertex_volume_vertex, v));
-			Acoeffs.push_back(
+		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_, volume_vertex_index_,
+										value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
+			triplets.push_back(
 				Eigen::Triplet<Scalar>(int(oriented_edge_idx + boundary_vertex_idx), int(vidx), fit_to_data));
 			++boundary_vertex_idx;
 			return true;
 		});
 
+		solver_matrix_.setZero();
+		solver_matrix_.resize(nb_oriented_edges + nb_boundary_vertices, nb_vertices);
+		solver_matrix_.setFromTriplets(triplets.begin(), triplets.end());
+		if (solver_)
+			delete solver_;
+		solver_ = new Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>(solver_matrix_.transpose() *
+																						  solver_matrix_);
+	}
+
+	void project_on_surface()
+	{
+		if (refresh_volume_skin_)
+			refresh_volume_skin();
+
+		geometry::compute_normal<SurfaceVertex>(*volume_skin_, volume_skin_vertex_position_.get(),
+												volume_skin_vertex_normal_.get());
+		geometry::filter_regularize(*volume_skin_, volume_skin_vertex_position_.get(), volume_skin_vertex_normal_.get(),
+									5.0);
+		for (Vec3& n : *volume_skin_vertex_normal_)
+			n.normalize();
+
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
+			const Vec3& n = value<Vec3>(*volume_skin_, volume_skin_vertex_normal_, v);
+			Vec3 pos;
+
+			// Scalar local_size = 0.0;
+			// uint32 nb_neigh = 0;
+			// foreach_adjacent_vertex_through_edge(*volume_skin_, v, [&](SurfaceVertex av) -> bool {
+			// 	local_size += (value<Vec3>(*volume_skin_, volume_skin_vertex_position_, av) - p).norm();
+			// 	++nb_neigh;
+			// 	return true;
+			// });
+			// local_size /= nb_neigh;
+
+			acc::Ray<Vec3> r{p - 0.01 * n, n, 0, acc::inf}; // 1.5 * local_size};
+			acc::BVHTree<uint32, Vec3>::Hit h;
+			if (surface_bvh_->intersect(r, &h))
+			{
+				SurfaceFace f = surface_faces_[h.idx];
+				std::vector<SurfaceVertex> vertices = incident_vertices(*surface_, f);
+				pos = h.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, vertices[0]) +
+					  h.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, vertices[1]) +
+					  h.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, vertices[2]);
+			}
+			else
+				pos = surface_bvh_->closest_point(p);
+			value<Vec3>(*volume_, volume_vertex_position_,
+						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = pos;
+			return true;
+		});
+
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+		refresh_edge_target_length_ = true;
+		if (volume_skin_)
+		{
+			parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+				value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
+					value<Vec3>(*volume_, volume_vertex_position_,
+								value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
+				return true;
+			});
+		}
+	}
+
+	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
+	{
+		if (refresh_volume_skin_)
+			refresh_volume_skin();
+
+		uint32 nb_vertices = nb_cells<SurfaceVertex>(*volume_skin_);
+
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
+		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
+		Acoeffs.reserve(nb_vertices * 10);
+		Eigen::MatrixXd b(2 * nb_vertices, 3);
+
+		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_skin_, volume_skin_vertex_index_, v);
+			uint32 nbv = 0;
+			foreach_adjacent_vertex_through_edge(*volume_skin_, v, [&](SurfaceVertex av) -> bool {
+				uint32 avidx = value<uint32>(*volume_skin_, volume_skin_vertex_index_, av);
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+				++nbv;
+				return true;
+			});
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), fit_to_data));
+			b(vidx, 0) = 0;
+			b(vidx, 1) = 0;
+			b(vidx, 2) = 0;
+			Vec3 pos = surface_bvh_->closest_point(value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v));
+			b(nb_vertices + vidx, 0) = fit_to_data * pos[0];
+			b(nb_vertices + vidx, 1) = fit_to_data * pos[1];
+			b(nb_vertices + vidx, 2) = fit_to_data * pos[2];
+			return true;
+		});
 		A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
 
-		Eigen::MatrixXd x(nb_vertices, 3);
-		Eigen::MatrixXd b(nb_oriented_edges + nb_boundary_vertices, 3);
+		Eigen::MatrixXd vpos(nb_vertices, 3);
+		vpos = solver.solve(At * b);
 
-		oriented_edge_idx = 0;
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			uint32 vidx = value<uint32>(*volume_skin_, volume_skin_vertex_index_, v);
+			Vec3& pos = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
+			pos[0] = vpos(vidx, 0);
+			pos[1] = vpos(vidx, 1);
+			pos[2] = vpos(vidx, 2);
+			return true;
+		});
+
+		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			const Vec3& pos = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
+			// Vec3 cp = surface_bvh_->closest_point(pos);
+			value<Vec3>(*volume_, volume_vertex_position_,
+						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = pos;
+			return true;
+		});
+
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+		refresh_edge_target_length_ = true;
+		if (volume_skin_)
+		{
+			parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+				value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
+					value<Vec3>(*volume_, volume_vertex_position_,
+								value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
+				return true;
+			});
+		}
+	}
+
+	void relocate_interior_vertices()
+	{
+		if (refresh_volume_vertex_indexing_)
+			refresh_volume_vertex_indexing();
+
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A =
+			geometry::topo_laplacian_matrix(*volume_, volume_vertex_index_.get());
+		A = A.diagonal().asDiagonal().inverse() * A;
+
+		Eigen::MatrixXd vpos(A.cols(), 3);
+		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			const Vec3& pv = value<Vec3>(*volume_, volume_vertex_position_, v);
+			uint32 vidx = value<uint32>(*volume_, volume_vertex_index_, v);
+			vpos(vidx, 0) = pv[0];
+			vpos(vidx, 1) = pv[1];
+			vpos(vidx, 2) = pv[2];
+			return true;
+		});
+
+		Eigen::MatrixXd lapl(A.rows(), 3);
+		lapl = A * vpos;
+
+		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			if (!is_incident_to_boundary(*volume_, v))
+			{
+				uint32 vidx = value<uint32>(*volume_, volume_vertex_index_, v);
+				Vec3 l;
+				l[0] = lapl(vidx, 0);
+				l[1] = lapl(vidx, 1);
+				l[2] = lapl(vidx, 2);
+				value<Vec3>(*volume_, volume_vertex_position_, v) -= 0.1 * l;
+			}
+			return true;
+		});
+
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+		refresh_edge_target_length_ = true;
+	}
+
+	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
+	{
+		if (refresh_edge_target_length_)
+			refresh_target_edge_length();
+
+		if (refresh_volume_skin_)
+			refresh_volume_skin();
+
+		if (refresh_volume_vertex_indexing_)
+			refresh_volume_vertex_indexing();
+
+		if (refresh_solver_)
+			refresh_solver(fit_to_data);
+
+		Eigen::MatrixXd x(solver_matrix_.cols(), 3);
+		Eigen::MatrixXd b(solver_matrix_.rows(), 3);
+
+		uint32 oriented_edge_idx = 0;
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			auto vertices = incident_vertices(*volume_, e);
-			// uint32 vidx1 = value<uint32>(*volume_, vertex_index, vertices[0]);
 			const Vec3& pos1 = value<Vec3>(*volume_, volume_vertex_position_, vertices[0]);
-			// uint32 vidx2 = value<uint32>(*volume_, vertex_index, vertices[1]);
 			const Vec3& pos2 = value<Vec3>(*volume_, volume_vertex_position_, vertices[1]);
 
 			Vec3 edge1 = (pos2 - pos1).normalized();
@@ -849,48 +891,41 @@ public:
 			Vec3 target_n1 = edge1; // (0, 0, 0);
 			Vec3 target_n2 = edge2; // (0, 0, 0);
 
-			// if (!(is_incident_to_boundary(*volume_, vertices[0]) && is_incident_to_boundary(*volume_, vertices[1])))
+			Dart d = e.dart;
+			do
 			{
-				Dart d = e.dart;
-				do
+				if (!is_boundary(*volume_, d))
 				{
-					if (!is_boundary(*volume_, d))
-					{
-						Vec3 n =
-							geometry::normal(
-								pos1,
-								value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d))),
-								value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d))))
-								.normalized();
-						if (edge1.dot(n) > 0)
-							target_n1 += n;
-					}
-					// else
-					// 	target_n1 += edge1;
-					d = phi<32>(*volume_, d);
-				} while (d != e.dart);
-				target_n1.normalize();
+					const Vec3& p2 =
+						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d)));
+					const Vec3& p3 = value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d)));
+					Vec3 n = geometry::normal(pos1, p2, p3).normalized();
+					if (edge1.dot(n) > 0)
+						target_n1 += n;
+				}
+				d = phi<32>(*volume_, d);
+			} while (d != e.dart);
+			target_n1.normalize();
 
-				d = phi2(*volume_, e.dart);
-				do
+			d = phi2(*volume_, e.dart);
+			do
+			{
+				if (!is_boundary(*volume_, d))
 				{
-					if (!is_boundary(*volume_, d))
-					{
-						Vec3 n =
-							geometry::normal(
-								pos2,
-								value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d))),
-								value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d))))
-								.normalized();
-						if (edge2.dot(n) > 0)
-							target_n2 += n;
-					}
-					// else
-					// 	target_n2 += edge2;
-					d = phi<32>(*volume_, d);
-				} while (d != phi2(*volume_, e.dart));
-				target_n2.normalize();
-			}
+					const Vec3& p2 =
+						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d)));
+					const Vec3& p3 = value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d)));
+					Vec3 n = geometry::normal(pos2, p2, p3).normalized();
+					if (edge2.dot(n) > 0)
+						target_n2 += n;
+				}
+				d = phi<32>(*volume_, d);
+			} while (d != phi2(*volume_, e.dart));
+			target_n2.normalize();
+
+			// Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
+			// target_n1 *= target_length;
+			// target_n2 *= target_length;
 
 			b.coeffRef(oriented_edge_idx, 0) = target_n1[0];
 			b.coeffRef(oriented_edge_idx, 1) = target_n1[1];
@@ -903,19 +938,18 @@ public:
 			b.coeffRef(oriented_edge_idx, 2) = target_n2[2];
 
 			++oriented_edge_idx;
-
 			return true;
 		});
 
-		boundary_vertex_idx = 0;
-		foreach_cell(volume_skin, [&](SurfaceVertex v) -> bool {
-			const Vec3& p = value<Vec3>(volume_skin, volume_skin_vertex_position, v);
-			const Vec3& n = value<Vec3>(volume_skin, volume_skin_vertex_normal, v);
+		uint32 boundary_vertex_idx = 0;
+		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
+			const Vec3& n = value<Vec3>(*volume_skin_, volume_skin_vertex_normal_, v);
 
 			Scalar local_size = 0.0;
 			uint32 nb_neigh = 0;
-			foreach_adjacent_vertex_through_edge(volume_skin, v, [&](SurfaceVertex av) -> bool {
-				local_size += (value<Vec3>(volume_skin, volume_skin_vertex_position, av) - p).norm();
+			foreach_adjacent_vertex_through_edge(*volume_skin_, v, [&](SurfaceVertex av) -> bool {
+				local_size += (value<Vec3>(*volume_skin_, volume_skin_vertex_position_, av) - p).norm();
 				++nb_neigh;
 				return true;
 			});
@@ -929,7 +963,6 @@ public:
 			// if (dist > 0.01 * local_size)
 			// {
 			acc::Ray<Vec3> r1{p, n, 0, 1 * local_size}; // acc::inf};
-
 			Vec3 fnorm = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_.get());
 			dir.normalize();
 			if (dir.dot(fnorm) < 0)
@@ -953,18 +986,16 @@ public:
 			return true;
 		});
 
-		x = solver.solve(At * b);
+		x = solver_->solve(solver_matrix_.transpose() * b);
 
 		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
-			uint32 vidx = value<uint32>(*volume_, vertex_index, v);
+			uint32 vidx = value<uint32>(*volume_, volume_vertex_index_, v);
 			Vec3& pos = value<Vec3>(*volume_, volume_vertex_position_, v);
 			pos[0] = x(vidx, 0);
 			pos[1] = x(vidx, 1);
 			pos[2] = x(vidx, 2);
 			return true;
 		});
-
-		remove_attribute<VolumeVertex>(*volume_, vertex_index);
 
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 	}
@@ -974,21 +1005,10 @@ public:
 		auto corner_frame = add_attribute<Mat3, VolumeVertex2>(*volume_, "__corner_frame");
 		auto hex_frame = add_attribute<Mat3, VolumeVolume>(*volume_, "__hex_frame");
 
-		auto scaled_jacobian = get_attribute<Scalar, VolumeVolume>(*volume_, "scaled_jacobian");
-		if (!scaled_jacobian)
-			scaled_jacobian = add_attribute<Scalar, VolumeVolume>(*volume_, "scaled_jacobian");
-
-		auto jacobian = get_attribute<Scalar, VolumeVolume>(*volume_, "jacobian");
-		if (!jacobian)
-			jacobian = add_attribute<Scalar, VolumeVolume>(*volume_, "jacobian");
-
-		auto max_froebnius = get_attribute<Scalar, VolumeVolume>(*volume_, "max_froebnius");
-		if (!max_froebnius)
-			max_froebnius = add_attribute<Scalar, VolumeVolume>(*volume_, "max_froebnius");
-
-		auto mean_froebnius = get_attribute<Scalar, VolumeVolume>(*volume_, "mean_froebnius");
-		if (!mean_froebnius)
-			mean_froebnius = add_attribute<Scalar, VolumeVolume>(*volume_, "mean_froebnius");
+		auto scaled_jacobian = get_or_add_attribute<Scalar, VolumeVolume>(*volume_, "scaled_jacobian");
+		auto jacobian = get_or_add_attribute<Scalar, VolumeVolume>(*volume_, "jacobian");
+		auto max_froebnius = get_or_add_attribute<Scalar, VolumeVolume>(*volume_, "max_froebnius");
+		auto mean_froebnius = get_or_add_attribute<Scalar, VolumeVolume>(*volume_, "mean_froebnius");
 
 		geometry::compute_hex_frame(*volume_, volume_vertex_position_.get(), corner_frame.get(), hex_frame.get());
 		geometry::compute_scaled_jacobian(*volume_, corner_frame.get(), hex_frame.get(), scaled_jacobian.get());
@@ -996,11 +1016,17 @@ public:
 		geometry::compute_maximum_aspect_frobenius(*volume_, corner_frame.get(), max_froebnius.get());
 		geometry::compute_mean_aspect_frobenius(*volume_, corner_frame.get(), mean_froebnius.get());
 
+		Scalar min_scaled_jacobian = std::numeric_limits<Scalar>::max();
 		Scalar mean_scaled_jacobian = 0.0;
 		for (Scalar s : *scaled_jacobian)
+		{
 			mean_scaled_jacobian += s;
+			if (s < min_scaled_jacobian)
+				min_scaled_jacobian = s;
+		}
 		mean_scaled_jacobian /= scaled_jacobian->size();
-		std::cout << "mean scaled jacobian = " << mean_scaled_jacobian << std::endl;
+		std::cout << "mean scaled jacobian = " << mean_scaled_jacobian
+				  << " / min scaled jacobian = " << min_scaled_jacobian << std::endl;
 
 		volume_provider_->emit_attribute_changed(*volume_, scaled_jacobian.get());
 		volume_provider_->emit_attribute_changed(*volume_, jacobian.get());
@@ -1015,10 +1041,9 @@ public:
 	{
 		SURFACE volume_skin;
 		auto volume_skin_vertex_position = add_attribute<Vec3, SurfaceVertex>(volume_skin, "position");
-
 		modeling::extract_volume_surface(*volume_, volume_vertex_position_.get(), volume_skin,
 										 volume_skin_vertex_position.get());
-		// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
+		// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position_.get(), 2);
 		geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
 		surface_provider_->save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 	}
@@ -1150,8 +1175,9 @@ protected:
 			if (ImGui::Button("Resample graph"))
 				resample_graph(graph_resample_density);
 			ImGui::Separator();
-			if (ImGui::Button("Build hex mesh"))
-				build_hex_mesh();
+			if (!volume_)
+				if (ImGui::Button("Build hex mesh"))
+					build_hex_mesh();
 		}
 		if (volume_)
 		{
@@ -1160,24 +1186,8 @@ protected:
 
 			if (ImGui::Button("Export subdivided skin"))
 				export_subdivided_skin();
-			if (ImGui::BeginCombo("Faces", selected_volume_faces_set_ ? selected_volume_faces_set_->name().c_str()
-																	  : "-- select --"))
-			{
-				md.template foreach_cells_set<VolumeFace>([&](CellsSet<VOLUME, VolumeFace>& cs) {
-					bool is_selected = &cs == selected_volume_faces_set_;
-					if (ImGui::Selectable(cs.name().c_str(), is_selected))
-						selected_volume_faces_set_ = &cs;
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				});
-				ImGui::EndCombo();
-			}
-			if (selected_volume_faces_set_)
-			{
-				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-				if (ImGui::Button("X##selected_faces_set"))
-					selected_volume_faces_set_ = nullptr;
-			}
+			imgui_combo_cells_set(md, selected_volume_faces_set_, "Faces",
+								  [&](CellsSet<VOLUME, VolumeFace>* cs) { selected_volume_faces_set_ = cs; });
 			if (ImGui::Button("Add volume padding"))
 				add_volume_padding();
 			// if (ImGui::Button("Subdivide length wise"))
@@ -1186,13 +1196,10 @@ protected:
 			// 	subdivide_volume_width_wise();
 			if (ImGui::Button("Find Fibers"))
 				fiber_aligned_subdivision_from_input();
-
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
-
-			if (ImGui::Button("Subdivide skin"))
-				subdivide_skin();
-
+			// if (ImGui::Button("Subdivide skin"))
+			// 	subdivide_skin();
 			if (ImGui::Button("Subdivide slice"))
 				subdivide_slice();
 
@@ -1207,7 +1214,8 @@ protected:
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
 			static float optimize_fit_to_surface = 50.0f;
-			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0);
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0))
+				refresh_solver_ = true;
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);
@@ -1218,25 +1226,39 @@ protected:
 	}
 
 private:
-	MeshProvider<GRAPH>* graph_provider_;
-	MeshProvider<SURFACE>* surface_provider_;
-	MeshProvider<VOLUME>* volume_provider_;
+	MeshProvider<GRAPH>* graph_provider_ = nullptr;
+	MeshProvider<SURFACE>* surface_provider_ = nullptr;
+	MeshProvider<VOLUME>* volume_provider_ = nullptr;
 
-	GRAPH* graph_;
-	std::shared_ptr<GraphAttribute<Vec3>> graph_vertex_position_;
-	std::shared_ptr<GraphAttribute<Scalar>> graph_vertex_radius_;
+	GRAPH* graph_ = nullptr;
+	std::shared_ptr<GraphAttribute<Vec3>> graph_vertex_position_ = nullptr;
+	std::shared_ptr<GraphAttribute<Scalar>> graph_vertex_radius_ = nullptr;
 
-	SURFACE* surface_;
-	std::shared_ptr<SurfaceAttribute<Vec3>> surface_vertex_position_;
-	acc::BVHTree<uint32, Vec3>* surface_bvh_;
+	SURFACE* surface_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<Vec3>> surface_vertex_position_ = nullptr;
+	acc::BVHTree<uint32, Vec3>* surface_bvh_ = nullptr;
 	std::vector<SurfaceFace> surface_faces_;
 
-	SURFACE* contact_surface_;
+	SURFACE* contact_surface_ = nullptr;
 
-	VOLUME* volume_;
-	std::shared_ptr<VolumeAttribute<Vec3>> volume_vertex_position_;
-	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_;
+	VOLUME* volume_ = nullptr;
+	std::shared_ptr<VolumeAttribute<Vec3>> volume_vertex_position_ = nullptr;
+	std::shared_ptr<VolumeAttribute<uint32>> volume_vertex_index_ = nullptr;
+	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_ = nullptr;
 	bool refresh_edge_target_length_ = true;
+	bool refresh_volume_vertex_indexing_ = true;
+
+	SURFACE* volume_skin_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<Vec3>> volume_skin_vertex_position_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<uint32>> volume_skin_vertex_index_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<Vec3>> volume_skin_vertex_normal_ = nullptr;
+	std::shared_ptr<SurfaceAttribute<VolumeVertex>> volume_skin_vertex_volume_vertex_ = nullptr;
+	bool refresh_volume_skin_ = true;
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> solver_matrix_;
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>* solver_ = nullptr;
+	bool refresh_solver_ = true;
+
 	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
 
 	CellsSet<VOLUME, VolumeFace>* selected_volume_faces_set_ = nullptr;

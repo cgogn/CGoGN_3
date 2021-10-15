@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/types/cmap/phi.h>
