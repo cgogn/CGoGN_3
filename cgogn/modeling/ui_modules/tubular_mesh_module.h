@@ -579,7 +579,7 @@ public:
 		});
 
 		refresh_edge_target_length_ = false;
-		refresh_solver_ = true;
+		refresh_solver_matrix_values_only_ = true;
 	}
 
 	// bool is_inside(const Vec3& p)
@@ -625,10 +625,12 @@ public:
 		});
 	}
 
-	void refresh_solver(Scalar fit_to_data)
+	void refresh_solver_matrix_values(Scalar fit_to_data)
 	{
 		if (refresh_volume_vertex_indexing_)
 			refresh_volume_vertex_indexing();
+		if (refresh_edge_target_length_)
+			refresh_target_edge_length();
 
 		uint32 nb_vertices = 0;
 		uint32 nb_boundary_vertices = 0;
@@ -641,15 +643,6 @@ public:
 
 		uint32 nb_volume_edges = nb_cells<VolumeEdge>(*volume_);
 		uint32 nb_oriented_edges = nb_volume_edges * 2;
-
-		geometry::compute_normal<SurfaceVertex>(*volume_skin_, volume_skin_vertex_position_.get(),
-												volume_skin_vertex_normal_.get());
-		// geometry::filter_regularize(*volume_skin_, volume_skin_vertex_position_.get(),
-		// volume_skin_vertex_normal.get(), 							5.0);
-		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal_filtered");
-		geometry::filter_average<Vec3>(*volume_skin_, volume_skin_vertex_normal_.get(), normal_filtered.get());
-		geometry::filter_average<Vec3>(*volume_skin_, normal_filtered.get(), volume_skin_vertex_normal_.get());
-		remove_attribute<SurfaceVertex>(*volume_skin_, normal_filtered);
 
 		std::vector<Eigen::Triplet<Scalar>> triplets;
 		triplets.reserve(nb_oriented_edges * 2 + nb_boundary_vertices);
@@ -688,10 +681,6 @@ public:
 		solver_matrix_.setZero();
 		solver_matrix_.resize(nb_oriented_edges + nb_boundary_vertices, nb_vertices);
 		solver_matrix_.setFromTriplets(triplets.begin(), triplets.end());
-		if (solver_)
-			delete solver_;
-		solver_ = new Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>(solver_matrix_.transpose() *
-																						  solver_matrix_);
 	}
 
 	void project_on_surface()
@@ -740,15 +729,12 @@ public:
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
 		refresh_edge_target_length_ = true;
-		if (volume_skin_)
-		{
-			parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
-				value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
-					value<Vec3>(*volume_, volume_vertex_position_,
-								value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
-				return true;
-			});
-		}
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
+				value<Vec3>(*volume_, volume_vertex_position_,
+							value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
+			return true;
+		});
 	}
 
 	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
@@ -811,15 +797,12 @@ public:
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
 		refresh_edge_target_length_ = true;
-		if (volume_skin_)
-		{
-			parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
-				value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
-					value<Vec3>(*volume_, volume_vertex_position_,
-								value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
-				return true;
-			});
-		}
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) =
+				value<Vec3>(*volume_, volume_vertex_position_,
+							value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v));
+			return true;
+		});
 	}
 
 	void relocate_interior_vertices()
@@ -874,7 +857,21 @@ public:
 			refresh_volume_vertex_indexing();
 
 		if (refresh_solver_)
-			refresh_solver(fit_to_data);
+		{
+			refresh_solver_matrix_values(fit_to_data);
+			if (solver_)
+				delete solver_;
+			solver_ = new Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>();
+			Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A = solver_matrix_.transpose() * solver_matrix_;
+			solver_->analyzePattern(A);
+			solver_->factorize(A);
+		}
+		else if (refresh_solver_matrix_values_only_)
+		{
+			refresh_solver_matrix_values(fit_to_data);
+			Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A = solver_matrix_.transpose() * solver_matrix_;
+			solver_->factorize(A);
+		}
 
 		Eigen::MatrixXd x(solver_matrix_.cols(), 3);
 		Eigen::MatrixXd b(solver_matrix_.rows(), 3);
@@ -940,6 +937,15 @@ public:
 			++oriented_edge_idx;
 			return true;
 		});
+
+		geometry::compute_normal<SurfaceVertex>(*volume_skin_, volume_skin_vertex_position_.get(),
+												volume_skin_vertex_normal_.get());
+		// geometry::filter_regularize(*volume_skin_, volume_skin_vertex_position_.get(),
+		// volume_skin_vertex_normal.get(), 							5.0);
+		auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal_filtered");
+		geometry::filter_average<Vec3>(*volume_skin_, volume_skin_vertex_normal_.get(), normal_filtered.get());
+		geometry::filter_average<Vec3>(*volume_skin_, normal_filtered.get(), volume_skin_vertex_normal_.get());
+		remove_attribute<SurfaceVertex>(*volume_skin_, normal_filtered);
 
 		uint32 boundary_vertex_idx = 0;
 		foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
@@ -1215,7 +1221,9 @@ protected:
 				relocate_interior_vertices();
 			static float optimize_fit_to_surface = 50.0f;
 			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0))
-				refresh_solver_ = true;
+			{
+				// refresh_solver_ = true;
+			}
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
 				optimize_volume_vertices(optimize_fit_to_surface);
@@ -1257,6 +1265,7 @@ private:
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> solver_matrix_;
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>* solver_ = nullptr;
+	bool refresh_solver_matrix_values_only_ = true;
 	bool refresh_solver_ = true;
 
 	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
