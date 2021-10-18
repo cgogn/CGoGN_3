@@ -28,6 +28,7 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
+#include <cgogn/geometry/ui_modules/surface_heat_method.h>
 #include <cgogn/geometry/ui_modules/surface_selection.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
 #include <cgogn/rendering/ui_modules/surface_render_vector.h>
@@ -64,6 +65,7 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::SurfaceHeatMethod<Mesh> shm(app);
 
 	app.init_modules();
 

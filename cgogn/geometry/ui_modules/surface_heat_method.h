@@ -54,7 +54,7 @@ class SurfaceHeatMethod : public Module
 public:
 	SurfaceHeatMethod(const App& app)
 		: Module(app, "SurfaceHeatMethod (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
-		  selected_vertex_attribute_(nullptr)
+		  selected_vertex_position_(nullptr), selected_vertices_set_(nullptr)
 	{
 	}
 	~SurfaceHeatMethod()
@@ -72,15 +72,20 @@ protected:
 	{
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
 			selected_mesh_ = &m;
-			selected_vertex_attribute_.reset();
+			selected_vertex_position_.reset();
 			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
 		if (selected_mesh_)
 		{
+			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
+
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
+
+			imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
+								  [&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
 
 			if (selected_vertex_position_)
 			{
@@ -91,6 +96,7 @@ protected:
 private:
 	MESH* selected_mesh_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
+	CellsSet<MESH, Vertex>* selected_vertices_set_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 
