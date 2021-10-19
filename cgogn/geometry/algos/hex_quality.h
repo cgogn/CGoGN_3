@@ -47,10 +47,10 @@ void compute_hex_frame(const CMap3& m, const CMap3::Attribute<Vec3>* vertex_posi
 		D[1] = phi1(m, d0);
 		D[2] = phi1(m, D[1]);
 		D[3] = phi1(m, D[2]);
-		D[4] = phi<211>(m, d0);
-		D[5] = phi<211>(m, D[1]);
-		D[6] = phi<211>(m, D[2]);
-		D[7] = phi<211>(m, D[3]);
+		D[4] = phi<2, 1, 1>(m, d0);
+		D[5] = phi<2, 1, 1>(m, D[1]);
+		D[6] = phi<2, 1, 1>(m, D[2]);
+		D[7] = phi<2, 1, 1>(m, D[3]);
 
 		Vec3 P[8];
 		P[0] = value<Vec3>(m, vertex_position, CMap3::Vertex(D[0]));

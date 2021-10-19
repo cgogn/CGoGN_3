@@ -62,7 +62,7 @@ inline void cut_incident_faces(CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
 	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<11>(m, f.dart)));
+		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
 }
 
 inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)

@@ -524,49 +524,49 @@ public:
 
 			Dart ed = e.dart;
 			parallel_edges.push_back(VolumeEdge(ed)); // the edge itself
-			// Dart c = phi<123>(*volume_, ed);
+			// Dart c = phi<1, 2, 3>(*volume_, ed);
 			// if (!is_boundary(*volume_, c))
-			// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 	parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 			do
 			{
-				Dart vd = phi<211>(*volume_, ed);
+				Dart vd = phi<2, 1, 1>(*volume_, ed);
 				parallel_edges.push_back(VolumeEdge(vd));
-				// c = phi<123>(*volume_, vd);
+				// c = phi<1, 2, 3>(*volume_, vd);
 				// if (!is_boundary(*volume_, c))
-				// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+				// 	parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 				if (!is_boundary(*volume_, ed))
 				{
-					vd = phi<211>(*volume_, vd);
+					vd = phi<2, 1, 1>(*volume_, vd);
 					parallel_edges.push_back(VolumeEdge(vd));
-					// c = phi<123>(*volume_, vd);
+					// c = phi<1, 2, 3>(*volume_, vd);
 					// if (!is_boundary(*volume_, c))
-					// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+					// 	parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 				}
 				else
 					parallel_edges.push_back(VolumeEdge(ed)); // edge is on the boundary -> count twice
 				// perpendicular_edges.push_back(VolumeEdge(phi1(*volume_, ed)));
 				// perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
-				ed = phi<32>(*volume_, ed);
+				ed = phi<3, 2>(*volume_, ed);
 			} while (ed != e.dart);
 
 			// Dart ed2 = phi2(*volume_, e.dart);
-			// c = phi<123>(*volume_, ed2);
+			// c = phi<1, 2, 3>(*volume_, ed2);
 			// if (!is_boundary(*volume_, c))
-			// 	parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 	parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 			// do
 			// {
-			// 	Dart vd = phi<211>(*volume_, ed2);
-			// 	c = phi<123>(*volume_, vd);
+			// 	Dart vd = phi<2, 1, 1>(*volume_, ed2);
+			// 	c = phi<1, 2, 3>(*volume_, vd);
 			// 	if (!is_boundary(*volume_, c))
-			// 		parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 		parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 			// 	if (!is_boundary(*volume_, ed))
 			// 	{
-			// 		vd = phi<211>(*volume_, vd);
-			// 		c = phi<123>(*volume_, vd);
+			// 		vd = phi<2, 1, 1>(*volume_, vd);
+			// 		c = phi<1, 2, 3>(*volume_, vd);
 			// 		if (!is_boundary(*volume_, c))
-			// 			parallel_edges.push_back(VolumeEdge(phi<21>(*volume_, c)));
+			// 			parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 			// 	}
-			// 	ed2 = phi<32>(*volume_, ed2);
+			// 	ed2 = phi<3, 2>(*volume_, ed2);
 			// } while (ed2 != phi2(*volume_, e.dart));
 
 			Scalar parallel_edges_mean_length = 0.0;
@@ -909,13 +909,13 @@ public:
 				if (!is_boundary(*volume_, d))
 				{
 					const Vec3& p2 =
-						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d)));
+						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<2, 1, 1>(*volume_, d)));
 					const Vec3& p3 = value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d)));
 					Vec3 n = geometry::normal(pos1, p2, p3).normalized();
 					if (edge1.dot(n) > 0)
 						target_n1 += n;
 				}
-				d = phi<32>(*volume_, d);
+				d = phi<3, 2>(*volume_, d);
 			} while (d != e.dart);
 			target_n1.normalize();
 
@@ -925,13 +925,13 @@ public:
 				if (!is_boundary(*volume_, d))
 				{
 					const Vec3& p2 =
-						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<211>(*volume_, d)));
+						value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi<2, 1, 1>(*volume_, d)));
 					const Vec3& p3 = value<Vec3>(*volume_, volume_vertex_position_, VolumeVertex(phi_1(*volume_, d)));
 					Vec3 n = geometry::normal(pos2, p2, p3).normalized();
 					if (edge2.dot(n) > 0)
 						target_n2 += n;
 				}
-				d = phi<32>(*volume_, d);
+				d = phi<3, 2>(*volume_, d);
 			} while (d != phi2(*volume_, e.dart));
 			target_n2.normalize();
 

@@ -64,7 +64,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	DecimationQEM_Helper<MESH>& helper = it->second;
 
 	auto before = [&](Edge e) { helper.before_collapse(e); };
-	auto approx = [&](Edge e) -> Vec3 { return helper.edge_optimal(e); };
+	auto approx = [&](Edge e) -> Vec3 { return mid_point(m, e, vertex_position); }; // helper.edge_optimal(e); };
 	auto edge_cost = [&](Edge e) -> Scalar { return helper.edge_cost(e, approx(e)); };
 	auto after = [&](Vertex v) { helper.after_collapse(v); };
 

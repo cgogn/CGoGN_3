@@ -85,14 +85,14 @@ struct DecimationQEM_Helper
 	Vec3 edge_optimal(Edge e)
 	{
 		std::vector<Vertex> iv = incident_vertices(m_, e);
-		// Quadric q;
-		// q += value<Quadric>(m_, vertex_quadric_, iv[0]);
-		// q += value<Quadric>(m_, vertex_quadric_, iv[1]);
-		// Vec3 p;
-		// if (q.optimized(p))
-		// 	return p;
-		// else
-		return Scalar(0.5) * (value<Vec3>(m_, vertex_position_, iv[0]) + value<Vec3>(m_, vertex_position_, iv[1]));
+		Quadric q;
+		q += value<Quadric>(m_, vertex_quadric_, iv[0]);
+		q += value<Quadric>(m_, vertex_quadric_, iv[1]);
+		Vec3 p;
+		if (q.optimized(p))
+			return p;
+		else
+			return Scalar(0.5) * (value<Vec3>(m_, vertex_position_, iv[0]) + value<Vec3>(m_, vertex_position_, iv[1]));
 	}
 
 	void before_collapse(Edge e)

@@ -45,11 +45,11 @@ inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 {
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
 	Dart d0 = phi1(m, f.dart);
-	Dart d1 = phi<11>(m, d0);
+	Dart d1 = phi<1, 1>(m, d0);
 	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
-	Dart d2 = phi<11>(m, d1);
+	Dart d2 = phi<1, 1>(m, d1);
 	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
-	Dart d3 = phi<11>(m, d2);
+	Dart d3 = phi<1, 1>(m, d2);
 	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
 }
 
@@ -66,16 +66,16 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	cgogn_message_assert(codegree(m, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
 
 	Dart d0 = phi1(m, f.dart);
-	Dart d1 = phi<11>(m, d0);
+	Dart d1 = phi<1, 1>(m, d0);
 
 	cut_face(m, Vertex(d0), Vertex(d1));
 	cut_edge(m, Edge(phi_1(m, d0)));
 
 	Dart x = phi2(m, phi_1(m, d0));
-	Dart dd = phi<1111>(m, x);
+	Dart dd = phi<1, 1, 1, 1>(m, x);
 	while (dd != x)
 	{
-		Dart next = phi<11>(m, dd);
+		Dart next = phi<1, 1>(m, dd);
 		cut_face(m, Vertex(dd), Vertex(phi1(m, x)));
 		dd = next;
 	}
