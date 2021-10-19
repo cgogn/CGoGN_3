@@ -105,8 +105,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 	std::vector<SelectedFace> result;
 
 	for (const auto& selected_faces_vector : selected_per_thread)
-		for (const auto& x : selected_faces_vector)
-			result.push_back(x);
+		result.insert(result.end(), selected_faces_vector.begin(), selected_faces_vector.end());
 
 	std::sort(result.begin(), result.end(),
 			  [](const SelectedFace& f1, const SelectedFace& f2) -> bool { return std::get<2>(f1) < std::get<2>(f2); });

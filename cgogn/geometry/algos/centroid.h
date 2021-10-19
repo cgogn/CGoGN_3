@@ -36,10 +36,11 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename VEC, typename CELL, typename MESH,
-		  typename = typename std::enable_if<is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value>::type>
+template <typename VEC, typename CELL, typename MESH>
 VEC centroid(const MESH& m, CELL c, const typename mesh_traits<MESH>::template Attribute<VEC>* vertex_attribute)
 {
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
+
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Scalar = typename vector_traits<VEC>::Scalar;
 	VEC result;
@@ -74,11 +75,12 @@ VEC centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute
 	return result;
 }
 
-template <typename VEC, typename CELL, typename MESH,
-		  typename = typename std::enable_if<is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value>::type>
+template <typename VEC, typename CELL, typename MESH>
 void compute_centroid(const MESH& m, const typename mesh_traits<MESH>::template Attribute<VEC>* vertex_attribute,
 					  typename mesh_traits<MESH>::template Attribute<VEC>* cell_centroid)
 {
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
+
 	parallel_foreach_cell(m, [&](CELL c) -> bool {
 		value<VEC>(m, cell_centroid, c) = centroid<VEC>(m, c, vertex_attribute);
 		return true;
@@ -95,7 +97,7 @@ typename mesh_traits<MESH>::Vertex central_vertex(const MESH& m,
 	Scalar min_dist = std::numeric_limits<Scalar>::max();
 	Vertex min_vertex;
 	foreach_cell(m, [&](Vertex v) -> bool {
-		Scalar distance = square_norm(value(m, attribute, v) - center);
+		Scalar distance = (value(m, attribute, v) - center).squaredNorm();
 		if (distance < min_dist)
 		{
 			min_dist = distance;

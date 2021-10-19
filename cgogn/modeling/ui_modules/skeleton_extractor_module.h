@@ -28,6 +28,7 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 
+#include <cgogn/core/functions/convert.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/mesh_ops/vertex.h>
@@ -62,6 +63,7 @@ class SkeletonExtractor : public Module
 	using SurfaceAttribute = typename mesh_traits<SURFACE>::template Attribute<T>;
 
 	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
+	using GraphEdge = typename mesh_traits<GRAPH>::Edge;
 
 	using NonManifoldVertex = typename mesh_traits<NONMANIFOLD>::Vertex;
 	using NonManifoldEdge = typename mesh_traits<NONMANIFOLD>::Edge;
@@ -102,64 +104,34 @@ public:
 		surface_provider_->emit_attribute_changed(s, vertex_position.get());
 	}
 
-	void non_manifold_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position)
+	void create_non_manifold_from_surface(SURFACE& s, SurfaceAttribute<Vec3>* surface_vertex_position)
 	{
 		non_manifold_ = non_manifold_provider_->add_mesh("extracted_non_manifold");
 		non_manifold_vertex_position_ = add_attribute<Vec3, NonManifoldVertex>(*non_manifold_, "position");
 
-		auto non_manifold_vertex = add_attribute<NonManifoldVertex, SurfaceVertex>(s, "__non_manifold_vertex");
-		foreach_cell(s, [&](SurfaceVertex v) -> bool {
-			NonManifoldVertex nmv = add_vertex(*non_manifold_);
-			value<NonManifoldVertex>(s, non_manifold_vertex, v) = nmv;
-			value<Vec3>(*non_manifold_, non_manifold_vertex_position_, nmv) =
-				value<Vec3>(s, surface_vertex_position, v);
-			return true;
-		});
-		auto non_manifold_edge = add_attribute<NonManifoldEdge, SurfaceEdge>(s, "__non_manifold_edge");
-		foreach_cell(s, [&](SurfaceEdge e) -> bool {
-			std::vector<SurfaceVertex> iv = incident_vertices(s, e);
-			value<NonManifoldEdge>(s, non_manifold_edge, e) =
-				add_edge(*non_manifold_, value<NonManifoldVertex>(s, non_manifold_vertex, iv[0]),
-						 value<NonManifoldVertex>(s, non_manifold_vertex, iv[1]));
-			return true;
-		});
-		foreach_cell(s, [&](SurfaceFace f) -> bool {
-			std::vector<SurfaceEdge> ie = incident_edges(s, f);
-			std::vector<NonManifoldEdge> edges;
-			std::transform(ie.begin(), ie.end(), std::back_inserter(edges),
-						   [&](SurfaceEdge e) { return value<NonManifoldEdge>(s, non_manifold_edge, e); });
-			add_face(*non_manifold_, edges);
-			return true;
-		});
-		remove_attribute<SurfaceVertex>(s, non_manifold_vertex);
-		remove_attribute<SurfaceEdge>(s, non_manifold_edge);
+		non_manifold_from_surface(
+			s, *non_manifold_,
+			[&](NonManifoldVertex nmv, SurfaceVertex sv) {
+				value<Vec3>(*non_manifold_, non_manifold_vertex_position_, nmv) =
+					value<Vec3>(s, surface_vertex_position, sv);
+			},
+			[](NonManifoldEdge, SurfaceEdge) {}, [](NonManifoldFace, SurfaceFace) {});
 
 		non_manifold_provider_->emit_connectivity_changed(*non_manifold_);
 		non_manifold_provider_->emit_attribute_changed(*non_manifold_, non_manifold_vertex_position_.get());
 	}
 
-	void graph_from_non_manifold(NONMANIFOLD& nm, NonManifoldAttribute<Vec3>* non_manifold_vertex_position)
+	void create_graph_from_non_manifold(NONMANIFOLD& nm, NonManifoldAttribute<Vec3>* non_manifold_vertex_position)
 	{
-		if (non_manifold_provider_->mesh_data(nm).template nb_cells<NonManifoldFace>() > 0)
-			return;
-
 		graph_ = graph_provider_->add_mesh("extracted_graph");
 		graph_vertex_position_ = add_attribute<Vec3, GraphVertex>(*graph_, "position");
 
-		auto graph_vertex = add_attribute<GraphVertex, NonManifoldVertex>(nm, "__graph_vertex");
-		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
-			GraphVertex gv = add_vertex(*graph_);
-			value<GraphVertex>(nm, graph_vertex, v) = gv;
-			value<Vec3>(*graph_, graph_vertex_position_, gv) = value<Vec3>(nm, non_manifold_vertex_position, v);
-			return true;
-		});
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
-			std::vector<NonManifoldVertex> iv = incident_vertices(nm, e);
-			connect_vertices(*graph_, value<GraphVertex>(nm, graph_vertex, iv[0]),
-							 value<GraphVertex>(nm, graph_vertex, iv[1]));
-			return true;
-		});
-		remove_attribute<NonManifoldVertex>(nm, graph_vertex);
+		graph_from_non_manifold(
+			nm, *graph_,
+			[&](GraphVertex gv, NonManifoldVertex nmv) {
+				value<Vec3>(*graph_, graph_vertex_position_, gv) = value<Vec3>(nm, non_manifold_vertex_position, nmv);
+			},
+			[](GraphEdge, NonManifoldEdge) {});
 
 		graph_provider_->emit_connectivity_changed(*graph_);
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
@@ -286,7 +258,7 @@ protected:
 				if (ImGui::Button("Skeletonize"))
 					skeletonize(*selected_surface_, selected_surface_vertex_position_, wL, wH, wM, resampling_ratio);
 				if (ImGui::Button("Non-manifold from surface"))
-					non_manifold_from_surface(*selected_surface_, selected_surface_vertex_position_.get());
+					create_non_manifold_from_surface(*selected_surface_, selected_surface_vertex_position_.get());
 
 				if (selected_surface_vertex_normal_)
 				{
@@ -300,7 +272,7 @@ protected:
 				if (ImGui::Button("Collapse non-manifold"))
 					collapse_non_manifold();
 				if (ImGui::Button("Graph from non-manifold"))
-					graph_from_non_manifold(*non_manifold_, non_manifold_vertex_position_.get());
+					create_graph_from_non_manifold(*non_manifold_, non_manifold_vertex_position_.get());
 			}
 		}
 	}

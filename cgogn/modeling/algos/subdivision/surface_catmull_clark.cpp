@@ -74,7 +74,7 @@ void subdivide_catmull_clark(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 		if (!is_incident_to_boundary(m, v))
 		{
 			CMap2::Vertex f1(phi_1(m, v.dart));
-			CMap2::Vertex f2(phi<211>(m, v.dart));
+			CMap2::Vertex f2(phi<2, 1, 1>(m, v.dart));
 			value<Vec3>(m, vertex_position, v) =
 				0.25 * (2.0 * value<Vec3>(m, vertex_position, v) + value<Vec3>(m, vertex_position, f1) +
 						value<Vec3>(m, vertex_position, f2));
@@ -93,11 +93,11 @@ void subdivide_catmull_clark(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 		foreach_incident_edge(m, v, [&](CMap2::Edge e) -> bool {
 			++nb_e;
 			sum_E += 0.5 * (value<Vec3>(m, vertex_position, v) +
-							value<Vec3>(m, vertex_position, CMap2::Vertex(phi<1211>(m, e.dart))));
+							value<Vec3>(m, vertex_position, CMap2::Vertex(phi<1, 2, 1, 1>(m, e.dart))));
 			if (!is_boundary(m, e.dart))
 			{
 				++nb_f;
-				sum_F += value<Vec3>(m, vertex_position, CMap2::Vertex(phi<11>(m, e.dart)));
+				sum_F += value<Vec3>(m, vertex_position, CMap2::Vertex(phi<1, 1>(m, e.dart)));
 			}
 			else
 				boundary = e.dart;
@@ -109,8 +109,8 @@ void subdivide_catmull_clark(CMap2& m, CMap2::Attribute<Vec3>* vertex_position)
 
 		if (!boundary.is_nil()) // boundary case
 		{
-			CMap2::Vertex e1(phi<11>(m, boundary));
-			CMap2::Vertex e2(phi_1(m, phi_1(m, boundary)));
+			CMap2::Vertex e1(phi<1, 1>(m, boundary));
+			CMap2::Vertex e2(phi<-1, -1>(m, boundary));
 			value<Vec3>(m, vertex_position, v) =
 				3.0 / 4.0 * value<Vec3>(m, vertex_position, v) +
 				1.0 / 8.0 * (value<Vec3>(m, vertex_position, e1) + value<Vec3>(m, vertex_position, e2));
