@@ -202,6 +202,17 @@ private:
 						}
 						v->request_update();
 					}));
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Scalar>>(
+					m, [this, v, m](Attribute<Scalar>* attribute) {
+						Parameters& p = parameters_[v][m];
+						if (p.volume_scalar_.get() == attribute)
+						{
+							if (p.auto_update_volume_scalar_min_max_)
+								update_volume_scalar_min_max_values(p);
+						}
+						v->request_update();
+					}));
 		}
 	}
 

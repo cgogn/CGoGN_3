@@ -29,6 +29,7 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
@@ -43,8 +44,8 @@ namespace geometry
 {
 
 template <typename T, typename MESH>
-void filter_average(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute_in,
-					typename mesh_traits<MESH>::template Attribute<T>* attribute_out)
+void filter_average(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* vertex_attribute_in,
+					typename mesh_traits<MESH>::template Attribute<T>* vertex_attribute_out)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
@@ -53,17 +54,18 @@ void filter_average(const MESH& m, const typename mesh_traits<MESH>::template At
 		sum.setZero();
 		uint32 count = 0;
 		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-			sum += value<T>(m, attribute_in, av);
+			sum += value<T>(m, vertex_attribute_in, av);
 			++count;
 			return true;
 		});
-		value<T>(m, attribute_out, v) = sum / count;
+		value<T>(m, vertex_attribute_out, v) = sum / count;
 		return true;
 	});
 }
 
 template <typename MESH>
-void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+void filter_regularize(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+					   typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_attribute, Scalar fit_to_data)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
@@ -75,19 +77,19 @@ void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<V
 	});
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL_COT =
-		geometry::cotan_laplacian_matrix(m, vertex_index.get(), vertex_position);
+		geometry::cotan_operator_matrix(m, vertex_index.get(), vertex_position);
 
-	Eigen::MatrixXd vpos(nb_vertices, 3);
+	Eigen::MatrixXd vattr(nb_vertices, 3);
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		const Vec3& pv = value<Vec3>(m, vertex_position, v);
+		const Vec3& val = value<Vec3>(m, vertex_attribute, v);
 		uint32 vidx = value<uint32>(m, vertex_index, v);
-		vpos(vidx, 0) = pv[0];
-		vpos(vidx, 1) = pv[1];
-		vpos(vidx, 2) = pv[2];
+		vattr(vidx, 0) = val[0];
+		vattr(vidx, 1) = val[1];
+		vattr(vidx, 2) = val[2];
 		return true;
 	});
-	Eigen::MatrixXd poslapl(nb_vertices, 3);
-	poslapl = LAPL_COT * vpos;
+	Eigen::MatrixXd attr_lapl(nb_vertices, 3);
+	attr_lapl = LAPL_COT * vattr;
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
 	std::vector<Eigen::Triplet<Scalar>> Acoeffs;
@@ -101,34 +103,34 @@ void filter_regularize(MESH& m, typename mesh_traits<MESH>::template Attribute<V
 			uint32 nbv = 0;
 			foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 				uint32 avidx = value<uint32>(m, vertex_index, av);
-				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1));
+				Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(avidx), 1.0));
 				++nbv;
 				return true;
 			});
-			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), -1 * Scalar(nbv)));
-			b(vidx, 0) = poslapl(vidx, 0);
-			b(vidx, 1) = poslapl(vidx, 1);
-			b(vidx, 2) = poslapl(vidx, 2);
+			Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx), int(vidx), (-1.0 * Scalar(nbv))));
+			b(vidx, 0) = attr_lapl(vidx, 0);
+			b(vidx, 1) = attr_lapl(vidx, 1);
+			b(vidx, 2) = attr_lapl(vidx, 2);
 		}
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), 10.0));
-		const Vec3& pv = value<Vec3>(m, vertex_position, v);
-		b(nb_vertices + vidx, 0) = 10.0 * pv[0];
-		b(nb_vertices + vidx, 1) = 10.0 * pv[1];
-		b(nb_vertices + vidx, 2) = 10.0 * pv[2];
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(nb_vertices + vidx), int(vidx), fit_to_data));
+		const Vec3& val = value<Vec3>(m, vertex_attribute, v);
+		b(nb_vertices + vidx, 0) = fit_to_data * val[0];
+		b(nb_vertices + vidx, 1) = fit_to_data * val[1];
+		b(nb_vertices + vidx, 2) = fit_to_data * val[2];
 		return true;
 	});
 	A.setFromTriplets(Acoeffs.begin(), Acoeffs.end());
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At = A.transpose();
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver(At * A);
-	vpos = solver.solve(At * b);
+	vattr = solver.solve(At * b);
 
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		uint32 vidx = value<uint32>(m, vertex_index, v);
-		Vec3& pos = value<Vec3>(m, vertex_position, v);
-		pos[0] = vpos(vidx, 0);
-		pos[1] = vpos(vidx, 1);
-		pos[2] = vpos(vidx, 2);
+		Vec3& pos = value<Vec3>(m, vertex_attribute, v);
+		pos[0] = vattr(vidx, 0);
+		pos[1] = vattr(vidx, 1);
+		pos[2] = vattr(vidx, 2);
 		return true;
 	});
 
@@ -146,19 +148,20 @@ void filter_bilateral(const MESH& m, const typename mesh_traits<MESH>::template 
 	Scalar angle_sum = 0;
 	uint32 nb_edges = 0;
 
-	foreach_cell(m, [&](Edge e) {
+	foreach_cell(m, [&](Edge e) -> bool {
 		length_sum += length(m, e, vertex_position_in);
 		angle_sum += angle(m, e, vertex_position_in);
 		++nb_edges;
+		return true;
 	});
 
 	Scalar sigmaC = 1.0 * (length_sum / Scalar(nb_edges));
 	Scalar sigmaS = 2.5 * (angle_sum / Scalar(nb_edges));
 
-	parallel_foreach_cell(m, [&](Vertex v) {
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		Vec3 n = normal(m, v, vertex_position_in);
 		Scalar sum = 0, normalizer = 0;
-		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) {
+		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 			Vec3 edge = value<Vec3>(m, vertex_position_in, av) - value<Vec3>(m, vertex_position_in, v);
 			Scalar t = edge.norm();
 			Scalar h = n.dot(edge);
@@ -166,8 +169,10 @@ void filter_bilateral(const MESH& m, const typename mesh_traits<MESH>::template 
 				std::exp((-1.0 * (t * t) / (2.0 * sigmaC * sigmaC)) + (-1.0 * (h * h) / (2.0 * sigmaS * sigmaS)));
 			sum += wcs * h;
 			normalizer += wcs;
+			return true;
 		});
 		value<Vec3>(m, vertex_position_out, v) = value<Vec3>(m, vertex_position_in, v) + ((sum / normalizer) * n);
+		return true;
 	});
 }
 

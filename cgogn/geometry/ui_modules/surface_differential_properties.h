@@ -72,7 +72,7 @@ public:
 
 	void compute_normal(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
 	{
-		geometry::compute_normal(m, vertex_position, vertex_normal);
+		geometry::compute_normal<Vertex>(m, vertex_position, vertex_normal);
 		mesh_provider_->emit_attribute_changed(m, vertex_normal);
 	}
 

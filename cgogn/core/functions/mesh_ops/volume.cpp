@@ -136,7 +136,7 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 	}
 	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the sides
 	CMap2::Face base = close_hole(m, first.dart, false); // Add the base face
-	close_hole(m, phi<11>(m, first.dart), false);		 // Add the top face
+	close_hole(m, phi<1, 1>(m, first.dart), false);		 // Add the top face
 
 	CMap2::Volume vol(base.dart);
 
@@ -250,14 +250,14 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 		if (is_indexed<CMap3::Vertex>(m))
 		{
 			foreach_dart_of_orbit(m, CMap3::Face(f0), [&](Dart d) -> bool {
-				copy_index<CMap3::Vertex>(m, d, phi<21>(m, d));
+				copy_index<CMap3::Vertex>(m, d, phi<2, 1>(m, d));
 				return true;
 			});
 		}
 		if (is_indexed<CMap3::Vertex2>(m))
 		{
 			foreach_dart_of_orbit(m, CMap3::Face(f0), [&](Dart d) -> bool {
-				copy_index<CMap3::Vertex2>(m, d, phi<21>(m, d));
+				copy_index<CMap3::Vertex2>(m, d, phi<2, 1>(m, d));
 				return true;
 			});
 		}
@@ -319,7 +319,7 @@ CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_ind
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
 		{
 			foreach_dart_of_orbit(m, CPH3::CMAP::Face(f0), [&](Dart d) -> bool {
-				copy_index<CPH3::CMAP::Vertex>(m, d, phi<21>(m, d));
+				copy_index<CPH3::CMAP::Vertex>(m, d, phi<2, 1>(m, d));
 				return true;
 			});
 		}

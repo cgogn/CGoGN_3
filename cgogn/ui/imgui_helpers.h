@@ -28,6 +28,7 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/ui_modules/mesh_data.h>
 
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
@@ -61,7 +62,10 @@ void imgui_combo_attribute(const MESH& m,
 		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
 			bool is_selected = attribute == selected_attribute;
 			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
-				on_change(attribute);
+			{
+				if (attribute != selected_attribute)
+					on_change(attribute);
+			}
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		});
@@ -76,6 +80,35 @@ void imgui_combo_attribute(const MESH& m,
 	}
 }
 
+template <typename CELL, typename MESH, typename FUNC>
+void imgui_combo_cells_set(MeshData<MESH>& md, const CellsSet<MESH, CELL>* selected_set, const std::string& label,
+						   const FUNC& on_change)
+{
+	static_assert(is_func_parameter_same<FUNC, CellsSet<MESH, CELL>*>::value, "Wrong function CellsSet parameter type");
+
+	if (ImGui::BeginCombo(label.c_str(), selected_set ? selected_set->name().c_str() : "-- select --"))
+	{
+		md.template foreach_cells_set<CELL>([&](CellsSet<MESH, CELL>& cs) {
+			bool is_selected = &cs == selected_set;
+			if (ImGui::Selectable(cs.name().c_str(), is_selected))
+			{
+				if (&cs != selected_set)
+					on_change(&cs);
+			}
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		});
+		ImGui::EndCombo();
+	}
+	if (selected_set)
+	{
+		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
+		if (ImGui::Button(("X##" + label).c_str()))
+			on_change(nullptr);
+	}
+}
+
 template <template <typename MESH> typename MESH_PROVIDER, typename MESH, typename FUNC>
 bool imgui_mesh_selector(MESH_PROVIDER<MESH>* mesh_provider, const MESH* selected_mesh, const std::string& label,
 						 const FUNC& on_change)
@@ -85,7 +118,10 @@ bool imgui_mesh_selector(MESH_PROVIDER<MESH>* mesh_provider, const MESH* selecte
 	{
 		mesh_provider->foreach_mesh([&](MESH& m, const std::string& name) {
 			if (ImGui::Selectable(name.c_str(), &m == selected_mesh))
-				on_change(m);
+			{
+				if (&m != selected_mesh)
+					on_change(m);
+			}
 		});
 		ImGui::ListBoxFooter();
 		return true;
@@ -103,7 +139,10 @@ bool imgui_view_selector(ViewModule* vm, const View* selected, const FUNC& on_ch
 		{
 			bool is_selected = v == selected;
 			if (ImGui::Selectable(v->name().c_str(), is_selected))
-				on_change(v);
+			{
+				if (v != selected)
+					on_change(v);
+			}
 			if (is_selected)
 				ImGui::SetItemDefaultFocus();
 		}
