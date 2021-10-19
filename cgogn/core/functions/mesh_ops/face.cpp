@@ -148,6 +148,7 @@ CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 
 IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges)
 {
+	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 

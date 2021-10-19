@@ -141,7 +141,7 @@ auto foreach_incident_edge(const IncidenceGraph& ig, CELL c, const FUNC& func)
 	{
 		for(auto& ep : (*ig.vertex_incident_edges_)[c.index_])
 		{
-			if(!func(ep.second))
+			if(!func(ep))
 				break;
 		}
 	}

@@ -1100,14 +1100,14 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 			build_contact_surface_2(g, gAttribs, m2, m2Attribs, v);
 			return res;
 		}
-		if (d >= 3 && d <= 6)
-		{
-			// check if branches directions are cube-friendly
-			// yes -> add a 8-hex intersection block
-			bool ortho = build_contact_surface_ortho(g, gAttribs, m2, m2Attribs, v);
-			if (ortho)
-				return res;
-		}
+		// if (d >= 3 && d <= 6)
+		// {
+		// 	// check if branches directions are cube-friendly
+		// 	// yes -> add a 8-hex intersection block
+		// 	bool ortho = build_contact_surface_ortho(g, gAttribs, m2, m2Attribs, v);
+		// 	if (ortho)
+		// 		return res;
+		// }
 		// other cases
 		// (calls build_contact_surface_orange on planar configurations)
 		build_contact_surface_n(g, gAttribs, m2, m2Attribs, v);
@@ -1169,6 +1169,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 
 	// get the points on the sphere for each incident branch
 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
+	
 	std::vector<Vec3> Ppos;
 	Ppos.reserve(nbf);
 	std::vector<Dart> Pdart;
@@ -2148,11 +2149,11 @@ Dart convex_hull_around_vertex(const Graph& g, Graph::Vertex v, CMap2& m2, M2Att
 	std::vector<uint32> Pid;
 	Pid.reserve(Ppos.size());
 
-	uint32 i = 0;
+	uint32 id = 0;
 	foreach_dart_of_orbit(g, v, [&](Dart d) -> bool {
 		uint32 vertex_id = new_index<CMap2::Vertex>(m2);
 		Pid.push_back(vertex_id);
-		(*m2Attribs.vertex_position)[vertex_id] = Ppos[i]; // positions are in the same order in Ppos
+		(*m2Attribs.vertex_position)[vertex_id] = Ppos[id++]; // positions are in the same order in Ppos
 		(*m2Attribs.dual_vertex_graph_branch)[vertex_id] = d;
 		return true;
 	});

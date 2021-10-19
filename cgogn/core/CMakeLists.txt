@@ -96,8 +96,8 @@ endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC
 	# g++
-	$<$<CXX_COMPILER_ID:GNU>:$<BUILD_INTERFACE:-Wall>>
-	$<$<CXX_COMPILER_ID:GNU>:-Wextra>
+#	$<$<CXX_COMPILER_ID:GNU>:$<BUILD_INTERFACE:-Wall>>
+#	$<$<CXX_COMPILER_ID:GNU>:-Wextra>
 	$<$<CXX_COMPILER_ID:GNU>:-Wnon-virtual-dtor>
 	$<$<CXX_COMPILER_ID:GNU>:-Wno-unknown-pragmas>
 	# Clang

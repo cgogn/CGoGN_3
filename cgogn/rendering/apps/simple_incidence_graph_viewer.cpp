@@ -81,7 +81,11 @@ int main(int argc, char** argv)
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mpig);
+	v1->link_module(&mps);
+	v1->link_module(&mpv);
 	v1->link_module(&gr);
+	v1->link_module(&sr);
+	v1->link_module(&vr);
 
 	mpig.set_mesh_bb_vertex_position(*ig, vertex_position);
 	gr.set_vertex_position(*v1, *ig, vertex_position);
@@ -91,6 +95,15 @@ int main(int argc, char** argv)
 	// Surface m2 = Surface();
 	// Volume m3 = Volume();
 	cgogn::modeling::incidenceGraph_to_hex(*ig, *m2/*, Volume()*/);
+
+	std::shared_ptr<Attribute<Vec3>> surface_vertex_position = cgogn::get_attribute<Vec3, Surface::Vertex>(*m2, "position");
+
+	mps.set_mesh_bb_vertex_position(*m2, surface_vertex_position);
+	mps.emit_connectivity_changed(*m2);
+
+	sr.set_vertex_position(*v1, *m2, surface_vertex_position);
+	sr.set_render_vertices(*v1, *m2, false);
+	sr.set_render_faces(*v1, *m2, false);
 
 	return app.launch();
 }

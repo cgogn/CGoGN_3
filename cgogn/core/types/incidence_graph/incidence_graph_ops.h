@@ -126,7 +126,7 @@ inline void remove_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, Inci
 	using Edge = IncidenceGraph::Edge;
 
 	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-	std::vector<Edge>& edges_dir = (*ig.face_incident_edges_dir_)[f.index_];
+	std::vector<uint8>& edges_dir = (*ig.face_incident_edges_dir_)[f.index_];
 	auto eit = edges.begin();
 	auto edit = edges_dir.begin();
 	for (Edge e : edges)
