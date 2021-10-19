@@ -127,7 +127,7 @@ struct MeanCurvatureSkeleton_Helper
 		modeling::pliant_remeshing(m_, vertex_position_, surface_resampling_ratio, false, true);
 
 		vertex_normal_ = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
-		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal_.get());
+		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal_.get());
 
 		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());

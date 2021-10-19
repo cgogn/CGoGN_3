@@ -134,7 +134,7 @@ struct PliantRemeshing_Helper
 	void compute_lfs()
 	{
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
-		geometry::compute_normal(m_, vertex_position_.get(), vertex_normal.get());
+		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
 
@@ -167,7 +167,7 @@ struct PliantRemeshing_Helper
 
 	void detect_features()
 	{
-		Scalar angle_threshold = 75.0 * M_PI / 180.0;
+		Scalar angle_threshold = 60.0 * M_PI / 180.0;
 		if (!feature_edge_)
 			feature_edge_ = add_attribute<bool, Edge>(m_, "__feature_edge");
 		if (!feature_vertex_)
@@ -335,8 +335,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 					if (collapse && edge_can_collapse(m, e))
 					{
 						has_short_edge = true;
-						Vec3 mp =
-							(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
+						Vec3 mp = value<Vec3>(m, vertex_position, iv[1]);
+						// (value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
 						Vertex cv = collapse_edge(m, e);
 						value<Vec3>(m, vertex_position, cv) = mp;
 					}
@@ -382,22 +382,22 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 				{
 					if (value<bool>(m, helper.feature_vertex_, v))
 					{
-						Vec3 q(0, 0, 0);
-						uint32 count = 0;
-						foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-							if (value<bool>(m, helper.feature_vertex_, av))
-							{
-								q += value<Vec3>(m, vertex_position, av);
-								++count;
-							}
-							return true;
-						});
-						if (count == 2)
-						{
-							q /= Scalar(count);
-							Vec3 n = geometry::normal(m, v, vertex_position.get());
-							new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-						}
+						// Vec3 q(0, 0, 0);
+						// uint32 count = 0;
+						// foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+						// 	if (value<bool>(m, helper.feature_vertex_, av))
+						// 	{
+						// 		q += value<Vec3>(m, vertex_position, av);
+						// 		++count;
+						// 	}
+						// 	return true;
+						// });
+						// if (count == 2)
+						// {
+						// 	q /= Scalar(count);
+						// 	Vec3 n = geometry::normal(m, v, vertex_position.get());
+						// 	new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
+						// }
 					}
 					else
 					{
@@ -411,6 +411,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 						q /= Scalar(count);
 						Vec3 n = geometry::normal(m, v, vertex_position.get());
 						new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
+						new_pos = helper.surface_bvh_->closest_point(new_pos);
 					}
 				}
 			}
@@ -426,8 +427,9 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 				q /= Scalar(count);
 				Vec3 n = geometry::normal(m, v, vertex_position.get());
 				new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
+				new_pos = helper.surface_bvh_->closest_point(new_pos);
 			}
-			value<Vec3>(m, vertex_position, v) = helper.surface_bvh_->closest_point(new_pos);
+			value<Vec3>(m, vertex_position, v) = new_pos;
 			return true;
 		});
 	}

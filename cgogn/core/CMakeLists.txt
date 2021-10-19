@@ -51,6 +51,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/cells.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/convert.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/global.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
