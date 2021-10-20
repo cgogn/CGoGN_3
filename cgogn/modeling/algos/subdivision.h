@@ -123,14 +123,14 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 	// do{
 	// 	d2 = phi1(m, d1);
 
-	// 	d3 = phi_1(m, phi2(m, d1));
+	// 	d3 = phi<2, -1>(m, d1);
 	// 	d4 = phi<2, 1>(m, d2);
 	// 	phi2_sew(m, d3, d4);
 
 	// 	d1 = phi<2, 3, 2>(m, d2);
 	// }while(d1 != d0);
 
-	// d0 = phi_1(m, phi<1, 2, 1, 1, 2>(m, w.dart));
+	// d0 = phi<1, 2, 1, 1, 2, -1>(m, w.dart);
 	// d1 = d0;
 	// d2 = phi2(m, d1);
 

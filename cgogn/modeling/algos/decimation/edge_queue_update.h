@@ -98,8 +98,8 @@ void pre_collapse(
 		ei.valid_ = false;
 	}
 
-	e1 = Edge(phi2(m, phi_1(m, e.dart)));
-	e2 = Edge(phi2(m, phi_1(m, phi2(m, e.dart))));
+	e1 = Edge(phi<-1, 2>(m, e.dart));
+	e2 = Edge(phi<2, -1, 2>(m, e.dart));
 
 	Dart ed1 = e.dart;
 	Dart ed2 = phi2(m, ed1);
@@ -164,7 +164,7 @@ void post_collapse(
 		else
 			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
 
-		vit = phi2(m, phi_1(m, vit));
+		vit = phi<-1, 2>(m, vit);
 	} while (vit != e1.dart);
 }
 
