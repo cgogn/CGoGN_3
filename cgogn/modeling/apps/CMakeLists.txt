@@ -50,8 +50,8 @@ target_link_libraries(skeleton_extractor
 	${CMAKE_DL_LIBS}
 )
 
-add_executable(sphere_partition sphere_partition.cpp)
-target_link_libraries(sphere_partition
+add_executable(convex_hull convex_hull.cpp)
+target_link_libraries(convex_hull
 	cgogn::core
 	cgogn::ui
 	cgogn::io
@@ -79,7 +79,7 @@ if(APPLE)
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
-	target_link_libraries(sphere_partition
+	target_link_libraries(convex_hull
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

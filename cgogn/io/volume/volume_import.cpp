@@ -70,7 +70,7 @@ void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 			vol = add_pyramid(static_cast<CMap2&>(m), 3u, false);
 
 			const std::array<Dart, 4> vertices_of_tetra = {vol.dart, phi1(m, vol.dart), phi_1(m, vol.dart),
-														   phi_1(m, phi2(m, phi_1(m, vol.dart)))};
+														   phi<-1, 2, -1>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_tetra)
 			{
@@ -94,8 +94,8 @@ void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 		{
 			vol = add_pyramid(static_cast<CMap2&>(m), 4u, false);
 
-			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi1(m, phi1(m, vol.dart)),
-															 phi_1(m, vol.dart), phi_1(m, phi2(m, phi_1(m, vol.dart)))};
+			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi<1, 1>(m, vol.dart),
+															 phi_1(m, vol.dart), phi<-1, 2, -1>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_pyramid)
 			{
@@ -122,9 +122,9 @@ void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 			const std::array<Dart, 6> vertices_of_prism = {vol.dart,
 														   phi1(m, vol.dart),
 														   phi_1(m, vol.dart),
-														   phi2(m, phi1(m, phi1(m, phi2(m, phi_1(m, vol.dart))))),
-														   phi2(m, phi1(m, phi1(m, phi2(m, vol.dart)))),
-														   phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, vol.dart)))))};
+														   phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														   phi<2, 1, 1, 2>(m, vol.dart),
+														   phi<1, 2, 1, 1, 2>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_prism)
 			{
@@ -148,15 +148,14 @@ void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 		{
 			vol = add_prism(static_cast<CMap2&>(m), 4u, false);
 
-			const std::array<Dart, 8> vertices_of_hexa = {
-				vol.dart,
-				phi1(m, vol.dart),
-				phi1(m, phi1(m, vol.dart)),
-				phi_1(m, vol.dart),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi_1(m, vol.dart))))),
-				phi2(m, phi1(m, phi1(m, phi2(m, vol.dart)))),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, vol.dart))))),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, phi1(m, vol.dart))))))};
+			const std::array<Dart, 8> vertices_of_hexa = {vol.dart,
+														  phi1(m, vol.dart),
+														  phi<1, 1>(m, vol.dart),
+														  phi_1(m, vol.dart),
+														  phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 1, 2, 1, 1, 2>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_hexa)
 			{

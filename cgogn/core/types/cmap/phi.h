@@ -115,6 +115,8 @@ Dart phi3(const CPH3& m, Dart d);
 template <int8... Args, typename MESH>
 inline Dart phi(const MESH& m, Dart d)
 {
+	static_assert(((Args >= -1 && Args <= mesh_traits<MESH>::dimension) && ...), "Bad phi value");
+
 	Dart res = d;
 	for (int8 i : {Args...})
 	{

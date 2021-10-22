@@ -71,7 +71,7 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	cut_face(m, Vertex(d0), Vertex(d1));
 	cut_edge(m, Edge(phi_1(m, d0)));
 
-	Dart x = phi2(m, phi_1(m, d0));
+	Dart x = phi<-1, 2>(m, d0);
 	Dart dd = phi<1, 1, 1, 1>(m, x);
 	while (dd != x)
 	{

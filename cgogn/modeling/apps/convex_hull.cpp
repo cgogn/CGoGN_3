@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Sphere partition");
+	app.set_window_title("Convex hull");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 		filename = std::string(argv[1]);
 	Mesh* m = mp.load_surface_from_file(filename);
 
-	Mesh* hull = mp.add_mesh("hull");
+	Mesh* hull = mp.add_mesh("convex_hull");
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::add_attribute<Vec3, Vertex>(*hull, "position");
 
 	if (m)
