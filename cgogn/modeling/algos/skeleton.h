@@ -72,7 +72,7 @@ inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
 
 inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
 {
-	return {CMap2::Vertex(phi_1(m, e.dart)), CMap2::Vertex(phi_1(m, phi2(m, e.dart)))};
+	return {CMap2::Vertex(phi_1(m, e.dart)), CMap2::Vertex(phi<2, -1>(m, e.dart))};
 }
 
 // inline void compute_halfedges_opposite_angle(CMap2& m, CMap2::Face f, CMap2::Attribute<Vec3>* vertex_position,

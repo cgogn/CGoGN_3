@@ -209,7 +209,7 @@ inline bool check_integrity(CMap3& m, bool verbose = true)
 		bool relations = true;
 		relations &= phi3(m, d) != d && phi<3, 3>(m, d) == d && phi<3, 1, 3, 1>(m, d) == d;
 		relations &= phi2(m, d) != d && phi<2, 2>(m, d) == d;
-		relations &= phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		relations &= phi<-1, 1>(m, d) == d && phi<1, -1>(m, d) == d;
 		if (verbose && !relations)
 			std::cerr << "Dart " << d << " has bad relations" << std::endl;
 
@@ -444,7 +444,7 @@ inline bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
 			return false;
 	}
 
-	auto next_edge = [&m](Dart d) { return phi2(m, phi_1(m, d)); };
+	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
 
 	// Check vertex sharing condition
 	std::vector<uint32> vn1;

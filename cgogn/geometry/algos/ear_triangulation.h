@@ -433,7 +433,7 @@ public:
 				ears_.erase(be->next_->ear_);
 				ears_.erase(be->prev_->ear_);
 				// replace dart to be in remaining poly
-				be->prev_->vert_ = Vertex(phi2(m_, phi_1(m_, be->prev_->vert_.dart)));
+				be->prev_->vert_ = Vertex(phi<-1, 2>(m_, be->prev_->vert_.dart));
 				be = VertexPoly::erase(be); // and remove ear vertex from polygon
 				recompute_2_ears(be);
 			}
