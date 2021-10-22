@@ -353,8 +353,8 @@ void convex_hull(const std::vector<Vec3>& points, MESH& m,
 		face_list.pop_back();
 
 		// pick the most distant point to this triangle plane as the point to which we extrude
-		const Vec3& active_point = points[value<uint32>(m, face_most_distant_point_index, f)];
 		const uint32 active_point_index = value<uint32>(m, face_most_distant_point_index, f);
+		const Vec3& active_point = points[active_point_index];
 
 		// create the list of horizon halfedges
 		auto [horizon_halfedges, visible_faces] = build_horizon(m, vertex_position, active_point, f);
