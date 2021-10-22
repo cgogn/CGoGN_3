@@ -96,13 +96,13 @@ inline Dart phi(const MESH& m, Dart d)
 	static_assert((Arg >= -1 && Arg <= mesh_traits<MESH>::dimension), "Bad phi value");
 
 	Dart res;
-	if constexpr (Arg == -1 && mesh_traits<MESH>::dimension >= 1)
+	if constexpr (Arg == -1)
 		res = phi_1(m, d);
-	if constexpr (Arg == 1 && mesh_traits<MESH>::dimension >= 1)
+	if constexpr (Arg == 1)
 		res = phi1(m, d);
-	if constexpr (Arg == 2 && mesh_traits<MESH>::dimension >= 2)
+	if constexpr (Arg == 2)
 		res = phi2(m, d);
-	if constexpr (Arg == 3 && mesh_traits<MESH>::dimension >= 3)
+	if constexpr (Arg == 3)
 		res = phi3(m, d);
 
 	if constexpr (sizeof...(Args) > 0)
