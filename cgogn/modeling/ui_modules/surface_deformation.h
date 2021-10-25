@@ -38,8 +38,7 @@
 #include <Eigen/Sparse>
 #include <boost/synapse/connect.hpp>
 #include <memory>
-#define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 namespace cgogn
 {
@@ -535,7 +534,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			//float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];

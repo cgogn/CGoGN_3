@@ -150,9 +150,9 @@ void BVHTree<IdxType, Vec3fType>::split(typename Node::ID node, std::vector<AABB
 		queue.push_back(node);
 		while (!queue.empty())
 		{
-			typename Node::ID node = queue.back();
+			typename Node::ID node2 = queue.back();
 			queue.pop_back();
-			std::tie(left, right) = sbsplit(node, aabbs);
+			std::tie(left, right) = sbsplit(node2, aabbs);
 			if (left != NAI && right != NAI)
 			{
 				queue.push_back(left);

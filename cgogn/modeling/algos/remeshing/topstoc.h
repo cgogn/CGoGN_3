@@ -162,11 +162,11 @@ void vertex_selection(MESH& _m, CellMarkerStore<MESH, Vertex>& cm_selected, uint
 	uint32 count = 0;
 
 	// stochastic vertex selection
-	foreach_cell(_m, [&](Vertex v) -> bool {
-		float32 random_variable = std::rand() / (float)(RAND_MAX);
+	foreach_cell(_m, [&](Vertex /*v*/) -> bool {
+//		float32 random_variable = std::rand() / (float)(RAND_MAX);
 
-		float32 distrib_func =
-			(1.0f + adapt_coef * (value<float32>(_m, charac, v) / mean_charac_value - 1.0f)) / max_charac_value;
+		//float32 distrib_func =
+		//	(1.0f + adapt_coef * (value<float32>(_m, charac, v) / mean_charac_value - 1.0f)) / max_charac_value;
 
 		if (count++ < _nb_vertices_to_keep)
 		{
@@ -191,7 +191,7 @@ void region_growth(MESH& _m, typename mesh_traits<MESH>::template Attribute<uint
 	std::list<Vertex> rg_cache;
 
 	//*fill the rg cache
-	for (int id : cm_selected.marked_cells())
+	for (uint32 id : cm_selected.marked_cells())
 	{
 		foreach_cell(_m, [&](Vertex v) -> bool {
 			// if cell is selected
@@ -243,7 +243,7 @@ void region_growth(MESH& _m, typename mesh_traits<MESH>::template Attribute<uint
 template <typename MESH, typename Vertex, typename Face>
 void compute_surface_data(MESH& _m, MESH& _new_m,
 						  typename mesh_traits<MESH>::template Attribute<Vec3>* _vertex_position,
-						  typename mesh_traits<MESH>::template Attribute<Vec3>* _new_vertex_position,
+						  typename mesh_traits<MESH>::template Attribute<Vec3>* /*_new_vertex_position*/,
 						  typename mesh_traits<MESH>::template Attribute<uint32>* _vertex_anchor,
 						  CellMarkerStore<MESH, Vertex>& cm_selected)
 {

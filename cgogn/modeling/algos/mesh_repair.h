@@ -70,7 +70,7 @@ void remove_small_components(MESH& m, uint32 min_vertices)
 		using Volume = typename mesh_traits<MESH>::Volume;
 		foreach_cell(m, [&](Volume vol) -> bool {
 			uint32 n = 0;
-			foreach_incident_vertex(m, vol, [&](Vertex v) -> bool {
+			foreach_incident_vertex(m, vol, [&](Vertex /*v*/) -> bool {
 				++n;
 				return true;
 			});

@@ -44,8 +44,6 @@ namespace cgogn
 template <typename T>
 class CGOGN_CORE_EXPORT ChunkArray : public AttributeGenT
 {
-	using AttributeContainer = AttributeContainerT<ChunkArray>;
-
 public:
 	static const uint32 CHUNK_SIZE = 1024u;
 
@@ -63,7 +61,8 @@ private:
 	}
 
 public:
-	ChunkArray(AttributeContainer* container, const std::string& name) : AttributeGenT(container, name)
+	ChunkArray(AttributeContainerGen* container, const std::string& name)
+		: AttributeGenT(container, name)
 	{
 		chunks_.reserve(512u);
 		capacity_ = 0u;
@@ -116,6 +115,7 @@ public:
 
 	inline std::shared_ptr<AttributeGenT> create_in(AttributeContainerGen& dst) const override
 	{
+		using AttributeContainer = AttributeContainerT<ChunkArray>;
 		AttributeContainer* dst_container = dynamic_cast<AttributeContainer*>(&dst);
 		if (dst_container)
 		{
