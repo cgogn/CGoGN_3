@@ -250,7 +250,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs;
+				Scalar lfs=0.0; //init to zero for warning remove
 				Scalar coeff = 1.0;
 				if (lfs_adaptive)
 				{

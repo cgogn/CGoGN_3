@@ -106,7 +106,7 @@ void copy(MESH& dst, const MESH& src)
 // IncidenceGraph //
 ////////////////////
 
-void copy(IncidenceGraph& dst, const IncidenceGraph& src)
+void copy(IncidenceGraph& /*dst*/, const IncidenceGraph& /*src*/)
 {
 	// TODO
 }

@@ -94,7 +94,7 @@ void compute_edge_cotan_weight(const MESH& m,
 template <typename MESH>
 Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
 	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
-	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* /*vertex_position*/,
 	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_cotan_weight)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
@@ -150,7 +150,7 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
-	uint32 nb_vertices = nb_cells<Vertex>(m);
+//	uint32 nb_vertices = nb_cells<Vertex>(m);
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
 		cotan_operator_matrix(m, vertex_index, vertex_position, edge_cotan_weight);
 

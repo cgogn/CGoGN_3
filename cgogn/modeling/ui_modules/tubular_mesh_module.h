@@ -978,7 +978,7 @@ public:
 			surface_bvh_->closest_point(p, &cp);
 			Vec3 pos = cp.second;
 			Vec3 dir = pos - p;
-			Scalar dist = dir.norm();
+			//Scalar dist = dir.norm();
 			// if (dist > 0.01 * local_size)
 			// {
 			acc::Ray<Vec3> r1{p, n, 0, 1 * local_size}; // acc::inf};
@@ -1200,7 +1200,7 @@ protected:
 		if (volume_)
 		{
 			MeshData<VOLUME>& md = volume_provider_->mesh_data(*volume_);
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			//float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			if (ImGui::Button("Export subdivided skin"))
 				export_subdivided_skin();

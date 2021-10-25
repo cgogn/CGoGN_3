@@ -524,7 +524,7 @@ float32 FrameManipulator::angle_from_mouse(int x, int y, int dx, int dy)
 	Vo.normalize();
 	dV.normalize();
 	Vec3 W = Vo.cross(dV);
-	return (axis_orientation_ ? W[2] : -W[2]) / 100.0f;
+	return float32(axis_orientation_ ? W[2] : -W[2]) / 100.0f;
 }
 
 float32 FrameManipulator::distance_from_mouse(int dx, int dy)
@@ -579,7 +579,7 @@ void FrameManipulator::translate_in_screen(int dx, int dy)
 void FrameManipulator::rotate_in_screen(int dx, int dy)
 {
 	GLMat4 inv_mat = (proj_mat_ * view_mat_).inverse();
-	GLVec4 P(dx, -dy, 0.0f, 1.0f);
+	GLVec4 P(float32(dx), float32(-dy), 0.0f, 1.0f);
 	P = inv_mat * P;
 	P /= P[3];
 

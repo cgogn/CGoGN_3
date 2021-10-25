@@ -250,7 +250,7 @@ protected:
 
 			if (selected_surface_vertex_position_)
 			{
-				static float wL = 0.6, wH = 0.06, wM = 0.15, resampling_ratio = 0.9;
+				static float wL = 0.6f, wH = 0.06f, wM = 0.15f, resampling_ratio = 0.9f;
 				ImGui::SliderFloat("Smoothness", &wL, 0.01f, 1.0f);
 				ImGui::SliderFloat("Velocity", &wH, 0.01f, 1.0f);
 				ImGui::SliderFloat("Medial attraction", &wM, 0.01f, 1.0f);

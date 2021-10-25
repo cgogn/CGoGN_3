@@ -58,7 +58,7 @@ inline bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f)
 
 	while (unordered_edges.size() > 0)
 	{
-		uint32 i, end;
+		std::size_t i, end;
 		for (i = 0, end = unordered_edges.size(); i < unordered_edges.size(); ++i)
 		{
 			Edge e = unordered_edges[i];

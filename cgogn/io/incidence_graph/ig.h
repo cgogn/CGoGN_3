@@ -115,8 +115,8 @@ bool import_IG(MESH& m, const std::string& filename)
 }
 
 template <typename MESH>
-void export_IG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
-			   const std::string& filename)
+void export_IG(MESH& /*m*/, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* /*vertex_position*/,
+			   const std::string& /*filename*/)
 {
 	// static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
 
