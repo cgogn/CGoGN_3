@@ -33,6 +33,7 @@
 #include <cgogn/modeling/ui_modules/volume_deformation.h>
 #include <cgogn/rendering/ui_modules/graph_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/rendering/ui_modules/surface_render_vector.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
 #include <cgogn/io/graph/cgr.h>
@@ -83,6 +84,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
+	cgogn::ui::SurfaceRenderVector<Surface> srv(app);
 	cgogn::ui::VolumeRender<Volume> vr(app);
 
 	cgogn::ui::TubularMesh<Graph, Surface, Volume> tm(app);
@@ -100,6 +102,7 @@ int main(int argc, char** argv)
 
 	v->link_module(&gr);
 	v->link_module(&sr);
+	v->link_module(&srv);
 	v->link_module(&vr);
 
 	v->link_module(&tm);
