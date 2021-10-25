@@ -66,7 +66,7 @@ inline bool is_indexed(const CMapBase& m, Orbit orbit)
 ////////////////////
 
 template <typename CELL>
-bool is_indexed(const IncidenceGraph& m)
+bool is_indexed(const IncidenceGraph& /*m*/)
 {
 	return true;
 }
@@ -116,7 +116,7 @@ uint32 index_of(const CMapBase& m, CELL c)
 ////////////////////
 
 template <typename CELL>
-uint32 index_of(const IncidenceGraph& m, CELL c)
+uint32 index_of(const IncidenceGraph& /*m*/, CELL c)
 {
 	return c.index_;
 }

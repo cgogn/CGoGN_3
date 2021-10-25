@@ -135,9 +135,9 @@ void KDTree<K, IdxType>::split(typename Node::ID node_id, std::vector<IdxType>* 
 		queue.push_back(node_id);
 		while (!queue.empty())
 		{
-			typename Node::ID node_id = queue.front();
+			typename Node::ID node_id2 = queue.front();
 			queue.pop_front();
-			std::tie(left, right) = ssplit(node_id, indices);
+			std::tie(left, right) = ssplit(node_id2, indices);
 			if (left != NAI)
 				queue.push_back(left);
 			if (right != NAI)

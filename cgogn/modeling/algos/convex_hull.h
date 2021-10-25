@@ -71,8 +71,8 @@ std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
 	visible.mark(f);
 	for (uint32 i = 0; i < uint32(visible_faces.size()); ++i)
 	{
-		const CMap2::Face f = visible_faces[i];
-		foreach_adjacent_face_through_edge(m, f, [&](CMap2::Face af) -> bool {
+		const CMap2::Face f_i = visible_faces[i];
+		foreach_adjacent_face_through_edge(m, f_i, [&](CMap2::Face af) -> bool {
 			if (visible.is_marked(af))
 				return true;
 			std::vector<CMap2::Vertex> vertices = incident_vertices(m, af);

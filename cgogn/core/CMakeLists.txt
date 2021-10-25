@@ -121,6 +121,13 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<CXX_COMPILER_ID:MSVC>:/wd4910>
 	# C4251 - 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 	$<$<CXX_COMPILER_ID:MSVC>:/wd4251>
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4702> # uneraechable code 
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4244> # conversion
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4267> # siz_t ->int
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4456> # declaration  shadow ..
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4459> # type declaration  shadow ..
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4100> # parameter not referenced
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4189> # var initialized but not referenced
 	$<$<CXX_COMPILER_ID:MSVC>:/EHsc>
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj>
 	)

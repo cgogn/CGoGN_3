@@ -32,8 +32,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <set>
-#define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 namespace cgogn
 {
@@ -222,7 +221,7 @@ class EarTriangulation
 
 	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, CMapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
-		MESHTYPE& m, const typename mesh_traits<MESHTYPE>::Face f)
+		MESHTYPE& /*m*/, const typename mesh_traits<MESHTYPE>::Face f)
 	{
 		VertexPoly* vpp = nullptr;
 		VertexPoly* prem = nullptr;

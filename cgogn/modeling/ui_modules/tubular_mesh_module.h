@@ -1219,7 +1219,7 @@ protected:
 		if (volume_)
 		{
 			MeshData<VOLUME>& md = volume_provider_->mesh_data(*volume_);
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			if (ImGui::Button("Export subdivided skin"))
 				export_subdivided_skin();
