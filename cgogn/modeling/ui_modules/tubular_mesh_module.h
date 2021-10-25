@@ -703,7 +703,7 @@ public:
 		surface_bvh_->closest_point(p, &cp);
 		Vec3 dir = (cp.second - p).normalized();
 		Vec3 n = geometry::normal(*surface_, surface_faces_[cp.first], surface_vertex_position_.get());
-		return dir.dot(n) > 0;
+		return dir.dot(n) >= 0.0;
 	}
 
 	void project_on_surface()
@@ -715,11 +715,11 @@ public:
 			const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
 			Vec3 n{0, 0, 0};
 			foreach_incident_face(*volume_skin_, v, [&](SurfaceFace f) -> bool {
-				Vec3 n = geometry::normal(*volume_skin_, f, volume_skin_vertex_position_.get());
-				Vec3 c = geometry::centroid<Vec3>(*volume_skin_, f, volume_skin_vertex_position_.get());
-				BVH_Hit h = intersect_bvh({c - 0.01 * n, n, 0, acc::inf});
+				Vec3 nf = geometry::normal(*volume_skin_, f, volume_skin_vertex_position_.get());
+				Vec3 cf = geometry::centroid<Vec3>(*volume_skin_, f, volume_skin_vertex_position_.get());
+				BVH_Hit h = intersect_bvh({cf - 0.01 * nf, nf, 0, acc::inf});
 				if (h.hit)
-					n += h.pos - c;
+					n += h.pos - cf;
 				return true;
 			});
 			n.normalize();
@@ -728,21 +728,12 @@ public:
 			if (!is_inside(p))
 				n *= -1;
 
-			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf /* 1.5 * local_size */});
+			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf});
 			Vec3 pos;
 			if (h.hit)
 				pos = h.pos;
 			else
 				pos = surface_bvh_->closest_point(p);
-
-			// Scalar local_size = 0.0;
-			// uint32 nb_neigh = 0;
-			// foreach_adjacent_vertex_through_edge(*volume_skin_, v, [&](SurfaceVertex av) -> bool {
-			// 	local_size += (value<Vec3>(*volume_skin_, volume_skin_vertex_position_, av) - p).norm();
-			// 	++nb_neigh;
-			// 	return true;
-			// });
-			// local_size /= nb_neigh;
 
 			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = pos;
 			value<Vec3>(*volume_, volume_vertex_position_,
@@ -960,47 +951,26 @@ public:
 			return true;
 		});
 
-		// geometry::compute_normal<SurfaceVertex>(*volume_skin_, volume_skin_vertex_position_.get(),
-		// 										volume_skin_vertex_normal_.get());
-		// // geometry::filter_regularize(*volume_skin_, volume_skin_vertex_position_.get(),
-		// // volume_skin_vertex_normal.get(), 							5.0);
-		// auto normal_filtered = add_attribute<Vec3, SurfaceVertex>(*volume_skin_, "normal_filtered");
-		// geometry::filter_average<Vec3>(*volume_skin_, volume_skin_vertex_normal_.get(), normal_filtered.get());
-		// geometry::filter_average<Vec3>(*volume_skin_, normal_filtered.get(), volume_skin_vertex_normal_.get());
-		// remove_attribute<SurfaceVertex>(*volume_skin_, normal_filtered);
-
 		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
 			const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
 			Vec3 n{0, 0, 0};
 			foreach_incident_face(*volume_skin_, v, [&](SurfaceFace f) -> bool {
 				Vec3 nf = geometry::normal(*volume_skin_, f, volume_skin_vertex_position_.get());
 				Vec3 cf = geometry::centroid<Vec3>(*volume_skin_, f, volume_skin_vertex_position_.get());
-				// bool inside = is_inside(cf);
-				// if (!inside)
-				// 	nf *= -1;
-				// BVH_Hit h = intersect_bvh({cf - 0.01 * nf, nf, 0, acc::inf});
-				// if (h.hit)
-				// 	n += inside ? h.pos - cf : cf - h.pos;
-				BVH_Hit h = intersect_bvh({cf - 0.01 * n, n, 0, acc::inf});
+				bool inside = is_inside(cf);
+				if (!inside)
+					nf *= -1;
+				BVH_Hit h = intersect_bvh({cf - 0.01 * nf, nf, 0, acc::inf});
 				if (h.hit)
-					n += h.pos - cf;
+					n += inside ? h.pos - cf : cf - h.pos;
 				return true;
 			});
 			n.normalize();
 
-			// Scalar local_size = 0.0;
-			// uint32 nb_neigh = 0;
-			// foreach_adjacent_vertex_through_edge(*volume_skin_, v, [&](SurfaceVertex av) -> bool {
-			// 	local_size += (value<Vec3>(*volume_skin_, volume_skin_vertex_position_, av) - p).norm();
-			// 	++nb_neigh;
-			// 	return true;
-			// });
-			// local_size /= nb_neigh;
-
 			if (!is_inside(p))
 				n *= -1;
 
-			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf}); // 1 * local_size});
+			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf});
 			Vec3 pos;
 			if (h.hit)
 				pos = h.pos;

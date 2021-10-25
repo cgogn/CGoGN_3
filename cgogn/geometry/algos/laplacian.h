@@ -149,13 +149,14 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL = cotan_operator_matrix(m, vertex_index, edge_cotan_weight);
 
-	foreach_cell(m, [&](Vertex v) -> bool {
+	Eigen::VectorXd A(LAPL.rows());
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		uint32 vidx = value<uint32>(m, vertex_index, v);
-		LAPL.row(vidx) /= (*vertex_area)[vidx];
+		A(vidx) = value<Scalar>(m, vertex_area, v);
 		return true;
 	});
 
-	return LAPL;
+	return A.asDiagonal().inverse() * LAPL;
 }
 
 template <typename MESH>
