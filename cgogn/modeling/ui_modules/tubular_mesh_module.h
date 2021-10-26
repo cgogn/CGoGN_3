@@ -68,6 +68,7 @@ class TubularMesh : public ViewModule
 	using VolumeAttribute = typename mesh_traits<VOLUME>::template Attribute<T>;
 
 	using GraphVertex = typename mesh_traits<GRAPH>::Vertex;
+	using GraphEdge = typename mesh_traits<GRAPH>::Edge;
 
 	using SurfaceVertex = typename mesh_traits<SURFACE>::Vertex;
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
@@ -168,16 +169,13 @@ public:
 
 	void recenter_graph_from_surface()
 	{
-		auto graph_vertex_position_new = add_attribute<Vec3, GraphVertex>(*graph_, "position_new");
-		graph_vertex_position_new->copy(graph_vertex_position_.get());
-
 		foreach_cell(*graph_, [&](GraphVertex v) -> bool {
 			uint32 d = degree(*graph_, v);
 			if (d > 2)
 			{
+				Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
 				Vec3 displ;
 				Vec3 prev_displ;
-				Vec3& p = value<Vec3>(*graph_, graph_vertex_position_new, v);
 				std::pair<uint32, Scalar> k_res;
 				surface_kdt_->find_nn(p, &k_res);
 				Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
@@ -195,82 +193,41 @@ public:
 				Vec3 cp = surface_bvh_->closest_point(p);
 				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
 			}
-			// else if (d == 2)
-			// {
-			// 	Vec3 p = value<Vec3>(*graph_, graph_vertex_position_, v);
-			// 	Scalar r = value<Scalar>(*graph_, graph_vertex_radius_, v);
+			else if (d == 2)
+			{
+				Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
 
-			// 	std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
-			// 	Vec3 l = ((value<Vec3>(*graph_, graph_vertex_position_, av[0]) +
-			// 			   value<Vec3>(*graph_, graph_vertex_position_, av[1])) /
-			// 			  2.0) -
-			// 			 p;
-			// 	p += 0.2 * l;
+				std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
+				// Vec3 dir = ((value<Vec3>(*graph_, graph_vertex_position_, av[0]) +
+				// 			 value<Vec3>(*graph_, graph_vertex_position_, av[1])) /
+				// 			2.0) -
+				// 		   p;
+				Vec3 dir = (value<Vec3>(*graph_, graph_vertex_position_, av[0]) - p).normalized() -
+						   (p - value<Vec3>(*graph_, graph_vertex_position_, av[1])).normalized();
+				dir.normalize();
 
-			// 	Vec3 cp = surface_bvh_->closest_point(p);
-			// 	p += 0.05 * (p - cp);
+				Vec3 displ;
+				Vec3 prev_displ;
+				std::pair<uint32, Scalar> k_res;
+				surface_kdt_->find_nn(p, &k_res);
+				Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
+				displ = dir * dir.dot(0.01 * (p - nnp));
+				p += displ;
+				do
+				{
+					prev_displ = displ;
+					surface_kdt_->find_nn(p, &k_res);
+					Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
+					displ = dir * dir.dot(0.01 * (p - nnp));
+					p += displ;
+				} while (prev_displ.dot(displ) > 0);
 
-			// 	Vec3 d1 = (value<Vec3>(*graph_, graph_vertex_position_, av[1]) -
-			// 			   value<Vec3>(*graph_, graph_vertex_position_, av[0]))
-			// 				  .normalized();
-			// 	Vec3 d2 = d1.cross(Vec3{d1[1], -d1[0], d1[2]}).normalized();
-			// 	Vec3 d3 = d1.cross(d2).normalized();
-			// 	Vec3 avg(0, 0, 0);
-			// 	uint32 nb = 0;
-			// 	acc::BVHTree<uint32, Vec3>::Hit h1;
-			// 	acc::BVHTree<uint32, Vec3>::Hit h2;
-			// 	acc::Ray<Vec3> r1{p, d2, 0, 5.0 * r};
-			// 	acc::Ray<Vec3> r2{p, -d2, 0, 5.0 * r};
-			// 	acc::Ray<Vec3> r3{p, d3, 0, 5.0 * r};
-			// 	acc::Ray<Vec3> r4{p, -d3, 0, 5.0 * r};
-			// 	if (surface_bvh_->intersect(r1, &h1) && surface_bvh_->intersect(r2, &h2))
-			// 	{
-			// 		SurfaceFace f = surface_faces_[h1.idx];
-			// 		std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-			// 		avg += h1.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-			// 			   h1.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-			// 			   h1.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
-			// 		++nb;
-
-			// 		f = surface_faces_[h2.idx];
-			// 		iv = incident_vertices(*surface_, f);
-			// 		avg += h2.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-			// 			   h2.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-			// 			   h2.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
-			// 		++nb;
-			// 	}
-			// 	if (surface_bvh_->intersect(r3, &h1) && surface_bvh_->intersect(r4, &h2))
-			// 	{
-			// 		SurfaceFace f = surface_faces_[h1.idx];
-			// 		std::vector<SurfaceVertex> iv = incident_vertices(*surface_, f);
-			// 		avg += h1.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-			// 			   h1.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-			// 			   h1.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
-			// 		++nb;
-
-			// 		f = surface_faces_[h2.idx];
-			// 		iv = incident_vertices(*surface_, f);
-			// 		avg += h2.bcoords[0] * value<Vec3>(*surface_, surface_vertex_position_, iv[0]) +
-			// 			   h2.bcoords[1] * value<Vec3>(*surface_, surface_vertex_position_, iv[1]) +
-			// 			   h2.bcoords[2] * value<Vec3>(*surface_, surface_vertex_position_, iv[2]);
-			// 		++nb;
-			// 	}
-			// 	if (nb > 0)
-			// 	{
-			// 		avg /= nb;
-			// 		p += 0.1 * (avg - p);
-			// 	}
-
-			// 	cp = surface_bvh_->closest_point(p);
-			// 	value<Vec3>(*graph_, graph_vertex_position_new, v) = p;
-			// 	value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
-			// }
+				Vec3 cp = surface_bvh_->closest_point(p);
+				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
+			}
 
 			return true;
 		});
-
-		graph_vertex_position_->swap(graph_vertex_position_new.get());
-		remove_attribute<GraphVertex>(*graph_, graph_vertex_position_new);
 
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
