@@ -616,7 +616,7 @@ bool BVHTree<IdxType, Vec3fType>::closest_point(Vec3fType vertex, std::pair<IdxT
 
 	if (cp_ptr != nullptr)
 	{
-		cp_ptr->first = idx;
+		cp_ptr->first = indices[idx];
 		cp_ptr->second = cp;
 	}
 

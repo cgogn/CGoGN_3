@@ -28,7 +28,6 @@
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-// #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -94,7 +93,6 @@ void compute_edge_cotan_weight(const MESH& m,
 template <typename MESH>
 Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
 	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
-	const typename mesh_traits<MESH>::template Attribute<Vec3>* /*vertex_position*/,
 	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_cotan_weight)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
@@ -134,7 +132,7 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
 	auto edge_cotan_weight = add_attribute<Scalar, Edge>(m, "__edge_cotan_weight");
 	compute_edge_cotan_weight(m, vertex_position, edge_cotan_weight.get());
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> COTAN =
-		cotan_operator_matrix(m, vertex_index, vertex_position, edge_cotan_weight.get());
+		cotan_operator_matrix(m, vertex_index, edge_cotan_weight.get());
 	remove_attribute<Edge>(m, edge_cotan_weight);
 	return COTAN;
 }
@@ -142,7 +140,6 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
 template <typename MESH>
 Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
-	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 	const typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_area,
 	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_cotan_weight)
 {
@@ -150,17 +147,16 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
-//	uint32 nb_vertices = nb_cells<Vertex>(m);
-	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
-		cotan_operator_matrix(m, vertex_index, vertex_position, edge_cotan_weight);
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL = cotan_operator_matrix(m, vertex_index, edge_cotan_weight);
 
-	foreach_cell(m, [&](Vertex v) -> bool {
+	Eigen::VectorXd A(LAPL.rows());
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
 		uint32 vidx = value<uint32>(m, vertex_index, v);
-		LAPL.row(vidx) /= (*vertex_area)[vidx];
+		A(vidx) = value<Scalar>(m, vertex_area, v);
 		return true;
 	});
 
-	return LAPL;
+	return A.asDiagonal().inverse() * LAPL;
 }
 
 template <typename MESH>
@@ -176,7 +172,7 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 	auto edge_cotan_weight = add_attribute<Scalar, Edge>(m, "__edge_cotan_weight");
 	compute_edge_cotan_weight(m, vertex_position, edge_cotan_weight.get());
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
-		cotan_laplacian_matrix(m, vertex_index, vertex_position, vertex_area, edge_cotan_weight.get());
+		cotan_laplacian_matrix(m, vertex_index, vertex_area, edge_cotan_weight.get());
 	remove_attribute<Edge>(m, edge_cotan_weight);
 	return LAPL;
 }

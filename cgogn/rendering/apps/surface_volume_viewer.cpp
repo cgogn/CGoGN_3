@@ -31,7 +31,7 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/surface_render_vector.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<SurfaceMesh> mps(app);
 	cgogn::ui::SurfaceRender<SurfaceMesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<SurfaceMesh> srv(app);
+	cgogn::ui::VectorPerVertexRender<SurfaceMesh> vpvr(app);
 	cgogn::ui::SurfaceDifferentialProperties<SurfaceMesh> sdp(app);
 
 	cgogn::ui::MeshProvider<VolumeMesh> mpv(app);
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mps);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
+	v1->link_module(&vpvr);
 
 	cgogn::ui::View* v2 = app.add_view();
 	v2->link_module(&mpv);

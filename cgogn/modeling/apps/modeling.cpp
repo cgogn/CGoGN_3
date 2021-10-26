@@ -30,7 +30,7 @@
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/modeling/ui_modules/surface_modeling.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/surface_render_vector.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 // #include <cgogn/geometry/ui_modules/surface_selection.h>
 
 #include <cgogn/core/types/mesh_views/cell_filter.h>
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 	cgogn::ui::SurfaceModeling<Mesh> sm(app);
 	// cgogn::ui::SurfaceSelection<Mesh> ss(app);
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
+	v1->link_module(&vpvr);
 	// v1->link_module(&ss);
 
 	Mesh* m = mp.load_surface_from_file(filename);

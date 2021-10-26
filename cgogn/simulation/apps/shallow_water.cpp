@@ -30,7 +30,7 @@
 #include <cgogn/geometry/ui_modules/surface_selection.h>
 #include <cgogn/modeling/ui_modules/surface_deformation.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/surface_render_vector.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/simulation/ui_modules/shallow_water.h>
 
 using namespace cgogn::numerics;
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
 	cgogn::ui::SurfaceSelection<Mesh> ss(app);
 	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
 	cgogn::ui::ShallowWater<Mesh> sw(app);
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
+	v1->link_module(&vpvr);
 
 	v2->link_module(&mp);
 	v2->link_module(&sr);

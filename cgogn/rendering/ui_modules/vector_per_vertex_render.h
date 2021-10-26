@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
-#define CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
+#ifndef CGOGN_MODULE_VECTOR_PER_VERTEX_RENDER_H_
+#define CGOGN_MODULE_VECTOR_PER_VERTEX_RENDER_H_
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
@@ -45,11 +45,8 @@ namespace ui
 {
 
 template <typename MESH>
-class SurfaceRenderVector : public ViewModule
+class VectorPerVertexRender : public ViewModule
 {
-	static_assert(mesh_traits<MESH>::dimension >= 2,
-				  "SurfaceRenderVector can only be used with meshes of dimension >= 2");
-
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
@@ -62,7 +59,7 @@ class SurfaceRenderVector : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_vector_(nullptr),
-			  vertex_vector_vbo_(nullptr), vector_scale_factor_(1.0)
+			  vertex_vector_vbo_(nullptr), vector_scale_factor_(1.0), vector_base_size_(1.0)
 		{
 			param_vector_per_vertex_ = rendering::ShaderVectorPerVertex::generate_param();
 			param_vector_per_vertex_->color_ = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -82,13 +79,13 @@ class SurfaceRenderVector : public ViewModule
 	};
 
 public:
-	SurfaceRenderVector(const App& app)
-		: ViewModule(app, "SurfaceRenderVector (" + std::string{mesh_traits<MESH>::name} + ")"),
+	VectorPerVertexRender(const App& app)
+		: ViewModule(app, "VectorPerVertexRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 	}
 
-	~SurfaceRenderVector()
+	~VectorPerVertexRender()
 	{
 	}
 
@@ -107,6 +104,8 @@ private:
 					Parameters& p = parameters_[v][m];
 					if (p.vertex_position_)
 						p.vector_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0);
+					if (p.vector_base_size_ == 0.0)
+						p.vector_base_size_ = 1.0;
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
@@ -114,8 +113,12 @@ private:
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
 						if (p.vertex_position_.get() == attribute)
+						{
 							p.vector_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 2.0);
+							if (p.vector_base_size_ == 0.0)
+								p.vector_base_size_ = 1.0;
+						}
 						v->request_update();
 					}));
 		}
@@ -125,14 +128,17 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+		if (p.vertex_position_ == vertex_position)
+			return;
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
 		{
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			p.vector_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 2.0);
-			md.update_vbo(p.vertex_position_.get(), true);
-			p.vertex_position_vbo_ = md.vbo(p.vertex_position_.get());
+			if (p.vector_base_size_ == 0.0)
+				p.vector_base_size_ = 1.0;
 		}
 		else
 			p.vertex_position_vbo_ = nullptr;
@@ -145,13 +151,14 @@ public:
 	void set_vertex_vector(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_vector)
 	{
 		Parameters& p = parameters_[&v][&m];
-		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+		if (p.vertex_vector_ == vertex_vector)
+			return;
 
 		p.vertex_vector_ = vertex_vector;
 		if (p.vertex_vector_)
 		{
-			md.update_vbo(vertex_vector.get(), true);
-			p.vertex_vector_vbo_ = md.vbo(p.vertex_vector_.get());
+			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+			p.vertex_vector_vbo_ = md.update_vbo(vertex_vector.get(), true);
 		}
 		else
 			p.vertex_vector_vbo_ = nullptr;
@@ -168,7 +175,7 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
-			mesh_provider_, this, &SurfaceRenderVector<MESH>::init_mesh));
+			mesh_provider_, this, &VectorPerVertexRender<MESH>::init_mesh));
 	}
 
 	void draw(View* view) override
@@ -197,7 +204,7 @@ protected:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
+		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Mesh", [&](MESH& m) {
 			selected_mesh_ = &m;
 			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
@@ -247,4 +254,4 @@ private:
 
 } // namespace cgogn
 
-#endif // CGOGN_MODULE_SURFACE_RENDER_VECTOR_H_
+#endif // CGOGN_MODULE_VECTOR_PER_VERTEX_RENDER_H_

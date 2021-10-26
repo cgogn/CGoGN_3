@@ -31,7 +31,8 @@
 #include <cgogn/geometry/ui_modules/surface_selection.h>
 #include <cgogn/modeling/ui_modules/surface_deformation.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/surface_render_vector.h>
+#include <cgogn/rendering/ui_modules/vector_per_face_render.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -42,6 +43,7 @@ using Mesh = cgogn::CMap2;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 int main(int argc, char** argv)
 {
@@ -62,7 +64,8 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
+	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
+	cgogn::ui::VectorPerFaceRender<Mesh> vpfr(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
 	cgogn::ui::SurfaceSelection<Mesh> ss(app);
@@ -72,7 +75,8 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
+	v1->link_module(&vpvr);
+	v1->link_module(&vpfr);
 	v1->link_module(&sd);
 	v1->link_module(&ss);
 
@@ -92,6 +96,11 @@ int main(int argc, char** argv)
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);
+
+	ss.set_vertex_position(*m, vertex_position);
+
+	std::shared_ptr<Attribute<Vec3>> face_normal = cgogn::add_attribute<Vec3, Face>(*m, "normal");
+	cgogn::geometry::compute_normal<Face>(*m, vertex_position.get(), face_normal.get());
 
 	return app.launch();
 }
