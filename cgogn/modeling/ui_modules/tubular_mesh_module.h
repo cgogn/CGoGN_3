@@ -196,12 +196,8 @@ public:
 			else if (d == 2)
 			{
 				Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
-
 				std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
-				// Vec3 dir = ((value<Vec3>(*graph_, graph_vertex_position_, av[0]) +
-				// 			 value<Vec3>(*graph_, graph_vertex_position_, av[1])) /
-				// 			2.0) -
-				// 		   p;
+
 				Vec3 dir = (value<Vec3>(*graph_, graph_vertex_position_, av[0]) - p).normalized() -
 						   (p - value<Vec3>(*graph_, graph_vertex_position_, av[1])).normalized();
 				dir.normalize();
@@ -224,6 +220,10 @@ public:
 
 				Vec3 cp = surface_bvh_->closest_point(p);
 				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
+			}
+			else if (d == 1)
+			{
+				// TODO
 			}
 
 			return true;
@@ -501,6 +501,9 @@ public:
 	{
 		// std::cout << "refresh_edge_target_length" << std::endl;
 
+		length_mean_ = 0.0;
+		uint32 nbe = 0;
+
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			// auto vertices = incident_vertices(*volume_, e);
 
@@ -576,10 +579,15 @@ public:
 			// value<Scalar>(*volume_, volume_edge_target_length_, e) =
 			// 	(2.0 * parallel_edges_mean_length + perpendicular_edges_mean_length) / 3.0;
 
+			length_mean_ += parallel_edges_mean_length;
+			++nbe;
+
 			return true;
 		});
 
-		refresh_edge_target_length_ = false;
+		length_mean_ /= nbe;
+
+		// refresh_edge_target_length_ = false;
 		refresh_solver_matrix_values_only_ = true;
 	}
 
@@ -606,6 +614,8 @@ public:
 			return true;
 		});
 
+		surface_provider_->emit_connectivity_changed(*volume_skin_);
+
 		refresh_volume_skin_ = false;
 	}
 
@@ -620,9 +630,11 @@ public:
 		if (refresh_edge_target_length_)
 			refresh_edge_target_length();
 
-		uint32 nb_volume_vertices = nb_cells<VolumeVertex>(*volume_);
-		uint32 nb_boundary_vertices = nb_cells<SurfaceVertex>(*volume_skin_);
-		uint32 nb_volume_edges = nb_cells<VolumeEdge>(*volume_);
+		MeshData<VOLUME>& mdv = volume_provider_->mesh_data(*volume_);
+		MeshData<SURFACE>& mds = surface_provider_->mesh_data(*volume_skin_);
+		uint32 nb_volume_vertices = mdv.template nb_cells<VolumeVertex>();
+		uint32 nb_boundary_vertices = mds.template nb_cells<SurfaceVertex>();
+		uint32 nb_volume_edges = mdv.template nb_cells<VolumeEdge>();
 		uint32 nb_oriented_edges = nb_volume_edges * 2;
 
 		std::vector<Eigen::Triplet<Scalar>> triplets;
@@ -631,7 +643,7 @@ public:
 		foreach_cell(*volume_, [&](VolumeEdge e) -> bool {
 			uint32 eidx = value<uint32>(*volume_, volume_edge_index_, e);
 
-			Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
+			Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e) / length_mean_;
 
 			auto vertices = incident_vertices(*volume_, e);
 			uint32 vidx1 = value<uint32>(*volume_, volume_vertex_index_, vertices[0]);
@@ -687,7 +699,7 @@ public:
 				bool inside = is_inside(cf);
 				if (!inside)
 					nf *= -1;
-				BVH_Hit h = intersect_bvh({cf - 0.01 * nf, nf, 0, acc::inf});
+				BVH_Hit h = intersect_bvh({cf, nf, 0, acc::inf});
 				if (h.hit)
 					n += inside ? h.pos - cf : cf - h.pos;
 				return true;
@@ -697,7 +709,7 @@ public:
 			if (!is_inside(p))
 				n *= -1;
 
-			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf});
+			BVH_Hit h = intersect_bvh({p, n, 0, acc::inf});
 			Vec3 pos;
 			if (h.hit)
 				pos = h.pos;
@@ -716,12 +728,13 @@ public:
 		refresh_edge_target_length_ = true;
 	}
 
-	void regularize_surface_vertices(Scalar fit_to_data = 5.0)
+	void regularize_surface_vertices(Scalar fit_to_data)
 	{
 		if (refresh_volume_skin_)
 			refresh_volume_skin();
 
-		uint32 nb_vertices = nb_cells<SurfaceVertex>(*volume_skin_);
+		MeshData<SURFACE>& mds = surface_provider_->mesh_data(*volume_skin_);
+		uint32 nb_vertices = mds.template nb_cells<SurfaceVertex>();
 
 		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A(2 * nb_vertices, nb_vertices);
 		std::vector<Eigen::Triplet<Scalar>> Acoeffs;
@@ -823,8 +836,10 @@ public:
 		refresh_edge_target_length_ = true;
 	}
 
-	void optimize_volume_vertices(Scalar fit_to_data = 50.0)
+	void optimize_volume_vertices(Scalar fit_to_data)
 	{
+		MeshData<SURFACE>& mds = surface_provider_->mesh_data(*surface_);
+
 		if (refresh_edge_target_length_)
 			refresh_edge_target_length();
 		if (refresh_volume_skin_)
@@ -854,7 +869,8 @@ public:
 			refresh_solver_matrix_values_only_ = false;
 		}
 
-		uint32 nb_volume_edges = nb_cells<VolumeEdge>(*volume_);
+		MeshData<VOLUME>& mdv = volume_provider_->mesh_data(*volume_);
+		uint32 nb_volume_edges = mdv.template nb_cells<VolumeEdge>();
 		uint32 nb_oriented_edges = nb_volume_edges * 2;
 
 		Eigen::MatrixXd x(solver_matrix_.cols(), 3);
@@ -905,9 +921,8 @@ public:
 			} while (d != phi2(*volume_, e.dart));
 			target_n2.normalize();
 
-			// Scalar target_length = value<Scalar>(*volume_, volume_edge_target_length_, e);
-			// target_n1 *= target_length;
-			// target_n2 *= target_length;
+			target_n1 *= length_mean_;
+			target_n2 *= length_mean_;
 
 			b.coeffRef(eidx, 0) = target_n1[0];
 			b.coeffRef(eidx, 1) = target_n1[1];
@@ -929,7 +944,7 @@ public:
 				bool inside = is_inside(cf);
 				if (!inside)
 					nf *= -1;
-				BVH_Hit h = intersect_bvh({cf - 0.01 * nf, nf, 0, acc::inf});
+				BVH_Hit h = intersect_bvh({cf, nf, 0, acc::inf});
 				if (h.hit)
 					n += inside ? h.pos - cf : cf - h.pos;
 				return true;
@@ -939,7 +954,7 @@ public:
 			if (!is_inside(p))
 				n *= -1;
 
-			BVH_Hit h = intersect_bvh({p - 0.01 * n, n, 0, acc::inf});
+			BVH_Hit h = intersect_bvh({p, n, 0, acc::inf});
 			Vec3 pos;
 			if (h.hit)
 				pos = h.pos;
@@ -1192,13 +1207,13 @@ protected:
 			if (ImGui::Button("Project on surface"))
 				project_on_surface();
 			static float regularize_fit_to_data = 5.0f;
-			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 200.0);
+			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
 			if (ImGui::Button("Regularize surface vertices"))
 				regularize_surface_vertices(regularize_fit_to_data);
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
-			static float optimize_fit_to_surface = 50.0f;
-			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.0, 200.0))
+			static float optimize_fit_to_surface = 1.0f;
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
 				refresh_solver_matrix_values_only_ = true;
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 			if (ImGui::Button("Optimize volume vertices"))
@@ -1232,6 +1247,7 @@ private:
 	std::shared_ptr<VolumeAttribute<uint32>> volume_vertex_index_ = nullptr;
 	std::shared_ptr<VolumeAttribute<uint32>> volume_edge_index_ = nullptr;
 	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_ = nullptr;
+	Scalar length_mean_;
 	bool refresh_edge_target_length_ = true;
 	bool refresh_volume_cells_indexing_ = true;
 

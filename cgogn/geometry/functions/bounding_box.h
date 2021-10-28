@@ -57,6 +57,23 @@ std::pair<VEC, VEC> bounding_box(const CONTAINER<VEC>& container)
 	return {bb_min, bb_max};
 }
 
+template <template <typename VEC> typename CONTAINER, typename VEC>
+void rescale(CONTAINER<VEC>& container, typename vector_traits<VEC>::Scalar s)
+{
+	using Scalar = typename vector_traits<VEC>::Scalar;
+	const std::size_t dimension = vector_traits<VEC>::SIZE;
+
+	auto [bb_min, bb_max] = geometry::bounding_box(container);
+	VEC range = bb_max - bb_min;
+	Scalar max = std::max(std::max(range[0], range[1]), range[2]);
+	VEC scale = (range / max) * s;
+	for (VEC& v : container)
+	{
+		for (std::size_t i = 0; i < dimension; ++i)
+			v[i] = (v[i] - bb_min[i]) / range[i] * scale[i];
+	}
+}
+
 } // namespace geometry
 
 } // namespace cgogn
