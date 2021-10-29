@@ -1056,6 +1056,9 @@ public:
 	{
 		volume_ = v;
 		volume_vertex_position_ = get_attribute<Vec3, VolumeVertex>(*volume_, "position");
+		volume_vertex_index_ = get_or_add_attribute<uint32, VolumeVertex>(*volume_, "vertex_index");
+		volume_edge_index_ = get_or_add_attribute<uint32, VolumeEdge>(*volume_, "edge_index");
+		volume_edge_target_length_ = get_or_add_attribute<Scalar, VolumeEdge>(*volume_, "target_length");
 	}
 
 	void set_current_graph_vertex_position(const std::shared_ptr<GraphAttribute<Vec3>>& attribute)

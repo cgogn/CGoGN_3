@@ -29,6 +29,16 @@ target_link_libraries(heat_method
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(registration registration.cpp)
+target_link_libraries(registration
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	simpleICP
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
@@ -37,6 +47,10 @@ if(APPLE)
 		${CARBON}
 	)
 	target_link_libraries(heat_method
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(registration
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
