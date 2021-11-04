@@ -39,8 +39,9 @@ namespace geometry
 {
 
 template <typename MESH>
-void register_mesh(MESH* source, typename mesh_traits<MESH>::template Attribute<Vec3>* source_vertex_position,
-				   MESH* target, const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position)
+void rigid_register_mesh(MESH* source, typename mesh_traits<MESH>::template Attribute<Vec3>* source_vertex_position,
+						 MESH* target,
+						 const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
@@ -94,6 +95,13 @@ void register_mesh(MESH* source, typename mesh_traits<MESH>::template Attribute<
 
 	remove_attribute<Vertex>(*source, source_vertex_index);
 	remove_attribute<Vertex>(*target, target_vertex_index);
+}
+
+template <typename MESH>
+void non_rigid_register_mesh(MESH* source, typename mesh_traits<MESH>::template Attribute<Vec3>* source_vertex_position,
+							 MESH* target,
+							 const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position)
+{
 }
 
 } // namespace geometry

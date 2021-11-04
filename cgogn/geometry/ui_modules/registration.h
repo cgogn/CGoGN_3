@@ -58,10 +58,17 @@ public:
 	{
 	}
 
-	void register_mesh(MESH* source, Attribute<Vec3>* source_position, MESH* target,
-					   const Attribute<Vec3>* target_position)
+	void rigid_register_mesh(MESH* source, Attribute<Vec3>* source_position, MESH* target,
+							 const Attribute<Vec3>* target_position)
 	{
-		geometry::register_mesh(source, source_position, target, target_position);
+		geometry::rigid_register_mesh(source, source_position, target, target_position);
+		mesh_provider_->emit_attribute_changed(*source, source_position);
+	}
+
+	void non_rigid_register_mesh(MESH* source, Attribute<Vec3>* source_position, MESH* target,
+								 const Attribute<Vec3>* target_position)
+	{
+		geometry::non_rigid_register_mesh(source, source_position, target, target_position);
 		mesh_provider_->emit_attribute_changed(*source, source_position);
 	}
 
@@ -104,9 +111,12 @@ protected:
 
 		if (selected_source_vertex_position_ && selected_target_vertex_position_)
 		{
-			if (ImGui::Button("Register"))
-				register_mesh(selected_source_mesh_, selected_source_vertex_position_.get(), selected_target_mesh_,
-							  selected_target_vertex_position_.get());
+			if (ImGui::Button("Rigid registration"))
+				rigid_register_mesh(selected_source_mesh_, selected_source_vertex_position_.get(),
+									selected_target_mesh_, selected_target_vertex_position_.get());
+			if (ImGui::Button("Non-rigid registration"))
+				non_rigid_register_mesh(selected_source_mesh_, selected_source_vertex_position_.get(),
+										selected_target_mesh_, selected_target_vertex_position_.get());
 		}
 	}
 

@@ -27,6 +27,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/geometry/ui_modules/registration.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/geometry/ui_modules/volume_selection.h>
 #include <cgogn/modeling/ui_modules/tubular_mesh_module.h>
@@ -81,6 +82,8 @@ int main(int argc, char** argv)
 	cgogn::ui::VolumeDeformation<Volume> vd(app);
 
 	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
+
+	cgogn::ui::Registration<Surface> r(app);
 
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
