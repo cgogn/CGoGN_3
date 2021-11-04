@@ -46,12 +46,6 @@ using Scalar = cgogn::geometry::Scalar;
 
 int main(int argc, char** argv)
 {
-	std::string filename;
-	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
-	else
-		filename = std::string(argv[1]);
-
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
@@ -68,18 +62,30 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 
-	Mesh* m = mp.load_surface_from_file(filename);
-	if (!m)
+	if (argc > 1)
 	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
+		Mesh* m = mp.load_surface_from_file(argv[1]);
+		if (!m)
+			std::cout << "File could not be loaded: " << argv[1] << std::endl;
+		else
+		{
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			mp.set_mesh_bb_vertex_position(*m, vertex_position);
+			sr.set_vertex_position(*v1, *m, vertex_position);
+		}
 	}
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-
-	mp.set_mesh_bb_vertex_position(*m, vertex_position);
-
-	sr.set_vertex_position(*v1, *m, vertex_position);
+	if (argc > 2)
+	{
+		Mesh* m = mp.load_surface_from_file(argv[2]);
+		if (!m)
+			std::cout << "File could not be loaded: " << argv[2] << std::endl;
+		else
+		{
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			mp.set_mesh_bb_vertex_position(*m, vertex_position);
+			sr.set_vertex_position(*v1, *m, vertex_position);
+		}
+	}
 
 	return app.launch();
 }
