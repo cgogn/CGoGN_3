@@ -72,6 +72,7 @@ public:
 	{
 	}
 
+public:
 	void fill_holes(MESH& m)
 	{
 		modeling::fill_holes(m);

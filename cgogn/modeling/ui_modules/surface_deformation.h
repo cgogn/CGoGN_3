@@ -249,29 +249,25 @@ private:
 				if (p.selected_free_vertices_set_->contains(v)) // free vertices
 				{
 					working_vertices_marker.mark(v);
-					foreach_adjacent_vertex_through_edge(
-						m, v,
-						[&](Vertex av) -> bool // and their 2-ring
+					foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool { // and their 2-ring
+						if (!p.selected_free_vertices_set_->contains(av) &&
+							!p.selected_handle_vertices_set_->contains(av) && !working_vertices_marker.is_marked(av))
 						{
-							if (!p.selected_free_vertices_set_->contains(av) &&
-								!p.selected_handle_vertices_set_->contains(av) &&
-								!working_vertices_marker.is_marked(av))
-							{
-								p.working_cells_->add(av);
-								working_vertices_marker.mark(av);
-								foreach_adjacent_vertex_through_edge(m, av, [&](Vertex aav) -> bool {
-									if (!p.selected_free_vertices_set_->contains(aav) &&
-										!p.selected_handle_vertices_set_->contains(aav) &&
-										!working_vertices_marker.is_marked(aav))
-									{
-										p.working_cells_->add(aav);
-										working_vertices_marker.mark(aav);
-									}
-									return true;
-								});
-							}
-							return true;
-						});
+							p.working_cells_->add(av);
+							working_vertices_marker.mark(av);
+							foreach_adjacent_vertex_through_edge(m, av, [&](Vertex aav) -> bool {
+								if (!p.selected_free_vertices_set_->contains(aav) &&
+									!p.selected_handle_vertices_set_->contains(aav) &&
+									!working_vertices_marker.is_marked(aav))
+								{
+									p.working_cells_->add(aav);
+									working_vertices_marker.mark(aav);
+								}
+								return true;
+							});
+						}
+						return true;
+					});
 					return true;
 				}
 				return false;
