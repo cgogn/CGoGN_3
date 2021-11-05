@@ -58,18 +58,18 @@ public:
 	{
 	}
 
-	void rigid_register_mesh(MESH* source, Attribute<Vec3>* source_position, MESH* target,
+	void rigid_register_mesh(MESH& source, Attribute<Vec3>* source_position, MESH& target,
 							 const Attribute<Vec3>* target_position)
 	{
 		geometry::rigid_register_mesh(source, source_position, target, target_position);
-		mesh_provider_->emit_attribute_changed(*source, source_position);
+		mesh_provider_->emit_attribute_changed(source, source_position);
 	}
 
-	void non_rigid_register_mesh(MESH* source, Attribute<Vec3>* source_position, MESH* target,
-								 const Attribute<Vec3>* target_position)
+	void non_rigid_register_mesh(MESH& source, std::shared_ptr<Attribute<Vec3>>& source_position, MESH& target,
+								 const Attribute<Vec3>* target_position, Scalar fit_to_target, bool relax)
 	{
-		geometry::non_rigid_register_mesh(source, source_position, target, target_position);
-		mesh_provider_->emit_attribute_changed(*source, source_position);
+		geometry::non_rigid_register_mesh(source, source_position, target, target_position, fit_to_target, relax);
+		mesh_provider_->emit_attribute_changed(source, source_position.get());
 	}
 
 protected:
@@ -109,14 +109,26 @@ protected:
 												});
 		}
 
-		if (selected_source_vertex_position_ && selected_target_vertex_position_)
+		if (selected_source_mesh_ && selected_source_vertex_position_ && selected_target_mesh_ &&
+			selected_target_vertex_position_)
 		{
 			if (ImGui::Button("Rigid registration"))
-				rigid_register_mesh(selected_source_mesh_, selected_source_vertex_position_.get(),
-									selected_target_mesh_, selected_target_vertex_position_.get());
+				rigid_register_mesh(*selected_source_mesh_, selected_source_vertex_position_.get(),
+									*selected_target_mesh_, selected_target_vertex_position_.get());
+			static float fit_to_target = 0.05f;
+			static bool relax = true;
+			ImGui::SliderFloat("Fit to target", &fit_to_target, 0.0, 10.0);
+			if (ImGui::Checkbox("Relax", &relax))
+			{
+				if (relax)
+					fit_to_target = 5.0;
+				else
+					fit_to_target = 0.05;
+			}
 			if (ImGui::Button("Non-rigid registration"))
-				non_rigid_register_mesh(selected_source_mesh_, selected_source_vertex_position_.get(),
-										selected_target_mesh_, selected_target_vertex_position_.get());
+				non_rigid_register_mesh(*selected_source_mesh_, selected_source_vertex_position_,
+										*selected_target_mesh_, selected_target_vertex_position_.get(), fit_to_target,
+										relax);
 		}
 	}
 
