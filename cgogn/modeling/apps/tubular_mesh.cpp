@@ -27,12 +27,14 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+// #include <cgogn/geometry/ui_modules/registration.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/geometry/ui_modules/volume_selection.h>
 #include <cgogn/modeling/ui_modules/tubular_mesh_module.h>
 #include <cgogn/modeling/ui_modules/volume_deformation.h>
 #include <cgogn/rendering/ui_modules/graph_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
 #include <cgogn/io/graph/cgr.h>
@@ -81,8 +83,12 @@ int main(int argc, char** argv)
 
 	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
 
+	// cgogn::ui::Registration<Surface> r(app);
+
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
+	cgogn::ui::VectorPerVertexRender<Surface> svpvr(app);
+	cgogn::ui::VectorPerVertexRender<Graph> gvpvr(app);
 	cgogn::ui::VolumeRender<Volume> vr(app);
 
 	cgogn::ui::TubularMesh<Graph, Surface, Volume> tm(app);
@@ -100,6 +106,8 @@ int main(int argc, char** argv)
 
 	v->link_module(&gr);
 	v->link_module(&sr);
+	v->link_module(&svpvr);
+	v->link_module(&gvpvr);
 	v->link_module(&vr);
 
 	v->link_module(&tm);

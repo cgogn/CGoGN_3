@@ -57,11 +57,7 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
 
-	// static map to store helpers associated to meshes
-	// allows to store context without polluting outer context and function api
-	static std::unordered_map<MESH*, DecimationQEM_Helper<MESH>> helpers_;
-	auto [it, inserted] = helpers_.try_emplace(&m, m, vertex_position);
-	DecimationQEM_Helper<MESH>& helper = it->second;
+	DecimationQEM_Helper<MESH> helper(m, vertex_position);
 
 	auto before = [&](Edge e) { helper.before_collapse(e); };
 	auto approx = [&](Edge e) -> Vec3 { return mid_point(m, e, vertex_position); }; // helper.edge_optimal(e); };

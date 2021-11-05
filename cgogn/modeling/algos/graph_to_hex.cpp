@@ -57,8 +57,8 @@
 
 #include <fstream>
 #include <iostream>
-#define _USE_MATH_DEFINES
-#include <math.h>
+
+#include <cmath>
 #include <numeric>
 
 namespace cgogn
@@ -1302,17 +1302,18 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 
 	std::cout << "ortho intersection " << degree(g, gv) << std::endl;
 
-	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, gv) * 1.414;
+	Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, gv);
 
 	Vec3& p = value<Vec3>(g, gAttribs.vertex_position, gv);
-	std::vector<Vec3> corners = {(frame.col(0) - frame.col(1) - frame.col(2)) / 2 * radius + p,
-								 (frame.col(0) + frame.col(1) - frame.col(2)) / 2 * radius + p,
-								 (-frame.col(0) + frame.col(1) - frame.col(2)) / 2 * radius + p,
-								 (-frame.col(0) - frame.col(1) - frame.col(2)) / 2 * radius + p,
-								 (frame.col(0) - frame.col(1) + frame.col(2)) / 2 * radius + p,
-								 (frame.col(0) + frame.col(1) + frame.col(2)) / 2 * radius + p,
-								 (-frame.col(0) + frame.col(1) + frame.col(2)) / 2 * radius + p,
-								 (-frame.col(0) - frame.col(1) + frame.col(2)) / 2 * radius + p};
+
+	std::vector<Vec3> corners = {(frame.col(0) - frame.col(1) - frame.col(2)).normalized() * radius * 1.15 + p,
+								 (frame.col(0) + frame.col(1) - frame.col(2)).normalized() * radius * 1.15 + p,
+								 (-frame.col(0) + frame.col(1) - frame.col(2)).normalized() * radius * 1.15 + p,
+								 (-frame.col(0) - frame.col(1) - frame.col(2)).normalized() * radius * 1.15 + p,
+								 (frame.col(0) - frame.col(1) + frame.col(2)).normalized() * radius * 1.15 + p,
+								 (frame.col(0) + frame.col(1) + frame.col(2)).normalized() * radius * 1.15 + p,
+								 (-frame.col(0) + frame.col(1) + frame.col(2)).normalized() * radius * 1.15 + p,
+								 (-frame.col(0) - frame.col(1) + frame.col(2)).normalized() * radius * 1.15 + p};
 
 	/// create support
 	CMap2* scaffold = new CMap2();
@@ -1343,7 +1344,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 			return true;
 		});
 		center /= 2;
-		value<Vec3>(*scaffold, scaffold_position_edge, e) = center;
+		value<Vec3>(*scaffold, scaffold_position_edge, e) = (center - p).normalized() * radius * 1.05 + p;
 		return true;
 	});
 	auto scaffold_position_face = add_attribute<Vec3, CMap2::Face>(*scaffold, "position");
@@ -1354,11 +1355,12 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 			return true;
 		});
 		center /= codegree(*scaffold, f);
-		value<Vec3>(*scaffold, scaffold_position_face, f) = center;
+		value<Vec3>(*scaffold, scaffold_position_face, f) = (center - p).normalized() * radius + p;
 		return true;
 	});
 	auto scaffold_position_volume = add_attribute<Vec3, CMap2::Volume>(*scaffold, "position");
-	value<Vec3>(*scaffold, scaffold_position_volume, w) = value<Vec3>(g, gAttribs.vertex_position, gv);
+
+	value<Vec3>(*scaffold, scaffold_position_volume, w) = p;
 
 	// associate branches with cube faces
 	auto scaffold_face_branch = add_attribute<CMap2::HalfEdge, CMap2::Face>(*scaffold, "face_branch");
@@ -1475,7 +1477,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 					d = phi<2, 1>(*scaffold, d);
 			} while (d != d0);
 
-			Dart d_new = add_face(static_cast<CMap1&>(m2), path.size(), false).dart;
+			Dart d_new = add_face(static_cast<CMap1&>(m2), uint32(path.size()), false).dart;
 			for (uint32 i = 0; i < path.size(); ++i)
 			{
 				phi2_sew(m2, path[i], d_new);
@@ -2055,7 +2057,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 			auto scaffold_position_face = get_attribute<Vec3, CMap2::Face>(*scaffold, "position");
 			auto scaffold_position_volume = get_attribute<Vec3, CMap2::Volume>(*scaffold, "position");
 			auto scaffold_hex_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
-			uint32 i = 0;
+			//uint32 i = 0;
 			foreach_cell(*scaffold, [&](CMap2::Vertex v2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart));
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
@@ -2070,7 +2072,6 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 
 				return true;
 			});
-
 			foreach_cell(*scaffold, [&](CMap2::Face f2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(f2.dart));
 				d3 = phi<1, 1>(m3, d3);
@@ -2078,7 +2079,6 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 					value<Vec3>(*scaffold, scaffold_position_face, f2);
 				return true;
 			});
-
 			foreach_cell(*scaffold, [&](CMap2::Volume w2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(w2.dart));
 				d3 = phi<1, 1, 2, 1, 1>(m3, d3);
@@ -2150,11 +2150,11 @@ Dart convex_hull_around_vertex(const Graph& g, Graph::Vertex v, CMap2& m2, M2Att
 	std::vector<uint32> Pid;
 	Pid.reserve(Ppos.size());
 
-	uint32 i = 0;
+	uint32 ii = 0;
 	foreach_dart_of_orbit(g, v, [&](Dart d) -> bool {
 		uint32 vertex_id = new_index<CMap2::Vertex>(m2);
 		Pid.push_back(vertex_id);
-		(*m2Attribs.vertex_position)[vertex_id] = Ppos[i]; // positions are in the same order in Ppos
+		(*m2Attribs.vertex_position)[vertex_id] = Ppos[ii]; // positions are in the same order in Ppos
 		(*m2Attribs.dual_vertex_graph_branch)[vertex_id] = d;
 		return true;
 	});
@@ -3091,12 +3091,12 @@ bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttr
 	std::vector<uint32> axis_id(nb_points);
 	for (uint32 j = 0; j < nb_points; ++j)
 	{
-		axis_id[j] = -1;
+		axis_id[j] = 0xffffffff;
 	}
 
 	for (uint32 i = 0; i < nb_points; ++i)
 	{
-		if (axis_id[i] != -1)
+		if (axis_id[i] != 0xffffffff)
 			continue;
 
 		bool new_axis = true;
@@ -3119,7 +3119,7 @@ bool find_inter_frame(const Graph& g, Graph::Vertex gv, const GAttributes& gAttr
 	for (uint32 j = 0; j < nb_points; ++j)
 	{
 		frame.col(axis_id[j]) += axis_set[axis_id[j]]++ == 0 ? directions[j] : -directions[j];
-		frame.col(axis_id[j]) = frame.col(axis_id[j]).normalized();
+		frame.col(axis_id[j]).normalize();
 	}
 	if (current_id == 2)
 		frame.col(2) = frame.col(0).cross(frame.col(1));

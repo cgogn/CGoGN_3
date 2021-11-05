@@ -84,7 +84,7 @@ bool import_OBJ(MESH& m, const std::string& filename)
 	fp.seekg(0, std::ios::beg);
 
 	// read faces (vertex indices)
-	uint32 nb_faces = 0;
+	//uint32 nb_faces = 0;
 	do
 	{
 		fp >> tag;

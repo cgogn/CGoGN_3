@@ -139,8 +139,8 @@ public:
 
 	void clear_mesh(MESH& m)
 	{
-		clear(&m);
-		emit_connectivity_changed(&m);
+		clear(m);
+		emit_connectivity_changed(m);
 		// TODO: emit attributes changed ?
 	}
 

@@ -38,7 +38,7 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/graph_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render.h"
-		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render_vector.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/vector_per_vertex_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/topo_render.h"
 

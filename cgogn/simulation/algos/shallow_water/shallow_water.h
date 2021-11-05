@@ -310,7 +310,7 @@ void execute_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 		uint32 eidx = index_of(m, e);
 
 		// solve flux on edge
-		Str_Riemann_Flux riemann_flux;
+		Str_Riemann_Flux riemann_flux = {0.0f,0.0f,0.0f,0.0f,0.0f}; // init for warning remove
 
 		if (is_incident_to_boundary(m, e)) // border conditions
 		{
