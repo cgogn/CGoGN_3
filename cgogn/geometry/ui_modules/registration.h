@@ -116,7 +116,7 @@ protected:
 				rigid_register_mesh(*selected_source_mesh_, selected_source_vertex_position_.get(),
 									*selected_target_mesh_, selected_target_vertex_position_.get());
 			static float fit_to_target = 0.05f;
-			static bool relax = true;
+			static bool relax = false;
 			ImGui::SliderFloat("Fit to target", &fit_to_target, 0.0, 10.0);
 			if (ImGui::Checkbox("Relax", &relax))
 			{

@@ -113,6 +113,14 @@ struct NonRigidRegistration_Helper
 								MESH& target, const Attribute<Vec3>* target_vertex_position, Scalar fit_to_target)
 		: source_(source), source_vertex_position_(source_vertex_position), fit_to_target_(fit_to_target)
 	{
+		source_vertex_position_init_ = add_attribute<Vec3, Vertex>(source, "__nrrh_vertex_position_init");
+		source_vertex_position_init_->copy(source_vertex_position_.get());
+
+		source_vertex_rotation_matrix_ = add_attribute<Mat3, Vertex>(source, "__nrrh_vertex_rotation_matrix");
+		Mat3 rm;
+		rm.setZero();
+		source_vertex_rotation_matrix_->fill(rm);
+
 		// index target vertices
 		// & build BVH
 		auto target_vertex_index = add_attribute<uint32, Vertex>(target, "__nrrh_vertex_index");
@@ -167,6 +175,7 @@ struct NonRigidRegistration_Helper
 		});
 		LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
 		lapl_ = LAPL * vpos;
+		rlapl_ = lapl_;
 
 		// build solver
 		build_solver(fit_to_target_);
@@ -174,6 +183,8 @@ struct NonRigidRegistration_Helper
 	~NonRigidRegistration_Helper()
 	{
 		remove_attribute<Vertex>(source_, source_vertex_index_);
+		remove_attribute<Vertex>(source_, source_vertex_position_init_);
+		remove_attribute<Vertex>(source_, source_vertex_rotation_matrix_);
 		delete target_bvh_;
 	}
 
@@ -204,8 +215,11 @@ struct NonRigidRegistration_Helper
 	MESH& source_;
 	uint32 source_nb_vertices_;
 	std::shared_ptr<Attribute<Vec3>> source_vertex_position_;
+	std::shared_ptr<Attribute<Vec3>> source_vertex_position_init_;
+	std::shared_ptr<Attribute<Mat3>> source_vertex_rotation_matrix_;
 	std::shared_ptr<Attribute<uint32>> source_vertex_index_;
 	Eigen::MatrixXd lapl_;
+	Eigen::MatrixXd rlapl_;
 
 	Scalar fit_to_target_;
 	acc::BVHTree<uint32, Vec3>* target_bvh_;
@@ -234,13 +248,61 @@ void non_rigid_register_mesh(
 	if (fit_to_target != helper.fit_to_target_)
 		helper.build_solver(fit_to_target);
 
+	parallel_foreach_cell(source, [&](Vertex v) -> bool {
+		Mat3 cov;
+		cov.setZero();
+		const Vec3& pos = value<Vec3>(source, helper.source_vertex_position_, v);
+		const Vec3& pos_i = value<Vec3>(source, helper.source_vertex_position_init_, v);
+		foreach_adjacent_vertex_through_edge(source, v, [&](Vertex av) -> bool {
+			Vec3 vec = value<Vec3>(source, helper.source_vertex_position_, av) - pos;
+			Vec3 vec_i = value<Vec3>(source, helper.source_vertex_position_init_, av) - pos_i;
+			for (uint32 i = 0; i < 3; ++i)
+				for (uint32 j = 0; j < 3; ++j)
+					cov(i, j) += vec[i] * vec_i[j];
+			return true;
+		});
+		Eigen::JacobiSVD<Mat3> svd(cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		Mat3 R = svd.matrixU() * svd.matrixV().transpose();
+		if (R.determinant() < 0)
+		{
+			Mat3 U = svd.matrixU();
+			for (uint32 i = 0; i < 3; ++i)
+				U(i, 2) *= -1;
+			R = U * svd.matrixV().transpose();
+		}
+		value<Mat3>(source, helper.source_vertex_rotation_matrix_, v) = R;
+		return true;
+	});
+	parallel_foreach_cell(source, [&](Vertex v) -> bool {
+		uint32 degree = 0;
+		Mat3 r;
+		r.setZero();
+		foreach_adjacent_vertex_through_edge(source, v, [&](Vertex av) -> bool {
+			r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, av);
+			++degree;
+			return true;
+		});
+		r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, v);
+		r /= degree + 1;
+		uint32 vidx = value<uint32>(source, helper.source_vertex_index_, v);
+		Vec3 l;
+		l[0] = helper.lapl_(vidx, 0);
+		l[1] = helper.lapl_(vidx, 1);
+		l[2] = helper.lapl_(vidx, 2);
+		Vec3 rl = r * l;
+		helper.rlapl_(vidx, 0) = rl[0];
+		helper.rlapl_(vidx, 1) = rl[1];
+		helper.rlapl_(vidx, 2) = rl[2];
+		return true;
+	});
+
 	// setup RHS
 	Eigen::MatrixXd b(2 * helper.source_nb_vertices_, 3);
 	foreach_cell(source, [&](Vertex v) -> bool {
 		uint32 vidx = value<uint32>(source, helper.source_vertex_index_, v);
-		b(vidx, 0) = relax ? 0.0 : helper.lapl_(vidx, 0);
-		b(vidx, 1) = relax ? 0.0 : helper.lapl_(vidx, 1);
-		b(vidx, 2) = relax ? 0.0 : helper.lapl_(vidx, 2);
+		b(vidx, 0) = relax ? 0.0 : helper.rlapl_(vidx, 0);
+		b(vidx, 1) = relax ? 0.0 : helper.rlapl_(vidx, 1);
+		b(vidx, 2) = relax ? 0.0 : helper.rlapl_(vidx, 2);
 		Vec3 pos = helper.target_bvh_->closest_point(value<Vec3>(source, helper.source_vertex_position_, v));
 		b(helper.source_nb_vertices_ + vidx, 0) = fit_to_target * pos[0];
 		b(helper.source_nb_vertices_ + vidx, 1) = fit_to_target * pos[1];
