@@ -41,18 +41,19 @@ namespace cgogn
 namespace geometry
 {
 
-template <typename MESH>
-void rigid_register_mesh(MESH& source, typename mesh_traits<MESH>::template Attribute<Vec3>* source_vertex_position,
-						 MESH& target,
-						 const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position)
+template <typename MESHS, typename MESHT>
+Mat4 rigid_register_mesh(MESHS& source, typename mesh_traits<MESHS>::template Attribute<Vec3>* source_vertex_position,
+						 MESHT& target,
+						 const typename mesh_traits<MESHT>::template Attribute<Vec3>* target_vertex_position)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using SVertex = typename mesh_traits<MESHS>::Vertex;
+	using TVertex = typename mesh_traits<MESHT>::Vertex;
 
-	uint32 source_nbv = nb_cells<Vertex>(source);
+	uint32 source_nbv = nb_cells<SVertex>(source);
 	Eigen::MatrixXd X_source(source_nbv, 3);
-	auto source_vertex_index = add_attribute<uint32, Vertex>(source, "__vertex_index");
+	auto source_vertex_index = add_attribute<uint32, SVertex>(source, "__vertex_index");
 	uint32 source_vertex_idx = 0;
-	foreach_cell(source, [&](Vertex v) -> bool {
+	foreach_cell(source, [&](SVertex v) -> bool {
 		const Vec3& p = value<Vec3>(source, source_vertex_position, v);
 		X_source(source_vertex_idx, 0) = p[0];
 		X_source(source_vertex_idx, 1) = p[1];
@@ -61,11 +62,11 @@ void rigid_register_mesh(MESH& source, typename mesh_traits<MESH>::template Attr
 		return true;
 	});
 
-	uint32 target_nbv = nb_cells<Vertex>(target);
+	uint32 target_nbv = nb_cells<TVertex>(target);
 	Eigen::MatrixXd X_target(target_nbv, 3);
-	auto target_vertex_index = add_attribute<uint32, Vertex>(target, "__vertex_index");
+	auto target_vertex_index = add_attribute<uint32, TVertex>(target, "__vertex_index");
 	uint32 target_vertex_idx = 0;
-	foreach_cell(target, [&](Vertex v) -> bool {
+	foreach_cell(target, [&](TVertex v) -> bool {
 		const Vec3& p = value<Vec3>(target, target_vertex_position, v);
 		X_target(target_vertex_idx, 0) = p[0];
 		X_target(target_vertex_idx, 1) = p[1];
@@ -77,7 +78,7 @@ void rigid_register_mesh(MESH& source, typename mesh_traits<MESH>::template Attr
 	Mat4 t = SimpleICP(X_target, X_source);
 
 	Eigen::MatrixXd X_sourceH(4, source_nbv);
-	foreach_cell(source, [&](Vertex v) -> bool {
+	foreach_cell(source, [&](SVertex v) -> bool {
 		uint32 idx = value<uint32>(source, source_vertex_index, v);
 		const Vec3& p = value<Vec3>(source, source_vertex_position, v);
 		X_sourceH(0, idx) = p[0];
@@ -87,7 +88,7 @@ void rigid_register_mesh(MESH& source, typename mesh_traits<MESH>::template Attr
 		return true;
 	});
 	Eigen::MatrixXd res = t * X_sourceH;
-	foreach_cell(source, [&](Vertex v) -> bool {
+	foreach_cell(source, [&](SVertex v) -> bool {
 		uint32 idx = value<uint32>(source, source_vertex_index, v);
 		Vec3& p = value<Vec3>(source, source_vertex_position, v);
 		p[0] = res(0, idx);
@@ -96,8 +97,10 @@ void rigid_register_mesh(MESH& source, typename mesh_traits<MESH>::template Attr
 		return true;
 	});
 
-	remove_attribute<Vertex>(source, source_vertex_index);
-	remove_attribute<Vertex>(target, target_vertex_index);
+	remove_attribute<SVertex>(source, source_vertex_index);
+	remove_attribute<TVertex>(target, target_vertex_index);
+
+	return t;
 }
 
 template <typename MESH>
@@ -111,7 +114,8 @@ struct NonRigidRegistration_Helper
 
 	NonRigidRegistration_Helper(MESH& source, const std::shared_ptr<Attribute<Vec3>>& source_vertex_position,
 								MESH& target, const Attribute<Vec3>* target_vertex_position, Scalar fit_to_target)
-		: source_(source), source_vertex_position_(source_vertex_position), fit_to_target_(fit_to_target)
+		: source_(source), source_vertex_position_(source_vertex_position), target_(&target),
+		  target_vertex_position_(target_vertex_position), fit_to_target_(fit_to_target)
 	{
 		source_vertex_position_init_ = add_attribute<Vec3, Vertex>(source, "__nrrh_vertex_position_init");
 		source_vertex_position_init_->copy(source_vertex_position_.get());
@@ -121,28 +125,7 @@ struct NonRigidRegistration_Helper
 		rm.setZero();
 		source_vertex_rotation_matrix_->fill(rm);
 
-		// index target vertices
-		// & build BVH
-		auto target_vertex_index = add_attribute<uint32, Vertex>(target, "__nrrh_vertex_index");
-		std::vector<Vec3> target_vertex_positions;
-		uint32 target_nb_vertices = 0;
-		foreach_cell(target, [&](Vertex v) -> bool {
-			value<uint32>(target, target_vertex_index, v) = target_nb_vertices++;
-			target_vertex_positions.push_back(value<Vec3>(target, target_vertex_position, v));
-			return true;
-		});
-		// std::vector<Face> target_faces;
-		std::vector<uint32> target_face_vertex_indices;
-		foreach_cell(target, [&](Face f) -> bool {
-			// target_faces.push_back(f);
-			foreach_incident_vertex(target, f, [&](Vertex v) -> bool {
-				target_face_vertex_indices.push_back(value<uint32>(target, target_vertex_index, v));
-				return true;
-			});
-			return true;
-		});
-		target_bvh_ = new acc::BVHTree<uint32, Vec3>(target_face_vertex_indices, target_vertex_positions);
-		remove_attribute<Vertex>(target, target_vertex_index);
+		build_target_bvh(target, target_vertex_position);
 
 		// index source vertices
 		source_vertex_index_ = add_attribute<uint32, Vertex>(source_, "__nrrh_vertex_index");
@@ -188,6 +171,33 @@ struct NonRigidRegistration_Helper
 		delete target_bvh_;
 	}
 
+	void build_target_bvh(MESH& target, const Attribute<Vec3>* target_vertex_position)
+	{
+		target_ = &target;
+		target_vertex_position_ = target_vertex_position;
+
+		auto target_vertex_index = add_attribute<uint32, Vertex>(target, "__nrrh_vertex_index");
+		std::vector<Vec3> target_vertex_positions;
+		uint32 target_nb_vertices = 0;
+		foreach_cell(target, [&](Vertex v) -> bool {
+			value<uint32>(target, target_vertex_index, v) = target_nb_vertices++;
+			target_vertex_positions.push_back(value<Vec3>(target, target_vertex_position, v));
+			return true;
+		});
+		std::vector<uint32> target_face_vertex_indices;
+		foreach_cell(target, [&](Face f) -> bool {
+			foreach_incident_vertex(target, f, [&](Vertex v) -> bool {
+				target_face_vertex_indices.push_back(value<uint32>(target, target_vertex_index, v));
+				return true;
+			});
+			return true;
+		});
+		if (target_bvh_)
+			delete target_bvh_;
+		target_bvh_ = new acc::BVHTree<uint32, Vec3>(target_face_vertex_indices, target_vertex_positions);
+		remove_attribute<Vertex>(target, target_vertex_index);
+	}
+
 	void build_solver(Scalar fit_to_target)
 	{
 		fit_to_target_ = fit_to_target;
@@ -221,8 +231,11 @@ struct NonRigidRegistration_Helper
 	Eigen::MatrixXd lapl_;
 	Eigen::MatrixXd rlapl_;
 
+	MESH* target_ = nullptr;
+	const Attribute<Vec3>* target_vertex_position_ = nullptr;
+
 	Scalar fit_to_target_;
-	acc::BVHTree<uint32, Vec3>* target_bvh_;
+	acc::BVHTree<uint32, Vec3>* target_bvh_ = nullptr;
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A_;
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At_;
@@ -244,10 +257,12 @@ void non_rigid_register_mesh(
 	auto [it, inserted] =
 		helpers_.try_emplace(&source, source, source_vertex_position, target, target_vertex_position, fit_to_target);
 	NonRigidRegistration_Helper<MESH>& helper = it->second;
-
+	if (&target != helper.target_ || target_vertex_position != helper.target_vertex_position_)
+		helper.build_target_bvh(target, target_vertex_position);
 	if (fit_to_target != helper.fit_to_target_)
 		helper.build_solver(fit_to_target);
 
+	// rotate laplacian coordinates
 	parallel_foreach_cell(source, [&](Vertex v) -> bool {
 		Mat3 cov;
 		cov.setZero();
