@@ -450,14 +450,23 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (uint32(result.size()))
+			if (uint32(result.size()) > 0)
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
-					load_graph_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_graph_from_file(file);
+				}
 				if constexpr (mesh_traits<MESH>::dimension == 2)
-					load_surface_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_surface_from_file(file);
+				}
 				if constexpr (mesh_traits<MESH>::dimension == 3)
-					load_volume_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_volume_from_file(file);
+				}
 			}
 			open_file_dialog = nullptr;
 		}
@@ -471,11 +480,14 @@ protected:
 			if (ImGui::MenuItem("Load mesh"))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files_,
+																		pfd::opt::multiselect);
 				if constexpr (mesh_traits<MESH>::dimension == 2)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files_,
+																		pfd::opt::multiselect);
 				if constexpr (mesh_traits<MESH>::dimension == 3)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files_,
+																		pfd::opt::multiselect);
 			}
 			ImGui::PopItemFlag();
 			if (ImGui::MenuItem("Save mesh"))
