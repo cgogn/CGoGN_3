@@ -1011,8 +1011,8 @@ public:
 		if (refresh_volume_skin_)
 			refresh_volume_skin();
 
-		geometry::rigid_register_mesh(*volume_, volume_vertex_position_.get(), *surface_target_,
-									  surface_target_vertex_position_.get());
+		geometry::rigid_register_mesh(*volume_, volume_vertex_position_.get(), *surface_,
+									  surface_vertex_position_.get());
 
 		// update volume_skin vertex position
 		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
@@ -1026,14 +1026,22 @@ public:
 		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());
 	}
 
-	void non_rigid_register_volume_mesh(Scalar fit_to_data)
+	void non_rigid_register_volume_mesh(Scalar fit_to_data, bool init_surface_steady_pos)
 	{
 		if (refresh_volume_skin_)
 			refresh_volume_skin();
 
-		geometry::non_rigid_register_mesh(*volume_skin_, volume_skin_vertex_position_, *surface_target_,
-										  surface_target_vertex_position_.get(), 0.05, false);
+		geometry::non_rigid_register_mesh(*volume_skin_, volume_skin_vertex_position_, *surface_,
+										  surface_vertex_position_.get(), 0.05, false, init_surface_steady_pos);
 		optimize_volume_vertices(fit_to_data, true);
+	}
+
+	void snapshot_volume_vertex_position()
+	{
+		static uint32 count = 1;
+		auto pos = add_attribute<Vec3, VolumeVertex>(*volume_, "position_" + std::to_string(count));
+		pos->copy(volume_vertex_position_.get());
+		++count;
 	}
 
 	void compute_volumes_quality()
@@ -1229,66 +1237,57 @@ protected:
 			MeshData<VOLUME>& md = volume_provider_->mesh_data(*volume_);
 			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
-			if (ImGui::Button("Export subdivided skin"))
-				export_subdivided_skin();
-			imgui_combo_cells_set(md, selected_volume_faces_set_, "Faces",
-								  [&](CellsSet<VOLUME, VolumeFace>* cs) { selected_volume_faces_set_ = cs; });
+			// if (ImGui::Button("Export subdivided skin"))
+			// 	export_subdivided_skin();
+			// imgui_combo_cells_set(md, selected_volume_faces_set_, "Faces",
+			// 					  [&](CellsSet<VOLUME, VolumeFace>* cs) { selected_volume_faces_set_ = cs; });
 			if (ImGui::Button("Add volume padding"))
 				add_volume_padding();
 			// if (ImGui::Button("Subdivide length wise"))
 			// 	subdivide_volume_length_wise();
 			// if (ImGui::Button("Subdivide width wise"))
 			// 	subdivide_volume_width_wise();
-			if (ImGui::Button("Find Fibers"))
-				fiber_aligned_subdivision_from_input();
+			// if (ImGui::Button("Find Fibers"))
+			// 	fiber_aligned_subdivision_from_input();
 			if (ImGui::Button("Subdivide volume"))
 				subdivide_volume();
 			// if (ImGui::Button("Subdivide skin"))
 			// 	subdivide_skin();
-			if (ImGui::Button("Subdivide slice"))
-				subdivide_slice();
+			// if (ImGui::Button("Subdivide slice"))
+			// 	subdivide_slice();
 
-			ImGui::Separator();
+			if (surface_ && surface_vertex_position_)
+			{
+				ImGui::Separator();
+				if (ImGui::Button("Project on surface"))
+					project_on_surface();
+				static float regularize_fit_to_data = 5.0f;
+				ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
+				if (ImGui::Button("Regularize surface vertices"))
+					regularize_surface_vertices(regularize_fit_to_data);
+				if (ImGui::Button("Relocate interior vertices"))
+					relocate_interior_vertices();
+				static float optimize_fit_to_surface = 1.0f;
+				if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
+					refresh_solver_matrix_values_only_ = true;
+				ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
+				if (ImGui::Button("Optimize volume vertices"))
+					optimize_volume_vertices(optimize_fit_to_surface);
 
-			if (ImGui::Button("Project on surface"))
-				project_on_surface();
-			static float regularize_fit_to_data = 5.0f;
-			ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
-			if (ImGui::Button("Regularize surface vertices"))
-				regularize_surface_vertices(regularize_fit_to_data);
-			if (ImGui::Button("Relocate interior vertices"))
-				relocate_interior_vertices();
-			static float optimize_fit_to_surface = 1.0f;
-			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
-				refresh_solver_matrix_values_only_ = true;
-			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
-			if (ImGui::Button("Optimize volume vertices"))
-				optimize_volume_vertices(optimize_fit_to_surface);
+				ImGui::Separator();
+				if (ImGui::Button("Rigid register volume mesh"))
+					rigid_register_volume_mesh();
+				static bool init_steady_pos = false;
+				ImGui::Checkbox("Init steady pos", &init_steady_pos);
+				if (ImGui::Button("Non-rigid register volume mesh"))
+					non_rigid_register_volume_mesh(optimize_fit_to_surface, init_steady_pos);
+				if (ImGui::Button("Snapshot volume position"))
+					snapshot_volume_vertex_position();
+			}
+
 			ImGui::Separator();
 			if (ImGui::Button("Compute volumes quality"))
 				compute_volumes_quality();
-
-			ImGui::Separator();
-			ImGui::TextUnformatted("Surface registration target");
-			imgui_mesh_selector(surface_provider_, surface_target_, "Surface target",
-								[&](SURFACE& s) { surface_target_ = &s; });
-			if (surface_target_)
-			{
-				imgui_combo_attribute<SurfaceVertex, Vec3>(
-					*surface_target_, surface_target_vertex_position_, "Position##surface_target",
-					[&](const std::shared_ptr<SurfaceAttribute<Vec3>>& attribute) {
-						surface_target_vertex_position_ = attribute;
-					});
-			}
-
-			ImGui::Separator();
-			if (surface_target_ && surface_target_vertex_position_)
-			{
-				if (ImGui::Button("Rigid register volume mesh"))
-					rigid_register_volume_mesh();
-				if (ImGui::Button("Non-rigid register volume mesh"))
-					non_rigid_register_volume_mesh(optimize_fit_to_surface);
-			}
 		}
 	}
 
@@ -1307,9 +1306,6 @@ private:
 	std::vector<SurfaceFace> surface_faces_;
 	acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
 	std::vector<SurfaceVertex> surface_vertices_;
-
-	SURFACE* surface_target_ = nullptr;
-	std::shared_ptr<SurfaceAttribute<Vec3>> surface_target_vertex_position_ = nullptr;
 
 	SURFACE* contact_surface_ = nullptr;
 

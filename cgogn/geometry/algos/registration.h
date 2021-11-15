@@ -171,6 +171,11 @@ struct NonRigidRegistration_Helper
 		delete target_bvh_;
 	}
 
+	void init_source_steady_pos()
+	{
+		source_vertex_position_init_->copy(source_vertex_position_.get());
+	}
+
 	void build_target_bvh(MESH& target, const Attribute<Vec3>* target_vertex_position)
 	{
 		target_ = &target;
@@ -246,7 +251,7 @@ template <typename MESH>
 void non_rigid_register_mesh(
 	MESH& source, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& source_vertex_position,
 	MESH& target, const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position,
-	Scalar fit_to_target, bool relax)
+	Scalar fit_to_target, bool relax, bool init_source_steady_pos)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -261,6 +266,8 @@ void non_rigid_register_mesh(
 		helper.build_target_bvh(target, target_vertex_position);
 	if (fit_to_target != helper.fit_to_target_)
 		helper.build_solver(fit_to_target);
+	if (init_source_steady_pos)
+		helper.init_source_steady_pos();
 
 	// rotate laplacian coordinates
 	parallel_foreach_cell(source, [&](Vertex v) -> bool {
