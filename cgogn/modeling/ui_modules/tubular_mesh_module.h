@@ -49,6 +49,7 @@
 #include <cgogn/modeling/algos/volume_utils.h>
 
 #include <Eigen/Sparse>
+#include <boost/synapse/connect.hpp>
 #include <libacc/bvh_tree.h>
 #include <libacc/kd_tree.h>
 
@@ -105,6 +106,8 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<SURFACE>::name} + ")"));
 		volume_provider_ = static_cast<ui::MeshProvider<VOLUME>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<VOLUME>::name} + ")"));
+
+		timer_connection_ = boost::synapse::connect<App::timer_tick>(&app_, [this]() { animate_volume(); });
 	}
 
 	struct BVH_Hit
@@ -1041,6 +1044,7 @@ public:
 		static uint32 count = 1;
 		auto pos = add_attribute<Vec3, VolumeVertex>(*volume_, "position_" + std::to_string(count));
 		pos->copy(volume_vertex_position_.get());
+		animate_volume_vertex_positions_.push_back(pos);
 		++count;
 	}
 
@@ -1175,6 +1179,41 @@ public:
 	}
 
 protected:
+	void start_animate_volume()
+	{
+		if (animate_volume_vertex_positions_.size() - 1 > 0)
+		{
+			animate_volume_ = true;
+			animate_volume_start_time_ = App::frame_time_;
+			app_.start_timer(100, [this]() -> bool { return !animate_volume_; });
+		}
+	}
+
+	void stop_animate_volume()
+	{
+		animate_volume_ = false;
+		volume_vertex_position_->copy(animate_volume_vertex_positions_.back().get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+	}
+
+	void animate_volume()
+	{
+		double cycle_duration = animate_volume_slot_duration_ * (animate_volume_vertex_positions_.size() - 1);
+		double time_pos = std::fmod(App::frame_time_ - animate_volume_start_time_, cycle_duration);
+
+		uint32 slot_index = static_cast<uint32>(std::floor(time_pos / animate_volume_slot_duration_));
+		double slot_pos = std::fmod(time_pos, animate_volume_slot_duration_);
+
+		parallel_foreach_cell(*volume_, [&](VolumeVertex v) -> bool {
+			value<Vec3>(*volume_, volume_vertex_position_, v) =
+				(1.0 - slot_pos) * value<Vec3>(*volume_, animate_volume_vertex_positions_[slot_index], v) +
+				slot_pos * value<Vec3>(*volume_, animate_volume_vertex_positions_[slot_index + 1], v);
+			return true;
+		});
+
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+	}
+
 	void interface() override
 	{
 		ImGui::TextUnformatted("Graph");
@@ -1283,6 +1322,16 @@ protected:
 					non_rigid_register_volume_mesh(optimize_fit_to_surface, init_steady_pos);
 				if (ImGui::Button("Snapshot volume position"))
 					snapshot_volume_vertex_position();
+				if (!animate_volume_)
+				{
+					if (ImGui::Button("Start animation"))
+						start_animate_volume();
+				}
+				else
+				{
+					if (ImGui::Button("Stop animation"))
+						stop_animate_volume();
+				}
 			}
 
 			ImGui::Separator();
@@ -1330,11 +1379,17 @@ private:
 	bool refresh_solver_matrix_values_only_ = true;
 	bool refresh_solver_ = true;
 
-	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
+	bool animate_volume_ = false;
+	double animate_volume_start_time_;
+	double animate_volume_slot_duration_ = 1.0;
+	std::vector<std::shared_ptr<VolumeAttribute<Vec3>>> animate_volume_vertex_positions_;
 
+	CellMarker<VOLUME, VolumeFace>* transversal_faces_marker_ = nullptr;
 	CellsSet<VOLUME, VolumeFace>* selected_volume_faces_set_ = nullptr;
 
 	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
+
+	std::shared_ptr<boost::synapse::connection> timer_connection_;
 };
 
 } // namespace ui
