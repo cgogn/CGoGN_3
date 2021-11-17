@@ -1029,14 +1029,15 @@ public:
 		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());
 	}
 
-	void non_rigid_register_volume_mesh(Scalar fit_to_data, bool init_surface_steady_pos)
+	void non_rigid_register_volume_mesh(Scalar registration_fit, Scalar optimization_fit, bool init_surface_steady_pos)
 	{
 		if (refresh_volume_skin_)
 			refresh_volume_skin();
 
 		geometry::non_rigid_register_mesh(*volume_skin_, volume_skin_vertex_position_, *surface_,
-										  surface_vertex_position_.get(), 0.05, false, init_surface_steady_pos);
-		optimize_volume_vertices(fit_to_data, true);
+										  surface_vertex_position_.get(), registration_fit, false,
+										  init_surface_steady_pos);
+		optimize_volume_vertices(optimization_fit, true);
 	}
 
 	void snapshot_volume_vertex_position()
@@ -1318,8 +1319,11 @@ protected:
 					rigid_register_volume_mesh();
 				static bool init_steady_pos = false;
 				ImGui::Checkbox("Init steady pos", &init_steady_pos);
+				static float registration_fit_to_target = 0.05f;
+				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01, 0.5);
 				if (ImGui::Button("Non-rigid register volume mesh"))
-					non_rigid_register_volume_mesh(optimize_fit_to_surface, init_steady_pos);
+					non_rigid_register_volume_mesh(registration_fit_to_target, optimize_fit_to_surface,
+												   init_steady_pos);
 				if (ImGui::Button("Snapshot volume position"))
 					snapshot_volume_vertex_position();
 				if (!animate_volume_)
