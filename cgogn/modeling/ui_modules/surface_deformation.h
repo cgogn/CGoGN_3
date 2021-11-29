@@ -37,9 +37,8 @@
 
 #include <Eigen/Sparse>
 #include <boost/synapse/connect.hpp>
+#include <cmath>
 #include <memory>
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 namespace cgogn
 {
@@ -169,8 +168,8 @@ private:
 		});
 
 		// compute vertices position laplacian
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL = geometry::cotan_laplacian_matrix(
-			m, p.vertex_index_.get(), p.vertex_position_.get(), p.vertex_area_.get(), p.edge_weight_.get());
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+			geometry::cotan_laplacian_matrix(m, p.vertex_index_.get(), p.vertex_area_.get(), p.edge_weight_.get());
 
 		Eigen::MatrixXd vpos(nb_vertices, 3);
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
@@ -250,29 +249,25 @@ private:
 				if (p.selected_free_vertices_set_->contains(v)) // free vertices
 				{
 					working_vertices_marker.mark(v);
-					foreach_adjacent_vertex_through_edge(
-						m, v,
-						[&](Vertex av) -> bool // and their 2-ring
+					foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool { // and their 2-ring
+						if (!p.selected_free_vertices_set_->contains(av) &&
+							!p.selected_handle_vertices_set_->contains(av) && !working_vertices_marker.is_marked(av))
 						{
-							if (!p.selected_free_vertices_set_->contains(av) &&
-								!p.selected_handle_vertices_set_->contains(av) &&
-								!working_vertices_marker.is_marked(av))
-							{
-								p.working_cells_->add(av);
-								working_vertices_marker.mark(av);
-								foreach_adjacent_vertex_through_edge(m, av, [&](Vertex aav) -> bool {
-									if (!p.selected_free_vertices_set_->contains(aav) &&
-										!p.selected_handle_vertices_set_->contains(aav) &&
-										!working_vertices_marker.is_marked(aav))
-									{
-										p.working_cells_->add(aav);
-										working_vertices_marker.mark(aav);
-									}
-									return true;
-								});
-							}
-							return true;
-						});
+							p.working_cells_->add(av);
+							working_vertices_marker.mark(av);
+							foreach_adjacent_vertex_through_edge(m, av, [&](Vertex aav) -> bool {
+								if (!p.selected_free_vertices_set_->contains(aav) &&
+									!p.selected_handle_vertices_set_->contains(aav) &&
+									!working_vertices_marker.is_marked(aav))
+								{
+									p.working_cells_->add(aav);
+									working_vertices_marker.mark(aav);
+								}
+								return true;
+							});
+						}
+						return true;
+					});
 					return true;
 				}
 				return false;
@@ -301,9 +296,8 @@ private:
 			});
 
 			// init laplacian matrix
-			p.working_LAPL_ =
-				geometry::cotan_laplacian_matrix(*p.working_cells_, p.vertex_index_.get(), p.vertex_position_.get(),
-												 p.vertex_area_.get(), p.edge_weight_.get());
+			p.working_LAPL_ = geometry::cotan_laplacian_matrix(*p.working_cells_, p.vertex_index_.get(),
+															   p.vertex_area_.get(), p.edge_weight_.get());
 
 			// init bi-laplacian matrix
 			p.working_BILAPL_.setZero();
@@ -535,7 +529,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];

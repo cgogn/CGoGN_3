@@ -47,7 +47,7 @@ inline std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge 
 		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
 		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e.dart)));
 		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, e.dart)));
-		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, phi2(m, e.dart))));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi<2, -1>(m, e.dart)));
 		return {angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4)};
 	}
 	else

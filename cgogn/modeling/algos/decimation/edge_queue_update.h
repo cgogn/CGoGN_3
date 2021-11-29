@@ -98,8 +98,8 @@ void pre_collapse(
 		ei.valid_ = false;
 	}
 
-	e1 = Edge(phi2(m, phi_1(m, e.dart)));
-	e2 = Edge(phi2(m, phi_1(m, phi2(m, e.dart))));
+	e1 = Edge(phi<-1, 2>(m, e.dart));
+	e2 = Edge(phi<2, -1, 2>(m, e.dart));
 
 	Dart ed1 = e.dart;
 	Dart ed2 = phi2(m, ed1);
@@ -152,7 +152,7 @@ void post_collapse(
 		{
 			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
 
-			Dart vit2 = phi<121>(m, vit);
+			Dart vit2 = phi<1, 2, 1>(m, vit);
 			Dart stop = phi2(m, vit);
 			do
 			{
@@ -164,7 +164,7 @@ void post_collapse(
 		else
 			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
 
-		vit = phi2(m, phi_1(m, vit));
+		vit = phi<-1, 2>(m, vit);
 	} while (vit != e1.dart);
 }
 
@@ -198,7 +198,7 @@ void post_collapse(
 			if (cf.filter(e))
 				update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 
-			Dart vit2 = m.template phi<121>(vit);
+			Dart vit2 = phi<1, 2, 1>(m, vit);
 			Dart stop = phi2(m, vit);
 			do
 			{
@@ -208,7 +208,7 @@ void post_collapse(
 				e = Edge(phi1(m, vit2));
 				if (cf.filter(e))
 					update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
-				vit2 = phi1(m, phi2(m, vit2));
+				vit2 = phi<2, 1>(m, vit2);
 			} while (vit2 != stop);
 		}
 		else
@@ -218,7 +218,7 @@ void post_collapse(
 				update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
 		}
 
-		vit = phi2(m, phi_1(m, vit));
+		vit = phi<-1, 2>(m, vit);
 	} while (vit != e1.dart);
 }
 

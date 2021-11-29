@@ -489,19 +489,6 @@ public:
 				if (is_indexed<typename mesh_traits<MESH>::Volume>(m))
 				{
 					init_volumes<true>(m, table_indices, table_indices_e, table_indices_v, table_indices_emb, position);
-					// for (const auto& t : table_indices)
-					// {
-					// 	uint32 c = 1;
-					// 	for (uint32 i : t)
-					// 	{
-					// 		std::cout << i;
-					// 		if (c % 4 == 0)
-					// 			std::cout << std::endl;
-					// 		else
-					// 			std::cout << " ";
-					// 		++c;
-					// 	}
-					// }
 					func_update_ebo(VOLUMES_FACES, table_indices);
 					func_update_ebo(VOLUMES_EDGES, table_indices_e);
 					func_update_ebo(VOLUMES_VERTICES, table_indices_v);

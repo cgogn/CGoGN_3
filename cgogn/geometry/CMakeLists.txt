@@ -42,8 +42,10 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/algos/medial_axis.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/picking.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/registration.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/registration.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_differential_properties.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_filtering.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_selection.h"

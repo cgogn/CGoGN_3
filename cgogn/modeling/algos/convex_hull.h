@@ -56,7 +56,7 @@ using Scalar = geometry::Scalar;
 std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v)
 {
 	return {CMap2::Vertex(v.dart), CMap2::Vertex(phi1(m, v.dart)), CMap2::Vertex(phi_1(m, v.dart)),
-			CMap2::Vertex(phi_1(m, phi2(m, phi_1(m, v.dart))))};
+			CMap2::Vertex(phi<-1, 2, -1>(m, v.dart))};
 }
 
 // return [horizon_halfedges, visible_faces]
@@ -71,8 +71,8 @@ std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
 	visible.mark(f);
 	for (uint32 i = 0; i < uint32(visible_faces.size()); ++i)
 	{
-		const CMap2::Face f = visible_faces[i];
-		foreach_adjacent_face_through_edge(m, f, [&](CMap2::Face af) -> bool {
+		const CMap2::Face f_i = visible_faces[i];
+		foreach_adjacent_face_through_edge(m, f_i, [&](CMap2::Face af) -> bool {
 			if (visible.is_marked(af))
 				return true;
 			std::vector<CMap2::Vertex> vertices = incident_vertices(m, af);
@@ -132,7 +132,7 @@ CMap2::Vertex remove_visible_faces_and_fill(CMap2& m, std::vector<CMap2::HalfEdg
 	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(f.dart));
 	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
 
-	Dart x = phi_1(m, phi_1(m, d0));
+	Dart x = phi<-1, -1>(m, d0);
 	Dart dd = phi1(m, d0);
 	while (dd != x)
 	{
@@ -353,8 +353,8 @@ void convex_hull(const std::vector<Vec3>& points, MESH& m,
 		face_list.pop_back();
 
 		// pick the most distant point to this triangle plane as the point to which we extrude
-		const Vec3& active_point = points[value<uint32>(m, face_most_distant_point_index, f)];
 		const uint32 active_point_index = value<uint32>(m, face_most_distant_point_index, f);
+		const Vec3& active_point = points[active_point_index];
 
 		// create the list of horizon halfedges
 		auto [horizon_halfedges, visible_faces] = build_horizon(m, vertex_position, active_point, f);

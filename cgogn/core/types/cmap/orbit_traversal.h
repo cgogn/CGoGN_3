@@ -167,7 +167,7 @@ auto foreach_dart_of_PHI21(const MESH& m, Dart d, const FUNC& f)
 	{
 		if (!f(it))
 			break;
-		it = phi2(m, phi_1(m, it));
+		it = phi<-1, 2>(m, it);
 	} while (it != d);
 }
 

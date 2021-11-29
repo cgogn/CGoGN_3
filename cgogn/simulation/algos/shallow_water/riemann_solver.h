@@ -69,6 +69,9 @@ inline std::string bc_name(BoundaryCondition bc)
 	case BC_S:
 		return "Weir";
 		break;
+	default:
+		return "";
+		break;
 	}
 }
 

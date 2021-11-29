@@ -21,70 +21,71 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
-#define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
+#include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/types/cmap/phi.h>
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-namespace cgogn
+#include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/geometry/ui_modules/registration.h>
+#include <cgogn/rendering/ui_modules/surface_render.h>
+
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
+
+using namespace cgogn::numerics;
+
+using Mesh = cgogn::CMap2;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
+
+using Vec3 = cgogn::geometry::Vec3;
+using Scalar = cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
+	cgogn::thread_start();
 
-namespace modeling
-{
+	cgogn::ui::App app;
+	app.set_window_title("Registration");
+	app.set_window_size(1000, 800);
 
-using Vec3 = geometry::Vec3;
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::Registration<Mesh> r(app);
 
-///////////
-// CMap2 //
-///////////
+	app.init_modules();
 
-inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
-{
-	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
-	Dart d0 = phi1(m, f.dart);
-	Dart d1 = phi<1, 1>(m, d0);
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
-	Dart d2 = phi<1, 1>(m, d1);
-	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
-	Dart d3 = phi<1, 1>(m, d2);
-	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
-}
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&sr);
 
-//////////////
-// CMapBase //
-//////////////
-
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
-typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_traits<MESH>::Face f)
-{
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge = typename mesh_traits<MESH>::Edge;
-
-	cgogn_message_assert(codegree(m, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
-
-	Dart d0 = phi1(m, f.dart);
-	Dart d1 = phi<1, 1>(m, d0);
-
-	cut_face(m, Vertex(d0), Vertex(d1));
-	cut_edge(m, Edge(phi_1(m, d0)));
-
-	Dart x = phi<-1, 2>(m, d0);
-	Dart dd = phi<1, 1, 1, 1>(m, x);
-	while (dd != x)
+	if (argc > 1)
 	{
-		Dart next = phi<1, 1>(m, dd);
-		cut_face(m, Vertex(dd), Vertex(phi1(m, x)));
-		dd = next;
+		Mesh* m = mp.load_surface_from_file(argv[1]);
+		if (!m)
+			std::cout << "File could not be loaded: " << argv[1] << std::endl;
+		else
+		{
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			mp.set_mesh_bb_vertex_position(*m, vertex_position);
+			sr.set_vertex_position(*v1, *m, vertex_position);
+		}
+	}
+	if (argc > 2)
+	{
+		Mesh* m = mp.load_surface_from_file(argv[2]);
+		if (!m)
+			std::cout << "File could not be loaded: " << argv[2] << std::endl;
+		else
+		{
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			mp.set_mesh_bb_vertex_position(*m, vertex_position);
+			sr.set_vertex_position(*v1, *m, vertex_position);
+		}
 	}
 
-	return Vertex(phi2(m, x));
+	return app.launch();
 }
-
-} // namespace modeling
-
-} // namespace cgogn
-
-#endif // CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_

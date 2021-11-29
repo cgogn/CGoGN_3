@@ -63,6 +63,9 @@ SOFTWARE.
 // General namespace wrapping all Happly things.
 namespace happly {
 
+//#pragma warning(disable : 4702 4424 4456)
+
+
 // Enum specifying binary or ASCII filetypes. Binary can be little-endian
 // (default) or big endian.
 enum class DataFormat { ASCII, Binary, BinaryBigEndian };
@@ -103,6 +106,7 @@ template <class T> struct SerializeType                 { typedef T         type
 template <> struct SerializeType<uint8_t>               { typedef int32_t   type; };
 template <> struct SerializeType< int8_t>               { typedef int32_t   type; };
 
+
 // Give address only if types are same (used below when conditionally copying data)
 // last int/char arg is to resolve ambiguous overloads, just always pass 0 and the int version will be preferred
 template <typename S, typename T>
@@ -111,6 +115,7 @@ S* addressIfSame(T&, char) {
   return nullptr;}
 template <typename S>
 S* addressIfSame(S& t, int) {return &t;}
+
 
 // clang-format on
 } // namespace
@@ -2009,5 +2014,7 @@ private:
     outStream << "end_header\n";
   }
 };
+
+//#pragma warning(default : 4702 4424 4456)
 
 } // namespace happly

@@ -90,26 +90,52 @@ Dart phi3(const CPH3& m, Dart d);
 // GENERIC //
 /////////////
 
-template <uint64 N, typename MESH>
+template <int8 Arg, int8... Args, typename MESH>
 inline Dart phi(const MESH& m, Dart d)
 {
-	unused_parameters(m);
-	static_assert(N % 10 <= mesh_traits<MESH>::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
+	static_assert((Arg >= -1 && Arg <= mesh_traits<MESH>::dimension), "Bad phi value");
 
-	if constexpr (N % 10 == 1 && mesh_traits<MESH>::dimension >= 1)
-		return phi1(m, phi<N / 10>(m, d));
+	Dart res;
+	if constexpr (Arg == -1)
+		res = phi_1(m, d);
+	if constexpr (Arg == 1)
+		res = phi1(m, d);
+	if constexpr (Arg == 2)
+		res = phi2(m, d);
+	if constexpr (Arg == 3)
+		res = phi3(m, d);
+
+	if constexpr (sizeof...(Args) > 0)
+		return phi<Args...>(m, res);
 	else
-	{
-		if constexpr (N % 10 == 2 && mesh_traits<MESH>::dimension >= 2)
-			return phi2(m, phi<N / 10>(m, d));
-		else
-		{
-			if constexpr (N % 10 == 3 && mesh_traits<MESH>::dimension >= 3)
-				return phi3(m, phi<N / 10>(m, d));
-			else
-				return d;
-		}
-	}
+		return res;
+
+	// static_assert(((Args >= -1 && Args <= mesh_traits<MESH>::dimension) && ...), "Bad phi value");
+
+	// Dart res = d;
+	// for (int8 i : {Args...})
+	// {
+	// 	switch (i)
+	// 	{
+	// 	case -1:
+	// 		if constexpr (mesh_traits<MESH>::dimension >= 1)
+	// 			res = phi_1(m, res);
+	// 		break;
+	// 	case 1:
+	// 		if constexpr (mesh_traits<MESH>::dimension >= 1)
+	// 			res = phi1(m, res);
+	// 		break;
+	// 	case 2:
+	// 		if constexpr (mesh_traits<MESH>::dimension >= 2)
+	// 			res = phi2(m, res);
+	// 		break;
+	// 	case 3:
+	// 		if constexpr (mesh_traits<MESH>::dimension >= 3)
+	// 			res = phi3(m, res);
+	// 		break;
+	// 	}
+	// }
+	// return res;
 }
 
 /*****************************************************************************/

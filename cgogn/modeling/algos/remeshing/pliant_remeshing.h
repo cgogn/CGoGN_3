@@ -57,7 +57,7 @@ inline void triangulate_incident_faces(CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
 	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<11>(m, f.dart)));
+		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
 }
 
 inline bool edge_should_flip(CMap2& m, CMap2::Edge e)
@@ -65,8 +65,8 @@ inline bool edge_should_flip(CMap2& m, CMap2::Edge e)
 	std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
 	const int32 w = degree(m, iv[0]);
 	const int32 x = degree(m, iv[1]);
-	const int32 y = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[0].dart))));
-	const int32 z = degree(m, CMap2::Vertex(phi1(m, phi1(m, iv[1].dart))));
+	const int32 y = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[0].dart)));
+	const int32 z = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[1].dart)));
 
 	if (w < 4 || x < 4)
 		return false;
@@ -250,7 +250,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs;
+				Scalar lfs=0.0; //init to zero for warning remove
 				Scalar coeff = 1.0;
 				if (lfs_adaptive)
 				{

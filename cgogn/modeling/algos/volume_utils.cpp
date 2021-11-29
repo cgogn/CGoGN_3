@@ -47,6 +47,7 @@ void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_positio
 	auto m2_vertex_index = add_attribute<uint32, CMap3::Vertex>(m3, "m2_vertex_index");
 
 	cgogn::io::SurfaceImportData surface_data;
+	surface_data.vertex_position_attribute_name_ = m2_vertex_position->name();
 
 	uint32 vertex_id = 0;
 	foreach_cell(m3, [&](CMap3::Vertex v3) -> bool {

@@ -37,7 +37,7 @@ namespace geometry
 
 inline std::pair<Vec3, Scalar> plane_fitting(const std::vector<Vec3>& points)
 {
-	uint32 nb_points = points.size();
+	uint32 nb_points(points.size());
 	Eigen::Matrix3Xd m_points(3, nb_points);
 	for (uint32 i = 0; i < nb_points; ++i)
 		m_points.col(i) = points[i];

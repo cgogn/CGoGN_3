@@ -68,6 +68,11 @@ void MeshRender::draw(DrawingType prim)
 		indices_buffers_[INDEX_EDGES]->release_texture_buffer(11);
 		indices_buffers_[LINES]->release_texture_buffer(10);
 		break;
+	case INDEX_FACES:
+		indices_buffers_[prim]->bind();
+		glDrawElements(GL_POINTS, nb_indices, GL_UNSIGNED_INT, nullptr);
+		indices_buffers_[prim]->release();
+		break;
 	case TRIANGLES:
 		indices_buffers_[prim]->bind();
 		glDrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_INT, nullptr);

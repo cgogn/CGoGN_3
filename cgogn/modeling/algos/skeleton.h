@@ -62,7 +62,7 @@ inline void cut_incident_faces(CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
 	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<11>(m, f.dart)));
+		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
 }
 
 inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
@@ -72,40 +72,8 @@ inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
 
 inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
 {
-	return {CMap2::Vertex(phi_1(m, e.dart)), CMap2::Vertex(phi_1(m, phi2(m, e.dart)))};
+	return {CMap2::Vertex(phi_1(m, e.dart)), CMap2::Vertex(phi<2, -1>(m, e.dart))};
 }
-
-// inline void compute_halfedges_opposite_angle(CMap2& m, CMap2::Face f, CMap2::Attribute<Vec3>* vertex_position,
-// 											 CMap2::Attribute<Scalar>* halfedge_opposite_angle)
-// {
-// 	Scalar zero_threshold = 1e-5;
-
-// 	Dart ha = f.dart;
-// 	Dart hb = phi1(m, ha);
-// 	Dart hc = phi1(m, hb);
-// 	Scalar a = geometry::length(m, CMap2::Edge(ha), vertex_position);
-// 	Scalar a2 = a * a;
-// 	Scalar b = geometry::length(m, CMap2::Edge(hb), vertex_position);
-// 	Scalar b2 = b * b;
-// 	Scalar c = geometry::length(m, CMap2::Edge(hc), vertex_position);
-// 	Scalar c2 = c * c;
-// 	if (a < zero_threshold || b < zero_threshold || c < zero_threshold)
-// 	{
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(ha)) = -1;
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(hb)) = -1;
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(hc)) = -1;
-// 	}
-// 	else
-// 	{
-// 		/// Opposite angles (from law of cosines)
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(ha)) =
-// 			acos(std::clamp((-a2 + b2 + c2) / (2 * b * c), -1.0, 1.0));
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(hb)) =
-// 			acos(std::clamp((+a2 - b2 + c2) / (2 * a * c), -1.0, 1.0));
-// 		value<Scalar>(m, halfedge_opposite_angle, CMap2::HalfEdge(hc)) =
-// 			acos(std::clamp((+a2 + b2 - c2) / (2 * a * b), -1.0, 1.0));
-// 	}
-// }
 
 /////////////
 // GENERIC //
@@ -131,6 +99,8 @@ struct MeanCurvatureSkeleton_Helper
 
 		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
+
+		// TODO: regularize medial axis ?
 
 		vertex_is_fixed_ = add_attribute<bool, Vertex>(m_, "__vertex_is_fixed");
 		vertex_is_fixed_color_ = add_attribute<Vec3, Vertex>(m_, "__vertex_is_fixed_color");
