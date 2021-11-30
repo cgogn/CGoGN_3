@@ -591,7 +591,7 @@ public:
 
 		length_mean_ /= nbe;
 
-		// refresh_edge_target_length_ = false;
+		refresh_edge_target_length_ = false;
 		refresh_solver_matrix_values_only_ = true;
 	}
 
@@ -858,9 +858,7 @@ public:
 			solver_ = new Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>>();
 			Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A = solver_matrix_.transpose() * solver_matrix_;
 			solver_->analyzePattern(A);
-			// std::cout << "analyze solver matrix" << std::endl;
 			solver_->factorize(A);
-			// std::cout << "factorize solver matrix" << std::endl;
 			refresh_solver_ = false;
 			refresh_solver_matrix_values_only_ = false;
 		}
@@ -869,7 +867,6 @@ public:
 			refresh_solver_matrix_values(fit_to_data);
 			Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A = solver_matrix_.transpose() * solver_matrix_;
 			solver_->factorize(A);
-			// std::cout << "factorize solver matrix" << std::endl;
 			refresh_solver_matrix_values_only_ = false;
 		}
 
@@ -1029,15 +1026,19 @@ public:
 		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());
 	}
 
-	void non_rigid_register_volume_mesh(Scalar registration_fit, Scalar optimization_fit, bool init_surface_steady_pos)
+	void non_rigid_register_volume_mesh(Scalar registration_fit, Scalar optimization_fit, bool init_surface_steady_pos,
+										geometry::ProximityPolicy proximity)
 	{
 		if (refresh_volume_skin_)
 			refresh_volume_skin();
 
-		geometry::non_rigid_register_mesh(*volume_skin_, volume_skin_vertex_position_, *surface_,
-										  surface_vertex_position_.get(), registration_fit, false,
-										  init_surface_steady_pos);
-		optimize_volume_vertices(optimization_fit, true);
+		for (uint32 i = 0; i < 5; ++i)
+		{
+			geometry::non_rigid_register_mesh(*volume_skin_, volume_skin_vertex_position_, *surface_,
+											  surface_vertex_position_.get(), registration_fit, false,
+											  init_surface_steady_pos, proximity);
+			optimize_volume_vertices(optimization_fit, true);
+		}
 	}
 
 	void snapshot_volume_vertex_position()
@@ -1186,7 +1187,7 @@ protected:
 		{
 			animate_volume_ = true;
 			animate_volume_start_time_ = App::frame_time_;
-			app_.start_timer(100, [this]() -> bool { return !animate_volume_; });
+			app_.start_timer(40, [this]() -> bool { return !animate_volume_; });
 		}
 	}
 
@@ -1321,9 +1322,13 @@ protected:
 				ImGui::Checkbox("Init steady pos", &init_steady_pos);
 				static float registration_fit_to_target = 0.05f;
 				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01, 0.5);
+				static int proximity = geometry::NEAREST_POINT;
+				ImGui::RadioButton("Nearest", &proximity, geometry::NEAREST_POINT);
+				ImGui::SameLine();
+				ImGui::RadioButton("Normal ray", &proximity, geometry::NORMAL_RAY);
 				if (ImGui::Button("Non-rigid register volume mesh"))
-					non_rigid_register_volume_mesh(registration_fit_to_target, optimize_fit_to_surface,
-												   init_steady_pos);
+					non_rigid_register_volume_mesh(registration_fit_to_target, optimize_fit_to_surface, init_steady_pos,
+												   geometry::ProximityPolicy(proximity));
 				if (ImGui::Button("Snapshot volume position"))
 					snapshot_volume_vertex_position();
 				if (!animate_volume_)

@@ -112,6 +112,15 @@ struct NonRigidRegistration_Helper
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 
+	struct BVH_Hit
+	{
+		bool hit = false;
+		Face face;
+		Vec3 bcoords;
+		Scalar dist;
+		Vec3 pos;
+	};
+
 	NonRigidRegistration_Helper(MESH& source, const std::shared_ptr<Attribute<Vec3>>& source_vertex_position,
 								MESH& target, const Attribute<Vec3>* target_vertex_position, Scalar fit_to_target)
 		: source_(source), source_vertex_position_(source_vertex_position), target_(&target),
@@ -186,13 +195,17 @@ struct NonRigidRegistration_Helper
 		uint32 target_nb_vertices = 0;
 		foreach_cell(target, [&](Vertex v) -> bool {
 			value<uint32>(target, target_vertex_index, v) = target_nb_vertices++;
-			target_vertex_positions.push_back(value<Vec3>(target, target_vertex_position, v));
+			target_vertex_positions.push_back(value<Vec3>(*target_, target_vertex_position_, v));
 			return true;
 		});
+		target_faces_.clear();
+		target_faces_.reserve(target_nb_vertices * 2);
 		std::vector<uint32> target_face_vertex_indices;
-		foreach_cell(target, [&](Face f) -> bool {
+		target_face_vertex_indices.reserve(target_nb_vertices * 6);
+		foreach_cell(*target_, [&](Face f) -> bool {
+			target_faces_.push_back(f);
 			foreach_incident_vertex(target, f, [&](Vertex v) -> bool {
-				target_face_vertex_indices.push_back(value<uint32>(target, target_vertex_index, v));
+				target_face_vertex_indices.push_back(value<uint32>(*target_, target_vertex_index, v));
 				return true;
 			});
 			return true;
@@ -201,6 +214,31 @@ struct NonRigidRegistration_Helper
 			delete target_bvh_;
 		target_bvh_ = new acc::BVHTree<uint32, Vec3>(target_face_vertex_indices, target_vertex_positions);
 		remove_attribute<Vertex>(target, target_vertex_index);
+	}
+
+	bool is_inside_target(const Vec3& p)
+	{
+		std::pair<uint32, Vec3> cp;
+		target_bvh_->closest_point(p, &cp);
+		Vec3 dir = (cp.second - p).normalized();
+		Vec3 n = geometry::normal(*target_, target_faces_[cp.first], target_vertex_position_);
+		return dir.dot(n) >= 0.0;
+	}
+
+	BVH_Hit intersect_target_bvh(const acc::Ray<Vec3>& r)
+	{
+		acc::BVHTree<uint32, Vec3>::Hit h;
+		if (target_bvh_->intersect(r, &h))
+		{
+			Face f = target_faces_[h.idx];
+			std::vector<Vertex> vertices = incident_vertices(*target_, f);
+			Vec3 p = h.bcoords[0] * value<Vec3>(*target_, target_vertex_position_, vertices[0]) +
+					 h.bcoords[1] * value<Vec3>(*target_, target_vertex_position_, vertices[1]) +
+					 h.bcoords[2] * value<Vec3>(*target_, target_vertex_position_, vertices[2]);
+			return {true, f, {h.bcoords[0], h.bcoords[1], h.bcoords[2]}, h.t, p};
+		}
+		else
+			return BVH_Hit();
 	}
 
 	void build_solver(Scalar fit_to_target)
@@ -241,17 +279,24 @@ struct NonRigidRegistration_Helper
 
 	Scalar fit_to_target_;
 	acc::BVHTree<uint32, Vec3>* target_bvh_ = nullptr;
+	std::vector<Face> target_faces_;
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A_;
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> At_;
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> solver_;
 };
 
+enum ProximityPolicy : uint32
+{
+	NEAREST_POINT,
+	NORMAL_RAY
+};
+
 template <typename MESH>
 void non_rigid_register_mesh(
 	MESH& source, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& source_vertex_position,
 	MESH& target, const typename mesh_traits<MESH>::template Attribute<Vec3>* target_vertex_position,
-	Scalar fit_to_target, bool relax, bool init_source_steady_pos)
+	Scalar fit_to_target, bool relax, bool init_source_steady_pos, ProximityPolicy prox = NEAREST_POINT)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -276,8 +321,8 @@ void non_rigid_register_mesh(
 		const Vec3& pos = value<Vec3>(source, helper.source_vertex_position_, v);
 		const Vec3& pos_i = value<Vec3>(source, helper.source_vertex_position_init_, v);
 		foreach_adjacent_vertex_through_edge(source, v, [&](Vertex av) -> bool {
-			Vec3 vec = value<Vec3>(source, helper.source_vertex_position_, av) - pos;
-			Vec3 vec_i = value<Vec3>(source, helper.source_vertex_position_init_, av) - pos_i;
+			Vec3 vec = (value<Vec3>(source, helper.source_vertex_position_, av) - pos).normalized();
+			Vec3 vec_i = (value<Vec3>(source, helper.source_vertex_position_init_, av) - pos_i).normalized();
 			for (uint32 i = 0; i < 3; ++i)
 				for (uint32 j = 0; j < 3; ++j)
 					cov(i, j) += vec[i] * vec_i[j];
@@ -296,16 +341,17 @@ void non_rigid_register_mesh(
 		return true;
 	});
 	parallel_foreach_cell(source, [&](Vertex v) -> bool {
-		uint32 degree = 0;
-		Mat3 r;
-		r.setZero();
-		foreach_adjacent_vertex_through_edge(source, v, [&](Vertex av) -> bool {
-			r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, av);
-			++degree;
-			return true;
-		});
-		r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, v);
-		r /= degree + 1;
+		// uint32 degree = 0;
+		// Mat3 r;
+		// r.setZero();
+		// foreach_adjacent_vertex_through_edge(source, v, [&](Vertex av) -> bool {
+		// 	r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, av);
+		// 	++degree;
+		// 	return true;
+		// });
+		// r += value<Mat3>(source, helper.source_vertex_rotation_matrix_, v);
+		// r /= degree + 1;
+		const Mat3& r = value<Mat3>(source, helper.source_vertex_rotation_matrix_, v);
 		uint32 vidx = value<uint32>(source, helper.source_vertex_index_, v);
 		Vec3 l;
 		l[0] = helper.lapl_(vidx, 0);
@@ -320,15 +366,53 @@ void non_rigid_register_mesh(
 
 	// setup RHS
 	Eigen::MatrixXd b(2 * helper.source_nb_vertices_, 3);
-	foreach_cell(source, [&](Vertex v) -> bool {
+	Vec3 pos;
+	parallel_foreach_cell(source, [&](Vertex v) -> bool {
+		Vec3 pos;
+		switch (prox)
+		{
+		case NEAREST_POINT: {
+			pos = helper.target_bvh_->closest_point(value<Vec3>(source, helper.source_vertex_position_, v));
+		}
+		break;
+		case NORMAL_RAY: {
+			const Vec3& p = value<Vec3>(source, helper.source_vertex_position_, v);
+			Vec3 n{0, 0, 0};
+			foreach_incident_face(source, v, [&](Face f) -> bool {
+				Vec3 nf = geometry::normal(source, f, helper.source_vertex_position_.get());
+				Vec3 cf = geometry::centroid<Vec3>(source, f, helper.source_vertex_position_.get());
+				bool inside = helper.is_inside_target(cf);
+				if (!inside)
+					nf *= -1;
+				typename NonRigidRegistration_Helper<MESH>::BVH_Hit h =
+					helper.intersect_target_bvh({cf, nf, 0, acc::inf});
+				if (h.hit)
+					n += inside ? h.pos - cf : cf - h.pos;
+				return true;
+			});
+			n.normalize();
+
+			if (!helper.is_inside_target(p))
+				n *= -1;
+
+			typename NonRigidRegistration_Helper<MESH>::BVH_Hit h = helper.intersect_target_bvh({p, n, 0, acc::inf});
+			if (h.hit)
+				pos = h.pos;
+			else
+				pos = helper.target_bvh_->closest_point(p);
+		}
+		break;
+		};
+
 		uint32 vidx = value<uint32>(source, helper.source_vertex_index_, v);
+
 		b(vidx, 0) = relax ? 0.0 : helper.rlapl_(vidx, 0);
 		b(vidx, 1) = relax ? 0.0 : helper.rlapl_(vidx, 1);
 		b(vidx, 2) = relax ? 0.0 : helper.rlapl_(vidx, 2);
-		Vec3 pos = helper.target_bvh_->closest_point(value<Vec3>(source, helper.source_vertex_position_, v));
 		b(helper.source_nb_vertices_ + vidx, 0) = fit_to_target * pos[0];
 		b(helper.source_nb_vertices_ + vidx, 1) = fit_to_target * pos[1];
 		b(helper.source_nb_vertices_ + vidx, 2) = fit_to_target * pos[2];
+
 		return true;
 	});
 
