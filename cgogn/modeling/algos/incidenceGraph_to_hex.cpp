@@ -1208,6 +1208,8 @@ void propagate_frame_n_1(const IncidenceGraph& ig, IGAttributes& igAttribs,  std
 
 bool propagate_frame_n_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2,  std::vector<IncidenceGraph::Vertex>& branch_vertices)
 {
+	
+	
 	return true;
 }
 
