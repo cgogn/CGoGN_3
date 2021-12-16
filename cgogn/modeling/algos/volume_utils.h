@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 #define CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn

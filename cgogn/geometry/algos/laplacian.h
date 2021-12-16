@@ -27,7 +27,6 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 // #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/area.h>
@@ -53,8 +52,6 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 	Dart d1 = e.dart;
 	Dart d2 = phi2(m, d1);
 
-	// Scalar el = length(m, e, vertex_position);
-
 	const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(d1));
 	const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(d2));
 
@@ -62,11 +59,6 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 	Vec3 vecR = p1 - p3;
 	Vec3 vecL = p2 - p3;
 	Scalar e1value = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-	// Scalar f1area = area(m, CMap2::Face(d1), vertex_position);
-	// Scalar e1nl = length(m, CMap2::Edge(phi1(m, d1)), vertex_position);
-	// Scalar e1pl = length(m, CMap2::Edge(phi_1(m, d1)), vertex_position);
-	// Scalar e1value = (-el * el + e1nl * e1nl + e1pl * e1pl) / (4.0 * f1area);
 
 	result += e1value / 2.0;
 
@@ -77,15 +69,10 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 		Vec3 vecL = p1 - p4;
 		Scalar e2value = vecR.dot(vecL) / vecR.cross(vecL).norm();
 
-		// Scalar f2area = area(m, CMap2::Face(d2), vertex_position);
-		// Scalar e2nl = length(m, CMap2::Edge(phi1(m, d2)), vertex_position);
-		// Scalar e2pl = length(m, CMap2::Edge(phi_1(m, d2)), vertex_position);
-		// Scalar e2value = (-el * el + e2nl * e2nl + e2pl * e2pl) / (4.0 * f2area);
-
 		result += e2value / 2.0;
 	}
 
-	return result;
+	return std::clamp(result, 0.0, 1.0);
 }
 
 /////////////
@@ -105,34 +92,92 @@ void compute_edge_cotan_weight(const MESH& m,
 }
 
 template <typename MESH>
-Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
 	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_weight)
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_cotan_weight)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	// setup matrix
 	uint32 nb_vertices = nb_cells<Vertex>(m);
-	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
-	std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
-	LAPLcoeffs.reserve(nb_vertices * 10);
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> COTAN(nb_vertices, nb_vertices);
+	std::vector<Eigen::Triplet<Scalar>> COTANcoeffs;
+	COTANcoeffs.reserve(nb_vertices * 10);
 	foreach_cell(m, [&](Edge e) -> bool {
-		Scalar w = value<Scalar>(m, edge_weight, e);
+		Scalar w = value<Scalar>(m, edge_cotan_weight, e);
 		auto vertices = incident_vertices(m, e);
 		uint32 vidx1 = value<uint32>(m, vertex_index, vertices[0]);
 		uint32 vidx2 = value<uint32>(m, vertex_index, vertices[1]);
-		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w));
-		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w));
-		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w));
-		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w));
+		COTANcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w));
+		COTANcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w));
+		COTANcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w));
+		COTANcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w));
 		return true;
 	});
-	LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+	COTAN.setFromTriplets(COTANcoeffs.begin(), COTANcoeffs.end());
 
+	return COTAN;
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_operator_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	auto edge_cotan_weight = add_attribute<Scalar, Edge>(m, "__edge_cotan_weight");
+	compute_edge_cotan_weight(m, vertex_position, edge_cotan_weight.get());
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> COTAN =
+		cotan_operator_matrix(m, vertex_index, vertex_position, edge_cotan_weight.get());
+	remove_attribute<Edge>(m, edge_cotan_weight);
+	return COTAN;
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_area,
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_cotan_weight)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	uint32 nb_vertices = nb_cells<Vertex>(m);
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+		cotan_operator_matrix(m, vertex_index, vertex_position, edge_cotan_weight);
+
+	foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		LAPL.row(vidx) /= (*vertex_area)[vidx];
+		return true;
+	});
+
+	return LAPL;
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_area)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	auto edge_cotan_weight = add_attribute<Scalar, Edge>(m, "__edge_cotan_weight");
+	compute_edge_cotan_weight(m, vertex_position, edge_cotan_weight.get());
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+		cotan_laplacian_matrix(m, vertex_index, vertex_position, vertex_area, edge_cotan_weight.get());
+	remove_attribute<Edge>(m, edge_cotan_weight);
 	return LAPL;
 }
 
@@ -144,13 +189,38 @@ Eigen::SparseMatrix<Scalar, Eigen::ColMajor> cotan_laplacian_matrix(
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	auto vertex_area = add_attribute<Scalar, Vertex>(m, "__vertex_area");
+	compute_area<Vertex>(m, vertex_position, vertex_area.get());
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
+		cotan_laplacian_matrix(m, vertex_index, vertex_position, vertex_area.get());
+	remove_attribute<Vertex>(m, vertex_area);
+	return LAPL;
+}
+
+template <typename MESH>
+Eigen::SparseMatrix<Scalar, Eigen::ColMajor> topo_laplacian_matrix(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<uint32>* vertex_index)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	auto edge_weight = add_attribute<Scalar, Edge>(m, "__edge_weight");
-	compute_edge_cotan_weight(m, vertex_position, edge_weight.get());
-	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
-		cotan_laplacian_matrix(m, vertex_index, vertex_position, edge_weight.get());
-	remove_attribute<Edge>(m, edge_weight);
+	uint32 nb_vertices = nb_cells<Vertex>(m);
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL(nb_vertices, nb_vertices);
+	std::vector<Eigen::Triplet<Scalar>> LAPLcoeffs;
+	LAPLcoeffs.reserve(nb_vertices * 10);
+	foreach_cell(m, [&](Edge e) -> bool {
+		auto vertices = incident_vertices(m, e);
+		uint32 vidx1 = value<uint32>(m, vertex_index, vertices[0]);
+		uint32 vidx2 = value<uint32>(m, vertex_index, vertices[1]);
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), 1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), 1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -1));
+		LAPLcoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -1));
+		return true;
+	});
+	LAPL.setFromTriplets(LAPLcoeffs.begin(), LAPLcoeffs.end());
+
 	return LAPL;
 }
 

@@ -28,7 +28,6 @@
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/functions/normal.h>
@@ -117,15 +116,14 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 	return n;
 }
 
-template <typename MESH>
+template <typename CELL, typename MESH>
 void compute_normal(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-					typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal)
+					typename mesh_traits<MESH>::template Attribute<Vec3>* cell_normal)
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
 
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		value<Vec3>(m, vertex_normal, v) = normal(m, v, vertex_position);
+	parallel_foreach_cell(m, [&](CELL c) -> bool {
+		value<Vec3>(m, cell_normal, c) = normal(m, c, vertex_position);
 		return true;
 	});
 }

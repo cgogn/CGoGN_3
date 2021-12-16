@@ -20,10 +20,23 @@ target_link_libraries(filtering
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(heat_method heat_method.cpp)
+target_link_libraries(heat_method
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
-	target_link_libraries(filtering 
+	target_link_libraries(filtering
+		${CORE_FOUNDATION}
+		${CARBON}
+	)
+	target_link_libraries(heat_method
 		${CORE_FOUNDATION}
 		${CARBON}
 	)

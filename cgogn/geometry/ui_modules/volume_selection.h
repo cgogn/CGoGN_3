@@ -24,12 +24,11 @@
 #ifndef CGOGN_MODULE_VOLUME_SELECTION_H_
 #define CGOGN_MODULE_VOLUME_SELECTION_H_
 
-#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/ear_triangulation.h>
 #include <cgogn/geometry/algos/picking.h>

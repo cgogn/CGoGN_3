@@ -24,9 +24,8 @@
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/types/cmap/cmap3.h>
 
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -124,7 +123,7 @@ bool is_simplicial(const MESH& m)
 template <typename CELL, typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 bool check_indexing(MESH& m, bool verbose = true)
 {
-	static_assert(is_in_tuple_v<CELL, typename mesh_traits<CMap3>::Cells>, "CELL not supported in this CMap3");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	if (!is_indexed<CELL>(m))
 		return true;
@@ -208,8 +207,8 @@ inline bool check_integrity(CMap3& m, bool verbose = true)
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
 		bool relations = true;
-		relations &= phi3(m, d) != d && phi<33>(m, d) == d && phi<3131>(m, d) == d;
-		relations &= phi2(m, d) != d && phi<22>(m, d) == d;
+		relations &= phi3(m, d) != d && phi<3, 3>(m, d) == d && phi<3, 1, 3, 1>(m, d) == d;
+		relations &= phi2(m, d) != d && phi<2, 2>(m, d) == d;
 		relations &= phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
 		if (verbose && !relations)
 			std::cerr << "Dart " << d << " has bad relations" << std::endl;
@@ -243,14 +242,14 @@ inline bool check_integrity(CMap2& m, bool verbose = true)
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
 		bool relations = true;
-		relations &= phi2(m, d) != d && phi<22>(m, d) == d;
-		relations &= phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		relations &= phi2(m, d) != d && phi<2, 2>(m, d) == d;
+		relations &= phi<-1, 1>(m, d) == d && phi<1, -1>(m, d) == d;
 		if (verbose && !relations)
 		{
 			std::cerr << "Dart " << d << " has bad relations" << std::endl;
 			if (phi2(m, d) == d)
 				std::cerr << "  phi2 fixed point" << std::endl;
-			if (phi<22>(m, d) != d)
+			if (phi<2, 2>(m, d) != d)
 				std::cerr << "  phi2 not involution" << std::endl;
 		}
 
@@ -278,7 +277,7 @@ inline bool check_integrity(CMap1& m, bool verbose = true)
 	bool result = true;
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
-		bool relations = phi1(m, phi_1(m, d)) == d && phi_1(m, phi1(m, d)) == d;
+		bool relations = phi<-1, 1>(m, d) == d && phi<1, -1>(m, d) == d;
 		if (verbose && !relations)
 			std::cerr << "Dart " << d << " has bad relations" << std::endl;
 
@@ -488,7 +487,7 @@ inline bool edge_can_flip(const CMap2& m, CMap2::Edge e)
 	Dart e1 = e.dart;
 	Dart e2 = phi2(m, e1);
 
-	auto next_edge = [&m](Dart d) { return phi2(m, phi_1(m, d)); };
+	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
 
 	if (codegree(m, CMap2::Face(e1)) == 3 && codegree(m, CMap2::Face(e2)) == 3)
 	{

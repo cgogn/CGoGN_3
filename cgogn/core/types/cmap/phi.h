@@ -24,7 +24,9 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_PHI_H_
 #define CGOGN_CORE_TYPES_CMAP_PHI_H_
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/cmap/graph.h>
 
 namespace cgogn
 {
@@ -88,26 +90,55 @@ Dart phi3(const CPH3& m, Dart d);
 // GENERIC //
 /////////////
 
-template <uint64 N, typename MESH>
+// template <uint64 N, typename MESH>
+// inline Dart phi(const MESH& m, Dart d)
+// {
+// 	unused_parameters(m);
+// 	static_assert(N % 10 <= mesh_traits<MESH>::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
+
+// 	if constexpr (N % 10 == 1 && mesh_traits<MESH>::dimension >= 1)
+// 		return phi1(m, phi<N / 10>(m, d));
+// 	else
+// 	{
+// 		if constexpr (N % 10 == 2 && mesh_traits<MESH>::dimension >= 2)
+// 			return phi2(m, phi<N / 10>(m, d));
+// 		else
+// 		{
+// 			if constexpr (N % 10 == 3 && mesh_traits<MESH>::dimension >= 3)
+// 				return phi3(m, phi<N / 10>(m, d));
+// 			else
+// 				return d;
+// 		}
+// 	}
+// }
+
+template <int8... Args, typename MESH>
 inline Dart phi(const MESH& m, Dart d)
 {
-	unused_parameters(m);
-	static_assert(N % 10 <= mesh_traits<MESH>::dimension, "Composition of PHI: invalid index (phi1/phi2/phi3 only)");
-
-	if constexpr (N % 10 == 1 && mesh_traits<MESH>::dimension >= 1)
-		return phi1(m, phi<N / 10>(m, d));
-	else
+	Dart res = d;
+	for (int8 i : {Args...})
 	{
-		if constexpr (N % 10 == 2 && mesh_traits<MESH>::dimension >= 2)
-			return phi2(m, phi<N / 10>(m, d));
-		else
+		switch (i)
 		{
-			if constexpr (N % 10 == 3 && mesh_traits<MESH>::dimension >= 3)
-				return phi3(m, phi<N / 10>(m, d));
-			else
-				return d;
+		case -1:
+			if constexpr (mesh_traits<MESH>::dimension >= 1)
+				res = phi_1(m, res);
+			break;
+		case 1:
+			if constexpr (mesh_traits<MESH>::dimension >= 1)
+				res = phi1(m, res);
+			break;
+		case 2:
+			if constexpr (mesh_traits<MESH>::dimension >= 2)
+				res = phi2(m, res);
+			break;
+		case 3:
+			if constexpr (mesh_traits<MESH>::dimension >= 3)
+				res = phi3(m, res);
+			break;
 		}
 	}
+	return res;
 }
 
 /*****************************************************************************/

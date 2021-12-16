@@ -30,7 +30,6 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/rendering/frame_manipulator.h>
@@ -200,6 +199,17 @@ private:
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 							update_volume_center(*v, *m);
+						}
+						v->request_update();
+					}));
+			mesh_connections_[m].push_back(
+				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Scalar>>(
+					m, [this, v, m](Attribute<Scalar>* attribute) {
+						Parameters& p = parameters_[v][m];
+						if (p.volume_scalar_.get() == attribute)
+						{
+							if (p.auto_update_volume_scalar_min_max_)
+								update_volume_scalar_min_max_values(p);
 						}
 						v->request_update();
 					}));

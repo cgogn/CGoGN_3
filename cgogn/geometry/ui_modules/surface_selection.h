@@ -24,12 +24,11 @@
 #ifndef CGOGN_MODULE_SURFACE_SELECTION_H_
 #define CGOGN_MODULE_SURFACE_SELECTION_H_
 
-#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/picking.h>
@@ -500,30 +499,13 @@ protected:
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
-					if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str()
-																		   : "-- select --"))
-					{
-						md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-							bool is_selected = &cs == p.selected_vertices_set_;
-							if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							{
-								p.selected_vertices_set_ = &cs;
-								p.update_selected_vertices_vbo();
-								for (View* v : linked_views_)
-									v->request_update();
-							}
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-						});
-						ImGui::EndCombo();
-					}
+					imgui_combo_cells_set(md, p.selected_vertices_set_, "Sets", [&](CellsSet<MESH, Vertex>* cs) {
+						p.selected_vertices_set_ = cs;
+						p.update_selected_vertices_vbo();
+						need_update = true;
+					});
 					if (p.selected_vertices_set_)
-					{
-						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-						if (ImGui::Button("X##selected_vertices_set"))
-							p.selected_vertices_set_ = nullptr;
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
-					}
 					if (ImGui::Button("Create set##vertices_set"))
 						md.template add_cells_set<Vertex>();
 					ImGui::TextUnformatted("Drawing parameters");
@@ -533,30 +515,13 @@ protected:
 				}
 				else if (p.selecting_cell_ == EdgeSelect)
 				{
-					if (ImGui::BeginCombo("Sets", p.selected_edges_set_ ? p.selected_edges_set_->name().c_str()
-																		: "-- select --"))
-					{
-						md.template foreach_cells_set<Edge>([&](CellsSet<MESH, Edge>& cs) {
-							bool is_selected = &cs == p.selected_edges_set_;
-							if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							{
-								p.selected_edges_set_ = &cs;
-								p.update_selected_edges_vbo();
-								for (View* v : linked_views_)
-									v->request_update();
-							}
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-						});
-						ImGui::EndCombo();
-					}
+					imgui_combo_cells_set(md, p.selected_edges_set_, "Sets", [&](CellsSet<MESH, Edge>* cs) {
+						p.selected_edges_set_ = cs;
+						p.update_selected_edges_vbo();
+						need_update = true;
+					});
 					if (p.selected_edges_set_)
-					{
-						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-						if (ImGui::Button("X##selected_edges_set"))
-							p.selected_edges_set_ = nullptr;
 						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
-					}
 					if (ImGui::Button("Create set##edges_set"))
 						md.template add_cells_set<Edge>();
 					ImGui::TextUnformatted("Drawing parameters");
@@ -566,30 +531,13 @@ protected:
 				}
 				else if (p.selecting_cell_ == FaceSelect)
 				{
-					if (ImGui::BeginCombo("Sets", p.selected_faces_set_ ? p.selected_faces_set_->name().c_str()
-																		: "-- select --"))
-					{
-						md.template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
-							bool is_selected = &cs == p.selected_faces_set_;
-							if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							{
-								p.selected_faces_set_ = &cs;
-								p.update_selected_faces_vbo();
-								for (View* v : linked_views_)
-									v->request_update();
-							}
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-						});
-						ImGui::EndCombo();
-					}
+					imgui_combo_cells_set(md, p.selected_faces_set_, "Sets", [&](CellsSet<MESH, Face>* cs) {
+						p.selected_faces_set_ = cs;
+						p.update_selected_faces_vbo();
+						need_update = true;
+					});
 					if (p.selected_faces_set_)
-					{
-						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-						if (ImGui::Button("X##selected_faces_set"))
-							p.selected_faces_set_ = nullptr;
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
-					}
 					if (ImGui::Button("Create set##faces_set"))
 						md.template add_cells_set<Face>();
 					ImGui::TextUnformatted("Drawing parameters");

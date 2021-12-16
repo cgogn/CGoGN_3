@@ -378,8 +378,8 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 	Dart d = v1.dart;
 	Dart e = v2.dart;
 
-	Dart dd = phi<31>(m, d);
-	Dart ee = phi<31>(m, e);
+	Dart dd = phi<3, 1>(m, d);
+	Dart ee = phi<3, 1>(m, e);
 
 	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart), CMap2::Vertex(e), false);
 	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(dd), CMap2::Vertex(ee), false);
@@ -461,8 +461,8 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 	Dart d = v1.dart;
 	Dart e = v2.dart;
 
-	Dart dd = phi<31>(m, v1.dart);
-	Dart ee = phi<31>(m, e);
+	Dart dd = phi<3, 1>(m, v1.dart);
+	Dart ee = phi<3, 1>(m, e);
 
 	CPH3::CMAP::Edge result = cut_face(map, v1, v2, false);
 

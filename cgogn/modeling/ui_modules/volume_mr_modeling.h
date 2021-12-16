@@ -27,7 +27,6 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/decimation.h>

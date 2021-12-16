@@ -45,9 +45,7 @@ void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 {
 	using Vertex = CMap2::Vertex;
 
-	auto position = get_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
-	if (!position)
-		position = add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
+	auto position = get_or_add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
 
 	for (uint32 i = 0u; i < surface_data.nb_vertices_; ++i)
 	{

@@ -40,9 +40,9 @@ uint32 CPH3::dart_level(Dart d) const
 
 void CPH3::set_dart_level(Dart d, uint32 l)
 {
-	if(uint32(nb_darts_per_level_.size()) > dart_level(d))
+	if (uint32(nb_darts_per_level_.size()) > dart_level(d))
 		nb_darts_per_level_[dart_level(d)]--;
-	if(uint32(nb_darts_per_level_.size()) < l)
+	if (uint32(nb_darts_per_level_.size()) < l)
 		nb_darts_per_level_.resize(l);
 	nb_darts_per_level_[l]++;
 	if (l > dart_level(d) && l > maximum_level_)
@@ -295,7 +295,7 @@ bool CPH3::face_is_subdivided_once(Dart d) const
 	bool subd = false;
 	bool subdOnce = true;
 	Dart fit = d;
-	CPH3 m(*this),m2(*this);
+	CPH3 m(*this), m2(*this);
 	m.current_level_ = current_level_ + 1;
 	m2.current_level_ = current_level_ + 2;
 	do
@@ -356,7 +356,7 @@ uint32 CPH3::volume_level(Dart d) const
 	do
 	{
 		++nbSubd;
-		it = phi<121>(m, it);
+		it = phi<1, 2, 1>(m, it);
 	} while (edge_id(it) == eId && lold != dart_level(it));
 
 	while (nbSubd > 1)
@@ -364,7 +364,6 @@ uint32 CPH3::volume_level(Dart d) const
 		nbSubd /= 2;
 		--vLevel;
 	}
-
 
 	return vLevel;
 }
@@ -427,8 +426,8 @@ bool CPH3::volume_is_subdivided(Dart d) const
 	bool subd = false;
 	CPH3 m(*this);
 	m.current_level_++;
-	if (faceAreSubdivided && dart_level(phi<112>(m, d)) == current_level_ &&
-		face_id(phi<112>(m, d)) != face_id(d))
+	if (faceAreSubdivided && dart_level(phi<1, 1, 2>(m, d)) == current_level_ &&
+		face_id(phi<1, 1, 2>(m, d)) != face_id(d))
 		subd = true;
 
 	return subd;

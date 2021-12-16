@@ -24,8 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_AREA_H_
 #define CGOGN_GEOMETRY_ALGOS_AREA_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/face.h>
@@ -68,6 +66,18 @@ Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 		return true;
 	});
 	return vertex_area;
+}
+
+template <typename CELL, typename MESH>
+void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+				  typename mesh_traits<MESH>::template Attribute<Scalar>* cell_area)
+{
+	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+
+	parallel_foreach_cell(m, [&](CELL c) -> bool {
+		value<Scalar>(m, cell_area, c) = area(m, c, vertex_position);
+		return true;
+	});
 }
 
 template <typename MESH>

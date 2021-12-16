@@ -27,7 +27,6 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/types/quadric.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -49,6 +48,7 @@ struct DecimationQEM_Helper
 	using Face = typename mesh_traits<MESH>::Face;
 
 	using Vec3 = typename geometry::Vec3;
+	using Scalar = typename geometry::Scalar;
 	using Quadric = typename geometry::Quadric;
 
 	DecimationQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position) : m_(m), vertex_position_(vertex_position)
@@ -85,14 +85,14 @@ struct DecimationQEM_Helper
 	Vec3 edge_optimal(Edge e)
 	{
 		std::vector<Vertex> iv = incident_vertices(m_, e);
-		// Quadric q;
-		// q += value<Quadric>(m_, vertex_quadric_, iv[0]);
-		// q += value<Quadric>(m_, vertex_quadric_, iv[1]);
-		// Vec3 p;
-		// if (q.optimized(p))
-		// 	return p;
-		// else
-		return Scalar(0.5) * (value<Vec3>(m_, vertex_position_, iv[0]) + value<Vec3>(m_, vertex_position_, iv[1]));
+		Quadric q;
+		q += value<Quadric>(m_, vertex_quadric_, iv[0]);
+		q += value<Quadric>(m_, vertex_quadric_, iv[1]);
+		Vec3 p;
+		if (q.optimized(p))
+			return p;
+		else
+			return Scalar(0.5) * (value<Vec3>(m_, vertex_position_, iv[0]) + value<Vec3>(m_, vertex_position_, iv[1]));
 	}
 
 	void before_collapse(Edge e)

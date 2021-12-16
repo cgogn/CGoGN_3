@@ -24,10 +24,11 @@
 #ifndef CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 #define CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-
 #include <cgogn/core/functions/cells.h>
 #include <cgogn/core/functions/traversals/global.h>
+
+#include <cgogn/core/types/cmap/cmap_base.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <cgogn/core/utils/tuples.h>
 

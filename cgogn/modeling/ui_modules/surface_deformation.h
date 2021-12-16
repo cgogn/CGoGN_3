@@ -29,7 +29,6 @@
 #include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>
@@ -67,9 +66,10 @@ class SurfaceDeformation : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), selected_free_vertices_set_(nullptr), selected_handle_vertices_set_(nullptr),
-			  initialized_(false), solver_ready_(false), vertex_position_init_(nullptr), vertex_diff_coord_(nullptr),
-			  vertex_bi_diff_coord_(nullptr), vertex_rotation_matrix_(nullptr), vertex_rotated_diff_coord_(nullptr),
-			  vertex_rotated_bi_diff_coord_(nullptr), vertex_index_(nullptr), edge_weight_(nullptr), solver_(nullptr)
+			  initialized_(false), solver_ready_(false), vertex_position_init_(nullptr), vertex_area_(nullptr),
+			  vertex_diff_coord_(nullptr), vertex_bi_diff_coord_(nullptr), vertex_rotation_matrix_(nullptr),
+			  vertex_rotated_diff_coord_(nullptr), vertex_rotated_bi_diff_coord_(nullptr), vertex_index_(nullptr),
+			  edge_weight_(nullptr), solver_(nullptr)
 		{
 		}
 
@@ -92,6 +92,7 @@ class SurfaceDeformation : public ViewModule
 		bool solver_ready_;
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_init_;
+		std::shared_ptr<Attribute<Scalar>> vertex_area_;
 		std::shared_ptr<Attribute<Vec3>> vertex_diff_coord_;
 		std::shared_ptr<Attribute<Vec3>> vertex_bi_diff_coord_;
 		std::shared_ptr<Attribute<Mat3>> vertex_rotation_matrix_;
@@ -136,40 +137,21 @@ private:
 	{
 		Parameters& p = parameters_[&m];
 
-		p.vertex_position_init_ = get_attribute<Vec3, Vertex>(m, "position_init");
-		if (!p.vertex_position_init_)
-			p.vertex_position_init_ = add_attribute<Vec3, Vertex>(m, "position_init");
-
-		p.vertex_diff_coord_ = get_attribute<Vec3, Vertex>(m, "diff_coord");
-		if (!p.vertex_diff_coord_)
-			p.vertex_diff_coord_ = add_attribute<Vec3, Vertex>(m, "diff_coord");
-
-		p.vertex_bi_diff_coord_ = get_attribute<Vec3, Vertex>(m, "bi_diff_coord");
-		if (!p.vertex_bi_diff_coord_)
-			p.vertex_bi_diff_coord_ = add_attribute<Vec3, Vertex>(m, "bi_diff_coord");
-
-		p.vertex_rotation_matrix_ = get_attribute<Mat3, Vertex>(m, "vertex_rotation_matrix");
-		if (!p.vertex_rotation_matrix_)
-			p.vertex_rotation_matrix_ = add_attribute<Mat3, Vertex>(m, "vertex_rotation_matrix");
-
-		p.vertex_rotated_diff_coord_ = get_attribute<Vec3, Vertex>(m, "rotated_diff_coord");
-		if (!p.vertex_rotated_diff_coord_)
-			p.vertex_rotated_diff_coord_ = add_attribute<Vec3, Vertex>(m, "rotated_diff_coord");
-
-		p.vertex_rotated_bi_diff_coord_ = get_attribute<Vec3, Vertex>(m, "rotated_bi_diff_coord");
-		if (!p.vertex_rotated_bi_diff_coord_)
-			p.vertex_rotated_bi_diff_coord_ = add_attribute<Vec3, Vertex>(m, "rotated_bi_diff_coord");
-
-		p.edge_weight_ = get_attribute<Scalar, Edge>(m, "edge_weight");
-		if (!p.edge_weight_)
-			p.edge_weight_ = add_attribute<Scalar, Edge>(m, "edge_weight");
-
-		p.vertex_index_ = get_attribute<uint32, Vertex>(m, "vertex_index");
-		if (!p.vertex_index_)
-			p.vertex_index_ = add_attribute<uint32, Vertex>(m, "vertex_index");
+		p.vertex_position_init_ = get_or_add_attribute<Vec3, Vertex>(m, "position_init");
+		p.vertex_area_ = get_or_add_attribute<Scalar, Vertex>(m, "area");
+		p.vertex_diff_coord_ = get_or_add_attribute<Vec3, Vertex>(m, "diff_coord");
+		p.vertex_bi_diff_coord_ = get_or_add_attribute<Vec3, Vertex>(m, "bi_diff_coord");
+		p.vertex_rotation_matrix_ = get_or_add_attribute<Mat3, Vertex>(m, "vertex_rotation_matrix");
+		p.vertex_rotated_diff_coord_ = get_or_add_attribute<Vec3, Vertex>(m, "rotated_diff_coord");
+		p.vertex_rotated_bi_diff_coord_ = get_or_add_attribute<Vec3, Vertex>(m, "rotated_bi_diff_coord");
+		p.edge_weight_ = get_or_add_attribute<Scalar, Edge>(m, "edge_weight");
+		p.vertex_index_ = get_or_add_attribute<uint32, Vertex>(m, "vertex_index");
 
 		// initialize position init values
 		p.vertex_position_init_->copy(p.vertex_position_.get());
+
+		// compute vertices area
+		geometry::compute_area<Vertex>(m, p.vertex_position_.get(), p.vertex_area_.get());
 
 		// initialize vertex rotation matrix
 		Mat3 rm;
@@ -187,8 +169,8 @@ private:
 		});
 
 		// compute vertices position laplacian
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL =
-			geometry::cotan_laplacian_matrix(m, p.vertex_index_.get(), p.vertex_position_.get(), p.edge_weight_.get());
+		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> LAPL = geometry::cotan_laplacian_matrix(
+			m, p.vertex_index_.get(), p.vertex_position_.get(), p.vertex_area_.get(), p.edge_weight_.get());
 
 		Eigen::MatrixXd vpos(nb_vertices, 3);
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
@@ -319,8 +301,9 @@ private:
 			});
 
 			// init laplacian matrix
-			p.working_LAPL_ = geometry::cotan_laplacian_matrix(*p.working_cells_, p.vertex_index_.get(),
-															   p.vertex_position_.get(), p.edge_weight_.get());
+			p.working_LAPL_ =
+				geometry::cotan_laplacian_matrix(*p.working_cells_, p.vertex_index_.get(), p.vertex_position_.get(),
+												 p.vertex_area_.get(), p.edge_weight_.get());
 
 			// init bi-laplacian matrix
 			p.working_BILAPL_.setZero();
@@ -571,46 +554,16 @@ protected:
 
 				ImGui::Separator();
 
-				if (ImGui::BeginCombo("Free vertices", p.selected_free_vertices_set_
-														   ? p.selected_free_vertices_set_->name().c_str()
-														   : "-- select --"))
-				{
-					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-						bool is_selected = &cs == p.selected_free_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							set_selected_free_vertices_set(*selected_mesh_, &cs);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
-				}
-				if (p.selected_free_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_free_vertices_set"))
-						set_selected_free_vertices_set(*selected_mesh_, nullptr);
-				}
+				imgui_combo_cells_set(
+					md, p.selected_free_vertices_set_, "Free vertices",
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_free_vertices_set(*selected_mesh_, cs); });
 
-				if (ImGui::BeginCombo("Handle vertices", p.selected_handle_vertices_set_
-															 ? p.selected_handle_vertices_set_->name().c_str()
-															 : "-- select --"))
-				{
-					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-						bool is_selected = &cs == p.selected_handle_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							set_selected_handle_vertices_set(*selected_mesh_, &cs);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
-				}
+				imgui_combo_cells_set(
+					md, p.selected_handle_vertices_set_, "Handle vertices",
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, cs); });
+
 				if (p.selected_handle_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_handle_vertices_set"))
-						set_selected_handle_vertices_set(*selected_mesh_, nullptr);
 					ImGui::TextUnformatted("Press D to drag the handle");
-				}
 			}
 		}
 	}

@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/surface/surface_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/surface_import.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/surface/obj.h"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/off.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.h"

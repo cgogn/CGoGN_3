@@ -29,6 +29,7 @@
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/container/vector.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <any>
 #include <array>
@@ -146,6 +147,25 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
 	};
 	// ~IncidenceGraph();
+};
+
+template <>
+struct mesh_traits<IncidenceGraph>
+{
+	static constexpr const char* name = "IncidenceGraph";
+	static constexpr const uint8 dimension = 2;
+
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	using Cells = std::tuple<Vertex, Edge, Face>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
+
+	template <typename T>
+	using Attribute = IncidenceGraph::Attribute<T>;
+	using AttributeGen = IncidenceGraph::AttributeGen;
+	using MarkAttribute = IncidenceGraph::MarkAttribute;
 };
 
 } // namespace cgogn
