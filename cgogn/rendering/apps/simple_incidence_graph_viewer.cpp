@@ -91,9 +91,7 @@ int main(int argc, char** argv)
 
 	Surface* m2 = mps.add_mesh("surface");
 	Volume* m3 = mpv.add_mesh("volumes");
-	// Surface m2 = Surface();
-	// Volume m3 = Volume();
-	cgogn::modeling::incidenceGraph_to_hex(*ig, *m2/*, Volume()*/);
+	cgogn::modeling::incidenceGraph_to_hex(*ig, *m2, *m3);
 
 	std::shared_ptr<Attribute<Vec3>> surface_vertex_position = cgogn::get_attribute<Vec3, Surface::Vertex>(*m2, "position");
 
