@@ -48,6 +48,8 @@
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/volume_utils.h>
 
+#include <cgogn/io/utils.h>
+
 #include <Eigen/Sparse>
 #include <boost/synapse/connect.hpp>
 #include <libacc/bvh_tree.h>
@@ -1050,6 +1052,63 @@ public:
 		++count;
 	}
 
+	void save_volume_animation()
+	{
+		std::ofstream out_file;
+		out_file.open(volume_provider_->mesh_name(*volume_) + "_animation");
+		uint32 nb_vertices = volume_provider_->mesh_data(*volume_).template nb_cells<VolumeVertex>();
+		out_file << nb_vertices << " " << animate_volume_vertex_positions_.size() << "\n";
+
+		for (uint32 i = volume_->attribute_containers_[VolumeVertex::ORBIT].first_index(),
+					end = volume_->attribute_containers_[VolumeVertex::ORBIT].last_index();
+			 i != end; i = volume_->attribute_containers_[VolumeVertex::ORBIT].next_index(i))
+		{
+			for (uint32 j = 0; j < animate_volume_vertex_positions_.size(); ++j)
+			{
+				const Vec3& p = (*animate_volume_vertex_positions_[j])[i];
+				out_file << p[0] << " " << p[1] << " " << p[2] << " ";
+			}
+			out_file << "\n";
+		}
+		out_file.close();
+	}
+
+	void load_volume_animation()
+	{
+		for (uint32 i = 0; i < animate_volume_vertex_positions_.size(); ++i)
+			remove_attribute<VolumeVertex>(*volume_, animate_volume_vertex_positions_[i]);
+		animate_volume_vertex_positions_.clear();
+
+		std::ifstream fp(volume_provider_->mesh_name(*volume_) + "_animation", std::ios::in);
+		std::string line;
+		line.reserve(512u);
+
+		const uint32 nb_vertices = io::read_uint(fp, line);
+		const uint32 nb_animation_position = io::read_uint(fp, line);
+
+		for (uint32 i = 0u; i < nb_animation_position; ++i)
+		{
+			auto pos = add_attribute<Vec3, VolumeVertex>(*volume_, "position_" + std::to_string(i));
+			animate_volume_vertex_positions_.push_back(pos);
+		}
+
+		uint32 vertex_id = volume_->attribute_containers_[VolumeVertex::ORBIT].first_index();
+		for (uint32 i = 0u; i < nb_vertices; ++i)
+		{
+			for (uint32 j = 0u; j < nb_animation_position; ++j)
+			{
+				float64 x = io::read_double(fp, line);
+				float64 y = io::read_double(fp, line);
+				float64 z = io::read_double(fp, line);
+				(*animate_volume_vertex_positions_[j])[vertex_id] = {x, y, z};
+			}
+			vertex_id = volume_->attribute_containers_[VolumeVertex::ORBIT].next_index(vertex_id);
+		}
+
+		volume_vertex_position_->copy(animate_volume_vertex_positions_.back().get());
+		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+	}
+
 	void compute_volumes_quality()
 	{
 		auto corner_frame = add_attribute<Mat3, VolumeVertex2>(*volume_, "__corner_frame");
@@ -1183,7 +1242,7 @@ public:
 protected:
 	void start_animate_volume()
 	{
-		if (animate_volume_vertex_positions_.size() - 1 > 0)
+		if (animate_volume_vertex_positions_.size() > 1)
 		{
 			animate_volume_ = true;
 			animate_volume_start_time_ = App::frame_time_;
@@ -1341,6 +1400,10 @@ protected:
 					if (ImGui::Button("Stop animation"))
 						stop_animate_volume();
 				}
+				if (ImGui::Button("Save volume animation"))
+					save_volume_animation();
+				if (ImGui::Button("Load volume animation"))
+					load_volume_animation();
 			}
 
 			ImGui::Separator();
