@@ -48,6 +48,9 @@
 #include <cgogn/core/functions/attributes.h>
 
 
+#include <cgogn/geometry/algos/vector_heat_solver.h>
+#include <cgogn/geometry/algos/distance_heat_solver.h>
+
 namespace cgogn
 {
 
@@ -425,15 +428,15 @@ protected:
 			imgui_combo_attribute<Face, Vec3>(
 				*selected_mesh_, selected_face_normal_, "Face Normal",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_face_normal_ = attribute; });
-
+/*
 			imgui_combo_attribute<Vertex, uint32>(
 				*selected_mesh_, selected_vertex_index_, "Vertex Index",
 				[&](const std::shared_ptr<Attribute<uint32>>& attribute) { selected_vertex_index_ = attribute; });
-				
+				*/
 
 			imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
 								  [&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
-
+/*
 			static char index_name [50] = "vertex_index";
 			static uint32 nb_vertices = 0;
 			ImGui::InputText("Index Name", index_name, sizeof(index_name));
@@ -446,13 +449,14 @@ protected:
 					return true;
 				});
 			}
+			*/
 			if (selected_vertex_position_ != nullptr && selected_vertices_set_ != nullptr)
 			{
 				if (ImGui::Button("Compute Euclidean Distance")){
 					euclid_dist();
 					mesh_provider_->emit_attribute_changed(*selected_mesh_, euclidean_dist_face.get());
 				}
-				if (ImGui::Button("Compute Geodesic Distance")){
+				if (ImGui::Button("Compute Topo Distance")){
 					geo_dist();
 					mesh_provider_->emit_attribute_changed(*selected_mesh_, geo_dist_face.get());
 				}
@@ -463,6 +467,37 @@ protected:
 				static std::vector<std::pair<std::string,std::chrono::steady_clock::time_point>> time_log;
 				if (selected_face_normal_ != nullptr){
 					{
+						if (ImGui::Button("Compute Heat With Timelog")){
+							time_log.clear();
+							heat_compute_one_step(*selected_mesh_, heat_distance, selected_vertex_position_, selected_face_normal_, *selected_vertices_set_, t_multiplier, &time_log, true);
+							mesh_provider_->emit_attribute_changed(*selected_mesh_, heat_distance.get());
+						}
+						if (ImGui::Button("(Re)Generate DistanceHeatSolver")){
+							if (this->distanceHeatSolver != nullptr){
+								delete distanceHeatSolver;
+							}
+							time_log.clear();
+							time_log.push_back(std::pair<std::string,std::chrono::steady_clock::time_point>("start", std::chrono::steady_clock::now()));
+							distanceHeatSolver = new geometry::DistanceHeatSolver<MESH>(*selected_mesh_, selected_vertex_position_, selected_face_normal_, t_multiplier);
+							time_log.push_back(std::pair<std::string,std::chrono::steady_clock::time_point>("(Re)Generate DistanceHeatSolver", std::chrono::steady_clock::now()));
+						}
+						if (distanceHeatSolver != nullptr){
+							if (ImGui::Button("Compute From Source")){
+								if (heat_distance == nullptr){
+									heat_distance = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "heat_distance");
+								}
+								time_log.clear();
+								time_log.push_back(std::pair<std::string,std::chrono::steady_clock::time_point>("start", std::chrono::steady_clock::now()));
+								distanceHeatSolver->solve(heat_distance.get(), *selected_vertices_set_);
+								time_log.push_back(std::pair<std::string,std::chrono::steady_clock::time_point>("Compute From Source", std::chrono::steady_clock::now()));
+								mesh_provider_->emit_attribute_changed(*selected_mesh_, heat_distance.get());
+							}
+							if (ImGui::Button("delete DistanceHeatSolver")){
+								delete distanceHeatSolver;
+								distanceHeatSolver = nullptr;
+							}
+						}
+						/*
 						if (ImGui::Button("Compute heat one step")){
 							time_log.clear();
 							heat_compute_one_step(*selected_mesh_, heat_distance, selected_vertex_position_, selected_face_normal_, *selected_vertices_set_, t_multiplier, &time_log, true);
@@ -476,11 +511,15 @@ protected:
 
 								heat_compute(*selected_mesh_, heat_distance, selected_vertex_position_, selected_face_normal_,selected_vertex_index_, nb_vertices, *solver, *selected_vertices_set_, Lc, &time_log, false);
 								mesh_provider_->emit_attribute_changed(*selected_mesh_, heat_distance.get());
-								//std::destroy(*solver);
+								delete solver;
+								geometry::VectorHeatSolver(*selected_mesh_, selected_vertex_position_.get());
+								//geometry::VectorHeatSolver()
 							}
 						}
+						*/
 					}
 				}
+				
 				if (time_log.size() > 0){
 					if (ImGui::BeginTable("heat_time_log", 2, ImGuiTableFlags_Resizable)){
 						for (int i = 1; i < time_log.size(); i++){
@@ -496,12 +535,14 @@ protected:
 						ImGui::EndTable();
 					}
 				}
+				
 			}
 		}
 	}
 
 private:
 	MESH* selected_mesh_;
+	geometry::DistanceHeatSolver<MESH>* distanceHeatSolver = nullptr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 	std::shared_ptr<Attribute<Vec3>> selected_face_normal_;
 	CellsSet<MESH, Vertex>* selected_vertices_set_;
