@@ -41,6 +41,7 @@
 #include <cgogn/io/surface/obj.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/surface/ply.h>
+#include <cgogn/io/volume/cgns.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
 #include <cgogn/io/volume/tet.h>
@@ -317,6 +318,8 @@ public:
 		{
 			if (filetype.compare("mesh") == 0)
 				cgogn::io::export_MESH(m, vertex_position, filename + ".mesh");
+			else if (filetype.compare("cgns") == 0)
+				cgogn::io::export_CGNS(m, vertex_position, filename + ".cgns");
 			// else if (filetype.compare("tet") == 0)
 			// 	// TODO cgogn::io::export_TET();
 			// else if (filetype.compare("meshb") == 0)
@@ -645,8 +648,8 @@ private:
 	std::vector<std::string> supported_surface_formats_ = {"off", "obj", "ply", "ig"};
 	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.obj *.ply *.ig"};
 
-	std::vector<std::string> supported_volume_formats_ = {"mesh"};
-	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"};
+	std::vector<std::string> supported_volume_formats_ = {"mesh", "cgns"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh *.cgns"};
 
 	std::vector<std::string>* supported_formats_ = nullptr;
 

@@ -1,16 +1,14 @@
 project(Meshb
 	LANGUAGES C
-	)
+)
 
 set(HEADER_FILES
 	libmeshb.h
-	)
+)
 
 set(SOURCE_FILES
 	libmeshb.c
-	)
-
-
+)
 
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})

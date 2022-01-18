@@ -1,0 +1,121 @@
+# Makefile for adfviewer
+
+include ../make.defs
+
+COPTS  = $(CFLAGS) -I$(CGNSDIR) $(TKINCS)
+LDLIST = $(CGNSLIB) $(BUILDLIBS) $(TKLIBS) $(X11LIBS) $(CLIBS)
+
+#--------------------------------------------------
+
+all : cgiowish$(EXE)
+
+cgiowish$(EXE) : cgiowish.$(O) cgiotcl.$(O) $(CGNSLIB)
+	$(CC) $(LDFLAGS) -o $@ cgiowish.$(O) cgiotcl.$(O) $(LDLIST)
+	$(STRIP) $@
+cgiowish.$(O) : cgiowish.c
+cgiotcl.$(O)  : cgiotcl.c
+
+#---------------------------------------------------------------
+
+TCLSCRIPTS = \
+	cgnsview.tcl	\
+	balloon.tcl	\
+	cgns.tcl	\
+	cgnsnodes.tcl	\
+	combobox.tcl	\
+	config.tcl	\
+	dialog.tcl	\
+	editfile.tcl	\
+	export.tcl	\
+	filesel.tcl	\
+	findfile.tcl	\
+	frame.tcl	\
+	help.tcl	\
+	import.tcl	\
+	menubar.tcl	\
+	tclreg.tcl	\
+	tkdir.tcl	\
+	tools.tcl	\
+	tree.tcl	\
+	units.tcl	\
+	tclIndex
+
+ICONS = cgns.ico cgns.png cgns-icon.xbm cgns-mask.xbm
+
+install : install-dirs install-prog install-wish install-script
+
+install-dirs :
+	@for d in \
+	  $(BIN_INSTALL_DIR) \
+	  $(EXE_INSTALL_DIR) \
+	  $(WSH_INSTALL_DIR) \
+	  $(LIB_INSTALL_DIR) ; do \
+	  if [ ! -d $$d ] ; then \
+	    echo "Making directory $$d"; \
+	    mkdir -p $$d; \
+	    chmod 755 $$d; \
+	  fi; \
+	done;
+
+install-prog : $(ALL)
+	@echo "installing shell scripts to $(BIN_INSTALL_DIR)"
+	@$(INSTALL_PROG) cgnsview.sh $(BIN_INSTALL_DIR)/cgnsview
+	@$(INSTALL_PROG) cgnsview.desktop $(BIN_INSTALL_DIR)/
+	@chmod +x $(BIN_INSTALL_DIR)/cgnsview  $(BIN_INSTALL_DIR)/cgnsview.desktop
+	@$(INSTALL_PROG) cgnsnodes.sh $(BIN_INSTALL_DIR)/cgnsnodes
+	@$(INSTALL_PROG) cgnsnodes.desktop $(BIN_INSTALL_DIR)/
+	@chmod +x $(BIN_INSTALL_DIR)/cgnsnodes $(BIN_INSTALL_DIR)/cgnsnodes.desktop
+	@if [ ! -f $(EXE_INSTALL_DIR)/cgconfig ] ; then \
+	  echo "installing configuration file to $(EXE_INSTALL_DIR)"; \
+	  $(INSTALL_DATA) ../cgconfig $(EXE_INSTALL_DIR)/cgconfig; \
+	fi;
+
+install-wish : cgiowish$(EXE)
+	@echo "installing cgiowish executable to $(WSH_INSTALL_DIR)"
+	@$(INSTALL_PROG) cgiowish$(EXE) $(WSH_INSTALL_DIR)
+
+install-script :
+	@echo "installing tcl scripts to $(LIB_INSTALL_DIR)"
+	@for i in *.tcl ; do \
+	  $(INSTALL_DATA) $$i $(LIB_INSTALL_DIR); \
+	done;
+	@for i in ../common/*.tcl ; do \
+	  $(INSTALL_DATA) $$i $(LIB_INSTALL_DIR); \
+	done;
+	@$(INSTALL_DATA) ../common/tclIndex $(LIB_INSTALL_DIR)
+	@echo "installing icons to $(LIB_INSTALL_DIR)"
+	@for i in $(ICONS) ; do \
+	  $(INSTALL_DATA) ../common/$$i $(LIB_INSTALL_DIR); \
+	done;
+
+uninstall :
+	@echo "uninstalling executables"
+	@for i in cgnsview cgnsnodes ; do \
+	  if [ -f $(BIN_INSTALL_DIR)/$$i ] ; then \
+	    /bin/rm -f $(BIN_INSTALL_DIR)/$$i; \
+	  fi; \
+	done;
+	@if [ -f $(WSH_INSTALL_DIR)/cgiowish$(EXE) ] ; then \
+	  /bin/rm -f $(WSH_INSTALL_DIR)/cgiowish$(EXE); \
+	fi;
+	@echo "uninstalling tcl scripts"
+	@for i in $(TCLSCRIPTS) ; do \
+	  if [ -f $(LIB_INSTALL_DIR)/$$i ] ; then \
+	    /bin/rm -f $(LIB_INSTALL_DIR)/$$i; \
+	  fi; \
+	done;
+	@echo "uninstalling icons"
+	@for i in $(ICONS) ; do \
+	  if [ -f $(LIB_INSTALL_DIR)/$$i ] ; then \
+	    /bin/rm -f $(LIB_INSTALL_DIR)/$$i; \
+	  fi; \
+	done;
+
+#---------------------------------------------------------------
+
+.c.$(O) :
+	$(CC) $(COPTS) -c $<
+
+clean:
+	$(RM) *.$(O) *~ *.bak cgiowish$(EXE)
+
