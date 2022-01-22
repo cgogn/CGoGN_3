@@ -28,13 +28,11 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/ui/modules/mesh_provider/mesh_provider.h>
-#include <cgogn/ui/modules/surface_deformation/surface_deformation.h>
-#include <cgogn/ui/modules/surface_differential_properties/surface_differential_properties.h>
+#include <cgogn/ui/modules/Gregory_render/gregory_render_pc.h>
 #include <cgogn/ui/modules/surface_render/surface_render.h>
 using Mesh = cgogn::CMap2;
 
-#include <cgogn/ui/modules/surface_render_vector/surface_render_vector.h>
-#include <cgogn/ui/modules/surface_selection/surface_selection.h>
+//#include <cgogn/ui/modules/surface_selection/surface_selection.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -60,25 +58,19 @@ int main(int argc, char** argv)
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Deformation");
+	app.set_window_title("Gregory");
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceRenderVector<Mesh> srv(app);
-	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	cgogn::ui::SurfaceDeformation<Mesh> sd(app);
-	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::GregoryRenderPC<Mesh> gr(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&srv);
-	v1->link_module(&sd);
-	v1->link_module(&ss);
-
+	v1->link_module(&gr);
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)
 	{
@@ -87,14 +79,10 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
 	mp.set_mesh_bb_vertex_position(m, vertex_position);
-
-	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-
 	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, vertex_normal);
+//	gr.set_vertex_position(*v1, *m, vertex_position);
 
 	return app.launch();
 }

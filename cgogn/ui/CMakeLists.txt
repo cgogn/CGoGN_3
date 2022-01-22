@@ -43,6 +43,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surface_modeling/surface_modeling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/modules/surf_render/surf_render.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/modules/volume_selection/volume_selection.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/modules/Gregory_render/gregory_render_pc.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

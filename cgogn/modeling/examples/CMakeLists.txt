@@ -22,3 +22,6 @@ foreach(app ${APPS_LIST})
         MODULES ui io rendering modeling)
 endforeach()
 
+apps_compilation(EXEC gregory
+        SRC gregory.cpp 
+        MODULES ui io rendering modeling)

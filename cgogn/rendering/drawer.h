@@ -62,7 +62,7 @@ namespace rendering
  *  drawer_->end();
  *
  * draw:
- *  drawer_rend_->draw(proj,view,this);
+ *  drawer_rend_->draw(proj,view);
  */
 class CGOGN_RENDERING_EXPORT DisplayListDrawer
 {

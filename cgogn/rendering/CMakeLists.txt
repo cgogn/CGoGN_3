@@ -71,6 +71,8 @@ target_sources(${PROJECT_NAME}
                 "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_vertex.cpp"
                 "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_vertex.h"
                 "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_vertex.cpp"
+                "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_color_per_vertex.h"
+                "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_color_per_vertex.cpp"
                 "${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line_color.h"
