@@ -125,11 +125,13 @@ void DisplayListDrawer::end_list()
 	if (nb_elts == 0)
 		return;
 
+	vbo_pos_->bind();
 	vbo_pos_->allocate(nb_elts, 3);
 	float32* ptr = vbo_pos_->lock_pointer();
 	std::memcpy(ptr, data_pos_[0].data(), nb_elts * 12);
 	vbo_pos_->release_pointer();
 
+	vbo_col_->bind();
 	vbo_col_->allocate(nb_elts, 3);
 	ptr = vbo_col_->lock_pointer();
 	std::memcpy(ptr, data_col_[0].data(), nb_elts * 12);
@@ -141,93 +143,6 @@ void DisplayListDrawer::end_list()
 	data_col_.clear();
 	data_col_.shrink_to_fit();
 }
-
-// void DisplayListDrawer::call_list(const QMatrix4x4& projection, const QMatrix4x4& modelview,
-// QOpenGLFunctions_3_3_Core* ogl33)
-//{
-
-//	//classic rendering
-//	if (!begins_point_.empty() || !begins_line_.empty() || !begins_face_.empty())
-//	{
-//		param_cpv_->bind(projection, modelview);
-
-//		for (auto& pp : begins_point_)
-//		{
-//			glPointSize(pp.width);
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-//		}
-
-//		for (auto& pp : begins_line_)
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-
-//		for (auto& pp : begins_face_)
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-
-//		param_cpv_->release();
-//	}
-
-//	// balls
-//	if (!begins_balls_.empty())
-//	{
-//		param_ps_->bind(projection,modelview);
-
-//		for (auto& pp : begins_balls_)
-//		{
-//			ShaderPointSpriteColor* shader_ps_ = static_cast<ShaderPointSpriteColor*>(param_ps_->get_shader());
-//			shader_ps_->set_size(pp.width);
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-//		}
-//		param_ps_->release();
-//	}
-
-//	// round points
-//	if (!begins_round_point_.empty())
-//	{
-//		param_rp_->bind(projection, modelview);
-
-//		for (auto& pp : begins_round_point_)
-//		{
-//			if (pp.aa)
-//			{
-//				glEnable(GL_BLEND);
-//				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//			}
-//			ShaderRoundPointColor* shader_rp_ = static_cast<ShaderRoundPointColor*>(param_rp_->get_shader());
-//			shader_rp_->set_size(pp.width);
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-
-//			if (pp.aa)
-//				glDisable(GL_BLEND);
-//		}
-//		param_rp_->release();
-//	}
-
-//	// bold lines
-//	if (!begins_bold_line_.empty())
-//	{
-//		param_bl_->bind(projection, modelview);
-
-//		for (auto& pp : begins_bold_line_)
-//		{
-//			ShaderBoldLineColor* shader_bl_ = static_cast<ShaderBoldLineColor*>(param_bl_->get_shader());
-//			shader_bl_->set_width(pp.width);
-//			shader_bl_->set_color(QColor(255, 255, 0));
-
-//			if (pp.aa)
-//			{
-//				glEnable(GL_BLEND);
-//				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//			}
-
-//			glDrawArrays(pp.mode, pp.begin, pp.nb);
-
-//			if (pp.aa)
-//				glDisable(GL_BLEND);
-//		}
-
-//		param_bl_->release();
-//	}
-//}
 
 DisplayListDrawer::Renderer::Renderer(DisplayListDrawer* dr) : drawer_data_(dr)
 {
@@ -279,7 +194,6 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 	if (!drawer_data_->begins_balls_.empty())
 	{
 		param_ps_->bind(projection, modelview);
-
 		for (const auto& pp : drawer_data_->begins_balls_)
 		{
 			// get direct access to the shader to modify parameters while keeping the original param binded
