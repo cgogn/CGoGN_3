@@ -26,7 +26,6 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
@@ -43,8 +42,6 @@ namespace cgogn
 ///////////////////////////////
 // CMapBase (or convertible) //
 ///////////////////////////////
-
-// this version works for any CMap and CELL
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)

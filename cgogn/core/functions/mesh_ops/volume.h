@@ -26,7 +26,10 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
@@ -58,6 +61,20 @@ CMap2::Volume CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indi
 ///////////
 
 CMap2::Volume CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// remove_volume(MESH& m, typename mesh_traits<MESH>::Volume v);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void CGOGN_CORE_EXPORT remove_volume(CMap2& m, CMap2::Volume v);
 
 /*****************************************************************************/
 

@@ -21,55 +21,61 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
-#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PERFACE_H_
+#ifndef CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_
+#define CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(PhongScalarPerFace, true, CGOGN_STR(PhongScalarPerFace))
 
 class CGOGN_RENDERING_EXPORT ShaderParamPhongScalarPerFace : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
-public:
 	std::array<VBO*, 3> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
+	{
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VERTEX_NORMAL,
+		FACE_SCALAR
+	};
+
+public:
 	GLColor ambiant_color_;
-	GLColor specular_color_;
-	float32 specular_coef_;
 	GLVec3 light_position_;
 	bool double_side_;
-	shader_funcion::ColorMap::Uniforms cm_;
+	GLColor specular_color_;
+	float32 specular_coef_;
+	shader_function::ColorMap::Uniforms color_map_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		specular_color_ = pp.specular_color_;
-		specular_coef_ = pp.specular_coef_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
 	using ShaderType = ShaderPhongScalarPerFace;
 
 	ShaderParamPhongScalarPerFace(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(), specular_color_(), specular_coef_(), light_position_(), double_side_()
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
+		  specular_color_(1, 1, 1, 1), specular_coef_(250)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
 	}
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
-	}
 };
+
 } // namespace rendering
+
 } // namespace cgogn
-#endif
+
+#endif // CGOGN_RENDERING_SHADERS_PHONG_SCALAR_PER_FACE_H_

@@ -25,10 +25,13 @@
 #ifndef CGOGN_RENDERING_SHADERS_VBO_H_
 #define CGOGN_RENDERING_SHADERS_VBO_H_
 
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/types/container/chunk_array.h>
+#include <cgogn/core/types/container/vector.h>
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/type_traits.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
+
 #include <cgogn/rendering/vbo.h>
 
 #include <GL/gl3w.h>
@@ -60,10 +63,6 @@ void update_vbo(const std::vector<VEC>& vector, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
 	uint32 nb_elements = uint32(uint32(vector.size()));
-
-	std::cout << "update VBO from std::vector" << std::endl;
-	std::cout << "  element_size: " << element_size << std::endl;
-	std::cout << "  nb_elements: " << nb_elements << std::endl;
 
 	vbo->bind();
 	vbo->allocate(nb_elements, element_size);

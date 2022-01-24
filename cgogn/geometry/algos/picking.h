@@ -26,7 +26,6 @@
 
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/functions/distance.h>
 #include <cgogn/geometry/functions/intersection.h>
@@ -61,7 +60,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		uint32 worker_index = current_worker_index();
 		Vec3 intersection_point;
 		std::vector<Vertex> vertices = incident_vertices(m, f);
-		if (codegree(m, f) == 3)
+		if (vertices.size() == 3)
 		{
 			if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
 										  value<Vec3>(m, vertex_position, vertices[1]),
@@ -71,13 +70,16 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 		}
 		else
 		{
-			for (uint32 i = 0; i + 2 < uint32(vertices.size()); i++)
+			for (uint32 i = 0, size = uint32(vertices.size()); i + 2 < size; i++)
 			{
 				if (intersection_ray_triangle(A, AB, value<Vec3>(m, vertex_position, vertices[0]),
 											  value<Vec3>(m, vertex_position, vertices[i + 1]),
 											  value<Vec3>(m, vertex_position, vertices[i + 2]), &intersection_point))
+				{
 					selected_per_thread[worker_index].emplace_back(f, intersection_point,
 																   (intersection_point - A).squaredNorm());
+					break;
+				}
 			}
 		}
 		// else
@@ -103,8 +105,7 @@ std::vector<std::tuple<typename mesh_traits<MESH>::Face, Vec3, Scalar>> picking(
 	std::vector<SelectedFace> result;
 
 	for (const auto& selected_faces_vector : selected_per_thread)
-		for (const auto& x : selected_faces_vector)
-			result.push_back(x);
+		result.insert(result.end(), selected_faces_vector.begin(), selected_faces_vector.end());
 
 	std::sort(result.begin(), result.end(),
 			  [](const SelectedFace& f1, const SelectedFace& f2) -> bool { return std::get<2>(f1) < std::get<2>(f2); });

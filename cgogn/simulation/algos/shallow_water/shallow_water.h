@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -24,7 +24,6 @@
 #ifndef CGOGN_SIMULATION_SHALLOW_WATER_H_
 #define CGOGN_SIMULATION_SHALLOW_WATER_H_
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/core/functions/attributes.h>
@@ -311,7 +310,7 @@ void execute_time_step(MESH& m, Attributes<MESH>& swa, Context& swc)
 		uint32 eidx = index_of(m, e);
 
 		// solve flux on edge
-		Str_Riemann_Flux riemann_flux;
+		Str_Riemann_Flux riemann_flux = {0.0f,0.0f,0.0f,0.0f,0.0f}; // init for warning remove
 
 		if (is_incident_to_boundary(m, e)) // border conditions
 		{

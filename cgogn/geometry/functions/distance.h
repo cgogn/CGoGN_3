@@ -34,10 +34,34 @@ namespace geometry
 {
 
 /**
+ * @brief distance plane point
+ * @param normal normal of the plane
+ * @param d distance to the origin of the plane
+ * @param p point to compute distance to plane
+ * @return distance
+ */
+inline Scalar distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
+{
+	return abs(normal.dot(p) + d);
+}
+
+/**
+ * @brief signed distance plane point
+ * @param normal normal of the plane
+ * @param d distance to the origin of the plane
+ * @param p point to compute distance to plane
+ * @return distance
+ */
+inline Scalar signed_distance_plane_point(const Vec3& normal, Scalar d, const Vec3& p)
+{
+	return normal.dot(p) + d;
+}
+
+/**
  * @brief squared distance line point (optimized version for testing many points with the same line)
  * @param A one point of line
  * @param AB normalized vector or line
- * @param P point o compute distance to line
+ * @param P point to compute distance to line
  * @return distance
  */
 inline Scalar squared_distance_normalized_line_point(const Vec3& A, const Vec3& AB_norm, const Vec3& P)
@@ -45,18 +69,11 @@ inline Scalar squared_distance_normalized_line_point(const Vec3& A, const Vec3& 
 	return ((A - P).cross(AB_norm)).squaredNorm();
 }
 
-template <typename VEC3A, typename VEC3B, typename VEC3C>
-inline Scalar pipo_dist(const Eigen::MapBase<VEC3A>& A, const Eigen::MapBase<VEC3B>& AB_norm, const Eigen::MapBase<VEC3C>& P)
-{
-	return ((A - P).cross(AB_norm)).squaredNorm();
-}
-
-
 /**
  * @brief squared distance line point
  * @param A one point of line
  * @param B second point of line
- * @param P point o compute distance to line
+ * @param P point to compute distance to line
  * @return distance
  */
 inline Scalar squared_distance_line_point(const Vec3& A, const Vec3& B, const Vec3& P)
@@ -160,6 +177,29 @@ inline Scalar squared_distance_seg_point(const Vec3& A, const Vec3& AB, const Ve
 	Vec3 X = AB.cross(AP);
 	return X.squaredNorm() / AB2;
 }
+
+/**
+ * compute squared distance from point to triangle
+ * @param P the point
+ * @param A triangle point 1
+ * @param B triangle point 2
+ * @param C triangle point 3
+ * @return the squared distance
+ */
+Scalar squared_distance_point_triangle(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C);
+
+/**
+ * compute the barycentric coordinates of the point in the triangle ABC that is closest to point P
+ * @param P the point
+ * @param A triangle point 1
+ * @param B triangle point 2
+ * @param C triangle point 3
+ * @param u barycentric coordinate 1 of closest point
+ * @param v barycentric coordinate 2 of closest point
+ * @param w barycentric coordinate 3 of closest point
+ */
+void closest_point_in_triangle(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, Scalar& u, Scalar& v,
+							   Scalar& w);
 
 } // namespace geometry
 

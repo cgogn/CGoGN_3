@@ -29,41 +29,46 @@ namespace cgogn
 namespace rendering
 {
 
-static char const* vertex_shader_source =
-	R"(#version 330
-	in vec3 vertex_pos;
-	in vec3 vertex_color;
-	uniform mat4 projection_matrix;
-	uniform mat4 model_view_matrix;
-	out vec3 color;
-	void main()
-	{
-		gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
-		color = vertex_color;
-	}
-	)";
-
-static char const* fragment_shader_source =
-	R"(#version 330
-	out vec3 fragColor;
-	in vec3 color;
-	uniform bool double_side;
-
-	void main()
-	{
-		if (gl_FrontFacing || double_side)
-			fragColor = color;
-		else
-			discard;
-	}
-	)";
-
 ShaderNoIllumColorPerVertex* ShaderNoIllumColorPerVertex::instance_ = nullptr;
 
 ShaderNoIllumColorPerVertex::ShaderNoIllumColorPerVertex()
 {
-	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_pos", "vertex_color");
-	add_uniforms("double_side");
+	char const* vertex_shader_source = R"(
+		#version 330
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+
+		in vec3 vertex_position;
+		in vec3 vertex_color;
+		
+		out vec3 color;
+		
+		void main()
+		{
+			gl_Position = projection_matrix * model_view_matrix * vec4(vertex_position,1.0);
+			color = vertex_color;
+		}
+	)";
+
+	char const* fragment_shader_source =
+		R"(#version 330
+		uniform bool double_side;
+
+		in vec3 color;
+		
+		out vec3 frag_out;
+
+		void main()
+		{
+			if (gl_FrontFacing || double_side)
+				frag_out = color;
+			else
+				discard;
+		}
+	)";
+
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_color");
+	get_uniforms("double_side");
 }
 
 void ShaderParamNoIllumColorPerVertex::set_uniforms()

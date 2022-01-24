@@ -25,8 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_NO_ILLUM_SCALAR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -44,16 +44,11 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
-	shader_funcion::ColorMap::Uniforms cm_;
+	shader_funcion::ColorMap::Uniforms color_map_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		double_side_ = pp.double_side_;
-	}
+	using ShaderType = ShaderNoIllumScalarPerVertex;
 
-	using LocalShader = ShaderNoIllumScalarPerVertex;
-
-	ShaderParamNoIllumScalarPerVertex(LocalShader* sh)
+	ShaderParamNoIllumScalarPerVertex(ShaderType* sh)
 		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}

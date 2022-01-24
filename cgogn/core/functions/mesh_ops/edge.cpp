@@ -27,9 +27,62 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
 namespace cgogn
 {
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Edge
+// add_edge(MESH& m, typename mesh_traits<MESH>::Vertex v0, typename mesh_traits<MESH>::Vertex v1);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	Edge e = add_cell<Edge>(ig);
+	(*ig.edge_incident_vertices_)[e.index_] = {v0, v1};
+	(*ig.edge_incident_faces_)[e.index_].clear();
+	(*ig.vertex_incident_edges_)[v0.index_].push_back(e);
+	(*ig.vertex_incident_edges_)[v1.index_].push_back(e);
+
+	return e;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// void
+// remove_edge(MESH& m, typename mesh_traits<MESH>::Edge e);
+
+/*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+
+	while ((*ig.edge_incident_faces_)[e.index_].size() > 0)
+		remove_face(ig, (*ig.edge_incident_faces_)[e.index_].back());
+
+	auto [v0, v1] = (*ig.edge_incident_vertices_)[e.index_];
+	remove_edge_in_vertex(ig, v0, e);
+	remove_edge_in_vertex(ig, v1, e);
+
+	remove_cell<Edge>(ig, e);
+}
 
 /*****************************************************************************/
 
@@ -38,6 +91,28 @@ namespace cgogn
 // cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, bool /*set_indices*/)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	auto [v0, v1] = (*ig.edge_incident_vertices_)[e0.index_];
+	Vertex v = add_cell<Vertex>(ig);
+	(*ig.edge_incident_vertices_)[e0.index_] = {v0, v};
+	Edge e1 = add_edge(ig, v, v1);
+	for (Face f : (*ig.edge_incident_faces_)[e0.index_])
+	{
+		(*ig.face_incident_edges_)[f.index_].push_back(e1);
+		sort_face_edges(ig, f); // TODO: could do more efficient (insert)
+	}
+	return v;
+}
 
 ///////////
 // Graph //
@@ -150,14 +225,14 @@ CMap2::Vertex cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 {
 	Dart d0 = e.dart;
-	Dart d23 = phi<23>(m, d0);
+	Dart d23 = phi<2, 3>(m, d0);
 
 	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart);
 
 	while (d23 != e.dart)
 	{
 		d0 = d23;
-		d23 = phi<23>(m, d23);
+		d23 = phi<2, 3>(m, d23);
 
 		cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false);
 
@@ -178,21 +253,42 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 	{
 		if (is_indexed<CMap3::Vertex>(m))
 			set_index(m, v, new_index<CMap3::Vertex>(m));
+		if (is_indexed<CMap3::Vertex2>(m))
+		{
+			Dart d = v.dart;
+			do
+			{
+				if (!is_boundary(m, d))
+					set_index(m, CMap3::Vertex2(d), new_index<CMap3::Vertex2>(m));
+				d = phi<2, 3>(m, d);
+			} while (d != v.dart);
+		}
 		if (is_indexed<CMap3::Edge>(m))
 		{
 			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
 			set_index(m, e, index_of(m, e));
+		}
+		if (is_indexed<CMap3::Face2>(m))
+		{
+			Dart d = e.dart;
+			do
+			{
+				// if (!is_boundary(m, d))
+				copy_index<CMap3::Face2>(m, phi1(m, d), d);
+				// if (!is_boundary(m, phi3(m, d)))
+				copy_index<CMap3::Face2>(m, phi3(m, d), phi<1, 3>(m, d));
+				d = phi<2, 3>(m, d);
+			} while (d != e.dart);
 		}
 		if (is_indexed<CMap3::Face>(m))
 		{
 			Dart d = e.dart;
 			do
 			{
-
 				copy_index<CMap3::Face>(m, phi1(m, d), d);
 				copy_index<CMap3::Face>(m, phi3(m, d), d);
-				copy_index<CMap3::Face>(m, phi2(m, d), phi<12>(m, d));
-				d = phi<23>(m, d);
+				// copy_index<CMap3::Face>(m, phi2(m, d), phi<1, 2>(m, d));
+				d = phi<2, 3>(m, d);
 			} while (d != e.dart);
 		}
 		if (is_indexed<CMap3::Volume>(m))
@@ -225,13 +321,13 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	{
 		m.set_edge_id(phi1(map, d), m.edge_id(d));
 		m.set_edge_id(phi3(map, d), m.edge_id(d));
-		m.set_edge_id(phi2(map, d), m.edge_id(phi<12>(map, d)));
+		m.set_edge_id(phi2(map, d), m.edge_id(phi<1, 2>(map, d)));
 		m.set_face_id(phi1(map, d), m.face_id(d));
 		m.set_face_id(phi3(map, d), m.face_id(d));
-		m.set_face_id(phi2(map, d), m.face_id(phi<12>(map, d)));
+		m.set_face_id(phi2(map, d), m.face_id(phi<1, 2>(map, d)));
 		m.set_dart_level(phi1(map, d), m.current_level_);
 		m.set_dart_level(phi2(map, d), m.current_level_);
-		d = phi<23>(map, d);
+		d = phi<2, 3>(map, d);
 	} while (d != e.dart);
 	if (set_indices)
 	{
@@ -262,7 +358,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				{
 					it = phi1(map, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != d);
-				
+
 				copy_index<CPH3::CMAP::Face>(map, phi1(map, d), it);
 				it = phi2(map, d);
 				do
@@ -270,7 +366,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 					it = phi1(map, it);
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
 				copy_index<CPH3::CMAP::Face>(map, phi2(map, d), it);
-				d = phi<23>(map, d);
+				d = phi<2, 3>(map, d);
 			} while (d != e.dart);
 		}
 		if (is_indexed<CPH3::CMAP::Volume>(m))
@@ -293,7 +389,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 					} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
 					copy_index<CPH3::CMAP::Volume>(map, phi2(map, d), it);
 				}
-				d = phi<23>(map, d);
+				d = phi<2, 3>(map, d);
 			} while (d != e.dart);
 		}
 	}
@@ -308,6 +404,117 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 // collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
 
 /*****************************************************************************/
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
+																				   IncidenceGraph::Edge e,
+																				   bool /*set_indices*/)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	std::vector<Edge> removed_edges;
+
+	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+
+	// remove e from its incident vertices
+	remove_edge_in_vertex(ig, v1, e);
+	remove_edge_in_vertex(ig, v2, e);
+
+	// remove e from its incident faces
+	for (Face iface : (*ig.edge_incident_faces_)[e.index_])
+	{
+		remove_edge_in_face(ig, iface, e);
+		// remove degenerate faces
+		if ((*ig.face_incident_edges_)[iface.index_].size() < 3)
+			remove_face(ig, iface);
+	}
+
+	// replace v1 by v2 in incident edges of v1
+	for (Edge iev1 : (*ig.vertex_incident_edges_)[v1.index_])
+	{
+		replace_vertex_in_edge(ig, iev1, v1, v2);
+		// check for duplicate edges around v2
+		Edge similar_edge_in_v2;
+		for (uint32 i = 0; !similar_edge_in_v2.is_valid() && i < (*ig.vertex_incident_edges_)[v2.index_].size(); ++i)
+		{
+			Edge iev2 = (*ig.vertex_incident_edges_)[v2.index_][i];
+			if (same_edge(ig, iev1, iev2))
+				similar_edge_in_v2 = iev2;
+		}
+		if (!similar_edge_in_v2.is_valid())
+			(*ig.vertex_incident_edges_)[v2.index_].push_back(iev1);
+		else
+		{
+			// migrate faces of iev1 to the similar edge in v2
+			for (Face iface : (*ig.edge_incident_faces_)[iev1.index_])
+			{
+				auto fit = std::find((*ig.edge_incident_faces_)[similar_edge_in_v2.index_].begin(),
+									 (*ig.edge_incident_faces_)[similar_edge_in_v2.index_].end(), iface);
+				if (fit == (*ig.edge_incident_faces_)[similar_edge_in_v2.index_].end())
+				{
+					replace_edge_in_face(ig, iface, iev1, similar_edge_in_v2);
+					(*ig.edge_incident_faces_)[similar_edge_in_v2.index_].push_back(iface);
+				}
+			}
+			// remove iev1 from its vertices
+			auto [iev1v1, iev1v2] = (*ig.edge_incident_vertices_)[iev1.index_];
+			remove_edge_in_vertex(ig, iev1v1, iev1);
+			remove_edge_in_vertex(ig, iev1v2, iev1);
+			// remove iev1
+			remove_cell<Edge>(ig, iev1);
+			removed_edges.push_back(iev1);
+		}
+	}
+
+	// remove v1
+	remove_cell<Vertex>(ig, v1);
+	// remove e
+	remove_cell<Edge>(ig, e);
+
+	return {v2, removed_edges};
+}
+
+///////////
+// Graph //
+///////////
+
+Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices)
+{
+	Dart d = e.dart;
+	Dart d1 = alpha_1(g, d);
+	Dart dd = alpha0(g, d);
+	Dart dd1 = alpha_1(g, dd);
+
+	Graph::Vertex v;
+
+	if (dd1 != dd)
+	{
+		v.dart = dd1;
+		alpha1_unsew(g, dd);
+	}
+	if (d1 != d)
+	{
+		v.dart = d1;
+		alpha1_unsew(g, d);
+	}
+	if (d1 != d && dd1 != dd)
+		alpha1_sew(g, d1, dd1);
+	remove_dart(g, d);
+	remove_dart(g, dd);
+
+	if (set_indices && v.is_valid())
+	{
+		if (is_indexed<Graph::Vertex>(g))
+			set_index(g, v, index_of(g, v));
+	}
+
+	return v;
+}
 
 ///////////
 // CMap1 //
@@ -377,6 +584,68 @@ CMap2::Vertex collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	}
 
 	return v;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// bool
+// flip_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+bool flip_edge(CMap2& m, CMap2::Edge e, bool set_indices)
+{
+	Dart d = e.dart;
+	Dart dd = phi2(m, d);
+	Dart d1 = phi1(m, d);
+	Dart d_1 = phi_1(m, d);
+	Dart dd1 = phi1(m, dd);
+	Dart dd_1 = phi_1(m, dd);
+
+	// // Cannot flip edge whose incident faces have co-degree 1
+	// if (d == d1 || dd == dd1)
+	// 	return false;
+
+	// // Both vertices have degree 1 and thus nothing is done // TODO may return true ?
+	// if (d == dd_1 && dd == d_1)
+	// 	return false;
+
+	// if (d != dd_1)
+	// 	phi1_sew(m, d, dd_1); // Detach the edge from its
+	// if (dd != d_1)
+	// 	phi1_sew(m, dd, d_1); // two incident vertices
+
+	// if (d != dd_1)
+	// 	phi1_sew(m, d, d1); // Insert the first end in its new vertices
+	// if (dd != d_1)
+	// 	phi1_sew(m, dd, dd1); // Insert the second end in its new vertices
+
+	phi1_sew(m, d, dd_1);
+	phi1_sew(m, dd, d_1);
+	phi1_sew(m, d, d1);
+	phi1_sew(m, dd, dd1);
+
+	if (set_indices)
+	{
+		if (is_indexed<CMap2::Vertex>(m))
+		{
+			copy_index<CMap2::Vertex>(m, d, phi1(m, dd));
+			copy_index<CMap2::Vertex>(m, dd, phi1(m, d));
+		}
+
+		if (is_indexed<CMap2::Face>(m))
+		{
+			copy_index<CMap2::Face>(m, phi_1(m, d), d);
+			copy_index<CMap2::Face>(m, phi_1(m, dd), dd);
+		}
+	}
+
+	return true;
 }
 
 } // namespace cgogn

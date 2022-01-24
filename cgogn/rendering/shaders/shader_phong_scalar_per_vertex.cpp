@@ -33,79 +33,85 @@ namespace cgogn
 namespace rendering
 {
 
-static const char* vertex_shader_source = R"(#version 150
-in vec3 vertex_pos;
-in vec3 vertex_normal;
-in float vertex_scalar;
-uniform mat4 projection_matrix;
-uniform mat4 model_view_matrix;
-uniform mat3 normal_matrix;
-uniform vec3 light_position;
-out vec3 EyeVector;
-out vec3 Normal;
-out vec3 LightDir;
-out vec3 color;
-
-//_insert_colormap_funcion_here
-
-void main()
-{
-	Normal = normal_matrix * vertex_normal;
-	vec3 Position = vec3(model_view_matrix * vec4(vertex_pos, 1.0));
-	LightDir = light_position - Position;
-	EyeVector = -Position;
-	color = scalar2color(vertex_scalar);
-	gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos, 1.0);
-}
-)";
-
-static const char* fragment_shader_source = R"(#version 150
-in vec3 EyeVector;
-in vec3 Normal;
-in vec3 LightDir;
-in vec3 color;
-uniform vec4 ambiant_color;
-uniform vec4 spec_color;
-uniform float spec_coef;
-uniform bool double_side;
-out vec3 frag_color;
-void main()
-{
-	vec3 N = normalize(Normal);
-	vec3 L = normalize(LightDir);
-	vec3 finalColor = ambiant_color.rgb;
-	if (gl_FrontFacing == false) // do not use ! because of bug on old intel under OS/X
-	{
-		if (!double_side)
-			discard;
-		N *= -1.0;
-	}
-	float lambertTerm = max(dot(N, L), 0.0);
-	finalColor += color * lambertTerm;
-	vec3 E = normalize(EyeVector);
-	vec3 R = reflect(-L, N);
-	float specular = pow(max(dot(R, E), 0.0), spec_coef);
-	finalColor += spec_color.rgb * specular;
-	frag_color = finalColor;
-}
-)";
-
 ShaderPhongScalarPerVertex* ShaderPhongScalarPerVertex::instance_ = nullptr;
 
 ShaderPhongScalarPerVertex::ShaderPhongScalarPerVertex()
 {
+	const char* vertex_shader_source = R"(
+		#version 150
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+		uniform mat3 normal_matrix;
+
+		in vec3 vertex_position;
+		in vec3 vertex_normal;
+		in float vertex_scalar;
+
+		out vec3 position;
+		out vec3 normal;
+		out vec3 color;
+
+		//_insert_colormap_function_here
+
+		void main()
+		{
+			vec4 position4 = model_view_matrix * vec4(vertex_position, 1.0);
+			position = position4.xyz;
+			normal = normal_matrix * vertex_normal;
+			float value = transform_value(vertex_scalar);
+			color = value2color(value);
+			gl_Position = projection_matrix * position4;
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 150
+		uniform vec4 ambiant_color;
+		uniform vec3 light_position;
+		uniform bool double_side;
+		uniform vec4 specular_color;
+		uniform float specular_coef;
+
+		in vec3 position;
+		in vec3 normal;
+		in vec3 color;
+		
+		out vec4 frag_out;
+		
+		void main()
+		{
+			vec3 N = normalize(normal);
+			vec3 L = normalize(light_position - position);
+			vec4 final_color = ambiant_color;
+			if (!gl_FrontFacing)
+			{
+				if (!double_side)
+					discard;
+				N *= -1.0;
+			}
+			float lambert_term = clamp(dot(N, L), 0.0, 1.0);
+			final_color += vec4(color, 1.0) * lambert_term;
+			vec3 E = normalize(-position);
+			vec3 R = reflect(-L, N);
+			float specular = pow(max(dot(R, E), 0.0), specular_coef);
+			final_color += specular_color * specular;
+			frag_out = vec4(final_color.rgb, 1.0);
+		}
+	)";
+
 	std::string v_src(vertex_shader_source);
-	v_src.insert(v_src.find("//_insert_colormap_funcion_here"), shader_funcion::ColorMap::source);
-	load2_bind(v_src, fragment_shader_source, "vertex_pos", "vertex_normal", "vertex_scalar");
-	add_uniforms("light_position", "ambiant_color", "spec_color", "spec_coef", "double_side",
-				 shader_funcion::ColorMap::name[0], shader_funcion::ColorMap::name[1],
-				 shader_funcion::ColorMap::name[2], shader_funcion::ColorMap::name[3]);
+	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::ColorMap::source);
+	load2_bind(v_src, fragment_shader_source, "vertex_position", "vertex_normal", "vertex_scalar");
+	get_uniforms("light_position", "ambiant_color", "specular_color", "specular_coef", "double_side",
+				 shader_function::ColorMap::uniform_names[0], shader_function::ColorMap::uniform_names[1],
+				 shader_function::ColorMap::uniform_names[2], shader_function::ColorMap::uniform_names[3]);
 }
 
 void ShaderParamPhongScalarPerVertex::set_uniforms()
 {
 	shader_->set_uniforms_values(light_position_, ambiant_color_, specular_color_, specular_coef_, double_side_,
-								 cm_.color_map_, cm_.expansion_, cm_.min_value_, cm_.max_value_);
+								 color_map_.color_map_, color_map_.expansion_, color_map_.min_value_,
+								 color_map_.max_value_);
 }
 
 } // namespace rendering

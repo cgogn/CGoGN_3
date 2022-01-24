@@ -54,6 +54,25 @@ struct CGOGN_CORE_EXPORT Graph : public CMapBase
 	}
 };
 
+template <>
+struct mesh_traits<Graph>
+{
+	static constexpr const char* name = "Graph";
+	static constexpr const uint8 dimension = 1;
+
+	using Vertex = Graph::Vertex;
+	using HalfEdge = Graph::HalfEdge;
+	using Edge = Graph::Edge;
+
+	using Cells = std::tuple<Vertex, HalfEdge, Edge>;
+	static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge"};
+
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+};
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_GRAPH_H_

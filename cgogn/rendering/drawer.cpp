@@ -146,7 +146,7 @@ void DisplayListDrawer::end_list()
 
 DisplayListDrawer::Renderer::Renderer(DisplayListDrawer* dr) : drawer_data_(dr)
 {
-	param_cpv_ = ShaderColorPerVertex::generate_param();
+	param_cpv_ = ShaderFlatColorPerVertex::generate_param();
 	param_bl_ = ShaderBoldLineColor::generate_param();
 	param_rp_ = ShaderRoundPointColor::generate_param();
 	param_ps_ = ShaderPointSpriteColor::generate_param();

@@ -1,6 +1,6 @@
 ﻿/*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -31,16 +31,16 @@ namespace ui
 
 View::View(Inputs* inputs, const std::string& name)
 	: GLViewer(inputs), name_(name), ratio_x_offset_(0), ratio_y_offset_(0), ratio_width_(1), ratio_height_(1),
-	  param_fst_(nullptr), fbo_(nullptr), tex_(nullptr), scene_bb_locked_(false), event_stopped_(false), closing_(false)
+	  param_full_screen_texture_(nullptr), fbo_(nullptr), tex_(nullptr), event_stopped_(false), closing_(false)
 {
 	tex_ = std::make_unique<rendering::Texture2D>();
-	tex_->alloc(1, 1, GL_RGBA8, GL_RGBA);
-	std::vector<rendering::Texture2D*> vt{tex_.get()};
+	tex_->allocate(1, 1, GL_RGBA8, GL_RGBA);
 
-	fbo_ = std::make_unique<rendering::FBO>(vt, true, nullptr);
+	fbo_ = std::make_unique<rendering::FBO>(std::vector<rendering::Texture2D*>{tex_.get()}, true, nullptr);
 
-	param_fst_ = rendering::ShaderFSTexture::generate_param();
-	param_fst_->texture_ = fbo_->texture(0);
+	param_full_screen_texture_ = rendering::ShaderFullScreenTexture::generate_param();
+	param_full_screen_texture_->unit_ = 0;
+	param_full_screen_texture_->texture_ = fbo_->texture(0);
 }
 
 View::~View()
@@ -111,7 +111,7 @@ void View::mouse_dbl_click_event(int32 button, int32 x, int32 y)
 void View::mouse_move_event(int32 x, int32 y)
 {
 	for (ViewModule* m : linked_view_modules_)
-		m->mouse_move_event(this, inputs_->mouse_buttons_, x, y);
+		m->mouse_move_event(this, x, y);
 
 	if (!event_stopped_)
 		GLViewer::mouse_move_event(x, y);
@@ -159,23 +159,20 @@ void View::draw()
 	{
 		if (fbo_->width() * fbo_->height() > 0)
 		{
-
 			fbo_->bind();
 			glEnable(GL_DEPTH_TEST);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			GLenum idbuf = GL_COLOR_ATTACHMENT0;
 			glDrawBuffers(1, &idbuf);
 			for (ViewModule* m : linked_view_modules_)
-			{
 				m->draw(this);
-			}
-			fbo_->release();
 			glDisable(GL_DEPTH_TEST);
+			fbo_->release();
 			need_redraw_ = false;
 		}
 	}
 
-	param_fst_->draw();
+	param_full_screen_texture_->draw();
 }
 
 void View::link_module(ViewModule* m)
@@ -199,43 +196,28 @@ void View::link_module(ProviderModule* m)
 
 void View::update_scene_bb()
 {
-	if (!scene_bb_locked_)
+	geometry::Vec3 min, max;
+	for (uint32 i = 0; i < 3; ++i)
 	{
-		geometry::Vec3 min, max;
+		min[i] = std::numeric_limits<float64>::max();
+		max[i] = std::numeric_limits<float64>::lowest();
+	}
+	for (ProviderModule* m : linked_provider_modules_)
+	{
+		auto [pmin, pmax] = m->meshes_bb();
 		for (uint32 i = 0; i < 3; ++i)
 		{
-			min[i] = std::numeric_limits<float64>::max();
-			max[i] = std::numeric_limits<float64>::lowest();
+			if (pmin[i] < min[i])
+				min[i] = pmin[i];
+			if (pmax[i] > max[i])
+				max[i] = pmax[i];
 		}
-		for (ProviderModule* m : linked_provider_modules_)
-		{
-			auto [pmin, pmax] = m->meshes_bb();
-			for (uint32 i = 0; i < 3; ++i)
-			{
-				if (pmin[i] < min[i])
-					min[i] = pmin[i];
-				if (pmax[i] > max[i])
-					max[i] = pmax[i];
-			}
-		}
-		geometry::Scalar radius = (max - min).norm() / 2.0;
-		geometry::Vec3 center = (max + min) / 2.0;
-		set_scene_radius(radius);
-		set_scene_center(center);
-		show_entire_scene();
-		request_update();
 	}
-}
-
-void View::lock_scene_bb()
-{
-	scene_bb_locked_ = true;
-}
-
-void View::unlock_scene_bb()
-{
-	scene_bb_locked_ = false;
-	update_scene_bb();
+	geometry::Scalar radius = (max - min).norm() / 2.0;
+	geometry::Vec3 center = (max + min) / 2.0;
+	set_scene_radius(radius);
+	set_scene_center(center);
+	request_update();
 }
 
 bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
@@ -249,10 +231,10 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 	xs = GLint(double(x - x_offset_) / double(width_) * viewport_width_);
 	ys = GLint(double(height_ - (y - y_offset_)) / double(height_) * viewport_height_);
 
-	fbo_->bind();
+	fbo_->bind_read();
 	glReadBuffer(GL_DEPTH_ATTACHMENT);
 	glReadPixels(xs, ys, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, z);
-	fbo_->release();
+	fbo_->release_read();
 
 	if (*z >= 1.0f)
 		return false;
@@ -277,7 +259,6 @@ bool View::pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const
 
 std::pair<rendering::GLVec3d, rendering::GLVec3d> View::pixel_ray(int32 x, int32 y) const
 {
-
 	float64 xs = float64(float64(x - x_offset_) / float64(width_) * viewport_width_);
 	float64 ys = float64(float64(height_ - (y - y_offset_)) / float64(height_) * viewport_height_);
 

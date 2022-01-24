@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -38,28 +38,29 @@ DECLARE_SHADER_CLASS(FlatColorPerFace, true, CGOGN_STR(FlatColorPerFace))
 class CGOGN_RENDERING_EXPORT ShaderParamFlatColorPerFace : public ShaderParam
 {
 	void set_uniforms() override;
-	enum VBONAme : int32
+
+	std::array<VBO*, 2> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
-		POS = 0,
-		COLOR
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		FACE_COLOR
 	};
 
 public:
-	std::array<VBO*, 2> vbos_;
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
+	using ShaderType = ShaderFlatColorPerFace;
 
-	using LocalShader = ShaderFlatColorPerFace;
-
-	ShaderParamFlatColorPerFace(LocalShader* sh)
+	ShaderParamFlatColorPerFace(ShaderType* sh)
 		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
 		for (auto& v : vbos_)
@@ -69,15 +70,10 @@ public:
 	inline ~ShaderParamFlatColorPerFace() override
 	{
 	}
-
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
-	}
 };
 
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_FLAT_H_
+#endif // CGOGN_RENDERING_SHADERS_FLAT_COLOR_PER_FACE_H_

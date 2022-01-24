@@ -21,21 +21,17 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
-#define CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
+#define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/types/mesh_views/cell_cache.h>
-
-#include <cgogn/geometry/algos/angle.h>
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
 #include <cgogn/core/functions/traversals/global.h>
+
+#include <cgogn/modeling/algos/subdivision/basic.h>
+#include <cgogn/modeling/algos/subdivision_utils.h>
+
+#include <cgogn/geometry/algos/angle.h>
 
 namespace cgogn
 {
@@ -46,61 +42,450 @@ namespace modeling
 using Vec3 = geometry::Vec3;
 
 ///////////
-// CMap2 //
+// CMap3 //
 ///////////
 
-void hexagon_to_triangles(CMap2& m, CMap2::Face f)
+/// Pre cut hex, input: original dart from edge along the direction of the cut
+inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 {
-	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
-	Dart d0 = phi1(m, f.dart);
-	Dart d1 = phi<11>(m, d0);
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
-	Dart d2 = phi<11>(m, d1);
-	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
-	Dart d3 = phi<11>(m, d2);
-	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
+	Dart d0 = phi<1, 2, 1, 1, 1>(m, w.dart);
+	std::vector<Dart> path0;
+	Dart d1 = d0;
+	do
+	{
+		path0.push_back(d1);
+		d1 = phi<1, 2, 1>(m, d1);
+	} while (d1 != d0);
+
+	cut_volume(m, path0);
+	path0.clear();
+
+	d1 = phi<2, 1>(m, d0);
+	Dart d2 = phi<1, 1, 1>(m, d1);
+	CMap3::Edge e = cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(d2));
+
+	std::vector<Dart> path1;
+	d1 = e.dart;
+	d2 = phi3(m, d1);
+	do
+	{
+		path0.push_back(d1);
+		path1.push_back(d2);
+		d1 = phi<1, 2, 1>(m, d1);
+		d2 = phi<1, 2, 1>(m, d2);
+	} while (d1 != e.dart);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+
+	// Dart d0 = phi<1, 2, 1, 1>(m, w.dart);
+	// Dart d1 = d0;
+	// Dart d2, d3, d4;
+	// do {
+	// 	d1 = phi1(m, d1);
+	// 	d2 = phi2(m, d1);
+
+	// 	Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+	// 	Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+	// 	Dart ee = f0;
+	// 	Dart ff = f1;
+	// 	do
+	// 	{
+	// 		phi3_sew(m, ee, ff);
+	// 		ee = phi1(m, ee);
+	// 		ff = phi_1(m, ff);
+	// 	} while (ee != f0);
+
+	// 	phi2_unsew(m, d1);
+	// 	phi2_sew(m, d1, f0);
+	// 	phi2_sew(m, d2, f1);
+	// 	f0 = phi1(m, f0);
+	// 	f1 = phi_1(m, f1);
+
+	// 	d3 = phi<1, 2, 1>(m, d1);
+	// 	d4 = phi2(m, d3);
+
+	// 	phi2_unsew(m, d3);
+	// 	phi2_sew(m, d3, f0);
+	// 	phi2_sew(m, d4, f1);
+	// 	f0 = phi1(m, f0);
+	// 	f1 = phi_1(m, f1);
+
+	// 	d3 = phi<1, 2, 1>(m, d3);
+	// 	d4 = phi2(m, d3);
+
+	// 	phi2_unsew(m, d3);
+	// 	phi2_sew(m, d3, f0);
+	// 	phi2_sew(m, d4, f1);
+
+	// 	d1 = d2;
+	// } while(d1 != d0);
+
+	// do{
+	// 	d2 = phi1(m, d1);
+
+	// 	d3 = phi<2, -1>(m, d1);
+	// 	d4 = phi<2, 1>(m, d2);
+	// 	phi2_sew(m, d3, d4);
+
+	// 	d1 = phi<2, 3, 2>(m, d2);
+	// }while(d1 != d0);
+
+	// d0 = phi<1, 2, 1, 1, 2, -1>(m, w.dart);
+	// d1 = d0;
+	// d2 = phi2(m, d1);
+
+	// if (is_indexed<CMap3::Vertex>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Vertex>(m, d1, index_of(m, CMap3::Vertex(phi1(m, d2))));
+	// 		set_index<CMap3::Vertex>(m, d2, index_of(m, CMap3::Vertex(phi1(m, d1))));
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Vertex>(m, d3, index_of(m, CMap3::Vertex(phi<2, 1>(m, d3))));
+	// 			set_index<CMap3::Vertex>(m, d4, index_of(m, CMap3::Vertex(phi<2, 1>(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		} while(d3 != d1);
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	} while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Vertex2>(m))
+	// {
+	// 	do {
+	// 		set_index<CMap3::Vertex2>(m, d1, index_of(m, CMap3::Vertex2(phi1(m, d2))));
+	// 		set_index<CMap3::Vertex2>(m, d2, index_of(m, CMap3::Vertex2(phi1(m, d1))));
+	// 		d3 = phi1(m, d1);
+	// 		do {
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Vertex2>(m, d3, index_of(m, CMap3::Vertex2(phi<2, 1>(m, d3))));
+	// 			set_index<CMap3::Vertex2>(m, d4, index_of(m, CMap3::Vertex2(phi<2, 1>(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		} while(d3 != d1);
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	} while(d1 != d0);
+	// }
+
+	// if(is_indexed<CMap3::Edge>(m))
+	// {
+	// 	set_index<CMap3::Edge>(m, CMap3::Edge(d0), new_index<CMap3::Edge>(m));
+	// 	do{
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Edge>(m, d3, index_of(m, CMap3::Edge(phi2(m, d3))));
+	// 			set_index<CMap3::Edge>(m, d4, index_of(m, CMap3::Edge(phi2(m, d4))));
+	// 			d3 = phi1(m, d3);
+	// 		}while(d3 != d1);
+	// 		d1 = phi<2, 3>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Edge2>(m))
+	// {
+	// 	do{
+	// 	}while(d1 != d0);
+
+	// 	do{
+	// 		set_index<CMap3::Edge2>(m, CMap3::Edge2(d1), new_index<CMap3::Edge2>(m));
+	// 		d3 = phi1(m, d1);
+	// 		do{
+	// 			d4 = phi3(m, d3);
+	// 			set_index<CMap3::Edge2>(m, CMap3::Edge2(d3), new_index<CMap3::Edge2>(m));
+	// 			set_index<CMap3::Edge2>(m, CMap3::Edge2(d4), new_index<CMap3::Edge2>(m));
+	// 			d3 = phi1(m, d3);
+	// 		}while(d3 != d1);
+	// 		d1 = phi<2, 3>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Face>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Face>(m, CMap3::Face(d1), new_index<CMap3::Face>(m));
+	// 		d1 = phi<2, 3>(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Face2>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Face2>(m, CMap3::Face2(d1), new_index<CMap3::Face2>(m));
+	// 		set_index<CMap3::Face2>(m, CMap3::Face2(d2), new_index<CMap3::Face2>(m));
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	}while(d1 != d0);
+	// }
+
+	// if (is_indexed<CMap3::Volume>(m))
+	// {
+	// 	do{
+	// 		set_index<CMap3::Volume>(m, CMap3::Volume(d1), new_index<CMap3::Volume>(m));
+	// 		d1 = phi3(m, d2);
+	// 		d2 = phi2(m, d1);
+	// 	}while(d1 != d0);
+	// }
 }
 
-/////////////
-// GENERIC //
-/////////////
-
-template <typename MESH>
-void subdivide(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+/// Pre cut hex, input: original vertex dart
+inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w)
 {
-	using Vertex = typename cgogn::mesh_traits<MESH>::Vertex;
-	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
-	using Face = typename cgogn::mesh_traits<MESH>::Face;
+	Dart d0, d10, d11, d20, d21, d22, d23;
+	Dart d1, d2, d3, d4;
+	std::vector<Dart> path0, path1, path2, path3;
 
-	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
-	cache.template build<Face>();
+	d0 = phi<1, 1>(m, w.dart);
+	d10 = phi<2, 1>(m, d0);
+	d11 = phi<1, 2>(m, w.dart);
+	d20 = phi<1, 2, 1, 1>(m, d10);
+	d21 = phi<2, 1, 2, 1>(m, d20);
+	d22 = phi<1, 2, 1, 1>(m, d11);
+	d23 = phi<2, 1, 2, 1>(m, d22);
 
-	foreach_cell(cache, [&](Edge e) -> bool {
-		std::vector<Vertex> vertices = incident_vertices(m, e);
-		Vertex v = cut_edge(m, e);
-		value<Vec3>(m, vertex_position, v) =
-			0.5 * (value<Vec3>(m, vertex_position, vertices[0]) + value<Vec3>(m, vertex_position, vertices[1]));
+	d1 = d0;
+	do
+	{
+		path0.push_back(d1);
+		d1 = phi<1, 2, 1>(m, d1);
+	} while (d1 != d0);
+
+	cut_volume(m, path0);
+	path0.clear();
+	CMap3::Vertex v = quadrangulate_face(m, CMap3::Face(phi2(m, d0)));
+
+	d1 = d10;
+	d2 = d11;
+	do
+	{
+		path0.push_back(d1);
+		path1.push_back(d2);
+		d1 = phi<1, 2, 1>(m, d1);
+		d2 = phi<1, 2, 1>(m, d2);
+	} while (d1 != d10);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+	path0.clear();
+	path1.clear();
+
+	d1 = phi<-1, 2>(m, d20);
+	cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(phi<1, 1, 1>(m, d1)));
+	d1 = phi<-1, 2>(m, d22);
+	cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(phi<1, 1, 1>(m, d1)));
+
+	d1 = d20;
+	d2 = d21;
+	d3 = d22;
+	d4 = d23;
+	do
+	{
+		path0.push_back(d1);
+		path1.push_back(d2);
+		path2.push_back(d3);
+		path3.push_back(d4);
+		d1 = phi<1, 2, 1>(m, d1);
+		d2 = phi<1, 2, 1>(m, d2);
+		d3 = phi<1, 2, 1>(m, d3);
+		d4 = phi<1, 2, 1>(m, d4);
+	} while (d1 != d20);
+	cut_volume(m, path0);
+	cut_volume(m, path1);
+	cut_volume(m, path2);
+	cut_volume(m, path3);
+
+	return v;
+}
+
+template <typename MESH, typename FUNC1, typename FUNC2, typename FUNC3>
+auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_face_cut, const FUNC3& on_vol_cut)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMap3&>>
+{
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	using Vertex2 = typename mesh_traits<MESH>::Vertex2;
+	using Edge2 = typename mesh_traits<MESH>::Edge2;
+	using Face2 = typename mesh_traits<MESH>::Face2;
+	using Volume = typename mesh_traits<MESH>::Volume;
+	static_assert(is_func_parameter_same<FUNC1, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC2, Vertex>::value, "Given function should take a Vertex");
+	static_assert(is_func_parameter_same<FUNC3, Vertex>::value, "Given function should take a Vertex");
+
+	// CellCache<MESH> vol_cache(m);
+	// vol_cache.template build<Volume>();
+
+	CellCache<MESH> edge_vert_cache(m);
+	CellCache<MESH> face_vert_cache(m);
+
+	CellMarker<MESH, Volume> cm(m);
+	foreach_cell(m, [&](Volume w) -> bool {
+		cm.mark(w);
 		return true;
 	});
 
-	foreach_cell(cache, [&](Face f) -> bool {
-		if (codegree(m, f) == 6)
-			hexagon_to_triangles(m, f);
+	quadrangulate_all_faces(
+		m,
+		[&](Vertex v) -> void {
+			edge_vert_cache.add(v);
+			on_edge_cut(v);
+		},
+		[&](Vertex v) -> void {
+			face_vert_cache.add(v);
+			on_face_cut(v);
+		});
+
+	foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+		Dart d = ve.dart;
+		do
+		{
+			if (!is_boundary(m, d) && cm.is_marked(Volume(d)))
+			{
+				Dart d01 = phi_1(m, d);
+				Dart d02 = phi2(m, d01);
+				Dart d21 = phi<2, 1>(m, d);
+				Dart d22 = phi2(m, d21);
+
+				Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart ee = f0;
+				Dart ff = f1;
+				do
+				{
+					phi3_sew(m, ee, ff);
+					ee = phi1(m, ee);
+					ff = phi_1(m, ff);
+				} while (ee != f0);
+
+				phi2_unsew(m, d01);
+				phi2_unsew(m, d21);
+
+				phi2_sew(m, d01, f0);
+				phi2_sew(m, d02, f1);
+
+				phi2_sew(m, d21, phi_1(m, f0));
+				phi2_sew(m, d22, phi1(m, f1));
+			}
+			d = phi<2, 3>(m, d);
+		} while (d != ve.dart);
 		return true;
 	});
-}
 
-template <typename MESH, typename FUNC>
-void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
-{
-	using Edge = typename cgogn::mesh_traits<MESH>::Edge;
+	parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+		Dart d0 = vf.dart;
+		Dart d1 = phi<2, 3, 2, 3>(m, vf.dart);
+		Dart d;
+		if (cm.is_marked(Volume(d0)))
+		{
+			d = d0;
+			do
+			{
+				phi2_sew(m, phi<2, 1>(m, d), phi<-1, 2, -1>(m, d));
+				d = phi<2, 3, 2, 1>(m, d);
+			} while (d != d0);
+		}
 
-	CellCache<MESH> cache(m);
-	cache.template build<Edge>();
+		if (!is_boundary(m, d1) && cm.is_marked(Volume(d1)))
+		{
+			d = d1;
+			do
+			{
+				phi2_sew(m, phi<2, 1>(m, d), phi<-1, 2, -1>(m, d));
+				d = phi<2, 3, 2, 1>(m, d);
+			} while (d != d1);
+		}
+		return true;
+	});
 
-	foreach_cell(cache, [&](Edge e) -> bool {
-		on_edge_cut(cut_edge(m, e));
+	CellCache<MESH> vol_vert_cache(m);
+	foreach_cell(m, [&](Volume w) -> bool {
+		Dart d0 = w.dart;
+		Vertex vw = Vertex(phi<1, 2, -1>(m, d0));
+		vol_vert_cache.add(vw);
+		return true;
+	});
+
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		if (is_indexed<Vertex>(m))
+			set_index(m, v, new_index<Vertex>(m));
+
+		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+			if (is_indexed<Edge>(m))
+			{
+				if (index_of(m, Edge(d)) == INVALID_INDEX)
+					set_index(m, Edge(d), new_index<Edge>(m));
+			}
+			if (is_indexed<Face>(m))
+			{
+				if (index_of(m, Face(d)) == INVALID_INDEX)
+					set_index(m, Face(d), new_index<Face>(m));
+			}
+			if (is_indexed<Volume>(m))
+			{
+				if (index_of(m, Volume(d)) == INVALID_INDEX)
+					set_index(m, Volume(d), new_index<Volume>(m));
+			}
+			return true;
+		});
+
+		foreach_incident_volume(m, v, [&](Volume w) -> bool {
+			foreach_dart_of_orbit(m, w, [&](Dart d) -> bool {
+				if (is_indexed<HalfEdge>(m))
+				{
+					if (index_of(m, HalfEdge(d)) == INVALID_INDEX)
+						set_index<HalfEdge>(m, HalfEdge(d), new_index<HalfEdge>(m));
+				}
+				if (is_indexed<Vertex2>(m))
+				{
+					if (index_of(m, Vertex2(d)) == INVALID_INDEX)
+						set_index(m, Vertex2(d), new_index<Vertex2>(m));
+				}
+				if (is_indexed<Edge2>(m))
+				{
+					if (index_of(m, Edge2(d)) == INVALID_INDEX)
+						set_index(m, Edge2(d), new_index<Edge2>(m));
+				}
+				if (is_indexed<Face2>(m))
+				{
+					if (index_of(m, Face2(d)) == INVALID_INDEX)
+						set_index(m, Face2(d), new_index<Face2>(m));
+				}
+				return true;
+			});
+			return true;
+		});
+		return true;
+	});
+
+	if (is_indexed<Vertex>(m))
+	{
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			set_index<Vertex>(m, vf, index_of(m, vf));
+			return true;
+		});
+		parallel_foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
+			set_index<Vertex>(m, ve, index_of(m, ve));
+			return true;
+		});
+	}
+
+	if (is_indexed<Edge>(m))
+	{
+		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
+			Dart d0 = vf.dart;
+			Dart d = d0;
+			do
+			{
+				set_index<Edge>(m, Edge(d), index_of(m, Edge(d)));
+				d = phi<2, 3, 2, 1>(m, d);
+			} while (d != d0);
+			return true;
+		});
+	}
+
+	foreach_cell(vol_vert_cache, [&](Vertex v) -> bool {
+		on_vol_cut(v);
 		return true;
 	});
 }
@@ -108,13 +493,13 @@ void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 /* -------------------------- BUTTERFLY VOLUME MASKS -------------------------- */
 
 // Remplit les vecteurs de p/q-points pour le volume incident à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et le vecteur de q-points est vide après l'appel
 template <typename MESH>
 auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vector<Dart>& q_point)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
-	// p-points : ajouter les sommets de Face(d) + Face(phi<2112>(m,d))
+	// p-points : ajouter les sommets de Face(d) + Face(phi<2, 1, 1, 2>(m,d))
 	Dart b = d;
 	Dart t = b;
 	do
@@ -122,7 +507,7 @@ auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vec
 		p_point.push_back(t);
 		t = phi1(m, t);
 	} while (t != b);
-	b = phi<2112>(m, d);
+	b = phi<2, 1, 1, 2>(m, d);
 	t = b;
 	do
 	{
@@ -131,7 +516,7 @@ auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vec
 	} while (t != b);
 
 	// q-points : pour chaque face f du volume,
-	// ajouter Face(Inherit::phi<32112>(f)) (face opposée du volume adjacent)
+	// ajouter Face(Inherit::phi<3, 2, 1, 1, 2>(f)) (face opposée du volume adjacent)
 	// si le volume adjacent n'existe pas (bord) alors le masque est mal défini,
 	// donc on ignore les q-points
 	Dart f = d;
@@ -146,7 +531,7 @@ auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vec
 			break;
 		}
 		// Sinon, récupération des brins de la face opposée du volume adjacent
-		b = phi<32112>(m, f);
+		b = phi<3, 2, 1, 1, 2>(m, f);
 		t = b;
 		do
 		{
@@ -160,7 +545,7 @@ auto volumePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vec
 }
 
 // Remplit les vecteurs de p/q/r/s/t-points pour la face incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 template <typename MESH>
 auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vector<Dart>& q_point,
@@ -174,15 +559,15 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 		return true;
 	});
 
-	// q-points : ajouter les sommets de Face(Inherit::phi<2112>(d)) + Face(Inherit::phi<32112>(d))
-	Dart b = phi<2112>(m, d);
+	// q-points : ajouter les sommets de Face(Inherit::phi<2, 1, 1, 2>(d)) + Face(Inherit::phi<3, 2, 1, 1, 2>(d))
+	Dart b = phi<2, 1, 1, 2>(m, d);
 	t = b;
 	do
 	{
 		q_point.push_back(t);
 		t = phi1(m, t);
 	} while (t != b);
-	b = phi<32112>(m, d);
+	b = phi<3, 2, 1, 1, 2>(m, d);
 	t = b;
 	do
 	{
@@ -199,12 +584,12 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 	{
 		// Est-ce que les volumes adjacents aux volumes au dessus et au dessous existent ou est-ce en surface
 		bool face_phi2_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi2(m, p))),
-			 face_phi32_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<32>(m, p)));
+			 face_phi32_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<3, 2>(m, p)));
 
-		Dart phi323211 = phi<323211>(m, p), phi3232111 = phi<3232111>(m, p), phi23211 = phi<23211>(m, p),
-			 phi232111 = phi<232111>(m, p);
+		Dart phi323211 = phi<3, 2, 3, 2, 1, 1>(m, p), phi3232111 = phi<3232111>(m, p),
+			 phi23211 = phi<2, 3, 2, 1, 1>(m, p), phi232111 = phi<2, 3, 2, 1, 1, 1>(m, p);
 
-		// Si Face(phi<2>(p)) est sur la surface et Face(phi<32>(p)) aussi
+		// Si Face(phi2(p)) est sur la surface et Face(phi<3, 2>(p)) aussi
 		// alors il n'y a pas de r/t-points
 		if (face_phi2_is_surface && face_phi32_is_surface)
 		{
@@ -215,8 +600,8 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			break;
 		}
 
-		// Si Face(phi<2>(p)) est sur la surface et pas Face(phi<32>(p))
-		// alors il y a deux r-points : Edge(phi<323211>(p))
+		// Si Face(phi2(p)) est sur la surface et pas Face(phi<3, 2>(p))
+		// alors il y a deux r-points : Edge(phi<3, 2, 3, 2, 1 ,1>(p))
 		if (face_phi2_is_surface && !face_phi32_is_surface)
 		{
 			r_point.push_back(phi323211);
@@ -224,8 +609,8 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			continue;
 		}
 
-		// Si Face(phi<2>(p)) n'est pas sur la surface mais que Face(phi<32>(p)) l'est
-		// alors il y a deux r-points : Edge(phi<23211>(p))
+		// Si Face(phi2(p)) n'est pas sur la surface mais que Face(phi<3, 2>(p)) l'est
+		// alors il y a deux r-points : Edge(phi<2, 3, 2, 1, 1>(p))
 		if (!face_phi2_is_surface && face_phi32_is_surface)
 		{
 			r_point.push_back(phi23211);
@@ -233,12 +618,12 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			continue;
 		}
 
-		// Ni Face(phi<2>(p)) ni Face(phi<32>(p)) ne sont sur la surface
-		// alors soit Edge(phi<23211>(p)) == Edge(phi<323211>(p)) (topologie régulière)
-		// soit Edge(phi<23211>(p)) != Edge(phi<323211>(p)) (arete extraordinaire)
+		// Ni Face(phi2(p)) ni Face(phi<3, 2>(p)) ne sont sur la surface
+		// alors soit Edge(phi<2, 3, 2, 1, 1>(p)) == Edge(phi<3, 2, 3, 2, 1, 1>(p)) (topologie régulière)
+		// soit Edge(phi<2, 3, 2, 1, 1>(p)) != Edge(phi<3, 2, 3, 2, 1, 1>(p)) (arete extraordinaire)
 
-		// Si Edge(phi<23211>(p)) != Edge(phi<323211>(p)) (arete extraordinaire)
-		// alors il y a 4 t-points : Edge(phi<23211>(p)) + Edge(phi<323211>(p))
+		// Si Edge(phi<2, 3, 2, 1, 1>(p)) != Edge(phi<3, 2, 3, 2, 1, 1>(p)) (arete extraordinaire)
+		// alors il y a 4 t-points : Edge(phi<2, 3, 2, 1, 1>(p)) + Edge(phi<3, 2, 3, 2, 1, 1>(p))
 		if (index_of(m, typename MESH::Edge(phi23211)) != index_of(m, typename MESH::Edge(phi323211)))
 		{
 			t_point.push_back(phi23211);
@@ -246,7 +631,7 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			t_point.push_back(phi323211);
 			t_point.push_back(phi3232111);
 		}
-		// Sinon Edge(phi<23211>(p)) == Edge(phi<323211>(p))
+		// Sinon Edge(phi<2, 3, 2, 1, 1>(p)) == Edge(phi<3, 2, 3, 2, 1, 1>(p))
 		// et donc il y a 2 r-points
 		else
 		{
@@ -255,11 +640,11 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 		}
 	}
 
-	// s-points : pour chaque q, ajouter Edge(phi<23211>(q))
+	// s-points : pour chaque q, ajouter Edge(phi<2, 3, 2, 1, 1>(q))
 	for (Dart q : q_point)
 	{
 		// S'il n'y a pas de s-points
-		if (is_boundary(m, phi<23>(m, q)))
+		if (is_boundary(m, phi<2, 3>(m, q)))
 		{
 			q_point.clear();
 			r_point.clear();
@@ -267,13 +652,13 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			t_point.clear();
 			break;
 		}
-		s_point.push_back(phi<23211>(m, q));
-		s_point.push_back(phi<232111>(m, q));
+		s_point.push_back(phi<2, 3, 2, 1, 1>(m, q));
+		s_point.push_back(phi<2, 3, 2, 1, 1, 1>(m, q));
 	}
 }
 
 // Remplit les vecteurs de p/q/r/s-points pour l'arete incidente à d
-// Si le masque est mal définit (proche du bord) on ne garde que les p-points
+// Si le masque est mal défini (proche du bord) on ne garde que les p-points
 // et les autres vecteurs sont vides après l'appel
 // Attention, un appel récursif est fait (un seul)
 template <typename MESH>
@@ -303,18 +688,18 @@ auto edgePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 	do
 	{
 		// q-points : ajouter l'extremité de l'arete opposée (autre extremité : appel récursif)
-		q_point.push_back(phi<11>(m, t));
+		q_point.push_back(phi<1, 1>(m, t));
 
 		// r/s-points du coté sens direct
 		// Question : s'il n'y a pas de volume adjacent à celui de la face courante,
 		// doit-on chercher le point r/s par d'autres chemins (nombre de config!)
 
-		bool face_phi12_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<12>(m, t))),
-			 face_phi132_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<132>(m, t)));
+		bool face_phi12_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<1, 2>(m, t))),
+			 face_phi132_is_surface = is_incident_to_boundary(m, typename MESH::Face(phi<1, 3, 2>(m, t)));
 
-		Dart phi1323211 = phi<1323211>(m, t), phi1232_1 = phi_1(m, phi<1232>(m, t));
+		Dart phi1323211 = phi<1, 3, 2, 3, 2, 1, 1>(m, t), phi1232_1 = phi<1, 2, 3, 2, -1>(m, t);
 
-		// Si Face(phi<12>(t)) et Face(phi<132>(t)) sont sur la surface
+		// Si Face(phi<1, 2>(t)) et Face(phi<1, 3, 2>(t)) sont sur la surface
 		// alors pas de r/s-points coté direct et on peux donc arreter la recherche le points
 		if (face_phi12_is_surface && face_phi132_is_surface)
 		{
@@ -324,40 +709,40 @@ auto edgePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 			break;
 		}
 		// Au moins l'une des face n'est pas sur la surface
-		// Si ni Face(phi<12>(t)) ni Face(phi<132>(t)) ne sont sur la surface
-		// alors soit Vertex(phi<1323211>(t)) == Vertex(phi<1232-1>(t)) (topologie régulière)
-		// soit Vertex(phi<1323211>(t)) != Vertex(phi<1232-1>(t)) (arete extraordinaire)
+		// Si ni Face(phi<1, 2>(t)) ni Face(phi<1, 3, 2>(t)) ne sont sur la surface
+		// alors soit Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t)) == Vertex(phi<1, 2, 3, 2, -1>(t)) (topologie régulière)
+		// soit Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t)) != Vertex(phi<1, 2, 3, 2, -1>(t)) (arete extraordinaire)
 		if (!face_phi12_is_surface && !face_phi132_is_surface)
 		{
-			// Si Vertex(phi<1323211>(t)) != Vertex(phi<1232-1>(t)) (arete extraordinaire)
-			// alors 2 s-points Vertex(phi<1323211>(t)) et Vertex(phi<1232-1>(t))
+			// Si Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t)) != Vertex(phi<1, 2, 3, 2, -1>(t)) (arete extraordinaire)
+			// alors 2 s-points Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t)) et Vertex(phi<1, 2, 3, 2, -1>(t))
 			if (index_of(m, typename MESH::Vertex(phi1323211)) != index_of(m, typename MESH::Vertex(phi1232_1)))
 			{
 				s_point.push_back(phi1323211);
 				s_point.push_back(phi1232_1);
 			}
-			// Sinon Vertex(phi<1323211>(t)) == Vertex(phi<1232-1>(t)) (topologie régulière)
+			// Sinon Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t)) == Vertex(phi<1, 2, 3, 2, -1>(t)) (topologie régulière)
 			// alors 1 r-point
 			else
 			{
 				r_point.push_back(phi1323211);
 			}
 		}
-		// sinon si Face(phi<12>(t)) est sur la surface (et pas Face(phi<132>(t)))
-		// alors 1 r-point : Vertex(phi<1323211>(t))
+		// sinon si Face(phi<1, 2>(t)) est sur la surface (et pas Face(phi<1, 3, 2>(t)))
+		// alors 1 r-point : Vertex(phi<1, 3, 2, 3, 2, 1, 1>(t))
 		else if (face_phi12_is_surface)
 		{
 			r_point.push_back(phi1323211);
 		}
-		// sinon (si Face(phi<132>(t)) est sur la surface et pas Face(phi<12>(t))))
-		// alors 1 r-point : Vertex(phi<1232-1>(t))
+		// sinon (si Face(phi<1, 3, 2>(t)) est sur la surface et pas Face(phi<1, 2>(t))))
+		// alors 1 r-point : Vertex(phi<1, 2, 3, 2, -1>(t))
 		else
 		{
 			r_point.push_back(phi1232_1);
 		}
 
 		// Face incidente suivante
-		t = phi<23>(m, t);
+		t = phi<2, 3>(m, t);
 	} while (t != d);
 
 	// Sinon, faire la meme chose dans l'autre sens (si ce n'est pas déjà fait)
@@ -381,7 +766,7 @@ auto surfaceAdjacentFace(const MESH& m, Dart d) -> std::enable_if_t<std::is_conv
 	Dart t = phi2(m, d);
 	while (!is_boundary(m, phi3(m, t)))
 	{
-		t = phi<32>(m, t);
+		t = phi<3, 2>(m, t);
 	}
 	return t;
 }
@@ -395,7 +780,7 @@ auto surfaceFacePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std
 	{
 		p_point.push_back(t);
 		Dart e = surfaceAdjacentFace(m, t);
-		q_point.push_back(phi<11>(m, e));
+		q_point.push_back(phi<1, 1>(m, e));
 		q_point.push_back(phi_1(m, e));
 		t = phi1(m, t);
 	} while (t != d);
@@ -408,20 +793,20 @@ auto surfaceEdgePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std
 	p_point.push_back(d);
 	p_point.push_back(phi1(m, d));
 
-	q_point.push_back(phi<11>(m, d));
+	q_point.push_back(phi<1, 1>(m, d));
 	q_point.push_back(phi_1(m, d));
 	Dart t = surfaceAdjacentFace(m, phi1(m, d));
 	r_point.push_back(phi_1(m, t));
 	t = surfaceAdjacentFace(m, phi_1(m, d));
-	r_point.push_back(phi<11>(m, t));
+	r_point.push_back(phi<1, 1>(m, t));
 
 	Dart e = surfaceAdjacentFace(m, d);
-	q_point.push_back(phi<11>(m, e));
+	q_point.push_back(phi<1, 1>(m, e));
 	q_point.push_back(phi_1(m, e));
 	t = surfaceAdjacentFace(m, phi1(m, e));
 	r_point.push_back(phi_1(m, t));
 	t = surfaceAdjacentFace(m, phi_1(m, e));
-	r_point.push_back(phi<11>(m, t));
+	r_point.push_back(phi<1, 1>(m, t));
 }
 
 /* ----------------------------- BUTTERFLY RULES ----------------------------- */
@@ -532,14 +917,14 @@ auto subdivideFace(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templat
 {
 	using Vertex = typename MESH::Vertex;
 	Dart e = phi1(m, d);
-	Dart f = phi<1111>(m, e);
+	Dart f = phi<1, 1, 1, 1>(m, e);
 	cut_face(m, Vertex(e), Vertex(f));
 	subdivideEdge(m, phi_1(m, e), p, attribute);
 
 	Dart result = phi_1(m, e);
 
-	cut_face(m, Vertex(phi_1(m, e)), Vertex(phi<11>(m, e)));
-	cut_face(m, Vertex(phi_1(m, f)), Vertex(phi<11>(m, f)));
+	cut_face(m, Vertex(phi_1(m, e)), Vertex(phi<1, 1>(m, e)));
+	cut_face(m, Vertex(phi_1(m, f)), Vertex(phi<1, 1>(m, f)));
 
 	return result;
 }
@@ -551,22 +936,21 @@ auto subdivideVolume(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templ
 {
 	using Vertex = typename MESH::Vertex;
 	Dart first_cut_dir = phi1(m, d);
-	Dart left_cut_dir = phi<1>(m, first_cut_dir), right_cut_dir = phi<21112>(m, first_cut_dir);
+	Dart left_cut_dir = phi1(m, first_cut_dir), right_cut_dir = phi<2, 1, 1, 1, 2>(m, first_cut_dir);
 
 	Dart cut_direction[4];
-	cut_direction[0] = phi<1211>(m, left_cut_dir);
-	cut_direction[1] = phi<1212111>(m, left_cut_dir);
-	cut_direction[2] = phi<1211>(m, right_cut_dir);
-	cut_direction[3] = phi<1212111>(m, right_cut_dir);
+	cut_direction[0] = phi<1, 2, 1, 1>(m, left_cut_dir);
+	cut_direction[1] = phi<1, 2, 1, 2, 1, 1, 1>(m, left_cut_dir);
+	cut_direction[2] = phi<1, 2, 1, 1>(m, right_cut_dir);
+	cut_direction[3] = phi<1, 2, 1, 2, 1, 1, 1>(m, right_cut_dir);
 
-	auto cutVolume = [&](Dart d) -> typename MESH::Face
-	{
+	auto cutVolume = [&](Dart d) -> typename MESH::Face {
 		std::vector<Dart> cut_path;
 		Dart t = d;
 		do
 		{
 			cut_path.push_back(t);
-			t = phi<121>(m, t);
+			t = phi<1, 2, 1>(m, t);
 		} while (t != d);
 		return cut_volume(m, cut_path);
 	};
@@ -575,9 +959,9 @@ auto subdivideVolume(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templ
 	subdivideFace(m, F.dart, p, attribute);
 
 	F = cutVolume(left_cut_dir);
-	cut_face(m, Vertex(F.dart), Vertex(phi<111>(m, F.dart)));
+	cut_face(m, Vertex(F.dart), Vertex(phi<1, 1, 1>(m, F.dart)));
 	F = cutVolume(right_cut_dir);
-	cut_face(m, Vertex(F.dart), Vertex(phi<111>(m, F.dart)));
+	cut_face(m, Vertex(F.dart), Vertex(phi<1, 1, 1>(m, F.dart)));
 	for (int i = 0; i < 4; ++i)
 	{
 		cutVolume(cut_direction[i]);
@@ -596,8 +980,8 @@ auto subdivideListEdges(MESH& m, std::vector<Dart>& edges, std::queue<Vec3>& edg
 	}
 }
 
-void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListEdges(CPH3& m, std::vector<Dart>& edges, std::queue<Vec3>& edge_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : edges)
@@ -620,8 +1004,8 @@ auto subdivideListFaces(MESH& m, std::vector<Dart>& faces, std::queue<Vec3>& fac
 	}
 }
 
-void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
-						typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListFaces(CPH3& m, std::vector<Dart>& faces, std::queue<Vec3>& face_points,
+							   typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : faces)
@@ -644,8 +1028,8 @@ auto subdivideListVolumes(MESH& m, std::vector<Dart>& volumes, std::queue<Vec3>&
 	}
 }
 
-void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
-						  typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
+inline void subdivideListVolumes(CPH3& m, std::vector<Dart>& volumes, std::queue<Vec3>& volume_points,
+								 typename mesh_traits<CPH3>::template Attribute<Vec3>* attribute)
 {
 	CPH3 m2(m);
 	for (Dart d : volumes)
@@ -675,7 +1059,7 @@ auto butterflySubdivisionVolumeAdaptative(MESH& m, double angle_threshold,
 			Dart d2 = phi2(m, d);
 			while (!is_boundary(m, phi3(m, d2)))
 			{
-				d2 = phi<32>(m, d2);
+				d2 = phi<3, 2>(m, d2);
 			}
 			auto edge_angle = geometry::angle(m, typename MESH::Face2(d), typename MESH::Face2(d2), attribute);
 			if (std::abs(edge_angle) > angle_threshold)
@@ -799,4 +1183,4 @@ auto butterflySubdivisionVolumeAdaptative(MESH& m, double angle_threshold,
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_SUBDIVISION_H_
+#endif // CGOGN_MODELING_ALGOS_SUBDIVISION_H_

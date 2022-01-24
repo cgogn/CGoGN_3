@@ -30,7 +30,6 @@
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/types/cell_marker.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
@@ -52,6 +51,13 @@ namespace cgogn
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
+	foreach_incident_edge(m, c, func, CMapBase::TraversalPolicy::AUTO);
+}
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -85,7 +91,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
 	}
 	else
 	{
-		if (is_indexed<Edge>(m))
+		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Edge>(m))
 		{
 			CellMarkerStore<MESH, Edge> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
@@ -102,9 +108,9 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
 		{
 			DartMarkerStore<MESH> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				Edge e(d);
 				if (!marker.is_marked(d))
 				{
+					Edge e(d);
 					foreach_dart_of_orbit(m, e, [&](Dart d) -> bool {
 						marker.mark(d);
 						return true;
@@ -113,6 +119,38 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
 				}
 				return true;
 			});
+		}
+	}
+}
+
+//////////////////////
+/// IncidenceGraph ///
+//////////////////////
+
+template <typename CELL, typename FUNC>
+auto foreach_incident_edge(const IncidenceGraph& ig, CELL c, const FUNC& func)
+{
+	using Edge = mesh_traits<IncidenceGraph>::Edge;
+
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this IncidenceGraph");
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Vertex>)
+	{
+		for (auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		{
+			if (!func(ep))
+				break;
+		}
+	}
+	else if constexpr (std::is_same_v<CELL, mesh_traits<IncidenceGraph>::Face>)
+	{
+		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
+		{
+			if (!func(ep))
+				break;
 		}
 	}
 }

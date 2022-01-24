@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_NO_ILLUM_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -37,22 +37,15 @@ DECLARE_SHADER_CLASS(NoIllum, false, CGOGN_STR(NoIllum))
 
 class CGOGN_RENDERING_EXPORT ShaderParamNoIllum : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
 	GLColor color_;
 	bool double_side_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		double_side_ = pp.double_side_;
-	}
-
 	using ShaderType = ShaderNoIllum;
 
-	ShaderParamNoIllum(ShaderType* sh) : ShaderParam(sh), color_(color_line_default)
+	ShaderParamNoIllum(ShaderType* sh) : ShaderParam(sh), color_(1, 1, 1, 1)
 	{
 	}
 
@@ -65,4 +58,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_NO_ILLUM_H_

@@ -50,18 +50,23 @@ private:
 	Type type_;
 	float64 field_of_view_;
 	float64 aspect_ratio_; // width/height
-	rendering::GLVec3d pivot_shift_;
 	rendering::GLVec3d pivot_point_;
+	bool pivot_point_initialized_;
 	float64 scene_radius_;
+	bool scene_radius_initialized_;
 	float64 focal_distance_;
-	mutable rendering::GLMat4d proj_;
-	mutable rendering::GLMat4d mv_;
+	mutable rendering::GLMat4d proj_d_;
+	mutable rendering::GLMat4d mv_d_;
+	mutable rendering::GLMat4 proj_;
+	mutable rendering::GLMat4 mv_;
 
 	rendering::GLMat4d perspective(float64 znear, float64 zfar) const;
 	rendering::GLMat4d orthographic(float64 znear, float64 zfar) const;
 
 public:
-	inline Camera() : type_(PERSPECTIVE), field_of_view_(0.65), aspect_ratio_(1.0), pivot_shift_(0, 0, 0)
+	inline Camera()
+		: type_(PERSPECTIVE), field_of_view_(0.65), aspect_ratio_(1.0), pivot_point_initialized_(false),
+		  scene_radius_initialized_(false)
 	{
 	}
 
@@ -74,6 +79,20 @@ public:
 		return (aspect_ratio_ > 1.0) ? 1.0 : 1.0 / aspect_ratio_;
 	}
 
+	inline void update_matrices()
+	{
+		float64 d = focal_distance_ - frame_.translation().z();
+		float64 znear = std::max(0.05, d - 2.0 * scene_radius_);
+		float64 zfar = d + 2.0 * scene_radius_;
+		proj_d_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : orthographic(znear, zfar));
+		proj_ = proj_d_.cast<float32>();
+
+		rendering::Transfo3d m = Eigen::Translation3d(rendering::GLVec3d(0.0, 0.0, -focal_distance_)) * frame_ *
+								 Eigen::Translation3d(-pivot_point_);
+		mv_d_ = m.matrix();
+		mv_ = mv_d_.cast<float32>();
+	}
+
 	inline void set_type(Type type)
 	{
 		type_ = type;
@@ -83,6 +102,7 @@ public:
 	{
 		field_of_view_ = fov;
 		focal_distance_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
+		update_matrices();
 	}
 
 	inline float64 field_of_view()
@@ -93,40 +113,49 @@ public:
 	inline void set_aspect_ratio(float64 aspect)
 	{
 		aspect_ratio_ = aspect;
+		update_matrices();
 	}
 
 	inline void set_scene_radius(float64 radius)
 	{
 		scene_radius_ = radius;
-		focal_distance_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
+		if (!scene_radius_initialized_)
+		{
+			focal_distance_ = scene_radius_ / std::tan(field_of_view_ / 2.0);
+			frame_.translation().z() -= focal_distance_;
+			scene_radius_initialized_ = true;
+		}
+		update_matrices();
 	}
 
-	inline void change_pivot_point(const rendering::GLVec3d& piv)
+	inline bool pivot_point_initialized() const
 	{
-		pivot_shift_ = piv - pivot_point_;
-		frame_ *= Eigen::Translation3d(pivot_shift_);
-		pivot_point_ = piv;
+		return pivot_point_initialized_;
 	}
 
-	inline void set_pivot_point(const rendering::GLVec3d& piv)
+	inline void set_pivot_point(const rendering::GLVec3d& pivot)
 	{
-		pivot_point_ = piv;
-	}
-
-	inline void center_scene()
-	{
-		frame_.matrix().block<3, 1>(0, 3).setZero();
+		if (pivot_point_initialized_)
+		{
+			rendering::GLVec3d pivot_shift = pivot - pivot_point_;
+			frame_ *= Eigen::Translation3d(pivot_shift);
+		}
+		pivot_point_ = pivot;
+		pivot_point_initialized_ = true;
+		update_matrices();
 	}
 
 	inline void show_entire_scene()
 	{
 		frame_.matrix().block<3, 1>(0, 3).setZero();
+		update_matrices();
 	}
 
 	inline void reset()
 	{
 		frame_ = rendering::Transfo3d::Identity();
 		spin_ = rendering::Transfo3d::Identity();
+		update_matrices();
 	}
 
 	inline float64 scene_radius() const
@@ -139,31 +168,24 @@ public:
 		return pivot_point_;
 	}
 
-	inline rendering::GLMat4d projection_matrix_d() const
+	inline const rendering::GLMat4d& projection_matrix_d() const
 	{
-		float64 d = focal_distance_ - frame_.translation().z();
-		float64 znear = std::max(0.1, d - 2.0 * scene_radius_);
-		float64 zfar = d + 2.0 * scene_radius_;
+		return proj_d_;
+	}
 
-		proj_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : orthographic(znear, zfar));
+	inline const rendering::GLMat4d& modelview_matrix_d() const
+	{
+		return mv_d_;
+	}
+
+	inline const rendering::GLMat4& projection_matrix() const
+	{
 		return proj_;
 	}
 
-	inline rendering::GLMat4d modelview_matrix_d() const
+	inline const rendering::GLMat4& modelview_matrix() const
 	{
-		rendering::Transfo3d m = Eigen::Translation3d(rendering::GLVec3d(0.0, 0.0, -focal_distance_)) * frame_ *
-								 Eigen::Translation3d(-pivot_point_);
-		return m.matrix();
-	}
-
-	inline rendering::GLMat4 projection_matrix() const
-	{
-		return projection_matrix_d().cast<float32>();
-	}
-
-	inline rendering::GLMat4 modelview_matrix() const
-	{
-		return modelview_matrix_d().cast<float32>();
+		return mv_;
 	}
 };
 

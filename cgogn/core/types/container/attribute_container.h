@@ -57,6 +57,7 @@ public:
 	}
 
 	uint32 maximum_index() const;
+	uint32 size() const;
 
 protected:
 	AttributeContainerGen* container_;
@@ -68,6 +69,9 @@ private:
 	friend class AttributeContainerT;
 
 	virtual void manage_index(uint32 index) = 0;
+	virtual void clear() = 0;
+	virtual std::shared_ptr<AttributeGenT> create_in(AttributeContainerGen& container) const = 0;
+	virtual void copy(const AttributeGenT& src) = 0;
 };
 
 /////////////////////////////////
@@ -94,6 +98,11 @@ public:
 
 	void remove_attribute(const std::shared_ptr<AttributeGenT>& attribute);
 	void remove_attribute(AttributeGenT* attribute);
+
+	// clear attributes data
+	void clear_attributes();
+	// remove attributes (if there are still shared_ptr somewhere, some attributes may not be removed)
+	void remove_attributes();
 
 	using const_iterator = std::vector<std::shared_ptr<AttributeGenT>>::const_iterator;
 	inline const_iterator begin() const
@@ -163,7 +172,7 @@ public:
 	using AttributeGen = AttributeGenT;
 	using MarkAttribute = Attribute<uint8>;
 
-public:
+protected:
 	std::unique_ptr<Attribute<uint32>> ref_counter_;
 
 	inline void init_ref_counter(uint32 index) override
@@ -203,6 +212,41 @@ public:
 
 	~AttributeContainerT()
 	{
+	}
+
+	void copy(const AttributeContainerT<AttributeT>& src)
+	{
+		available_indices_ = src.available_indices_;
+
+		nb_elements_ = src.nb_elements_;
+		maximum_index_ = src.maximum_index_;
+
+		for (const AttributeGen* src_attribute : src.attributes_)
+		{
+			if (nb_elements_ > 0)
+			{
+				std::shared_ptr<AttributeGen> attribute = src_attribute->create_in(*this);
+				attribute->manage_index(maximum_index_);
+				attribute->copy(*src_attribute);
+			}
+		}
+
+		for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
+		{
+			if (nb_elements_ > 0)
+			{
+				for (AttributeGenT* mark_attribute : mark_attributes_[i])
+					mark_attribute->manage_index(maximum_index_);
+			}
+		}
+
+		if (nb_elements_ > 0)
+		{
+			static_cast<AttributeGenT*>(ref_counter_.get())->manage_index(maximum_index_);
+			static_cast<AttributeGenT*>(ref_counter_.get())->copy(*src.ref_counter_);
+		}
+		else
+			ref_counter_->fill(0u);
 	}
 
 	template <typename T>

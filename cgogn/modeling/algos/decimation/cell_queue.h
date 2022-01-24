@@ -26,7 +26,6 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <map>
 
@@ -41,11 +40,11 @@ class CellQueue
 {
 public:
 	using Self = CellQueue<CELL>;
-	using EdgeCrit = std::multimap<cgogn::float64, CELL>;
+	using CellCostMap = std::multimap<cgogn::float64, CELL>;
 
 	struct CellQueueInfo
 	{
-		typename EdgeCrit::const_iterator it_;
+		typename CellCostMap::const_iterator it_;
 		bool valid_;
 		CellQueueInfo() : valid_(false)
 		{
@@ -59,16 +58,17 @@ public:
 	{
 	}
 
-	// set to 64 bit to avoid converesion warning, can be 32 but need cast on insertion
-	std::multimap<cgogn::float64, CELL> cells_;
+	// set to 64 bit to avoid conversion warning, can be 32 but need cast on insertion
+	CellCostMap cells_;
 
 	class const_iterator
 	{
 	public:
 		const Self* const queue_ptr_;
-		typename EdgeCrit::const_iterator cell_it_;
+		typename CellCostMap::const_iterator cell_it_;
 
-		inline const_iterator(const Self* trav, typename EdgeCrit::const_iterator it) : queue_ptr_(trav), cell_it_(it)
+		inline const_iterator(const Self* trav, typename CellCostMap::const_iterator it)
+			: queue_ptr_(trav), cell_it_(it)
 		{
 		}
 		inline const_iterator(const const_iterator& it) : queue_ptr_(it.queue_ptr_), cell_it_(it.cell_it_)

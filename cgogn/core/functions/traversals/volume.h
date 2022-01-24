@@ -30,7 +30,6 @@
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/types/cell_marker.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/types/cmap/cmap_info.h>
 #include <cgogn/core/types/cmap/dart_marker.h>
@@ -52,6 +51,13 @@ namespace cgogn
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+{
+	foreach_incident_volume(m, c, func, CMapBase::TraversalPolicy::AUTO);
+}
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Volume = typename mesh_traits<MESH>::Volume;
@@ -91,14 +97,14 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 	}
 	else
 	{
-		if (is_indexed<Volume>(m))
+		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Volume>(m))
 		{
 			CellMarkerStore<MESH, Volume> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
 				Volume v(d);
 				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
 				{
-					if (!marker.is_marked(v) && !is_boundary(m, d))
+					if (!is_boundary(m, d) && !marker.is_marked(v))
 					{
 						marker.mark(v);
 						return func(v);
@@ -119,11 +125,11 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 		{
 			DartMarkerStore<MESH> marker(m);
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				Volume v(d);
 				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
 				{
-					if (!marker.is_marked(d) && !is_boundary(m, d))
+					if (!is_boundary(m, d) && !marker.is_marked(d))
 					{
+						Volume v(d);
 						foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 							marker.mark(d);
 							return true;
@@ -135,6 +141,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 				{
 					if (!marker.is_marked(d))
 					{
+						Volume v(d);
 						foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 							marker.mark(d);
 							return true;
@@ -146,64 +153,6 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
 			});
 		}
 	}
-}
-
-////////////////////////////
-// CMap3 (or convertible) //
-////////////////////////////
-
-template <typename MESH, typename FUNC>
-auto foreach_incident_volume(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3>
-{
-	using Volume = typename mesh_traits<MESH>::Volume;
-	static_assert(is_func_parameter_same<FUNC, Volume>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	if (is_indexed<Volume>(m))
-	{
-		CellMarkerStore<MESH, Volume> marker(m);
-		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-			Volume vol(d);
-			if (!marker.is_marked(vol) && !is_boundary(m, d))
-			{
-				marker.mark(vol);
-				return func(vol);
-			}
-			return true;
-		});
-	}
-	else
-	{
-		DartMarkerStore<MESH> marker(m);
-		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-			Volume vol(d);
-			if (!marker.is_marked(d) && !is_boundary(m, d))
-			{
-				foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Vertex2(d), [&](Dart d) -> bool {
-					marker.mark(d);
-					return true;
-				});
-				return func(vol);
-			}
-			return true;
-		});
-	}
-}
-
-template <typename MESH, typename FUNC>
-auto foreach_incident_volume(const CMap3& m, typename mesh_traits<MESH>::Face f, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3>
-{
-	using Volume = typename mesh_traits<MESH>::Volume;
-	static_assert(is_func_parameter_same<FUNC, Volume>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	Dart it = f.dart;
-	if (!is_boundary(m, it))
-		if (!func(Volume(it)))
-			return;
-	it = phi3(m, it);
-	if (!is_boundary(m, it))
-		func(Volume(it));
 }
 
 /*****************************************************************************/

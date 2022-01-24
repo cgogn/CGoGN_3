@@ -15,6 +15,10 @@ add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
+		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/incidence_graph_import.h"
+		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/incidence_graph_import.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/ig.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/graph/graph_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/graph/graph_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/graph/cg.h"
@@ -23,12 +27,14 @@ target_sources(${PROJECT_NAME}
 
 		"${CMAKE_CURRENT_LIST_DIR}/surface/surface_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/surface_import.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/surface/obj.h"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/off.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
+		"${CMAKE_CURRENT_LIST_DIR}/volume/mesh.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/meshb.h"
+		"${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
 )

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -24,35 +24,42 @@
 #ifndef CGOGN_CORE_ATTRIBUTE_HANDLER_H_
 #define CGOGN_CORE_ATTRIBUTE_HANDLER_H_
 
-#include <memory>
 #include <cgogn/core/functions/attributes.h>
+#include <memory>
 
 namespace cgogn
 {
 
-template< typename CELL, typename T, template<typename> class ATT, typename MESH>
+template <typename CELL, typename T, template <typename> class ATTRIBUTE, typename MESH>
 class AttributeHandler
 {
-	MESH *m_;
-	std::shared_ptr<ATT<T>> attrib_;
+	MESH* m_;
+	std::shared_ptr<ATTRIBUTE<T>> attribute_;
+
 public:
-	AttributeHandler(MESH* m, const std::shared_ptr<ATT<T>>& att):
-		m_(m), attrib_(att) {}
+	AttributeHandler(MESH* m, const std::shared_ptr<ATTRIBUTE<T>>& attribute) : m_(m), attribute_(attribute)
+	{
+	}
 
-	AttributeHandler(const AttributeHandler&) = delete;
-	AttributeHandler(AttributeHandler&&) = delete;
+	CGOGN_NOT_COPYABLE_NOR_MOVABLE(AttributeHandler);
 
-	inline T& operator [](CELL c) { return cgogn::value<T>(*m_, attrib_.get(), c); }
-	inline const T& operator [](CELL c) const { return cgogn::value<T>(*m_, attrib_.get(), c); }
+	inline T& operator[](CELL c)
+	{
+		return value<T>(*m_, attribute_, c);
+	}
+
+	inline const T& operator[](CELL c) const
+	{
+		return value<T>(*m_, attribute_, c);
+	}
 };
 
-template< typename CELL, typename T, template<typename> class ATT, typename MESH>
-inline AttributeHandler<CELL,T,ATT,MESH> attribute_handler(MESH* m, const std::shared_ptr<ATT<T>>& att)
+template <typename CELL, typename T, template <typename> class ATTRIBUTE, typename MESH>
+inline AttributeHandler<CELL, T, ATTRIBUTE, MESH> attribute_handler(MESH* m, const std::shared_ptr<ATTRIBUTE<T>>& att)
 {
-	return AttributeHandler<CELL,T,ATT,MESH>(m,att);
+	return AttributeHandler<CELL, T, ATTRIBUTE, MESH>(m, att);
 }
-
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CELLS_SET_H_
+#endif // CGOGN_CORE_ATTRIBUTE_HANDLER_H_

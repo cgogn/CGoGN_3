@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_FLAT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -46,18 +46,9 @@ public:
 	GLVec3 light_position_;
 	bool double_side_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		front_color_ = pp.front_color_;
-		back_color_ = pp.back_color_;
-		ambiant_color_ = pp.ambiant_color_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
+	using ShaderType = ShaderFlat;
 
-	using LocalShader = ShaderFlat;
-
-	ShaderParamFlat(LocalShader* sh)
+	ShaderParamFlat(ShaderType* sh)
 		: ShaderParam(sh), front_color_(0.9f, 0, 0, 1), back_color_(0, 0, 0.9f, 1),
 		  ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{

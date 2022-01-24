@@ -26,12 +26,12 @@
 
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <cgogn/modeling/algos/decimation/QEM_helper.h>
 #include <cgogn/modeling/algos/decimation/edge_approximator.h>
-#include <cgogn/modeling/algos/decimation/edge_queue_edge_length.h>
+#include <cgogn/modeling/algos/decimation/edge_queue_update.h>
 
 namespace cgogn
 {
@@ -56,23 +56,36 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	CellQueue<Edge> edge_queue;
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 	auto edge_queue_info = add_attribute<EdgeQueueInfo, Edge>(m, "__decimate_edge_queue_info");
-	auto edge_cost = [&](Edge e) -> Scalar { return geometry::length(m, e, vertex_position); };
+
+	DecimationQEM_Helper<MESH> helper(m, vertex_position);
+
+	auto before = [&](Edge e) { helper.before_collapse(e); };
+	auto approx = [&](Edge e) -> Vec3 { return mid_point(m, e, vertex_position); }; // helper.edge_optimal(e); };
+	auto edge_cost = [&](Edge e) -> Scalar { return helper.edge_cost(e, approx(e)); };
+	auto after = [&](Vertex v) { helper.after_collapse(v); };
+
+	// auto before = [](Edge e) {};
+	// auto approx = [&](Edge e) -> Vec3 { return mid_edge(m, e, vertex_position); };
+	// auto edge_cost = [&](Edge e) -> Scalar { return geometry::length(m, e, vertex_position); };
+	// auto after = [](Vertex v) {};
 
 	foreach_cell(m, [&](Edge e) -> bool {
-		update_edge_queue(m, e, edge_queue, edge_queue_info.get(), edge_cost); // TODO: REMOVE F@#! WARNING
+		update_edge_queue(m, e, edge_queue, edge_queue_info.get(), edge_cost);
 		return true;
 	});
 
 	uint32 count = 0;
 	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		Vec3 newpos = mid_edge(m, *it, vertex_position);
+		Vec3 newpos = approx(*it);
 
 		Edge e1, e2;
-		pre_collapse_edge_length(m, *it, e1, e2, edge_queue, edge_queue_info.get());
+		pre_collapse(m, *it, e1, e2, edge_queue, edge_queue_info.get());
+		before(*it);
 		Vertex v = collapse_edge(m, *it);
 		value<Vec3>(m, vertex_position, v) = newpos;
-		post_collapse_edge_length(m, e1, e2, edge_queue, edge_queue_info.get(), edge_cost);
+		after(v);
+		post_collapse(m, e1, e2, edge_queue, edge_queue_info.get(), edge_cost);
 
 		++count;
 		if (count >= nb_vertices_to_remove)

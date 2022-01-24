@@ -38,7 +38,6 @@ Texture2D* TextDrawer::texture_ = nullptr;
 
 TextDrawer::TextDrawer() : vbo_pos_(nullptr), vbo_char_(nullptr), vbo_colsz_(nullptr)
 {
-	//	Q_INIT_RESOURCE(fonte);
 	vbo_pos_ = cgogn::make_unique<VBO>(4);
 	vbo_char_ = cgogn::make_unique<VBO>(1);
 	vbo_colsz_ = cgogn::make_unique<VBO>(4);

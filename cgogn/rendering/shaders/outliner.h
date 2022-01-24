@@ -27,8 +27,7 @@
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/fbo.h>
 #include <cgogn/rendering/mesh_render.h>
-#include <cgogn/rendering/shaders/shader_no_illum.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 
 namespace cgogn
@@ -37,21 +36,16 @@ namespace cgogn
 namespace rendering
 {
 
-namespace OutLineShaders
+namespace outline_shaders
 {
 
 DECLARE_SHADER_CLASS(Mask, false, CGOGN_STR(Mask))
 
 class CGOGN_RENDERING_EXPORT ShaderParamMask : public ShaderParam
 {
-protected:
 	void set_uniforms() override;
 
 public:
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
-
 	using ShaderType = ShaderMask;
 
 	ShaderParamMask(ShaderType* sh) : ShaderParam(sh)
@@ -72,13 +66,9 @@ class CGOGN_RENDERING_EXPORT ShaderParamSobel : public ShaderParam
 public:
 	Texture2D* texture_;
 
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
+	using ShaderType = ShaderSobel;
 
-	using LocalShader = ShaderSobel;
-
-	ShaderParamSobel(LocalShader* sh) : ShaderParam(sh)
+	ShaderParamSobel(ShaderType* sh) : ShaderParam(sh)
 	{
 	}
 
@@ -97,13 +87,9 @@ public:
 	Texture2D* texture_;
 	GLuint pass_;
 
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
+	using ShaderType = ShaderBlur;
 
-	using LocalShader = ShaderBlur;
-
-	ShaderParamBlur(LocalShader* sh) : ShaderParam(sh), pass_(0)
+	ShaderParamBlur(ShaderType* sh) : ShaderParam(sh), pass_(0)
 	{
 	}
 
@@ -123,13 +109,9 @@ public:
 	Texture2D* texture_mask_;
 	GLColor color_;
 
-	inline void pick_parameters(const PossibleParameters&) override
-	{
-	}
+	using ShaderType = ShaderColorize;
 
-	using LocalShader = ShaderColorize;
-
-	ShaderParamColorize(LocalShader* sh) : ShaderParam(sh)
+	ShaderParamColorize(ShaderType* sh) : ShaderParam(sh)
 	{
 	}
 
@@ -145,32 +127,34 @@ public:
 	}
 };
 
-} // namespace OutLineShaders
+} // namespace outline_shaders
 
-class OutLiner
+class Outliner
 {
-	static OutLiner* instance_;
+	static Outliner* instance_;
+
 	Texture2D* tex_;
 	FBO* fbo_mask_;
 	FBO* fbo_blur1_;
 	FBO* fbo_blur2_;
-	std::unique_ptr<OutLineShaders::ShaderMask::Param> param_mask_;
-	std::unique_ptr<OutLineShaders::ShaderSobel::Param> param_sobel_;
-	std::unique_ptr<OutLineShaders::ShaderBlur::Param> param_blur_;
-	std::unique_ptr<OutLineShaders::ShaderColorize::Param> param_colorize_;
+	std::unique_ptr<outline_shaders::ShaderMask::Param> param_mask_;
+	std::unique_ptr<outline_shaders::ShaderSobel::Param> param_sobel_;
+	std::unique_ptr<outline_shaders::ShaderBlur::Param> param_blur_;
+	std::unique_ptr<outline_shaders::ShaderColorize::Param> param_colorize_;
 
-	OutLiner();
+	Outliner();
 
 public:
-	inline static OutLiner* generate()
+	inline static Outliner* instance()
 	{
 		if (instance_ == nullptr)
-			instance_ = new OutLiner();
+			instance_ = new Outliner();
 		return instance_;
 	}
 
-	~OutLiner();
-	void draw(VBO* pos, MeshRender* renderer, const rendering::GLMat4& proj_matrix,
+	~Outliner();
+
+	void draw(VBO* position, MeshRender* renderer, const rendering::GLMat4& projection_matrix,
 			  const rendering::GLMat4& view_matrix, const GLColor& color);
 };
 

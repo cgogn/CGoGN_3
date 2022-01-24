@@ -25,14 +25,13 @@
 #define CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
@@ -40,15 +39,15 @@ namespace cgogn
 namespace geometry
 {
 
-std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge e,
-									const typename mesh_traits<CMap2>::template Attribute<Vec3>* vertex_position)
+inline std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge e,
+										   const typename mesh_traits<CMap2>::template Attribute<Vec3>* vertex_position)
 {
 	if (!is_incident_to_boundary(m, e))
 	{
 		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
 		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e.dart)));
 		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, e.dart)));
-		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, phi2(m, e.dart))));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi<2, -1>(m, e.dart)));
 		return {angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4)};
 	}
 	else
@@ -79,29 +78,8 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	std::vector<Vertex> vertices = incident_vertices(m, e);
 	Vec3 edge = value<Vec3>(m, vertex_position, vertices[1]) - value<Vec3>(m, vertex_position, vertices[0]);
 	edge.normalize();
-	Scalar s = edge.dot(n1.cross(n2));
-	Scalar c = n1.dot(n2);
-	Scalar a(0);
 
-	// the following trick is useful to avoid NaNs (due to floating point errors)
-	if (c > Scalar(0.5))
-		a = std::asin(s);
-	else
-	{
-		if (c < -1)
-			c = -1;
-		if (s >= 0)
-			a = std::acos(c);
-		else
-			a = -std::acos(c);
-	}
-
-	return a;
-
-	// return angle(
-	//	 normal(m, faces[0], vertex_position),
-	//	 normal(m, faces[1], vertex_position)
-	// );
+	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
 
 template <typename MESH>
@@ -119,33 +97,17 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 }
 
 template <typename MESH>
-Scalar
-angle(
-	const MESH& m,
-	Cell<Orbit::PHI1> f1,
-	Cell<Orbit::PHI1> f2,
-	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position
-)
+Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
+			 const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-    const Vec3 n1 = normal(m, f1, vertex_position);
-    const Vec3 n2 = normal(m, f2, vertex_position);
+	const Vec3 n1 = normal(m, f1, vertex_position);
+	const Vec3 n2 = normal(m, f2, vertex_position);
 
-    Vec3 edge = value<Vec3>(m, vertex_position,typename MESH::Vertex(f2.dart)) - value<Vec3>(m, vertex_position,typename MESH::Vertex(f1.dart));
-    edge.normalize();
-    Scalar s = edge.dot(n1.cross(n2));
-    Scalar c = n1.dot(n2);
-    Scalar a(0);
+	Vec3 edge = value<Vec3>(m, vertex_position, typename MESH::Vertex(f2.dart)) -
+				value<Vec3>(m, vertex_position, typename MESH::Vertex(f1.dart));
+	edge.normalize();
 
-    // the following trick is useful to avoid NaNs (due to floating point errors)
-    if (c > Scalar(0.5)) a = std::asin(s);
-    else
-    {
-        if(c < -1) c = -1;
-        if (s >= 0) a = std::acos(c);
-        else a = -std::acos(c);
-    }
-
-    return a;
+	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
 
 template <typename MESH>

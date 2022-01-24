@@ -24,7 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_CURVATURE_H_
 #define CGOGN_GEOMETRY_ALGOS_CURVATURE_H_
 
-#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/core/functions/attributes.h>

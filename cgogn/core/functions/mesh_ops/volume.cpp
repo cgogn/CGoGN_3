@@ -66,32 +66,44 @@ CMap2::Volume add_pyramid(CMap2& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap2::Vertex>(m))
 		{
-			foreach_incident_vertex(m, vol, [&](CMap2::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, vol,
+				[&](CMap2::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap2::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::HalfEdge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-				set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Edge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, e, new_index<CMap2::Edge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, e, new_index<CMap2::Edge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Face>(m))
 		{
-			foreach_incident_face(m, vol, [&](CMap2::Face f) -> bool {
-				set_index(m, f, new_index<CMap2::Face>(m));
-				return true;
-			});
+			foreach_incident_face(
+				m, vol,
+				[&](CMap2::Face f) -> bool {
+					set_index(m, f, new_index<CMap2::Face>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));
@@ -124,7 +136,7 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 	}
 	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the sides
 	CMap2::Face base = close_hole(m, first.dart, false); // Add the base face
-	close_hole(m, phi<11>(m, first.dart), false);		 // Add the top face
+	close_hole(m, phi<1, 1>(m, first.dart), false);		 // Add the top face
 
 	CMap2::Volume vol(base.dart);
 
@@ -132,38 +144,73 @@ CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices)
 	{
 		if (is_indexed<CMap2::Vertex>(m))
 		{
-			foreach_incident_vertex(m, vol, [&](CMap2::Vertex v) -> bool {
-				set_index(m, v, new_index<CMap2::Vertex>(m));
-				return true;
-			});
+			foreach_incident_vertex(
+				m, vol,
+				[&](CMap2::Vertex v) -> bool {
+					set_index(m, v, new_index<CMap2::Vertex>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::HalfEdge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
-				set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, CMap2::HalfEdge(e.dart), new_index<CMap2::HalfEdge>(m));
+					set_index(m, CMap2::HalfEdge(phi2(m, e.dart)), new_index<CMap2::HalfEdge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Edge>(m))
 		{
-			foreach_incident_edge(m, vol, [&](CMap2::Edge e) -> bool {
-				set_index(m, e, new_index<CMap2::Edge>(m));
-				return true;
-			});
+			foreach_incident_edge(
+				m, vol,
+				[&](CMap2::Edge e) -> bool {
+					set_index(m, e, new_index<CMap2::Edge>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Face>(m))
 		{
-			foreach_incident_face(m, vol, [&](CMap2::Face f) -> bool {
-				set_index(m, f, new_index<CMap2::Face>(m));
-				return true;
-			});
+			foreach_incident_face(
+				m, vol,
+				[&](CMap2::Face f) -> bool {
+					set_index(m, f, new_index<CMap2::Face>(m));
+					return true;
+				},
+				CMapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<CMap2::Volume>(m))
 			set_index(m, vol, new_index<CMap2::Volume>(m));
 	}
 
 	return vol;
+}
+
+/*****************************************************************************/
+
+// template <typename MESH>
+// typename mesh_traits<MESH>::Volume
+// remove_volume(MESH& m, typename mesh_traits<MESH>::Volume v);
+
+/*****************************************************************************/
+
+///////////
+// CMap2 //
+///////////
+
+void remove_volume(CMap2& m, CMap2::Volume v)
+{
+	std::vector<Dart> darts;
+	foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
+		darts.push_back(d);
+		return true;
+	});
+	for (Dart d : darts)
+		remove_dart(m, d);
 }
 
 /*****************************************************************************/
@@ -203,7 +250,14 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 		if (is_indexed<CMap3::Vertex>(m))
 		{
 			foreach_dart_of_orbit(m, CMap3::Face(f0), [&](Dart d) -> bool {
-				copy_index<CMap3::Vertex>(m, d, phi<21>(m, d));
+				copy_index<CMap3::Vertex>(m, d, phi<2, 1>(m, d));
+				return true;
+			});
+		}
+		if (is_indexed<CMap3::Vertex2>(m))
+		{
+			foreach_dart_of_orbit(m, CMap3::Face(f0), [&](Dart d) -> bool {
+				copy_index<CMap3::Vertex2>(m, d, phi<2, 1>(m, d));
 				return true;
 			});
 		}
@@ -214,6 +268,11 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 				copy_index<CMap3::Edge>(m, phi3(m, d), d);
 				return true;
 			});
+		}
+		if (is_indexed<CMap3::Face2>(m))
+		{
+			set_index(m, CMap3::Face2(f0), new_index<CMap3::Face2>(m));
+			set_index(m, CMap3::Face2(phi3(m, f0)), new_index<CMap3::Face2>(m));
 		}
 		if (is_indexed<CMap3::Face>(m))
 		{
@@ -260,7 +319,7 @@ CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_ind
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
 		{
 			foreach_dart_of_orbit(m, CPH3::CMAP::Face(f0), [&](Dart d) -> bool {
-				copy_index<CPH3::CMAP::Vertex>(m, d, phi<21>(m, d));
+				copy_index<CPH3::CMAP::Vertex>(m, d, phi<2, 1>(m, d));
 				return true;
 			});
 		}

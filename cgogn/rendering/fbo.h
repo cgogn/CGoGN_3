@@ -27,8 +27,8 @@
 #include <GL/gl3w.h>
 
 #include <cgogn/core/utils/numerics.h>
+
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_fullscreen_texture.h>
 #include <cgogn/rendering/texture.h>
 
 #include <vector>

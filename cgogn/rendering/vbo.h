@@ -27,9 +27,11 @@
 
 #include <GL/gl3w.h>
 
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/types.h>
+
+#include <cgogn/core/utils/numerics.h>
+
 #include <iostream>
 #include <string>
 
@@ -43,13 +45,13 @@ class CGOGN_RENDERING_EXPORT VBO
 {
 protected:
 	GLuint id_;
-	GLuint id_tb_;
+	GLuint id_texture_buffer_;
 	std::size_t nb_vectors_;
 	int32 vector_dimension_;
 	std::string name_;
 
 public:
-	inline VBO(int32 vec_dim = 3) : id_tb_(0), nb_vectors_(0), vector_dimension_(vec_dim)
+	inline VBO(int32 vec_dim = 3) : id_texture_buffer_(0), nb_vectors_(0), vector_dimension_(vec_dim)
 	{
 		glGenBuffers(1, &id_);
 	}
@@ -57,7 +59,31 @@ public:
 	inline ~VBO()
 	{
 		glDeleteBuffers(1, &id_);
-		id_ = 0;
+		if (id_texture_buffer_ != 0)
+			glDeleteTextures(1, &id_texture_buffer_);
+	}
+
+	/**
+	 * @brief dimension of vectors stored in buffer
+	 */
+	inline int32 vector_dimension() const
+	{
+		return vector_dimension_;
+	}
+
+	inline uint32 size() const
+	{
+		return uint32(nb_vectors_);
+	}
+
+	inline GLuint id() const
+	{
+		return id_;
+	}
+
+	inline GLuint id_texture_buffer() const
+	{
+		return id_texture_buffer_;
 	}
 
 	inline void set_name(const std::string& name)
@@ -81,23 +107,19 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	inline GLint bind_tb(GLint unit)
+	inline void bind_texture_buffer(GLint unit)
 	{
-		if (id_tb_ == 0)
-		{
-			static GLenum internals[] = {GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F};
-			glGenTextures(1, &id_tb_);
-			glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
-			glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_ - 1], id_);
-			glBindTexture(GL_TEXTURE_BUFFER, 0);
-		}
 		glActiveTexture(GL_TEXTURE0 + unit);
-		glBindTexture(GL_TEXTURE_BUFFER, id_tb_);
-		return unit;
+		if (id_texture_buffer_ == 0)
+			glGenTextures(1, &id_texture_buffer_);
+		static GLenum internals[] = {GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F};
+		glBindTexture(GL_TEXTURE_BUFFER, id_texture_buffer_);
+		glTexBuffer(GL_TEXTURE_BUFFER, internals[vector_dimension_ - 1], id_);
 	}
 
-	inline static void release_tb()
+	inline static void release_texture_buffer(GLint unit)
 	{
+		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_BUFFER, 0);
 	}
 
@@ -108,13 +130,13 @@ public:
 	 */
 	inline void allocate(std::size_t nb_vectors, int32 vector_dimension)
 	{
-		std::size_t total = nb_vectors * uint32(vector_dimension);
-		if (total != nb_vectors_ * uint64(vector_dimension)) // only allocate when > ?
+		std::size_t total = nb_vectors * uint64(vector_dimension);
+		if (total != nb_vectors_ * uint64(vector_dimension_)) // only allocate when > ?
 		{
 			glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(total * 4), nullptr, GL_DYNAMIC_DRAW);
+			nb_vectors_ = nb_vectors;
+			vector_dimension_ = vector_dimension;
 		}
-		nb_vectors_ = nb_vectors;
-		vector_dimension_ = vector_dimension;
 	}
 
 	/**
@@ -152,24 +174,6 @@ public:
 		glBufferSubData(GL_ARRAY_BUFFER, offset, GLsizeiptr(nb), src);
 	}
 
-	/**
-	 * @brief dimension of vectors stored in buffer
-	 */
-	inline int32 vector_dimension() const
-	{
-		return vector_dimension_;
-	}
-
-	inline uint32 size() const
-	{
-		return uint32(nb_vectors_);
-	}
-
-	inline GLuint id() const
-	{
-		return id_;
-	}
-
 	inline void associate(GLuint attrib, int32 stride = 0, uint32 first = 0)
 	{
 		bind();
@@ -194,22 +198,18 @@ inline std::ostream& operator<<(std::ostream& out, VBO& vbo)
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
-		{
 			std::cout << *f++ << ", ";
-		}
 		std::cout << std::endl;
 	}
 
 	std::cout << " . . . . " << std::endl;
 
-	f = ff + vbo.size() - NB * vd;
+	f = ff + vbo.size() - int64(NB) * vd;
 
 	for (int i = 0; i < NB; ++i)
 	{
 		for (int j = 0; j < vd; ++j)
-		{
 			std::cout << *f++ << ", ";
-		}
 		std::cout << std::endl;
 	}
 

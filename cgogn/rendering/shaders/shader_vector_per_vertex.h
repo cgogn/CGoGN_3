@@ -21,11 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_VECTORPERVERTEX_H_
-#define CGOGN_RENDERING_SHADERS_VECTORPERVERTEX_H_
+#ifndef CGOGN_RENDERING_SHADERS_VECTOR_PER_VERTEX_H_
+#define CGOGN_RENDERING_SHADERS_VECTOR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -45,17 +45,10 @@ public:
 	float32 width_;
 	float32 lighted_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		width_ = pp.width_;
-		lighted_ = pp.lighted_;
-	}
+	using ShaderType = ShaderVectorPerVertex;
 
-	using LocalShader = ShaderVectorPerVertex;
-
-	ShaderParamVectorPerVertex(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), length_(1.0f), width_(2.0f)
+	ShaderParamVectorPerVertex(ShaderType* sh)
+		: ShaderParam(sh), color_(1, 0, 0, 1), length_(1.0f), width_(2.0f), lighted_(0.25f)
 	{
 	}
 
@@ -68,4 +61,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_VECTORPERVERTEX_H_
+#endif // CGOGN_RENDERING_SHADERS_VECTOR_PER_VERTEX_H_

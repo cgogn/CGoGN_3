@@ -25,43 +25,44 @@
 #define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_LINE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
 
 namespace rendering
 {
+
 DECLARE_SHADER_CLASS(ExplodeVolumesLine, true, CGOGN_STR(ExplodeVolumesLine))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
 	void set_uniforms() override;
-	enum VBONAme : int32
+
+	std::array<VBO*, 2> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
-		POS = 0,
-		CENTER
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : int32
+	{
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER
 	};
 
 public:
-	std::array<VBO*, 2> vbos_;
 	GLColor color_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		explode_ = pp.explode_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderExplodeVolumesLine;
 
-	using LocalShader = ShaderExplodeVolumesLine;
-
-	ShaderParamExplodeVolumesLine(LocalShader* sh)
-		: ShaderParam(sh), color_(color_line_default), explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamExplodeVolumesLine(ShaderType* sh)
+		: ShaderParam(sh), color_(1, 1, 0, 1), explode_(0.9f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
@@ -70,14 +71,10 @@ public:
 	inline ~ShaderParamExplodeVolumesLine() override
 	{
 	}
-
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
-	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
 #endif

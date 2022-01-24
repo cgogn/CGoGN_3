@@ -51,6 +51,13 @@ uint32 AttributeGenT::maximum_index() const
 	return 0;
 }
 
+uint32 AttributeGenT::size() const
+{
+	if (container_)
+		return container_->nb_elements();
+	return 0;
+}
+
 /////////////////////////////////
 // AttributeContainerGen class //
 /////////////////////////////////
@@ -141,6 +148,26 @@ void AttributeContainerGen::remove_attribute(AttributeGenT* attribute)
 	}
 }
 
+void AttributeContainerGen::clear_attributes()
+{
+	for (AttributeGenT* attribute : attributes_)
+		attribute->clear();
+	for (uint32 i = 0, nb = uint32(mark_attributes_.size()); i < nb; ++i)
+	{
+		for (AttributeGenT* mark_attribute : mark_attributes_[i])
+			mark_attribute->clear();
+	}
+	available_indices_.clear();
+	nb_elements_ = 0;
+	maximum_index_ = 0;
+}
+
+void AttributeContainerGen::remove_attributes()
+{
+	attributes_shared_ptr_.clear();
+}
+
+// only called by AttributeGenT destructor (called when last shared_ptr is destroyed)
 void AttributeContainerGen::delete_attribute(AttributeGenT* attribute)
 {
 	auto iter = std::find(attributes_.begin(), attributes_.end(), attribute);

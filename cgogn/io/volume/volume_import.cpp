@@ -26,7 +26,6 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/volume.h>
-#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
@@ -38,10 +37,21 @@ namespace cgogn
 namespace io
 {
 
-void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
+void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 {
 	using Vertex = CMap3::Vertex;
 	using Volume = CMap3::Volume;
+
+	auto position = get_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
+	if (!position)
+		position = add_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
+
+	for (uint32 i = 0u; i < volume_data.nb_vertices_; ++i)
+	{
+		uint32 vertex_id = new_index<Vertex>(m);
+		(*position)[vertex_id] = volume_data.vertex_position_[i];
+		volume_data.vertex_id_after_import_.push_back(vertex_id);
+	}
 
 	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
 
@@ -50,7 +60,7 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 	uint32 vol_emb = 0u;
 
 	// for each volume of table
-	for (uint32 i = 0u, end = uint32(volume_data.volumes_types_.size()); i < end; ++i)
+	for (uint32 i = 0u; i < volume_data.nb_volumes_; ++i)
 	{
 		Volume vol;
 		const VolumeType vol_type = volume_data.volumes_types_[i];
@@ -60,11 +70,12 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			vol = add_pyramid(static_cast<CMap2&>(m), 3u, false);
 
 			const std::array<Dart, 4> vertices_of_tetra = {vol.dart, phi1(m, vol.dart), phi_1(m, vol.dart),
-														   phi_1(m, phi2(m, phi_1(m, vol.dart)))};
+														   phi<-1, 2, -1>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_tetra)
 			{
-				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 				foreach_dart_of_orbit(m, CMap3::Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
@@ -83,12 +94,13 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 		{
 			vol = add_pyramid(static_cast<CMap2&>(m), 4u, false);
 
-			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi1(m, phi1(m, vol.dart)),
-															 phi_1(m, vol.dart), phi_1(m, phi2(m, phi_1(m, vol.dart)))};
+			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi<1, 1>(m, vol.dart),
+															 phi_1(m, vol.dart), phi<-1, 2, -1>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_pyramid)
 			{
-				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 				foreach_dart_of_orbit(m, CMap3::Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
@@ -110,13 +122,14 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 			const std::array<Dart, 6> vertices_of_prism = {vol.dart,
 														   phi1(m, vol.dart),
 														   phi_1(m, vol.dart),
-														   phi2(m, phi1(m, phi1(m, phi2(m, phi_1(m, vol.dart))))),
-														   phi2(m, phi1(m, phi1(m, phi2(m, vol.dart)))),
-														   phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, vol.dart)))))};
+														   phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														   phi<2, 1, 1, 2>(m, vol.dart),
+														   phi<1, 2, 1, 1, 2>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_prism)
 			{
-				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 				foreach_dart_of_orbit(m, CMap3::Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
@@ -135,19 +148,19 @@ void import_volume_data(CMap3& m, const VolumeImportData& volume_data)
 		{
 			vol = add_prism(static_cast<CMap2&>(m), 4u, false);
 
-			const std::array<Dart, 8> vertices_of_hexa = {
-				vol.dart,
-				phi1(m, vol.dart),
-				phi1(m, phi1(m, vol.dart)),
-				phi_1(m, vol.dart),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi_1(m, vol.dart))))),
-				phi2(m, phi1(m, phi1(m, phi2(m, vol.dart)))),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, vol.dart))))),
-				phi2(m, phi1(m, phi1(m, phi2(m, phi1(m, phi1(m, vol.dart))))))};
+			const std::array<Dart, 8> vertices_of_hexa = {vol.dart,
+														  phi1(m, vol.dart),
+														  phi<1, 1>(m, vol.dart),
+														  phi_1(m, vol.dart),
+														  phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 1, 2, 1, 1, 2>(m, vol.dart)};
 
 			for (Dart dv : vertices_of_hexa)
 			{
-				const uint32 vertex_index = volume_data.volumes_vertex_indices_[index++];
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 				foreach_dart_of_orbit(static_cast<CMap2&>(m), CMap3::Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;

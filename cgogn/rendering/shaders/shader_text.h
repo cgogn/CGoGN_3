@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_TEXT_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 
 namespace cgogn
@@ -47,16 +47,15 @@ public:
 	Texture2D* texture_;
 	float32 italic_;
 
-	using LocalShader = ShaderText;
+	using ShaderType = ShaderText;
 
-	ShaderParamText(LocalShader* sh) : ShaderParam(sh), italic_(0)
+	ShaderParamText(ShaderType* sh) : ShaderParam(sh), italic_(0)
 	{
 	}
 
 	inline ~ShaderParamText() override
 	{
 	}
-
 };
 
 } // namespace rendering

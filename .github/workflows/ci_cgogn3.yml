@@ -1,0 +1,52 @@
+name: 'Continuous Integration CGoGN_3'
+on:
+  pull_request:
+     branches:
+       - develop
+
+jobs:
+  build-linux:
+    name: 'On Linux'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: 'Package installations'
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install libeigen3-dev libglfw3-dev
+      - name: 'Trying to compile cgogn_3'
+        run:  |
+          mkdir Build
+          cd Build
+          cmake ..
+          cmake --build . 
+
+  build-windows:
+    name: 'On Windows'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: 'install deps'
+        run: vcpkg install eigen3:x64-windows glfw3:x64-windows
+      - name: 'Trying to compile cgogn_3'
+        run: |
+          mkdir Build
+          cd Build
+          cmake .. "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          cmake --build .
+
+  build-OsX:
+    name: 'On Mac'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: 'install deps'
+        run: brew install eigen glfw
+      - name: 'Trying to compile cgogn_3'
+        run:  |
+          mkdir Build
+          cd Build
+          cmake .. 
+          cmake --build . 
+ 

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -82,8 +82,6 @@ public:
 	void set_view_ratio(float64 px, float64 py, float64 pw, float64 ph);
 
 	void update_scene_bb();
-	void lock_scene_bb();
-	void unlock_scene_bb();
 
 	virtual bool pixel_scene_position(int32 x, int32 y, rendering::GLVec3d& P) const override;
 	virtual std::pair<rendering::GLVec3d, rendering::GLVec3d> pixel_ray(int32 x, int32 y) const override;
@@ -93,8 +91,6 @@ public:
 	{
 		event_stopped_ = true;
 	}
-
-	bool scene_bb_locked_;
 
 protected:
 	std::string name_;
@@ -113,12 +109,14 @@ protected:
 	int32 viewport_x_offset_;
 	int32 viewport_y_offset_;
 
-	std::unique_ptr<rendering::ShaderFSTexture::Param> param_fst_;
+	std::unique_ptr<rendering::ShaderFullScreenTexture::Param> param_full_screen_texture_;
 	std::unique_ptr<rendering::FBO> fbo_;
 	std::unique_ptr<rendering::Texture2D> tex_;
 
 	std::vector<ViewModule*> linked_view_modules_;
 	std::vector<ProviderModule*> linked_provider_modules_;
+
+	// bool scene_bb_locked_;
 
 	bool event_stopped_;
 	bool closing_;

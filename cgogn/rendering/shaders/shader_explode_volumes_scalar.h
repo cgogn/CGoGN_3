@@ -25,8 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
 
 namespace cgogn
 {
@@ -34,47 +34,39 @@ namespace cgogn
 namespace rendering
 {
 
-enum ColorMap : int32
-{
-	BWR = 0,
-	CWR,
-	BCGYR,
-	BGR
-};
-
 DECLARE_SHADER_CLASS(ExplodeVolumesScalar, true, CGOGN_STR(ExplodeVolumesScalar))
 
 class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderParam
 {
 	void set_uniforms() override;
 
-	enum VBONAme : int32
+	std::array<VBO*, 3> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
-		POS = 0,
-		CENTER,
-		SCALAR
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VOLUME_CENTER,
+		VOLUME_SCALAR
 	};
 
 public:
-	std::array<VBO*, 3> vbos_;
-	GLVec3 light_pos_;
+	GLVec3 light_position_;
 	float32 explode_;
 	GLVec4 plane_clip_;
 	GLVec4 plane_clip2_;
-	shader_funcion::ColorMap::Uniforms cm_;
+	shader_function::ColorMap::Uniforms color_map_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		explode_ = pp.explode_;
-		light_pos_ = pp.light_position_;
-		plane_clip_ = pp.plane_clip_;
-		plane_clip2_ = pp.plane_clip2_;
-	}
+	using ShaderType = ShaderExplodeVolumesScalar;
 
-	using LocalShader = ShaderExplodeVolumesScalar;
-
-	ShaderParamExplodeVolumesScalar(LocalShader* sh)
-		: ShaderParam(sh), light_pos_(10, 100, 1000), explode_(0.8f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
+	ShaderParamExplodeVolumesScalar(ShaderType* sh)
+		: ShaderParam(sh), light_position_(10, 100, 1000), explode_(0.9f), plane_clip_(0, 0, 0, 0),
+		  plane_clip2_(0, 0, 0, 0)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
@@ -83,14 +75,10 @@ public:
 	inline ~ShaderParamExplodeVolumesScalar() override
 	{
 	}
-
-	inline VBO** vbo_tb(uint32 i) override
-	{
-		return &vbos_[i];
-	}
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_EXPLODE_VOLUMES_SCALAR_H_

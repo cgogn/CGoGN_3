@@ -51,6 +51,25 @@ struct CGOGN_CORE_EXPORT CMap1 : public CMap0
 	}
 };
 
+template <>
+struct mesh_traits<CMap1>
+{
+	static constexpr const char* name = "CMap1";
+	static constexpr const uint8 dimension = 1;
+
+	using Vertex = CMap1::Vertex;
+	using Edge = CMap1::Edge;
+	using Face = CMap1::Face;
+
+	using Cells = std::tuple<Vertex, Edge, Face>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
+
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+};
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_CMAP1_H_

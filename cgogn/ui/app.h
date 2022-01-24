@@ -1,6 +1,6 @@
 /*******************************************************************************
  * CGoGN                                                                        *
- * Copyright (C) 2019, IGG Group, ICube, University of Strasbourg, France       *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
  * This library is free software; you can redistribute it and/or modify it      *
  * under the terms of the GNU Lesser General Public License as published by the *
@@ -26,10 +26,11 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/type_traits.h>
+
 #include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/ui/inputs.h>
 
 #include <cgogn/rendering/shaders/shader_frame2d.h>
-#include <cgogn/ui/inputs.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
@@ -72,6 +73,10 @@ public:
 	{
 		return current_view_;
 	}
+	uint32 nb_views() const
+	{
+		return uint32(views_.size());
+	}
 
 	template <typename FUNC>
 	void foreach_view(const FUNC& f) const
@@ -99,7 +104,7 @@ public:
 			{
 				if (stop_cond())
 					return;
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 				if (stop_cond())
 					return;
 				boost::synapse::emit<App::timer_tick>(this);
@@ -122,9 +127,14 @@ private:
 	int32 framebuffer_width_;
 	int32 framebuffer_height_;
 
+	rendering::GLVec4 background_color_;
+
 	float32 interface_scaling_;
+	float32 mouse_scroll_speed_;
+
 	float64 time_last_50_frames_;
 	static float64 fps_;
+
 	bool show_imgui_;
 	bool show_demo_;
 

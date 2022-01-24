@@ -28,81 +28,96 @@ namespace cgogn
 
 namespace rendering
 {
-namespace OutLineShaders
+
+namespace outline_shaders
 {
 
-static char const* vertex_shader_source0 = R"(#version 330
-in vec3 vertex_pos;
-uniform mat4 projection_matrix;
-uniform mat4 model_view_matrix;
-void main()
-{
-	gl_Position = projection_matrix * model_view_matrix * vec4(vertex_pos,1.0);
-}
-)";
-
-static char const* fragment_shader_source0 = R"(#version 330
-out float frag;
-void main()
-{
-	frag = 1.0;
-}
-)";
+/*****************************************************************************/
+// ShaderMask
+/*****************************************************************************/
 
 ShaderMask* ShaderMask::instance_ = nullptr;
 
 ShaderMask::ShaderMask()
 {
-	load2_bind(vertex_shader_source0, fragment_shader_source0, "vertex_pos");
+	const char* vertex_shader_source = R"(
+		#version 330
+		uniform mat4 projection_matrix;
+		uniform mat4 model_view_matrix;
+
+		in vec3 vertex_position;
+
+		void main()
+		{
+			gl_Position = projection_matrix * model_view_matrix * vec4(vertex_position, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 330
+		out float frag_out;
+		
+		void main()
+		{
+			frag_out = 1.0;
+		}
+	)";
+
+	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position");
 }
 
 void ShaderParamMask::set_uniforms()
 {
 }
 
+/*****************************************************************************/
+// ShaderSobel
+/*****************************************************************************/
+
 ShaderSobel* ShaderSobel::instance_ = nullptr;
-
-static const char* vertex_shader_source1 = R"(
-#version 330
-out vec2 tc;
-void main()
-{
-	vec2 p = 2.0*vec2(gl_VertexID%2, gl_VertexID/2);
-	tc = p;
-	p = 2.0*p - 1.0;
-	gl_Position = vec4(p,0.0,1.0);
-}
-)";
-
-static const char* fragment_shader_source1 =
-	R"(
-#version 330
-uniform sampler2D TU;
-uniform vec2 texelSize;
-in vec2 tc;
-out float frag_out;
-void main()
-{
-	vec2 N = tc;
-	N.y -= texelSize.y;
-	vec2 S = tc;
-	S.y += texelSize.y;
-	float v = abs(texture(TU,N).r - texture(TU,S).r);
-
-	vec2 W = tc;
-	W.x -= texelSize.x;
-	vec2 E = tc;
-	E.x += texelSize.x;
-	float h = abs(texture(TU,E).r - texture(TU,W).r);
-	frag_out = step(0.5, v+h);
-}
-)";
 
 ShaderSobel::ShaderSobel()
 {
+	const char* vertex_shader_source = R"(
+		#version 330
+		out vec2 tc;
+		
+		void main()
+		{
+			vec2 p = 2.0 * vec2(gl_VertexID % 2, gl_VertexID / 2);
+			tc = p;
+			p = 2.0 * p - 1.0;
+			gl_Position = vec4(p, 0.0, 1.0);
+		}
+	)";
 
-	load(vertex_shader_source1, fragment_shader_source1);
-	add_uniforms("TU", "texelSize");
+	const char* fragment_shader_source = R"(
+		#version 330
+		uniform sampler2D TU;
+		uniform vec2 texel_size;
+		
+		in vec2 tc;
+		out float frag_out;
+		
+		void main()
+		{
+			vec2 N = tc;
+			N.y -= texel_size.y;
+			vec2 S = tc;
+			S.y += texel_size.y;
+			float v = abs(texture(TU, N).r - texture(TU, S).r);
+
+			vec2 W = tc;
+			W.x -= texel_size.x;
+			vec2 E = tc;
+			E.x += texel_size.x;
+			float h = abs(texture(TU, E).r - texture(TU, W).r);
+			frag_out = step(0.5, v + h);
+		}
+	)";
+
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("TU", "texel_size");
 }
 
 void ShaderParamSobel::set_uniforms()
@@ -110,30 +125,49 @@ void ShaderParamSobel::set_uniforms()
 	shader_->set_uniforms_values(texture_->bind(0), GLVec2(1.0f / texture_->width(), 1.0f / texture_->height()));
 }
 
+/*****************************************************************************/
+// ShaderBlur
+/*****************************************************************************/
+
 ShaderBlur* ShaderBlur::instance_ = nullptr;
 
-static const char* fragment_shader_source2 =
-	R"(
-#version 330
-uniform sampler2D TU;
-uniform vec2 texelSizeDir;
-in vec2 tc;
-out float frag_out;
-void main()
-{
-	float v = 0.38774 * texture(TU,tc).r;
-	vec2 p = tc-texelSizeDir;
-	vec2 n = tc+texelSizeDir;
-	v += 0.24477 * (texture(TU,p).r+texture(TU,n).r);
-	p -= texelSizeDir;
-	n+= texelSizeDir;
-	frag_out = v + 0.06136 * (texture(TU,p).r+texture(TU,n).r);
-}
-)";
 ShaderBlur::ShaderBlur()
 {
-	load(vertex_shader_source1, fragment_shader_source2);
-	add_uniforms("TU", "texelSizeDir");
+	const char* vertex_shader_source = R"(
+		#version 330
+		out vec2 tc;
+		
+		void main()
+		{
+			vec2 p = 2.0 * vec2(gl_VertexID % 2, gl_VertexID / 2);
+			tc = p;
+			p = 2.0 * p - 1.0;
+			gl_Position = vec4(p, 0.0, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 330
+		uniform sampler2D TU;
+		uniform vec2 texel_size_dir;
+		
+		in vec2 tc;
+		out float frag_out;
+		
+		void main()
+		{
+			float v = 0.38774 * texture(TU, tc).r;
+			vec2 p = tc - texel_size_dir;
+			vec2 n = tc + texel_size_dir;
+			v += 0.24477 * (texture(TU, p).r + texture(TU, n).r);
+			p -= texel_size_dir;
+			n+= texel_size_dir;
+			frag_out = v + 0.06136 * (texture(TU, p).r + texture(TU, n).r);
+		}
+	)";
+
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("TU", "texel_size_dir");
 }
 
 void ShaderParamBlur::set_uniforms()
@@ -142,26 +176,44 @@ void ShaderParamBlur::set_uniforms()
 	shader_->set_uniforms_values(texture_->bind(0), td);
 }
 
-ShaderColorize* ShaderColorize::instance_ = nullptr;
+/*****************************************************************************/
+// ShaderColorize
+/*****************************************************************************/
 
-static const char* fragment_shader_source3 =
-	R"(
-#version 330
-uniform sampler2D TU_blur;
-uniform sampler2D TU_mask;
-uniform vec4 color;
-in vec2 tc;
-out vec3 frag_out;
-void main()
-{
-	frag_out = (1.0-0.000001*texture(TU_mask,tc).r)*texture(TU_blur,tc).r*color.rgb;
-}
-)";
+ShaderColorize* ShaderColorize::instance_ = nullptr;
 
 ShaderColorize::ShaderColorize()
 {
-	load(vertex_shader_source1, fragment_shader_source3);
-	add_uniforms("TU_blur", "TU_mask", "color");
+	const char* vertex_shader_source = R"(
+		#version 330
+		out vec2 tc;
+		
+		void main()
+		{
+			vec2 p = 2.0 * vec2(gl_VertexID % 2, gl_VertexID / 2);
+			tc = p;
+			p = 2.0 * p - 1.0;
+			gl_Position = vec4(p, 0.0, 1.0);
+		}
+	)";
+
+	const char* fragment_shader_source = R"(
+		#version 330
+		uniform sampler2D TU_blur;
+		uniform sampler2D TU_mask;
+		uniform vec4 color;
+		
+		in vec2 tc;
+		out vec3 frag_out;
+		
+		void main()
+		{
+			frag_out = (1.0 - 0.000001 * texture(TU_mask, tc).r) * texture(TU_blur, tc).r * color.rgb;
+		}
+	)";
+
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("TU_blur", "TU_mask", "color");
 }
 
 void ShaderParamColorize::set_uniforms()
@@ -169,31 +221,31 @@ void ShaderParamColorize::set_uniforms()
 	shader_->set_uniforms_values(texture_blur_->bind(0), texture_mask_->bind(1), color_);
 }
 
-} // namespace OutLineShaders
+} // namespace outline_shaders
 
-OutLiner* OutLiner::instance_ = nullptr;
+Outliner* Outliner::instance_ = nullptr;
 
-OutLiner::OutLiner()
+Outliner::Outliner()
 {
-	param_mask_ = OutLineShaders::ShaderMask::generate_param();
-	param_sobel_ = OutLineShaders::ShaderSobel::generate_param();
-	param_blur_ = OutLineShaders::ShaderBlur::generate_param();
-	param_colorize_ = OutLineShaders::ShaderColorize::generate_param();
+	param_mask_ = outline_shaders::ShaderMask::generate_param();
+	param_sobel_ = outline_shaders::ShaderSobel::generate_param();
+	param_blur_ = outline_shaders::ShaderBlur::generate_param();
+	param_colorize_ = outline_shaders::ShaderColorize::generate_param();
 
 	Texture2D* t1 = new Texture2D();
-	t1->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_mask_ = new FBO(std::vector<Texture2D*>{t1}, false, nullptr);
+	t1->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_mask_ = new FBO({t1}, false, nullptr);
 
 	Texture2D* t2 = new Texture2D();
-	t2->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_blur1_ = new FBO(std::vector<Texture2D*>{t2}, false, nullptr);
+	t2->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_blur1_ = new FBO({t2}, false, nullptr);
 
 	Texture2D* t3 = new Texture2D();
-	t3->alloc(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
-	fbo_blur2_ = new FBO(std::vector<Texture2D*>{t3}, false, nullptr);
+	t3->allocate(0, 0, GL_R8, GL_RED, nullptr, GL_UNSIGNED_BYTE);
+	fbo_blur2_ = new FBO({t3}, false, nullptr);
 }
 
-OutLiner::~OutLiner()
+Outliner::~Outliner()
 {
 	delete fbo_mask_->texture(0);
 	delete fbo_mask_;
@@ -203,7 +255,7 @@ OutLiner::~OutLiner()
 	delete fbo_blur2_;
 }
 
-void OutLiner::draw(VBO* pos, MeshRender* renderer, const rendering::GLMat4& proj_matrix,
+void Outliner::draw(VBO* position, MeshRender* renderer, const rendering::GLMat4& projection_matrix,
 					const rendering::GLMat4& view_matrix, const GLColor& color)
 {
 	GLint prev_viewport[4];
@@ -221,8 +273,8 @@ void OutLiner::draw(VBO* pos, MeshRender* renderer, const rendering::GLMat4& pro
 	fbo_mask_->bind();
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	param_mask_->set_vbos({pos});
-	param_mask_->bind(proj_matrix, view_matrix);
+	param_mask_->set_vbos({position});
+	param_mask_->bind(projection_matrix, view_matrix);
 	renderer->draw(TRIANGLES);
 	param_mask_->release();
 

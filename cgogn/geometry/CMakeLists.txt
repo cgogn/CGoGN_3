@@ -16,24 +16,40 @@ add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/types/grid.h"
+	    "${CMAKE_CURRENT_LIST_DIR}/types/quadric.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/distance.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/functions/fitting.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/inclusion.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/intersection.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/normal.h"
-                "${CMAKE_CURRENT_LIST_DIR}/functions/distance.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/orientation.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/algos/angle.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/area.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/centroid.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/curvature.h"
-		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
-        "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/distance.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/hex_quality.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/laplacian.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/medial_axis.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/normal.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/picking.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/registration.h"
+        "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
 
-		"${CMAKE_CURRENT_LIST_DIR}/algos/pipo.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/registration.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_differential_properties.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_filtering.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_selection.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_selection.h"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

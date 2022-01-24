@@ -19,7 +19,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cells_set.h"
-                "${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
@@ -41,13 +42,19 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_ops.h"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/cells.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/convert.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
+		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/global.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
@@ -76,6 +83,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/utils/thread.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/tuples.h"
 		"${CMAKE_CURRENT_LIST_DIR}/utils/type_traits.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_provider.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_data.h"
 )
 
 # use of target_compile_options to have transitive flags
@@ -111,6 +121,13 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<CXX_COMPILER_ID:MSVC>:/wd4910>
 	# C4251 - 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 	$<$<CXX_COMPILER_ID:MSVC>:/wd4251>
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4702> # uneraechable code 
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4244> # conversion
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4267> # siz_t ->int
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4456> # declaration  shadow ..
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4459> # type declaration  shadow ..
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4100> # parameter not referenced
+	$<$<CXX_COMPILER_ID:MSVC>:/wd4189> # var initialized but not referenced
 	$<$<CXX_COMPILER_ID:MSVC>:/EHsc>
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj>
 	)

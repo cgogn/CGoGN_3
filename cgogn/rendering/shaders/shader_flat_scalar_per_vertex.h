@@ -26,7 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -44,18 +44,11 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
-	shader_funcion::ColorMap::Uniforms cm_;
+	shader_function::ColorMap::Uniforms color_map_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		ambiant_color_ = pp.ambiant_color_;
-		light_position_ = pp.light_position_;
-		double_side_ = pp.double_side_;
-	}
+	using ShaderType = ShaderFlatScalarPerVertex;
 
-	using LocalShader = ShaderFlatScalarPerVertex;
-
-	ShaderParamFlatScalarPerVertex(LocalShader* sh)
+	ShaderParamFlatScalarPerVertex(ShaderType* sh)
 		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
 	{
 	}
@@ -69,4 +62,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_VERTEX_H_

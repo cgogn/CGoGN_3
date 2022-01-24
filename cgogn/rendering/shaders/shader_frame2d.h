@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SHADERS_FRAME2D_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_program.h>
+#include <cgogn/rendering/shader_program.h>
 
 namespace cgogn
 {
@@ -37,24 +37,23 @@ DECLARE_SHADER_CLASS(Frame2d, false, CGOGN_STR(Frame2d))
 
 class CGOGN_RENDERING_EXPORT ShaderParamFrame2d : public ShaderParam
 {
-	inline void set_uniforms() override
-	{
-		shader_->set_uniform_value(0, color_);
-		shader_->set_uniform_value(1, sz_);
-	}
+	void set_uniforms() override;
 
 public:
-	using LocalShader = ShaderFrame2d;
 	GLColor color_;
-	float32 sz_;
+	float32 width_;
+	float w_;
+	float h_;
 
-	inline void pick_parameters(const PossibleParameters& pp) override
-	{
-		color_ = pp.color_;
-		sz_ = pp.size_;
-	}
+	// inline void pick_parameters(const PossibleParameters& pp) override
+	// {
+	// 	color_ = pp.color_;
+	// 	sz_ = pp.size_;
+	// }
 
-	ShaderParamFrame2d(LocalShader* sh) : ShaderParam(sh), color_(color_line_default), sz_(3.0f)
+	using ShaderType = ShaderFrame2d;
+
+	ShaderParamFrame2d(ShaderType* sh) : ShaderParam(sh), color_(1, 1, 0, 1), width_(3.0f)
 	{
 	}
 
@@ -62,11 +61,10 @@ public:
 	{
 	}
 
-	inline void draw(float w, float h)
+	inline void draw()
 	{
 		bind();
-		shader_->set_uniform_value(2, w);
-		shader_->set_uniform_value(3, h);
+		set_uniforms();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 10);
@@ -76,6 +74,7 @@ public:
 };
 
 } // namespace rendering
+
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_RENDERING_SHADERS_FRAME2D_H_

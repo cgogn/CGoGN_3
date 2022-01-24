@@ -9,6 +9,7 @@ set(HEADER_FILES
 	imgui.h
 	imgui_impl_glfw.h
 	imgui_impl_opengl3.h
+	imgui_impl_opengl3_loader.h
 	imgui_internal.h
 	imstb_rectpack.h
 	imstb_textedit.h
@@ -20,6 +21,7 @@ set(SOURCE_FILES
 	imgui.cpp
 	imgui_demo.cpp
 	imgui_draw.cpp
+	imgui_tables.cpp
 	imgui_impl_glfw.cpp
 	imgui_impl_opengl3.cpp
 	imgui_widgets.cpp
@@ -33,6 +35,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_IMPL_OPENGL_LOADER_GL3W NOMINMAX)
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PUBLIC glfw dl)
 else()
