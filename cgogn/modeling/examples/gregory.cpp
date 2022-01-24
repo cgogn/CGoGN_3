@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
 	std::string filename;
 	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/simple/quad_tri.off");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/simple/cube.off");
 	else
 		filename = std::string(argv[1]);
 
@@ -70,11 +70,11 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-//	v1->link_module(&gr);
+	v1->link_module(&gr);
 
-	cgogn::ui::View* v2 = app.add_view();
-	v2->link_module(&mp);
-	v2->link_module(&gr);
+	// cgogn::ui::View* v2 = app.add_view();
+	// v2->link_module(&mp);
+	// v2->link_module(&gr);
 
 	Mesh* m = mp.load_surface_from_file(filename);
 	if (!m)

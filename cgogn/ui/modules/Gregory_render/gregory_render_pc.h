@@ -34,7 +34,7 @@
 
 #include <cgogn/rendering/drawer.h>
 
-//#include <boost/synapse/connect.hpp>
+#include <boost/synapse/connect.hpp>
 
 #include <unordered_map>
 
