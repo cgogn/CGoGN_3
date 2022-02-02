@@ -343,14 +343,38 @@ public:
 			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
 			CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
 			modeling::cut_slice(*volume_, volume_vertex_position_.get(), slice);
-		}
-		volume_provider_->emit_connectivity_changed(*volume_);
-		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
-		refresh_edge_target_length_ = true;
-		refresh_volume_cells_indexing_ = true;
-		refresh_volume_skin_ = true;
-		refresh_solver_ = true;
+			volume_provider_->emit_connectivity_changed(*volume_);
+			volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+			refresh_edge_target_length_ = true;
+			refresh_volume_cells_indexing_ = true;
+			refresh_volume_skin_ = true;
+			refresh_solver_ = true;
+		}
+	}
+
+	void subdivide_all_slices()
+	{
+		if (selected_volume_faces_set_->size() == 1)
+		{
+			VolumeEdge e = modeling::find_fiber_dir(*volume_, *(selected_volume_faces_set_->begin()));
+			CellCache<VOLUME> slices = modeling::surface_fiber_spread(*volume_, e);
+
+			foreach_cell(slices, [&](VolumeEdge e) -> bool {
+				CellCache<VOLUME> slice = modeling::get_slice(*volume_, e);
+				modeling::cut_slice(*volume_, volume_vertex_position_.get(), slice);
+				return true;
+			});
+
+			volume_provider_->emit_connectivity_changed(*volume_);
+			volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
+
+			refresh_edge_target_length_ = true;
+			refresh_volume_cells_indexing_ = true;
+			refresh_volume_skin_ = true;
+			refresh_solver_ = true;
+		}
 	}
 
 	void fiber_aligned_subdivision_from_input()
@@ -1339,8 +1363,6 @@ protected:
 
 			// if (ImGui::Button("Export subdivided skin"))
 			// 	export_subdivided_skin();
-			// imgui_combo_cells_set(md, selected_volume_faces_set_, "Faces",
-			// 					  [&](CellsSet<VOLUME, VolumeFace>* cs) { selected_volume_faces_set_ = cs; });
 			if (ImGui::Button("Add volume padding"))
 				add_volume_padding();
 			// if (ImGui::Button("Subdivide length wise"))
@@ -1353,8 +1375,15 @@ protected:
 				subdivide_volume();
 			// if (ImGui::Button("Subdivide skin"))
 			// 	subdivide_skin();
-			// if (ImGui::Button("Subdivide slice"))
-			// 	subdivide_slice();
+			imgui_combo_cells_set(md, selected_volume_faces_set_, "Faces",
+								  [&](CellsSet<VOLUME, VolumeFace>* cs) { selected_volume_faces_set_ = cs; });
+			if (selected_volume_faces_set_)
+			{
+				if (ImGui::Button("Subdivide slice"))
+					subdivide_slice();
+				if (ImGui::Button("Subdivide all slices"))
+					subdivide_all_slices();
+			}
 
 			if (surface_ && surface_vertex_position_)
 			{
