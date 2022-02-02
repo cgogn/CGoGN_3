@@ -256,9 +256,13 @@ auto foreach_incident_face(const IncidenceGraph& ig, CELL c, const FUNC& func)
 			bool stop = false;
 			for (auto& fp : (*ig.edge_incident_faces_)[ep.index_])
 			{
-				stop = !func(fp);
-				if (stop)
-					break;
+				if(!marker.is_marked(fp))
+				{
+					marker.mark(fp);
+					stop = !func(fp);
+					if (stop)
+						break;
+				}
 			}
 			if (stop)
 				break;
@@ -290,7 +294,7 @@ auto foreach_adjacent_face_through_edge(const IncidenceGraph& ig, IncidenceGraph
 			if(!marker.is_marked(f1))
 			{
 				marker.mark(f1);
-				stop = func(f1);
+				stop = !func(f1);
 			}
 
 			return !stop;

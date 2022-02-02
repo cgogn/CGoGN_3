@@ -73,10 +73,12 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceRender<Volume> vr(app);
 
 	IGraph* ig = mpig.load_surface_from_file(filename);
+	std::cout << filename << " : loaded" << std::endl;
 
 	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
 
 	app.init_modules();
+	std::cout << "init_modules : done" << std::endl;
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mpig);
@@ -86,8 +88,13 @@ int main(int argc, char** argv)
 	v1->link_module(&sr);
 	v1->link_module(&vr);
 
+	std::cout << "link_modules : done" << std::endl;
+
 	mpig.set_mesh_bb_vertex_position(*ig, vertex_position);
 	gr.set_vertex_position(*v1, *ig, vertex_position);
+
+	std::cout << "display : done" << std::endl;
+
 
 	Surface* m2 = mps.add_mesh("surface");
 	Volume* m3 = mpv.add_mesh("volumes");
@@ -101,6 +108,9 @@ int main(int argc, char** argv)
 	sr.set_vertex_position(*v1, *m2, surface_vertex_position);
 	sr.set_render_vertices(*v1, *m2, false);
 	sr.set_render_faces(*v1, *m2, false);
+
+	mpv.set_mesh_bb_vertex_position(*m3, surface_vertex_position);
+	mpv.emit_connectivity_changed(*m3);
 
 	return app.launch();
 }

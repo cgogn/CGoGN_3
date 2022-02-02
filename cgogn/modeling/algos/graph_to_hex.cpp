@@ -1373,7 +1373,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	std::vector<uint32> face_axis = {1, 3, 2, 4, 5, 0};
 	std::vector<uint32> face_axis_used = {false, false, false, false, false, false};
 	bool same_face_twice = false;
-	std::cout << "active faces: " << std::endl;
+	// std::cout << "active faces: " << std::endl;
 	foreach_dart_of_orbit(g, gv, [&](Dart d) -> bool {
 		Vec3 B = value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, d)));
 		Vec3 AB = (B - A).normalized();
@@ -1392,11 +1392,11 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 			}
 			// Scalar dot = round(AB.dot(frame.col(i)));
 		}
-		std::cout << "maxdot = " << maxdot << std::endl;
-		std::cout << "faceid = " << faceid << std::endl;
+		// std::cout << "maxdot = " << maxdot << std::endl;
+		// std::cout << "faceid = " << faceid << std::endl;
 		if (maxdot > 0.4)
 		{
-			std::cout << faceid << ",";
+			// std::cout << faceid << ",";
 			value<Graph::HalfEdge>(*scaffold, scaffold_face_branch, faces[face_axis[faceid]]) = Graph::HalfEdge(d);
 			cache_active_faces.add(faces[face_axis[faceid]]);
 			if (face_axis_used[faceid])

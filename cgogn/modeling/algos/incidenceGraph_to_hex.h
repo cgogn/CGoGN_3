@@ -28,7 +28,7 @@ struct IGAttributes
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_normal;
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_center;
 	std::shared_ptr<IncidenceGraph::Attribute<std::vector<Vec3>>> face_vertex_tangent;
-	// std::shared_ptr<IncidenceGraph::Attribute<Scalar>> vertex_radius;
+	std::shared_ptr<IncidenceGraph::Attribute<Scalar>> vertex_radius;
 	// std::shared_ptr<IncidenceGraph::Attribute<Dart>> vertex_contact_surface;
 	std::shared_ptr<IncidenceGraph::Attribute<std::vector<Dart>>> vertex_boundary_edge_dart;
 	std::shared_ptr<IncidenceGraph::Attribute<Dart>> vertex_contact_surface;
@@ -48,15 +48,15 @@ struct M2Attributes
 	std::shared_ptr<CMap2::Attribute<Vec3>> vertex_position;
 	std::shared_ptr<CMap2::Attribute<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>>> dual_vertex_graph_branch;
 	std::shared_ptr<CMap2::Attribute<IncidenceGraph::Vertex>> volume_igvertex;
-	// std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
-	// std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
+	std::shared_ptr<CMap2::Attribute<Vec3>> volume_center;
+	std::shared_ptr<CMap2::Attribute<Vec3>> edge_mid;
 	std::shared_ptr<CMap2::Attribute<Dart>> halfedge_volume_connection;
 	// std::shared_ptr<CMap2::Attribute<CMap2*>> ortho_scaffold;
 };
 
 struct M3Attributes
 {
-	// std::shared_ptr<CMap3::Attribute<Vec3>> vertex_position;
+	std::shared_ptr<CMap3::Attribute<Vec3>> vertex_position;
 	// std::shared_ptr<CMap3::Attribute<Graph::HalfEdge>> volume_graph_connection;
 
 	// std::shared_ptr<CMap3::Attribute<Mat3>> corner_frame;
@@ -131,6 +131,7 @@ bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& incid
 bool add_incidenceGraph_attributes(IncidenceGraph& ig, IGAttributes& igAttributes);
 bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs);
 bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& incidenceGraph_data, IGAttributes& igAttributes);
+bool add_cmap3_attributes_igh(CMap3& m3, M3Attributes& m3Attribs);
 
 /*****************************************************************************/
 /* utils                                                                     */
@@ -208,6 +209,7 @@ bool propagate_frame_n_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap
 /* contact surfaces geometry                                                 */
 /*****************************************************************************/
 bool prepare_leaflets_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data, CMap3& m3);
+bool set_contact_surfaces_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs);
 
 /*****************************************************************************/
 /* volume mesh generation                                                    */
@@ -217,6 +219,9 @@ bool build_branch_section(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2
 bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Face f0);
 bool build_leaflet_edge(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Face f0);
 bool sew_sections_igh(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3);
+bool set_volumes_geometry_igh(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs);
+// bool set_volumes_geometry_igh(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs);
+
 
 } // namespace modeling
 

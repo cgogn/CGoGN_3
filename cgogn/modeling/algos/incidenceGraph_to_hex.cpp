@@ -102,7 +102,7 @@ std::tuple<IGAttributes, M2Attributes, M3Attributes> incidenceGraph_to_hex(Incid
 		std::cout << "incidenceGraph_to_hex (/): computed incidence graph face geometries" << std::endl;
 
 
-if (okay)
+	if (okay)
 		okay = add_cmap2_attributes(m2, m2Attribs);
 	if (!okay)
 		std::cout << "error incidenceGraph_to_hex: add_cmap2_attributes" << std::endl;
@@ -122,6 +122,54 @@ if (okay)
 		std::cout << "error incidenceGraph_to_hex: prepare_leaflets_geometry" << std::endl;
 	else
 		std::cout << "incidenceGraph_to_hex (/): leaflets geometry created" << std::endl;
+
+	if (okay)
+		okay = create_intersection_frames(ig, igAttribs, m2, m2Attribs);
+	if (!okay)
+		std::cout << "error incidenceGraph_to_hex: create_intersections_frames" << std::endl;
+	else
+		std::cout << "incidenceGraph_to_hex (/): create_intersections_frames completed" << std::endl;
+
+	if (okay)
+		okay = propagate_frames(ig, igAttribs, igData, m2);
+	if (!okay)
+		std::cout << "error incidenceGraph_to_hex: propagate_frames" << std::endl;
+	else
+		std::cout << "incidenceGraph_to_hex (/): propagate_frames completed" << std::endl;
+
+	if (okay)
+		okay = set_contact_surfaces_geometry(ig, igAttribs, m2, m2Attribs);
+	if (!okay)
+		std::cout << "error incidenceGraph_to_hex: set_contact_surfaces_geometry" << std::endl;
+	else
+		std::cout << "incidenceGraph_to_hex (/): set_contact_surfaces_geometry completed" << std::endl;
+
+	if (okay)
+		okay = build_volumes(ig, igAttribs, m2, m2Attribs, m3);
+	if (!okay)
+		std::cout << "error incidenceGraph_to_hex: build_volumes" << std::endl;
+	else
+		std::cout << "incidenceGraph_to_hex (/): build_volumes completed" << std::endl;
+
+	if (okay)
+		okay = sew_sections_igh(m2, m2Attribs, m3);
+	if (!okay)
+		std::cout << "error incidenceGraph_to_hex: sew_sections" << std::endl;
+	else
+		std::cout << "incidenceGraph_to_hex (/): sew_sections completed" << std::endl;
+
+	if (okay)
+	{
+		add_cmap3_attributes_igh(m3, m3Attribs);
+		okay = set_volumes_geometry_igh(ig, igAttribs, m2, m2Attribs, m3, m3Attribs);
+	}
+	if (!okay)
+		std::cout << "error graph_to_hex: set_volumes_geometry" << std::endl;
+	else
+		std::cout << "graph_to_hex (/): set_volumes_geometry completed" << std::endl;
+	
+	std::cout << "CC: " << nb_cells<CMap3::CC>(m3) << std::endl;
+
 
 	std::cout << "surface " << nb_cells<CMap2::Vertex>(m2) << ":" << nb_cells<CMap2::Edge>(m2) << ":" << nb_cells<CMap2::Face>(m2) << std::endl;
 	return {igAttribs, m2Attribs, m3Attribs};
@@ -144,6 +192,7 @@ bool add_incidenceGraph_attributes(IncidenceGraph& ig, IGAttributes& igAttribs)
 	igAttribs.face_vertex_tangent = add_attribute<std::vector<Vec3>, IncidenceGraph::Face>(ig, "face_vertex_tangents");
 	igAttribs.vertex_contact_surface = add_attribute<Dart, IncidenceGraph::Vertex>(ig, "vertex_contact_surface");
 	igAttribs.halfedge_contact_surface_face = add_attribute<std::pair<Dart, Dart>, IncidenceGraph::Edge>(ig, "halfedge_contact_surface_face");
+	igAttribs.halfedge_volume_connection = add_attribute<std::pair<Dart, Dart>, IncidenceGraph::Edge>(ig, "halfedge_volume_connection");
 	igAttribs.halfedge_frame = add_attribute<std::pair<Mat3, Mat3>, IncidenceGraph::Edge>(ig, "halfedge_frame");
 	igAttribs.face_edge_dart = add_attribute<std::vector<Dart>, IncidenceGraph::Face>(ig, "face_edge_dart");
 	igAttribs.vertex_boundary_edge_dart = add_attribute<std::vector<Dart>, IncidenceGraph::Vertex>(ig, "vertex_boundary_edge_dart");
@@ -156,11 +205,18 @@ bool add_cmap2_attributes(CMap2& m2, M2Attributes& m2Attribs)
 {
 	m2Attribs.vertex_position = add_attribute<Vec3, CMap2::Vertex>(m2, "position");
 	m2Attribs.dual_vertex_graph_branch = add_attribute<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>, CMap2::Vertex>(m2, "graph_branch");
-	// m2Attribs.volume_center = add_attribute<Vec3, CMap2::Volume>(m2, "center");
+	m2Attribs.volume_center = add_attribute<Vec3, CMap2::Volume>(m2, "center");
 	m2Attribs.volume_igvertex = add_attribute<IncidenceGraph::Vertex, CMap2::Volume>(m2, "gvertex");
-	// m2Attribs.edge_mid = add_attribute<Vec3, CMap2::Edge>(m2, "edge_mid");
+	m2Attribs.edge_mid = add_attribute<Vec3, CMap2::Edge>(m2, "edge_mid");
 	m2Attribs.halfedge_volume_connection = add_attribute<Dart, CMap2::HalfEdge>(m2, "volume_connection");
 	// m2Attribs.ortho_scaffold = add_attribute<CMap2*, CMap2::Volume>(m2, "ortho_scaffold");
+	return true;
+}
+
+bool add_cmap3_attributes_igh(CMap3& m3, M3Attributes& m3Attribs)
+{
+	m3Attribs.vertex_position = cgogn::add_attribute<Vec3, CMap3::Vertex>(m3, "position");
+
 	return true;
 }
 
@@ -245,10 +301,6 @@ bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& ig_da
 	});
 
 	CellMarker<IncidenceGraph, Edge> edge_marker(ig);
-	// foreach_cell(ig, [&](Vertex v) -> bool {
-
-	// 	return true;
-	// });
 	for(Vertex v : ig_data.efjunctures)
 	{
 		Edge e0;
@@ -397,6 +449,8 @@ std::vector<IncidenceGraph::Face> get_leaflets(const IncidenceGraph& ig)
 bool prepare_leaflets_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data, CMap3& m3)
 {
 	foreach_cell(ig, [&](IncidenceGraph::Vertex v) -> bool {
+		std::pair<uint32, uint32> info = pseudoDegree(ig, v);
+
 		std::vector<IncidenceGraph::Face> inc_faces = incident_faces(ig, v);
 		if(inc_faces.size())
 		{
@@ -408,17 +462,17 @@ bool prepare_leaflets_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs
 				std::vector<IncidenceGraph::Edge> edges = incident_edges(ig, f);
 				for(uint32 i = 0; i < edges.size(); ++i)
 				{
-					std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, edges[0]);
+					std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, edges[i]);
 					if(inc_verts[0].index_ == v.index_ || inc_verts[1].index_ == v.index_) {
-						inc_edges.push_back(edges[0]);
+						inc_edges.push_back(edges[i]);
 						uint8 edge_dir = (*ig.face_incident_edges_dir_)[f.index_][i];
 						normal += (edge_dir? -1: 1) * value<Vec3>(ig, igAttribs.face_normal, f);
-						if(upDart.index == INVALID_INDEX)
-						{
-							Dart d =  value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, f)[i];
-							if(edge_dir)
-								d = phi<-1, 2, 3, 2, 1>(m3, d);
-						}
+						// if(upDart.index == INVALID_INDEX)
+						// {
+						// 	Dart d =  value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, f)[i];
+						// 	if(edge_dir)
+						// 		d = phi<-1, 2, 3, 2, 1>(m3, d);
+						// }
 
 
 						break;
@@ -427,7 +481,7 @@ bool prepare_leaflets_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs
 			}
 			normal.normalize();
 			value<Vec3>(ig, igAttribs.vertex_normal, v) = normal;
-			value<Dart>(ig, igAttribs.vertex_up_dart, v) = upDart;
+			// value<Dart>(ig, igAttribs.vertex_up_dart, v) = upDart;
 		}
 
 		return true;
@@ -435,6 +489,95 @@ bool prepare_leaflets_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs
 
 	return true;
 }
+
+bool set_contact_surfaces_geometry(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs)
+{
+	foreach_cell(ig, [&](IncidenceGraph::Vertex v) -> bool {
+		std::pair<uint32, uint32> info = pseudoDegree(ig, v);
+		
+		// skip leaflet vertices
+		if(info.second == 0)
+			return true;
+
+		CMap2::Volume contact_surface(value<Dart>(ig, igAttribs.vertex_contact_surface, v));
+		const Vec3& center = value<Vec3>(ig, igAttribs.vertex_position, v);
+		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
+		// Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, v);
+		Scalar radius = 0.1;
+
+		/// valence 1 or 2 no leaflet
+		if(info.first == info.second && info.first < 3)
+		{
+			IncidenceGraph::Edge e;
+			foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e1) -> bool {
+				e = e1;
+				return false;
+			});
+
+			std::vector<IncidenceGraph::Vertex> ivs = incident_vertices(ig, e);
+			uint32_t vid = v.index_ == ivs[0].index_ ? 0 : 1;
+
+			Dart csf = vid == 0? value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).first : 
+				value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).second;
+			Mat3 frame = vid == 0? value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e).first : 
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e).second;
+
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<1, 1>(m2, csf))) =
+				center + frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
+		}
+		else if(info.first == info.second && info.second > 2)
+		{
+			foreach_incident_vertex(m2, contact_surface, [&](CMap2::Vertex v2) -> bool {
+				Vec3 pos = value<Vec3>(m2, m2Attribs.vertex_position, v2);
+				geometry::project_on_sphere(pos, center, radius);
+				value<Vec3>(m2, m2Attribs.vertex_position, v2) = pos;
+				return true;
+			});
+		}
+		else if(info.first == 2 && info.second == 1)
+		{
+			IncidenceGraph::Edge e;
+			foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e1) -> bool {
+				if(degree(ig, e1) == 0)
+				{
+					e = e1;
+					return false;
+				}
+				return true;
+			});
+
+			std::vector<IncidenceGraph::Vertex> ivs = incident_vertices(ig, e);
+			uint32_t vid = v.index_ == ivs[0].index_ ? 0 : 1;
+
+			Dart csf = vid == 0? value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).first : 
+				value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).second;
+			Mat3 frame = vid == 0? value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e).first : 
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e).second;
+
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(csf)) = center - frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, csf))) = center + frame.col(0) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi<1, 1>(m2, csf))) =
+				center + frame.col(1) * radius;
+			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, csf))) = center - frame.col(0) * radius;
+		}
+
+		foreach_incident_edge(m2, contact_surface, [&](CMap2::Edge e) -> bool {
+			std::vector<CMap2::Vertex> vertices = incident_vertices(m2, e);
+			Vec3 mid = 0.5 * (value<Vec3>(m2, m2Attribs.vertex_position, vertices[0]) +
+							  value<Vec3>(m2, m2Attribs.vertex_position, vertices[1]));
+			geometry::project_on_sphere(mid, center, radius);
+			value<Vec3>(m2, m2Attribs.edge_mid, e) = mid;
+			return true;
+		});
+
+		return true;
+	});
+	return true;
+}
+
 
 void sew_volumes_igh(CMap3& m, Dart d0, Dart d1)
 {
@@ -580,7 +723,6 @@ bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& 
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
-
 	foreach_cell(ig, [&](Face f0) -> bool {
 		Vec3 center = {0, 0, 0};
 		std::vector<Vec3> vertices;
@@ -589,13 +731,14 @@ bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& 
 			Vec3 pos = value<Vec3>(ig, igAttribs.vertex_position, v);
 			vertices.push_back(pos);
 			center += pos;
+			return true;
 		});
 		center /= vertices.size();
 
 		value<Vec3>(ig, igAttribs.face_center, f0) = center;
 		
 		value<Vec3>(ig, igAttribs.face_normal, f0) = {0, 0, 0};
-		for(uint32 i = 9; i < vertices.size(); ++i)
+		for(uint32 i = 0; i < vertices.size(); ++i)
 		{
 			Vec3 v0 = vertices[i] - center;
 			Vec3 v1 = vertices[(i+1)%vertices.size()] - center;
@@ -604,11 +747,9 @@ bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& 
 			value<Vec3>(ig, igAttribs.face_normal, f0) += n;
 		}
 		value<Vec3>(ig, igAttribs.face_normal, f0).normalize();
-	
+		value<std::vector<Vec3>>(ig, igAttribs.face_vertex_tangent, f0).resize(codegree(ig, f0));
 		return true;
 	});
-
-	/// todo : face_vertex_tangents
 
 	for(IncidenceGraph::Vertex v : incidenceGraph_data.efjunctures)
 	{
@@ -634,13 +775,12 @@ bool build_contact_surfaces(const IncidenceGraph& ig, IGAttributes& igAttribs, I
 
 	foreach_cell(ig, [&](IncidenceGraph::Vertex v) -> bool {
 		std::pair<uint32, uint32> pd = pseudoDegree(ig, v);
-		std::cout << "vertex " << v.index_ << " : " << pd.first << " : " << pd.second << std::endl; 
-		if (pd.second == 1)
+		if (pd.first == 1 && pd.second == 1) // branch extremities
 		{
 			build_contact_surface_1(ig, igAttribs, m2, m2Attribs, v);
 			return res;
 		}
-		if (pd.first == 2)
+		if (pd.first == 2) // efj or joint
 		{
 			build_contact_surface_2(ig, igAttribs, m2, m2Attribs, v);
 			return res;
@@ -700,8 +840,7 @@ void build_contact_surface_2(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 	value<IncidenceGraph::Vertex>(m2, m2Attribs.volume_igvertex, CMap2::Volume(d0)) = v;
 
 	std::vector<IncidenceGraph::Face> inc_leafs = get_incident_leaflets(ig, v);
-	uint8 nb_leafs = inc_leafs.size();
-
+	uint32 nb_leafs = inc_leafs.size();
 	if(nb_leafs == 0) {
 		std::vector<IncidenceGraph::Edge> inc_edges = incident_edges(ig, v);
 		std::vector<IncidenceGraph::Vertex> ivs0 = incident_vertices(ig, inc_edges[0]);
@@ -718,6 +857,7 @@ void build_contact_surface_2(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 
 	} 
 	else if (nb_leafs == 1) {
+		std::cout << "adding CSF 2 to EF juncture" << std::endl;
 		foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
 			std::vector<IncidenceGraph::Vertex> ivs = incident_vertices(ig, e);
 
@@ -730,6 +870,7 @@ void build_contact_surface_2(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 		});
 	}
 	else {
+		std::cout << "adding CSF 2 to FF juncture" << std::endl;
 		Dart d = d0;
 		CellMarker<IncidenceGraph, IncidenceGraph::Edge> edge_marker(ig);
 		foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e0) -> bool {
@@ -868,12 +1009,6 @@ void build_contact_surface_orange(const IncidenceGraph& ig, IGAttributes& igAttr
 	value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, faces[0]))) = Q2;
 
 	value<IncidenceGraph::Vertex>(m2, m2Attribs.volume_igvertex, CMap2::Volume(faces[0])) = v;
-	// std::cout << "orange "  <<  std::endl;
-	// foreach_cell(m2, [&](CMap2::Vertex v) -> bool {
-	// 	Vec3 v3 = value<Vec3>(m2, m2Attribs.vertex_position, v);
-	// 	std::cout << v3[0] << ":" << v3[1] << ":"  << v3[2] << std::endl;
-	// 	return true;
-	// });
 }
 
 
@@ -882,7 +1017,6 @@ void build_contact_surface_n(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	uint32 nbf = pseudoDegree(ig, v).first;
-	std::cout << "building contact surface " << nbf << std::endl;
 	const Vec3& center = value<Vec3>(ig, igAttribs.vertex_position, v);
 	std::vector<Vec3> Ppos;
 	Ppos.reserve(nbf);
@@ -913,7 +1047,6 @@ void build_contact_surface_n(const IncidenceGraph& ig, IGAttributes& igAttribs, 
 		return true;
 	});
 
-	std::cout << Ppos.size() << std::endl;
 
 	std::pair<Vec3, Scalar> plane = geometry::plane_fitting(Ppos);
 	bool planar = true;
@@ -952,10 +1085,10 @@ bool create_intersection_frames(const IncidenceGraph& ig, IGAttributes& igAttrib
 {
 	bool res = true;
 	parallel_foreach_cell(ig, [&](IncidenceGraph::Vertex v) -> bool {
-		if (degree(ig, v) > 2)
+		std::pair<uint32, uint32> info = pseudoDegree(ig, v);
+		if (info.first > 2)
 			res = create_intersection_frame_n(ig, igAttribs, m2, m2Attribs, v);
 
-		std::pair<uint32, uint32> info = pseudoDegree(ig, v);
 		if(info.first == 2 && info.second == 1)
 		{
 			res = create_ef_frame(ig, igAttribs, v);
@@ -1004,7 +1137,6 @@ bool create_intersection_frame_n(const IncidenceGraph& ig, IGAttributes& igAttri
 bool create_ef_frame(const IncidenceGraph& ig, IGAttributes& igAttribs, IncidenceGraph::Vertex v)
 {
 	const Vec3& center = value<Vec3>(ig, igAttribs.vertex_position, v);
-
 	/// creating tangent to the corner vertex
 	Vec3 T0, T1;
 	/// face tangent
@@ -1075,9 +1207,9 @@ std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& ig
 	{
 		branch_vertices.push_back(v1);
 		std::vector<IncidenceGraph::Edge> inc_edges = incident_edges(ig, v1);
-		e = inc_edges[inc_edges[0].index_ == inc_edges[0].index_ ? 1 : 0];
+		e = inc_edges[e.index_ == inc_edges[0].index_ ? 1 : 0];
 		inc_verts = incident_vertices(ig, e);
-		v1 = inc_verts[v1.index_ == inc_verts[0].index_ ? 1 : 0];
+		if(degree(ig, v1) == 2) v1 = inc_verts[v1.index_ == inc_verts[0].index_ ? 1 : 0];
 	}
 	branch_vertices.push_back(v1);
 	return branch_vertices;
@@ -1102,10 +1234,6 @@ IncidenceGraph::Edge get_shared_edge(const IncidenceGraph& ig, IncidenceGraph::V
 	return e;
 }
 
-// void rmf(const IncidenceGraph& ig, IGAttributes& igAttribs, std::vector<IncidenceGraph::Vertex> branch_vertices)
-// {
-
-// }
 
 /// U0 = (r0, s0, t0)
 Mat3 rmf_step(Vec3 x0, Vec3 x1, Mat3 U0, Vec3 t1)
@@ -1123,6 +1251,7 @@ Mat3 rmf_step(Vec3 x0, Vec3 x1, Mat3 U0, Vec3 t1)
 	Vec3 r1 = rl -(2/c1)*(v1.dot(rl))*v1;
 	Vec3 s1 = t1.cross(r1);
 
+	
 	Mat3 U1;
 	U1.col(0) = r1;
 	U1.col(1) = s1;
@@ -1135,30 +1264,36 @@ bool propagate_frames(const IncidenceGraph& ig, IGAttributes& igAttribs, const I
 	for(std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge> branch : igData.branches)
 	{
 		IncidenceGraph::Edge e0 = branch.first;
+		IncidenceGraph::Edge e1 = branch.second;
 		std::vector<IncidenceGraph::Vertex> branch_vertices = get_branch_vertices(ig, e0);
-
-		if(degree(ig, branch_vertices[0]) > 1)
+		if(degree(ig, branch_vertices[0]) > 1 || degree(ig, branch_vertices[branch_vertices.size() - 1]) > 1)
 		{
-			if(degree(ig, branch_vertices[branch_vertices.size() - 1]) == 1)
+			if(degree(ig, branch_vertices[0]) == 1 || degree(ig, branch_vertices[branch_vertices.size() - 1]) == 1)
+			{
+				if(degree(ig, branch_vertices[0]) == 1)
+					std::reverse(branch_vertices.begin(),branch_vertices.end()); 
 				propagate_frame_n_1(ig, igAttribs, branch_vertices);
+			}
 			else
 				propagate_frame_n_n(ig, igAttribs, m2, branch_vertices);
 		}
 		else 
 		{
-			if(degree(ig, branch_vertices[0]) == 1)
-				create_extremity_frame(ig, igAttribs, branch_vertices[0]);
+			// if(degree(ig, branch_vertices[0]) == 1) erreur
+				// create_extremity_frame(ig, igAttribs, branch_vertices[0]);
 
 			propagate_frame_n_1(ig, igAttribs, branch_vertices);
 		}
 		
 	}
 
+
 	return true;
 }
 
 void propagate_frame_n_1(const IncidenceGraph& ig, IGAttributes& igAttribs,  std::vector<IncidenceGraph::Vertex>& branch_vertices)
 {
+
 	std::vector<Vec3> tangents;
 	for(uint32 i = 1; i < branch_vertices.size(); ++i)
 	{
@@ -1184,8 +1319,65 @@ void propagate_frame_n_1(const IncidenceGraph& ig, IGAttributes& igAttribs,  std
 		Vec3 p0 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i-1]);
 		Vec3 p1 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i]);
 		
-		std::pair<Mat3,Mat3> frames = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0);
+		std::pair<Mat3,Mat3>& frames = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0);
 		Mat3& U0 = vid0 == 0 ? frames.first : frames.second;
+		Mat3 U1 = rmf_step(p0, p1, U0, tangents[i-1]);
+		Mat3& U_1 = vid1 == 0 ? frames.first : frames.second;
+		U_1.col(0) = U1.col(0);
+		U_1.col(1) = -U1.col(1);
+		U_1.col(2) = -U1.col(2);
+
+
+		if(i < branch_vertices.size() - 1)
+		{
+			std::vector<IncidenceGraph::Edge> inc_edges = incident_edges(ig, v1);
+			IncidenceGraph::Edge e1 = inc_edges[e0.index_ == inc_edges[0].index_? 1: 0];
+			inc_verts = incident_vertices(ig, e1);
+			vid1 = v1.index_ == inc_verts[0].index_ ? 0 : 1;
+			if(vid1 == 0)
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).first = U1;
+			else
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).second = U1;
+		}
+	}
+}
+
+bool propagate_frame_n_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2,  std::vector<IncidenceGraph::Vertex>& branch_vertices)
+{
+	Mat3 lastU;
+	std::vector<IncidenceGraph::Vertex> inc_verts;
+
+	std::vector<Vec3> tangents;
+	tangents.push_back(Vec3());
+	for(uint32 i = 1; i < branch_vertices.size(); ++i)
+	{
+		Vec3 p0 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i-1]);
+		Vec3 p1 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i]);
+		Vec3 t = (p1 - p0).normalized();
+		if(i < branch_vertices.size()-1)
+			t += (value<Vec3>(ig, igAttribs.vertex_position,branch_vertices[i+1]) - p1).normalized();
+		t.normalize();
+		tangents.push_back(t);
+	}
+
+	/// propagating to the second to last vertex
+
+	for(uint32 i = 1; i < branch_vertices.size() - 1; ++i)
+	{
+		IncidenceGraph::Vertex v0 = branch_vertices[i - 1];
+		IncidenceGraph::Vertex v1 = branch_vertices[i];
+		IncidenceGraph::Edge e0 = get_shared_edge(ig, v0, v1);
+
+		inc_verts = incident_vertices(ig, e0);
+		uint32 vid0 = v0.index_ == inc_verts[0].index_ ? 0 : 1;
+		uint32 vid1 = v1.index_ == inc_verts[0].index_ ? 0 : 1;
+
+		Vec3 p0 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i-1]);
+		Vec3 p1 = value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[i]);
+		
+		std::pair<Mat3,Mat3>& frames = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0);
+		Mat3& U0 = vid0 == 0 ? frames.first : frames.second;
+		lastU = U0;
 		Mat3 U1 = rmf_step(p0, p1, U0, tangents[i]);
 		Mat3& U_1 = vid1 == 0 ? frames.first : frames.second;
 		U_1.col(0) = U1.col(0);
@@ -1204,12 +1396,122 @@ void propagate_frame_n_1(const IncidenceGraph& ig, IGAttributes& igAttribs,  std
 				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).second = U1;
 		}
 	}
-}
 
-bool propagate_frame_n_n(const IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2,  std::vector<IncidenceGraph::Vertex>& branch_vertices)
-{
+
+	uint8 nb_vertices = branch_vertices.size();
+	Mat3 endU = rmf_step(value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[nb_vertices-2]),
+	value<Vec3>(ig, igAttribs.vertex_position, branch_vertices[nb_vertices-1]),
+		lastU, tangents[nb_vertices - 1]);
+
+	endU.col(1) = -endU.col(1);
+	endU.col(2) = -endU.col(2);
+
+	IncidenceGraph::Edge e0 = get_shared_edge(ig, branch_vertices[nb_vertices - 2], branch_vertices[nb_vertices - 1]);
+	inc_verts = incident_vertices(ig, e0);
+	uint32 vidEnd = branch_vertices[nb_vertices - 1].index_ == inc_verts[0].index_ ? 0 : 1;
+	Mat3 UE;
+	if(vidEnd == 0)
+		UE = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).first;
+	else
+		UE = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).second;
 	
+	Vec3 X = (endU.col(0) + endU.col(1)).normalized();
+	Vec3 RE = UE.col(0), SE = UE.col(1);
+	bool A = (RE.dot(X) >= 0);
+	bool B = (SE.dot(X) >= 0);
+
+	uint32 nb_shifts = 0;
+	if (!A && B)
+		nb_shifts = 1;
+	else if (!A && !B)
+		nb_shifts = 2;
+	else if (A && !B)
+		nb_shifts = 3;
+
+
+	if (nb_shifts > 0)
+	{
+		// shift_frame(UE, nb_shifts);
+		for (uint32 i = 0; i < nb_shifts; ++i)
+		{
+			Vec3 R = UE.col(1);
+			Vec3 S = -UE.col(0);
+			UE.col(0) = R;
+			UE.col(1) = S;
+		}
+
+		if(vidEnd == 0)
+			value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).first = UE;
+		else
+			value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).second = UE;
+		
+		Dart csface;
+		if(vidEnd == 0)
+			csface = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e0).first;
+		else
+			csface = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e0).second;
+
+		for (uint32 i = 0; i < nb_shifts; ++i)
+			csface = phi1(m2, csface);
+		
+		if(vidEnd == 0)
+			value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e0).first = csface;
+		else
+			value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e0).second = csface;
+
+	}
 	
+	if (nb_vertices > 2)
+	{
+		Scalar cos0 = UE.col(0).dot(endU.col(0));
+		Scalar cos1 = UE.col(1).dot(endU.col(0));
+		Scalar angle = std::acos(cos0) * (cos1 > 0 ? 1 : -1);
+		Scalar angle_step = -angle / Scalar(nb_vertices - 1);
+
+
+		uint32 step = 0;
+		for(uint32 i = 1; i < branch_vertices.size() - 2; ++i)
+		{
+			++step;
+			IncidenceGraph::Vertex v0 = branch_vertices[i - 1];
+			IncidenceGraph::Vertex v1 = branch_vertices[i];
+			IncidenceGraph::Vertex v2 = branch_vertices[i + 1];
+			IncidenceGraph::Edge e0 = get_shared_edge(ig, v0, v1);
+			IncidenceGraph::Edge e1 = get_shared_edge(ig, v1, v2);
+
+			std::vector<IncidenceGraph::Vertex> inc_verts0 = incident_vertices(ig, e0);
+			std::vector<IncidenceGraph::Vertex> inc_verts1 = incident_vertices(ig, e1);
+
+			uint32 vid10 = v1.index_ == inc_verts0[0].index_ ? 0 : 1;
+			uint32 vid11 = v1.index_ == inc_verts1[0].index_ ? 0 : 1;
+			
+			Mat3 U, U_;
+			if(vid11 == 0)
+				U = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).first;
+			else
+				U = value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).second;
+
+			Eigen::AngleAxisd rot(-angle_step * step, U.col(2));
+			U.col(0) = rot * U.col(0);
+			U.col(1) = U.col(2).cross(U.col(0));
+
+			U_.col(0) = U.col(0);
+			U_.col(1) = -U.col(1);
+			U_.col(2) = -U.col(2);
+
+			if(vid10 == 0)
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).first = U_;
+			else
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e0).second = U_;
+
+			if(vid11 == 0)
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).first = U;
+			else
+				value<std::pair<Mat3, Mat3>>(ig, igAttribs.halfedge_frame, e1).second = U;
+
+		}
+	}
+
 	return true;
 }
 
@@ -1715,11 +2017,11 @@ Dart remesh_igh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 		});
 	}
 
-	foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
-		// Vec3 p = value<Vec3>(m2, m2Attribs.vertex_position, v);
-		std::cout << degree(m2, v) << std::endl;
-		return true;
-	});
+	// foreach_incident_vertex(m2, vol, [&](CMap2::Vertex v) -> bool {
+	// 	// Vec3 p = value<Vec3>(m2, m2Attribs.vertex_position, v);
+	// 	std::cout << degree(m2, v) << std::endl;
+	// 	return true;
+	// });
 
 	return vol_dart;
 }
@@ -1878,45 +2180,43 @@ bool build_volumes(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 	return success;
 }
 
-bool build_branch_section(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Face f0)
+bool build_branch_section(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Edge e)
 {
-	foreach_cell(ig, [&](IncidenceGraph::Edge e) -> bool {
-		std::vector<IncidenceGraph::Vertex> vertices = incident_vertices(ig, e);
+	std::vector<IncidenceGraph::Vertex> vertices = incident_vertices(ig, e);
 
-		Dart m2f0 = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).first;
-		Dart m2f1 = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).second;
+	Dart m2f0 = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).first;
+	Dart m2f1 = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, e).second;
 
-		std::vector<Dart> F0 = {m2f0, phi1(m2, m2f0), phi<1,1>(m2, m2f0), phi_1(m2, m2f0)};
-		std::vector<Dart> F1 = {m2f1, phi1(m2, m2f1), phi<1,1>(m2, m2f1), phi_1(m2, m2f1)};
+	std::vector<Dart> F0 = {m2f0, phi1(m2, m2f0), phi<1,1>(m2, m2f0), phi_1(m2, m2f0)};
+	std::vector<Dart> F1 = {m2f1, phi1(m2, m2f1), phi<1,1>(m2, m2f1), phi_1(m2, m2f1)};
+	std::cout << F0[0].index << " " << F1[0].index << std::endl;
+	Dart m3d = add_chunk(m3);
+	std::vector<Dart> D0 = {m3d, phi<2,3,2,1>(m3, m3d), phi<2,3,2,1,2,3,2,1>(m3, m3d), phi<1,1,1,2,3,2>(m3, m3d)};
+	std::vector<Dart> D1 = {phi<2,1,1,2>(m3, D0[0]), phi<2,1,1,2>(m3, D0[1]), phi<2,1,1,2>(m3, D0[2]), phi<2,1,1,2>(m3, D0[3])};
 
-		Dart m3d = add_chunk(m3);
-		std::vector<Dart> D0 = {m3d, phi<2,3,2,1>(m3, m3d), phi<2,3,2,1,2,3,2,1>(m3, m3d), phi<1,1,1,2,3,2>(m3, m3d)};
-		std::vector<Dart> D1 = {phi<2,1,1,2>(m3, D0[0]), phi<2,1,1,2>(m3, D0[1]), phi<2,1,1,2>(m3, D0[2]), phi<2,1,1,2>(m3, D0[3])};
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[0])) = phi1(m3, D0[0]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[1])) = phi1(m3, D0[1]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[2])) = phi1(m3, D0[2]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[3])) = phi1(m3, D0[3]);
 
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[0])) = phi1(m3, D0[0]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[1])) = phi1(m3, D0[1]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[2])) = phi1(m3, D0[2]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F0[3])) = phi1(m3, D0[3]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[0])) = phi<1,1>(m3, D1[1]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[1])) = phi<1,1>(m3, D1[0]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[2])) = phi<1,1>(m3, D1[3]);
+	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[3])) = phi<1,1>(m3, D1[2]);
 
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[0])) = phi<1,1>(m3, D1[1]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[1])) = phi<1,1>(m3, D1[0]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[2])) = phi<1,1>(m3, D1[3]);
-		value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(F1[3])) = phi<1,1>(m3, D1[2]);
+	value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_volume_connection, e).first = D0[0];
+	value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_volume_connection, e).second = phi1(m3, D1[0]);
 
-		value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_volume_connection, e).first = D0[0];
-		value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_volume_connection, e).second = phi1(m3, D1[0]);
-		return true;
-	});
 	return true;
 }
 
 bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Face f0)
 {	
 	// std::vector<IncidenceGraph::Face> leafs = get_incident_leaflet();
-	std::vector<IncidenceGraph::Face> leaflet = {f0};
-	CellMarker<IncidenceGraph, IncidenceGraph::Face> face_marker(ig);
+	// std::vector<IncidenceGraph::Face> leaflet = {f0};
+	std::vector<IncidenceGraph::Face> leaflet = get_leaflet_faces(ig, f0);
+	CellMarker<IncidenceGraph, IncidenceGraph::Edge> edge_marker(ig);
 	CellMarker<IncidenceGraph, IncidenceGraph::Vertex> vertex_marker(ig);
-	face_marker.mark(f0);
 
 	/// build plate elements for each face
 	std::vector<IncidenceGraph::Edge> boundary_edges;
@@ -1925,28 +2225,36 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 	for(uint32 i = 0; i < leaflet.size(); ++i)
 	{
 		value<std::vector<uint8>>(ig, igAttribs.incident_edges_dir, leaflet[i]);
-		foreach_adjacent_face_through_edge(ig, leaflet[i], [&](IncidenceGraph::Face f) -> bool {
-			if(face_marker.is_marked(f))
-				return true;
-
-			face_marker.mark(f);
-			leaflet.push_back(f);
-			return true;
-		});
 
 		std::vector<IncidenceGraph::Edge> inc_edges = incident_edges(ig, leaflet[i]);
 		std::vector<uint8> inc_edges_dir = value<std::vector<uint8>>(ig, igAttribs.incident_edges_dir, leaflet[i]);
 
 		Dart d0 = add_plate(m3);
+
+		// foreach_dart_of_PHI1_PHI2(m3, d0, [&](Dart d) -> bool {
+		// 	std::cout << d << " ";
+		// 	return true;
+		// });
+		// std::cout << std::endl;
+		// foreach_dart_of_PHI1_PHI2(m3, phi<-1,2, 3>(m3, d0), [&](Dart d) -> bool {
+		// 	std::cout << d << " ";
+		// 	return true;
+		// });
+		// std::cout << std::endl << std::endl;
+
+		value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, leaflet[i]).resize(4);
 		for(uint32 j = 0; j < 4; ++j)
 		{
-			if(degree(ig, inc_edges[j]) == 0)
-				boundary_edges.push_back(inc_edges[j]);
-			else
-				inside_edges.push_back(inc_edges[j]);
-
+			if(!edge_marker.is_marked(inc_edges[j]))
+			{
+				edge_marker.mark(inc_edges[j]);
+				if(degree(ig, inc_edges[j]) == 1)
+					boundary_edges.push_back(inc_edges[j]);
+				else
+					inside_edges.push_back(inc_edges[j]);
+			}
 			/// attach dart to face edge
-			/// THIS IS POINTLESS
+			/// THIS IS POINTLESS - MAYBE NOT ?
 			if(inc_edges_dir[j] == 0)
 				value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, leaflet[i])[j] = d0;
 			else
@@ -1955,6 +2263,7 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 			d0 = phi<2,1,1>(m3, d0);
 		}
 	}
+
 
 	/// Connect plate elements together
 	for(IncidenceGraph::Edge e0 : inside_edges)
@@ -1965,7 +2274,6 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 		uint32 eid1 = get_incident_edge_id(ig, inc_faces[1], e0);
 
 		std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, e0);
-
 		Dart edge_dart0 = value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, inc_faces[0])[eid0];
 		Dart edge_dart1 = value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, inc_faces[1])[eid1];
 
@@ -1985,13 +2293,16 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 	}
 
 	/// add border to plate
+
 	for(IncidenceGraph::Edge e0 : boundary_edges)
 	{
 		Dart d0 = add_plate(m3);
+		
 		IncidenceGraph::Face f = incident_faces(ig, e0)[0];
 		uint8 dir;
 		IncidenceGraph::Edge e;
 		Dart d1;
+
 		std::vector<IncidenceGraph::Edge> inc_edges_neigh = incident_edges(ig, f);
 		for(uint32 i = 0; i < 4; ++i)
 		{
@@ -2011,13 +2322,14 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 		sew_volumes_igh(m3, phi<1, 1>(m3, d00), d10);
 		sew_volumes_igh(m3, phi<1, 1>(m3, d01), d11);
 
-		std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, e);
+		std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, e0);
 		for(IncidenceGraph::Vertex v : inc_verts)
 		{
 			if(!vertex_marker.is_marked(v))
 			{
 				boundary_verts.push_back(v);
 				vertex_marker.mark(v);
+				value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, v).resize(incident_edges(ig, v).size());
 			}
 		}
 
@@ -2026,19 +2338,19 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 
 		if(dir == 0)
 		{
-			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[0])[eid0] = phi2(m3, d00);
-			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[1])[eid1] = phi2(m3, d01);
+			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[0])[eid0] = phi<2, 1, 2, 3, 2, 1>(m3, d00); /// DEFO WRONG 
+			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[1])[eid1] = phi<2, 1, 2, 3, 2, 1>(m3, d01);
 		}
 		else
 		{
-			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[1])[eid1] = phi2(m3, d00);
-			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[0])[eid0] = phi2(m3, d01);
+			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[1])[eid1] = phi<2, 1, 2, 3, 2, 1>(m3, d00);
+			value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, inc_verts[0])[eid0] = phi<2, 1, 2, 3, 2, 1>(m3, d01);
 		}
 	}
 
 	/// sew plate corners or connect to scaffold 
 	for(IncidenceGraph::Vertex vb : boundary_verts) 
-	{
+	{ 
 		std::pair<uint32, uint32> info = pseudoDegree(ig, vb);
 		std::vector<IncidenceGraph::Edge> inc_bd_edges;
 		std::vector<IncidenceGraph::Edge> inc_edges = incident_edges(ig, vb);
@@ -2050,6 +2362,7 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 
 		if(info.second == 1) // efjuncture
 		{
+			std::cout << "ef juncture stitching" << inc_bd_edges.size() <<  std::endl;
 			/// connect to scaffold
 			uint32 eid0 = get_incident_edge_id(ig, vb, inc_bd_edges[0]);
 			uint32 eid1 = get_incident_edge_id(ig, vb, inc_bd_edges[1]);
@@ -2057,18 +2370,25 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 			Dart d0 = value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, vb)[eid0];
 			Dart d1 = value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, vb)[eid1];
 
-			std::vector<Dart> plate_darts = {d0, phi<-1,2,3,2,-1>(m3, d0), d1, phi<-1,2,3,2,-1>(m3, d1)};
+			// std::vector<Dart> plate_darts = {d0, phi<-1,2,3,2,-1>(m3, d0), d1, phi<-1,2,3,2,-1>(m3, d1)}; //// SOMETHING WRONG HERE
+			// std::vector<Dart> plate_darts = {d0, phi<-1,2,3,2>(m3, d0), d1, phi<-1,2,3,2>(m3, d1)};
+			std::vector<Dart> plate_darts = {phi1(m3, d0), phi<-1,2,3,2, 1>(m3, d0), phi1(m3, d1), phi<-1,2,3,2,1>(m3, d1)}; 
 			std::pair<Dart, Dart> sds = value<std::pair<Dart, Dart>>(ig, igAttribs.halfedge_contact_surface_face, inc_bd_edges[0]);
 			Dart sd = incident_vertices(ig, inc_bd_edges[0])[0].index_ == vb.index_ ? sds.first : sds.second;
-
+			std::cout << "volume ef : " << index_of(m2, CMap2::Volume(sd)) << std::endl;
 			for(Dart pd : plate_darts)
 			{
 				value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(sd)) = pd;
+				std::cout << "      "<<pd << " " << phi<1>(m3, pd) << " "<< phi<1,1>(m3, pd) << " " << phi<1, 1, 1>(m3, pd) << std::endl;
+				std::cout << "2 -   "<< phi<2>(m3, pd) << " " << phi<1, 2>(m3, pd) << " "<< phi<1,1, 2>(m3, pd) << " " << phi<1, 1, 1, 2>(m3, pd) << std::endl;
+				std::cout << "2 3 - "<< phi<2, 3>(m3, pd) << " " << phi<1, 2, 3>(m3, pd) << " "<< phi<1,1, 2, 3>(m3, pd) << " " << phi<1, 1, 1, 2, 3>(m3, pd) << std::endl;
+				std::cout << "2 3 2-"<< phi<2,3, 2>(m3, pd) << " " << phi<1, 2,3, 2>(m3, pd) << " "<< phi<1,1, 2,3, 2>(m3, pd) << " " << phi<1, 1, 1, 2,3, 2>(m3, pd) << std::endl;
 				sd = phi1(m2, sd);
 			}
 		}
-		else // border edge
+		else // corner vertices
 		{
+			std::cout << "corner vertices stitching" << std::endl;
 			/// sew to neighbor
 			for(IncidenceGraph::Edge e : inc_bd_edges)
 			{	
@@ -2076,23 +2396,26 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 
 				Dart d0 = value<std::vector<Dart>>(ig, igAttribs.vertex_boundary_edge_dart, vb)[eid];
 				Dart d1 = phi<-1, 2, 3, 2, -1>(m3, d0);
-
+				std::cout << "bes: " << d0 << " " << d1 << " " << phi<1>(m3, d1) << " " << phi<1, 1>(m3, d1) << " " << phi<1, 1, 1>(m3, d1) << std::endl;
 				if(phi3(m3, d0).index == d0.index)
 				{
-					Dart d = d0;
+					Dart d = phi<2>(m3,d0);
 					do {
-						d = phi<2,3,2>(m3, d);
+						d = phi<3,2>(m3, d);
 					} while(phi3(m3, d).index != d.index);
+					std::cout << "76 darts: " << d0.index << " " << d.index << std::endl;
 					sew_volumes_igh(m3, d0, d);
 				}
-				if(phi3(m3, d1).index == d1.index)
-				{
-					Dart d = d1;
-					do {
-						d = phi<2,3,2>(m3, d);
-					} while(phi3(m3, d).index != d.index);
-					sew_volumes_igh(m3, d1, d);
-				}
+				/// REDUNDANT, if d0 sewn then d1 sewn or glitched
+				// if(phi3(m3, d1).index == d1.index)
+				// {
+				// 	Dart d = d1;
+				// 	do {
+				// 		d = phi<2,3,2>(m3, d);
+				// 	} while(phi3(m3, d).index != d.index);
+				// 	std::cout << "85 darts: " << d0.index << " " << d.index << std::endl;
+				// 	sew_volumes_igh(m3, d1, d);
+				// }
 			}
  		}
 	}
@@ -2105,9 +2428,172 @@ bool build_leaflet(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Att
 
 bool sew_sections_igh(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 {
+	int edge_nb = 0;
+	parallel_foreach_cell(m2, [&](CMap2::Edge e) -> bool {
+		if (is_incident_to_boundary(m2, e))
+			return true;
+
+		std::vector<CMap2::HalfEdge> halfedges = incident_halfedges(m2, e);
+		std::cout << "cs: " << index_of(m2, CMap2::Volume(e.dart)) << " - faces :" << incident_faces(m2, CMap2::Volume(e.dart)).size() << std::endl; 
+		std::cout << "darts : " << value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[0]).index << " " << value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[1]) << std::endl;
+		std::cout << "phi3: " << phi3(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[0])).index << " " << phi3(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[1])) << std::endl;
+		sew_volumes_igh(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[0]),
+					phi1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, halfedges[1])));
+		return true;
+	});
+
+	std::cout << "holes " << close(m3, false) << std::endl;
 	return true;
 }
 
+bool set_volumes_geometry_igh(IncidenceGraph& ig, IGAttributes& igAttribs, CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs)
+{
+	parallel_foreach_cell(m2, [&](CMap2::Volume w) -> bool {
+		Dart m3d = phi_1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(w.dart)));
+		value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.volume_center, w);
+		return true;
+	});
+
+	parallel_foreach_cell(m2, [&](CMap2::Edge e) -> bool {
+		Dart m3d = phi1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e.dart)));
+		value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, e);
+		return true;
+	});
+
+	CellMarker<CMap3, CMap3::Vertex> cm(m3);
+	for (Dart m2d = m2.begin(), end = m2.end(); m2d != end; m2d = m2.next(m2d))
+	{
+		if (!is_boundary(m2, m2d))
+		{
+			Dart m3d = value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(m2d));
+			CMap3::Vertex m3v(m3d);
+			if (!cm.is_marked(m3v))
+			{
+				cm.mark(m3v);
+				value<Vec3>(m3, m3Attribs.vertex_position, m3v) =
+					value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, m2d)));
+			}
+		}
+	}
+
+	// parallel_foreach_cell(m2, [&](CMap2::Volume w) -> bool {
+	// 	CMap2* scaffold = value<CMap2*>(m2, m2Attribs.ortho_scaffold, w);
+	// 	if (scaffold)
+	// 	{
+	// 		auto scaffold_cs_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "scaffold_connection");
+	// 		auto scaffold_position = get_attribute<Vec3, CMap2::Vertex>(*scaffold, "position");
+	// 		auto scaffold_position_edge = get_attribute<Vec3, CMap2::Edge>(*scaffold, "position");
+	// 		auto scaffold_position_face = get_attribute<Vec3, CMap2::Face>(*scaffold, "position");
+	// 		auto scaffold_position_volume = get_attribute<Vec3, CMap2::Volume>(*scaffold, "position");
+	// 		auto scaffold_hex_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
+	// 		uint32 i = 0;
+	// 		foreach_cell(*scaffold, [&](CMap2::Vertex v2) -> bool {
+	// 			Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart));
+	// 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+	// 				value<Vec3>(*scaffold, scaffold_position, v2);
+	// 			return true;
+	// 		});
+	// 		foreach_cell(*scaffold, [&](CMap2::Edge e2) -> bool {
+	// 			Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e2.dart));
+	// 			d3 = phi1(m3, d3);
+	// 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+	// 				value<Vec3>(*scaffold, scaffold_position_edge, e2);
+
+	// 			return true;
+	// 		});
+
+	// 		foreach_cell(*scaffold, [&](CMap2::Face f2) -> bool {
+	// 			Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(f2.dart));
+	// 			d3 = phi<1, 1>(m3, d3);
+	// 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+	// 				value<Vec3>(*scaffold, scaffold_position_face, f2);
+	// 			return true;
+	// 		});
+
+	// 		foreach_cell(*scaffold, [&](CMap2::Volume w2) -> bool {
+	// 			Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(w2.dart));
+	// 			d3 = phi<1, 1, 2, 1, 1>(m3, d3);
+	// 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
+	// 				value<Vec3>(*scaffold, scaffold_position_volume, w2);
+	// 			return true;
+	// 		});
+	// 	}
+	// 	return true;
+	// });
+
+
+	foreach_cell(ig, [&](IncidenceGraph::Vertex v) -> bool {
+		std::pair<uint32, uint32> info = pseudoDegree(ig, v);
+		std::vector<IncidenceGraph::Face> inc_faces = incident_faces(ig, v);
+		if(inc_faces.size() /*leaflet edge*/ && info.first == 1 /*skip ef&ff junctures*/)
+		{
+			Vec3 normal = value<Vec3>(ig, igAttribs.vertex_normal, v);
+			Dart upDart;
+			std::vector<IncidenceGraph::Edge> inc_edges;
+			for(IncidenceGraph::Face f : inc_faces)
+			{
+				std::vector<IncidenceGraph::Edge> edges = incident_edges(ig, f);
+				std::vector<IncidenceGraph::Vertex> vertices = incident_vertices(ig, f);
+				for(uint32 i = 0; i < edges.size(); ++i)
+				{
+					Vec3 pos_mid = value<Vec3>(ig, igAttribs.vertex_position, vertices[i]);
+					// Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, v);
+					Scalar radius = 0.1;
+					Dart d =  value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, f)[i];
+					value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d)) = pos_mid;
+					value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(phi1(m3,d))) = pos_mid + normal * radius;
+					value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(phi<-1,2,3,2,-1>(m3,d))) = pos_mid - normal*radius;
+					/// border edges
+					if(degree(ig, edges[i]) == 1)
+					{
+						Dart d1 = phi<3, 2>(m3, d);
+						/// corners
+						if(degree(ig, vertices[i]) == 2) 
+						{
+							///placeholder -> should be pos(v) + (pos(v) - center)*radius(v) 
+							pos_mid = value<Vec3>(ig, igAttribs.vertex_position, vertices[i]);
+						}
+						/// border vertices
+						else
+						{
+							///placeholder -> should be pos(v) + sum(pos(v) - center(f))*radius(v)  
+							pos_mid = value<Vec3>(ig, igAttribs.vertex_position, vertices[i]);
+						}
+						value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d1)) = pos_mid;
+						value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(phi1(m3,d1))) = pos_mid+ normal * radius;
+						value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(phi<-1,2,3,2,-1>(m3,d1))) = pos_mid- normal * radius;
+
+
+					}
+
+					// std::vector<IncidenceGraph::Vertex> inc_verts = incident_vertices(ig, edges[i]);
+					// if(inc_verts[0].index_ == v.index_ || inc_verts[1].index_ == v.index_) {
+					// 	inc_edges.push_back(edges[i]);
+					// 	uint8 edge_dir = (*ig.face_incident_edges_dir_)[f.index_][i];
+					// 	normal += (edge_dir? -1: 1) * value<Vec3>(ig, igAttribs.face_normal, f);
+						// if(upDart.index == INVALID_INDEX)
+						// {
+						// 	Dart d =  value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, f)[i];
+						// 	if(edge_dir)
+						// 		d = phi<-1, 2, 3, 2, 1>(m3, d);
+						// }
+
+
+						// break;
+					// }
+				}
+			}
+			// normal.normalize();
+			// value<Vec3>(ig, igAttribs.vertex_normal, v) = normal;
+			// value<Dart>(ig, igAttribs.vertex_up_dart, v) = upDart;
+		}
+
+		return true;
+	});
+
+
+	return true;
+}
 
 } // namespace modeling
 
