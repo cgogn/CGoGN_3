@@ -1,8 +1,28 @@
-#ifndef CGOGN_MODULE_DISTANCE_HEAT_SOLVER_H_
-#define CGOGN_MODULE_DISTANCE_HEAT_SOLVER_H_
+/*******************************************************************************
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#ifndef CGOGN_GEOMETRY_DISTANCE_HEAT_SOLVER_H_
+#define CGOGN_GEOMETRY_DISTANCE_HEAT_SOLVER_H_
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/types/cells_set.h>
@@ -10,6 +30,9 @@
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 namespace cgogn
 {
@@ -95,7 +118,6 @@ public:
 
 	void solve(Attribute<Scalar>* out_heat_distance, ui::CellsSet<MESH, Vertex>& cell_source)
 	{
-
 		Eigen::VectorXd source = Eigen::VectorXd::Zero(nb_vertices);
 
 		cell_source.foreach_cell([&](Vertex vec) { source(value<uint32>(*_mesh, vertex_index.get(), vec)) = 1; });
@@ -189,4 +211,4 @@ public:
 
 } // namespace cgogn
 
-#endif
+#endif // CGOGN_GEOMETRY_DISTANCE_HEAT_SOLVER_H_
