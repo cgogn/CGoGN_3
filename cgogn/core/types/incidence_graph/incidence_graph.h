@@ -24,7 +24,7 @@
 #ifndef CGOGN_CORE_INCIDENCE_GRAPH_H_
 #define CGOGN_CORE_INCIDENCE_GRAPH_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
@@ -131,6 +131,7 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
 	std::shared_ptr<Attribute<std::vector<Face>>> edge_incident_faces_;
 	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
+	std::shared_ptr<Attribute<std::vector<uint8>>> face_incident_edges_dir_;
 
 	IncidenceGraph()
 	{
@@ -142,6 +143,8 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::vector<Face>>("incident_faces");
 		face_incident_edges_ =
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
+		face_incident_edges_dir_ =
+			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
 	};
 	// ~IncidenceGraph();
 };

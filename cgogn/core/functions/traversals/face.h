@@ -256,9 +256,13 @@ auto foreach_incident_face(const IncidenceGraph& ig, CELL c, const FUNC& func)
 			bool stop = false;
 			for (auto& fp : (*ig.edge_incident_faces_)[ep.index_])
 			{
-				stop = !func(fp);
-				if (stop)
-					break;
+				if(!marker.is_marked(fp))
+				{
+					marker.mark(fp);
+					stop = !func(fp);
+					if (stop)
+						break;
+				}
 			}
 			if (stop)
 				break;
@@ -272,6 +276,31 @@ auto foreach_incident_face(const IncidenceGraph& ig, CELL c, const FUNC& func)
 				break;
 		}
 	}
+}
+
+template <typename FUNC>
+auto foreach_adjacent_face_through_edge(const IncidenceGraph& ig, IncidenceGraph::Face f, const FUNC& func)
+{
+	using Face = typename mesh_traits<IncidenceGraph>::Face;
+
+	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	bool stop = false;
+	CellMarkerStore<IncidenceGraph, IncidenceGraph::Face> marker(ig);
+	marker.mark(f);
+	foreach_incident_edge(ig, f, [&](IncidenceGraph::Edge e) -> bool {
+		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f1) -> bool {
+			if(!marker.is_marked(f1))
+			{
+				marker.mark(f1);
+				stop = !func(f1);
+			}
+
+			return !stop;
+		});
+		return !stop;
+	});
 }
 
 /*****************************************************************************/

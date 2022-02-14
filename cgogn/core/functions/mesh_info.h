@@ -48,7 +48,7 @@ namespace cgogn
 /////////////
 
 template <typename CELL, typename MESH>
-std::string cell_name(const MESH& /*m*/ )
+std::string cell_name(const MESH&)
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	return mesh_traits<MESH>::cell_names[tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value];
