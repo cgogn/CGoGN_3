@@ -163,16 +163,17 @@ public:
 
 	MESH* load_graph_from_file(const std::string& filename)
 	{
+		std::string name = filename_from_path(filename);
+		if (has_mesh(name))
+			name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
+		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+		MESH* m = it->second.get();
+
+		std::string ext = extension(filename);
+		bool imported;
+
 		if constexpr (mesh_traits<MESH>::dimension == 1 && std::is_default_constructible_v<MESH>)
 		{
-			std::string name = filename_from_path(filename);
-			if (has_mesh(name))
-				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
-			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
-			MESH* m = it->second.get();
-
-			std::string ext = extension(filename);
-			bool imported;
 			if (ext.compare("cg") == 0)
 				imported = cgogn::io::import_CG(*m, filename);
 			else if (ext.compare("cgr") == 0)
@@ -181,25 +182,32 @@ public:
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
 				imported = false;
-
-			if (imported)
-			{
-				MeshData<MESH>& md = mesh_data(*m);
-				md.init(m);
-				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-				if (vertex_position)
-					set_mesh_bb_vertex_position(*m, vertex_position);
-				boost::synapse::emit<mesh_added>(this, m);
-				return m;
-			}
+		}
+		else if constexpr (std::is_same_v<MESH, IncidenceGraph>)
+		{
+			if (ext.compare("cg") == 0)
+				imported = cgogn::io::import_CG(*m, filename);
+			else if (ext.compare("ig") == 0)
+				imported = cgogn::io::import_IG(*m, filename);
 			else
-			{
-				meshes_.erase(name);
-				return nullptr;
-			}
+				imported = false;
+		}
+
+		if (imported)
+		{
+			MeshData<MESH>& md = mesh_data(*m);
+			md.init(m);
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			if (vertex_position)
+				set_mesh_bb_vertex_position(*m, vertex_position);
+			boost::synapse::emit<mesh_added>(this, m);
+			return m;
 		}
 		else
+		{
+			meshes_.erase(name);
 			return nullptr;
+		}
 	}
 
 	void save_graph_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,

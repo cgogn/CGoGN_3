@@ -24,6 +24,7 @@
 #include <cgogn/io/graph/graph_import.h>
 
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
@@ -56,6 +57,13 @@ void import_graph_data(Graph& g, const GraphImportData& graph_data)
 	}
 
 	remove_attribute<Vertex>(g, vertex_dart);
+}
+
+void import_graph_data(IncidenceGraph& ig, const GraphImportData& graph_data)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	for (uint32 i = 0; i < uint32(graph_data.edges_vertex_indices_.size()); i += 2)
+		add_edge(ig, Vertex(graph_data.edges_vertex_indices_[i]), Vertex(graph_data.edges_vertex_indices_[i + 1]));
 }
 
 } // namespace io

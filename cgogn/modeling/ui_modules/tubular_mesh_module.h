@@ -45,6 +45,7 @@
 
 #include <cgogn/modeling/algos/graph_resampling.h>
 #include <cgogn/modeling/algos/graph_to_hex.h>
+#include <cgogn/modeling/algos/incidenceGraph_to_hex.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/volume_utils.h>
 
@@ -148,7 +149,7 @@ public:
 	void extend_graph_extremities()
 	{
 		using SelectedFace = std::tuple<SurfaceFace, Vec3, Scalar>;
-		CellCache<Graph> cache(*graph_);
+		CellCache<GRAPH> cache(*graph_);
 		cache.template build<GraphVertex>();
 		foreach_cell(cache, [&](GraphVertex v) -> bool {
 			if (degree(*graph_, v) == 1)
@@ -242,7 +243,7 @@ public:
 
 	void init_graph_radius_from_surface()
 	{
-		parallel_foreach_cell(*graph_, [&](Graph::Vertex v) -> bool {
+		parallel_foreach_cell(*graph_, [&](GraphVertex v) -> bool {
 			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
 			Vec3 cp = surface_bvh_->closest_point(p);
 			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
@@ -254,23 +255,29 @@ public:
 
 	GRAPH* resample_graph(Scalar density)
 	{
-		static uint32 count = 0;
-		GRAPH* resampled_graph = graph_provider_->add_mesh("resampled_" + std::to_string(count++));
-		auto resampled_graph_vertex_position = add_attribute<Vec3, GraphVertex>(*resampled_graph, "position");
-		auto resampled_graph_vertex_radius = add_attribute<Scalar, GraphVertex>(*resampled_graph, "radius");
+		if constexpr (std::is_same_v<GRAPH, cgogn::Graph>)
+		{
+			static uint32 count = 0;
+			GRAPH* resampled_graph = graph_provider_->add_mesh("resampled_" + std::to_string(count++));
+			auto resampled_graph_vertex_position = add_attribute<Vec3, GraphVertex>(*resampled_graph, "position");
+			auto resampled_graph_vertex_radius = add_attribute<Scalar, GraphVertex>(*resampled_graph, "radius");
 
-		modeling::resample_graph(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(), *resampled_graph,
-								 resampled_graph_vertex_position.get(), resampled_graph_vertex_radius.get(), density);
+			modeling::resample_graph(*graph_, graph_vertex_position_.get(), graph_vertex_radius_.get(),
+									 *resampled_graph, resampled_graph_vertex_position.get(),
+									 resampled_graph_vertex_radius.get(), density);
 
-		graph_provider_->emit_connectivity_changed(*graph_);
-		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
-		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
+			graph_provider_->emit_connectivity_changed(*graph_);
+			graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
+			graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 
-		graph_provider_->emit_connectivity_changed(*resampled_graph);
-		graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_position.get());
-		graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_radius.get());
+			graph_provider_->emit_connectivity_changed(*resampled_graph);
+			graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_position.get());
+			graph_provider_->emit_attribute_changed(*resampled_graph, resampled_graph_vertex_radius.get());
 
-		return resampled_graph;
+			return resampled_graph;
+		}
+		else
+			return nullptr;
 	}
 
 	VOLUME* build_hex_mesh()
@@ -290,7 +297,11 @@ public:
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
-		hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
+		if constexpr (std::is_same_v<GRAPH, Graph>)
+			hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
+
+		if constexpr (std::is_same_v<GRAPH, IncidenceGraph>)
+			hex_building_attributes_ig_ = modeling::incidenceGraph_to_hex(*graph_, *contact_surface_, *volume_);
 
 		// if (!transversal_faces_marker_)
 		// {
@@ -1489,6 +1500,8 @@ private:
 	CellsSet<VOLUME, VolumeFace>* selected_volume_faces_set_ = nullptr;
 
 	std::tuple<modeling::GAttributes, modeling::M2Attributes, modeling::M3Attributes> hex_building_attributes_;
+	std::tuple<modeling::IG_GAttributes, modeling::IG_M2Attributes, modeling::IG_M3Attributes>
+		hex_building_attributes_ig_;
 
 	std::shared_ptr<boost::synapse::connection> timer_connection_;
 };

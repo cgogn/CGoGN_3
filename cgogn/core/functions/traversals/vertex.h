@@ -154,7 +154,7 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 	else if constexpr (std::is_same_v<CELL, Face>)
 	{
 		CellMarkerStore<IncidenceGraph, Vertex> marker(ig);
-		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
+		for (Edge ep : (*ig.face_incident_edges_)[c.index_])
 		{
 			std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[ep.index_];
 			bool stop = false;
@@ -240,6 +240,35 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 				}
 				return true;
 			});
+		}
+	}
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename FUNC>
+auto foreach_adjacent_vertex_through_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v, const FUNC& func)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	for (Edge e : (*ig.vertex_incident_edges_)[v.index_])
+	{
+		std::pair<Vertex, Vertex>& ev = (*ig.edge_incident_vertices_)[e.index_];
+		if (ev.first.index_ != v.index_)
+		{
+			if (!func(ev.first))
+				break;
+		}
+		else
+		{
+			if (!func(ev.second))
+				break;
 		}
 	}
 }

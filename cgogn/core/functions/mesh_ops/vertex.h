@@ -89,6 +89,13 @@ void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex 
 
 Graph::Edge CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT connect_vertices(IncidenceGraph& g, IncidenceGraph::Vertex v1,
+														IncidenceGraph::Vertex v2);
+
 /*****************************************************************************/
 
 // template <typename MESH>
