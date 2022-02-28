@@ -22,7 +22,6 @@ using Mat3 = geometry::Mat3;
 struct IG_GAttributes
 {
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> vertex_position;
-	std::shared_ptr<IncidenceGraph::Attribute<std::vector<uint8>>> incident_edges_dir;
 
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_normal;
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_center;

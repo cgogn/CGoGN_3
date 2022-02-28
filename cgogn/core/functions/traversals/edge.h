@@ -155,6 +155,17 @@ auto foreach_incident_edge(const IncidenceGraph& ig, CELL c, const FUNC& func)
 	}
 }
 
+/*****************************************************************************/
+
+// template <typename MESH, typename FUNC>
+// void foreach_adjacent_edge_through_face(MESH& m, typename mesh_traits<MESH>::Edge e, const FUNC& f);
+
+/*****************************************************************************/
+
+//////////////////////
+/// IncidenceGraph ///
+//////////////////////
+
 template <typename FUNC>
 auto foreach_adjacent_edge_through_face(const IncidenceGraph& ig, IncidenceGraph::Edge e, const FUNC& func)
 {
@@ -169,7 +180,7 @@ auto foreach_adjacent_edge_through_face(const IncidenceGraph& ig, IncidenceGraph
 	marker.mark(e);
 	foreach_incident_face(ig, e, [&](IncidenceGraph::Face f0) -> bool {
 		foreach_incident_edge(ig, f0, [&](IncidenceGraph::Edge e1) -> bool {
-			if(!marker.is_marked(e1))
+			if (!marker.is_marked(e1))
 			{
 				marker.mark(e1);
 				stop = func(e1);

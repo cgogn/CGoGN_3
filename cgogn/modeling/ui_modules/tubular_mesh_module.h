@@ -1362,6 +1362,9 @@ protected:
 			ImGui::SliderFloat("Graph resampling density", &graph_resample_density, 0.0, 2.0);
 			if (ImGui::Button("Resample graph"))
 				resample_graph(graph_resample_density);
+		}
+		if (graph_ && graph_vertex_position_)
+		{
 			ImGui::Separator();
 			if (!volume_)
 				if (ImGui::Button("Build hex mesh"))

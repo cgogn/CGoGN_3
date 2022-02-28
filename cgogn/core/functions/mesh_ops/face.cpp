@@ -158,16 +158,16 @@ IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Ed
 	{
 		for (Edge e : edges)
 			(*ig.edge_incident_faces_)[e.index_].push_back(f);
-		(*ig.face_incident_edges_dir_)[f.index_] = std::vector<uint8>(edges.size());
-		for (uint32 i = 0; i < edges.size(); ++i)
-		{
-			std::pair<Vertex, Vertex>& evs0 = (*ig.edge_incident_vertices_)[edges[i].index_];
-			std::pair<Vertex, Vertex>& evs1 = (*ig.edge_incident_vertices_)[edges[(i+1)%edges.size()].index_];
-			if(evs0.first.index_ == evs1.first.index_ || evs0.first.index_ == evs1.second.index_)
-				(*ig.face_incident_edges_dir_)[f.index_][i] = 1;
-			else
-				(*ig.face_incident_edges_dir_)[f.index_][i] = 0;
-		}
+		// (*ig.face_incident_edges_dir_)[f.index_] = std::vector<uint8>(sorted_edges.size());
+		// for (uint32 i = 0; i < sorted_edges.size(); ++i)
+		// {
+		// 	std::pair<Vertex, Vertex>& evs0 = (*ig.edge_incident_vertices_)[edges[i].index_];
+		// 	std::pair<Vertex, Vertex>& evs1 = (*ig.edge_incident_vertices_)[edges[(i + 1) % edges.size()].index_];
+		// 	if (evs0.first.index_ == evs1.first.index_ || evs0.first.index_ == evs1.second.index_)
+		// 		(*ig.face_incident_edges_dir_)[f.index_][i] = 1;
+		// 	else
+		// 		(*ig.face_incident_edges_dir_)[f.index_][i] = 0;
+		// }
 		return f;
 	}
 	else
