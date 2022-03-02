@@ -70,52 +70,17 @@ struct IG_M3Attributes
 	// std::shared_ptr<CMap3::Attribute<Vec3>> color_mean_frobenius;
 };
 
+using Branch = std::pair<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>,
+						 std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>>;
+
 struct IncidenceGraphData
 {
-	std::vector<std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge>> branches;
+	std::vector<Branch> branches;
 	std::vector<IncidenceGraph::Vertex> efjunctures;
 	std::vector<IncidenceGraph::Vertex> ffjunctures;
 	std::vector<IncidenceGraph::Vertex> intersections;
-	std::vector<IncidenceGraph::Face> leaflets;
+	std::vector<std::vector<IncidenceGraph::Face>> leaflets;
 };
-
-// struct VertexData
-// {
-// 	uint32 degree;
-// 	uint32 isolatedEdge;
-// };
-
-// inline uint32 pseudoDegree(IncidenceGraph& ig, IncidenceGraph::Vertex v)
-// {
-// 	uint32 degree = 0;
-
-// 	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
-// 		uint32 count = 0;
-// 		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f) -> bool {
-// 			++count;
-// 			return true;
-// 		});
-
-// 		switch(count)
-// 		{
-// 			case 0:
-// 				++degree;
-// 				break;
-// 			case 1:
-// 				degree += 0.5;
-// 				break;
-// 			case 2:
-// 				break;
-// 			default:
-// 				degree = -1;
-// 				break;
-// 		}
-
-// 		return (degree != -1);
-// 	});
-
-// 	return degree;
-// }
 
 std::tuple<IG_GAttributes, IG_M2Attributes, IG_M3Attributes> incidenceGraph_to_hex(IncidenceGraph& ig, CMap2& m2,
 																				   CMap3& m3);
@@ -135,13 +100,17 @@ bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
 /* utils                                                                     */
 /*****************************************************************************/
 
-std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge> find_branch_extremities(
-	const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Edge e0,
-	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& cm);
+// std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge> find_branch_extremities(
+// 	const IncidenceGraph& ig, IncidenceGraph::Edge e, CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
+
+std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge> branch_extremity(
+	const IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex v,
+	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
+
 std::vector<IncidenceGraph::Face> get_incident_leaflets(const IncidenceGraph& ig, IncidenceGraph::Vertex v0);
 std::vector<IncidenceGraph::Face> get_leaflet_faces(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
 													IncidenceGraph::Face f0);
-std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& g, IncidenceGraph::Edge e0);
+std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& g, const Branch& b);
 bool contains_vertex(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
 std::vector<IncidenceGraph::Face> get_incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
 													   IncidenceGraph::Face f0);
@@ -153,6 +122,7 @@ std::vector<IncidenceGraph::Edge> get_leaflet_boundary_edges(const IncidenceGrap
 std::vector<IncidenceGraph::Vertex> get_leaflet_boundary_vertices(const IncidenceGraph& ig,
 																  std::vector<IncidenceGraph::Face>& leaflet);
 std::vector<IncidenceGraph::Face> get_leaflets(const IncidenceGraph& ig);
+
 Dart add_chunk(CMap3& m3);
 Dart add_plate(CMap3& m3);
 

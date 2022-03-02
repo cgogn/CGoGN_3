@@ -71,6 +71,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		{
 			return index_ == v.index_;
 		}
+		bool operator!=(Vertex v) const
+		{
+			return index_ != v.index_;
+		}
 		inline bool is_valid() const
 		{
 			return index_ != INVALID_INDEX;
@@ -95,6 +99,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		{
 			return index_ == e.index_;
 		}
+		bool operator!=(Edge e) const
+		{
+			return index_ != e.index_;
+		}
 		inline bool is_valid() const
 		{
 			return index_ != INVALID_INDEX;
@@ -118,6 +126,10 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 		bool operator==(Face f) const
 		{
 			return index_ == f.index_;
+		}
+		bool operator!=(Face f) const
+		{
+			return index_ != f.index_;
 		}
 		inline bool is_valid() const
 		{
