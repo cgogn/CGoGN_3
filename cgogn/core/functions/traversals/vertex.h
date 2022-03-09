@@ -147,7 +147,7 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 
 	if constexpr (std::is_same_v<CELL, Edge>)
 	{
-		std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[c.index_];
+		const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[c.index_];
 		if (func(evs.first))
 			func(evs.second);
 	}
@@ -158,7 +158,7 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 		const std::vector<uint8>& edges_dir = (*ig.face_incident_edges_dir_)[c.index_];
 		for (uint32 i = 0, end = edges.size(); i < end - 1; ++i)
 		{
-			std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[edges[i].index_];
+			const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[edges[i].index_];
 			if (i == 0)
 			{
 				if (!func(evs.first))
@@ -260,15 +260,12 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 template <typename FUNC>
 auto foreach_adjacent_vertex_through_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v, const FUNC& func)
 {
-	using Vertex = IncidenceGraph::Vertex;
-	using Edge = IncidenceGraph::Edge;
-
-	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_parameter_same<FUNC, IncidenceGraph::Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	for (Edge e : (*ig.vertex_incident_edges_)[v.index_])
+	for (IncidenceGraph::Edge e : (*ig.vertex_incident_edges_)[v.index_])
 	{
-		std::pair<Vertex, Vertex>& ev = (*ig.edge_incident_vertices_)[e.index_];
+		const std::pair<IncidenceGraph::Vertex, IncidenceGraph::Vertex>& ev = (*ig.edge_incident_vertices_)[e.index_];
 		if (ev.first.index_ != v.index_)
 		{
 			if (!func(ev.first))

@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 
 	// cgogn::ui::Registration<Surface> r(app);
 
-	cgogn::ui::GraphRender<Graph> gr(app);
+	cgogn::ui::SurfaceRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::VectorPerVertexRender<Surface> svpvr(app);
 	cgogn::ui::VectorPerVertexRender<Graph> gvpvr(app);
