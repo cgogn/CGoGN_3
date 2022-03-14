@@ -122,7 +122,6 @@ std::vector<IncidenceGraph::Edge> get_leaflet_boundary_edges(const IncidenceGrap
 std::vector<IncidenceGraph::Edge> get_leaflet_boundary_edges(const IncidenceGraph& ig, IncidenceGraph::Face leaflet);
 std::vector<IncidenceGraph::Vertex> get_leaflet_boundary_vertices(const IncidenceGraph& ig,
 																  std::vector<IncidenceGraph::Face>& leaflet);
-std::vector<IncidenceGraph::Face> get_leaflets(const IncidenceGraph& ig);
 
 Dart add_chunk(CMap3& m3);
 Dart add_plate(CMap3& m3);
@@ -196,16 +195,17 @@ bool set_contact_surfaces_geometry(const IncidenceGraph& ig, IG_GAttributes& igA
 /*****************************************************************************/
 /* volume mesh generation                                                    */
 /*****************************************************************************/
-bool build_volumes(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3);
+bool build_volumes(IncidenceGraph& ig, IG_GAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data, CMap2& m2,
+				   IG_M2Attributes& m2Attribs, CMap3& m3);
 bool build_branch_section(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
 						  CMap3& m3, IncidenceGraph::Edge e0);
 bool build_leaflet(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
-				   IncidenceGraph::Face f0);
+				   const std::vector<IncidenceGraph::Face>& leaflet);
 bool build_leaflet_edge(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
 						IncidenceGraph::Face f0);
 bool sew_sections_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3);
-bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
-							  CMap3& m3, IG_M3Attributes& m3Attribs);
+bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data,
+							  CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);
 // bool set_volumes_geometry_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);
 
 } // namespace modeling

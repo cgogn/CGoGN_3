@@ -326,6 +326,9 @@ public:
 
 		volume_provider_->set_mesh_bb_vertex_position(*volume_, volume_vertex_position_);
 
+		graph_provider_->emit_connectivity_changed(*graph_);
+		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_position_.get());
+
 		refresh_edge_target_length_ = true;
 		refresh_volume_cells_indexing_ = true;
 		refresh_volume_skin_ = true;

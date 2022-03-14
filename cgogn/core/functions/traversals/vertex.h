@@ -161,10 +161,20 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 			const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[edges[i].index_];
 			if (i == 0)
 			{
-				if (!func(evs.first))
-					break;
-				if (!func(evs.second))
-					break;
+				if (edges_dir[i] == 0)
+				{
+					if (!func(evs.first))
+						break;
+					if (!func(evs.second))
+						break;
+				}
+				else
+				{
+					if (!func(evs.second))
+						break;
+					if (!func(evs.first))
+						break;
+				}
 			}
 			else
 			{
