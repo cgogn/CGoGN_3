@@ -29,7 +29,7 @@ struct IG_GAttributes
 	std::shared_ptr<IncidenceGraph::Attribute<Dart>> vertex_contact_surface;
 	std::shared_ptr<IncidenceGraph::Attribute<std::pair<Dart, Dart>>> halfedge_contact_surface_face;
 	std::shared_ptr<IncidenceGraph::Attribute<std::pair<Mat3, Mat3>>> halfedge_frame;
-	std::shared_ptr<IncidenceGraph::Attribute<std::pair<Dart, Dart>>> halfedge_volume_connection;
+	// std::shared_ptr<IncidenceGraph::Attribute<std::pair<Dart, Dart>>> halfedge_volume_connection;
 
 	std::shared_ptr<IncidenceGraph::Attribute<std::vector<Dart>>> face_edge_dart;
 	std::shared_ptr<IncidenceGraph::Attribute<std::vector<Dart>>> vertex_boundary_edge_dart;
