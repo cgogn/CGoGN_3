@@ -100,28 +100,13 @@ bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
 /* utils                                                                     */
 /*****************************************************************************/
 
-// std::pair<IncidenceGraph::Edge, IncidenceGraph::Edge> find_branch_extremities(
-// 	const IncidenceGraph& ig, IncidenceGraph::Edge e, CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
-
 std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge> branch_extremity(
 	const IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex v,
 	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
 
-// std::vector<IncidenceGraph::Face> get_incident_leaflets(const IncidenceGraph& ig, IncidenceGraph::Vertex v0);
-// std::vector<IncidenceGraph::Face> get_incident_leaflet(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
-// 													   IncidenceGraph::Face f0);
-
-std::vector<IncidenceGraph::Face> get_leaflet_faces(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
-													IncidenceGraph::Face f0);
 std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& g, const Branch& b);
-bool contains_vertex(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Face f0);
 std::vector<IncidenceGraph::Edge> get_incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
 															 IncidenceGraph::Edge e0);
-std::vector<IncidenceGraph::Edge> get_leaflet_boundary_edges(const IncidenceGraph& ig,
-															 std::vector<IncidenceGraph::Face>& leaflet);
-std::vector<IncidenceGraph::Edge> get_leaflet_boundary_edges(const IncidenceGraph& ig, IncidenceGraph::Face leaflet);
-std::vector<IncidenceGraph::Vertex> get_leaflet_boundary_vertices(const IncidenceGraph& ig,
-																  std::vector<IncidenceGraph::Face>& leaflet);
 
 Dart add_chunk(CMap3& m3);
 Dart add_plate(CMap3& m3);
@@ -144,9 +129,7 @@ Scalar edge_max_angle_igh(CMap2& m2, CMap2::Edge e, IG_M2Attributes& m2Attribs);
 Scalar min_cut_angle_igh(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, IG_M2Attributes& m2Attribs);
 Vec3 spherical_barycenter_igh(std::vector<Vec3>& points, uint32 iterations);
 
-uint32 get_incident_edge_id(const IncidenceGraph& ig, IncidenceGraph::Vertex v, IncidenceGraph::Edge e);
 uint32 get_incident_edge_id(const IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge e);
-uint32 get_incident_vertex_id(const IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Vertex v);
 IncidenceGraph::Edge get_shared_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
 
 /*****************************************************************************/
@@ -201,12 +184,9 @@ bool build_branch_section(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& 
 						  CMap3& m3, IncidenceGraph::Edge e0);
 bool build_leaflet(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
 				   const std::vector<IncidenceGraph::Face>& leaflet);
-bool build_leaflet_edge(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
-						IncidenceGraph::Face f0);
 bool sew_sections_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data,
 							  CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);
-// bool set_volumes_geometry_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);
 
 } // namespace modeling
 
