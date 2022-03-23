@@ -1402,6 +1402,16 @@ protected:
 					subdivide_all_slices();
 			}
 
+			static float optimize_fit_to_surface = 1.0f;
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
+				refresh_solver_matrix_values_only_ = true;
+			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
+
+			if (ImGui::Button("Relocate interior vertices"))
+				relocate_interior_vertices();
+			if (ImGui::Button("Optimize volume vertices (inside skin)"))
+				optimize_volume_vertices(optimize_fit_to_surface, true);
+
 			if (surface_ && surface_vertex_position_)
 			{
 				ImGui::Separator();
@@ -1411,12 +1421,6 @@ protected:
 				ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
 				if (ImGui::Button("Regularize surface vertices"))
 					regularize_surface_vertices(regularize_fit_to_data);
-				if (ImGui::Button("Relocate interior vertices"))
-					relocate_interior_vertices();
-				static float optimize_fit_to_surface = 1.0f;
-				if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
-					refresh_solver_matrix_values_only_ = true;
-				ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 				if (ImGui::Button("Optimize volume vertices"))
 					optimize_volume_vertices(optimize_fit_to_surface);
 
