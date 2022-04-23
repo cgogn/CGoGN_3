@@ -46,6 +46,8 @@
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
+#include <cgogn/rendering/shape3D_drawer.h>
+
 #include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
@@ -178,6 +180,9 @@ class SurfaceRender : public ViewModule
 		std::unique_ptr<rendering::ShaderPhongColorPerFace::Param> param_phong_color_per_face_;
 		std::unique_ptr<rendering::ShaderPhongScalarPerFace::Param> param_phong_scalar_per_face_;
 
+
+
+
 		bool render_vertices_;
 		bool render_edges_;
 		bool render_faces_;
@@ -197,12 +202,15 @@ class SurfaceRender : public ViewModule
 		bool auto_update_face_scalar_min_max_;
 	};
 
+	rendering::Shape3DDrawer* shape_;
+
 public:
 	SurfaceRender(const App& app)
 		: ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 		outline_engine_ = rendering::Outliner::instance();
+		shape_ = rendering::Shape3DDrawer::instance();
 	}
 
 	~SurfaceRender()
@@ -558,12 +566,18 @@ protected:
 
 	void draw(View* view) override
 	{
+		rendering::GLMat4 mp = view->projection_matrix();
+		rendering::GLMat4 mv = view->modelview_matrix();
+		rendering::GLMat4 tr = rendering::Transfo3d::Identity().matrix().cast<float>();
+		shape_->draw_cylinder(mp,mv,tr);
+
 		for (auto& [m, p] : parameters_[view])
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
+
 
 			if (p.render_faces_)
 			{
