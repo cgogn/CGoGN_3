@@ -41,6 +41,7 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 		uniform usamplerBuffer vertex_ind;
 		uniform samplerBuffer vertex_position;
 		uniform samplerBuffer volume_center;
+		uniform samplerBuffer volume_clipping;
 
 		uniform float explode;
 		uniform vec4 plane_clip;
@@ -55,9 +56,10 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 
 			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
 			vec3 center = texelFetch(volume_center, ind_c).rgb;
+			vec3 clip_center = texelFetch(volume_clipping, ind_c).rgb;
 
-			float d = dot(plane_clip, vec4(center, 1.0));
-			float d2 = dot(plane_clip2, vec4(center, 1.0));
+			float d = dot(plane_clip, vec4(clip_center, 1.0));
+			float d2 = dot(plane_clip2, vec4(clip_center, 1.0));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec3 explode_position = mix(center, position_in, explode);
@@ -89,7 +91,7 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	get_uniforms("vertex_ind", "vertex_position", "volume_center", "color", "light_position", "explode", "plane_clip",
+	get_uniforms("vertex_ind", "vertex_position", "volume_center", "volume_clipping","color", "light_position", "explode", "plane_clip",
 				 "plane_clip2");
 
 	nb_attributes_ = 2;
@@ -97,19 +99,21 @@ ShaderExplodeVolumes::ShaderExplodeVolumes()
 
 void ShaderParamExplodeVolumes::set_uniforms()
 {
-	shader_->set_uniforms_values(10, 11, 12, color_, light_position_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, 11, 12, 13, color_, light_position_, explode_, plane_clip_, plane_clip2_);
 }
 
 void ShaderParamExplodeVolumes::bind_texture_buffers()
 {
 	vbos_[VERTEX_POSITION]->bind_texture_buffer(11);
 	vbos_[VOLUME_CENTER]->bind_texture_buffer(12);
+	vbos_[VOLUME_CLIPPING]->bind_texture_buffer(13);
 }
 
 void ShaderParamExplodeVolumes::release_texture_buffers()
 {
 	vbos_[VERTEX_POSITION]->release_texture_buffer(11);
 	vbos_[VOLUME_CENTER]->release_texture_buffer(12);
+	vbos_[VOLUME_CLIPPING]->release_texture_buffer(13);
 }
 
 } // namespace rendering

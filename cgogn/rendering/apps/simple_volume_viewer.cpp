@@ -82,6 +82,13 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Scalar>> volume_scalar = cgogn::add_attribute<Scalar, Volume>(*m, "scalar");
 	std::shared_ptr<Attribute<Vec3>> volume_color = cgogn::add_attribute<Vec3, Volume>(*m, "color");
 
+	std::shared_ptr<Attribute<Vec3>> vertex_position_clip = cgogn::add_attribute<Vec3, Vertex>(*m, "position_clip");
+
+	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
+		cgogn::value<Vec3>(*m, vertex_position_clip, v) = cgogn::value<Vec3>(*m, vertex_position, v) * 1.1;
+		return true;
+	});
+
 	cgogn::foreach_cell(*m, [&](Volume v) -> bool {
 		Vec3 c(0, 0, 0);
 		c[rand() % 3] = 1;
@@ -92,7 +99,9 @@ int main(int argc, char** argv)
 
 	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
-	vr.set_vertex_position(*v1, *m, vertex_position);
+
+
+	vr.set_vertex_position(*v1, *m, vertex_position, vertex_position_clip);
 	vr.set_volume_scalar(*v1, *m, volume_scalar);
 	vr.set_volume_color(*v1, *m, volume_color);
 
