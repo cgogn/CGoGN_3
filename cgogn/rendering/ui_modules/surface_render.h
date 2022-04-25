@@ -32,8 +32,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/rendering/shape_drawer.h>
-
 #include <cgogn/rendering/shaders/outliner.h>
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/shaders/shader_flat.h>
@@ -205,7 +203,6 @@ public:
 		  selected_view_(app.current_view()), selected_mesh_(nullptr)
 	{
 		outline_engine_ = rendering::Outliner::instance();
-		shape_ = rendering::ShapeDrawer::instance();
 	}
 
 	~SurfaceRender()
@@ -567,10 +564,6 @@ protected:
 
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
-
-			Eigen::Affine3f transfo = Eigen::Translation3f(rendering::GLVec3(40, 0, 0)) * Eigen::Scaling(52.0f);
-			shape_->draw(rendering::ShapeDrawer::CYLINDER, proj_matrix, view_matrix * transfo.matrix());
-
 
 			if (p.render_faces_)
 			{
@@ -1130,7 +1123,6 @@ private:
 	MeshProvider<MESH>* mesh_provider_;
 
 	rendering::Outliner* outline_engine_;
-	rendering::ShapeDrawer* shape_;
 };
 
 } // namespace ui
