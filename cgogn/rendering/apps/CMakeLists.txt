@@ -60,6 +60,14 @@ target_link_libraries(simple_volume_viewer
 #	${CMAKE_DL_LIBS}
 #)
 
+add_executable(test_shape test_shape.cpp)
+target_link_libraries(test_shape
+	cgogn::core
+	cgogn::ui
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)

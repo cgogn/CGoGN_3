@@ -115,8 +115,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
 
-		"${CMAKE_CURRENT_LIST_DIR}/shape3D_drawer.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shape3D_drawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
