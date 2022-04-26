@@ -50,7 +50,7 @@ public:
 	using ShaderType = ShaderPointSprite;
 
 	ShaderParamPointSprite(ShaderType* sh)
-		: ShaderParam(sh), color_(1, 1, 1, 1), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000),
+		: ShaderParam(sh,true), color_(1, 1, 1, 1), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000),
 		  point_size_(2), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -76,7 +76,7 @@ public:
 	using ShaderType = ShaderPointSpriteColor;
 
 	ShaderParamPointSpriteColor(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000), point_size_(2),
+		: ShaderParam(sh,true), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000), point_size_(2),
 		  plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -103,7 +103,7 @@ public:
 	using ShaderType = ShaderPointSpriteSize;
 
 	ShaderParamPointSpriteSize(ShaderType* sh)
-		: ShaderParam(sh), color_(1, 1, 1, 1), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000),
+		: ShaderParam(sh,true), color_(1, 1, 1, 1), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000),
 		  point_size_(1.0f), plane_clip_(0, 0, 0, 0), plane_clip2_(0, 0, 0, 0)
 	{
 	}
@@ -128,7 +128,7 @@ public:
 	using ShaderType = ShaderPointSpriteColorSize;
 
 	ShaderParamPointSpriteColorSize(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000), plane_clip_(0, 0, 0, 0),
+		: ShaderParam(sh,true), ambiant_color_(0.05f, 0.05f, 0, 1), light_position_(10, 100, 1000), plane_clip_(0, 0, 0, 0),
 		  plane_clip2_(0, 0, 0, 0)
 	{
 	}

@@ -121,6 +121,8 @@ class VolumeRender : public ViewModule
 		std::shared_ptr<Attribute<Vec3>> clipping_vertex_position_;
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
+		rendering::VBO* clipping_position_vbo_;
+
 		std::shared_ptr<Attribute<Scalar>> volume_scalar_;
 		rendering::VBO* volume_scalar_vbo_;
 		std::shared_ptr<Attribute<Vec3>> volume_color_;
@@ -245,15 +247,18 @@ public:
 		else
 			p.vertex_position_vbo_ = nullptr;
 
-		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
-		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
 		update_volume_center(v, m);
 
 		if (p.clipping_vertex_position_ == nullptr)
 		{
 			p.clipping_vertex_position_ = p.vertex_position_;
+			p.clipping_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			update_volume_clipping(v, m);
 		}
+
+		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
+		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
+
 
 		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
 		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
@@ -281,6 +286,10 @@ public:
 		p.clipping_vertex_position_= clip_vertex_position;
 		if (p.clipping_vertex_position_)
 		{
+			p.clipping_position_vbo_ = md.update_vbo(p.clipping_vertex_position_.get(), true);
+			p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
+			p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
+
 			update_volume_clipping(v, m);
 			p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_vbo_});
 			p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_vbo_});
@@ -365,14 +374,13 @@ protected:
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
-		if (p.clipping_vertex_position_.get() && (p.vertex_position_.get() != p.clipping_vertex_position_.get()))
-		{
-			geometry::compute_centroid<Vec3, Volume>(m, p.clipping_vertex_position_.get(), p.volume_clipping_.get());
-			p.volume_clipping_vbo_ = md.update_vbo(p.volume_clipping_.get(), true);
-		}
-		else
-			p.volume_clipping_vbo_ = md.update_vbo(p.volume_center_.get(), true);
 
+		if ((p.clipping_vertex_position_!= nullptr) && (p.vertex_position_ != p.clipping_vertex_position_))
+			geometry::compute_centroid<Vec3, Volume>(m, p.clipping_vertex_position_.get(), p.volume_clipping_.get());
+		else
+			p.volume_clipping_->copy(*(p.volume_center_.get()));
+
+		p.volume_clipping_vbo_ = md.update_vbo(p.volume_clipping_.get(), true);
 	}
 
 	void init() override
@@ -625,6 +633,8 @@ protected:
 						p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
 						float32 d = -(position.dot(axis_z));
 						rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
+						p.param_point_sprite_->plane_clip_ = plane;
+						p.param_bold_line_->plane_clip_ = plane;
 						p.param_volume_->plane_clip_ = plane;
 						p.param_volume_line_->plane_clip_ = plane;
 						p.param_volume_color_->plane_clip_ = plane;
@@ -632,6 +642,8 @@ protected:
 					}
 					else
 					{
+						p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+						p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
 						p.param_volume_->plane_clip_ = {0, 0, 0, 0};
 						p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
 						p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};

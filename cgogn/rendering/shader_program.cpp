@@ -292,7 +292,10 @@ void ShaderProgram::load3(const std::string& vert_src, const std::string& frag_s
 // ShaderParam
 /*****************************************************************************/
 
-ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), attributes_initialized_(false)
+ShaderParam::ShaderParam(ShaderProgram* prg, bool opt_clip) :
+	  shader_(prg),
+	  attributes_initialized_(false),
+	  optional_clipping_attribute_(opt_clip)
 {
 	vao_ = std::make_unique<VAO>();
 }
@@ -361,6 +364,8 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 				attributes_initialized_ = false;
 			attrib++;
 		}
+		if (optional_clipping_attribute_ && (uint32(vbos.size()) < shader_->nb_attributes()))
+			vbos[0]->associate(attrib);
 		vao_->release();
 	}
 }

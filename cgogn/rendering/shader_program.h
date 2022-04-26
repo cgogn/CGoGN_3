@@ -428,6 +428,7 @@ protected:
 	ShaderProgram* shader_;
 	std::unique_ptr<VAO> vao_;
 	bool attributes_initialized_;
+	bool optional_clipping_attribute_;
 
 	virtual void set_uniforms() = 0;
 
@@ -436,7 +437,7 @@ protected:
 	virtual void set_texture_buffer_vbo(uint32, VBO*);
 
 public:
-	ShaderParam(ShaderProgram* prg);
+	ShaderParam(ShaderProgram* prg, bool opt_clip = false);
 	ShaderParam(const ShaderParam&) = delete;
 	ShaderParam& operator=(const ShaderParam&) = delete;
 
