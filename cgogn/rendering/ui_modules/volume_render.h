@@ -227,8 +227,7 @@ private:
 
 public:
 	void set_vertex_position(View& v, const MESH& m,
-							 const std::shared_ptr<Attribute<Vec3>>& vertex_position,
-							 const std::shared_ptr<Attribute<Vec3>>& clip_vertex_position=nullptr)
+							 const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
@@ -248,7 +247,7 @@ public:
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
 		update_volume_center(v, m);
-		if ((p.clipping_vertex_position_==nullptr) || (p.clipping_vertex_position_ == p.vertex_position_))
+		if (p.volume_clipping_vbo_ == nullptr)
 			update_volume_clipping(v, m);
 		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
 		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
@@ -270,11 +269,11 @@ public:
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
-		if (clip_vertex_position == p.clip_vertex_position)
+		if (clip_vertex_position == p.clipping_vertex_position_)
 			return;
 
-		p.clip_vertex_position = clip_vertex_position;
-		if (p.clip_vertex_position)
+		p.clipping_vertex_position_= clip_vertex_position;
+		if (p.clipping_vertex_position_)
 		{
 			update_volume_clipping(v, m);
 			p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_vbo_});
@@ -609,7 +608,7 @@ protected:
 				{
 					imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.clipping_vertex_position_, "Clipped Position",
 														[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-															set_vertex_position(*selected_view_, *selected_mesh_, p.clipping_vertex_position_, attribute);
+														set_vertex_clipping_position(*selected_view_, *selected_mesh_, attribute);
 														});
 
 					if (p.clipping_plane_)
