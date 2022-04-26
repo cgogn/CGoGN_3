@@ -24,6 +24,9 @@
 #ifndef CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_
 #define CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_
 
+#include <cgogn/core/functions/traversals/edge.h>
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
@@ -41,47 +44,7 @@ void remove_cell(IncidenceGraph& ig, CELL c)
 	ig.attribute_containers_[CELL::CELL_INDEX].release_index(c.index_);
 }
 
-inline bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f)
-{
-	using Vertex = IncidenceGraph::Vertex;
-	using Edge = IncidenceGraph::Edge;
-
-	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-	std::vector<Edge> unordered_edges;
-	unordered_edges.swap(edges);
-
-	edges.push_back(unordered_edges.front());
-	unordered_edges.erase(unordered_edges.begin());
-	uint32 vid0 = (*ig.edge_incident_vertices_)[edges.front().index_].first.index_;
-	uint32 vid1 = (*ig.edge_incident_vertices_)[edges.front().index_].second.index_;
-	bool broken = false;
-
-	while (unordered_edges.size() > 0)
-	{
-		std::size_t i, end;
-		for (i = 0, end = unordered_edges.size(); i < unordered_edges.size(); ++i)
-		{
-			Edge e = unordered_edges[i];
-			std::pair<Vertex, Vertex> evs = (*ig.edge_incident_vertices_)[e.index_];
-			uint32 ev = (evs.first.index_ == vid1 ? evs.second.index_
-												  : (evs.second.index_ == vid1 ? evs.first.index_ : INVALID_INDEX));
-
-			if (ev != INVALID_INDEX)
-			{
-				vid1 = ev;
-				edges.push_back(e);
-				unordered_edges.erase(unordered_edges.begin() + i);
-				break;
-			}
-		}
-
-		broken = (vid1 == vid0) || (i == end);
-		if (broken)
-			break;
-	}
-
-	return (broken && unordered_edges.size() == 0);
-}
+bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f);
 
 inline bool same_edge(IncidenceGraph& ig, IncidenceGraph::Edge e1, IncidenceGraph::Edge e2)
 {
@@ -120,9 +83,21 @@ inline void remove_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, Inci
 	using Edge = IncidenceGraph::Edge;
 
 	std::vector<Edge>& edges = (*ig.face_incident_edges_)[f.index_];
-	auto eit = std::find(edges.begin(), edges.end(), edge_to_remove);
+	std::vector<uint8>& edges_dir = (*ig.face_incident_edges_dir_)[f.index_];
+	auto eit = edges.begin();
+	auto edit = edges_dir.begin();
+	for (Edge e : edges)
+	{
+		if (e == edge_to_remove)
+			break;
+		eit++;
+		edit++;
+	}
 	if (eit != edges.end())
+	{
 		edges.erase(eit);
+		edges_dir.erase(edit);
+	}
 }
 
 inline void replace_vertex_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex old_vertex,
@@ -175,6 +150,42 @@ inline std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& 
 	sorted_vertices.insert(sorted_vertices.begin(), sorted_vertices.back());
 	sorted_vertices.pop_back();
 	return sorted_vertices;
+}
+
+inline std::pair<uint32, uint32> pseudo_degree(const IncidenceGraph& ig, IncidenceGraph::Vertex v)
+{
+	std::pair<uint32, uint32> info;
+	info.first = 0;	 // incident leaflets
+	info.second = 0; // incident branches
+	// vertices inside leaflets are (0,0)
+	// vertices on the boundary of leaflets are (1,0)
+
+	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
+		uint32 nbf = 0;
+		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f) -> bool {
+			++nbf;
+			return true;
+		});
+		switch (nbf)
+		{
+		case 0:
+			// info.first += 2;
+			info.second++;
+			break;
+		case 1:
+			info.first++;
+			break;
+		case 2:
+			break;
+		default:
+			info.first = INVALID_INDEX;
+			break;
+		}
+
+		return (info.first != INVALID_INDEX);
+	});
+	info.first /= 2;
+	return info;
 }
 
 } // namespace cgogn

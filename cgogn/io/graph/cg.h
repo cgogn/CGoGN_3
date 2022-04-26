@@ -44,7 +44,7 @@ namespace io
 template <typename MESH>
 bool import_CG(MESH& m, const std::string& filename)
 {
-	static_assert(mesh_traits<MESH>::dimension == 1, "MESH dimension should be 1");
+	static_assert(mesh_traits<MESH>::dimension >= 1, "MESH dimension should be superior or equal to 1");
 
 	using Vertex = typename MESH::Vertex;
 

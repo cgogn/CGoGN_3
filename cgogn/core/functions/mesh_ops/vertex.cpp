@@ -208,6 +208,23 @@ Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool 
 	}
 }
 
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+IncidenceGraph::Edge connect_vertices(IncidenceGraph& ig, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2)
+{
+	using Edge = IncidenceGraph::Edge;
+
+	Edge e = add_cell<Edge>(ig);
+	(*ig.edge_incident_vertices_)[e.index_] = {v1, v2};
+	(*ig.edge_incident_faces_)[e.index_].clear();
+	(*ig.vertex_incident_edges_)[v1.index_].push_back(e);
+	(*ig.vertex_incident_edges_)[v2.index_].push_back(e);
+
+	return e;
+}
+
 /*****************************************************************************/
 
 // template <typename MESH>

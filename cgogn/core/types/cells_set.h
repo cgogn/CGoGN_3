@@ -82,7 +82,7 @@ public:
 		}
 	}
 
-	inline bool contains(CELL c)
+	inline bool contains(CELL c) const
 	{
 		return marker_.is_marked(c);
 	}
@@ -98,7 +98,7 @@ public:
 	}
 
 	template <typename FUNC>
-	void foreach_cell(const FUNC& f)
+	void foreach_cell(const FUNC& f) const
 	{
 		static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function parameter type");
 		for (auto& [index, cell] : cells_)
@@ -106,7 +106,7 @@ public:
 	}
 
 	template <typename FUNC>
-	void foreach_cell_index(const FUNC& f)
+	void foreach_cell_index(const FUNC& f) const
 	{
 		static_assert(is_func_parameter_same<FUNC, uint32>::value, "Wrong function parameter type");
 		for (auto& [index, cell] : cells_)

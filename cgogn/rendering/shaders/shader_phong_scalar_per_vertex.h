@@ -44,6 +44,8 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
+	bool show_iso_lines_;
+	int nb_iso_lines_;
 	GLColor specular_color_;
 	float32 specular_coef_;
 	shader_function::ColorMap::Uniforms color_map_;
@@ -52,7 +54,7 @@ public:
 
 	ShaderParamPhongScalarPerVertex(ShaderType* sh)
 		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
-		  specular_color_(1, 1, 1, 1), specular_coef_(250)
+		  show_iso_lines_(false), nb_iso_lines_(10), specular_color_(1, 1, 1, 1), specular_coef_(250)
 	{
 	}
 
