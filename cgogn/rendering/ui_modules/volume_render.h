@@ -87,7 +87,8 @@ class VolumeRender : public ViewModule
 		Parameters()
 			: vertex_position_(nullptr),clipping_vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_scalar_(nullptr),
 			  volume_scalar_vbo_(nullptr), volume_color_(nullptr), volume_color_vbo_(nullptr), volume_center_(nullptr),
-			  volume_center_vbo_(nullptr), render_vertices_(false), render_edges_(false), render_volumes_(true),
+			  volume_center_vbo_(nullptr), volume_clipping_(nullptr), volume_clipping_vbo_(nullptr),
+			  render_vertices_(false), render_edges_(false), render_volumes_(true),
 			  render_volume_lines_(true), color_per_cell_(GLOBAL), color_type_(SCALAR), vertex_scale_factor_(1.0),
 			  auto_update_volume_scalar_min_max_(true), clipping_plane_(false), show_frame_manipulator_(false),
 			  manipulating_frame_(false)
@@ -247,8 +248,13 @@ public:
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
 		update_volume_center(v, m);
-		if (p.volume_clipping_vbo_ == nullptr)
+
+		if (p.clipping_vertex_position_ == nullptr)
+		{
+			p.clipping_vertex_position_ = p.vertex_position_;
 			update_volume_clipping(v, m);
+		}
+
 		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
 		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
 		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_,p.volume_clipping_vbo_});

@@ -82,12 +82,23 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Scalar>> volume_scalar = cgogn::add_attribute<Scalar, Volume>(*m, "scalar");
 	std::shared_ptr<Attribute<Vec3>> volume_color = cgogn::add_attribute<Vec3, Volume>(*m, "color");
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position_clip = cgogn::add_attribute<Vec3, Vertex>(*m, "position_clip");
+	auto bb = mp.meshes_bb();
+	Vec3 shiftVec = (bb.second - bb.first) / 4;
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position2 = cgogn::add_attribute<Vec3, Vertex>(*m, "position_2");
 
 	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
-		cgogn::value<Vec3>(*m, vertex_position_clip, v) = cgogn::value<Vec3>(*m, vertex_position, v) * 0.8f;
+		cgogn::value<Vec3>(*m, vertex_position2, v) = cgogn::value<Vec3>(*m, vertex_position, v) +shiftVec;
 		return true;
 	});
+
+	std::shared_ptr<Attribute<Vec3>> vertex_position3 = cgogn::add_attribute<Vec3, Vertex>(*m, "position_3");
+
+	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
+		cgogn::value<Vec3>(*m, vertex_position3, v) = cgogn::value<Vec3>(*m, vertex_position, v) - shiftVec;
+		return true;
+	});
+
 
 	cgogn::foreach_cell(*m, [&](Volume v) -> bool {
 		Vec3 c(0, 0, 0);
@@ -102,7 +113,7 @@ int main(int argc, char** argv)
 
 
 	vr.set_vertex_position(*v1, *m, vertex_position);
-	vr.set_vertex_clipping_position(*v1, *m, vertex_position_clip);
+//	vr.set_vertex_clipping_position(*v1, *m, vertex_position_clip);
 	vr.set_volume_scalar(*v1, *m, volume_scalar);
 	vr.set_volume_color(*v1, *m, volume_color);
 
