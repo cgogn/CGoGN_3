@@ -42,6 +42,7 @@ ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 		in float vertex_scalar;
 
 		out vec3 position;
+		out float value;
 		out vec3 color;
 
 		//_insert_colormap_function_here
@@ -50,7 +51,7 @@ ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 		{
 			vec4 position4 = model_view_matrix * vec4(vertex_position, 1.0);
 			position = position4.xyz;
-			float value = transform_value(vertex_scalar);
+			value = transform_value(vertex_scalar);
 			color = value2color(value);
 			gl_Position = projection_matrix * position4;
 		}
@@ -61,36 +62,49 @@ ShaderFlatScalarPerVertex::ShaderFlatScalarPerVertex()
 		uniform vec4 ambiant_color;
 		uniform vec3 light_position;
 		uniform bool double_side;
+		uniform bool show_iso_lines;
+		uniform int nb_iso_lines;
 		
 		in vec3 position;
+		in float value;
 		in vec3 color;
 		
-		out vec3 frag_out;
+		out vec4 frag_out;
 		
 		void main()
 		{
-			vec3 N = normalize(cross(dFdx(position), dFdy(position)));
-			vec3 L = normalize(light_position - position);
-			float lambert = dot(N, L);
 			if (!gl_FrontFacing && !double_side)
 				discard;
 			else
-				frag_out = ambiant_color.rgb + lambert * color;
+			{
+				vec3 N = normalize(cross(dFdx(position), dFdy(position)));
+				vec3 L = normalize(light_position - position);
+				float lambert = dot(N, L);
+				vec3 frag_color = ambiant_color.rgb + lambert * color;
+				frag_out = vec4(frag_color, 1.0);
+				if (show_iso_lines)
+				{
+					float s = value * float(nb_iso_lines);
+					if (s - floor(s) < 0.05)
+						frag_out = vec4(0.0);
+				}
+			}
 		}
 	)";
 
 	std::string v_src(vertex_shader_source);
 	v_src.insert(v_src.find("//_insert_colormap_function_here"), shader_function::ColorMap::source);
 	load2_bind(v_src, fragment_shader_source, "vertex_position", "vertex_scalar");
-	get_uniforms("ambiant_color", "light_position", "double_side", shader_function::ColorMap::uniform_names[0],
-				 shader_function::ColorMap::uniform_names[1], shader_function::ColorMap::uniform_names[2],
-				 shader_function::ColorMap::uniform_names[3]);
+	get_uniforms("ambiant_color", "light_position", "double_side", "show_iso_lines", "nb_iso_lines",
+				 shader_function::ColorMap::uniform_names[0], shader_function::ColorMap::uniform_names[1],
+				 shader_function::ColorMap::uniform_names[2], shader_function::ColorMap::uniform_names[3]);
 }
 
 void ShaderParamFlatScalarPerVertex::set_uniforms()
 {
-	shader_->set_uniforms_values(ambiant_color_, light_position_, double_side_, color_map_.color_map_,
-								 color_map_.expansion_, color_map_.min_value_, color_map_.max_value_);
+	shader_->set_uniforms_values(ambiant_color_, light_position_, double_side_, show_iso_lines_, nb_iso_lines_,
+								 color_map_.color_map_, color_map_.expansion_, color_map_.min_value_,
+								 color_map_.max_value_);
 }
 
 } // namespace rendering

@@ -41,6 +41,7 @@
 #include <cgogn/io/surface/obj.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/surface/ply.h>
+#include <cgogn/io/volume/cgns.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
 #include <cgogn/io/volume/tet.h>
@@ -162,16 +163,17 @@ public:
 
 	MESH* load_graph_from_file(const std::string& filename)
 	{
+		std::string name = filename_from_path(filename);
+		if (has_mesh(name))
+			name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
+		const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+		MESH* m = it->second.get();
+
+		std::string ext = extension(filename);
+		bool imported;
+
 		if constexpr (mesh_traits<MESH>::dimension == 1 && std::is_default_constructible_v<MESH>)
 		{
-			std::string name = filename_from_path(filename);
-			if (has_mesh(name))
-				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
-			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
-			MESH* m = it->second.get();
-
-			std::string ext = extension(filename);
-			bool imported;
 			if (ext.compare("cg") == 0)
 				imported = cgogn::io::import_CG(*m, filename);
 			else if (ext.compare("cgr") == 0)
@@ -180,25 +182,32 @@ public:
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
 				imported = false;
-
-			if (imported)
-			{
-				MeshData<MESH>& md = mesh_data(*m);
-				md.init(m);
-				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-				if (vertex_position)
-					set_mesh_bb_vertex_position(*m, vertex_position);
-				boost::synapse::emit<mesh_added>(this, m);
-				return m;
-			}
+		}
+		else if constexpr (std::is_same_v<MESH, IncidenceGraph>)
+		{
+			if (ext.compare("cg") == 0)
+				imported = cgogn::io::import_CG(*m, filename);
+			else if (ext.compare("ig") == 0)
+				imported = cgogn::io::import_IG(*m, filename);
 			else
-			{
-				meshes_.erase(name);
-				return nullptr;
-			}
+				imported = false;
+		}
+
+		if (imported)
+		{
+			MeshData<MESH>& md = mesh_data(*m);
+			md.init(m);
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			if (vertex_position)
+				set_mesh_bb_vertex_position(*m, vertex_position);
+			boost::synapse::emit<mesh_added>(this, m);
+			return m;
 		}
 		else
+		{
+			meshes_.erase(name);
 			return nullptr;
+		}
 	}
 
 	void save_graph_to_file(MESH& m, const Attribute<Vec3>* vertex_position, const std::string& filetype,
@@ -317,6 +326,9 @@ public:
 		{
 			if (filetype.compare("mesh") == 0)
 				cgogn::io::export_MESH(m, vertex_position, filename + ".mesh");
+			// else if (filetype.compare("cgns") == 0)
+			// 	cgogn::io::export_CGNS(m, vertex_position, filename + ".cgns");
+
 			// else if (filetype.compare("tet") == 0)
 			// 	// TODO cgogn::io::export_TET();
 			// else if (filetype.compare("meshb") == 0)
@@ -450,14 +462,23 @@ protected:
 		if (open_file_dialog && open_file_dialog->ready())
 		{
 			auto result = open_file_dialog->result();
-			if (uint32(result.size()))
+			if (uint32(result.size()) > 0)
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
-					load_graph_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_graph_from_file(file);
+				}
 				if constexpr (mesh_traits<MESH>::dimension == 2)
-					load_surface_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_surface_from_file(file);
+				}
 				if constexpr (mesh_traits<MESH>::dimension == 3)
-					load_volume_from_file(result[0]);
+				{
+					for (auto file : result)
+						load_volume_from_file(file);
+				}
 			}
 			open_file_dialog = nullptr;
 		}
@@ -471,11 +492,14 @@ protected:
 			if (ImGui::MenuItem("Load mesh"))
 			{
 				if constexpr (mesh_traits<MESH>::dimension == 1)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_graph_files_,
+																		pfd::opt::multiselect);
 				if constexpr (mesh_traits<MESH>::dimension == 2)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_surface_files_,
+																		pfd::opt::multiselect);
 				if constexpr (mesh_traits<MESH>::dimension == 3)
-					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files_);
+					open_file_dialog = std::make_shared<pfd::open_file>("Choose file", ".", supported_volume_files_,
+																		pfd::opt::multiselect);
 			}
 			ImGui::PopItemFlag();
 			if (ImGui::MenuItem("Save mesh"))
@@ -633,8 +657,8 @@ private:
 	std::vector<std::string> supported_surface_formats_ = {"off", "obj", "ply", "ig"};
 	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.obj *.ply *.ig"};
 
-	std::vector<std::string> supported_volume_formats_ = {"mesh"};
-	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"};
+	std::vector<std::string> supported_volume_formats_ = {"mesh", "cgns"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh *.cgns"};
 
 	std::vector<std::string>* supported_formats_ = nullptr;
 

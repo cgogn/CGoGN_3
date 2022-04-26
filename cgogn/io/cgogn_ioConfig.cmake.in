@@ -2,7 +2,6 @@
 include(CMakeFindDependencyMacro)
 find_dependency(cgogn_core REQUIRED)
 find_dependency(cgogn_geometry REQUIRED)
-find_dependency(ply REQUIRED)
 find_dependency(Meshb REQUIRED)
 
 if(NOT TARGET cgogn::io)

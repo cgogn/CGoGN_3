@@ -27,6 +27,7 @@
 #include <cgogn/io/cgogn_io_export.h>
 
 #include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <vector>
 
@@ -49,6 +50,7 @@ struct GraphImportData
 };
 
 void CGOGN_IO_EXPORT import_graph_data(Graph& g, const GraphImportData& graph_data);
+void CGOGN_IO_EXPORT import_graph_data(IncidenceGraph& g, const GraphImportData& graph_data);
 
 } // namespace io
 

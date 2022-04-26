@@ -1035,6 +1035,16 @@ protected:
 								need_update = true;
 							}
 						}
+						if (ImGui::Checkbox("Show iso lines##vertexcolor", &p.param_flat_scalar_per_vertex_->show_iso_lines_))
+						{
+							p.param_phong_scalar_per_vertex_->show_iso_lines_ = p.param_flat_scalar_per_vertex_->show_iso_lines_;
+							need_update = true;
+						}
+						if (ImGui::InputInt("Nb iso lines##vertexcolor", &p.param_flat_scalar_per_vertex_->nb_iso_lines_))
+						{
+							p.param_phong_scalar_per_vertex_->nb_iso_lines_ = p.param_flat_scalar_per_vertex_->nb_iso_lines_;
+							need_update = true;
+						}
 					}
 					else if (p.color_type_ == VECTOR)
 					{

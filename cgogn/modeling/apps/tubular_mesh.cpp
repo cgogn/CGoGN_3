@@ -37,12 +37,11 @@
 #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
-#include <cgogn/io/graph/cgr.h>
-
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
 
-using Graph = cgogn::Graph;
+// using Graph = cgogn::Graph;
+using Graph = cgogn::IncidenceGraph;
 using Surface = cgogn::CMap2;
 using Volume = cgogn::CMap3;
 
@@ -85,7 +84,7 @@ int main(int argc, char** argv)
 
 	// cgogn::ui::Registration<Surface> r(app);
 
-	cgogn::ui::GraphRender<Graph> gr(app);
+	cgogn::ui::SurfaceRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::VectorPerVertexRender<Surface> svpvr(app);
 	cgogn::ui::VectorPerVertexRender<Graph> gvpvr(app);

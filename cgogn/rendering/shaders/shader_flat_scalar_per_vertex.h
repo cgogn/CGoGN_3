@@ -25,8 +25,8 @@
 #define CGOGN_RENDERING_SHADERS_FLAT_SCALAR_PER_VERTEX_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 #include <cgogn/rendering/shader_program.h>
+#include <cgogn/rendering/shaders/shader_function_color_maps.h>
 
 namespace cgogn
 {
@@ -44,12 +44,15 @@ public:
 	GLColor ambiant_color_;
 	GLVec3 light_position_;
 	bool double_side_;
+	bool show_iso_lines_;
+	int nb_iso_lines_;
 	shader_function::ColorMap::Uniforms color_map_;
 
 	using ShaderType = ShaderFlatScalarPerVertex;
 
 	ShaderParamFlatScalarPerVertex(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true)
+		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000), double_side_(true),
+		  show_iso_lines_(false), nb_iso_lines_(10)
 	{
 	}
 
