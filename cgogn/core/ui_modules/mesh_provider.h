@@ -326,8 +326,9 @@ public:
 		{
 			if (filetype.compare("mesh") == 0)
 				cgogn::io::export_MESH(m, vertex_position, filename + ".mesh");
-			else if (filetype.compare("cgns") == 0)
-				cgogn::io::export_CGNS(m, vertex_position, filename + ".cgns");
+			// else if (filetype.compare("cgns") == 0)
+			// 	cgogn::io::export_CGNS(m, vertex_position, filename + ".cgns");
+
 			// else if (filetype.compare("tet") == 0)
 			// 	// TODO cgogn::io::export_TET();
 			// else if (filetype.compare("meshb") == 0)

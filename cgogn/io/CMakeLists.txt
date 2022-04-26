@@ -56,7 +56,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # Write out cgogn_io_export.h to the current binary directory
 generate_export_header(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen Meshb cgns_static)
+# target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen Meshb cgns_static)
+target_link_libraries(${PROJECT_NAME} cgogn::core Eigen3::Eigen Meshb)
 
 set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_io.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_io.pc @ONLY)
