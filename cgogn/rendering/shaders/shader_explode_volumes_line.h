@@ -39,7 +39,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 {
 	void set_uniforms() override;
 
-	std::array<VBO*, 2> vbos_;
+	std::array<VBO*, 3> vbos_;
 	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
 		vbos_[i] = vbo;
@@ -50,7 +50,8 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesLine : public ShaderParam
 	enum VBOName : int32
 	{
 		VERTEX_POSITION = 0,
-		VOLUME_CENTER
+		VOLUME_CENTER,
+		VOLUME_CLIPPING
 	};
 
 public:

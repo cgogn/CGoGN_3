@@ -335,7 +335,7 @@ void ShaderParam::set_texture_buffer_vbo(uint32, VBO*)
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	assert(uint32(vbos.size()) == shader_->nb_attributes());
+//	assert(uint32(vbos.size()) == shader_->nb_attributes());
 
 	if (shader_->use_texture_buffer())
 	{
