@@ -301,6 +301,16 @@ public:
 			p.vertex_clipping_position_vbo_ = nullptr;
 			p.volume_clipping_position_vbo_ = nullptr;
 		}
+		else
+		{
+			p.clipping_plane_ = false;
+			p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+			p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
+		}
 
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
@@ -357,8 +367,6 @@ public:
 		}
 
 		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
-
-		v.request_update();
 	}
 
 protected:
@@ -390,6 +398,7 @@ protected:
 
 	void update_volume_clipping_position(View& v, const MESH& m)
 	{
+
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
