@@ -284,9 +284,9 @@ public:
 		if (clip_vertex_position == p.clipping_vertex_position_)
 			return;
 
-		p.clipping_vertex_position_= clip_vertex_position;
-		if (p.clipping_vertex_position_ != nullptr)
+		if (clip_vertex_position != nullptr)
 		{
+			p.clipping_vertex_position_= clip_vertex_position;
 			p.clipping_position_vbo_ = md.update_vbo(p.clipping_vertex_position_.get(), true);
 
 			p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
