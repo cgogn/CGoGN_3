@@ -85,7 +85,8 @@ class VolumeRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr),clipping_vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_scalar_(nullptr),
+			: vertex_position_(nullptr),clipping_vertex_position_(nullptr), vertex_position_vbo_(nullptr),
+			   clipping_position_vbo_(nullptr), volume_scalar_(nullptr),
 			  volume_scalar_vbo_(nullptr), volume_color_(nullptr), volume_color_vbo_(nullptr), volume_center_(nullptr),
 			  volume_center_vbo_(nullptr), volume_clipping_(nullptr), volume_clipping_vbo_(nullptr),
 			  render_vertices_(false), render_edges_(false), render_volumes_(true),
@@ -249,16 +250,16 @@ public:
 
 		update_volume_center(v, m);
 
-		if (p.clipping_vertex_position_ == nullptr)
+//		if ((p.clipping_vertex_position_ == nullptr) && (p.clipping_position_vbo_ == nullptr))
+		if ((p.clipping_vertex_position_ == nullptr) && (p.clipping_position_vbo_ == nullptr))
 		{
 			p.clipping_vertex_position_ = p.vertex_position_;
-			p.clipping_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
+			p.clipping_position_vbo_ = p.vertex_position_vbo_;
 			update_volume_clipping(v, m);
 		}
 
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
-
 
 		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
 		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_,p.volume_clipping_vbo_});
@@ -284,9 +285,10 @@ public:
 			return;
 
 		p.clipping_vertex_position_= clip_vertex_position;
-		if (p.clipping_vertex_position_)
+		if (p.clipping_vertex_position_ != nullptr)
 		{
 			p.clipping_position_vbo_ = md.update_vbo(p.clipping_vertex_position_.get(), true);
+
 			p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
 			p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.clipping_position_vbo_});
 
@@ -295,6 +297,17 @@ public:
 			p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_vbo_});
 			p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_, p.volume_clipping_vbo_});
 			p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_, p.volume_clipping_vbo_});
+		}
+		else
+		{
+			p.clipping_plane_ = false;
+			p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+			p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
+			p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
+
 		}
 
 		v.request_update();
@@ -343,8 +356,7 @@ public:
 
 		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
 
-		v.request_update();
-	}
+}
 
 protected:
 	void update_volume_scalar_min_max_values(Parameters& p)
@@ -366,20 +378,21 @@ protected:
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
-		geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
-		p.volume_center_vbo_ = md.update_vbo(p.volume_center_.get(), true);	
+		if (p.vertex_position_ != nullptr)
+			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
+		p.volume_center_vbo_ = md.update_vbo(p.volume_center_.get(), true);
 	}
 
 	void update_volume_clipping(View& v, const MESH& m)
 	{
+
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
-		if ((p.clipping_vertex_position_!= nullptr) && (p.vertex_position_ != p.clipping_vertex_position_))
+		if ((p.clipping_vertex_position_ != nullptr) && (p.clipping_vertex_position_ != p.vertex_position_))
 			geometry::compute_centroid<Vec3, Volume>(m, p.clipping_vertex_position_.get(), p.volume_clipping_.get());
-		else
+		else if (p.volume_center_!= nullptr)
 			p.volume_clipping_->copy(*(p.volume_center_.get()));
-
 		p.volume_clipping_vbo_ = md.update_vbo(p.volume_clipping_.get(), true);
 	}
 
@@ -623,32 +636,30 @@ protected:
 					imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.clipping_vertex_position_, "Clipped Position",
 														[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
 														set_vertex_clipping_position(*selected_view_, *selected_mesh_, attribute);
-														});
+													});
+					Vec3 position;
+					p.frame_manipulator_.get_position(position);
+					Vec3 axis_z;
+					p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
+					float32 d = -(position.dot(axis_z));
+					rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
+					p.param_point_sprite_->plane_clip_ = plane;
+					p.param_bold_line_->plane_clip_ = plane;
+					p.param_volume_->plane_clip_ = plane;
+					p.param_volume_line_->plane_clip_ = plane;
+					p.param_volume_color_->plane_clip_ = plane;
+					p.param_volume_scalar_->plane_clip_ = plane;
+					need_update = true;
 
-					if (p.clipping_plane_)
-					{
-						Vec3 position;
-						p.frame_manipulator_.get_position(position);
-						Vec3 axis_z;
-						p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
-						float32 d = -(position.dot(axis_z));
-						rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
-						p.param_point_sprite_->plane_clip_ = plane;
-						p.param_bold_line_->plane_clip_ = plane;
-						p.param_volume_->plane_clip_ = plane;
-						p.param_volume_line_->plane_clip_ = plane;
-						p.param_volume_color_->plane_clip_ = plane;
-						p.param_volume_scalar_->plane_clip_ = plane;
-					}
-					else
-					{
-						p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
-						p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
-					}
+				}
+				else
+				{
+					p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+					p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
 					need_update = true;
 				}
 
