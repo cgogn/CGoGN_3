@@ -301,16 +301,6 @@ public:
 			p.vertex_clipping_position_vbo_ = nullptr;
 			p.volume_clipping_position_vbo_ = nullptr;
 		}
-		else
-		{
-			p.clipping_plane_ = false;
-			p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
-			p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
-			p.param_volume_->plane_clip_ = {0, 0, 0, 0};
-			p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
-			p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
-			p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
-		}
 
 		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
 		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
