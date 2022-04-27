@@ -360,7 +360,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		out vec3 color_v;
 		in float vertex_size;
 		out float size_v;
-		out vec3 clip_pos_v
+		out vec3 clip_pos_v;
 
 		void main()
 		{
