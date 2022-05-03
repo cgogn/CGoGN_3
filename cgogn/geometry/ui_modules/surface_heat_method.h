@@ -31,9 +31,7 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/geometry/algos/area.h>
-#include <cgogn/geometry/algos/distance_heat_solver.h>
 #include <cgogn/geometry/algos/laplacian.h>
-#include <cgogn/geometry/algos/vector_heat_solver.h>
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -112,7 +110,7 @@ public:
 	void euclidean_distance(const MESH& m, const Attribute<Vec3>* vertex_position,
 							const CellsSet<MESH, Vertex>* source_vertices, Attribute<Scalar>* vertex_euclidean_dist)
 	{
-		foreach_cell(m, [&](Vertex v) -> bool {
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			Scalar s = std::numeric_limits<Scalar>::max();
 			const Vec3& pos = value<Vec3>(m, vertex_position, v);
 			source_vertices->foreach_cell([&](Vertex vec) {
