@@ -99,9 +99,10 @@ std::tuple<IG_GAttributes, IG_M2Attributes, IG_M3Attributes> incidenceGraph_to_h
 
 bool add_incidenceGraph_attributes(IncidenceGraph& ig, IG_GAttributes& igAttributes);
 bool add_cmap2_attributes(CMap2& m2, IG_M2Attributes& m2Attribs);
+bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
+
 bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& incidenceGraph_data,
 							IG_GAttributes& igAttributes);
-bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
 
 /*****************************************************************************/
 /* utils                                                                     */
@@ -110,15 +111,21 @@ bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
 std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& g, const Branch& b);
 std::vector<IncidenceGraph::Edge> get_incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
 															 IncidenceGraph::Edge e0);
+IncidenceGraph::Edge get_shared_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
 
 Dart add_chunk(CMap3& m3);
 Dart add_plate(CMap3& m3);
 
-void rmf(const IncidenceGraph& ig, IG_GAttributes& igAttribs, std::vector<IncidenceGraph::Vertex> branch_vertices);
-Mat3 rmf_step(const Vec3& x0, const Vec3& x1, const Mat3& U0, const Vec3& t1);
-
 void index_volume_cells_igh(CMap2& m, CMap2::Volume vol);
 void sew_volumes_igh(CMap3& m, Dart d0, Dart d1);
+
+Mat3 rmf_step(const Vec3& x0, const Vec3& x1, const Mat3& U0, const Vec3& t1);
+Vec3 slerp_igh(Vec3 A, Vec3 B, Scalar coef, bool in);
+Scalar angle_on_sphere_igh(Vec3 A, Vec3 B, Vec3 C);
+Scalar edge_max_angle_igh(CMap2& m2, CMap2::Edge e, IG_M2Attributes& m2Attribs);
+Scalar min_cut_angle_igh(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, IG_M2Attributes& m2Attribs);
+Vec3 spherical_barycenter_igh(std::vector<Vec3>& points, uint32 iterations);
+
 bool dijkstra_topo_igh(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
 					   std::shared_ptr<CMap2::Attribute<uint32>> dist);
 Dart convex_hull_around_vertex(const IncidenceGraph& g, IncidenceGraph::Vertex v, CMap2& m2, IG_M2Attributes& m2Attribs,
@@ -126,13 +133,6 @@ Dart convex_hull_around_vertex(const IncidenceGraph& g, IncidenceGraph::Vertex v
 void dualize_volume(CMap2& m, CMap2::Volume vol, IG_M2Attributes& m2Attribs, const IncidenceGraph& ig,
 					IG_GAttributes& igAttribs);
 Dart remesh_igh(CMap2& m2, CMap2::Volume vol, IG_M2Attributes& m2Attribs);
-Vec3 slerp_igh(Vec3 A, Vec3 B, Scalar coef, bool in);
-Scalar angle_on_sphere_igh(Vec3 A, Vec3 B, Vec3 C);
-Scalar edge_max_angle_igh(CMap2& m2, CMap2::Edge e, IG_M2Attributes& m2Attribs);
-Scalar min_cut_angle_igh(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, IG_M2Attributes& m2Attribs);
-Vec3 spherical_barycenter_igh(std::vector<Vec3>& points, uint32 iterations);
-
-IncidenceGraph::Edge get_shared_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
 
 /*****************************************************************************/
 /* contact surfaces generation                                               */
@@ -144,11 +144,11 @@ void build_contact_surface_1(const IncidenceGraph& ig, IG_GAttributes& igAttribs
 							 IncidenceGraph::Vertex v);
 void build_contact_surface_2(const IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
 							 IncidenceGraph::Vertex v, uint32 nb_leaflets);
-void build_contact_surface_n(const IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
-							 IncidenceGraph::Vertex v, uint32 nb_leaflets, uint32 nb_edges);
 void build_contact_surface_orange(const IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
 								  IG_M2Attributes& m2Attribs, IncidenceGraph::Vertex v, std::vector<Vec3>& Ppos,
 								  std::vector<IncidenceGraph::Edge>& Pev);
+void build_contact_surface_n(const IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
+							 IncidenceGraph::Vertex v, uint32 nb_leaflets, uint32 nb_edges);
 // bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
 // 								 Graph::Vertex v);
 
