@@ -177,12 +177,12 @@ bool add_incidenceGraph_attributes(IncidenceGraph& ig, IG_GAttributes& igAttribs
 		std::cout << "The incidence graph has no vertex position attribute" << std::endl;
 		return false;
 	}
-	// igAttribs.vertex_radius = get_attribute<Scalar, IncidenceGraph::Vertex>(ig, "radius");
-	// if (!igAttribs.vertex_radius)
-	// {
-	// 	std::cout << "The incidence graph has no vertex radius attribute" << std::endl;
-	// 	return false;
-	// }
+	igAttribs.vertex_radius = get_attribute<Scalar, IncidenceGraph::Vertex>(ig, "radius");
+	if (!igAttribs.vertex_radius)
+	{
+		std::cout << "The incidence graph has no vertex radius attribute" << std::endl;
+		return false;
+	}
 
 	igAttribs.face_normal = add_attribute<Vec3, IncidenceGraph::Face>(ig, "face_normal");
 
@@ -216,114 +216,6 @@ bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs)
 	m3Attribs.vertex_position = cgogn::add_attribute<Vec3, CMap3::Vertex>(m3, "position");
 
 	return true;
-}
-
-std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge> branch_extremity(
-	const IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex v,
-	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker)
-{
-	using Vertex = IncidenceGraph::Vertex;
-	using Edge = IncidenceGraph::Edge;
-
-	Edge current_edge = e;
-	Vertex next_vertex = v;
-	while (degree(ig, next_vertex) == 2)
-	{
-		const std::vector<Edge>& inc_edges = (*ig.vertex_incident_edges_)[next_vertex.index_];
-		current_edge = inc_edges[0] == current_edge ? inc_edges[1] : inc_edges[0];
-		const std::pair<Vertex, Vertex>& inc_verts = (*ig.edge_incident_vertices_)[current_edge.index_];
-		next_vertex = inc_verts.first == next_vertex ? inc_verts.second : inc_verts.first;
-		marker.mark(current_edge);
-	}
-	return {next_vertex, current_edge};
-}
-
-bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& igData)
-{
-	using Vertex = IncidenceGraph::Vertex;
-	using Edge = IncidenceGraph::Edge;
-	using Face = IncidenceGraph::Face;
-
-	bool success = true;
-
-	foreach_cell(ig, [&](Vertex v) -> bool {
-		std::pair<uint32, uint32> info = pseudo_degree(ig, v); // { nb_leaflets, nb_edges }
-
-		if (info.first + info.second > 2)
-			igData.intersections.push_back(v);
-		else if (info.first == 0 && info.second == 1)
-			igData.extremities.push_back(v);
-		else if (info.first == 0 && info.second == 2)
-			igData.eejunctures.push_back(v);
-		else if (info.first == 1 && info.second == 1)
-			igData.efjunctures.push_back(v);
-		else if (info.first == 2 && info.second == 0)
-			igData.ffjunctures.push_back(v);
-
-		return true;
-	});
-
-	CellMarker<IncidenceGraph, Edge> edge_marker(ig);
-	foreach_cell(ig, [&](Edge e) -> bool {
-		uint32 d = degree(ig, e);
-		if (d > 0)
-			return true;
-
-		if (edge_marker.is_marked(e))
-			return true;
-		edge_marker.mark(e);
-
-		const std::pair<Vertex, Vertex>& inc_verts = (*ig.edge_incident_vertices_)[e.index_];
-		igData.branches.push_back({branch_extremity(ig, e, inc_verts.first, edge_marker),
-								   branch_extremity(ig, e, inc_verts.second, edge_marker)});
-		return true;
-	});
-
-	// get each leaflet faces
-	// for each leaflet, the orientation of the first face is propagated to all the faces of the leaflet
-	CellMarker<IncidenceGraph, Face> face_marker(ig);
-	foreach_cell(ig, [&](Face f) -> bool {
-		if (face_marker.is_marked(f))
-			return true;
-
-		face_marker.mark(f);
-		std::vector<Face>& leaflet_faces = igData.leaflets.emplace_back();
-		leaflet_faces.push_back(f);
-		for (uint32 i = 0; i < leaflet_faces.size(); ++i)
-		{
-			Face f = leaflet_faces[i];
-			const std::vector<Edge>& inc_edges = (*ig.face_incident_edges_)[f.index_];
-			const std::vector<uint8>& inc_edges_dir = (*ig.face_incident_edges_dir_)[f.index_];
-			for (uint32 j = 0; j < inc_edges.size(); ++j)
-			{
-				Edge e = inc_edges[j];
-				uint8 edge_dir = inc_edges_dir[j];
-				const std::vector<Face>& inc_faces = (*ig.edge_incident_faces_)[e.index_];
-				for (uint32 k = 0; k < inc_faces.size(); ++k)
-				{
-					Face af = inc_faces[k];
-					if (!face_marker.is_marked(af))
-					{
-						uint32 eid = get_incident_edge_id(ig, af, e);
-						std::vector<Edge>& af_inc_edges = (*ig.face_incident_edges_)[af.index_];
-						std::vector<uint8>& af_inc_edges_dir = (*ig.face_incident_edges_dir_)[af.index_];
-						if (af_inc_edges_dir[eid] == edge_dir)
-						{
-							for (uint8& dir : af_inc_edges_dir)
-								dir = (dir + 1) % 2;
-							std::reverse(af_inc_edges.begin(), af_inc_edges.end());
-							std::reverse(af_inc_edges_dir.begin(), af_inc_edges_dir.end());
-						}
-						face_marker.mark(af);
-						leaflet_faces.push_back(af);
-					}
-				}
-			}
-		}
-		return true;
-	});
-
-	return success;
 }
 
 // Get all edges belonging to the same leaflet as e that are also incident to v
@@ -386,17 +278,6 @@ Dart add_plate(CMap3& m3)
 	sew_volumes_igh(m3, d0, d1);
 
 	return d0;
-}
-
-uint32 get_incident_edge_id(const IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge e)
-{
-	const std::vector<IncidenceGraph::Edge>& inc_edges = (*ig.face_incident_edges_)[f.index_];
-	for (uint32 i = 0, end = inc_edges.size(); i < end; ++i)
-	{
-		if (inc_edges[i] == e)
-			return i;
-	}
-	return INVALID_INDEX;
 }
 
 void index_volume_cells_igh(CMap2& m, CMap2::Volume vol)
@@ -1981,8 +1862,7 @@ bool set_contact_surfaces_geometry(const IncidenceGraph& ig, IG_GAttributes& igA
 			return true;
 
 		// TODO: get radius from attribute
-		// Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, v);
-		Scalar radius = 0.25;
+		Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, v);
 		const Vec3& center = value<Vec3>(ig, igAttribs.vertex_position, v);
 
 		// set the center position of the contact surface (CMap2 volume attribute)
@@ -2375,9 +2255,6 @@ bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, Inc
 		}
 	}
 
-	// TODO: get radius from attribute
-	Scalar radius = 0.25;
-
 	CellMarker<IncidenceGraph, IncidenceGraph::Vertex> vertex_marker_ig(ig);
 
 	for (auto& leaflet : incidenceGraph_data.leaflets)
@@ -2423,6 +2300,7 @@ bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, Inc
 		for (IncidenceGraph::Vertex iv : inside_vertices)
 		{
 			const Vec3& ivpos = value<Vec3>(ig, igAttribs.vertex_position, iv);
+			Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, iv);
 
 			Vec3 v_normal{0, 0, 0};
 			foreach_incident_face(ig, iv, [&](IncidenceGraph::Face f) -> bool {
@@ -2461,6 +2339,8 @@ bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, Inc
 		do
 		{
 			const Vec3& bvpos = value<Vec3>(ig, igAttribs.vertex_position, bv);
+			Scalar radius = value<Scalar>(ig, igAttribs.vertex_radius, bv);
+
 			std::pair<uint32, uint32> info = pseudo_degree(ig, bv); // { nb_leaflets, nb_edges }
 
 			Vec3 leaflet_dir{0, 0, 0};

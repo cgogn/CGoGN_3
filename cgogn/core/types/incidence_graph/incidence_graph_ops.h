@@ -152,42 +152,6 @@ inline std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& 
 	return sorted_vertices;
 }
 
-inline std::pair<uint32, uint32> pseudo_degree(const IncidenceGraph& ig, IncidenceGraph::Vertex v)
-{
-	std::pair<uint32, uint32> info;
-	info.first = 0;	 // incident leaflets
-	info.second = 0; // incident branches
-	// vertices inside leaflets are (0,0)
-	// vertices on the boundary of leaflets are (1,0)
-
-	foreach_incident_edge(ig, v, [&](IncidenceGraph::Edge e) -> bool {
-		uint32 nbf = 0;
-		foreach_incident_face(ig, e, [&](IncidenceGraph::Face f) -> bool {
-			++nbf;
-			return true;
-		});
-		switch (nbf)
-		{
-		case 0:
-			// info.first += 2;
-			info.second++;
-			break;
-		case 1:
-			info.first++;
-			break;
-		case 2:
-			break;
-		default:
-			info.first = INVALID_INDEX;
-			break;
-		}
-
-		return (info.first != INVALID_INDEX);
-	});
-	info.first /= 2;
-	return info;
-}
-
 } // namespace cgogn
 
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_

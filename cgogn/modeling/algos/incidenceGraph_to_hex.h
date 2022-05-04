@@ -1,10 +1,32 @@
-// get_graph_data(g, gData);
+/*******************************************************************************
+ * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
+ * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
+ *                                                                              *
+ * This library is free software; you can redistribute it and/or modify it      *
+ * under the terms of the GNU Lesser General Public License as published by the *
+ * Free Software Foundation; either version 2.1 of the License, or (at your     *
+ * option) any later version.                                                   *
+ *                                                                              *
+ * This library is distributed in the hope that it will be useful, but WITHOUT  *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or        *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License  *
+ * for more details.                                                            *
+ *                                                                              *
+ * You should have received a copy of the GNU Lesser General Public License     *
+ * along with this library; if not, write to the Free Software Foundation,      *
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.           *
+ *                                                                              *
+ * Web site: http://cgogn.unistra.fr/                                           *
+ * Contact information: cgogn@unistra.fr                                        *
+ *                                                                              *
+ *******************************************************************************/
 
 #ifndef CGOGN_MODELING_ALGOS_INCIDENCEGRAPH_TO_HEX_H_
 #define CGOGN_MODELING_ALGOS_INCIDENCEGRAPH_TO_HEX_H_
 
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/modeling/algos/graph_utils.h>
 
 namespace cgogn
 {
@@ -22,7 +44,7 @@ using Mat3 = geometry::Mat3;
 struct IG_GAttributes
 {
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> vertex_position;
-	// std::shared_ptr<IncidenceGraph::Attribute<Scalar>> vertex_radius;
+	std::shared_ptr<IncidenceGraph::Attribute<Scalar>> vertex_radius;
 
 	std::shared_ptr<IncidenceGraph::Attribute<Vec3>> face_normal;
 
@@ -68,20 +90,6 @@ struct IG_M3Attributes
 	// std::shared_ptr<CMap3::Attribute<Vec3>> color_mean_frobenius;
 };
 
-using Branch = std::pair<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>,
-						 std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>>;
-
-struct IncidenceGraphData
-{
-	std::vector<Branch> branches;
-	std::vector<IncidenceGraph::Vertex> extremities;
-	std::vector<IncidenceGraph::Vertex> eejunctures;
-	std::vector<IncidenceGraph::Vertex> efjunctures;
-	std::vector<IncidenceGraph::Vertex> ffjunctures;
-	std::vector<IncidenceGraph::Vertex> intersections;
-	std::vector<std::vector<IncidenceGraph::Face>> leaflets;
-};
-
 std::tuple<IG_GAttributes, IG_M2Attributes, IG_M3Attributes> incidenceGraph_to_hex(IncidenceGraph& ig, CMap2& m2,
 																				   CMap3& m3);
 
@@ -89,7 +97,6 @@ std::tuple<IG_GAttributes, IG_M2Attributes, IG_M3Attributes> incidenceGraph_to_h
 /* data preparation                                                          */
 /*****************************************************************************/
 
-bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& incidenceGraph_data);
 bool add_incidenceGraph_attributes(IncidenceGraph& ig, IG_GAttributes& igAttributes);
 bool add_cmap2_attributes(CMap2& m2, IG_M2Attributes& m2Attribs);
 bool compute_faces_geometry(const IncidenceGraph& ig, const IncidenceGraphData& incidenceGraph_data,
@@ -99,10 +106,6 @@ bool add_cmap3_attributes_igh(CMap3& m3, IG_M3Attributes& m3Attribs);
 /*****************************************************************************/
 /* utils                                                                     */
 /*****************************************************************************/
-
-std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge> branch_extremity(
-	const IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex v,
-	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
 
 std::vector<IncidenceGraph::Vertex> get_branch_vertices(const IncidenceGraph& g, const Branch& b);
 std::vector<IncidenceGraph::Edge> get_incident_leaflet_edges(const IncidenceGraph& ig, IncidenceGraph::Vertex v0,
@@ -129,7 +132,6 @@ Scalar edge_max_angle_igh(CMap2& m2, CMap2::Edge e, IG_M2Attributes& m2Attribs);
 Scalar min_cut_angle_igh(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, IG_M2Attributes& m2Attribs);
 Vec3 spherical_barycenter_igh(std::vector<Vec3>& points, uint32 iterations);
 
-uint32 get_incident_edge_id(const IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge e);
 IncidenceGraph::Edge get_shared_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
 
 /*****************************************************************************/

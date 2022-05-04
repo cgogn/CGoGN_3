@@ -89,6 +89,10 @@ std::pair<Dart, Scalar> arclength_value(const Graph& g, std::pair<Dart, Dart> g_
 
 } // namespace internal
 
+///////////
+// Graph //
+///////////
+
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
 					Graph::Attribute<Scalar>* new_g_vertex_radius, Scalar density)
@@ -249,6 +253,19 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, std::pair<Scalar,
 						Graph::Edge(alpha1(new_g, new_g_v.dart)), g_vertex_position, g_vertex_radius,
 						new_g_vertex_position, new_g_vertex_radius, new_g_vertex_arclength, density);
 	}
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void resample_graph(IncidenceGraph& g, IncidenceGraph::Attribute<Vec3>* g_vertex_position,
+					IncidenceGraph::Attribute<Scalar>* g_vertex_radius, IncidenceGraph& new_g,
+					IncidenceGraph::Attribute<Vec3>* new_g_vertex_position,
+					IncidenceGraph::Attribute<Scalar>* new_g_vertex_radius, Scalar density)
+{
+	IncidenceGraphData g_data;
+	get_incidenceGraph_data(g, g_data);
 }
 
 } // namespace modeling
