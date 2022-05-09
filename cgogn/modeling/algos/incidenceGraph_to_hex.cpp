@@ -2322,6 +2322,8 @@ bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, Inc
 			}
 		}
 
+		std::cout << "leaflet has " << inside_vertices.size() << " inside vertices" << std::endl;
+
 		for (IncidenceGraph::Vertex iv : inside_vertices)
 		{
 			const Vec3& ivpos = value<Vec3>(ig, igAttribs.vertex_position, iv);
@@ -2335,11 +2337,16 @@ bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, Inc
 			});
 			v_normal.normalize();
 
+			std::cout << " pos -> " << ivpos[0] << " " << ivpos[1] << " " << ivpos[2] << std::endl;
+			std::cout << " rad -> " << radius << std::endl;
+			std::cout << " nor -> " << v_normal[0] << " " << v_normal[1] << " " << v_normal[2] << std::endl;
+
 			IncidenceGraph::Edge e = (*ig.vertex_incident_edges_)[iv.index_][0];
 			IncidenceGraph::Face f = (*ig.edge_incident_faces_)[e.index_][0];
 			uint32 eid = get_incident_edge_id(ig, f, e);
-			// uint8 edge_dir = (*ig.face_incident_edges_dir_)[f][eid];
 			Dart edge_dart = value<std::vector<Dart>>(ig, igAttribs.face_edge_dart, f)[eid];
+			uint8 edge_dir = (*ig.face_incident_edges_dir_)[f.index_][eid];
+			edge_dart = edge_dir == 0 ? edge_dart : phi1(m3, edge_dart);
 
 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(edge_dart)) = ivpos;
 			value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(phi<2, 1, 1>(m3, edge_dart))) =

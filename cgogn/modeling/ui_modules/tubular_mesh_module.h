@@ -1344,7 +1344,7 @@ protected:
 		}
 
 		ImGui::Separator();
-		ImGui::TextUnformatted("Operations");
+		ImGui::TextUnformatted("Graph Operations");
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_)
 		{
 			if (ImGui::Button("Init radius from edge length"))
@@ -1366,9 +1366,10 @@ protected:
 			if (ImGui::Button("Resample graph"))
 				resample_graph(graph_resample_density);
 		}
+
+		ImGui::Separator();
 		if (graph_ && graph_vertex_position_)
 		{
-			ImGui::Separator();
 			if (!volume_)
 				if (ImGui::Button("Build hex mesh"))
 					build_hex_mesh();
@@ -1377,6 +1378,8 @@ protected:
 		{
 			MeshData<VOLUME>& md = volume_provider_->mesh_data(*volume_);
 			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+
+			ImGui::TextUnformatted("HexMesh Connectivity Ops");
 
 			// if (ImGui::Button("Export subdivided skin"))
 			// 	export_subdivided_skin();
@@ -1402,29 +1405,35 @@ protected:
 					subdivide_all_slices();
 			}
 
-			static float optimize_fit_to_surface = 1.0f;
-			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
-				refresh_solver_matrix_values_only_ = true;
-			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
+			ImGui::Separator();
+			ImGui::TextUnformatted("HexMesh Geometry Ops");
 
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
+			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
+			refresh_solver_matrix_values_only_ = true;
+
+			static float optimize_fit_to_surface = 1.0f;
+			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0);
 			if (ImGui::Button("Optimize volume vertices (inside skin)"))
 				optimize_volume_vertices(optimize_fit_to_surface, true);
 
 			if (surface_ && surface_vertex_position_)
 			{
+				if (ImGui::Button("Optimize volume vertices"))
+					optimize_volume_vertices(optimize_fit_to_surface);
+
 				ImGui::Separator();
+
 				if (ImGui::Button("Project on surface"))
 					project_on_surface();
 				static float regularize_fit_to_data = 5.0f;
 				ImGui::SliderFloat("Regularize surface - Fit to data", &regularize_fit_to_data, 0.0, 20.0);
 				if (ImGui::Button("Regularize surface vertices"))
 					regularize_surface_vertices(regularize_fit_to_data);
-				if (ImGui::Button("Optimize volume vertices"))
-					optimize_volume_vertices(optimize_fit_to_surface);
 
 				ImGui::Separator();
+
 				if (ImGui::Button("Rigid register volume mesh"))
 					rigid_register_volume_mesh();
 				static bool init_steady_pos = false;
@@ -1457,6 +1466,7 @@ protected:
 			}
 
 			ImGui::Separator();
+
 			if (ImGui::Button("Compute volumes quality"))
 				compute_volumes_quality();
 		}
