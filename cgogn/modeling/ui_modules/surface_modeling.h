@@ -182,7 +182,7 @@ public:
 
 	void quad_remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		modeling::quad_remesh(m, vertex_position);
+		// modeling::quad_remesh(m, vertex_position);
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
 	}
@@ -262,7 +262,7 @@ protected:
 						   lfs_adaptive);
 				ImGui::Separator();
 				if (ImGui::Button("Quad remesh"))
-					quad_remesh(*selected_mesh_, selected_vertex_position_.get());
+					quad_remesh(*selected_mesh_, selected_vertex_position_);
 			}
 		}
 	}
