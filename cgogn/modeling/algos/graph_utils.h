@@ -36,6 +36,10 @@ namespace cgogn
 namespace modeling
 {
 
+///////////
+// Graph //
+///////////
+
 struct GraphData
 {
 	std::vector<std::pair<Graph::HalfEdge, Graph::HalfEdge>> branches;
@@ -53,31 +57,35 @@ inline Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellM
 	return Graph::HalfEdge(d);
 }
 
-template <typename MESH>
-bool get_graph_data(const MESH& g, GraphData& graph_data)
+bool get_graph_data(const Graph& g, GraphData& graph_data);
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+using Branch = std::pair<std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>,
+						 std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge>>;
+
+struct IncidenceGraphData
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
-	using Edge = typename mesh_traits<MESH>::Edge;
+	std::vector<Branch> branches;
+	std::vector<IncidenceGraph::Vertex> extremities;
+	std::vector<IncidenceGraph::Vertex> eejunctures;
+	std::vector<IncidenceGraph::Vertex> efjunctures;
+	std::vector<IncidenceGraph::Vertex> ffjunctures;
+	std::vector<IncidenceGraph::Vertex> intersections;
+	std::vector<std::vector<IncidenceGraph::Face>> leaflets;
+};
 
-	foreach_cell(g, [&](Vertex v) -> bool {
-		if (degree(g, v) > 2)
-			graph_data.intersections.push_back(v);
-		return true;
-	});
+std::pair<uint32, uint32> pseudo_degree(const IncidenceGraph& ig, IncidenceGraph::Vertex v);
 
-	CellMarker<MESH, Edge> cm(g);
-	foreach_cell(g, [&](Edge e) -> bool {
-		if (cm.is_marked(e))
-			return true;
-		cm.mark(e);
-		std::vector<HalfEdge> halfedges = incident_halfedges(g, e);
-		graph_data.branches.push_back({branch_extremity(g, halfedges[0], cm), branch_extremity(g, halfedges[1], cm)});
-		return true;
-	});
+uint32 get_incident_edge_id(const IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge e);
 
-	return true;
-}
+std::pair<IncidenceGraph::Vertex, IncidenceGraph::Edge> branch_extremity(
+	const IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex v,
+	CellMarker<IncidenceGraph, IncidenceGraph::Edge>& marker);
+
+bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& incidenceGraph_data);
 
 } // namespace modeling
 

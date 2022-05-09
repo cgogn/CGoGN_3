@@ -49,7 +49,7 @@ public:
 	using ShaderType = ShaderBoldLine;
 
 	ShaderParamBoldLine(ShaderType* sh)
-		: ShaderParam(sh,true), color_(1, 1, 0, 1), width_(1.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0),
+		: ShaderParam(sh, true), color_(1, 1, 0, 1), width_(1.0f), lighted_(0.25f), plane_clip_(0, 0, 0, 0),
 		  plane_clip2_(0, 0, 0, 0)
 	{
 	}

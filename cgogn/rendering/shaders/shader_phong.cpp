@@ -64,6 +64,7 @@ ShaderPhong::ShaderPhong()
 		uniform bool double_side;
 		uniform vec4 specular_color;
 		uniform float specular_coef;
+		uniform bool ghost_mode;
 
 		in vec3 position;
 		in vec3 normal;
@@ -84,6 +85,8 @@ ShaderPhong::ShaderPhong()
 				current_color = back_color;
 			}
 			float lambert_term = clamp(dot(N, L), 0.0, 1.0);
+			if (ghost_mode)
+				lambert_term = 0.4 * pow(1.0 - lambert_term, 2);
 			final_color += current_color * lambert_term;
 			vec3 E = normalize(-position);
 			vec3 R = reflect(-L, N);
@@ -95,13 +98,13 @@ ShaderPhong::ShaderPhong()
 
 	load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_normal");
 	get_uniforms("light_position", "front_color", "back_color", "ambiant_color", "specular_color", "specular_coef",
-				 "double_side");
+				 "double_side", "ghost_mode");
 }
 
 void ShaderParamPhong::set_uniforms()
 {
 	shader_->set_uniforms_values(light_position_, front_color_, back_color_, ambiant_color_, specular_color_,
-								 specular_coef_, double_side_);
+								 specular_coef_, double_side_, ghost_mode_);
 }
 
 } // namespace rendering

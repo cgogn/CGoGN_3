@@ -122,7 +122,8 @@ ShaderPointSprite::ShaderPointSprite()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position","clipping_position");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position",
+			   "clipping_position");
 	get_uniforms("color", "ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
@@ -230,7 +231,8 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color", "clipping_position");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
+			   "clipping_position");
 	get_uniforms("ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
@@ -339,7 +341,8 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size","clipping_position");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size",
+			   "clipping_position");
 	get_uniforms("color", "ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 
@@ -454,7 +457,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
-			   "vertex_size","clipping_position");
+			   "vertex_size", "clipping_position");
 	get_uniforms("ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 

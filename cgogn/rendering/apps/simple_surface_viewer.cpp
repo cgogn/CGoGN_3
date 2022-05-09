@@ -27,7 +27,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
-// #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
+#include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
 // #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
 	// cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
-	// cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
 
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
 	// mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
-	// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
 	sr.set_vertex_position(*v1, *m, vertex_position);
 	sr.set_vertex_normal(*v1, *m, vertex_normal);

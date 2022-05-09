@@ -180,6 +180,13 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
 	}
 
+	void quad_remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	{
+		// modeling::quad_remesh(m, vertex_position);
+		mesh_provider_->emit_connectivity_changed(m);
+		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
+	}
+
 	void regularize_mesh(MESH& m, Attribute<Vec3>* vertex_position)
 	{
 		geometry::filter_regularize(m, vertex_position, vertex_position, 8.0);
@@ -224,6 +231,7 @@ protected:
 					subdivide_catmull_clark(*selected_mesh_, selected_vertex_position_.get());
 				if (ImGui::Button("Delaunay flips"))
 					delaunay_flips(*selected_mesh_, selected_vertex_position_.get());
+				ImGui::Separator();
 				if (ImGui::Button("Fill holes"))
 					fill_holes(*selected_mesh_);
 				static int32 min_vertices = 1000;
@@ -232,12 +240,17 @@ protected:
 					remove_small_components(*selected_mesh_, uint32(min_vertices));
 				if (ImGui::Button("Reverse orientation"))
 					reverse_orientation(*selected_mesh_);
+				ImGui::Separator();
+				if (ImGui::Button("Regularize"))
+					regularize_mesh(*selected_mesh_, selected_vertex_position_.get());
+				ImGui::Separator();
 				static int32 percent_vertices_to_keep = 90;
 				ImGui::SliderInt("% vertices to keep", &percent_vertices_to_keep, 1, 99);
 				if (ImGui::Button("Decimate"))
 					decimate_mesh(*selected_mesh_, selected_vertex_position_.get(), 100 - percent_vertices_to_keep);
 				if (ImGui::Button("Simplify"))
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
+				ImGui::Separator();
 				static float remesh_edge_length_ratio = 1.0f;
 				ImGui::SliderFloat("Edge length target w.r.t. mean", &remesh_edge_length_ratio, 0.0, 3.0);
 				static bool preserve_features = false;
@@ -247,8 +260,9 @@ protected:
 				if (ImGui::Button("Remesh"))
 					remesh(*selected_mesh_, selected_vertex_position_, remesh_edge_length_ratio, preserve_features,
 						   lfs_adaptive);
-				if (ImGui::Button("Regularize"))
-					regularize_mesh(*selected_mesh_, selected_vertex_position_.get());
+				ImGui::Separator();
+				if (ImGui::Button("Quad remesh"))
+					quad_remesh(*selected_mesh_, selected_vertex_position_);
 			}
 		}
 	}
