@@ -36,10 +36,13 @@ ShaderPointSprite::ShaderPointSprite()
 	const char* vertex_shader_source = R"(
 		#version 150
 		in vec3 vertex_position;
+		in vec3 clipping_position;
+		out vec3 clip_pos_v;
 
 		void main()
 		{
 			gl_Position = vec4(vertex_position, 1.0);
+			clip_pos_v = clipping_position;
 		}
 	)";
 
@@ -54,6 +57,8 @@ ShaderPointSprite::ShaderPointSprite()
 		uniform vec4 plane_clip2;
 		uniform float point_size;
 		
+		in vec3 clip_pos_v[];
+
 		out vec2 spriteCoord;
 		out vec3 sphereCenter;
 
@@ -67,8 +72,8 @@ ShaderPointSprite::ShaderPointSprite()
 		
 		void main()
 		{
-			float d = dot(plane_clip, gl_in[0].gl_Position);
-			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			float d = dot(plane_clip, vec4(clip_pos_v[0],1));
+			float d2 = dot(plane_clip2, vec4(clip_pos_v[0],1));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
@@ -117,7 +122,8 @@ ShaderPointSprite::ShaderPointSprite()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position",
+			   "clipping_position");
 	get_uniforms("color", "ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
@@ -134,13 +140,15 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		#version 150
 		in vec3 vertex_position;
 		in vec3 vertex_color;
-		
+		in vec3 clipping_position;
+		out vec3 clip_pos_v;
 		out vec3 color_v;
 		
 		void main()
 		{
 			color_v = vertex_color;
 			gl_Position = vec4(vertex_position, 1.0);
+			clip_pos_v = clipping_position;
 		}
 	)";
 
@@ -156,6 +164,7 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		uniform float point_size;
 		
 		in vec3 color_v[];
+		in vec3 clip_pos_v[];
 
 		out vec3 color_f;
 		out vec2 spriteCoord;
@@ -172,8 +181,8 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		
 		void main()
 		{
-			float d = dot(plane_clip, gl_in[0].gl_Position);
-			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			float d = dot(plane_clip, vec4(clip_pos_v[0],1));
+			float d2 = dot(plane_clip2, vec4(clip_pos_v[0],1));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
@@ -222,7 +231,8 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
+			   "clipping_position");
 	get_uniforms("ambiant", "light_position", "point_size", "plane_clip", "plane_clip2");
 }
 
@@ -239,13 +249,16 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 		#version 150
 		in vec3 vertex_position;
 		in float vertex_size;
+		in vec3 clipping_position;
 
 		out float size_v;
+		out vec3 clip_pos_v;
 
 		void main()
 		{
 			size_v = vertex_size;
 			gl_Position = vec4(vertex_position, 1.0);
+			clip_pos_v = clipping_position;
 		}
 	)";
 
@@ -260,6 +273,7 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 		uniform vec4 plane_clip2;
 
 		in float size_v[];
+		in vec3 clip_pos_v[];
 
 		out float size_f;
 		out vec2 spriteCoord;
@@ -276,8 +290,8 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 		
 		void main()
 		{
-			float d = dot(plane_clip, gl_in[0].gl_Position);
-			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			float d = dot(plane_clip, vec4(clip_pos_v[0],1));
+			float d2 = dot(plane_clip2, vec4(clip_pos_v[0],1));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
@@ -327,7 +341,8 @@ ShaderPointSpriteSize::ShaderPointSpriteSize()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_size",
+			   "clipping_position");
 	get_uniforms("color", "ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 
@@ -344,15 +359,18 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		#version 150
 		in vec3 vertex_position;
 		in vec3 vertex_color;
+		in vec3 clipping_position;
 		out vec3 color_v;
 		in float vertex_size;
 		out float size_v;
+		out vec3 clip_pos_v;
 
 		void main()
 		{
 			color_v = vertex_color;
 			size_v = vertex_size;
 			gl_Position = vec4(vertex_position, 1.0);
+			clip_pos_v = clipping_position;
 		}
 	)";
 
@@ -368,6 +386,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		
 		in vec3 color_v[];
 		in float size_v[];
+		in vec3 clip_pos_v[];
 
 		out vec3 color_f;
 		out float size_f;
@@ -386,8 +405,8 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		
 		void main()
 		{
-			float d = dot(plane_clip, gl_in[0].gl_Position);
-			float d2 = dot(plane_clip2, gl_in[0].gl_Position);
+			float d = dot(plane_clip, vec4(clip_pos_v[0],1));
+			float d2 = dot(plane_clip2, vec4(clip_pos_v[0],1));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec4 posCenter = model_view_matrix * gl_in[0].gl_Position;
@@ -438,7 +457,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 	)";
 
 	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position", "vertex_color",
-			   "vertex_size");
+			   "vertex_size", "clipping_position");
 	get_uniforms("ambiant", "light_position", "plane_clip", "plane_clip2");
 }
 

@@ -41,6 +41,7 @@ ShaderExplodeVolumesColor::ShaderExplodeVolumesColor()
 		uniform usamplerBuffer vertex_ind;
 		uniform samplerBuffer vertex_position;
 		uniform samplerBuffer volume_center;
+		uniform samplerBuffer volume_clipping;
 		uniform samplerBuffer volume_color;
 
 		uniform float explode;
@@ -57,10 +58,11 @@ ShaderExplodeVolumesColor::ShaderExplodeVolumesColor()
 
 			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
 			vec3 center = texelFetch(volume_center, ind_c).rgb;
+			vec3 clip_center = texelFetch(volume_clipping, ind_c).rgb;
 			color = texelFetch(volume_color, ind_c).rgb;
 
-			float d = dot(plane_clip, vec4(center, 1.0));
-			float d2 = dot(plane_clip2, vec4(center, 1.0));
+			float d = dot(plane_clip, vec4(clip_center, 1.0));
+			float d2 = dot(plane_clip2, vec4(clip_center, 1.0));
 			if (d <= 0.0 && d2 <= 0.0)
 			{
 				vec3 explode_position = mix(center, position_in, explode);
@@ -92,7 +94,7 @@ ShaderExplodeVolumesColor::ShaderExplodeVolumesColor()
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	get_uniforms("vertex_ind", "vertex_position", "volume_center", "volume_color", "light_position", "explode",
+	get_uniforms("vertex_ind", "vertex_position", "volume_center", "volume_color", "volume_clipping", "light_position", "explode",
 				 "plane_clip", "plane_clip2");
 
 	nb_attributes_ = 3;
@@ -100,7 +102,7 @@ ShaderExplodeVolumesColor::ShaderExplodeVolumesColor()
 
 void ShaderParamExplodeVolumesColor::set_uniforms()
 {
-	shader_->set_uniforms_values(10, 11, 12, 13, light_position_, explode_, plane_clip_, plane_clip2_);
+	shader_->set_uniforms_values(10, 11, 12, 13, 14, light_position_, explode_, plane_clip_, plane_clip2_);
 }
 
 void ShaderParamExplodeVolumesColor::bind_texture_buffers()
@@ -108,6 +110,7 @@ void ShaderParamExplodeVolumesColor::bind_texture_buffers()
 	vbos_[VERTEX_POSITION]->bind_texture_buffer(11);
 	vbos_[VOLUME_CENTER]->bind_texture_buffer(12);
 	vbos_[VOLUME_COLOR]->bind_texture_buffer(13);
+	vbos_[VOLUME_CLIPPING]->bind_texture_buffer(14);
 }
 
 void ShaderParamExplodeVolumesColor::release_texture_buffers()
@@ -115,6 +118,7 @@ void ShaderParamExplodeVolumesColor::release_texture_buffers()
 	vbos_[VERTEX_POSITION]->release_texture_buffer(11);
 	vbos_[VOLUME_CENTER]->release_texture_buffer(12);
 	vbos_[VOLUME_COLOR]->release_texture_buffer(13);
+	vbos_[VOLUME_CLIPPING]->release_texture_buffer(14);
 }
 
 } // namespace rendering

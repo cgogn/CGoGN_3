@@ -85,15 +85,14 @@ class VolumeRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), volume_scalar_(nullptr),
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_clipping_position_(nullptr),
+			  volume_clipping_position_(nullptr), volume_clipping_position_vbo_(nullptr), volume_scalar_(nullptr),
 			  volume_scalar_vbo_(nullptr), volume_color_(nullptr), volume_color_vbo_(nullptr), volume_center_(nullptr),
 			  volume_center_vbo_(nullptr), render_vertices_(false), render_edges_(false), render_volumes_(true),
 			  render_volume_lines_(true), color_per_cell_(GLOBAL), color_type_(SCALAR), vertex_scale_factor_(1.0),
-			  auto_update_volume_scalar_min_max_(true), clipping_plane_(false), show_frame_manipulator_(false),
-			  manipulating_frame_(false)
+			  auto_update_volume_scalar_min_max_(true), clipping_plane_(false), clip_only_volumes_(true),
+			  show_frame_manipulator_(false), manipulating_frame_(false)
 		{
-			// volume_center_vbo_ = std::make_unique<rendering::VBO>();
-
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = rendering::GLColor(1, 0.5f, 0, 1);
 
@@ -119,6 +118,13 @@ class VolumeRender : public ViewModule
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
+
+		std::shared_ptr<Attribute<Vec3>> vertex_clipping_position_;
+		rendering::VBO* vertex_clipping_position_vbo_;
+
+		std::shared_ptr<Attribute<Vec3>> volume_clipping_position_;
+		rendering::VBO* volume_clipping_position_vbo_;
+
 		std::shared_ptr<Attribute<Scalar>> volume_scalar_;
 		rendering::VBO* volume_scalar_vbo_;
 		std::shared_ptr<Attribute<Vec3>> volume_color_;
@@ -126,7 +132,6 @@ class VolumeRender : public ViewModule
 
 		std::shared_ptr<Attribute<Vec3>> volume_center_;
 		rendering::VBO* volume_center_vbo_;
-		// std::unique_ptr<rendering::VBO> volume_center_vbo_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
 		std::unique_ptr<rendering::ShaderBoldLine::Param> param_bold_line_;
@@ -149,6 +154,7 @@ class VolumeRender : public ViewModule
 		bool auto_update_volume_scalar_min_max_;
 
 		bool clipping_plane_;
+		bool clip_only_volumes_;
 		rendering::FrameManipulator frame_manipulator_;
 		bool show_frame_manipulator_;
 		bool manipulating_frame_;
@@ -175,6 +181,7 @@ private:
 			Parameters& p = parameters_[v][m];
 
 			p.volume_center_ = add_attribute<Vec3, Volume>(*m, "__volume_center");
+			p.volume_clipping_position_ = add_attribute<Vec3, Volume>(*m, "__volume_clipping_position");
 
 			std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
@@ -187,6 +194,7 @@ private:
 					{
 						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 						update_volume_center(*v, *m);
+						update_volume_clipping_position(*v, *m);
 					}
 					v->request_update();
 				}));
@@ -199,6 +207,7 @@ private:
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 							update_volume_center(*v, *m);
+							update_volume_clipping_position(*v, *m);
 						}
 						v->request_update();
 					}));
@@ -220,10 +229,10 @@ public:
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+
 		if (p.vertex_position_ == vertex_position)
 			return;
-
-		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
@@ -231,21 +240,77 @@ public:
 			p.vertex_position_vbo_ = md.update_vbo(vertex_position.get(), true);
 			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, vertex_position.get()) / 7.0);
 			update_volume_center(v, m);
+
+			if (!p.vertex_clipping_position_)
+			{
+				p.vertex_clipping_position_ = p.vertex_position_;
+				p.vertex_clipping_position_vbo_ = md.update_vbo(p.vertex_clipping_position_.get(), true);
+				update_volume_clipping_position(v, m);
+			}
 		}
 		else
-			p.vertex_position_vbo_ = nullptr;
+		{
+			p.vertex_clipping_position_ = nullptr;
 
-		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_});
-		p.param_bold_line_->set_vbos({p.vertex_position_vbo_});
-		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
-		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_});
-		p.param_volume_color_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_});
-		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
+			p.vertex_position_vbo_ = nullptr;
+			p.vertex_clipping_position_vbo_ = nullptr;
+			p.volume_clipping_position_vbo_ = nullptr;
+		}
+
+		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
+		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
+
+		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_color_->set_vbos(
+			{p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_scalar_->set_vbos(
+			{p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_, p.volume_clipping_position_vbo_});
 
 		Scalar size = (md.bb_max_ - md.bb_min_).norm() / 25;
 		Vec3 position = 0.2 * md.bb_min_ + 0.8 * md.bb_max_;
 		p.frame_manipulator_.set_size(size);
 		p.frame_manipulator_.set_position(position);
+
+		v.request_update();
+	}
+
+	void set_vertex_clipping_position(View& v, const MESH& m,
+									  const std::shared_ptr<Attribute<Vec3>>& vertex_clipping_position)
+	{
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+
+		if (p.vertex_clipping_position_ == vertex_clipping_position)
+			return;
+
+		p.vertex_clipping_position_ = vertex_clipping_position;
+		if (p.vertex_clipping_position_)
+		{
+			p.vertex_clipping_position_vbo_ = md.update_vbo(p.vertex_clipping_position_.get(), true);
+			update_volume_clipping_position(v, m);
+		}
+		else if (p.vertex_position_)
+		{
+			p.vertex_clipping_position_ = p.vertex_position_;
+			p.vertex_clipping_position_vbo_ = md.update_vbo(p.vertex_clipping_position_.get(), true);
+			update_volume_clipping_position(v, m);
+		}
+		else
+		{
+			p.vertex_clipping_position_vbo_ = nullptr;
+			p.volume_clipping_position_vbo_ = nullptr;
+		}
+
+		p.param_point_sprite_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
+		p.param_bold_line_->set_vbos({p.vertex_position_vbo_, p.vertex_clipping_position_vbo_});
+
+		p.param_volume_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_line_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_color_->set_vbos(
+			{p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_color_vbo_, p.volume_clipping_position_vbo_});
+		p.param_volume_scalar_->set_vbos(
+			{p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_, p.volume_clipping_position_vbo_});
 
 		v.request_update();
 	}
@@ -292,8 +357,6 @@ public:
 		}
 
 		p.param_volume_scalar_->set_vbos({p.vertex_position_vbo_, p.volume_center_vbo_, p.volume_scalar_vbo_});
-
-		v.request_update();
 	}
 
 protected:
@@ -316,21 +379,24 @@ protected:
 	{
 		Parameters& p = parameters_[&v][&m];
 		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
-
 		if (p.vertex_position_)
 		{
 			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_position_.get(), p.volume_center_.get());
 			p.volume_center_vbo_ = md.update_vbo(p.volume_center_.get(), true);
+		}
+	}
 
-			// uint32 nb_elements = is_indexed<Volume>(m) ? maximum_index<Volume>(m) : nb_cells<Volume>(m);
-			// p.volume_center_vbo_->bind();
-			// p.volume_center_vbo_->allocate(nb_elements, 3);
-			// p.volume_center_vbo_->release();
+	void update_volume_clipping_position(View& v, const MESH& m)
+	{
 
-			// if (!md.is_primitive_uptodate(rendering::VOLUMES_VERTICES))
-			// 	md.init_primitives(rendering::VOLUMES_VERTICES, p.vertex_position_);
-			// compute_volume_center_engine_->compute(p.vertex_position_vbo_, md.mesh_render(),
-			// 									   p.volume_center_vbo_.get());
+		Parameters& p = parameters_[&v][&m];
+		MeshData<MESH>& md = mesh_provider_->mesh_data(m);
+
+		if (p.vertex_clipping_position_)
+		{
+			geometry::compute_centroid<Vec3, Volume>(m, p.vertex_clipping_position_.get(),
+													 p.volume_clipping_position_.get());
+			p.volume_clipping_position_vbo_ = md.update_vbo(p.volume_clipping_position_.get(), true);
 		}
 	}
 
@@ -568,29 +634,47 @@ protected:
 					need_update |= ImGui::ColorEdit3("Volume lines color", p.param_volume_line_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
 
-				if (ImGui::Checkbox("Apply clipping plane", &p.clipping_plane_))
+				need_update |= ImGui::Checkbox("Apply clipping plane", &p.clipping_plane_);
+				if (p.clipping_plane_)
 				{
-					if (p.clipping_plane_)
+					imgui_combo_attribute<Vertex, Vec3>(
+						*selected_mesh_, p.vertex_clipping_position_, "Clipping Position",
+						[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+							set_vertex_clipping_position(*selected_view_, *selected_mesh_, attribute);
+						});
+
+					need_update |= ImGui::Checkbox("Clip only volumes", &p.clip_only_volumes_);
+
+					Vec3 position;
+					p.frame_manipulator_.get_position(position);
+					Vec3 axis_z;
+					p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
+					float32 d = -(position.dot(axis_z));
+					rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
+
+					if (p.clip_only_volumes_)
 					{
-						Vec3 position;
-						p.frame_manipulator_.get_position(position);
-						Vec3 axis_z;
-						p.frame_manipulator_.get_axis(rendering::FrameManipulator::Zt, axis_z);
-						float32 d = -(position.dot(axis_z));
-						rendering::GLVec4 plane = rendering::construct_GLVec4(axis_z.x(), axis_z.y(), axis_z.z(), d);
-						p.param_volume_->plane_clip_ = plane;
-						p.param_volume_line_->plane_clip_ = plane;
-						p.param_volume_color_->plane_clip_ = plane;
-						p.param_volume_scalar_->plane_clip_ = plane;
+						p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+						p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
 					}
 					else
 					{
-						p.param_volume_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
-						p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
+						p.param_point_sprite_->plane_clip_ = plane;
+						p.param_bold_line_->plane_clip_ = plane;
 					}
-					need_update = true;
+					p.param_volume_->plane_clip_ = plane;
+					p.param_volume_line_->plane_clip_ = plane;
+					p.param_volume_color_->plane_clip_ = plane;
+					p.param_volume_scalar_->plane_clip_ = plane;
+				}
+				else
+				{
+					p.param_point_sprite_->plane_clip_ = {0, 0, 0, 0};
+					p.param_bold_line_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_line_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_color_->plane_clip_ = {0, 0, 0, 0};
+					p.param_volume_scalar_->plane_clip_ = {0, 0, 0, 0};
 				}
 
 				need_update |= ImGui::Checkbox("Show clipping plane", &p.show_frame_manipulator_);

@@ -82,7 +82,7 @@ public:
 	inline void update_matrices()
 	{
 		float64 d = focal_distance_ - frame_.translation().z();
-		float64 znear = std::max(0.05, d - 2.0 * scene_radius_);
+		float64 znear = std::max(0.01, d - 2.0 * scene_radius_);
 		float64 zfar = d + 2.0 * scene_radius_;
 		proj_d_ = ((type_ == PERSPECTIVE) ? perspective(znear, zfar) : orthographic(znear, zfar));
 		proj_ = proj_d_.cast<float32>();

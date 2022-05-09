@@ -292,7 +292,8 @@ void ShaderProgram::load3(const std::string& vert_src, const std::string& frag_s
 // ShaderParam
 /*****************************************************************************/
 
-ShaderParam::ShaderParam(ShaderProgram* prg) : shader_(prg), attributes_initialized_(false)
+ShaderParam::ShaderParam(ShaderProgram* prg, bool opt_clip)
+	: shader_(prg), attributes_initialized_(false), optional_clipping_attribute_(opt_clip)
 {
 	vao_ = std::make_unique<VAO>();
 }
@@ -335,7 +336,7 @@ void ShaderParam::set_texture_buffer_vbo(uint32, VBO*)
 
 void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 {
-	assert(uint32(vbos.size()) == shader_->nb_attributes());
+	//	assert(uint32(vbos.size()) == shader_->nb_attributes());
 
 	if (shader_->use_texture_buffer())
 	{
@@ -361,6 +362,10 @@ void ShaderParam::set_vbos(const std::vector<VBO*>& vbos)
 				attributes_initialized_ = false;
 			attrib++;
 		}
+		// if the last optional clipping attribute is not given, use the first vbo as the last attribute
+		// TODO: not very clean...
+		if (attributes_initialized_ && optional_clipping_attribute_ && uint32(vbos.size()) < shader_->nb_attributes())
+			vbos[0]->associate(attrib);
 		vao_->release();
 	}
 }

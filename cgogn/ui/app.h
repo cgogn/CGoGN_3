@@ -113,6 +113,11 @@ public:
 		timer.detach();
 	}
 
+	inline void show_gui(bool show)
+	{
+		show_imgui_ = show;
+	}
+
 private:
 	void close_event();
 	void adapt_views_geometry();

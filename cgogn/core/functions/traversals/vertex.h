@@ -147,29 +147,48 @@ auto foreach_incident_vertex(const IncidenceGraph& ig, CELL c, const FUNC& func)
 
 	if constexpr (std::is_same_v<CELL, Edge>)
 	{
-		std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[c.index_];
+		const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[c.index_];
 		if (func(evs.first))
 			func(evs.second);
 	}
 	else if constexpr (std::is_same_v<CELL, Face>)
 	{
-		CellMarkerStore<IncidenceGraph, Vertex> marker(ig);
-		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
+		// strong precondition: edges are sorted in the face & edges dirs are computed
+		const std::vector<Edge>& edges = (*ig.face_incident_edges_)[c.index_];
+		const std::vector<uint8>& edges_dir = (*ig.face_incident_edges_dir_)[c.index_];
+		for (uint32 i = 0, end = edges.size(); i < end - 1; ++i)
 		{
-			std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[ep.index_];
-			bool stop = false;
-			if (!marker.is_marked(evs.first))
+			const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[edges[i].index_];
+			if (i == 0)
 			{
-				marker.mark(evs.first);
-				stop = !func(evs.first);
+				if (edges_dir[i] == 0)
+				{
+					if (!func(evs.first))
+						break;
+					if (!func(evs.second))
+						break;
+				}
+				else
+				{
+					if (!func(evs.second))
+						break;
+					if (!func(evs.first))
+						break;
+				}
 			}
-			if (!marker.is_marked(evs.second) && !stop)
+			else
 			{
-				marker.mark(evs.second);
-				stop = !func(evs.second);
+				if (edges_dir[i] == 0)
+				{
+					if (!func(evs.second))
+						break;
+				}
+				else
+				{
+					if (!func(evs.first))
+						break;
+				}
 			}
-			if (stop)
-				break;
 		}
 	}
 }
@@ -240,6 +259,32 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 				}
 				return true;
 			});
+		}
+	}
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+template <typename FUNC>
+auto foreach_adjacent_vertex_through_edge(const IncidenceGraph& ig, IncidenceGraph::Vertex v, const FUNC& func)
+{
+	static_assert(is_func_parameter_same<FUNC, IncidenceGraph::Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	for (IncidenceGraph::Edge e : (*ig.vertex_incident_edges_)[v.index_])
+	{
+		const std::pair<IncidenceGraph::Vertex, IncidenceGraph::Vertex>& ev = (*ig.edge_incident_vertices_)[e.index_];
+		if (ev.first.index_ != v.index_)
+		{
+			if (!func(ev.first))
+				break;
+		}
+		else
+		{
+			if (!func(ev.second))
+				break;
 		}
 	}
 }

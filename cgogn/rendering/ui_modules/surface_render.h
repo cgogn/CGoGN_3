@@ -95,10 +95,11 @@ class SurfaceRender : public ViewModule
 			  vertex_color_vbo_(nullptr), edge_color_(nullptr), edge_color_vbo_(nullptr), face_scalar_(nullptr),
 			  face_scalar_vbo_(nullptr), face_color_(nullptr), face_color_vbo_(nullptr), vertex_radius_(nullptr),
 			  vertex_radius_vbo_(nullptr), vertex_point_color_(nullptr), vertex_point_color_vbo_(nullptr),
-			  render_vertices_(true), render_edges_(true), render_faces_(true), normal_per_cell_(PER_FACE),
-			  color_per_cell_(GLOBAL), color_type_(SCALAR), point_color_per_cell_(GLOBAL), point_color_type_(VECTOR),
-			  edge_color_per_cell_(GLOBAL), edge_color_type_(VECTOR), vertex_scale_factor_(1.0f),
-			  auto_update_vertex_scalar_min_max_(true), auto_update_face_scalar_min_max_(true)
+			  render_vertices_(true), render_edges_(true), render_faces_(true), ghost_mode_(false),
+			  normal_per_cell_(PER_FACE), color_per_cell_(GLOBAL), color_type_(SCALAR), point_color_per_cell_(GLOBAL),
+			  point_color_type_(VECTOR), edge_color_per_cell_(GLOBAL), edge_color_type_(VECTOR),
+			  vertex_scale_factor_(1.0f), auto_update_vertex_scalar_min_max_(true),
+			  auto_update_face_scalar_min_max_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
 			param_point_sprite_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
@@ -116,8 +117,8 @@ class SurfaceRender : public ViewModule
 			param_bold_line_color_ = rendering::ShaderBoldLineColor::generate_param();
 
 			param_flat_ = rendering::ShaderFlat::generate_param();
-			param_flat_->front_color_ = {0.4f, 0.8f, 1.0f, 1.0f};
-			param_flat_->back_color_ = {0.8f, 0.4f, 1.0f, 1.0f};
+			param_flat_->front_color_ = {0.1f, 0.9f, 0.9f, 1.0f};
+			param_flat_->back_color_ = {0.1f, 0.9f, 0.9f, 1.0f};
 
 			param_flat_color_per_vertex_ = rendering::ShaderFlatColorPerVertex::generate_param();
 
@@ -128,8 +129,8 @@ class SurfaceRender : public ViewModule
 			param_flat_scalar_per_face_ = rendering::ShaderFlatScalarPerFace::generate_param();
 
 			param_phong_ = rendering::ShaderPhong::generate_param();
-			param_phong_->front_color_ = {0.4f, 0.8f, 1.0f, 1.0f};
-			param_phong_->back_color_ = {0.8f, 0.4f, 1.0f, 1.0f};
+			param_phong_->front_color_ = {0.1f, 0.9f, 0.9f, 1.0f};
+			param_phong_->back_color_ = {0.1f, 0.9f, 0.9f, 1.0f};
 
 			param_phong_color_per_vertex_ = rendering::ShaderPhongColorPerVertex::generate_param();
 
@@ -181,6 +182,8 @@ class SurfaceRender : public ViewModule
 		bool render_vertices_;
 		bool render_edges_;
 		bool render_faces_;
+
+		bool ghost_mode_;
 
 		AttributePerCell normal_per_cell_;
 		AttributePerCell color_per_cell_;
@@ -567,6 +570,12 @@ protected:
 
 			if (p.render_faces_)
 			{
+				if (p.ghost_mode_)
+				{
+					glDisable(GL_DEPTH_TEST);
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_ONE, GL_ONE);
+				}
 				glEnable(GL_POLYGON_OFFSET_FILL);
 				glPolygonOffset(1.0f, 1.5f);
 
@@ -707,6 +716,11 @@ protected:
 				}
 
 				glDisable(GL_POLYGON_OFFSET_FILL);
+				if (p.ghost_mode_)
+				{
+					glDisable(GL_BLEND);
+					glEnable(GL_DEPTH_TEST);
+				}
 			}
 
 			if (p.render_edges_)
@@ -793,14 +807,6 @@ protected:
 					}
 				}
 			}
-
-			// if (p.render_vertices_ && p.param_point_sprite_->attributes_initialized())
-			// {
-			// 	p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
-			// 	p.param_point_sprite_->bind(proj_matrix, view_matrix);
-			// 	md.draw(rendering::POINTS);
-			// 	p.param_point_sprite_->release();
-			// }
 
 			float64 remain = md.outlined_until_ - App::frame_time_;
 			if (remain > 0 && p.vertex_position_vbo_)
@@ -925,6 +931,12 @@ protected:
 			need_update |= ImGui::Checkbox("Faces", &p.render_faces_);
 			if (p.render_faces_)
 			{
+				if (ImGui::Checkbox("Ghost mode", &p.ghost_mode_))
+				{
+					p.param_flat_->ghost_mode_ = p.ghost_mode_;
+					p.param_phong_->ghost_mode_ = p.ghost_mode_;
+					need_update = true;
+				}
 				ImGui::TextUnformatted("Normals");
 				ImGui::BeginGroup();
 				if (ImGui::RadioButton("Per vertex##normal", p.normal_per_cell_ == PER_VERTEX))
@@ -1034,6 +1046,20 @@ protected:
 								update_vertex_scalar_min_max_values(p);
 								need_update = true;
 							}
+						}
+						if (ImGui::Checkbox("Show iso lines##vertexcolor",
+											&p.param_flat_scalar_per_vertex_->show_iso_lines_))
+						{
+							p.param_phong_scalar_per_vertex_->show_iso_lines_ =
+								p.param_flat_scalar_per_vertex_->show_iso_lines_;
+							need_update = true;
+						}
+						if (ImGui::InputInt("Nb iso lines##vertexcolor",
+											&p.param_flat_scalar_per_vertex_->nb_iso_lines_))
+						{
+							p.param_phong_scalar_per_vertex_->nb_iso_lines_ =
+								p.param_flat_scalar_per_vertex_->nb_iso_lines_;
+							need_update = true;
 						}
 					}
 					else if (p.color_type_ == VECTOR)

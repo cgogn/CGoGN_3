@@ -24,8 +24,8 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
 #include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -37,9 +37,9 @@ namespace modeling
 using Vec3 = geometry::Vec3;
 using Scalar = geometry::Scalar;
 
-void compute_graph_radius_from_surface(Graph& g, Graph::Attribute<Vec3>* g_vertex_position,
-									   Graph::Attribute<Scalar>* g_vertex_radius, const CMap2& s,
-									   const CMap2::Attribute<Vec3>* s_vertex_position, Scalar density);
+///////////
+// Graph //
+///////////
 
 void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::Attribute<Scalar>* g_vertex_radius,
 					Graph& new_g, Graph::Attribute<Vec3>* new_g_vertex_position,
@@ -50,6 +50,15 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, std::pair<Scalar,
 					 Graph::Attribute<Scalar>* g_vertex_radius, Graph::Attribute<Vec3>* new_g_vertex_position,
 					 Graph::Attribute<Scalar>* new_g_vertex_radius, Graph::Attribute<Scalar>* new_g_vertex_arclength,
 					 Scalar density);
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+void resample_graph(IncidenceGraph& g, IncidenceGraph::Attribute<Vec3>* g_vertex_position,
+					IncidenceGraph::Attribute<Scalar>* g_vertex_radius, IncidenceGraph& new_g,
+					IncidenceGraph::Attribute<Vec3>* new_g_vertex_position,
+					IncidenceGraph::Attribute<Scalar>* new_g_vertex_radius, Scalar density);
 
 } // namespace modeling
 

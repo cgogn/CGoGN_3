@@ -43,6 +43,7 @@ struct CGOGN_CORE_EXPORT CMap3 : public CMap2
 	using Face = Cell<PHI1_PHI3>;
 	using Face2 = Cell<PHI1>;
 	using Volume = Cell<PHI1_PHI2>;
+	using CC = Cell<PHI1_PHI2_PHI3>;
 
 	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
 
@@ -68,10 +69,11 @@ struct mesh_traits<CMap3>
 	using Face = CMap3::Face;
 	using Face2 = CMap3::Face2;
 	using Volume = CMap3::Volume;
+	using CC = CMap3::CC;
 
-	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
+	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume, CC>;
 	static constexpr const char* cell_names[] = {"Vertex", "Vertex2", "HalfEdge", "Edge",
-												 "Edge2",  "Face",	  "Face2",	  "Volume"};
+												 "Edge2",  "Face",	  "Face2",	  "Volume", "CC"};
 
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;

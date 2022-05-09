@@ -76,6 +76,8 @@ using GLColor = Eigen::Vector4f;
 
 using Transfo3d = Eigen::Affine3d;
 
+using Transfo3f = Eigen::Affine3f;
+
 // inline GLColor col4i(uint8 R, uint8 G, uint8 B, uint8 A)
 // {
 // 	return GLColor(R/255.0f, G/255.0f, B/255.0f, A/255.0f);

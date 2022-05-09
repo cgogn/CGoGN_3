@@ -148,6 +148,7 @@ CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 
 IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges)
 {
+	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
 
@@ -262,6 +263,8 @@ IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& ig, IncidenceGra
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
+
+	// TODO: manage face_incident_edges_dir_ !!!
 
 	// find common face
 	std::vector<Face> faces0 = incident_faces(ig, v0);

@@ -36,10 +36,12 @@ ShaderBoldLine::ShaderBoldLine()
 	const char* vertex_shader_source = R"(
 		#version 330
 		in vec3 vertex_position;
-
+		in vec3 clipping_position;
+		out vec3 clip_pos_v;
 		void main()
 		{
 			gl_Position =  vec4(vertex_position, 1.0);
+			clip_pos_v = clipping_position;
 		}
 	)";
 
@@ -52,6 +54,7 @@ ShaderBoldLine::ShaderBoldLine()
 		uniform mat4 model_view_matrix;
 		uniform vec2 line_width;
 
+		in vec3 clip_pos_v[];
 		out float Nz;
 		out vec4 posi_clip;
 
@@ -85,27 +88,27 @@ ShaderBoldLine::ShaderBoldLine()
 
 				vec4 U = vec4(0.5 * LWCorr * U2, 0.0, 0.0);
 				vec4 V = vec4(LWCorr * vec2(U2[1], -U2[0]), 0.0, 0.0);
-				posi_clip = gl_in[0].gl_Position;
+				posi_clip = vec4(clip_pos_v[0],1);
 				Nz = 0;
 				gl_Position = A - V;
 				EmitVertex();
-				posi_clip = gl_in[1].gl_Position;
+				posi_clip = vec4(clip_pos_v[1],1);
 				Nz = 0;
 				gl_Position = B - V;
 				EmitVertex();
-				posi_clip = gl_in[0].gl_Position;
+				posi_clip = vec4(clip_pos_v[0],1);
 				Nz = 1;
 				gl_Position = A - U;
 				EmitVertex();
-				posi_clip = gl_in[1].gl_Position;
+				posi_clip = vec4(clip_pos_v[1],1);
 				Nz = 1;
 				gl_Position = B + U;
 				EmitVertex();
-				posi_clip = gl_in[0].gl_Position;
+				posi_clip = vec4(clip_pos_v[0],1);
 				Nz = 0;
 				gl_Position = A + V;
 				EmitVertex();
-				posi_clip = gl_in[1].gl_Position;
+				posi_clip = vec4(clip_pos_v[1],1);
 				Nz = 0;
 				gl_Position = B + V;
 				EmitVertex();
@@ -138,7 +141,8 @@ ShaderBoldLine::ShaderBoldLine()
 		}
 	)";
 
-	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position");
+	load3_bind(vertex_shader_source, fragment_shader_source, geometry_shader_source, "vertex_position",
+			   "clipping_position");
 	get_uniforms("line_color", "line_width", "lighted", "plane_clip", "plane_clip2");
 }
 

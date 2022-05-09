@@ -40,7 +40,7 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderPara
 {
 	void set_uniforms() override;
 
-	std::array<VBO*, 3> vbos_;
+	std::array<VBO*, 4> vbos_;
 	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
 		vbos_[i] = vbo;
@@ -52,7 +52,8 @@ class CGOGN_RENDERING_EXPORT ShaderParamExplodeVolumesScalar : public ShaderPara
 	{
 		VERTEX_POSITION = 0,
 		VOLUME_CENTER,
-		VOLUME_SCALAR
+		VOLUME_SCALAR,
+		VOLUME_CLIPPING
 	};
 
 public:

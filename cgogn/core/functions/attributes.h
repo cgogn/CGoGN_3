@@ -63,11 +63,10 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute
 // IncidenceGraph //
 ////////////////////
 
-template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>* = nullptr>
-std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
+template <typename T, typename CELL>
+std::shared_ptr<typename mesh_traits<IncidenceGraph>::template Attribute<T>> add_attribute(IncidenceGraph& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_in_tuple<CELL, typename mesh_traits<IncidenceGraph>::Cells>::value, "CELL not supported in this MESH");
 	IncidenceGraph& mb = static_cast<IncidenceGraph&>(m);
 	return mb.attribute_containers_[CELL::CELL_INDEX].template add_attribute<T>(name);
 }
