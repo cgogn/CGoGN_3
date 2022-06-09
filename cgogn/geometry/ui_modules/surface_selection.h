@@ -499,15 +499,22 @@ protected:
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
+					if (ImGui::Button("Create set##vertices_set"))
+						md.template add_cells_set<Vertex>();
 					imgui_combo_cells_set(md, p.selected_vertices_set_, "Sets", [&](CellsSet<MESH, Vertex>* cs) {
 						p.selected_vertices_set_ = cs;
 						p.update_selected_vertices_vbo();
 						need_update = true;
 					});
 					if (p.selected_vertices_set_)
+					{
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
-					if (ImGui::Button("Create set##vertices_set"))
-						md.template add_cells_set<Vertex>();
+						if (ImGui::Button("Clear##vertices_set"))
+						{
+							p.selected_vertices_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+						}
+					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
@@ -515,15 +522,22 @@ protected:
 				}
 				else if (p.selecting_cell_ == EdgeSelect)
 				{
+					if (ImGui::Button("Create set##edges_set"))
+						md.template add_cells_set<Edge>();
 					imgui_combo_cells_set(md, p.selected_edges_set_, "Sets", [&](CellsSet<MESH, Edge>* cs) {
 						p.selected_edges_set_ = cs;
 						p.update_selected_edges_vbo();
 						need_update = true;
 					});
 					if (p.selected_edges_set_)
+					{
 						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
-					if (ImGui::Button("Create set##edges_set"))
-						md.template add_cells_set<Edge>();
+						if (ImGui::Button("Clear##edges_set"))
+						{
+							p.selected_vertices_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+						}
+					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |=
 						ImGui::ColorEdit3("color##edges", p.param_edge_->color_.data(), ImGuiColorEditFlags_NoInputs);
@@ -531,15 +545,22 @@ protected:
 				}
 				else if (p.selecting_cell_ == FaceSelect)
 				{
+					if (ImGui::Button("Create set##faces_set"))
+						md.template add_cells_set<Face>();
 					imgui_combo_cells_set(md, p.selected_faces_set_, "Sets", [&](CellsSet<MESH, Face>* cs) {
 						p.selected_faces_set_ = cs;
 						p.update_selected_faces_vbo();
 						need_update = true;
 					});
 					if (p.selected_faces_set_)
+					{
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
-					if (ImGui::Button("Create set##faces_set"))
-						md.template add_cells_set<Face>();
+						if (ImGui::Button("Clear##faces_set"))
+						{
+							p.selected_vertices_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+						}
+					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);

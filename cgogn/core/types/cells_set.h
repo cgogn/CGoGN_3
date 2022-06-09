@@ -97,6 +97,12 @@ public:
 		});
 	}
 
+	inline void clear()
+	{
+		cells_.clear();
+		marker_.unmark_all();
+	}
+
 	template <typename FUNC>
 	void foreach_cell(const FUNC& f) const
 	{
