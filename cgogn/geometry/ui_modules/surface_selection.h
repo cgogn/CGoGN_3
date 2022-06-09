@@ -61,6 +61,7 @@ class SurfaceSelection : public ViewModule
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
+	using Volume = typename mesh_traits<MESH>::Volume;
 
 	enum SelectingCell
 	{
@@ -72,7 +73,8 @@ class SurfaceSelection : public ViewModule
 	enum SelectionMethod
 	{
 		SingleCell = 0,
-		WithinSphere
+		WithinSphere,
+		ConnectedComponent
 	};
 
 	using Vec3 = geometry::Vec3;
@@ -422,6 +424,93 @@ protected:
 						}
 					}
 				}
+				case ConnectedComponent: {
+					switch (p.selecting_cell_)
+					{
+					case VertexSelect:
+						if (p.selected_vertices_set_)
+						{
+							std::vector<Vertex> picked;
+							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+							if (!picked.empty())
+							{
+								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
+								switch (button)
+								{
+								case 0:
+									foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
+										p.selected_vertices_set_->select(v);
+										return true;
+									});
+									break;
+								case 1:
+									foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
+										p.selected_vertices_set_->unselect(v);
+										return true;
+									});
+									break;
+								}
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+							}
+						}
+						break;
+					case EdgeSelect:
+						if (p.selected_edges_set_)
+						{
+							std::vector<Edge> picked;
+							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+							if (!picked.empty())
+							{
+								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
+								switch (button)
+								{
+								case 0:
+									foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
+										p.selected_edges_set_->select(e);
+										return true;
+									});
+									break;
+								case 1:
+									foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
+										p.selected_edges_set_->unselect(e);
+										return true;
+									});
+									break;
+								}
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+							}
+						}
+						break;
+					case FaceSelect:
+						if (p.selected_faces_set_)
+						{
+							std::vector<Face> picked;
+							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+							if (!picked.empty())
+							{
+								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
+								switch (button)
+								{
+								case 0:
+									foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
+										p.selected_faces_set_->select(f);
+										return true;
+									});
+									break;
+								case 1:
+									foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
+										p.selected_faces_set_->unselect(f);
+										return true;
+									});
+									break;
+								}
+								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+							}
+						}
+						break;
+					}
+					break;
+				}
 				}
 			}
 		}
@@ -491,6 +580,8 @@ protected:
 				ImGui::RadioButton("Single", reinterpret_cast<int*>(&p.selection_method_), SingleCell);
 				ImGui::SameLine();
 				ImGui::RadioButton("Sphere", reinterpret_cast<int*>(&p.selection_method_), WithinSphere);
+				ImGui::SameLine();
+				ImGui::RadioButton("CC", reinterpret_cast<int*>(&p.selection_method_), ConnectedComponent);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
