@@ -126,9 +126,8 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 			current_frame_->frame_.translation().setZero();
 			current_frame_->frame_ = Eigen::AngleAxisd(spinning_speed_, axis) * current_frame_->frame_;
 			current_frame_->frame_.translation() = tr;
-		}
-		if (current_frame_ == &camera_)
 			camera_.update_matrices();
+		}
 		need_redraw_ = true;
 	}
 
@@ -151,9 +150,8 @@ void GLViewer::mouse_move_event(int32 x, int32 y)
 			float64 ny = -1.0 * float64(dy) / viewport_height_ * camera_.height() * a;
 			camera_.frame_.translation().x() += 2 * nx;
 			camera_.frame_.translation().y() += 2 * ny;
-		}
-		if (current_frame_ == &camera_)
 			camera_.update_matrices();
+		}
 		need_redraw_ = true;
 	}
 }
@@ -174,9 +172,8 @@ void GLViewer::mouse_wheel_event(float64, float64 dy)
 			float64 zcam = 1.0 / std::tan(camera_.field_of_view() / 2.0);
 			float64 a = camera_.scene_radius() - camera_.frame_.translation().z() / zcam / camera_.scene_radius();
 			camera_.frame_.translation().z() -= inputs_->wheel_sensitivity_ * dy * std::max(0.1, a);
-		}
-		if (current_frame_ == &camera_)
 			camera_.update_matrices();
+		}
 		need_redraw_ = true;
 	}
 }

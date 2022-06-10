@@ -423,6 +423,7 @@ protected:
 							break;
 						}
 					}
+					break;
 				}
 				case ConnectedComponent: {
 					switch (p.selecting_cell_)
@@ -559,7 +560,7 @@ protected:
 
 		if (selected_mesh_)
 		{
-			//float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
 			Parameters& p = parameters_[selected_mesh_];
 
 			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
