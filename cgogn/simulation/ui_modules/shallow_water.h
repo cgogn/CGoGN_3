@@ -178,7 +178,7 @@ protected:
 		mesh_provider_->emit_attribute_changed(*domain_, sw_attributes_.face_h_.get());
 	}
 
-	void interface() override
+	void ui_interface() override
 	{
 		if (domain_initialized_)
 		{

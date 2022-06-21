@@ -197,7 +197,7 @@ protected:
 		}
 	}
 
-	void interface() override
+	void ui_interface() override
 	{
 		bool need_update = false;
 

@@ -51,7 +51,7 @@ void Module::main_menu()
 {
 }
 
-void Module::interface()
+void Module::ui_interface()
 {
 }
 

@@ -99,7 +99,7 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<CPH3::CMAP>::name} + ")"));
 	}
 
-	void interface() override
+	void ui_interface() override
 	{
 		ImGui::Begin(name_.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::SetWindowSize({0, 0});
