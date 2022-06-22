@@ -29,7 +29,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
 
 if(MSVC)
-        target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj"
+        target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj")
 endif()
 
 install(FILES ${HEADER_FILES} DESTINATION "include/cgogn/thirdparty")
