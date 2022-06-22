@@ -28,6 +28,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
 
+if(MSVC)
+        target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj"
+endif()
+
 install(FILES ${HEADER_FILES} DESTINATION "include/cgogn/thirdparty")
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
