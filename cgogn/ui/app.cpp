@@ -625,7 +625,7 @@ int App::launch()
 				if (ImGui::CollapsingHeader(m->name().c_str()))
 				{
 					ImGui::PopStyleColor(3);
-					m->ui_interface();
+					m->left_panel();
 				}
 				else
 					ImGui::PopStyleColor(3);

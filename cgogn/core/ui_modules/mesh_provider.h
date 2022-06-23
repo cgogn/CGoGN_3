@@ -572,7 +572,7 @@ protected:
 		}
 	}
 
-	void ui_interface() override
+	void left_panel() override
 	{
 		imgui_mesh_selector(this, selected_mesh_, "Mesh", [&](MESH& m) {
 			selected_mesh_ = &m;

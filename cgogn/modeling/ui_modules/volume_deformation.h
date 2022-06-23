@@ -165,7 +165,7 @@ protected:
 		}
 	}
 
-	void ui_interface() override
+	void left_panel() override
 	{
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
 			selected_mesh_ = &m;
