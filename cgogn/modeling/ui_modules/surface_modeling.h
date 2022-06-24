@@ -200,7 +200,7 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
 			selected_mesh_ = &m;
