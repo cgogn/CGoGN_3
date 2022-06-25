@@ -43,6 +43,9 @@
 
 #include <unordered_map>
 
+#undef near
+#undef far
+
 namespace cgogn
 {
 
@@ -423,7 +426,7 @@ protected:
 		}
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		bool need_update = false;
 

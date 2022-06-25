@@ -23,6 +23,8 @@
 
 #include <cgogn/ui/view.h>
 
+#include <cgogn/rendering/gl_image.h>
+
 namespace cgogn
 {
 
@@ -288,6 +290,27 @@ rendering::GLVec3d View::unproject(int32 x, int32 y, float64 z) const
 	rendering::GLVec4d res = im * Q;
 	res /= res.w();
 	return res.head(3);
+}
+
+void View::save_screenshot()
+{
+	std::string filename = "screenshot.jpg";
+	std::cout << "saving screenshot : " << filename << std::endl;
+
+	if (fbo_->width() * fbo_->height() > 0)
+	{
+		rendering::GLImage image(viewport_width_, viewport_height_, 3);
+		const int nb_pixels = viewport_width_ * viewport_height_;
+
+		fbo_->bind();
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		glReadBuffer(GL_DRAW_FRAMEBUFFER);
+		glReadPixels(0, 0, viewport_width_, viewport_height_, GL_RGB, GL_UNSIGNED_BYTE,
+					 const_cast<uint8*>(image.data()));
+		fbo_->release();
+
+		image.save(filename, true);
+	}
 }
 
 } // namespace ui

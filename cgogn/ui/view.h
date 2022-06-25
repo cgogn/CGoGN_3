@@ -92,6 +92,8 @@ public:
 		event_stopped_ = true;
 	}
 
+	void save_screenshot();
+
 protected:
 	std::string name_;
 

@@ -29,7 +29,6 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-// #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -47,9 +46,9 @@ using Scalar = cgogn::geometry::Scalar;
 int main(int argc, char** argv)
 {
 	std::string filename;
-	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
-	else
+	if (argc > 1)
+	// 	filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
+	// else
 		filename = std::string(argv[1]);
 
 	cgogn::thread_start();
@@ -60,7 +59,6 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	// cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
@@ -68,38 +66,37 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	// v1->link_module(&vpvr);
 
-	Mesh* m = mp.load_surface_from_file(filename);
-	if (!m)
+	if (filename.length() > 0)
 	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
+		Mesh* m = mp.load_surface_from_file(filename);
+		if (!m)
+		{
+			std::cout << "File could not be loaded" << std::endl;
+			return 1;
+		}
+
+		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+		std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
+
+		// std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
+		// std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
+
+		// cgogn::foreach_cell(*m, [&](Face f) -> bool {
+		// 	Vec3 c(0, 0, 0);
+		// 	c[rand() % 3] = 1;
+		// 	cgogn::value<Vec3>(*m, face_color, f) = c;
+		// 	cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
+		// 	return true;
+		// });
+
+		// mp.set_mesh_bb_vertex_position(*m, vertex_position);
+
+		sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+
+		sr.set_vertex_position(*v1, *m, vertex_position);
+		sr.set_vertex_normal(*v1, *m, vertex_normal);
 	}
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
-
-	std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
-	std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
-
-	cgogn::foreach_cell(*m, [&](Face f) -> bool {
-		Vec3 c(0, 0, 0);
-		c[rand() % 3] = 1;
-		cgogn::value<Vec3>(*m, face_color, f) = c;
-		cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
-		return true;
-	});
-
-	// mp.set_mesh_bb_vertex_position(*m, vertex_position);
-
-	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-
-	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, vertex_normal);
-
-	// srv.set_vertex_position(*v1, *m, vertex_position);
-	// srv.set_vertex_vector(*v1, *m, vertex_normal);
 
 	return app.launch();
 }

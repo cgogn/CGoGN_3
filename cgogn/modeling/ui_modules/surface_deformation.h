@@ -111,7 +111,7 @@ class SurfaceDeformation : public ViewModule
 public:
 	SurfaceDeformation(const App& app)
 		: ViewModule(app, "SurfaceDeformation (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
-		  dragging_(false)
+		  dragging_(false), rotating_(false)
 	{
 	}
 	~SurfaceDeformation()
@@ -491,6 +491,22 @@ protected:
 				}
 			}
 		}
+		else if (key_code == GLFW_KEY_R)
+		{
+			if (selected_mesh_)
+			{
+				Parameters& p = parameters_[selected_mesh_];
+				if (p.vertex_position_ && p.selected_handle_vertices_set_ &&
+					p.selected_handle_vertices_set_->size() > 0)
+				{
+					rotation_center_.setZero();
+					p.selected_handle_vertices_set_->foreach_cell(
+						[&](Vertex v) { rotation_center_ += value<Vec3>(*selected_mesh_, p.vertex_position_, v); });
+					rotation_center_ /= p.selected_handle_vertices_set_->size();
+					rotating_ = true;
+				}
+			}
+		}
 	}
 
 	void key_release_event(View* view, int32 key_code) override
@@ -500,6 +516,11 @@ protected:
 		{
 			if (dragging_)
 				dragging_ = false;
+		}
+		else if (key_code == GLFW_KEY_R)
+		{
+			if (rotating_)
+				rotating_ = false;
 		}
 	}
 
@@ -518,9 +539,39 @@ protected:
 
 			mesh_provider_->emit_attribute_changed(*selected_mesh_, p.vertex_position_.get());
 		}
+
+		if (rotating_)
+		{
+			Parameters& p = parameters_[selected_mesh_];
+
+			float64 dx = float64(x - view->previous_mouse_x());
+			float64 dy = float64(y - view->previous_mouse_y());
+			if (std::abs(dx) + std::abs(dy) > 0.0)
+			{
+				rendering::GLVec3d axis(dy, dx, 0.0);
+				float64 spinning_speed = axis.norm();
+				axis /= spinning_speed;
+				spinning_speed *= 0.005;
+				rendering::Transfo3d inv_camera = view->camera().frame_.inverse();
+				rendering::Transfo3d sm(Eigen::AngleAxisd(2.0 * spinning_speed, axis));
+				rendering::Transfo3d rot((inv_camera * sm * view->camera().frame_).linear());
+
+				rendering::Transfo3d M =
+					Eigen::Translation3d(rotation_center_) * rot * Eigen::Translation3d(-rotation_center_);
+
+				p.selected_handle_vertices_set_->foreach_cell([&](Vertex v) {
+					Vec3& pos = value<Vec3>(*selected_mesh_, p.vertex_position_, v);
+					pos = M * pos;
+				});
+
+				as_rigid_as_possible(*selected_mesh_);
+
+				mesh_provider_->emit_attribute_changed(*selected_mesh_, p.vertex_position_.get());
+			}
+		}
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
 			selected_mesh_ = &m;
@@ -529,8 +580,6 @@ protected:
 
 		if (selected_mesh_)
 		{
-			// float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -557,7 +606,10 @@ protected:
 					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, cs); });
 
 				if (p.selected_handle_vertices_set_)
+				{
 					ImGui::TextUnformatted("Press D to drag the handle");
+					ImGui::TextUnformatted("Press R to rotate the handle");
+				}
 			}
 		}
 	}
@@ -570,6 +622,8 @@ private:
 
 	bool dragging_;
 	float64 drag_z_;
+	bool rotating_;
+	Vec3 rotation_center_;
 	rendering::GLVec3d previous_drag_pos_;
 };
 

@@ -226,7 +226,7 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<SURFACE>::name} + ")"));
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		imgui_mesh_selector(surface_provider_, selected_surface_, "Surface", [&](SURFACE& m) {
 			selected_surface_ = &m;
@@ -250,7 +250,7 @@ protected:
 
 			if (selected_surface_vertex_position_)
 			{
-				static float wL = 0.6f, wH = 0.03f, wM = 0.15f, resampling_ratio = 0.9f;
+				static float wL = 0.6f, wH = 0.1f, wM = 0.1f, resampling_ratio = 0.9f;
 				ImGui::SliderFloat("Smoothness", &wL, 0.01f, 1.0f);
 				ImGui::SliderFloat("Velocity", &wH, 0.01f, 1.0f);
 				ImGui::SliderFloat("Medial attraction", &wM, 0.01f, 1.0f);

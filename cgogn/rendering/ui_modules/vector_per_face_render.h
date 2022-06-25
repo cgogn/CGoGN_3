@@ -221,7 +221,7 @@ protected:
 		}
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		bool need_update = false;
 
