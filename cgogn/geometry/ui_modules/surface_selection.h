@@ -44,6 +44,9 @@
 
 #include <unordered_map>
 
+#undef near
+#undef far
+
 namespace cgogn
 {
 
@@ -276,9 +279,9 @@ protected:
 			if (p.vertex_position_)
 			{
 				rendering::GLVec3d near = view->unproject(x, y, 0.0);
-				rendering::GLVec3d far = view->unproject(x, y, 1.0);
+				rendering::GLVec3d far_d = view->unproject(x, y, 1.0);
 				Vec3 A{near.x(), near.y(), near.z()};
-				Vec3 B{far.x(), far.y(), far.z()};
+				Vec3 B{far_d.x(), far_d.y(), far_d.z()};
 
 				switch (p.selection_method_)
 				{
@@ -549,7 +552,7 @@ protected:
 		}
 	}
 
-	void interface() override
+	void left_panel() override
 	{
 		bool need_update = false;
 
