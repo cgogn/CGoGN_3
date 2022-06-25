@@ -29,6 +29,7 @@
 
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/gl_image.h>
 #include <cgogn/rendering/types.h>
 
 #include <string>

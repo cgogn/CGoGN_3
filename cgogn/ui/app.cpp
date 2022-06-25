@@ -381,6 +381,11 @@ App::App()
 					glfwSetInputMode(wi, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 					return;
 				}
+				if ((k == GLFW_KEY_S) && that->inputs_.control_pressed_)
+				{
+					that->current_view_->save_screenshot();
+					return;
+				}
 				that->current_view_->key_press_event(k);
 				break;
 			case GLFW_RELEASE:
