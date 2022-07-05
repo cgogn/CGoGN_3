@@ -30,6 +30,8 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 #include <cgogn/ui/inputs.h>
 
+#include <fstream>
+
 namespace cgogn
 {
 
@@ -58,11 +60,24 @@ public:
 	}
 	inline void save_camera()
 	{
+		std::ofstream out_file;
+		out_file.open("saved_camera");
+		if (out_file.is_open())
+		{
+			out_file << camera_;
+			out_file.close();
+		}
 		camera_saved_ = camera_;
 	}
 	inline void restore_camera()
 	{
 		camera_ = camera_saved_;
+		std::ifstream in_file("saved_camera", std::ios::in);
+		if (in_file.is_open())
+		{
+			in_file >> camera_;
+			in_file.close();
+		}
 		need_redraw_ = true;
 	}
 

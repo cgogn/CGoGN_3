@@ -34,6 +34,7 @@ namespace ui
 GLViewer::GLViewer(Inputs* inputs) : viewport_width_(0), viewport_height_(0), inputs_(inputs), need_redraw_(true)
 {
 	current_frame_ = &camera_;
+	camera_saved_ = camera_;
 }
 
 GLViewer::~GLViewer()
