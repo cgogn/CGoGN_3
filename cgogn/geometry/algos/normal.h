@@ -108,7 +108,7 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
 	foreach_incident_face(m, e, [&](Face f) -> bool {
-		n += normal(m, f, vertex_position) * area(m, f, vertex_position);
+		n += normal(m, f, vertex_position); // * area(m, f, vertex_position);
 		return true;
 	});
 	n.normalize();
@@ -124,7 +124,7 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
 	foreach_incident_face(m, v, [&](Face f) -> bool {
-		n += normal(m, f, vertex_position) * area(m, f, vertex_position);
+		n += normal(m, f, vertex_position); // * area(m, f, vertex_position);
 		return true;
 	});
 	n.normalize();
