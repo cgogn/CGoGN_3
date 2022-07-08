@@ -42,6 +42,7 @@
 
 #include <boost/synapse/connect.hpp>
 
+#include <algorithm>
 #include <unordered_map>
 
 #undef near
@@ -77,6 +78,7 @@ class SurfaceSelection : public ViewModule
 	{
 		SingleCell = 0,
 		WithinSphere,
+		FlatArea,
 		ConnectedComponent
 	};
 
@@ -163,6 +165,7 @@ class SurfaceSelection : public ViewModule
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
 		float32 sphere_scale_factor_;
+		float32 angle_threshold_;
 
 		rendering::VBO selected_vertices_vbo_;
 		rendering::VBO selected_edges_vbo_;
@@ -318,6 +321,21 @@ protected:
 		}
 	}
 
+	void mouse_wheel_event(View* view, int32 dx, int32 dy) override
+	{
+		if (selecting_)
+		{
+			Parameters& p = parameters_[selected_mesh_];
+			if (p.selection_method_ == WithinSphere)
+			{
+				p.sphere_scale_factor_ += dy > 0 ? 1 : -1;
+				p.sphere_scale_factor_ = std::clamp(p.sphere_scale_factor_, 10.0f, 100.0f);
+				view->stop_event();
+				view->request_update();
+			}
+		}
+	}
+
 	void mouse_move_event(View* view, int32 x, int32 y) override
 	{
 		if (selecting_)
@@ -332,6 +350,7 @@ protected:
 			switch (p.selection_method_)
 			{
 			case SingleCell:
+			case FlatArea:
 			case ConnectedComponent: {
 				switch (p.selecting_cell_)
 				{
@@ -535,6 +554,69 @@ protected:
 				}
 			}
 			break;
+			case FlatArea: {
+				switch (p.selecting_cell_)
+				{
+				case VertexSelect:
+					if (has_selecting_vertex_)
+					{
+						std::vector<Vertex> vertices = geometry::within_normal_angle_threshold<Vertex>(
+							*selected_mesh_, selecting_vertex_, p.angle_threshold_, p.vertex_position_.get());
+						switch (button)
+						{
+						case 0:
+							for (Vertex v : vertices)
+								p.selected_vertices_set_->select(v);
+							break;
+						case 1:
+							for (Vertex v : vertices)
+								p.selected_vertices_set_->unselect(v);
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+					}
+					break;
+				case EdgeSelect:
+					if (has_selecting_edge_)
+					{
+						std::vector<Edge> edges = geometry::within_normal_angle_threshold<Edge>(
+							*selected_mesh_, selecting_edge_, p.angle_threshold_, p.vertex_position_.get());
+						switch (button)
+						{
+						case 0:
+							for (Edge e : edges)
+								p.selected_edges_set_->select(e);
+							break;
+						case 1:
+							for (Edge e : edges)
+								p.selected_edges_set_->unselect(e);
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+					}
+					break;
+				case FaceSelect:
+					if (has_selecting_face_)
+					{
+						std::vector<Face> faces = geometry::within_normal_angle_threshold<Face>(
+							*selected_mesh_, selecting_face_, p.angle_threshold_, p.vertex_position_.get());
+						switch (button)
+						{
+						case 0:
+							for (Face f : faces)
+								p.selected_faces_set_->select(f);
+							break;
+						case 1:
+							for (Face f : faces)
+								p.selected_faces_set_->unselect(f);
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+					}
+					break;
+				}
+			}
+			break;
 			case ConnectedComponent: {
 				switch (p.selecting_cell_)
 				{
@@ -721,9 +803,13 @@ protected:
 				ImGui::RadioButton("Sphere", reinterpret_cast<int*>(&p.selection_method_), WithinSphere);
 				ImGui::SameLine();
 				ImGui::RadioButton("CC", reinterpret_cast<int*>(&p.selection_method_), ConnectedComponent);
+				ImGui::SameLine();
+				ImGui::RadioButton("Flat", reinterpret_cast<int*>(&p.selection_method_), FlatArea);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
+				if (p.selection_method_ == FlatArea)
+					ImGui::SliderFloat("Angle threshold", &(p.angle_threshold_), 0.0f, M_PI);
 
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
