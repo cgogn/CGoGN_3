@@ -44,6 +44,8 @@
 
 #include <imgui/imgui-knobs.h>
 
+#include <GLFW/glfw3.h>
+
 #include <algorithm>
 #include <unordered_map>
 
@@ -186,20 +188,20 @@ public:
 		: ViewModule(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr)
 	{
 		param_point_sprite_selecting_sphere_ = rendering::ShaderPointSprite::generate_param();
-		param_point_sprite_selecting_sphere_->color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
-		param_point_sprite_selecting_sphere_->set_vbos({&selecting_sphere_vbo_});
+		param_point_sprite_selecting_sphere_->color_ = rendering::GLColor(1, 0.5, 0, 0.65f);
+		param_point_sprite_selecting_sphere_->set_vbos({&selecting_spheres_vbo_});
 
 		param_edge_selecting_edge_ = rendering::ShaderBoldLine::generate_param();
 		param_edge_selecting_edge_->color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
 		param_edge_selecting_edge_->width_ = 8.0f;
-		param_edge_selecting_edge_->set_vbos({&selecting_edge_vbo_});
+		param_edge_selecting_edge_->set_vbos({&selecting_edges_vbo_});
 
 		param_flat_selecting_face_ = rendering::ShaderFlat::generate_param();
 		param_flat_selecting_face_->front_color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
 		param_flat_selecting_face_->back_color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
 		param_flat_selecting_face_->double_side_ = true;
 		param_flat_selecting_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
-		param_flat_selecting_face_->set_vbos({&selecting_face_vbo_});
+		param_flat_selecting_face_->set_vbos({&selecting_faces_vbo_});
 	}
 
 	~SurfaceSelection()
@@ -289,7 +291,7 @@ private:
 						selecting_points.reserve(selecting_vertices_.size());
 						for (Vertex v : selecting_vertices_)
 							selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
-						rendering::update_vbo(selecting_points, &selecting_sphere_vbo_);
+						rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
 					}
 				}
 				break;
@@ -308,7 +310,7 @@ private:
 							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[0]));
 							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[1]));
 						}
-						rendering::update_vbo(selecting_segments, &selecting_edge_vbo_);
+						rendering::update_vbo(selecting_segments, &selecting_edges_vbo_);
 					}
 				}
 				break;
@@ -328,7 +330,7 @@ private:
 								return true;
 							});
 						}
-						rendering::update_vbo(selecting_polygons, &selecting_face_vbo_);
+						rendering::update_vbo(selecting_polygons, &selecting_faces_vbo_);
 					}
 				}
 				break;
@@ -349,7 +351,7 @@ private:
 						selecting_points.reserve(selecting_vertices_.size());
 						for (Vertex v : selecting_vertices_)
 							selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
-						rendering::update_vbo(selecting_points, &selecting_sphere_vbo_);
+						rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
 					}
 					else
 						selecting_vertices_.clear();
@@ -370,7 +372,7 @@ private:
 							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[0]));
 							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[1]));
 						}
-						rendering::update_vbo(selecting_segments, &selecting_edge_vbo_);
+						rendering::update_vbo(selecting_segments, &selecting_edges_vbo_);
 					}
 					else
 						selecting_edges_.clear();
@@ -392,7 +394,7 @@ private:
 								return true;
 							});
 						}
-						rendering::update_vbo(selecting_polygons, &selecting_face_vbo_);
+						rendering::update_vbo(selecting_polygons, &selecting_faces_vbo_);
 					}
 					else
 						selecting_faces_.clear();
@@ -412,7 +414,7 @@ private:
 					selecting_points.reserve(selecting_vertices_.size());
 					for (Vertex v : selecting_vertices_)
 						selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
-					rendering::update_vbo(selecting_points, &selecting_sphere_vbo_);
+					rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
 				}
 			}
 			break;
@@ -455,7 +457,7 @@ protected:
 
 	void key_press_event(View* view, int32 key_code) override
 	{
-		if (selected_mesh_ && view->shift_pressed())
+		if (selected_mesh_ && key_code == GLFW_KEY_S)
 		{
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -473,7 +475,7 @@ protected:
 
 	void key_release_event(View* view, int32 key_code) override
 	{
-		if (!view->shift_pressed())
+		if (key_code == GLFW_KEY_S)
 		{
 			selecting_ = false;
 			selecting_vertices_.clear();
@@ -903,6 +905,7 @@ protected:
 					});
 					if (p.selected_vertices_set_)
 					{
+						ImGui::TextUnformatted("Press S to select vertices");
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 						if (ImGui::Button("Clear##vertices_set"))
 						{
@@ -926,6 +929,7 @@ protected:
 					});
 					if (p.selected_edges_set_)
 					{
+						ImGui::TextUnformatted("Press S to select edges");
 						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
 						if (ImGui::Button("Clear##edges_set"))
 						{
@@ -949,6 +953,7 @@ protected:
 					});
 					if (p.selected_faces_set_)
 					{
+						ImGui::TextUnformatted("Press S to select faces");
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
 						if (ImGui::Button("Clear##faces_set"))
 						{
@@ -978,15 +983,15 @@ private:
 	bool selecting_ = false;
 
 	std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_selecting_sphere_;
-	rendering::VBO selecting_sphere_vbo_;
+	rendering::VBO selecting_spheres_vbo_;
 	// bool has_selecting_vertex_ = false;
 	std::vector<Vertex> selecting_vertices_;
 	std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_selecting_edge_;
-	rendering::VBO selecting_edge_vbo_;
+	rendering::VBO selecting_edges_vbo_;
 	// bool has_selecting_edge_ = false;
 	std::vector<Edge> selecting_edges_;
 	std::unique_ptr<rendering::ShaderFlat::Param> param_flat_selecting_face_;
-	rendering::VBO selecting_face_vbo_;
+	rendering::VBO selecting_faces_vbo_;
 	// bool has_selecting_face_ = false;
 	std::vector<Face> selecting_faces_;
 };
