@@ -73,6 +73,7 @@ void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attr
 				  typename mesh_traits<MESH>::template Attribute<Scalar>* cell_area)
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	parallel_foreach_cell(m, [&](CELL c) -> bool {
 		value<Scalar>(m, cell_area, c) = area(m, c, vertex_position);
