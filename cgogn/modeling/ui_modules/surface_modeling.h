@@ -36,6 +36,7 @@
 #include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/mesh_repair.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
+#include <cgogn/modeling/algos/remeshing/blossom_quad_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/topstoc.h>
 #include <cgogn/modeling/algos/subdivision.h>
 #include <cgogn/modeling/algos/subdivision/surface_catmull_clark.h>
@@ -182,7 +183,7 @@ public:
 
 	void quad_remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		// modeling::quad_remesh(m, vertex_position);
+		modeling::blossom_quad_remeshing(m, vertex_position);
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
 	}
