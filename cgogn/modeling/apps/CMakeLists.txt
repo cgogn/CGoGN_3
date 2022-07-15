@@ -17,6 +17,7 @@ target_link_libraries(modeling
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 

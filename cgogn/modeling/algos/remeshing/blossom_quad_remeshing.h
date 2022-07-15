@@ -27,10 +27,12 @@
 #include <cgogn/core/functions/mesh_ops/face.h>
 #include <cgogn/core/functions/traversals/global.h>
 
+#include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
+#include <Blossom5/PerfectMatching.h>
 #include <libacc/bvh_tree.h>
 
 namespace cgogn
@@ -40,15 +42,16 @@ namespace modeling
 {
 
 using Vec3 = geometry::Vec3;
+using Mat3 = geometry::Mat3;
 using Scalar = geometry::Scalar;
 
 ///////////
 // CMap2 //
 ///////////
 
-inline std::vector<CMap2::Vertex> edge_quad_vertices(CMap2& m, CMap2::Edge e)
+inline std::array<CMap2::Vertex, 4> edge_quad_vertices(CMap2& m, CMap2::Edge e)
 {
-	std::vector<CMap2::Vertex> eqv(4);
+	std::array<CMap2::Vertex, 4> eqv;
 	eqv[0] = CMap2::Vertex(phi1(m, e.dart));
 	eqv[1] = CMap2::Vertex(phi_1(m, e.dart));
 	eqv[2] = CMap2::Vertex(e.dart);
@@ -112,38 +115,85 @@ inline std::vector<CMap2::Edge> butterfly_neighbour_edges(CMap2& m, CMap2::Edge 
 	return edges;
 }
 
+inline void cut_boundary_triangle(CMap2& m, CMap2::Edge e, CMap2::Attribute<Vec3>* vertex_position)
+{
+	Dart d = e.dart;
+	Dart d1 = phi1(m, d);
+	Dart d_1 = phi_1(m, d);
+	CMap2::Vertex opposite_v(d_1);
+	CMap2::Vertex new_v = cut_edge(m, e);
+	cut_face(m, new_v, opposite_v);
+	value<Vec3>(m, vertex_position, new_v) =
+		(value<Vec3>(m, vertex_position, CMap2::Vertex(d)) + value<Vec3>(m, vertex_position, CMap2::Vertex(d1))) / 2.0;
+}
+
+inline CMap2::Face next_boundary_face(CMap2& m, CMap2::Edge e)
+{
+	return CMap2::Face(phi<2, 1, 2>(m, e.dart));
+}
+
+inline bool common_edge(CMap2& m, CMap2::Face f1, CMap2::Face f2, CMap2::Edge& res)
+{
+	std::vector<Dart> f1darts;
+	foreach_dart_of_orbit(m, f1, [&](Dart d) -> bool {
+		f1darts.push_back(d);
+		return true;
+	});
+	bool found = false;
+	foreach_dart_of_orbit(m, f2, [&](Dart d) -> bool {
+		Dart d2 = phi2(m, d);
+		if (std::find(f1darts.begin(), f1darts.end(), d2) != f1darts.end())
+		{
+			res = CMap2::Edge(d);
+			found = true;
+		}
+		return !found;
+	});
+	return found;
+}
+
 /////////////
 // GENERIC //
 /////////////
 
-inline Scalar quad_quality(const std::vector<Vec3>& points)
+inline Scalar quad_quality(const std::array<Vec3, 4>& points)
 {
-	const auto ps = points.size();
+	std::array<Vec3, 4> edges;
+	std::array<Scalar, 4> edgeSqrNorm;
 
-	std::vector<Vec3> edges(ps, {0, 0, 0});
-	std::vector<Scalar> edgeSqrNorm(ps, -1);
-
-	for (uint32 i = 0; i < ps; ++i)
+	for (uint32 i = 0; i < 4; ++i)
 	{
-		uint32 j = (i + 1) % ps;
+		uint32 j = (i + 1) % 4;
 		edges[i] = points[j] - points[i];
 		edgeSqrNorm[i] = edges[i].squaredNorm();
 	}
 
+	Vec3 u = edges[0].normalized();
+	Vec3 w = (u.cross(-edges[3])).normalized();
+	Vec3 v = w.cross(u);
+	Mat3 m;
+	m.row(0) = u;
+	m.row(1) = v;
+	m.row(2) = w;
+
+	std::array<Vec3, 4> edges_frame;
+	for (uint32 i = 0; i < 4; ++i)
+		edges_frame[i] = m * edges[i];
+
 	auto determinant = [](const Vec3& p1, const Vec3& p2) { return p1[0] * p2[1] - p1[1] * p2[0]; };
 
-	std::vector<Scalar> detJ(ps, -1);
-	for (uint32 i = 0; i < ps; ++i)
+	std::array<Scalar, 4> detJ;
+	for (uint32 i = 0; i < 4; ++i)
 	{
-		uint32 il = (i - 1 + ps) % ps;
-		detJ[i] = determinant(edges[i], -edges[il]);
+		uint32 il = (i - 1 + 4) % 4;
+		detJ[i] = determinant(edges_frame[i], -edges_frame[il]);
 	}
 
-	std::vector<Scalar> c(ps, -1);
+	std::array<Scalar, 4> c;
 
-	for (uint32 i = 0; i < ps; ++i)
+	for (uint32 i = 0; i < 4; ++i)
 	{
-		uint32 il = (i - 1 + ps) % ps;
+		uint32 il = (i - 1 + 4) % 4;
 		c[i] = detJ[i] / (edgeSqrNorm[i] + edgeSqrNorm[il]);
 	}
 
@@ -159,8 +209,8 @@ inline Scalar quad_quality(const std::vector<Vec3>& points)
 }
 
 template <typename MESH>
-void blossom_quad_remeshing(MESH& m,
-							std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position)
+void greedy_quad_remeshing(MESH& m,
+						   std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -170,7 +220,6 @@ void blossom_quad_remeshing(MESH& m,
 	{
 		Scalar w;
 		Edge e;
-		int rank = -1;
 	};
 
 	uint32 nbe = nb_cells<Edge>(m);
@@ -186,11 +235,10 @@ void blossom_quad_remeshing(MESH& m,
 		if (codegree(m, ifaces[0]) > 3 || codegree(m, ifaces[1]) > 3)
 			return true;
 
-		std::vector<Vertex> eqv = edge_quad_vertices(m, e);
-		std::vector<Vec3> eqv_pos;
-		eqv_pos.reserve(4);
-		for (Vertex v : eqv)
-			eqv_pos.push_back(value<Vec3>(m, vertex_position, v));
+		std::array<Vertex, 4> eqv = edge_quad_vertices(m, e);
+		std::array<Vec3, 4> eqv_pos;
+		for (uint32 i = 0; i < 4; ++i)
+			eqv_pos[i] = value<Vec3>(m, vertex_position, eqv[i]);
 		Scalar weight = quad_quality(eqv_pos);
 
 		edges.push_back({weight, e});
@@ -206,24 +254,8 @@ void blossom_quad_remeshing(MESH& m,
 
 	std::sort(edges.begin(), edges.end(), [](const prio_edge& a, const prio_edge& b) { return a.w > b.w; });
 
-	// auto edge_rank = add_attribute<int, Edge>(m, "__edge_rank");
-	// edge_rank->fill(std::numeric_limits<int>::max());
-	// for (uint32 i = 0; i < edges.size(); ++i)
-	// 	value<int>(m, edge_rank, edges[i].e) = i;
-
-	for (const auto& [w, e, rank] : edges)
+	for (const auto& [w, e] : edges)
 	{
-		// std::queue<Edge> queue;
-		// queue.push(e);
-		// while (!queue.empty())
-		// {
-		// Edge e = queue.front();
-		// queue.pop();
-
-		// int rank = value<int>(m, edge_rank, e);
-		// if (rank == std::numeric_limits<int>::max())
-		// 	continue;
-
 		std::vector<Face> ifaces = incident_faces(m, e);
 
 		if (value<bool>(m, deleted_faces, ifaces[0]) || value<bool>(m, deleted_faces, ifaces[1]))
@@ -234,19 +266,145 @@ void blossom_quad_remeshing(MESH& m,
 		value<bool>(m, deleted_faces, ifaces[0]) = true;
 		value<bool>(m, deleted_faces, ifaces[1]) = true;
 		edges_to_delete.push_back(e);
-
-		// 	std::vector<Edge> next_edges = butterfly_neighbour_edges(m, e);
-
-		// 	std::sort(next_edges.begin(), next_edges.end(),
-		// 			  [&](Edge a, Edge b) { return value<int>(m, edge_rank, a) < value<int>(m, edge_rank, b); });
-
-		// 	for (Edge ne : next_edges)
-		// 		queue.push(ne);
-		// }
 	}
 
 	remove_attribute<Face>(m, deleted_faces);
-	// remove_attribute<Edge>(m, edge_rank);
+
+	for (Edge e : edges_to_delete)
+		merge_incident_faces(m, e);
+}
+
+template <typename MESH>
+void blossom_quad_remeshing(MESH& m,
+							std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	auto face_index = add_attribute<uint32, Face>(m, "__face_index");
+	uint32 nb_faces = 0;
+	foreach_cell(m, [&](Face f) -> bool {
+		value<uint32>(m, face_index, f) = nb_faces++;
+		return true;
+	});
+
+	if (nb_faces % 2 > 0)
+	{
+		Edge max_e;
+		Scalar max_length = std::numeric_limits<Scalar>::min();
+		foreach_cell(m, [&](CMap2::Edge e) -> bool {
+			if (is_incident_to_boundary(m, e))
+			{
+				Scalar length = geometry::length(m, e, vertex_position.get());
+				if (length > max_length)
+				{
+					max_e = e;
+					max_length = length;
+				}
+			}
+			return true;
+		});
+		cut_boundary_triangle(m, max_e, vertex_position.get());
+	}
+
+	auto edge_weight = add_attribute<int, Edge>(m, "__edge_weight");
+	uint32 nb_graph_edges = 0;
+	foreach_cell(m, [&](Edge e) -> bool {
+		if (is_incident_to_boundary(m, e))
+		{
+			if (degree(m, incident_vertices(m, e)[0]) > 3)
+			{
+				value<int>(m, edge_weight, e) = 10000;
+				nb_graph_edges++;
+			}
+		}
+		else
+		{
+			std::array<Vertex, 4> eqv = edge_quad_vertices(m, e);
+			std::array<Vec3, 4> eqv_pos;
+			for (uint32 i = 0; i < 4; ++i)
+				eqv_pos[i] = value<Vec3>(m, vertex_position, eqv[i]);
+			Scalar weight = 1.0 - quad_quality(eqv_pos);
+
+			value<int>(m, edge_weight, e) = int(100 * weight);
+			nb_graph_edges++;
+		}
+
+		return true;
+	});
+
+	std::vector<int> edges;
+	edges.reserve(nb_graph_edges * 2);
+	std::vector<int> weights;
+	weights.reserve(nb_graph_edges);
+
+	foreach_cell(m, [&](Edge e) -> bool {
+		if (is_incident_to_boundary(m, e))
+		{
+			if (degree(m, incident_vertices(m, e)[0]) > 3)
+			{
+				Face f1 = incident_faces(m, e)[0];
+				Face f2 = next_boundary_face(m, e);
+				edges.push_back(value<uint32>(m, face_index, f1));
+				edges.push_back(value<uint32>(m, face_index, f2));
+				weights.push_back(value<int>(m, edge_weight, e));
+			}
+		}
+		else
+		{
+			std::vector<Face> ifaces = incident_faces(m, e);
+			edges.push_back(value<uint32>(m, face_index, ifaces[0]));
+			edges.push_back(value<uint32>(m, face_index, ifaces[1]));
+			weights.push_back(value<int>(m, edge_weight, e));
+		}
+
+		return true;
+	});
+
+	PerfectMatching pm(nb_faces, nb_graph_edges);
+	for (int i = 0; i < nb_graph_edges; ++i)
+		pm.AddEdge(edges[2 * i], edges[2 * i + 1], weights[i]);
+	pm.Solve();
+
+	int res = CheckPerfectMatchingOptimality(nb_faces, nb_graph_edges, edges.data(), weights.data(), &pm);
+	printf("check optimality: res=%d (%s)\n", res, (res == 0) ? "ok" : ((res == 1) ? "error" : "fatal error"));
+	double cost = ComputePerfectMatchingCost(nb_faces, nb_graph_edges, edges.data(), weights.data(), &pm);
+	printf("cost = %.1f\n", cost);
+
+	std::vector<Edge> edges_to_delete;
+	edges_to_delete.reserve(nb_graph_edges / 2);
+
+	foreach_cell(m, [&](Face f) -> bool {
+		uint32 idx = value<uint32>(m, face_index, f);
+		uint32 match_idx = pm.GetMatch(idx);
+		if (idx < match_idx)
+		{
+			Face match_f;
+			bool found = false;
+			foreach_adjacent_face_through_edge(m, f, [&](Face af) -> bool {
+				if (value<uint32>(m, face_index, af) == match_idx)
+				{
+					match_f = af;
+					found = true;
+				}
+				return !found;
+			});
+			if (found)
+			{
+				Edge e;
+				if (common_edge(m, f, match_f, e))
+					edges_to_delete.push_back(e);
+			}
+			else // boundary graph edge
+			{
+			}
+		}
+		return true;
+	});
+
+	remove_attribute<Face>(m, face_index);
+	remove_attribute<Edge>(m, edge_weight);
 
 	for (Edge e : edges_to_delete)
 		merge_incident_faces(m, e);
