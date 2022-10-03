@@ -41,7 +41,7 @@
 #include <cgogn/io/surface/obj.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/surface/ply.h>
-#include <cgogn/io/volume/cgns.h>
+// #include <cgogn/io/volume/cgns.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
 #include <cgogn/io/volume/tet.h>
@@ -178,6 +178,8 @@ public:
 				imported = cgogn::io::import_CG(*m, filename);
 			else if (ext.compare("cgr") == 0)
 				imported = cgogn::io::import_CGR(*m, filename);
+			else if (ext.compare("ig") == 0)
+				imported = cgogn::io::import_IG(*m, filename);
 			else if (ext.compare("skel") == 0)
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
@@ -217,6 +219,8 @@ public:
 		{
 			if (filetype.compare("cg") == 0)
 				cgogn::io::export_CG(m, vertex_position, filename + ".cg");
+			else if (filetype.compare("ig") == 0)
+				cgogn::io::export_IG(m, vertex_position, filename + ".ig");
 			// else if (filetype.compare("cgr") == 0)
 			// 	// TODO cgogn::io::export_CGR();
 			// else if (filetype.compare("skel") == 0)
@@ -651,14 +655,14 @@ protected:
 	}
 
 private:
-	std::vector<std::string> supported_graph_formats_ = {"cg", "cgr", "skel"};
-	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.cgr *.skel"};
+	std::vector<std::string> supported_graph_formats_ = {"cg", "ig", "cgr", "skel"};
+	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.ig *.cgr *.skel"};
 
 	std::vector<std::string> supported_surface_formats_ = {"off", "obj", "ply", "ig"};
 	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.obj *.ply *.ig"};
 
-	std::vector<std::string> supported_volume_formats_ = {"mesh", "cgns"};
-	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh *.cgns"};
+	std::vector<std::string> supported_volume_formats_ = {"mesh"};			 //, "cgns"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"}; // *.cgns"};
 
 	std::vector<std::string>* supported_formats_ = nullptr;
 

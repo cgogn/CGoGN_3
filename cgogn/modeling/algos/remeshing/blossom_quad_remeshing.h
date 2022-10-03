@@ -132,6 +132,11 @@ inline CMap2::Face next_boundary_face(CMap2& m, CMap2::Edge e)
 	return CMap2::Face(phi<2, 1, 2>(m, e.dart));
 }
 
+inline CMap2::Face previous_boundary_face(CMap2& m, CMap2::Edge e)
+{
+	return CMap2::Face(phi<2, -1, 2>(m, e.dart));
+}
+
 inline bool common_edge(CMap2& m, CMap2::Face f1, CMap2::Face f2, CMap2::Edge& res)
 {
 	std::vector<Dart> f1darts;
@@ -150,6 +155,41 @@ inline bool common_edge(CMap2& m, CMap2::Face f1, CMap2::Face f2, CMap2::Edge& r
 		return !found;
 	});
 	return found;
+}
+
+inline CMap2::Vertex open_boundary_vertex(CMap2& m, CMap2::Vertex v)
+{
+	Dart d = is_boundary(m, v.dart) ? phi<-1, 2>(m, v.dart) : v.dart;
+	CMap1::Vertex v1 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(phi_1(m, d)), false);
+	CMap1::Vertex v2 = cut_edge(static_cast<CMap1&>(m), CMap1::Edge(phi<2, 1, 2>(m, d)), false);
+	phi2_sew(m, v1.dart, v2.dart);
+
+	if (is_indexed<CMap2::Vertex>(m))
+	{
+		set_index(m, CMap2::Vertex(v1.dart), new_index<CMap2::Vertex>(m));
+		copy_index<CMap2::Vertex>(m, v2.dart, d);
+	}
+	if (is_indexed<CMap2::HalfEdge>(m))
+	{
+		set_index(m, CMap2::HalfEdge(v1.dart), new_index<CMap2::HalfEdge>(m));
+		set_index(m, CMap2::HalfEdge(v2.dart), new_index<CMap2::HalfEdge>(m));
+	}
+	if (is_indexed<CMap2::Edge>(m))
+	{
+		set_index(m, CMap2::Edge(v1.dart), new_index<CMap2::Edge>(m));
+	}
+	if (is_indexed<CMap2::Face>(m))
+	{
+		copy_index<CMap2::Face>(m, v1.dart, d);
+		copy_index<CMap2::Face>(m, v2.dart, phi1(m, v2.dart));
+	}
+	if (is_indexed<CMap2::Volume>(m))
+	{
+		copy_index<CMap2::Volume>(m, v1.dart, d);
+		copy_index<CMap2::Volume>(m, v2.dart, d);
+	}
+
+	return CMap2::Vertex(v1.dart);
 }
 
 /////////////
@@ -315,7 +355,7 @@ void blossom_quad_remeshing(MESH& m,
 		{
 			if (degree(m, incident_vertices(m, e)[0]) > 3)
 			{
-				value<int>(m, edge_weight, e) = 10000;
+				value<int>(m, edge_weight, e) = 10;
 				nb_graph_edges++;
 			}
 		}
@@ -395,9 +435,61 @@ void blossom_quad_remeshing(MESH& m,
 				Edge e;
 				if (common_edge(m, f, match_f, e))
 					edges_to_delete.push_back(e);
+				else
+					std::cout << "common edge not found.." << std::endl;
 			}
 			else // boundary graph edge
 			{
+				std::cout << "boundary edge match" << std::endl;
+
+				Edge be;
+				bool be_found = false;
+				foreach_incident_edge(m, f, [&](Edge e) -> bool {
+					if (is_incident_to_boundary(m, e))
+					{
+						be_found = true;
+						be = e;
+					}
+					return be_found;
+				});
+
+				if (be_found)
+				{
+					std::cout << " --> boundary edge found" << std::endl;
+
+					Face fbn = next_boundary_face(m, be);
+					Face fbp = previous_boundary_face(m, be);
+					std::vector<Vertex> vertices = incident_vertices(m, be);
+					Vertex nv;
+					if (value<uint32>(m, face_index, fbn) == match_idx)
+					{
+						std::cout << " --> match with next boundary face" << std::endl;
+						found = true;
+						nv = open_boundary_vertex(m, vertices[0]);
+					}
+					else if (value<uint32>(m, face_index, fbp) == match_idx)
+					{
+						std::cout << " --> match with previous boundary face" << std::endl;
+						found = true;
+						nv = open_boundary_vertex(m, vertices[1]);
+					}
+					if (found)
+					{
+						std::cout << " --> compute position" << std::endl;
+
+						Vec3 p{0, 0, 0};
+						uint32 nbv = 0;
+						foreach_adjacent_vertex_through_edge(m, nv, [&](Vertex av) -> bool {
+							p += value<Vec3>(m, vertex_position, av);
+							++nbv;
+							return true;
+						});
+						p /= Scalar(nbv);
+						value<Vec3>(m, vertex_position, nv) = p;
+					}
+				}
+				else
+					std::cout << " --> boundary edge not found" << std::endl;
 			}
 		}
 		return true;

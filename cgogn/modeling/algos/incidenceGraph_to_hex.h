@@ -76,6 +76,8 @@ struct IG_M3Attributes
 	std::shared_ptr<CMap3::Attribute<Vec3>> vertex_position;
 	// std::shared_ptr<CMap3::Attribute<Graph::HalfEdge>> volume_graph_connection;
 
+	DartMarker<CMap3>* extremity_faces;
+
 	// std::shared_ptr<CMap3::Attribute<Mat3>> corner_frame;
 	// std::shared_ptr<CMap3::Attribute<Mat3>> hex_frame;
 
@@ -182,11 +184,11 @@ bool set_contact_surfaces_geometry(const IncidenceGraph& ig, IG_GAttributes& igA
 /*****************************************************************************/
 
 bool build_volumes(IncidenceGraph& ig, IG_GAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data, CMap2& m2,
-				   IG_M2Attributes& m2Attribs, CMap3& m3);
+				   IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);
 void insert_ortho_chunks(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
 						 CMap3& m3);
 bool build_branch_section(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
-						  CMap3& m3, IncidenceGraph::Edge e0);
+						  CMap3& m3, IG_M3Attributes& m3Attribs, IncidenceGraph::Edge e0);
 bool build_leaflet(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
 				   const std::vector<IncidenceGraph::Face>& leaflet);
 bool sew_sections_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3);

@@ -39,6 +39,15 @@ target_link_libraries(registration
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(constriction constriction.cpp)
+target_link_libraries(constriction
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)

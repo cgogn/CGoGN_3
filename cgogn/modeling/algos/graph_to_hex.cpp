@@ -587,111 +587,118 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 	remove_attribute<CMap2::Vertex>(m, incident_init_mid);
 }
 
-void padding(CMap3& m3)
+void padding(CMap3& m3, DartMarker<CMap3>* face_marker)
 {
 	Dart d_boundary;
 	for (Dart d = m3.begin(), end = m3.end(); d != end && d_boundary.is_nil(); d = m3.next(d))
 		if (is_boundary(m3, d))
 			d_boundary = d;
 
-	CellCache<CMap3> prism_cache(m3);
+	std::vector<CMap3::Volume> prisms;
 
-	/// visiting all faces of the boundary and inserting a prism beneath it
+	// visit all faces of the boundary and check if a prism must be inserted
 	DartMarker visited_face(m3);
-	foreach_dart_of_orbit(m3, CMap3::Volume(d_boundary), [&](Dart d0) -> bool {
-		if (!visited_face.is_marked(d0))
+	foreach_dart_of_orbit(m3, CMap3::Volume(d_boundary), [&](Dart db) -> bool {
+		if (!visited_face.is_marked(db))
 		{
 			uint32 n = 0;
-			foreach_dart_of_orbit(m3, CMap3::Face2(d0), [&](Dart d1) -> bool {
+			foreach_dart_of_orbit(m3, CMap3::Face2(db), [&](Dart df) -> bool {
 				++n;
-				visited_face.mark(d1);
+				visited_face.mark(df);
 				return true;
 			});
 
-			Dart d1 = phi3(m3, d0);
-			CMap3::Volume p = add_prism(static_cast<CMap2&>(m3), n);
-			prism_cache.add(p);
-			unsew_volumes(m3, d0);
-			sew_volumes(m3, d0, p.dart);
-			sew_volumes(m3, d1, phi<2, 1, 1, 2>(m3, p.dart));
+			Dart db3 = phi3(m3, db);
+			unsew_volumes(m3, db);
+			if (!face_marker || !face_marker->is_marked(db3))
+			{
+				CMap3::Volume p = add_prism(static_cast<CMap2&>(m3), n);
+				sew_volumes(m3, db, p.dart);
+				sew_volumes(m3, db3, phi<2, 1, 1, 2>(m3, p.dart));
+				prisms.push_back(p);
+			}
 		}
 		return true;
 	});
 
-	/// sewing neighboring prisms together
+	// sew neighboring prisms together
 	DartMarker visited_edge(m3);
-	foreach_dart_of_orbit(m3, CMap3::Volume(d_boundary), [&](Dart d0) -> bool {
-		if (!visited_edge.is_marked(d0))
+	foreach_dart_of_orbit(m3, CMap3::Volume(d_boundary), [&](Dart db) -> bool {
+		if (!visited_edge.is_marked(db))
 		{
-			visited_edge.mark(d0);
-			visited_edge.mark(phi2(m3, d0));
-			Dart f1 = phi<3, 2>(m3, d0);
-			Dart f2 = phi<2, 3, 2>(m3, d0);
-			sew_volumes(m3, f1, f2);
+			Dart db2 = phi2(m3, db);
+			visited_edge.mark(db);
+			visited_edge.mark(db2);
+			if (phi3(m3, db) != db && phi3(m3, db2) != db2)
+				sew_volumes(m3, phi<3, 2>(m3, db), phi<3, 2>(m3, db2));
+			phi3_unsew(m3, db);
+			phi3_unsew(m3, db2);
 		}
 		return true;
 	});
 
-	/// setting indices
-	/// CMap2 cells (HalfEdge, Vertex2, Edge2, Face2, Volume) already indiced in add_prism
-	foreach_cell(prism_cache, [&](CMap3::Volume w) -> bool {
-		foreach_dart_of_orbit(m3, w, [&](Dart d0) -> bool {
+	// rebuild boundary
+	remove_volume(static_cast<CMap2&>(m3), CMap2::Volume(d_boundary));
+	close(m3);
+
+	// set indices
+	// CMap2 cells (HalfEdge, Vertex2, Edge2, Face2, Volume) already indiced in add_prism
+	for (CMap3::Volume vol : prisms)
+	{
+		foreach_dart_of_orbit(m3, vol, [&](Dart d) -> bool {
 			if (is_indexed<CMap3::Vertex>(m3))
 			{
-				if (index_of(m3, CMap3::Vertex(d0)) == INVALID_INDEX)
+				if (index_of(m3, CMap3::Vertex(d)) == INVALID_INDEX)
 				{
 					uint32 id = INVALID_INDEX;
-					foreach_dart_of_orbit(m3, CMap3::Vertex(d0), [&](Dart d) -> bool {
-						if (!is_boundary(m3, d))
-							id = index_of(m3, CMap3::Vertex(d));
+					foreach_dart_of_orbit(m3, CMap3::Vertex(d), [&](Dart dv) -> bool {
+						if (!is_boundary(m3, dv))
+							id = index_of(m3, CMap3::Vertex(dv));
 						return (id == INVALID_INDEX);
 					});
-					set_index(m3, CMap3::Vertex(d0), (id == INVALID_INDEX ? new_index<CMap3::Vertex>(m3) : id));
+					set_index(m3, CMap3::Vertex(d), (id == INVALID_INDEX ? new_index<CMap3::Vertex>(m3) : id));
 				}
 			}
 			if (is_indexed<CMap3::Edge>(m3))
 			{
-				if (index_of(m3, CMap3::Edge(d0)) == INVALID_INDEX)
+				if (index_of(m3, CMap3::Edge(d)) == INVALID_INDEX)
 				{
 					uint32 id = INVALID_INDEX;
-					foreach_dart_of_orbit(m3, CMap3::Edge(d0), [&](Dart d) -> bool {
-						if (!is_boundary(m3, d))
-							id = index_of(m3, CMap3::Edge(d));
+					foreach_dart_of_orbit(m3, CMap3::Edge(d), [&](Dart de) -> bool {
+						if (!is_boundary(m3, de))
+							id = index_of(m3, CMap3::Edge(de));
 						return (id == INVALID_INDEX);
 					});
-					set_index(m3, CMap3::Edge(d0), (id == INVALID_INDEX ? new_index<CMap3::Edge>(m3) : id));
+					set_index(m3, CMap3::Edge(d), (id == INVALID_INDEX ? new_index<CMap3::Edge>(m3) : id));
 				}
 			}
 			if (is_indexed<CMap3::Face>(m3))
 			{
-				if (index_of(m3, CMap3::Face(d0)) == INVALID_INDEX)
+				if (index_of(m3, CMap3::Face(d)) == INVALID_INDEX)
 				{
 					uint32 id = INVALID_INDEX;
-					if (!is_boundary(m3, phi3(m3, d0)))
-						id = index_of(m3, CMap3::Face(phi3(m3, d0)));
-					set_index(m3, CMap3::Face(d0), (id == INVALID_INDEX ? new_index<CMap3::Face>(m3) : id));
+					if (!is_boundary(m3, phi3(m3, d)))
+						id = index_of(m3, CMap3::Face(phi3(m3, d)));
+					set_index(m3, CMap3::Face(d), (id == INVALID_INDEX ? new_index<CMap3::Face>(m3) : id));
 				}
 			}
 			return true;
 		});
-		return true;
-	});
+	}
 
-	/// setting positions
+	// set positions
 	auto vertex_position = get_attribute<Vec3, CMap3::Vertex>(m3, "position");
 
-	foreach_cell(m3, [&](CMap3::Vertex v0) -> bool {
-		if (is_incident_to_boundary(m3, v0))
+	for (CMap3::Volume vol : prisms)
+	{
+		Dart it = vol.dart;
+		do
 		{
-			foreach_adjacent_vertex_through_edge(m3, v0, [&](CMap3::Vertex v1) -> bool {
-				bool searching = is_incident_to_boundary(m3, v1);
-				if (!searching)
-					value<Vec3>(m3, vertex_position, v0) = value<Vec3>(m3, vertex_position, v1);
-				return searching;
-			});
-		}
-		return true;
-	});
+			value<Vec3>(m3, vertex_position, CMap3::Vertex(it)) =
+				value<Vec3>(m3, vertex_position, CMap3::Vertex(phi<2, 1, 1>(m3, it)));
+			it = phi1(m3, it);
+		} while (it != vol.dart);
+	}
 }
 
 /*****************************************************************************/
@@ -1169,7 +1176,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 
 	// get the points on the sphere for each incident branch
 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
-	
+
 	std::vector<Vec3> Ppos;
 	Ppos.reserve(nbf);
 	std::vector<Dart> Pdart;
@@ -2058,7 +2065,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 			auto scaffold_position_face = get_attribute<Vec3, CMap2::Face>(*scaffold, "position");
 			auto scaffold_position_volume = get_attribute<Vec3, CMap2::Volume>(*scaffold, "position");
 			auto scaffold_hex_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
-			//uint32 i = 0;
+			// uint32 i = 0;
 			foreach_cell(*scaffold, [&](CMap2::Vertex v2) -> bool {
 				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart));
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =

@@ -27,22 +27,20 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/geometry/ui_modules/surface_constriction.h>
+#include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
-#include <cgogn/modeling/algos/incidenceGraph_to_hex.h>
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
-using IGraph = cgogn::IncidenceGraph;
-// using Surface = cgogn::CMap2;
-// using Volume = cgogn::CMap3;
+using namespace cgogn::numerics;
+
+using Mesh = cgogn::CMap2;
 
 template <typename T>
-using Attribute = typename cgogn::mesh_traits<IGraph>::Attribute<T>;
-using Vertex = typename cgogn::mesh_traits<IGraph>::Vertex;
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
@@ -51,66 +49,47 @@ int main(int argc, char** argv)
 {
 	std::string filename;
 	if (argc < 2)
-	{
-		std::cout << "Usage: " << argv[0] << " filename" << std::endl;
-		return 1;
-	}
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/gargoyle.off");
 	else
 		filename = std::string(argv[1]);
 
 	cgogn::thread_start();
 
 	cgogn::ui::App app;
-	app.set_window_title("Simple incidence graph viewer");
+	app.set_window_title("Surface constriction");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<IGraph> mpig(app);
-	// cgogn::ui::MeshProvider<Surface> mps(app);
-	// cgogn::ui::MeshProvider<Volume> mpv(app);
-
-	cgogn::ui::SurfaceRender<IGraph> gr(app);
-	// cgogn::ui::SurfaceRender<Surface> sr(app);
-	// cgogn::ui::SurfaceRender<Volume> vr(app);
-
-	IGraph* ig = mpig.load_surface_from_file(filename);
-	std::cout << filename << " : loaded" << std::endl;
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*ig, "position");
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceConstriction<Mesh> sc(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
-	std::cout << "init_modules : done" << std::endl;
 
 	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mpig);
-	// v1->link_module(&mps);
-	// v1->link_module(&mpv);
-	v1->link_module(&gr);
-	// v1->link_module(&sr);
-	// v1->link_module(&vr);
+	v1->link_module(&mp);
+	v1->link_module(&sr);
+	v1->link_module(&sc);
 
-	std::cout << "link_modules : done" << std::endl;
+	Mesh* m = mp.load_surface_from_file(filename);
+	if (!m)
+	{
+		std::cout << "File could not be loaded" << std::endl;
+		return 1;
+	}
 
-	mpig.set_mesh_bb_vertex_position(*ig, vertex_position);
-	gr.set_vertex_position(*v1, *ig, vertex_position);
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
-	std::cout << "display : done" << std::endl;
+	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
-	// Surface* m2 = mps.add_mesh("surface");
-	// Volume* m3 = mpv.add_mesh("volumes");
-	// cgogn::modeling::incidenceGraph_to_hex(*ig, *m2, *m3);
+	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
-	// std::shared_ptr<Attribute<Vec3>> surface_vertex_position =
-	// 	cgogn::get_attribute<Vec3, Surface::Vertex>(*m2, "position");
+	sr.set_vertex_position(*v1, *m, vertex_position);
+	sr.set_vertex_normal(*v1, *m, vertex_normal);
 
-	// mps.set_mesh_bb_vertex_position(*m2, surface_vertex_position);
-	// mps.emit_connectivity_changed(*m2);
-
-	// sr.set_vertex_position(*v1, *m2, surface_vertex_position);
-	// sr.set_render_vertices(*v1, *m2, false);
-	// sr.set_render_faces(*v1, *m2, false);
-
-	// mpv.set_mesh_bb_vertex_position(*m3, surface_vertex_position);
-	// mpv.emit_connectivity_changed(*m3);
+	std::shared_ptr<Attribute<Vec3>> face_normal = cgogn::add_attribute<Vec3, Face>(*m, "normal");
+	cgogn::geometry::compute_normal<Face>(*m, vertex_position.get(), face_normal.get());
 
 	return app.launch();
 }
