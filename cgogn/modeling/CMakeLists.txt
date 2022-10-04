@@ -36,6 +36,7 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision/surface_loop.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision/surface_catmull_clark.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/subdivision/surface_catmull_clark.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/blossom_quad_remeshing.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/topstoc.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/remeshing/pliant_remeshing.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/volume_utils.h"

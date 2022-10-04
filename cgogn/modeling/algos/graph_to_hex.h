@@ -112,7 +112,7 @@ void catmull_clark_inter(CMap2& m, CMap2::Attribute<Vec3>* vertex_position, uint
 // void bloat(CMap3& m3);
 void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs);
 
-void padding(CMap3& m3);
+void padding(CMap3& m3, DartMarker<CMap3>* face_marker);
 
 void create_ortho_hex(const Graph& g, CMap2& m2, CMap2& contact_surface, CMap3& m3);
 bool find_frame(const Graph& g, Graph::Vertex gv, Mat3& frame);

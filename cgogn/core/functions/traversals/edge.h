@@ -177,7 +177,6 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
-	;
 
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -189,16 +188,17 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 		Dart d1 = e.dart;
 		Dart d2 = phi2(m, d1);
 		if (!is_boundary(m, d1))
-			foreach_dart_of_orbit(m, Face(d1), [&](Dart d) -> bool { return func(Edge(d)); });
+			foreach_dart_of_orbit(m, Face(d1), [&](Dart d) -> bool { return d != d1 ? func(Edge(d)) : true; });
 		if (!is_boundary(m, d2))
-			foreach_dart_of_orbit(m, Face(d2), [&](Dart d) -> bool { return func(Edge(d)); });
+			foreach_dart_of_orbit(m, Face(d2), [&](Dart d) -> bool { return d != d2 ? func(Edge(d)) : true; });
 	}
 	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		using Face2 = typename mesh_traits<MESH>::Face2;
 
 		foreach_dart_of_orbit(m, e, [&](Dart ed) -> bool {
-			foreach_dart_of_orbit(m, Face2(ed), [&](Dart d) -> bool { return func(Edge(d)); });
+			foreach_dart_of_orbit(m, Face2(ed), [&](Dart d) -> bool { return d != ed ? func(Edge(d)) : true; });
+			return true;
 		});
 	}
 }

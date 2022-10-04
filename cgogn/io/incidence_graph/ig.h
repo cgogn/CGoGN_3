@@ -44,7 +44,7 @@ namespace io
 template <typename MESH>
 bool import_IG(MESH& m, const std::string& filename)
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 1");
+	static_assert(mesh_traits<MESH>::dimension >= 1, "MESH dimension should be at least 1");
 
 	using Vertex = typename MESH::Vertex;
 
@@ -122,19 +122,27 @@ void export_IG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geo
 
 	using Vertex = typename MESH::Vertex;
 	using Edge = typename MESH::Edge;
-	using Face = typename MESH::Face;
 
 	auto vertex_id = add_attribute<uint32, Vertex>(m, "__vertex_id");
 	auto edge_id = add_attribute<uint32, Edge>(m, "__edge_id");
 
 	uint32 nb_vertices = nb_cells<Vertex>(m);
 	uint32 nb_edges = nb_cells<Edge>(m);
-	uint32 nb_faces = nb_cells<Face>(m);
 
 	std::ofstream out_file;
 	out_file.open(filename);
 	out_file << "IG\n";
-	out_file << nb_vertices << " " << nb_edges << " " << nb_faces << "\n";
+
+	if constexpr (mesh_traits<MESH>::dimension == 2)
+	{
+		using Face = typename MESH::Face;
+		uint32 nb_faces = nb_cells<Face>(m);
+		out_file << nb_vertices << " " << nb_edges << " " << nb_faces << "\n";
+	}
+	else
+	{
+		out_file << nb_vertices << " " << nb_edges << " 0\n";
+	}
 
 	uint32 id = 0;
 	foreach_cell(m, [&](Vertex v) -> bool {
@@ -155,14 +163,18 @@ void export_IG(MESH& m, const typename mesh_traits<MESH>::template Attribute<geo
 		return true;
 	});
 
-	foreach_cell(m, [&](Face f) -> bool {
-		std::vector<Edge> inc_edges = incident_edges(m, f);
-		out_file << inc_edges.size() << " ";
-		for (Edge e : inc_edges)
-			out_file << value<uint32>(m, edge_id, e) << " ";
-		out_file << "\n";
-		return true;
-	});
+	if constexpr (mesh_traits<MESH>::dimension == 2)
+	{
+		using Face = typename MESH::Face;
+		foreach_cell(m, [&](Face f) -> bool {
+			std::vector<Edge> inc_edges = incident_edges(m, f);
+			out_file << inc_edges.size() << " ";
+			for (Edge e : inc_edges)
+				out_file << value<uint32>(m, edge_id, e) << " ";
+			out_file << "\n";
+			return true;
+		});
+	}
 
 	remove_attribute<Vertex>(m, vertex_id);
 	remove_attribute<Edge>(m, edge_id);

@@ -221,8 +221,9 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
-			if (!is_boundary(m, d))
-				return func(Face(phi2(m, d)));
+			Dart d2 = phi2(m, d);
+			if (!is_boundary(m, d2))
+				return func(Face(d2));
 			return true;
 		});
 	}
