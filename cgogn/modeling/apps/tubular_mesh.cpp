@@ -32,7 +32,7 @@
 #include <cgogn/geometry/ui_modules/volume_selection.h>
 #include <cgogn/modeling/ui_modules/tubular_mesh_module.h>
 #include <cgogn/modeling/ui_modules/volume_deformation.h>
-#include <cgogn/rendering/ui_modules/graph_render.h>
+// #include <cgogn/rendering/ui_modules/graph_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
 #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
@@ -84,8 +84,8 @@ int main(int argc, char** argv)
 
 	// cgogn::ui::Registration<Surface> r(app);
 
-	// cgogn::ui::SurfaceRender<Graph> gr(app);
-	cgogn::ui::GraphRender<Graph> gr(app);
+	cgogn::ui::SurfaceRender<Graph> gr(app);
+	// cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::VectorPerVertexRender<Surface> svpvr(app);
 	cgogn::ui::VectorPerVertexRender<Graph> gvpvr(app);
