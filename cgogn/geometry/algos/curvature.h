@@ -185,6 +185,30 @@ void compute_curvature(const MESH& m, Scalar radius,
 	});
 }
 
+/**
+ * @brief compute gaussian curvature
+ * @param[in] m mesh
+ * @param[in] radius radius of neighborhood
+ * @param[in] vertex_position position attribute of mesh
+ * @param[in] vertex_normal norma attribute of mesh
+ * @param[in] edge_angle edge angle attribute of mesh
+ * @param[out] vertex_kgauss computed Gaussian curvature
+ */
+template <typename MESH>
+void compute_gaussian_curvature(const MESH& m, Scalar radius,
+					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
+					   const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle,
+					   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_kgauss)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		auto [kmax, kmin, Kmax, Kmin, Knormal] = curvature(m, v, radius, vertex_position, vertex_normal, edge_angle);
+		value<Scalar>(m, vertex_kgauss, v) = kmin*kmax;
+		return true;
+	});
+}
+
 } // namespace geometry
 
 } // namespace cgogn
