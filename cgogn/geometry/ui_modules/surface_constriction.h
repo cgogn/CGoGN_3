@@ -31,8 +31,6 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/area.h>
-#include <cgogn/geometry/algos/curvature.h>
-#include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <boost/synapse/connect.hpp>
@@ -62,9 +60,7 @@ class SurfaceConstriction : public ViewModule
 
 public:
 	SurfaceConstriction(const App& app)
-		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")"),
-		selected_mesh_(nullptr), selected_vertex_position_(nullptr), selected_vertex_normal_(nullptr),
-		selected_vertex_kgauss_(nullptr)
+		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")")
 	{
 	}
 
@@ -76,20 +72,6 @@ public:
 	{
 		geometry::compute_area<Vertex>(m, vertex_position, vertex_area);
 		mesh_provider_->emit_attribute_changed(m, vertex_area);
-	}
-
-	void compute_normal(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Vec3>* vertex_normal)
-	{
-		geometry::compute_normal<Vertex>(m, vertex_position, vertex_normal);
-		mesh_provider_->emit_attribute_changed(m, vertex_normal);
-	}
-
-	void compute_gaussian_curvature(const MESH& m, Scalar radius, const Attribute<Vec3>* vertex_position,
-						   const Attribute<Vec3>* vertex_normal, const Attribute<Scalar>* edge_angle,
-						   Attribute<Scalar>* vertex_kgauss)
-	{
-		geometry::compute_gaussian_curvature(m, radius, vertex_position, vertex_normal, edge_angle, vertex_kgauss);
-		mesh_provider_->emit_attribute_changed(m, vertex_kgauss);
 	}
 
 protected:
@@ -118,10 +100,6 @@ protected:
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
 
-			imgui_combo_attribute<Vertex, Vec3>(
-				*selected_mesh_, selected_vertex_normal_, "Normal",
-				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_normal_ = attribute; });
-
 			if (selected_vertex_position_)
 			{
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
@@ -131,34 +109,6 @@ protected:
 					if (!selected_vertex_area_)
 						selected_vertex_area_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "area");
 					compute_vertex_area(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_area_.get());
-				}
-
-				if (ImGui::Button("Compute normal"))
-				{
-					if (!selected_vertex_normal_)
-						selected_vertex_normal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
-					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
-				}
-			}
-
-			if (selected_vertex_position_ && selected_vertex_normal_)
-			{
-				if (ImGui::Button("Compute gaussian curvature"))
-				{
-					if (!selected_vertex_kgauss_)
-						selected_vertex_kgauss_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgauss");
-
-					std::shared_ptr<Attribute<Scalar>> edge_angle =
-						add_attribute<Scalar, Edge>(*selected_mesh_, "__edge_angle");
-					geometry::compute_angle(*selected_mesh_, selected_vertex_position_.get(), edge_angle.get());	// TODO different centroid
-
-					Scalar mean_edge_length =
-						geometry::mean_edge_length(*selected_mesh_, selected_vertex_position_.get()); // TODO different neighborhoud
-
-					compute_gaussian_curvature(*selected_mesh_, mean_edge_length * 2.5, selected_vertex_position_.get(),
-									  selected_vertex_normal_.get(), edge_angle.get(), selected_vertex_kgauss_.get());
-
-					remove_attribute<Edge>(*selected_mesh_, edge_angle);
 				}
 			}
 		}
@@ -171,9 +121,7 @@ protected:
 private:
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
-	std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
 	std::shared_ptr<Attribute<Scalar>> selected_vertex_area_;
-	std::shared_ptr<Attribute<Scalar>> selected_vertex_kgauss_;	// gaussian curvature
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;
 };

@@ -186,25 +186,50 @@ void compute_curvature(const MESH& m, Scalar radius,
 }
 
 /**
- * @brief compute gaussian curvature
+ * @brief compute gaussian curvature with angular defect for one vertex
  * @param[in] m mesh
- * @param[in] radius radius of neighborhood
+ * @param[in] v the vertex to compute
  * @param[in] vertex_position position attribute of mesh
- * @param[in] vertex_normal norma attribute of mesh
- * @param[in] edge_angle edge angle attribute of mesh
- * @param[out] vertex_kgauss computed Gaussian curvature
+ * @returns computed Gaussian curvature
+ * @todo choose n-ring and local area
  */
 template <typename MESH>
-void compute_gaussian_curvature(const MESH& m, Scalar radius,
+Scalar gaussian_curvature(
+	const MESH& m, typename mesh_traits<MESH>::Vertex v, 
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	
+	
+	Scalar angle_sum{0};
+	std::vector<Edge> edges = incident_edges(m, v);
+	for (uint32 i = 1, size = uint32(edges.size()); i < size - 1; ++i)
+	{
+		angle_sum += angle(value<Vec3>(m, vertex_position, edges[i]),
+						   value<Vec3>(m, vertex_position, edges[(i + 1) % size]));
+	}
+	
+	Scalar kgaussian = (2 * M_PI - angle_sum) / area(m, v, vertex_position);
+
+	return kgaussian;
+}
+
+/**
+ * @brief compute gaussian curvature with angular defect for every cells
+ * @param[in] m mesh
+ * @param[in] vertex_position position attribute of mesh
+ * @param[out] vertex_kgauss computed Gaussian curvature
+ * @todo choose n-ring and local area
+ */
+template <typename MESH>
+void compute_gaussian_curvature(const MESH& m,
 					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
-					   const typename mesh_traits<MESH>::template Attribute<Scalar>* edge_angle,
 					   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_kgauss)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		auto [kmax, kmin, Kmax, Kmin, Knormal] = curvature(m, v, radius, vertex_position, vertex_normal, edge_angle);
-		value<Scalar>(m, vertex_kgauss, v) = kmin*kmax;
+		value<Scalar>(m, vertex_kgauss, v) = gaussian_curvature(m, v, vertex_position);
 		return true;
 	});
 }
