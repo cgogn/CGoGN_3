@@ -201,13 +201,20 @@ Scalar gaussian_curvature(
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	
-	
 	Scalar angle_sum{0};
-	std::vector<Edge> edges = incident_edges(m, v);
-	for (uint32 i = 1, size = uint32(edges.size()); i < size - 1; ++i)
+	std::vector<Vec3> edges;
+	
+	Vec3 this_vertex_position = value<Vec3>(m, vertex_position, v);
+	// gather incident edges direction, could be avoided with direct indexing
+	foreach_incident_vertex(m, v, [&](Vertex ve) -> bool {
+		edges.push_back(value<Vec3>(m, vertex_position, ve) - this_vertex_position);
+		return true;
+	});
+	
+	// sum incident edges angles
+	for (uint32 i = 0, size = uint32(edges.size()); i < size - 1; ++i)
 	{
-		angle_sum += angle(value<Vec3>(m, vertex_position, edges[i]),
-						   value<Vec3>(m, vertex_position, edges[(i + 1) % size]));
+		angle_sum += angle(edges[(i + 1) % size], edges[i]);
 	}
 	
 	Scalar kgaussian = (2 * M_PI - angle_sum) / area(m, v, vertex_position);
