@@ -206,7 +206,7 @@ Scalar gaussian_curvature(
 	
 	Vec3 this_vertex_position = value<Vec3>(m, vertex_position, v);
 	// gather incident edges direction, could be avoided with direct indexing
-	foreach_incident_vertex(m, v, [&](Vertex ve) -> bool {
+	foreach_adjacent_vertex_through_edge(m, v, [&](Vertex ve) -> bool {
 		edges.push_back(value<Vec3>(m, vertex_position, ve) - this_vertex_position);
 		return true;
 	});
@@ -217,9 +217,7 @@ Scalar gaussian_curvature(
 		angle_sum += angle(edges[(i + 1) % size], edges[i]);
 	}
 	
-	Scalar kgaussian = (2 * M_PI - angle_sum) / area(m, v, vertex_position);
-
-	return kgaussian;
+	return (2 * M_PI - angle_sum) / area(m, v, vertex_position);
 }
 
 /**
