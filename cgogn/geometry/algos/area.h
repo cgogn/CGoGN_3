@@ -38,6 +38,15 @@ namespace cgogn
 namespace geometry
 {
 
+// how to compute the local area of a vertex
+enum AreaPolicy
+{
+	AUTO,		// old method
+	BARICENTER,	// take the barycenter of each triangle
+	VORONOI,	// take voronoi cell on each triangle
+	MIXED		// take the voronoi cell clamped in the triangle
+};
+
 template <typename MESH>
 Scalar area(const MESH& m, typename mesh_traits<MESH>::Face f,
 			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
@@ -57,14 +66,46 @@ template <typename MESH>
 Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
+	return area(m, v, vertex_position, AreaPolicy::BARICENTER);
+}
 
+template <typename MESH>
+Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
+			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+			AreaPolicy area_policy)
+{
+	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 	using Face = typename mesh_traits<MESH>::Face;
+
 	Scalar vertex_area{0};
-	foreach_incident_face(m, v, [&](Face iface) -> bool {
-		vertex_area += area(m, iface, vertex_position) / 3.0;
-		return true;
-	});
+
+	if (area_policy == AreaPolicy::BARICENTER) {
+		Vec3 vertex = value<Vec3>(m, vertex_position, v);
+		std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
+		
+		for(uint32 i = 0, size = uint32(vertices.size()); i < size; ++i) {
+			Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[i]);
+			Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
+
+			Vec3 median = (current_vertex + vertex) * 0.5;
+			Vec3 next_median = (next_vertex + vertex) * 0.5;
+			Vec3 centroid = (median * 2. + next_vertex) / 3.; // median ratio
+
+			vertex_area += area(median, centroid, vertex);
+			vertex_area += area(next_median, centroid, vertex);
+		}
+
+	} else if (area_policy == AreaPolicy::VORONOI) {
+		// TODO
+	} else if (area_policy == AreaPolicy::MIXED) {
+		// TODO
+	} else {	// old wrong method
+		foreach_incident_face(m, v, [&](Face iface) -> bool {
+			vertex_area += area(m, iface, vertex_position) / 3.0;
+			return true;
+		});
+	}
+
 	return vertex_area;
 }
 
