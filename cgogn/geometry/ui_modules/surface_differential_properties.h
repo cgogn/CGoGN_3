@@ -30,6 +30,7 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/curvature.h>
 #include <cgogn/geometry/algos/length.h>
@@ -62,7 +63,8 @@ public:
 		: Module(app, "SurfaceDifferentialProperties (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_mesh_(nullptr), selected_vertex_position_(nullptr), selected_vertex_normal_(nullptr),
 		  selected_vertex_kmax_(nullptr), selected_vertex_kmin_(nullptr), selected_vertex_kgaussian_(nullptr),
-		  selected_vertex_Kmax_(nullptr), selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr)
+		  selected_vertex_Kmax_(nullptr), selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr),
+		  selected_area_policy_(geometry::AreaPolicy::BARYCENTER)
 	{
 	}
 
@@ -100,7 +102,7 @@ public:
 	// compute angular defect gaussian curvature
 	void compute_gaussian_curvature(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Scalar>* vertex_kgaussian)
 	{
-		geometry::compute_gaussian_curvature(m, vertex_position, vertex_kgaussian);
+		geometry::compute_gaussian_curvature(m, vertex_position, selected_area_policy_, vertex_kgaussian);
 		mesh_provider_->emit_attribute_changed(m, vertex_kgaussian);
 	}
 
@@ -168,6 +170,25 @@ protected:
 						selected_vertex_normal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
 					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
+
+				ImGui::TextUnformatted("Local area");	// local area to compute gaussian curvature
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Baricenter##AreaPolicy", selected_area_policy_== geometry::AreaPolicy::BARYCENTER))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::BARYCENTER;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Voronoï##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::VORONOI))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::VORONOI;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Mixed##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::MIXED))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::MIXED;
+				}
+				ImGui::EndGroup();
+
 				if (ImGui::Button("Compute gaussian curvature"))
 				{
 					if (!selected_vertex_kgaussian_)
@@ -221,6 +242,7 @@ private:
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmax_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmin_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Knormal_;
+	geometry::AreaPolicy selected_area_policy_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

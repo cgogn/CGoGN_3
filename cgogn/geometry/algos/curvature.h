@@ -198,6 +198,24 @@ Scalar gaussian_curvature(
 	const MESH& m, typename mesh_traits<MESH>::Vertex v, 
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
+	return gaussian_curvature(m, v, vertex_position, geometry::AreaPolicy::AUTO);
+}
+
+/**
+ * @brief compute gaussian curvature with angular defect for one vertex
+ * @param[in] m mesh
+ * @param[in] v the vertex to compute
+ * @param[in] vertex_position position attribute of mesh
+ * @param[in] area_policy the method to determine the local area of a vertex
+ * @returns computed Gaussian curvature
+ * @todo choose n-ring and local area
+ */
+template <typename MESH>
+Scalar gaussian_curvature(
+	const MESH& m, typename mesh_traits<MESH>::Vertex v, 
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const geometry::AreaPolicy area_policy)
+{
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	
@@ -213,7 +231,7 @@ Scalar gaussian_curvature(
 		angle_sum += angle(current_vertex - vertex, next_vertex - vertex);
 	}
 	
-	return (2 * M_PI - angle_sum) / area(m, v, vertex_position);
+	return (2 * M_PI - angle_sum) / area(m, v, vertex_position, area_policy);
 }
 
 /**
@@ -228,9 +246,27 @@ void compute_gaussian_curvature(const MESH& m,
 					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 					   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_kgauss)
 {
+	compute_gaussian_curvature(m, vertex_position, vertex_kgauss, geometry::AreaPolicy::AUTO);
+}
+
+
+/**
+ * @brief compute gaussian curvature with angular defect for every cells
+ * @param[in] m mesh
+ * @param[in] vertex_position position attribute of mesh
+ * @param[in] area_policy the method to determine the local area of a vertex
+ * @param[out] vertex_kgauss computed Gaussian curvature
+ * @todo choose n-ring and local area
+ */
+template <typename MESH>
+void compute_gaussian_curvature(const MESH& m,
+					   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+					   const geometry::AreaPolicy area_policy,
+					   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_kgauss)
+{
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		value<Scalar>(m, vertex_kgauss, v) = gaussian_curvature(m, v, vertex_position);
+		value<Scalar>(m, vertex_kgauss, v) = gaussian_curvature(m, v, vertex_position, area_policy);
 		return true;
 	});
 }

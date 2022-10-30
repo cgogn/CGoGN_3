@@ -42,7 +42,7 @@ namespace geometry
 enum AreaPolicy
 {
 	AUTO,		// old method
-	BARICENTER,	// take the barycenter of each triangle
+	BARYCENTER,	// take the barycenter of each triangle
 	VORONOI,	// take voronoi cell on each triangle
 	MIXED		// take the voronoi cell clamped in the triangle
 };
@@ -66,24 +66,34 @@ template <typename MESH>
 Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-	return area(m, v, vertex_position, AreaPolicy::BARICENTER);
+	return area(m, v, vertex_position, AreaPolicy::AUTO);
 }
 
+/**
+ * @brief compute the local vertex area
+ * @param[in] m mesh
+ * @param[in] v the vertex to compute
+ * @param[in] vertex_position position attribute of mesh
+ * @param[in] area_policy the method to determine the local area of a vertex
+ * @returns computed local area
+ * @todo generalization for any polygon and neighboroud
+*/
 template <typename MESH>
 Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-			AreaPolicy area_policy)
+			const AreaPolicy area_policy)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 	using Face = typename mesh_traits<MESH>::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	Scalar vertex_area{0};
 
-	if (area_policy == AreaPolicy::BARICENTER) {
+	if (area_policy == AreaPolicy::BARYCENTER) {
 		Vec3 vertex = value<Vec3>(m, vertex_position, v);
 		std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
-		
-		for(uint32 i = 0, size = uint32(vertices.size()); i < size; ++i) {
+		uint32 size = uint32(vertices.size());
+		for(uint32 i = 0; i < size; ++i) {
 			Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[i]);
 			Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
 
@@ -94,12 +104,40 @@ Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 			vertex_area += area(median, centroid, vertex);
 			vertex_area += area(next_median, centroid, vertex);
 		}
-
 	} else if (area_policy == AreaPolicy::VORONOI) {
-		// TODO
+		Vec3 vertex = value<Vec3>(m, vertex_position, v);
+		std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
+		uint32 size = uint32(vertices.size());
+		for(uint32 i = 0; i < size; ++i) {
+			Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[i]);
+			Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
+
+			Vec3 median = (current_vertex + vertex) * 0.5;
+			Vec3 next_median = (next_vertex + vertex) * 0.5;
+			Vec3 centroid = (current_vertex + next_vertex + vertex) / 3.; // voronoi center
+
+			vertex_area += area(median, centroid, vertex);
+			vertex_area += area(next_median, centroid, vertex);
+		}
 	} else if (area_policy == AreaPolicy::MIXED) {
-		// TODO
-	} else {	// old wrong method
+		Vec3 vertex = value<Vec3>(m, vertex_position, v);
+		std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
+		uint32 size = uint32(vertices.size());
+		for(uint32 i = 0; i < size; ++i) {
+			Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[i]);
+			Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
+
+			Vec3 median = (current_vertex + vertex) * 0.5;
+			Vec3 next_median = (next_vertex + vertex) * 0.5;
+			Vec3 voronoi_centroid = (current_vertex + next_vertex + vertex) / 3.; // voronoi center
+			Vec3 median_centroid = (median * 2. + next_vertex) / 3.; // median ratio
+			Vec3 centroid = ((median_centroid-vertex).norm() < (voronoi_centroid-vertex).norm())
+							? median_centroid
+							: voronoi_centroid; // "clamp" the centroid in the triangle
+			vertex_area += area(median, centroid, vertex);
+			vertex_area += area(next_median, centroid, vertex);
+		}
+	} else {	// old wrong method for AUTO
 		foreach_incident_face(m, v, [&](Face iface) -> bool {
 			vertex_area += area(m, iface, vertex_position) / 3.0;
 			return true;
