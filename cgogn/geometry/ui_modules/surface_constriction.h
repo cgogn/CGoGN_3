@@ -60,7 +60,8 @@ class SurfaceConstriction : public ViewModule
 
 public:
 	SurfaceConstriction(const App& app)
-		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")")
+		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")"),
+		  selected_area_policy_(geometry::AreaPolicy::BARYCENTER)
 	{
 	}
 
@@ -70,7 +71,7 @@ public:
 
 	void compute_vertex_area(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Scalar>* vertex_area)
 	{
-		geometry::compute_area<Vertex>(m, vertex_position, vertex_area);
+		geometry::compute_area<Vertex>(m, vertex_position, vertex_area, selected_area_policy_);
 		mesh_provider_->emit_attribute_changed(m, vertex_area);
 	}
 
@@ -103,6 +104,25 @@ protected:
 			if (selected_vertex_position_)
 			{
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
+				
+				ImGui::TextUnformatted("Local area");	// local area to compute gaussian curvature
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Baricenter##AreaPolicy", selected_area_policy_== geometry::AreaPolicy::BARYCENTER))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::BARYCENTER;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Voronoï##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::VORONOI))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::VORONOI;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Mixed##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::MIXED))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::MIXED;
+				}
+				ImGui::EndGroup();
+				
 
 				if (ImGui::Button("Compute area"))
 				{
@@ -122,6 +142,7 @@ private:
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 	std::shared_ptr<Attribute<Scalar>> selected_vertex_area_;
+	geometry::AreaPolicy selected_area_policy_;
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;
 };

@@ -129,8 +129,8 @@ Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 
 			Vec3 median = (current_vertex + vertex) * 0.5;
 			Vec3 next_median = (next_vertex + vertex) * 0.5;
+			Vec3 median_centroid = (current_vertex + next_vertex) * 0.5; // median between the 2 vertices
 			Vec3 voronoi_centroid = (current_vertex + next_vertex + vertex) / 3.; // voronoi center
-			Vec3 median_centroid = (median * 2. + next_vertex) / 3.; // median ratio
 			Vec3 centroid = ((median_centroid-vertex).norm() < (voronoi_centroid-vertex).norm())
 							? median_centroid
 							: voronoi_centroid; // "clamp" the centroid in the triangle
@@ -147,6 +147,28 @@ Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 	return vertex_area;
 }
 
+/**
+ * compute every vertex area
+*/
+template <typename CELL, typename MESH>
+void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+				  typename mesh_traits<MESH>::template Attribute<Scalar>* cell_area, AreaPolicy area_policy)
+{
+	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
+
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	static_assert(is_in_tuple_v<CELL, std::tuple<Vertex>>, "AreaPolicy only supported with Vertex");
+
+	parallel_foreach_cell(m, [&](Vertex c) -> bool {
+		value<Scalar>(m, cell_area, c) = area(m, c, vertex_position, area_policy);
+		return true;
+	});
+}
+
+/**
+ * compute every cell area
+*/
 template <typename CELL, typename MESH>
 void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 				  typename mesh_traits<MESH>::template Attribute<Scalar>* cell_area)
@@ -160,6 +182,9 @@ void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attr
 	});
 }
 
+/**
+ * compute the mesh area
+*/
 template <typename MESH>
 Scalar area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
