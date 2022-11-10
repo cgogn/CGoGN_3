@@ -27,6 +27,7 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/area.h>
@@ -114,10 +115,10 @@ Scalar area(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 
 			Vec3 median = (current_vertex + vertex) * 0.5;
 			Vec3 next_median = (next_vertex + vertex) * 0.5;
-			Vec3 centroid = (current_vertex + next_vertex + vertex) / 3.; // voronoi center
+			Vec3 circumcenter = (current_vertex + next_vertex + vertex) / 3.;
 
-			vertex_area += area(median, centroid, vertex);
-			vertex_area += area(next_median, centroid, vertex);
+			vertex_area += area(median, circumcenter, vertex);
+			vertex_area += area(next_median, circumcenter, vertex);
 		}
 	} else if (area_policy == AreaPolicy::MIXED) {
 		Vec3 vertex = value<Vec3>(m, vertex_position, v);
@@ -175,7 +176,6 @@ void compute_area(const MESH& m, const typename mesh_traits<MESH>::template Attr
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
-
 	parallel_foreach_cell(m, [&](CELL c) -> bool {
 		value<Scalar>(m, cell_area, c) = area(m, c, vertex_position);
 		return true;
