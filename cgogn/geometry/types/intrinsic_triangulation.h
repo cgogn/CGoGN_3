@@ -21,13 +21,10 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
-#define CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
+#ifndef CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
+#define CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 
-#include <cgogn/core/functions/mesh_ops/face.h>
-
-#include <cgogn/geometry/algos/normal.h>
-#include <cgogn/geometry/functions/inclusion.h>
+#include <cgogn/core/types/cmap/cmap2.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -35,23 +32,54 @@ namespace cgogn
 
 namespace geometry
 {
-
-template <typename MESH>
-class Geodesic
+/**
+ * an intrinsic data structure,
+ * this class is a simplification of the paper "Navigating Intrinsic Triangulations" (Sharp, Crane, Soliman),
+ * it use is only intended for the geodesic computation with the edgeflip function
+*/
+template <typename MESH,
+		  typename std::enable_if_t<std::is_convertible_v<MESH&, cgogn::CMap2&>>* = nullptr>
+class IntrinsicTriangulation
 {
+	template <typename T>
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Face = typename mesh_traits<MESH>::Face;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
 
-	// ref on map
-	MESH& m_;
+	using Vec3 = geometry::Vec3;
+	using Scalar = geometry::Scalar;
 
-	// instrinsic triangulation
-	//IntrinsicTriangulation<cgogn::CMap2> intr_;
+public:
+	IntrinsicTriangulation(const CMap2& m, const std::shared_ptr<Attribute<Vec3>> vertex_position): extr_(m), vertex_position_(vertex_position)
+	{
+		// copy topology (even attributes but unused)
+		copy(intr_, m);
 
-}; // class Geodesic
+		// compute edge length
+		edge_length_ = get_or_add_attribute<Scalar, Edge>(intr_, "area");
+		parallel_foreach_cell(intr_, [&](Edge c) -> bool {
+			std::vector<Vertex> vertices = incident_vertices(m, c);
+			const Vec3& a = value<Vec3>(intr_, vertex_position, vertices[0]);
+			const Vec3& b = value<Vec3>(intr_, vertex_position, vertices[1]);
+
+			value<Scalar>(intr_, edge_length_, c) = (a - b).squaredNorm();
+			return true;
+		});
+	}
+
+private:
+	const MESH& extr_;
+	cgogn::CMap2 intr_;
+	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute
+	std::shared_ptr<Attribute<Scalar>> edge_length_;	// intrinsic euclidian edge length, L1 norm is discutable
+	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;
+	std::shared_ptr<Attribute<Dart>> vertex_ref_;
+};
 
 } // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
+#endif // CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
