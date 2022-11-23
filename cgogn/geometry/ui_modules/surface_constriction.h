@@ -32,7 +32,8 @@
 
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn/geometry/algos/geodesic.h>
+#include <cgogn/geometry/types/intrinsic_triangulation.h>
 #include <boost/synapse/connect.hpp>
 
 namespace cgogn
@@ -69,10 +70,9 @@ public:
 	{
 	}
 
-	void compute_vertex_area(const MESH& m, const Attribute<Vec3>* vertex_position, Attribute<Scalar>* vertex_area)
+	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		geometry::compute_area<Vertex>(m, vertex_position, vertex_area, selected_area_policy_);
-		mesh_provider_->emit_attribute_changed(m, vertex_area);
+		selected_vertex_position_ = vertex_position;
 	}
 
 protected:
@@ -124,11 +124,12 @@ protected:
 				ImGui::EndGroup();
 				
 
-				if (ImGui::Button("Compute area"))
+				if (ImGui::Button("Intrinsic"))
 				{
-					if (!selected_vertex_area_)
-						selected_vertex_area_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "area");
-					compute_vertex_area(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_area_.get());
+					// warning ! only CMap2, not yet templated
+					intr = std::make_unique<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
+					
 				}
 			}
 		}
@@ -140,8 +141,8 @@ protected:
 
 private:
 	MESH* selected_mesh_ = nullptr;
+	std::unique_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
-	std::shared_ptr<Attribute<Scalar>> selected_vertex_area_;
 	geometry::AreaPolicy selected_area_policy_;
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;

@@ -29,6 +29,7 @@
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/types/intrinsic_triangulation.h>
 
 namespace cgogn
 {
@@ -36,19 +37,24 @@ namespace cgogn
 namespace geometry
 {
 
+/**
+ * TODO
+ * compute geodesic with flip out algo on intrinsic triangulation,
+ * @param ab dijkstra between a and b or give it in parameter
+ * @returns intrinsic mesh or information to draw it
+*/
 template <typename MESH>
-class Geodesic
+void geodesic_line(const MESH& m,
+				   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+				   const typename mesh_traits<MESH>::Vertex a,
+				   const typename mesh_traits<MESH>::Vertex b)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	// ref on map
-	MESH& m_;
+	IntrinsicTriangulation intr{m, vertex_position};
 
-	// instrinsic triangulation
-	//IntrinsicTriangulation<cgogn::CMap2> intr_;
-
-}; // class Geodesic
+}
 
 } // namespace geometry
 
