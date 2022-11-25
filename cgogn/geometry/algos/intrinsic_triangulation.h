@@ -127,17 +127,14 @@ public:
 	void flip_edge (Edge e)
 	{
 		assert(edge_can_flip(intr_, e));
+		Scalar future_length = flipped_length(e);
 		cgogn::flip_edge(intr_, e);	// flip topology
-		// TODO compute new angle and length
-		// compute length
-		//update_signpost(2 darts)
+		value<Scalar>(intr_, edge_length_, e) = future_length;
+		update_signpost(e.dart);
+		update_signpost(phi2(intr_, e.dart));
 	}
 
 private:
-	/**
-	 * compute the base length
-	*/
-	
 	/**
 	 * update the angle of dart ik with the 3 edges of the triangle ijk
 	 * @param ik the HalfEdge angle to update
@@ -176,7 +173,37 @@ private:
 	}
 
 	/**
+	 * compute the future flipped length of an edge
+	 * @param e an edge befor flipping
+	 * @returns the length of this edge after flipping
+	*/
+	Scalar flipped_length(Edge e) {
+		std::vector<Face> faces = incident_faces(intr_, e);
+		assert(faces.size == 2);
+		Scalar ij = value<Scalar>(intr_, edge_length_, e);
+		ij*=ij;
+		// TODO (see intr_tri_course)
+		Dart d = e.dart;
+		Dart opp = phi2(intr_, e.dart);
+		Scalar im = value<Scalar>(intr_, edge_length_, phi1(d));
+		im*=im;
+		Scalar jm = value<Scalar>(intr_, edge_length_, phi_1(d));
+		jm*=jm;
+		Scalar jk = value<Scalar>(intr_, edge_length_, phi1(opp));
+		jk*=jk;
+		Scalar ki = value<Scalar>(intr_, edge_length_, phi_1(opp));
+		ki*=ki;
+
+		Scalar km = (im+jk+jm+ki-ij + (im-jm) * (jk-ki) / ij) * Scalar(0.5);
+		km += Scalar(8) * area_(faces[0]) * area_(faces[1]) / ij;
+		return sqrt(km);
+	}
+
+	/**
 	 * normalize an angle so the sum of all incident angles is 2*pi
+	 * @param v the incident vertex
+	 * @param angle the angle value
+	 * @returns the normalized angle
 	*/
 	inline Scalar normalize_angle_(Vertex v, Scalar angle) {
 		return 2 * M_PI * angle / value<Scalar>(intr_, vertex_angle_sum_, v);	// could be optimized with 2*M_PI/sum direct value
