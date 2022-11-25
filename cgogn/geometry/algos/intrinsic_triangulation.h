@@ -27,6 +27,7 @@
 #include <cgogn/core/types/cmap/cmap2.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/functions/angle.h>
+#include <cgogn/core/functions/mesh_ops/edge.h>
 
 namespace cgogn
 {
@@ -37,7 +38,7 @@ namespace geometry
  * an intrinsic data structure,
  * this class is a simplification of the paper "Navigating Intrinsic Triangulations" (Sharp, Crane, Soliman),
  * it use is only intended for the geodesic computation with the edgeflip function,
- * only manifold mesh are supported
+ * only manifold triangulated mesh are supported
 */
 class IntrinsicTriangulation
 {
@@ -47,6 +48,7 @@ class IntrinsicTriangulation
 	using HalfEdge = typename mesh_traits<CMap2>::HalfEdge;
 	using Vertex = typename mesh_traits<CMap2>::Vertex;
 	using Edge = typename mesh_traits<CMap2>::Edge;
+	using Face = typename mesh_traits<CMap2>::Face;
 
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
@@ -78,37 +80,36 @@ public:
 
 		// compute angle sum
 		vertex_angle_sum_ = add_attribute<Scalar, Vertex>(intr_, "intr_length");
+		vertex_ref_dart_ = add_attribute<Dart, Vertex>(intr_, "intr_ref_dir");
+		halfedge_angle_ = add_attribute<Scalar, HalfEdge>(intr_, "intr_angle");
 		parallel_foreach_cell(intr_, [&](Vertex v) -> bool {
-			Scalar angle_sum{0};
-			Vec3 vertex = value<Vec3>(intr_, vertex_position, v);
-			std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
 			
-			// sum incident directions angles
+			// sum extrinsic incident directions angles
+			Scalar angle_sum{0};
+			Vec3 v_position = value<Vec3>(intr_, vertex_position, v);
+			std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
 			for (uint32 i = 0, size = uint32(vertices.size()); i < size; ++i)
 			{
 				Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
 				Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[i]);
-				angle_sum += angle(current_vertex - vertex, next_vertex - vertex);
+				angle_sum += angle(current_vertex - v_position, next_vertex - v_position);
 			}
 			value<Scalar>(intr_, vertex_angle_sum_, v) = angle_sum;
-			return true;
-		});
 
-		// determine direction reference
-		vertex_ref_dir_ = add_attribute<Vec3, Vertex>(intr_, "intr_ref_dir");
-		parallel_foreach_cell(intr_, [&](Vertex v) -> bool {
-			std::vector<Vertex> vertices = incident_vertices(m, v);
-			const Vec3& d = value<Vec3>(intr_, vertex_position, vertices[0]);
-			const Vec3& o = value<Vec3>(intr_, vertex_position, v);
+			// determine extrinsic direction reference
+			const Vec3& ref_pos = value<Vec3>(intr_, vertex_position_, Vertex(phi1(intr_, v.dart)));
+			value<Vec3>(intr_, vertex_ref_dir_, v) = ref_pos - v_position;
 
-			value<Vec3>(intr_, vertex_ref_dir_, v) = (d - o);
-			return true;
-		});
+			// compute angle of each halfedge around vertex
+			foreach_dart_of_PHI21(intr_, v.dart, [&](Dart d) -> bool {
+				HalfEdge h = HalfEdge(d);
+				if (d == Vertex(d).dart)
+					value<Scalar>(intr_, halfedge_angle_, h) = 0;	// init to 0
+				else
+					update_signpost(h);
+				return true;
+			});
 
-		// compute angle
-		halfedge_angle_ = add_attribute<Scalar, HalfEdge>(intr_, "intr_angle");
-		parallel_foreach_cell(intr_, [&](HalfEdge h) -> bool {
-			value<Scalar>(intr_, halfedge_angle_, h) = angle_(h);
 			return true;
 		});
 	}
@@ -125,28 +126,68 @@ public:
 
 	void flip_edge (Edge e)
 	{
-		// TODO
+		assert(edge_can_flip(intr_, e));
+		cgogn::flip_edge(intr_, e);	// flip topology
+		// TODO compute new angle and length
+		// compute length
+		//update_signpost(2 darts)
 	}
 
 private:
-	inline Scalar angle_(HalfEdge h) {
-		Dart& dart = h.dart;
-		const Vec3& a = value<Vec3>(intr_, vertex_position_, Vertex(dart));
-		const Vec3& b = value<Vec3>(intr_, vertex_position_, Vertex(phi1(intr_, dart)));
-		const Vec3& c = value<Vec3>(intr_, vertex_ref_dir_, Vertex(dart));
-		return normalized_angle(Vertex(dart), angle(b-a, c));
+	/**
+	 * compute the base length
+	*/
+	
+	/**
+	 * update the angle of dart ik with the 3 edges of the triangle ijk
+	 * @param ik the HalfEdge angle to update
+	*/
+	void update_signpost(HalfEdge h) {
+		Dart ik = h.dart;
+		Dart ij = phi<1, 2>(intr_, ik);
+		Scalar angle = value<Scalar>(intr_, halfedge_angle_, HalfEdge(ij));
+		angle += normalize_angle_(Vertex(ik), angle_(Edge(ik), Edge(ij), Edge(phi1(intr_, ij))));
+		value<Scalar>(intr_, halfedge_angle_, h) = angle;
 	}
 
-	inline Scalar normalized_angle(Vertex v, Scalar angle) {
-		return 2 * M_PI * angle / value<Scalar>(intr_, vertex_angle_sum_, v);
+	/**
+	 * compute the interior angle on point i in the triangle ijk
+	 * @param ij, jk, ik edges of the triangle
+	 * @returns the interior angle of ijk on point i
+	*/
+	inline Scalar angle_(Edge ij, Edge ik, Edge jk) {
+		Scalar a = value<Scalar>(intr_, edge_length_, ij);
+		Scalar b = value<Scalar>(intr_, edge_length_, ik);
+		Scalar c = value<Scalar>(intr_, edge_length_, jk);
+		return acos((a*a + c*c - b*b) / (2*a*c));
+	}
+	
+	/**
+	 * compute the area of a triangle face by Heron's formula
+	 * @param ik a triangle face
+	 * @returns the area of the triangle
+	*/
+	inline Scalar area_(Face f) {
+		Scalar a = value<Scalar>(intr_, edge_length_, Edge(f.dart));
+		Scalar b = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, f.dart)));
+		Scalar c = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, f.dart)));
+		Scalar s = (a+b+c) * Scalar(0.5);
+		return sqrt(s * (s-a) * (s-b) * (s-c));
+	}
+
+	/**
+	 * normalize an angle so the sum of all incident angles is 2*pi
+	*/
+	inline Scalar normalize_angle_(Vertex v, Scalar angle) {
+		return 2 * M_PI * angle / value<Scalar>(intr_, vertex_angle_sum_, v);	// could be optimized with 2*M_PI/sum direct value
 	}
 
 private:
 	cgogn::CMap2 intr_;											// intrinsic mesh
 	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute
 	std::shared_ptr<Attribute<Scalar>> edge_length_;			// intrinsic euclidian edge length, L1 norm is discutable
-	std::shared_ptr<Attribute<Vec3>> vertex_ref_dir_;			// direction relative to the extrinsic mesh
-	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;			// angle relative to vertex_dir_
+	std::shared_ptr<Attribute<Vec3>> vertex_ref_dir_;			// reference direction for angle
+	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;			// interior angle
 	std::shared_ptr<Attribute<Scalar>> vertex_angle_sum_;		// vertex angle sum, avoid recomputing
 };
 

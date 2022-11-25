@@ -33,7 +33,7 @@
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/geodesic.h>
-#include <cgogn/geometry/types/intrinsic_triangulation.h>
+#include <cgogn/geometry/algos/intrinsic_triangulation.h>
 #include <boost/synapse/connect.hpp>
 
 namespace cgogn

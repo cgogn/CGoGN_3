@@ -29,7 +29,7 @@
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/types/intrinsic_triangulation.h>
+#include <cgogn/geometry/algos/intrinsic_triangulation.h>
 
 namespace cgogn
 {
