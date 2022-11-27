@@ -134,7 +134,7 @@ protected:
 				{
 					// warning ! only CMap2, not yet templated
 					intr = std::make_unique<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
-					mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
+					//mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
 					intrinsic_made = true;
 				}
 			}
