@@ -30,6 +30,11 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
+#include <cgogn/rendering/shaders/shader_bold_line.h>
+#include <cgogn/rendering/vbo_update.h>
+
+#include <GLFW/glfw3.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/geodesic.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
@@ -62,6 +67,10 @@ public:
 	SurfaceConstriction(const App& app)
 		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")")
 	{
+		param_edge_ = rendering::ShaderBoldLine::generate_param();
+		param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
+		param_edge_->width_ = 5.0f;
+		param_edge_->set_vbos({&edges_vbo_});
 	}
 
 	~SurfaceConstriction()
@@ -82,6 +91,26 @@ protected:
 
 	void draw(View* view) override
 	{
+		if (!geodesic_path_.empty()) 
+		{
+			param_edge_->bind(view->projection_matrix(), view->modelview_matrix());
+			glDrawArrays(GL_LINES, 0, 2 * geodesic_path_.size());
+			param_edge_->release();
+		}
+	}
+
+	void update_vbo()
+	{
+		std::vector<Vec3> geodesic_segments;
+		geodesic_segments.reserve(2 * geodesic_path_.size());
+		for (Edge e : geodesic_path_)
+		{
+			foreach_incident_vertex(*(intr->getMesh()), e, [&](Vertex v) -> bool {
+				geodesic_segments.push_back(value<Vec3>(*(intr->getMesh()), selected_vertex_position_, v));
+				return true;
+			});
+		}
+		rendering::update_vbo(geodesic_segments, &edges_vbo_);
 	}
 
 	void left_panel() override
@@ -99,16 +128,26 @@ protected:
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
 
-			if (selected_vertex_position_)
+			if (selected_vertex_position_ && !intrinsic_made)
 			{
-				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
-
-				if (ImGui::Button("Show intrinsic"))
+				if (ImGui::Button("Build intrinsic mesh"))
 				{
 					// warning ! only CMap2, not yet templated
 					intr = std::make_unique<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
-					
+					intrinsic_made = true;
+				}
+			}
+			if (intrinsic_made)
+			{
+				if (ImGui::Button("Build geodesic"))
+				{
+					foreach_cell(*(intr->getMesh()), [&](Edge e) -> bool {
+						geodesic_path_.push_back(e);
+						return true;
+					});
+					update_vbo();
+					need_update = true;
 				}
 			}
 		}
@@ -119,9 +158,14 @@ protected:
 	}
 
 private:
+	bool intrinsic_made = false;	// only one intrinsic triangulation
 	MESH* selected_mesh_ = nullptr;
 	std::unique_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
+
+	std::vector<Edge> geodesic_path_;
+	rendering::VBO edges_vbo_;
+	std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;
 };
