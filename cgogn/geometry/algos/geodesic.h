@@ -38,22 +38,38 @@ namespace geometry
 {
 
 /**
- * TODO
- * compute geodesic with flip out algo on intrinsic triangulation,
- * @param ab dijkstra between a and b or give it in parameter
- * @returns intrinsic mesh or information to draw it
+ * performs a flip out operation on a intrinsic triangulated mesh
+ * given a flexible joint formed by halfedges a and b respectively incoming and outcoming of one vertex
+ * @param intr an intrinsic triangulation, will be modified
+ * @param a an incoming halfedge
+ * @param b an outcoming halfedge
 */
 template <typename MESH>
-void geodesic_line(const MESH& m,
-				   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-				   const typename mesh_traits<MESH>::Vertex a,
-				   const typename mesh_traits<MESH>::Vertex b)
+void flip_out(IntrinsicTriangulation& intr,
+	 const typename mesh_traits<MESH>::HalfEdge a,
+	 const typename mesh_traits<MESH>::HalfEdge b)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
+	//TODO
+}
 
-	IntrinsicTriangulation intr{m, vertex_position};
-
+/**
+ * compute geodesic path with flip out algo on an intrinsic triangulation
+ * @param intr an intrinsic triangulation, will be modified according to the geodesic
+ * @param path a connected path from the begin to the end of the vector, will be updated to a geodesic path
+*/
+template <typename MESH>
+void geodesic_path(IntrinsicTriangulation& intr,
+	 std::vector<const typename mesh_traits<MESH>::Vertex>& path)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	//TODO
 }
 
 } // namespace geometry

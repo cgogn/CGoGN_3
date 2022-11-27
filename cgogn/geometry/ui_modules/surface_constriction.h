@@ -30,7 +30,6 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
-#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/geodesic.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
@@ -61,8 +60,7 @@ class SurfaceConstriction : public ViewModule
 
 public:
 	SurfaceConstriction(const App& app)
-		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_area_policy_(geometry::AreaPolicy::BARYCENTER)
+		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")")
 	{
 	}
 
@@ -104,27 +102,8 @@ protected:
 			if (selected_vertex_position_)
 			{
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
-				
-				ImGui::TextUnformatted("Local area");	// local area to compute gaussian curvature
-				ImGui::BeginGroup();
-				if (ImGui::RadioButton("Baricenter##AreaPolicy", selected_area_policy_== geometry::AreaPolicy::BARYCENTER))
-				{
-					selected_area_policy_ = geometry::AreaPolicy::BARYCENTER;
-				}
-				ImGui::SameLine();
-				if (ImGui::RadioButton("Voronoï##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::VORONOI))
-				{
-					selected_area_policy_ = geometry::AreaPolicy::VORONOI;
-				}
-				ImGui::SameLine();
-				if (ImGui::RadioButton("Mixed##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::MIXED))
-				{
-					selected_area_policy_ = geometry::AreaPolicy::MIXED;
-				}
-				ImGui::EndGroup();
-				
 
-				if (ImGui::Button("Intrinsic"))
+				if (ImGui::Button("Show intrinsic"))
 				{
 					// warning ! only CMap2, not yet templated
 					intr = std::make_unique<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
@@ -143,7 +122,6 @@ private:
 	MESH* selected_mesh_ = nullptr;
 	std::unique_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
-	geometry::AreaPolicy selected_area_policy_;
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;
 };

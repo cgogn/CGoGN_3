@@ -54,6 +54,7 @@ class IntrinsicTriangulation
 	using Scalar = geometry::Scalar;
 
 public:
+	/*
 	template <typename MESH>
 	IntrinsicTriangulation(const MESH& m, const std::shared_ptr<Attribute<Vec3>> vertex_position)
 	{
@@ -61,8 +62,9 @@ public:
 		// convert MESH to CMap2
 		// IntrinsicTriangulation(m_converted, vertex_position):
 	}
+	*/
 	
-	IntrinsicTriangulation(const CMap2& m, const std::shared_ptr<Attribute<Vec3>> vertex_position): vertex_position_(vertex_position)
+	IntrinsicTriangulation(const CMap2& m, const std::shared_ptr<Attribute<Vec3>> vertex_position): extr_(m), vertex_position_(vertex_position)
 	{
 		// copy topology for cmap2
 		copy(intr_, m);
@@ -79,8 +81,8 @@ public:
 		});
 
 		// compute angle sum
-		vertex_angle_sum_ = add_attribute<Scalar, Vertex>(intr_, "intr_length");
-		vertex_ref_dart_ = add_attribute<Dart, Vertex>(intr_, "intr_ref_dir");
+		vertex_angle_sum_ = add_attribute<Scalar, Vertex>(intr_, "intr_angle_sum");
+		vertex_ref_ = add_attribute<Dart, Vertex>(intr_, "intr_ref");
 		halfedge_angle_ = add_attribute<Scalar, HalfEdge>(intr_, "intr_angle");
 		parallel_foreach_cell(intr_, [&](Vertex v) -> bool {
 			
@@ -96,10 +98,13 @@ public:
 			}
 			value<Scalar>(intr_, vertex_angle_sum_, v) = angle_sum;
 
-			// determine extrinsic direction reference
-			const Vec3& ref_pos = value<Vec3>(intr_, vertex_position_, Vertex(phi1(intr_, v.dart)));
-			value<Vec3>(intr_, vertex_ref_dir_, v) = ref_pos - v_position;
+			// determine extrinsic reference
+			value<Dart>(intr_, vertex_ref_, v) = of_index<Vertex>(m, index_of<Vertex>(intr_, v)).dart;
 
+			return true;
+		});
+		
+		parallel_foreach_cell(intr_, [&](Vertex v) -> bool {
 			// compute angle of each halfedge around vertex
 			foreach_dart_of_PHI21(intr_, v.dart, [&](Dart d) -> bool {
 				HalfEdge h = HalfEdge(d);
@@ -109,19 +114,14 @@ public:
 					update_signpost(h);
 				return true;
 			});
-
 			return true;
 		});
+			
 	}
 
 	CMap2* getMesh()
 	{
 		return &intr_;
-	}
-
-	void flip_out()
-	{
-		// TODO
 	}
 
 	void flip_edge (Edge e)
@@ -130,8 +130,8 @@ public:
 		Scalar future_length = flipped_length(e);
 		cgogn::flip_edge(intr_, e);	// flip topology
 		value<Scalar>(intr_, edge_length_, e) = future_length;
-		update_signpost(e.dart);
-		update_signpost(phi2(intr_, e.dart));
+		update_signpost(HalfEdge(e.dart));
+		update_signpost(HalfEdge(phi2(intr_, e.dart)));
 	}
 
 private:
@@ -179,19 +179,19 @@ private:
 	*/
 	Scalar flipped_length(Edge e) {
 		std::vector<Face> faces = incident_faces(intr_, e);
-		assert(faces.size == 2);
+		assert(faces.size() == 2);
 		Scalar ij = value<Scalar>(intr_, edge_length_, e);
 		ij*=ij;
 		// TODO (see intr_tri_course)
 		Dart d = e.dart;
 		Dart opp = phi2(intr_, e.dart);
-		Scalar im = value<Scalar>(intr_, edge_length_, phi1(d));
+		Scalar im = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, d)));
 		im*=im;
-		Scalar jm = value<Scalar>(intr_, edge_length_, phi_1(d));
+		Scalar jm = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, d)));
 		jm*=jm;
-		Scalar jk = value<Scalar>(intr_, edge_length_, phi1(opp));
+		Scalar jk = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, opp)));
 		jk*=jk;
-		Scalar ki = value<Scalar>(intr_, edge_length_, phi_1(opp));
+		Scalar ki = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, opp)));
 		ki*=ki;
 
 		Scalar km = (im+jk+jm+ki-ij + (im-jm) * (jk-ki) / ij) * Scalar(0.5);
@@ -210,10 +210,12 @@ private:
 	}
 
 private:
-	cgogn::CMap2 intr_;											// intrinsic mesh
+	const cgogn::CMap2& extr_;									// extrinsic mesh
 	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute
-	std::shared_ptr<Attribute<Scalar>> edge_length_;			// intrinsic euclidian edge length, L1 norm is discutable
-	std::shared_ptr<Attribute<Vec3>> vertex_ref_dir_;			// reference direction for angle
+
+	cgogn::CMap2 intr_;											// intrinsic mesh
+	std::shared_ptr<Attribute<Dart>> vertex_ref_;				// extrinsic link of intrinsic vertices
+	std::shared_ptr<Attribute<Scalar>> edge_length_;			// intrinsic euclidian edge length
 	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;			// interior angle
 	std::shared_ptr<Attribute<Scalar>> vertex_angle_sum_;		// vertex angle sum, avoid recomputing
 };
