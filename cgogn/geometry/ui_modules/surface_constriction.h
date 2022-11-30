@@ -136,7 +136,7 @@ protected:
 				if (ImGui::Button("Build intrinsic mesh"))
 				{
 					// warning ! only CMap2, not yet templated
-			angle		intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					//mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
 					intrinsic_made = true;
 				}
@@ -171,7 +171,7 @@ protected:
 				}
 				if (geodesic_path_.size() > 0 && ImGui::Button("Compute geodesic"))
 				{
-					geometry::geodesic_path(*(intr->getMesh()), geodesic_path_);
+					geometry::geodesic_path(*intr, geodesic_path_);
 					update_vbo();
 					need_update = true;
 				}

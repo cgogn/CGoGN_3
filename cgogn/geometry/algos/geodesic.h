@@ -72,14 +72,13 @@ std::vector<typename mesh_traits<CMap2>::Edge> flip_out(
  * @param intr an intrinsic triangulation, will be modified according to the geodesic
  * @param path a connected path from the begin to the end of the vector, will be updated to a geodesic path
 */
-template <typename MESH>
 void geodesic_path(IntrinsicTriangulation& intr,
-	 std::vector<const typename mesh_traits<MESH>::Vertex>& path)
+	 std::vector<typename mesh_traits<CMap2>::Edge>& path)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
-	using Edge = typename mesh_traits<MESH>::Edge;
-	using Face = typename mesh_traits<MESH>::Face;
+	using Vertex = typename mesh_traits<CMap2>::Vertex;
+	using HalfEdge = typename mesh_traits<CMap2>::HalfEdge;
+	using Edge = typename mesh_traits<CMap2>::Edge;
+	using Face = typename mesh_traits<CMap2>::Face;
 	//TODO
 }
 
