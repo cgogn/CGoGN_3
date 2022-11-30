@@ -76,7 +76,7 @@ public:
 			const Vec3& a = value<Vec3>(intr_, vertex_position, vertices[0]);
 			const Vec3& b = value<Vec3>(intr_, vertex_position, vertices[1]);
 
-			value<Scalar>(intr_, edge_length_, c) = (a - b).squaredNorm();
+			value<Scalar>(intr_, edge_length_, c) = (a - b).norm();
 			return true;
 		});
 
@@ -106,14 +106,14 @@ public:
 		
 		parallel_foreach_cell(intr_, [&](Vertex v) -> bool {
 			// compute angle of each halfedge around vertex
-			foreach_dart_of_PHI21(intr_, v.dart, [&](Dart d) -> bool {
-				HalfEdge h = HalfEdge(d);
-				if (d == Vertex(d).dart)
-					value<Scalar>(intr_, halfedge_angle_, h) = 0;	// init to 0
-				else
-					update_signpost(h);
-				return true;
-			});
+			Dart vdart = v.dart;
+			Dart it = phi<-1, 2>(intr_, vdart);
+			value<Scalar>(intr_, halfedge_angle_, HalfEdge(vdart)) = 0;	// reference direction
+			while (it != vdart)
+			{
+				update_signpost(it);
+				it = phi<-1, 2>(intr_, it);
+			}
 			return true;
 		});
 			
@@ -124,39 +124,52 @@ public:
 		return &intr_;
 	}
 
-	void flip_edge (Edge e)
+	Scalar getAngle(Dart d)
 	{
-		assert(edge_can_flip(intr_, e));
+		return value<Scalar>(intr_, halfedge_angle_, HalfEdge(d));
+	}
+
+	/**
+	 * Flip an intrinsic edge if possible
+	 * @param e the edge to flip
+	 * @returns true if edge has been flipped, false otherwise
+	*/
+	bool flip_edge (Edge e)
+	{
+		if(!edge_can_flip(intr_, e))
+			return false;
 		Scalar future_length = flipped_length(e);
 		cgogn::flip_edge(intr_, e);	// flip topology
 		value<Scalar>(intr_, edge_length_, e) = future_length;
-		update_signpost(HalfEdge(e.dart));
-		update_signpost(HalfEdge(phi2(intr_, e.dart)));
+		update_signpost(e.dart);
+		update_signpost(phi2(intr_, e.dart));
+		return true;
 	}
 
 private:
 	/**
-	 * update the angle of dart ik with the 3 edges of the triangle ijk
+	 * update the angle of dart ik with the 3 edges lengths of the triangle ijk
 	 * @param ik the HalfEdge angle to update
 	*/
-	void update_signpost(HalfEdge h) {
-		Dart ik = h.dart;
-		Dart ij = phi<1, 2>(intr_, ik);
+	void update_signpost(Dart ik) {
+		Dart ij = phi<2, 1>(intr_, ik);
 		Scalar angle = value<Scalar>(intr_, halfedge_angle_, HalfEdge(ij));
 		angle += normalize_angle_(Vertex(ik), angle_(Edge(ik), Edge(ij), Edge(phi1(intr_, ij))));
-		value<Scalar>(intr_, halfedge_angle_, h) = angle;
+		value<Scalar>(intr_, halfedge_angle_, HalfEdge(ik)) = angle;
 	}
 
 	/**
-	 * compute the interior angle on point i in the triangle ijk
-	 * @param ij, jk, ik edges of the triangle
-	 * @returns the interior angle of ijk on point i
+	 * compute the interior angle of a triangle on point i from its lengths
+	 * @param ij edge adjacent to jk and ik, incident to i
+	 * @param ik edge adjacent to ij and jk, incident to i
+	 * @param jk edge adjacent to ij and ik, opposite to i
+	 * @returns the interior angle of ijk on point i incident to ij and ik
 	*/
 	inline Scalar angle_(Edge ij, Edge ik, Edge jk) {
 		Scalar a = value<Scalar>(intr_, edge_length_, ij);
 		Scalar b = value<Scalar>(intr_, edge_length_, ik);
 		Scalar c = value<Scalar>(intr_, edge_length_, jk);
-		return acos((a*a + c*c - b*b) / (2*a*c));
+		return acos((a*a + b*b - c*c) / (2*a*b));
 	}
 	
 	/**

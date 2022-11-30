@@ -41,19 +41,30 @@ namespace geometry
  * performs a flip out operation on a intrinsic triangulated mesh
  * given a flexible joint formed by halfedges a and b respectively incoming and outcoming of one vertex
  * @param intr an intrinsic triangulation, will be modified
- * @param a an incoming halfedge
- * @param b an outcoming halfedge
+ * @param a the incoming halfedge
+ * @param b the outcoming halfedge
+ * @returns a shorter path between a and phi1(b)
 */
-template <typename MESH>
-void flip_out(IntrinsicTriangulation& intr,
-	 const typename mesh_traits<MESH>::HalfEdge a,
-	 const typename mesh_traits<MESH>::HalfEdge b)
+std::vector<typename mesh_traits<CMap2>::Edge> flip_out(
+	IntrinsicTriangulation& intr,
+	const Dart& a,
+	const Dart& b)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
-	using Edge = typename mesh_traits<MESH>::Edge;
-	using Face = typename mesh_traits<MESH>::Face;
-	//TODO
+	using Vertex = typename mesh_traits<CMap2>::Vertex;
+	using HalfEdge = typename mesh_traits<CMap2>::HalfEdge;
+	using Edge = typename mesh_traits<CMap2>::Edge;
+	using Face = typename mesh_traits<CMap2>::Face;
+
+	CMap2& mesh = *intr.getMesh();
+	std::vector<Dart> wedge;
+	for(Dart d = phi2(mesh, a); d != b; d = phi<-1, 2>(mesh, d))
+		wedge.push_back(d);
+	wedge.push_back(b);
+
+	for(Dart d : wedge) {
+		std::cout << intr.getAngle(d) << std::endl;
+	}
+	return std::vector<Edge>();
 }
 
 /**

@@ -99,6 +99,9 @@ protected:
 		}
 	}
 
+	/**
+	 * Show geodesic path
+	*/
 	void update_vbo()
 	{
 		std::vector<Vec3> geodesic_segments;
@@ -133,19 +136,42 @@ protected:
 				if (ImGui::Button("Build intrinsic mesh"))
 				{
 					// warning ! only CMap2, not yet templated
-					intr = std::make_unique<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+			angle		intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					//mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
 					intrinsic_made = true;
 				}
 			}
 			if (intrinsic_made)
 			{
-				if (ImGui::Button("Build geodesic"))
+				if (ImGui::Button("Display intrinsic topology"))	// TODO remove
 				{
+					geodesic_path_.clear();
 					foreach_cell(*(intr->getMesh()), [&](Edge e) -> bool {
 						geodesic_path_.push_back(e);
 						return true;
 					});
+					update_vbo();
+					need_update = true;
+				}
+				if (ImGui::Button("Init random path"))	//TODO dijsktra / selection
+				{
+					geodesic_path_.clear();
+					/*
+					const Dart& a = geodesic_path_[0].dart;
+					const Dart& b = phi1(*(intr->getMesh()), geodesic_path_[0].dart);
+					for (int i = rand();i>0; --i)
+					{
+						next_dart = phi1 | phi2 | phi12
+						geodesic_path.push(next_dart);
+					}
+					TODO random path non crossing
+					*/
+					update_vbo();
+					need_update = true;
+				}
+				if (geodesic_path_.size() > 0 && ImGui::Button("Compute geodesic"))
+				{
+					geometry::geodesic_path(*(intr->getMesh()), geodesic_path_);
 					update_vbo();
 					need_update = true;
 				}
@@ -160,7 +186,7 @@ protected:
 private:
 	bool intrinsic_made = false;	// only one intrinsic triangulation
 	MESH* selected_mesh_ = nullptr;
-	std::unique_ptr<geometry::IntrinsicTriangulation> intr;
+	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 
 	std::vector<Edge> geodesic_path_;
