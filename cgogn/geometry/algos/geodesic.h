@@ -37,6 +37,24 @@ namespace cgogn
 namespace geometry
 {
 
+namespace // helper
+{
+
+inline auto indexOfBi(IntrinsicTriangulation& intr, std::vector<Dart> wedge)
+{
+    return std::find_if(begin(wedge)+1, end(wedge)-1, [&](Dart d) -> bool {
+		Dart n = phi2(intr.getMesh(), d);
+		Scalar a = intr.getAngle(phi<2, 1>(intr.getMesh(), n));
+		Scalar b = intr.getAngle(phi<-1, 2>(intr.getMesh(), n));
+		if (a>b)
+			return 2*M_PI - abs(a-b) < M_PI;
+		return abs(a-b) < M_PI;
+		
+	});
+}
+
+} // end helper
+
 /**
  * performs a flip out operation on a intrinsic triangulated mesh
  * given a flexible joint formed by halfedges a and b respectively incoming and outcoming of one vertex
@@ -55,16 +73,27 @@ std::vector<typename mesh_traits<CMap2>::Edge> flip_out(
 	using Edge = typename mesh_traits<CMap2>::Edge;
 	using Face = typename mesh_traits<CMap2>::Face;
 
-	CMap2& mesh = *intr.getMesh();
+	CMap2& mesh = intr.getMesh();
 	std::vector<Dart> wedge;
 	for(Dart d = phi2(mesh, a); d != b; d = phi<-1, 2>(mesh, d))
 		wedge.push_back(d);
 	wedge.push_back(b);
 
-	for(Dart d : wedge) {
-		std::cout << intr.getAngle(d) << std::endl;
+	auto index=indexOfBi(intr, wedge);
+	while (*index != wedge.back())
+	{
+		intr.flip_edge(Edge(*index));
+		wedge.erase(index);
+		index=indexOfBi(intr, wedge);
 	}
-	return std::vector<Edge>();
+
+	// build shorter path from simplified wedge
+	wedge.pop_back();
+	std::vector<Edge> shorter;
+	for(Dart d : wedge) {
+		shorter.push_back(Edge(phi<2, -1>(mesh, d)));
+	}
+	return shorter;
 }
 
 /**

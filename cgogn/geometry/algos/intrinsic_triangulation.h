@@ -119,9 +119,9 @@ public:
 			
 	}
 
-	CMap2* getMesh()
+	CMap2& getMesh()
 	{
-		return &intr_;
+		return intr_;
 	}
 
 	Scalar getAngle(Dart d)
