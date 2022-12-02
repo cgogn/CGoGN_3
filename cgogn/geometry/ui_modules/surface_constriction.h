@@ -108,8 +108,8 @@ protected:
 		geodesic_segments.reserve(2 * geodesic_path_.size());
 		for (Edge e : geodesic_path_)
 		{
-			foreach_incident_vertex(*(intr->getMesh()), e, [&](Vertex v) -> bool {
-				geodesic_segments.push_back(value<Vec3>(*(intr->getMesh()), selected_vertex_position_, v));
+			foreach_incident_vertex(intr->getMesh(), e, [&](Vertex v) -> bool {
+				geodesic_segments.push_back(value<Vec3>(intr->getMesh(), selected_vertex_position_, v));
 				return true;
 			});
 		}
@@ -146,7 +146,7 @@ protected:
 				if (ImGui::Button("Display intrinsic topology"))	// TODO remove
 				{
 					geodesic_path_.clear();
-					foreach_cell(*(intr->getMesh()), [&](Edge e) -> bool {
+					foreach_cell(intr->getMesh(), [&](Edge e) -> bool {
 						geodesic_path_.push_back(e);
 						return true;
 					});
@@ -155,17 +155,19 @@ protected:
 				}
 				if (ImGui::Button("Init random path"))	//TODO dijsktra / selection
 				{
+					// "brute force and probably good" path
+					std::vector<Edge> tmp_vec;
+					foreach_cell(intr->getMesh(), [&](Edge e) -> bool {
+						tmp_vec.push_back(e);
+						return true;
+					});
+					Dart a = tmp_vec[rand()%tmp_vec.size()].dart;
 					geodesic_path_.clear();
-					/*
-					const Dart& a = geodesic_path_[0].dart;
-					const Dart& b = phi1(*(intr->getMesh()), geodesic_path_[0].dart);
-					for (int i = rand();i>0; --i)
+					for (int i = 3; i > 0; --i)
 					{
-						next_dart = phi1 | phi2 | phi12
-						geodesic_path.push(next_dart);
+						geodesic_path_.push_back(Edge(a));
+						a = phi<1, 2, 1>(intr->getMesh(), a);
 					}
-					TODO random path non crossing
-					*/
 					update_vbo();
 					need_update = true;
 				}
@@ -189,7 +191,7 @@ private:
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 
-	std::vector<Edge> geodesic_path_;
+	std::list<Edge> geodesic_path_;
 	rendering::VBO edges_vbo_;
 	std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
 
