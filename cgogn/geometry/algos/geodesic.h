@@ -90,13 +90,9 @@ struct Joint
 			assert(isSameVertex(m, phi2(m, a), b)); // a_edge and b_edge are not adjacent
 		}
 		
-		Scalar angle_a = intr.getAngle(phi2(m, a));
-		Scalar angle_b = intr.getAngle(b);
-		angle = abs(angle_a - angle_b);
-		if (angle_a > angle_b)
-			angle = 2 * M_PI - angle;
+		angle = intr.interiorAngle(phi2(m, a), b);
 		
-		if (angle < M_PI)
+		if (angle > M_PI)
 		{
 			// inverse to get the lowest angle
 			Dart t = phi2(m, b);
@@ -115,14 +111,13 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 	using Edge = typename mesh_traits<CMap2>::Edge;
 
 	const CMap2& mesh = intr.getMesh();
-	std::list<Dart> wedge;	// contains the adjacent edges of a and b on the side with the smaller angle
-	for(Dart d = phi<2, 1>(mesh, phi2(mesh, joint.a)); d != joint.b; d = phi<2, 1>(mesh, d))
+	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
 	{
 		if (edge_can_flip(intr.getMesh(), Edge(d)))	// TODO check if wedge is crossing path
-			wedge.push_back(d);
+			return true;
 	}
 	
-	return  wedge.size() > 0;
+	return  false;
 }
 
 inline auto buildJointList(IntrinsicTriangulation& intr,
@@ -144,13 +139,9 @@ inline auto buildJointList(IntrinsicTriangulation& intr,
 inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
 {
 	return std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
-		Dart n = phi2(intr.getMesh(), d);
-		Scalar a = intr.getAngle(phi<2, 1>(intr.getMesh(), n));
-		Scalar b = intr.getAngle(phi<-1, 2>(intr.getMesh(), n));
-		Scalar angle = abs(a-b);
-		if (a > b)
-			angle = 2*M_PI - angle;
-		return angle < M_PI;
+		Dart a = phi1(intr.getMesh(), d);
+		Dart b = phi<2, -1, 2>(intr.getMesh(), d);
+		return intr.interiorAngle(a, b) < M_PI;
 	});
 }
 
@@ -176,7 +167,7 @@ std::list<typename mesh_traits<CMap2>::Edge> flip_out(
 	assert(isSameVertex(mesh, phi1(mesh, a), b));
 
 	std::list<Dart> wedge;	// contains the adjacent edges of a and b on the side with the smaller angle
-	for(Dart d = phi<2, 1>(mesh, phi2(mesh, a)); d != b; d = phi<2, 1>(mesh, d))
+	for(Dart d = phi<2, -1, 2>(mesh, a); d != b; d = phi<-1, 2>(mesh, d))
 		wedge.push_back(d);
 
 	auto index = indexOfBi(intr, wedge);
@@ -196,9 +187,9 @@ std::list<typename mesh_traits<CMap2>::Edge> flip_out(
 
 	// build shorter path from simplified wedge
 	std::list<Edge> shorter;
-	shorter.push_back(Edge(phi_1(mesh, a)));
+	shorter.push_back(Edge(phi<2, 1>(mesh, a)));
 	for(Dart d : wedge) {
-		shorter.push_back(Edge(phi_1(mesh, d)));
+		shorter.push_back(Edge(phi1(mesh, d)));
 	}
 	return shorter;
 }
@@ -219,39 +210,23 @@ void geodesic_path(IntrinsicTriangulation& intr,
 
 	assert (iteration >= -1);
 	const CMap2& mesh = intr.getMesh();
-	for (Edge e : path)
-	{
-		assert(!(is_boundary(mesh, e.dart) || is_boundary(mesh, phi2(mesh, e.dart))));
-	}
 
 	auto joints_priority_queue = buildJointList(intr, path);
 	while (joints_priority_queue.size() > 0 && iteration != 0)
 	{
 		Joint j = joints_priority_queue.back();
-		if (isFlexible(intr, path, j))
-		{
-			auto shorter_path = flip_out(intr, j.a, j.b);
+		auto shorter_path = flip_out(intr, j.a, j.b);
 
-			// update
-			if (j.inverted)
-				shorter_path.reverse();
-			std::list<Edge>::iterator it = j.edge_ref;
-			++it;
-			it = path.erase(j.edge_ref, ++it);
-			path.splice(it, shorter_path);
-			joints_priority_queue = buildJointList(intr, path);	// optimizable
+		// update
+		if (j.inverted)
+			shorter_path.reverse();
+		std::list<Edge>::iterator it = j.edge_ref;
+		++it;
+		it = path.erase(j.edge_ref, ++it);
+		path.splice(it, shorter_path);
 
-			--iteration;
-		}
-		else
-		{
-			joints_priority_queue.pop_back();	// not flexible so cant flip out
-		}
-	}
-
-	for (Edge e : path)
-	{
-		assert(!(is_boundary(mesh, e.dart) || is_boundary(mesh, phi2(mesh, e.dart))));
+		joints_priority_queue = buildJointList(intr, path);	// optimizable
+		--iteration;
 	}
 }
 

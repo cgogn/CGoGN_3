@@ -103,17 +103,8 @@ protected:
 	 * Show geodesic path
 	*/
 	void update_vbo()
-	{
-		std::vector<Vec3> geodesic_segments;
-		geodesic_segments.reserve(2 * geodesic_path_.size());
-		for (Edge e : geodesic_path_)
-		{
-			foreach_incident_vertex(intr->getMesh(), e, [&](Vertex v) -> bool {
-				geodesic_segments.push_back(value<Vec3>(intr->getMesh(), selected_vertex_position_, v));
-				return true;
-			});
-		}
-		rendering::update_vbo(geodesic_segments, &edges_vbo_);
+	{		
+		rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
 	}
 
 	void left_panel() override
@@ -131,7 +122,7 @@ protected:
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
 
-			if (selected_vertex_position_ && !intrinsic_made)
+			if (selected_vertex_position_)
 			{
 				if (ImGui::Button("Build intrinsic mesh"))
 				{
@@ -143,16 +134,6 @@ protected:
 			}
 			if (intrinsic_made)
 			{
-				if (ImGui::Button("Display intrinsic topology"))	// TODO remove
-				{
-					geodesic_path_.clear();
-					foreach_cell(intr->getMesh(), [&](Edge e) -> bool {
-						geodesic_path_.push_back(e);
-						return true;
-					});
-					update_vbo();
-					need_update = true;
-				}
 				if (ImGui::Button("Init random path"))	//TODO dijsktra / selection
 				{
 					// "brute force and probably good" path
