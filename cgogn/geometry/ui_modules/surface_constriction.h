@@ -91,10 +91,10 @@ protected:
 
 	void draw(View* view) override
 	{
-		if (!geodesic_path_.empty()) 
+		if (edges_vbo_.size() > 0) 
 		{
 			param_edge_->bind(view->projection_matrix(), view->modelview_matrix());
-			glDrawArrays(GL_LINES, 0, 2 * geodesic_path_.size());
+			glDrawArrays(GL_LINE_STRIP, 0, edges_vbo_.size());
 			param_edge_->release();
 		}
 	}
