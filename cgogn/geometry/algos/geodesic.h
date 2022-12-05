@@ -113,7 +113,7 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 	const CMap2& mesh = intr.getMesh();
 	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
 	{
-		if (edge_can_flip(intr.getMesh(), Edge(d)))	// TODO check if wedge is crossing path
+		if (edge_can_flip(intr.getMesh(), Edge(d)))	// TODO better and check if wedge is crossing path 
 			return true;
 	}
 	
@@ -219,13 +219,19 @@ void geodesic_path(IntrinsicTriangulation& intr,
 
 		// update
 		if (j.inverted)
+		{
 			shorter_path.reverse();
+			for(auto e : shorter_path)
+			{
+				e = Edge(phi2(mesh, e.dart));
+			}
+		}
 		std::list<Edge>::iterator it = j.edge_ref;
 		++it;
 		it = path.erase(j.edge_ref, ++it);
 		path.splice(it, shorter_path);
 
-		joints_priority_queue = buildJointList(intr, path);	// optimizable
+		joints_priority_queue = buildJointList(intr, path);	// TODO optimizable
 		--iteration;
 	}
 }

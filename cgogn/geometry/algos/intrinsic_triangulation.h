@@ -174,6 +174,22 @@ public:
 	}
 
 	/**
+	 * compute the topologic path of a list of edge
+	 * @param e_list a list of adjacent edges to trace
+	 * @returns a list of extrinsic positions
+	*/
+	std::vector<Vec3> edge_list_topology(std::list<Edge> e_list)
+	{
+		std::vector<Vec3> geodesic_segments;
+		for (Edge e : e_list)
+		{
+			geodesic_segments.push_back(value<Vec3>(intr_, vertex_position_, Vertex(e.dart)));
+		}
+		geodesic_segments.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, e_list.back().dart))));
+		return geodesic_segments;
+	}
+
+	/**
 	 * compute the path of a list of edge to trace
 	 * @param e_list a list of adjacent edges to trace
 	 * @returns a list of extrinsic positions
@@ -200,46 +216,105 @@ public:
 		positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(e.dart)));
 
 		// "un-normalize" the angle to get the trace direction
-		Dart dart_ref = value<Dart>(intr_, vertex_ref_, Vertex(e.dart));
+		Dart last_dart = value<Dart>(intr_, vertex_ref_, Vertex(e.dart));
 		Scalar normalized_angle = value<Scalar>(intr_, halfedge_angle_, HalfEdge(e.dart));
 		Scalar angle_sum = value<Scalar>(intr_, vertex_angle_sum_, Vertex(e.dart));
 		Scalar angle = 0;
-		Dart next_dart = dart_ref;
-		Vec3 last_dir = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_, dart_ref))) - positions[0];
+		Dart next_dart = last_dart;
+		Vec3 last_dir = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_, last_dart))) - positions[0];
 		do {
 			next_dart = phi<-1, 2>(extr_, next_dart);
 			Vec3 next_dir = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_, next_dart))) - positions[0];
 			angle += 2 * M_PI * geometry::angle(last_dir, next_dir) / angle_sum; // normalize
 			last_dir = next_dir;
 		} while (angle < normalized_angle);
-		angle = angle_sum * (angle - normalized_angle) * M_1_PI * 0.5; // un-normalize
-		dart_ref = phi<2, 1>(extr_, next_dart);
+		angle = angle_sum * (angle - normalized_angle) * M_1_PI * 0.5; // un-normalize (/2pi)
+		last_dart = phi<2, 1>(extr_, next_dart);
 
 		// "tracing query" in extrinsic coordinates
 		Scalar length = value<Scalar>(intr_, edge_length_, e);
-		Dart intersected = phi1(extr_, dart_ref);	// extrinsic intersected edge
-
+		Vec3 A, B, C, next_position;
+		Dart B_dart, C_dart;
 		// compute intersection from vertex
 		{
-			Vec3 B = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_, intersected)));
-			Vec3 C = value<Vec3>(extr_, vertex_position_, Vertex(intersected));
+			C_dart = phi1(extr_, last_dart);	// first intersected edge
+			B_dart = phi2(extr_, C_dart);
+			B = value<Vec3>(extr_, vertex_position_, Vertex(B_dart));
+			C = value<Vec3>(extr_, vertex_position_, Vertex(C_dart));
 			Vec3 CB = C-B;
-			Scalar lambda = 2 * M_PI - (angle + geometry::angle(-last_dir, CB));
-			Scalar BX = abs((positions.back() - B).norm() * sin(angle) / sin(lambda));
+			Scalar lambda = M_PI - (angle + geometry::angle(-last_dir, CB));
+			Scalar BX = (positions.back() - B).norm() * sin(angle) / sin(lambda);
 			Scalar barycentric = BX / CB.norm();
-			positions.push_back(B*(1-barycentric) + C*barycentric);
-			length -= (positions[0] - positions.back()).norm();
+			next_position = B*(1-barycentric) + C*barycentric;
+			length -= (positions.back() - next_position).norm();
+			positions.push_back(next_position);
+			angle = lambda;
 		}
-
-		length = 0; // TODO skip test
+		
 		// iterate over intersections
 		while (length > 0.001)
 		{
-			Vec3 next_position;
-			// next_position = triangulate
-			// TODO
-			// angle = new_angle;
-			length -= (next_position - positions.back()).norm();
+			Vec3 B_inter, C_inter;		// position of intersection for each edge
+			Scalar B_lambda, C_lambda;	// angle of intersection for each edge
+			Vec3 X = positions.back();	// last_intersection
+			A = value<Vec3>(extr_, vertex_position_, Vertex(phi_1(extr_, B_dart)));
+			
+			Scalar beta = geometry::angle(X-C, A-C);
+			bool C_side = beta + angle < M_PI;	// if edge AC is intersected
+			if(C_side)
+			{
+				Vec3 AC = A-C;
+				Vec3 XC = X-C;
+				C_lambda = M_PI - (angle + geometry::angle(AC, XC));
+				Scalar CX = XC.norm() * sin(angle) / sin(C_lambda);	// distance between C_inter and C
+				Scalar barycentric = CX / (AC).norm();
+				if (barycentric > 1 || barycentric < 0)
+					C_side = false;
+				else
+					C_inter = C*(1-barycentric) + A*barycentric;
+			}
+
+			beta = geometry::angle(X-B, A-B);
+			bool B_side = beta + angle < M_PI;	// if edge AB is intersected
+			if(B_side)
+			{
+				angle = M_PI - angle;
+				Vec3 AB = A-B;
+				Vec3 XB = X-B;
+				B_lambda = M_PI - (angle + geometry::angle(AB, XB));
+				Scalar BX = XB.norm() * sin(angle) / sin(B_lambda);	// distance between B_inter and B
+				Scalar barycentric = BX / (AB).norm();
+				if (barycentric > 1 || barycentric < 0)
+					B_side = false;
+				else
+					B_inter = B*(1-barycentric) + A*barycentric;
+			}
+
+			if (C_side && B_side)	// pick the nearest
+			{
+				if ((X-C_inter).norm() < (X-B_inter).norm())
+					B_side = false;
+				else
+					C_side = false;
+			} 
+			if (C_side)
+			{
+				next_position = C_inter;
+				angle = M_PI - C_lambda;
+				C_dart = phi1(extr_, B_dart);
+				B_dart = phi2(extr_, C_dart);
+			}
+			else if (B_side)
+			{
+				next_position = B_inter;
+				angle = B_lambda;
+				C_dart = phi_1(extr_, B_dart);
+				B_dart = phi2(extr_, C_dart);
+			}
+			else
+				break; // TODO fix intersection with points
+			
+			length -= (next_position - X).norm();
 			positions.push_back(next_position);
 		}
 
@@ -321,19 +396,6 @@ private:
 	*/
 	inline Scalar normalize_angle_(Vertex v, Scalar angle) {
 		return 2 * M_PI * angle / value<Scalar>(intr_, vertex_angle_sum_, v);
-	}
-
-	inline bool isSameVertex(const CMap2& m, Dart a, Dart b)
-	{
-		bool r = false;
-		foreach_dart_of_PHI21(m, a, [&] (Dart d) -> bool {
-			if (d == b) {
-				r = true;
-				return false;
-			}
-			return true;
-		});
-		return r;
 	}
 
 private:

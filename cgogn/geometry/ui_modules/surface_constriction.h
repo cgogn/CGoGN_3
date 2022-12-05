@@ -104,7 +104,10 @@ protected:
 	*/
 	void update_vbo()
 	{		
-		rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
+		if (show_topology)
+			rendering::update_vbo(intr->edge_list_topology(geodesic_path_), &edges_vbo_);
+		else
+			rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
 	}
 
 	void left_panel() override
@@ -154,10 +157,19 @@ protected:
 				}
 				if (geodesic_path_.size() > 0 && ImGui::Button("Compute geodesic"))
 				{
-					geometry::geodesic_path(*intr, geodesic_path_);
+					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration);
 					update_vbo();
 					need_update = true;
 				}
+
+				if (geodesic_path_.size() > 0 && ImGui::Checkbox("ShowTopology", &show_topology))
+				{
+					update_vbo();
+					need_update = true;
+				}
+
+				if (geodesic_path_.size() > 0 && ImGui::InputInt("Flip out iteration", &flip_out_iteration))
+				{}
 			}
 		}
 
@@ -168,6 +180,8 @@ protected:
 
 private:
 	bool intrinsic_made = false;	// only one intrinsic triangulation
+	bool show_topology = false;
+	int flip_out_iteration = -1;
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
