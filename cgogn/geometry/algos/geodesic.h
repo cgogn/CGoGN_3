@@ -157,24 +157,22 @@ inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge
 */
 std::list<typename mesh_traits<CMap2>::Edge> flip_out(
 	IntrinsicTriangulation& intr,
-	Dart a,
-	Dart b)
+	const Joint& j)
 {
 	using Vertex = typename mesh_traits<CMap2>::Vertex;
 	using Edge = typename mesh_traits<CMap2>::Edge;
 	
 	CMap2& mesh = intr.getMesh();
-	assert(isSameVertex(mesh, phi1(mesh, a), b));
+	assert(isSameVertex(mesh, phi1(mesh, j.a), j.b));
 
 	std::list<Dart> wedge;	// contains the adjacent edges of a and b on the side with the smaller angle
-	for(Dart d = phi<2, -1, 2>(mesh, a); d != b; d = phi<-1, 2>(mesh, d))
+	for(Dart d = phi<2, -1, 2>(mesh, j.a); d != j.b; d = phi<-1, 2>(mesh, d))
 		wedge.push_back(d);
 
-	auto index = indexOfBi(intr, wedge);
-	bool update = true;
-	while (update)	// update until stability
-	{
+	bool update;
+	do {
 		update = false;
+		auto index = indexOfBi(intr, wedge);
 		while (index != end(wedge))
 		{
 			auto e = end(wedge);
@@ -183,11 +181,11 @@ std::list<typename mesh_traits<CMap2>::Edge> flip_out(
 			wedge.erase(index);
 			index = indexOfBi(intr, wedge);
 		}
-	}
+	} while (update);	// update until stability
 
 	// build shorter path from simplified wedge
 	std::list<Edge> shorter;
-	shorter.push_back(Edge(phi<2, 1>(mesh, a)));
+	shorter.push_back(Edge(phi<2, 1>(mesh, j.a)));
 	for(Dart d : wedge) {
 		shorter.push_back(Edge(phi1(mesh, d)));
 	}
@@ -215,7 +213,7 @@ void geodesic_path(IntrinsicTriangulation& intr,
 	while (joints_priority_queue.size() > 0 && iteration != 0)
 	{
 		Joint j = joints_priority_queue.back();
-		auto shorter_path = flip_out(intr, j.a, j.b);
+		auto shorter_path = flip_out(intr, j);
 
 		// update
 		if (j.inverted)

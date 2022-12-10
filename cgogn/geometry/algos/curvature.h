@@ -216,21 +216,7 @@ Scalar gaussian_curvature(
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 	const geometry::AreaPolicy area_policy)
 {
-	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge = typename mesh_traits<MESH>::Edge;
-	
-	Scalar angle_sum{0};
-	Vec3 vertex = value<Vec3>(m, vertex_position, v);
-	std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
-
-	// sum incident directions angles
-	for (uint32 i = 0, size = uint32(vertices.size()); i < size; ++i)
-	{
-		Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
-		Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[i]);
-		angle_sum += angle(current_vertex - vertex, next_vertex - vertex);
-	}
-	
+	Scalar angle_sum = vertex_angle_sum(m, vertex_position, v);
 	return (2 * M_PI - angle_sum) / area(m, v, vertex_position, area_policy);
 }
 

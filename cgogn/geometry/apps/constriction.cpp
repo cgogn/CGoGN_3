@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 {
 	std::string filename;
 	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/gargoyle.off");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
 	else
 		filename = std::string(argv[1]);
 
