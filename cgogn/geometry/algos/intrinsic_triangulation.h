@@ -135,9 +135,7 @@ public:
 	{
 		Scalar a_angle = getAngle(a);
 		Scalar b_angle = getAngle(b);
-		if (a_angle > b_angle)
-			b_angle += a_angle;
-		return std::fmod(b_angle - a_angle, 2 * M_PI);
+		return (a_angle > b_angle) ? 2 * M_PI + b_angle - a_angle : b_angle - a_angle;
 	}
 
 	/**
@@ -199,7 +197,7 @@ public:
 
 	/**
 	 * compute the extrinsic representation of an intrinsic edge
-	 * @param e the edge to trace
+	 * @param d the edge to trace
 	 * @returns a list of extrinsic positions
 	*/
 	std::vector<Vec3> trace(Dart d, int max_intersection = 10)
@@ -218,7 +216,6 @@ public:
 		trace_parameters.edge_crossed = false;
 		trace_parameters.crossed_position = positions.back();
 
-		std::cout << "extr length / intr length : " << (positions.back()-value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, d)))).norm() << " / " << value<Scalar>(intr_, edge_length_, Edge(d)) << std::endl;
 		int n_intersection = 0;
 		// iterate over intersections
 		while (n_intersection < max_intersection && length_remaining > epsilon)
@@ -232,11 +229,13 @@ public:
 			++n_intersection;
 		}
 
-		//if (length_remaining > -epsilon)
-		//	positions.pop_back();
+		if (length_remaining < -epsilon)
+		{
+			positions.pop_back();
+			positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, d))));
+			std::cout << "length_remaining : " << length_remaining << std::endl;
+		}
 
-		std::cout << n_intersection << " intersections" << std::endl;
-		//positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, e.dart))));
 		return positions;
 	}
 
