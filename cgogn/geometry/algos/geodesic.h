@@ -104,11 +104,34 @@ struct Joint
 	}
 };
 
+inline bool isInPath(const CMap2& mesh,
+	std::list<Edge>& path,
+	const Dart& d)
+{
+	for (auto e : path)
+	{
+		if (d == e.dart || d == phi2(mesh, e.dart))
+			return true;
+	}
+	return false;
+}
+
 inline bool isFlexible(IntrinsicTriangulation& intr,
 	std::list<Edge>& path,
 	const Joint& joint)
 {
 	const CMap2& mesh = intr.getMesh();
+
+	if (isInPath(mesh, path, phi <2, 1>(mesh, joint.a)))
+		return false;
+	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
+	{
+		if (isInPath(mesh, path, d))
+			return false;
+		if (isInPath(mesh, path, phi1(mesh, d)))
+			return false;
+	}
+
 	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
 	{
 		if (edge_can_flip(intr.getMesh(), Edge(d)))	// TODO better and check if wedge is crossing path
