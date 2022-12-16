@@ -50,6 +50,7 @@ class IntrinsicTriangulation
 	using Edge = typename mesh_traits<CMap2>::Edge;
 	using Face = typename mesh_traits<CMap2>::Face;
 
+	using Vec2 = geometry::Vec2;
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
@@ -138,21 +139,76 @@ public:
 		return (a_angle > b_angle) ? 2 * M_PI + b_angle - a_angle : b_angle - a_angle;
 	}
 
-	/**
-	 * flip an intrinsic edge if possible
-	 * @param e the edge to flip
-	 * @returns true if edge has been flipped, false otherwise
-	*/
-	bool flip_edge (Edge e)
+	// from https://geometry-central.net/surface/intrinsic_triangulations/basics/
+	inline Vec2 layoutTriangleVertex(Vec2& pA, Vec2& pB, Scalar& lBC, Scalar& lCA)
 	{
-		if(!edge_can_flip(intr_, e))
+		Scalar lAB = (pB - pA).norm();
+		Scalar tArea = area_(lAB, lBC, lCA);
+		Scalar h = 2. * tArea / lAB;
+		Scalar w = std::sqrt(std::max(0., lCA * lCA - h * h));
+		if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
+		Vec2 vABn = (pB - pA) / lAB;
+		Vec2 vABnPerp{-(vABn[1]), vABn[0]};
+		Vec2 pC = pA + w * vABn + h * vABnPerp;
+		return pC;
+	}
+
+	// from https://geometry-central.net/surface/intrinsic_triangulations/basics/
+	inline std::array<Vec2, 4> layoutDiamond(Dart iHe)
+	{
+		Dart iHeA0 = iHe;
+		Dart iHeA1 = phi1(intr_, iHeA0);
+		Dart iHeA2 = phi1(intr_, iHeA1);
+		Dart iHeB0 = phi2(intr_, iHe);
+		Dart iHeB1 = phi1(intr_, iHeB0);
+		Dart iHeB2 = phi1(intr_, iHeB1);
+
+		double l01 = value<Scalar>(intr_, edge_length_, Edge(iHeA1));
+		double l12 = value<Scalar>(intr_, edge_length_, Edge(iHeA2));
+		double l23 = value<Scalar>(intr_, edge_length_, Edge(iHeB1));
+		double l30 = value<Scalar>(intr_, edge_length_, Edge(iHeB2));
+		double l02 = value<Scalar>(intr_, edge_length_, Edge(iHeA0));
+
+		Vec2 p3{0., 0.};
+		Vec2 p0{l30, 0.};
+		Vec2 p2 = layoutTriangleVertex(p3, p0, l02, l23);
+		Vec2 p1 = layoutTriangleVertex(p2, p0, l01, l12);
+
+		return {p0, p1, p2, p3};
+	}
+
+	/**
+	 * check if an intrinsic edge can be flipped
+	 * @param e the edge to flip
+	 * @returns true if can be flipped, false otherwise
+	*/
+	bool can_be_flipped (Edge e)
+	{
+		if (!edge_can_flip(intr_, e))	// topology can flip
 			return false;
+
+		std::array<Vec2, 4> layoutPositions = layoutDiamond(e.dart);
+
+		// Test if geometryically flippable flippable (both signed areas of new triangles are positive)
+		Scalar A1 = cross_(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
+		Scalar A2 = cross_(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
+		if (A1 <= 0 || A2 <= 0) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * flip an intrinsic edge, does not check if it is flippable
+	 * @param e the edge to flip
+	*/
+	void flip_edge (Edge e)
+	{
 		Scalar future_length = flipped_length_(e);
 		cgogn::flip_edge(intr_, e);	// flip topology
 		value<Scalar>(intr_, edge_length_, e) = future_length;
 		update_signpost(e.dart);
 		update_signpost(phi2(intr_, e.dart));
-		return true;
 	}
 
 	/**
@@ -233,7 +289,6 @@ public:
 		{
 			positions.pop_back();
 			positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, d))));
-			std::cout << "length_remaining : " << length_remaining << std::endl;
 		}
 
 		return positions;
@@ -262,7 +317,6 @@ private:
 		{
 			Vec3 AC = A-C;
 			C_gamma = M_PI - (alpha + geometry::angle(AC.normalized(), (B-C).normalized()));
-			assert(C_gamma > epsilon);
 			Scalar CX = (X-C).norm() * sin(alpha) / sin(C_gamma);	// distance between C_inter and C
 			barycenter = CX / (AC).norm();
 			if (barycenter > 1-epsilon) {
@@ -279,7 +333,6 @@ private:
 		{
 			Vec3 AB = A-B;
 			B_gamma = M_PI - (alpha + geometry::angle(AB.normalized(), (C-B).normalized()));
-			assert(B_gamma > epsilon);
 			Scalar BX = (X-B).norm() * sin(alpha) / sin(B_gamma);	// distance between B_inter and C
 			barycenter = BX / (AB).norm();
 			if (barycenter > 1-epsilon){
@@ -413,13 +466,25 @@ private:
 	
 	/**
 	 * compute the area of a triangle face by Heron's formula
-	 * @param ik a triangle face
+	 * @param f a triangle face
 	 * @returns the area of the triangle
 	*/
 	inline Scalar area_(Face f) {
 		Scalar a = value<Scalar>(intr_, edge_length_, Edge(f.dart));
 		Scalar b = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, f.dart)));
 		Scalar c = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, f.dart)));
+		Scalar s = (a+b+c) * Scalar(0.5);
+		return sqrt(s * (s-a) * (s-b) * (s-c));
+	}
+
+	/**
+	 * compute the area of a triangle face by Heron's formula
+	 * @param a a triangle length
+	 * @param b a triangle length
+	 * @param c a triangle length
+	 * @returns the area of the triangle
+	*/
+	inline Scalar area_(Scalar a, Scalar b, Scalar c) {
 		Scalar s = (a+b+c) * Scalar(0.5);
 		return sqrt(s * (s-a) * (s-b) * (s-c));
 	}
@@ -447,6 +512,14 @@ private:
 		Scalar km = (im+jk+jm+ki-ij + (im-jm) * (jk-ki) / ij) * Scalar(0.5);
 		km += (Scalar(8) * area_(faces[0]) * area_(faces[1])) / ij;
 		return sqrt(km);
+	}
+
+	/**
+	 * Compute the dual of the cross product
+	*/
+	inline Scalar cross_(Vec2 u, Vec2 v)
+	{
+		return u[0] * v[1] - u[1] * v[0];
 	}
 
 private:

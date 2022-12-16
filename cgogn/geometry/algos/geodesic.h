@@ -24,12 +24,9 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
 #define CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
 
-#include <cgogn/core/functions/mesh_ops/face.h>
-
-#include <cgogn/geometry/algos/normal.h>
-#include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 namespace cgogn
 {
@@ -40,6 +37,8 @@ namespace geometry
 namespace // helper
 {
 
+template <typename T>
+using Attribute = typename mesh_traits<CMap2>::template Attribute<T>;
 using HalfEdge = typename mesh_traits<CMap2>::HalfEdge;
 using Vertex = typename mesh_traits<CMap2>::Vertex;
 using Edge = typename mesh_traits<CMap2>::Edge;
@@ -132,12 +131,7 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 			return false;
 	}
 
-	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
-	{
-		if (edge_can_flip(intr.getMesh(), Edge(d)))	// TODO better and check if wedge is crossing path
-			return true;
-	}
-	return  false;
+	return  true;
 }
 
 inline std::list<Joint> buildJointList(IntrinsicTriangulation& intr,
@@ -158,9 +152,17 @@ inline std::list<Joint> buildJointList(IntrinsicTriangulation& intr,
 	return joints;
 }
 
-inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge, const Joint& j)
+/**
+ * search the first wedge segment that can be flipped
+ * @param intr an intrinsic triangulation
+ * @param wedge a list of consecutive adjacent halfedges
+ * @returns an iterator to the founded wedge or end(wedge) if not found
+*/
+inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
 {
 	return std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
+		if (!intr.can_be_flipped(Edge(d)))
+			return false;
 		Dart a = phi1(intr.getMesh(), d);
 		Dart b = phi<2, -1, 2>(intr.getMesh(), d);
 		return intr.interiorAngle(a, b) < M_PI;
@@ -185,18 +187,13 @@ std::list<Edge> flip_out(
 	for(Dart d = phi<2, -1, 2>(mesh, j.a); d != j.b; d = phi<-1, 2>(mesh, d))
 		wedge.push_back(d);
 
-	bool update;
-	do {
-		update = false;
-		auto index = indexOfBi(intr, wedge, j);
-		while (index != end(wedge))
-		{
-			if(intr.flip_edge(Edge(*index)))
-				update = true;
-			wedge.erase(index);
-			index = indexOfBi(intr, wedge, j);
-		}
-	} while (update);	// update until stability
+	auto index = indexOfBi(intr, wedge);
+	while (index != end(wedge)) // update until stability
+	{
+		intr.flip_edge(Edge(*index));
+		wedge.erase(index);
+		index = indexOfBi(intr, wedge);
+	}
 
 	// build the shorter path
 	std::list<Edge> shorter;
@@ -217,7 +214,7 @@ std::list<Edge> flip_out(
 */
 void geodesic_path(IntrinsicTriangulation& intr,
 	 std::list<Edge>& path,
-	 int iteration = -1)
+	 int iteration = 100)
 {
 	const CMap2& mesh = intr.getMesh();
 
@@ -242,6 +239,69 @@ void geodesic_path(IntrinsicTriangulation& intr,
 		joints_priority_queue = buildJointList(intr, path);	// TODO optimizable
 		--iteration;
 	}
+}
+
+std::list<Edge> search_path(CMap2& mesh, const Vertex& a, const Vertex& b)
+{
+	std::shared_ptr<Attribute<Scalar>> attr_dist = add_attribute<Scalar, Vertex>(mesh, "__dist__");
+
+	parallel_foreach_cell(mesh, [&](Vertex v) -> bool {
+		value<Scalar>(mesh, attr_dist, v) = std::numeric_limits<Scalar>::max();
+		return true;
+	});
+	value<Scalar>(mesh, attr_dist, a) = 0;
+
+	Vertex v_current;
+	std::list<Edge> path;
+	std::stack<Vertex> stack;
+	stack.emplace(a);
+	bool goon = true;
+	while (goon)
+	{
+		v_current = stack.top();
+		Scalar& current_dist = value<Scalar>(mesh, attr_dist, v_current);
+		foreach_adjacent_vertex_through_edge(mesh, v, [&](Vertex v) -> bool {
+			Scalar& v_dist = value<Scalar>(mesh, attr_dist, v);
+			if (v_dist > current_dist)
+			{
+				v_dist = current_dist + 1;
+				stack.emplace(v);
+			}
+			if (v == b) {
+				goon = false;
+				return 0;
+			}
+			return 1;
+		});
+		stack.pop();
+	}
+	
+	v_current = b; 
+	while (v_current != a)
+	{
+		Scalar& current_dist = value<Scalar>(mesh, attr_dist, v_current);
+		Edge min_edge;
+		Vertex min_vertex;
+		Scalar min_value = std::numeric_limits<Scalar>::max();
+		foreach_incident_edge(mesh, v_current, [&](Edge e) -> bool {
+			auto v_incidents = incident_vertices(mesh, e);
+			min_vertex = v_incidents[0];
+			if (min_vertex == v_current)
+				min_vertex = v_incidents[1];
+			Scalar& v_dist = value<Scalar>(mesh, attr_dist, min_vertex);
+			if (min_value > v_dist)
+			{
+				min_value = v_dist;
+				min_edge = e;
+			}
+			return 1;
+		});
+		path.push_back(min_edge);
+		v_current = min_vertex;
+	}
+
+	remove_attribute<Vertex>(mesh, attr_dist);
+	return path;
 }
 
 } // namespace geometry

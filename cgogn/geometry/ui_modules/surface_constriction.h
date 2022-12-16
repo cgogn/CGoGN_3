@@ -181,7 +181,7 @@ protected:
 private:
 	bool intrinsic_made = false;	// only one intrinsic triangulation
 	bool show_topology = false;
-	int flip_out_iteration = -1;
+	int flip_out_iteration = 100;
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
