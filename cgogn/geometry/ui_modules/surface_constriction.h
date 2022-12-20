@@ -39,6 +39,7 @@
 #include <cgogn/geometry/algos/geodesic.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
 #include <boost/synapse/connect.hpp>
+#include <unordered_set>
 
 namespace cgogn
 {
@@ -103,17 +104,49 @@ protected:
 	 * Show geodesic path
 	*/
 	void update_vbo()
-	{		
+	{
 		if (show_topology)
 			rendering::update_vbo(intr->edge_list_topology(geodesic_path_), &edges_vbo_);
 		else
 			rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
+		
+		need_update = true;
+	}
+
+	void update_path_from_edge_set()
+	{
+		geodesic_path_.clear();
+		if (selected_edges_set_ == nullptr)
+			return;
+
+		selected_edges_set_->foreach_cell([&] (Edge e) -> bool {
+			geodesic_path_.push_back(e);
+			return true;
+		});
+	}
+
+	void update_path_from_vertex_set()
+	{
+		geodesic_path_.clear();
+		if (selected_vertices_set_ == nullptr)
+			return;
+		
+		std::vector<Vertex> points_list;
+		selected_vertices_set_->foreach_cell([&] (Vertex v) -> bool {
+			points_list.push_back(v);
+			return true;
+		});
+
+		int size = points_list.size();
+		for (int i=1; i < size; ++i)
+		{
+			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[i-1], points_list[i]);
+			geodesic_path_.splice(geodesic_path_.end(), segment);
+		}
 	}
 
 	void left_panel() override
 	{
-		bool need_update = false;
-
 		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
 			selected_mesh_ = &m;
 			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
@@ -127,64 +160,67 @@ protected:
 
 			if (selected_vertex_position_)
 			{
-				if (ImGui::Button("Build intrinsic mesh"))
-				{
-					// warning ! only CMap2, not yet templated
+				ImGui::TextUnformatted("Selection set cell type");
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Vertex##CellType", enum_selected_set_type == 0))
+					enum_selected_set_type = 0;
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("Edge##CellType", enum_selected_set_type == 1))
+					enum_selected_set_type = 1;
+				ImGui::SameLine();
+				ImGui::EndGroup();
+
+				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
+
+				if (enum_selected_set_type == 0)
+					imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
+										  [&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
+				else if (enum_selected_set_type == 1)
+					imgui_combo_cells_set(md, selected_edges_set_, "Source edges",
+										  [&](CellsSet<MESH, Edge>* cs) { selected_edges_set_ = cs; });
+
+				if (ImGui::Button("Compute path")) {
+					if (enum_selected_set_type == 0)
+						update_path_from_vertex_set();
+					else if (enum_selected_set_type == 1)
+						update_path_from_edge_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
-					//mesh_provider_->register_mesh(intr->getMesh(), "intrinsic");	// visualization of the topology
-					intrinsic_made = true;
-				}
-			}
-			if (intrinsic_made)
-			{
-				if (ImGui::Button("Init random path"))	//TODO dijsktra / selection
-				{
-					// "brute force and probably good" path
-					std::vector<Edge> tmp_vec;
-					foreach_cell(intr->getMesh(), [&](Edge e) -> bool {
-						tmp_vec.push_back(e);
-						return true;
-					});
-					Dart a = tmp_vec[rand()%tmp_vec.size()].dart;
-					geodesic_path_.clear();
-					for (int i = 3; i > 0; --i)
-					{
-						geodesic_path_.push_back(Edge(a));
-						a = phi<1, 2, 1>(intr->getMesh(), a);
-					}
 					update_vbo();
-					need_update = true;
 				}
-				if (geodesic_path_.size() > 0 && ImGui::Button("Compute geodesic"))
-				{
+
+				if (ImGui::Button("Compute geodesic")) {
+					if (enum_selected_set_type == 0)
+						update_path_from_vertex_set();
+					else if (enum_selected_set_type == 1)
+						update_path_from_edge_set();
+					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration);
 					update_vbo();
-					need_update = true;
 				}
 
-				if (geodesic_path_.size() > 0 && ImGui::Checkbox("ShowTopology", &show_topology))
-				{
-					update_vbo();
-					need_update = true;
-				}
-
-				if (geodesic_path_.size() > 0 && ImGui::InputInt("Flip out iteration", &flip_out_iteration))
-				{}
+				ImGui::InputInt("Flip out iterations", &flip_out_iteration);
 			}
 		}
 
 		if (need_update)
+		{
 			for (View* v : linked_views_)
 				v->request_update();
+			need_update = false;
+		}
 	}
 
 private:
-	bool intrinsic_made = false;	// only one intrinsic triangulation
+	bool need_update = false;
 	bool show_topology = false;
+	int enum_selected_set_type = 0; // 0 -> vertex, 1 -> edges
 	int flip_out_iteration = 100;
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
+	CellsSet<MESH, Vertex>* selected_vertices_set_ = nullptr;
+	CellsSet<MESH, Edge>* selected_edges_set_ = nullptr;
 
 	std::list<Edge> geodesic_path_;
 	rendering::VBO edges_vbo_;

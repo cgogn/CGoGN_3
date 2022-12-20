@@ -161,7 +161,7 @@ inline std::list<Joint> buildJointList(IntrinsicTriangulation& intr,
 inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
 {
 	return std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
-		if (!intr.can_be_flipped(Edge(d)))
+		if (!intr.can_be_flipped(Edge(d)))	// TODO BETTER or it will never converge
 			return false;
 		Dart a = phi1(intr.getMesh(), d);
 		Dart b = phi<2, -1, 2>(intr.getMesh(), d);
@@ -210,7 +210,7 @@ std::list<Edge> flip_out(
  * compute geodesic path with flip out algorithm on an intrinsic triangulation
  * @param intr an intrinsic triangulation, will be modified according to the geodesic
  * @param path an intrinsic connected path from the begin to the end of the vector, will be updated toward a geodesic
- * @param iteration optional, the maximum number of flip out to do, a negative value will loop until stability
+ * @param iteration optional, the maximum number of flip out to do, a negative value will loop until stability but is hazardous
 */
 void geodesic_path(IntrinsicTriangulation& intr,
 	 std::list<Edge>& path,
@@ -241,64 +241,64 @@ void geodesic_path(IntrinsicTriangulation& intr,
 	}
 }
 
-std::list<Edge> search_path(CMap2& mesh, const Vertex& a, const Vertex& b)
+std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 {
-	std::shared_ptr<Attribute<Scalar>> attr_dist = add_attribute<Scalar, Vertex>(mesh, "__dist__");
+	std::list<Edge> path;
 
+	if (isSameVertex(mesh, a.dart, b.dart))
+		return path;
+	
+	std::shared_ptr<Attribute<Scalar>> attr_dist = add_attribute<Scalar, Vertex>(mesh, "__dist__");
 	parallel_foreach_cell(mesh, [&](Vertex v) -> bool {
 		value<Scalar>(mesh, attr_dist, v) = std::numeric_limits<Scalar>::max();
 		return true;
 	});
-	value<Scalar>(mesh, attr_dist, a) = 0;
+	value<Scalar>(mesh, attr_dist, b) = 0;
 
 	Vertex v_current;
-	std::list<Edge> path;
 	std::stack<Vertex> stack;
-	stack.emplace(a);
+	stack.emplace(b);
 	bool goon = true;
-	while (goon)
-	{
+	do {
 		v_current = stack.top();
-		Scalar& current_dist = value<Scalar>(mesh, attr_dist, v_current);
-		foreach_adjacent_vertex_through_edge(mesh, v, [&](Vertex v) -> bool {
-			Scalar& v_dist = value<Scalar>(mesh, attr_dist, v);
-			if (v_dist > current_dist)
-			{
-				v_dist = current_dist + 1;
+		stack.pop();
+		Scalar current_dist = value<Scalar>(mesh, attr_dist, v_current);
+		foreach_adjacent_vertex_through_edge(mesh, v_current, [&](Vertex v) -> bool {
+			if (value<Scalar>(mesh, attr_dist, v) > current_dist + 1) {
 				stack.emplace(v);
+				value<Scalar>(mesh, attr_dist, v) = current_dist + 1;
 			}
-			if (v == b) {
+			if (isSameVertex(mesh, v.dart, a.dart)) {
 				goon = false;
 				return 0;
 			}
 			return 1;
 		});
-		stack.pop();
-	}
-	
-	v_current = b; 
-	while (v_current != a)
-	{
-		Scalar& current_dist = value<Scalar>(mesh, attr_dist, v_current);
-		Edge min_edge;
-		Vertex min_vertex;
-		Scalar min_value = std::numeric_limits<Scalar>::max();
+	} while (goon);
+
+	v_current = a;
+	Scalar min_value = std::numeric_limits<Scalar>::max();
+
+	do {
+		Vertex nearest_vertex = v_current;
+		Vertex next_vertex;
+		Edge nearest_edge;
 		foreach_incident_edge(mesh, v_current, [&](Edge e) -> bool {
 			auto v_incidents = incident_vertices(mesh, e);
-			min_vertex = v_incidents[0];
-			if (min_vertex == v_current)
-				min_vertex = v_incidents[1];
-			Scalar& v_dist = value<Scalar>(mesh, attr_dist, min_vertex);
-			if (min_value > v_dist)
-			{
+			next_vertex = v_incidents[0];
+			if (isSameVertex(mesh, v_current.dart, next_vertex.dart))
+				next_vertex = v_incidents[1];
+			Scalar v_dist = value<Scalar>(mesh, attr_dist, next_vertex);
+			if (min_value > v_dist) {
 				min_value = v_dist;
-				min_edge = e;
+				nearest_edge = e;
+				nearest_vertex = next_vertex;
 			}
 			return 1;
 		});
-		path.push_back(min_edge);
-		v_current = min_vertex;
-	}
+		path.push_back(nearest_edge);
+		v_current = nearest_vertex;
+	} while (min_value > 0);
 
 	remove_attribute<Vertex>(mesh, attr_dist);
 	return path;
