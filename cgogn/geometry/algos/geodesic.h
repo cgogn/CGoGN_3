@@ -237,7 +237,7 @@ void geodesic_path(IntrinsicTriangulation& intr,
 		Joint j = joints_priority_queue.top();
 		auto shorter_path = flip_out(intr, j);
 
-		// check if the new path is shorter than the old one
+		// check if the new path is shorter than the old one, TODO fix on buildJointList
 		Scalar new_length = 0;
 		for (Edge e : shorter_path)
 			new_length += intr.getLength(e.dart);
@@ -246,12 +246,14 @@ void geodesic_path(IntrinsicTriangulation& intr,
 			continue;
 		}
 
+		// reverse the segment if needed to not break the path
 		if (j.inverted)
 		{
 			shorter_path.reverse();
 			for(auto e : shorter_path)
 				e = Edge(phi2(mesh, e.dart));
 		}
+
 		// update
 		std::list<Edge>::iterator it = j.edge_ref;
 		++it;
@@ -285,6 +287,8 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 	std::stack<Vertex> stack;
 	Scalar shoortest_path = std::numeric_limits<Scalar>::max();
 	stack.emplace(b);
+
+	// forward crossing setting the distance by neighborhood
 	do {
 		v_current = stack.top();
 		stack.pop();
@@ -306,6 +310,7 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 	v_current = a;
 	Scalar min_value = std::numeric_limits<Scalar>::max();
 
+	// backward crossing looking at the minimal path
 	do {
 		Vertex nearest_vertex = v_current;
 		Vertex next_vertex;
