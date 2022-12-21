@@ -127,12 +127,21 @@ public:
 	}
 
 	/**
+	 * @param d an intrinsic edge
+	 * @returns the intrinsic length of edge d
+	*/
+	Scalar getLength(Dart d)
+	{
+		return value<Scalar>(intr_, edge_length_, Edge(d));
+	}
+
+	/**
 	 * counterclockwise intrinsic interior angle from a to b
 	 * @param a the first angle
 	 * @param b the second angle
 	 * @returns angle from a to b
 	*/
-	Scalar interiorAngle(Dart a, Dart b)
+	Scalar intrinsicInteriorAngle(Dart a, Dart b)
 	{
 		Scalar a_angle = getAngle(a);
 		Scalar b_angle = getAngle(b);
@@ -180,21 +189,30 @@ public:
 	/**
 	 * check if an intrinsic edge can be flipped
 	 * @param e the edge to flip
-	 * @returns true if can be flipped, false otherwise
+	 * @returns true if the edge can be flipped, false otherwise
 	*/
 	bool can_be_flipped (Edge e)
 	{
-		if (!edge_can_flip(intr_, e))	// topology can flip
+		Dart d = e.dart;
+		// check if the incident faces are triangles
+		if (codegree(intr_, Face(d)) != 3 || codegree(intr_, Face(phi2(intr_, d))) != 3)
 			return false;
 
-		std::array<Vec2, 4> layoutPositions = layoutDiamond(e.dart);
+		if (!edge_can_flip(intr_, e))
+			return false;
 
-		// Test if geometryically flippable flippable (both signed areas of new triangles are positive)
+		std::array<Vec2, 4> layoutPositions = layoutDiamond(d);
+
+		// Test if geometrically flippable (both signed areas of new triangles are positive)
 		Scalar A1 = cross_(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
 		Scalar A2 = cross_(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
 		if (A1 <= 0 || A2 <= 0) {
 			return false;
 		}
+
+  		if (!std::isfinite((layoutPositions[1] - layoutPositions[3]).norm()))
+			return false;
+
 		return true;
 	}
 
@@ -204,26 +222,13 @@ public:
 	*/
 	void flip_edge (Edge e)
 	{
-		Scalar future_length = flipped_length_(e);
-		cgogn::flip_edge(intr_, e);	// flip topology
-		value<Scalar>(intr_, edge_length_, e) = future_length;
+		Dart d = e.dart;
+		std::array<Vec2, 4> layoutPositions = layoutDiamond(d);
+  		value<Scalar>(intr_, edge_length_, e)= (layoutPositions[1] - layoutPositions[3]).norm();
+		cgogn::flip_edge(intr_, e);
+		
 		update_signpost(e.dart);
 		update_signpost(phi2(intr_, e.dart));
-	}
-
-	/**
-	 * compute the topologic path of a list of edge
-	 * @param e_list a list of adjacent edges to trace
-	 * @returns a list of pairs of positions
-	*/
-	std::vector<Vec3> edge_list_topology(std::list<Edge> e_list)
-	{
-		std::vector<Vec3> geodesic_segments;
-		for (Edge e : e_list)
-			for (Vertex v : incident_vertices(intr_, e))
-				geodesic_segments.push_back(value<Vec3>(intr_, vertex_position_, v));
-		
-		return geodesic_segments;
 	}
 
 	/**
@@ -256,7 +261,7 @@ public:
 	 * @param d the edge to trace
 	 * @returns a list of extrinsic positions
 	*/
-	std::vector<Vec3> trace(Dart d, int max_intersection = 10)
+	std::vector<Vec3> trace(Dart d, int max_intersection = 100)
 	{
 		std::vector<Vec3> positions;
 		positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(d)));
@@ -285,11 +290,8 @@ public:
 			++n_intersection;
 		}
 
-		if (length_remaining < -epsilon)
-		{
-			positions.pop_back();
-			positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, d))));
-		}
+		positions.pop_back();
+		positions.push_back(value<Vec3>(intr_, vertex_position_, Vertex(phi2(intr_, d))));
 
 		return positions;
 	}
@@ -427,7 +429,7 @@ private:
 			current_dir = next_dir;
 		}
 		trace_parameters.crossed_dart = phi<2,1>(extr_, it);
-		trace_parameters.intersection_angle = angle_sum * (cumulated_angle - angle_max) / (M_PI * 2); // un-normalize
+		trace_parameters.intersection_angle = angle_sum * (cumulated_angle - angle_max) * (M_1_PI * 0.5); // un-normalize
 	}
 
 	/**
@@ -443,7 +445,7 @@ private:
 	}
 
 	/**
-	 * compute the interior angle of a triangle on point k from its lengths by Kahan's formula
+	 * compute the interior angle of a triangle on point k from its lengths
 	 * @param ij edge adjacent to jk and ki, opposite to k
 	 * @param ki edge adjacent to ij and jk, incident to k
 	 * @param jk edge adjacent to ij and ki, incident to k
@@ -453,6 +455,9 @@ private:
 		Scalar a = value<Scalar>(intr_, edge_length_, jk);
 		Scalar b = value<Scalar>(intr_, edge_length_, ki);
 		Scalar c = value<Scalar>(intr_, edge_length_, ij);
+		return acos((a*a + b*b - c*c) / (2*a*b));
+
+		/* more stable by Kahan's formula but fail more easily
 		Scalar mu;
 		if (c >= 0 && b >= c)
 			mu = c - a + b;
@@ -460,8 +465,8 @@ private:
 			mu = b - a + c;
 		else
 			assert(false);
-		
 		return 2 * atan(sqrt( ((a-b+c)*mu) / ((a+b+c)*(a-c+b)) ));
+		*/
 	}
 	
 	/**
@@ -487,31 +492,6 @@ private:
 	inline Scalar area_(Scalar a, Scalar b, Scalar c) {
 		Scalar s = (a+b+c) * Scalar(0.5);
 		return sqrt(s * (s-a) * (s-b) * (s-c));
-	}
-
-	/**
-	 * compute the future flipped length of an edge
-	 * @param e an edge befor flipping
-	 * @returns the length of this edge after flipping
-	*/
-	Scalar flipped_length_(Edge e) {
-		std::vector<Face> faces = incident_faces(intr_, e);
-		Scalar ij = value<Scalar>(intr_, edge_length_, e);
-		ij*=ij;
-		Dart d = e.dart;
-		Dart opp = phi2(intr_, e.dart);
-		Scalar im = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, d)));
-		im*=im;
-		Scalar jm = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, d)));
-		jm*=jm;
-		Scalar jk = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, opp)));
-		jk*=jk;
-		Scalar ki = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, opp)));
-		ki*=ki;
-
-		Scalar km = (im+jk+jm+ki-ij + (im-jm) * (jk-ki) / ij) * Scalar(0.5);
-		km += (Scalar(8) * area_(faces[0]) * area_(faces[1])) / ij;
-		return sqrt(km);
 	}
 
 	/**

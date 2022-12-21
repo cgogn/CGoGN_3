@@ -21,6 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
+/**
+ * algorithm from Sharp & Crane
+ * "You can find geodesic paths in triangle meshes by just flipping edges"
+*/
+
 #ifndef CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
 #define CGOGN_GEOMETRY_ALGOS_GEODESIC_H_
 
@@ -43,6 +48,8 @@ using HalfEdge = typename mesh_traits<CMap2>::HalfEdge;
 using Vertex = typename mesh_traits<CMap2>::Vertex;
 using Edge = typename mesh_traits<CMap2>::Edge;
 
+constexpr Scalar epsilon = 0.00001;
+
 inline bool isSameVertex(const CMap2& m, Dart a, Dart b)
 {
 	bool r = false;
@@ -58,11 +65,11 @@ inline bool isSameVertex(const CMap2& m, Dart a, Dart b)
 
 struct Joint
 {
-	Dart a;
-	Dart b;
-	std::list<Edge>::iterator edge_ref;
-	Scalar angle;
-	bool inverted = false;
+	Dart a;	// incoming halfedge
+	Dart b;	// outcoming halfedge
+	std::list<Edge>::iterator edge_ref;	// reference of the given edge
+	Scalar angle;		// extrinsic interior angle between a and b
+	bool inverted = false;	// true if a and b has been inverted
 
 	/**
 	 * construct a joint A -> B from 2 consecutive edges
@@ -89,19 +96,27 @@ struct Joint
 			assert(isSameVertex(m, phi2(m, a), b)); // a_edge and b_edge are not adjacent
 		}
 		
-		angle = intr.interiorAngle(phi2(m, a), b);
+		angle = intr.intrinsicInteriorAngle(phi2(m, a), b);
 		
 		if (angle > M_PI)
 		{
-			// inverse to get the lowest angle
+			// inverse to get a lower angle
+			angle = intr.intrinsicInteriorAngle(b, phi2(m, a));
 			Dart t = phi2(m, b);
 			b = phi2(m, a);
 			a = t;
-			angle = 2 * M_PI - angle;
 			inverted = true;
 		}
 	}
 };
+
+struct JointPriorityComparer {
+	typedef Joint const& param_type;
+	bool operator()(param_type a, param_type b) const {
+		return a.angle > b.angle;
+	};
+};
+using JointsPriorityQueue = std::priority_queue<Joint, std::vector<Joint>, JointPriorityComparer>;
 
 inline bool isInPath(const CMap2& mesh,
 	std::list<Edge>& path,
@@ -131,24 +146,21 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 			return false;
 	}
 
-	return  true;
+	return true;
 }
 
-inline std::list<Joint> buildJointList(IntrinsicTriangulation& intr,
+inline JointsPriorityQueue buildJointList(IntrinsicTriangulation& intr,
 	std::list<Edge>& path)
 {
-	std::list<Joint> joints;
+	JointsPriorityQueue joints;
 	std::list<Edge>::iterator end_iter = end(path);
 	end_iter--;
 	for (std::list<Edge>::iterator e = begin(path); e != end_iter; e++)
 	{
 		Joint j {intr, e};
-		if (isFlexible(intr, path, j))
-			joints.push_back(j);
+		if (j.angle < M_PI && isFlexible(intr, path, j))
+			joints.push(j);
 	}
-	joints.sort([] (const Joint& a, const Joint& b) -> bool {
-		return a.angle > b.angle;
-	});
 	return joints;
 }
 
@@ -161,11 +173,12 @@ inline std::list<Joint> buildJointList(IntrinsicTriangulation& intr,
 inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
 {
 	return std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
-		if (!intr.can_be_flipped(Edge(d)))	// TODO BETTER or it will never converge
+		if (!intr.can_be_flipped(Edge(d)))
 			return false;
+
 		Dart a = phi1(intr.getMesh(), d);
 		Dart b = phi<2, -1, 2>(intr.getMesh(), d);
-		return intr.interiorAngle(a, b) < M_PI;
+		return (intr.intrinsicInteriorAngle(a, b) < M_PI);
 	});
 }
 
@@ -210,7 +223,7 @@ std::list<Edge> flip_out(
  * compute geodesic path with flip out algorithm on an intrinsic triangulation
  * @param intr an intrinsic triangulation, will be modified according to the geodesic
  * @param path an intrinsic connected path from the begin to the end of the vector, will be updated toward a geodesic
- * @param iteration optional, the maximum number of flip out to do, a negative value will loop until stability but is hazardous
+ * @param iteration optional, the maximum number of flip out to do
 */
 void geodesic_path(IntrinsicTriangulation& intr,
 	 std::list<Edge>& path,
@@ -219,10 +232,19 @@ void geodesic_path(IntrinsicTriangulation& intr,
 	const CMap2& mesh = intr.getMesh();
 
 	auto joints_priority_queue = buildJointList(intr, path);
-	while (joints_priority_queue.size() > 0 && iteration != 0)
+	while (joints_priority_queue.size() > 0 && iteration > 0)
 	{
-		Joint j = joints_priority_queue.back();
+		Joint j = joints_priority_queue.top();
 		auto shorter_path = flip_out(intr, j);
+
+		// check if the new path is shorter than the old one
+		Scalar new_length = 0;
+		for (Edge e : shorter_path)
+			new_length += intr.getLength(e.dart);
+		if (new_length >= intr.getLength(j.a) + intr.getLength(j.b)) {
+			joints_priority_queue.pop();
+			continue;
+		}
 
 		if (j.inverted)
 		{
@@ -236,17 +258,21 @@ void geodesic_path(IntrinsicTriangulation& intr,
 		it = path.erase(j.edge_ref, ++it);
 		path.splice(it, shorter_path);
 
-		joints_priority_queue = buildJointList(intr, path);	// TODO optimizable
+		joints_priority_queue = buildJointList(intr, path);
 		--iteration;
 	}
 }
 
+/**
+ * find an arbitrary edge path from vertex a to b
+ * @param mesh a CMap2 mesh
+ * @param a begin vertex
+ * @param b end param
+ * @returns a list of adjacent edges
+*/
 std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 {
 	std::list<Edge> path;
-
-	if (isSameVertex(mesh, a.dart, b.dart))
-		return path;
 	
 	std::shared_ptr<Attribute<Scalar>> attr_dist = add_attribute<Scalar, Vertex>(mesh, "__dist__");
 	parallel_foreach_cell(mesh, [&](Vertex v) -> bool {
@@ -269,10 +295,10 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 				value<Scalar>(mesh, attr_dist, v) = current_dist + 1;
 			}
 			if (isSameVertex(mesh, v.dart, a.dart)) {
-				goon = false;
-				return 0;
+				goon = false;	// quicken the process, not the shortest path
+				return false;
 			}
-			return 1;
+			return true;
 		});
 	} while (goon);
 
@@ -302,6 +328,18 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 
 	remove_attribute<Vertex>(mesh, attr_dist);
 	return path;
+}
+
+/**
+ * Update a given list of edge so it can be computed by geodesic_path
+ * @param mesh a mesh
+ * @param updated_path the path that will be updated
+ * @returns false if the path could not be reordered when the path is not a connected component
+*/
+bool reorder_path(CMap2& mesh, std::list<Edge>& updated_path)
+{
+	// TODO
+	return false;
 }
 
 } // namespace geometry

@@ -68,8 +68,13 @@ public:
 	SurfaceConstriction(const App& app)
 		: ViewModule(app, "SurfaceConstriction (" + std::string{mesh_traits<MESH>::name} + ")")
 	{
+		param_intr_ = rendering::ShaderBoldLine::generate_param();
+		param_intr_->color_ = rendering::GLColor(1, 1, 1, 0.5f);
+		param_intr_->width_ = 3.0f;
+		param_intr_->set_vbos({&intr_vbo_});
+
 		param_edge_ = rendering::ShaderBoldLine::generate_param();
-		param_edge_->color_ = rendering::GLColor(1, 0, 0, 0.65f);
+		param_edge_->color_ = rendering::GLColor(1, 0, 0, 1);
 		param_edge_->width_ = 5.0f;
 		param_edge_->set_vbos({&edges_vbo_});
 	}
@@ -92,6 +97,13 @@ protected:
 
 	void draw(View* view) override
 	{
+		if (intr_traced_.size() > 0)
+		{
+			param_intr_->bind(view->projection_matrix(), view->modelview_matrix());
+			glDrawArrays(GL_LINES, 0, intr_vbo_.size());
+			param_intr_->release();
+		}
+
 		if (edges_vbo_.size() > 0)
 		{
 			param_edge_->bind(view->projection_matrix(), view->modelview_matrix());
@@ -101,30 +113,58 @@ protected:
 	}
 
 	/**
-	 * Show geodesic path
+	 * Update geodesic path VBO
 	*/
 	void update_vbo()
 	{
-		if (show_topology)
-			rendering::update_vbo(intr->edge_list_topology(geodesic_path_), &edges_vbo_);
-		else
-			rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
-		
+		rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
 		need_update = true;
 	}
 
+	/**
+	 * Show complete intrinsic triangulation
+	*/
+	void update_intr_traced_set()
+	{
+		intr_traced_.clear();
+		if (show_intr && intr)
+		{
+			foreach_cell(intr->getMesh(), [&](Edge e) -> bool {
+				std::list<Edge> oneEdgeList;
+				oneEdgeList.push_back(e);
+				std::vector<Vec3> toappend = intr->edge_list_trace(oneEdgeList);
+				intr_traced_.insert(intr_traced_.end(), toappend.begin(), toappend.end());
+				return true;
+			});
+		}
+		rendering::update_vbo(intr_traced_, &intr_vbo_);
+		need_update = true;
+	}
+
+	/**
+	 * Construct a path with selected edges
+	*/
 	void update_path_from_edge_set()
 	{
 		geodesic_path_.clear();
 		if (selected_edges_set_ == nullptr)
 			return;
 
+		// TODO reorder edges
 		selected_edges_set_->foreach_cell([&] (Edge e) -> bool {
 			geodesic_path_.push_back(e);
 			return true;
 		});
+
+		if (!geometry::reorder_path(intr->getMesh(), geodesic_path_))
+		{
+			geodesic_path_.clear();
+		}
 	}
 
+	/**
+	 * Construct a path with vertices
+	*/
 	void update_path_from_vertex_set()
 	{
 		geodesic_path_.clear();
@@ -137,10 +177,15 @@ protected:
 			return true;
 		});
 
-		int size = points_list.size();
+		int size = points_list.size();	// TODO cycles on one point
 		for (int i=1; i < size; ++i)
 		{
 			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[i-1], points_list[i]);
+			geodesic_path_.splice(geodesic_path_.end(), segment);
+		}
+		if (cyclic)
+		{
+			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[size-1], points_list[0]);
 			geodesic_path_.splice(geodesic_path_.end(), segment);
 		}
 	}
@@ -186,20 +231,26 @@ protected:
 					else if (enum_selected_set_type == 1)
 						update_path_from_edge_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					update_intr_traced_set();
 					update_vbo();
 				}
 
-				if (ImGui::Button("Compute geodesic")) {
+				if (ImGui::Button("Compute geodesic") || ImGui::InputInt("Flip out iterations", &flip_out_iteration)) {
 					if (enum_selected_set_type == 0)
 						update_path_from_vertex_set();
 					else if (enum_selected_set_type == 1)
 						update_path_from_edge_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration);
+					update_intr_traced_set();
 					update_vbo();
 				}
 
-				ImGui::InputInt("Flip out iterations", &flip_out_iteration);
+				ImGui::Checkbox("Closed loop", &cyclic);
+				if(ImGui::Checkbox("Show intrinsic mesh", &show_intr))
+				{
+					update_intr_traced_set();
+				}
 			}
 		}
 
@@ -213,7 +264,8 @@ protected:
 
 private:
 	bool need_update = false;
-	bool show_topology = false;
+	bool show_intr = false;
+	bool cyclic = false;
 	int enum_selected_set_type = 0; // 0 -> vertex, 1 -> edges
 	int flip_out_iteration = 100;
 	MESH* selected_mesh_ = nullptr;
@@ -223,8 +275,11 @@ private:
 	CellsSet<MESH, Edge>* selected_edges_set_ = nullptr;
 
 	std::list<Edge> geodesic_path_;
+	std::vector<Vec3> intr_traced_;
 	rendering::VBO edges_vbo_;
+	rendering::VBO intr_vbo_;
 	std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_;
+	std::unique_ptr<rendering::ShaderBoldLine::Param> param_intr_;
 
 	MeshProvider<MESH>* mesh_provider_ = nullptr;
 };
