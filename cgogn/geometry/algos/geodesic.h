@@ -283,24 +283,25 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 
 	Vertex v_current;
 	std::stack<Vertex> stack;
+	Scalar shoortest_path = std::numeric_limits<Scalar>::max();
 	stack.emplace(b);
-	bool goon = true;
 	do {
 		v_current = stack.top();
 		stack.pop();
 		Scalar current_dist = value<Scalar>(mesh, attr_dist, v_current);
-		foreach_adjacent_vertex_through_edge(mesh, v_current, [&](Vertex v) -> bool {
-			if (value<Scalar>(mesh, attr_dist, v) > current_dist + 1) {
-				stack.emplace(v);
-				value<Scalar>(mesh, attr_dist, v) = current_dist + 1;
-			}
-			if (isSameVertex(mesh, v.dart, a.dart)) {
-				goon = false;	// quicken the process, not the shortest path
-				return false;
-			}
-			return true;
-		});
-	} while (goon);
+		if (shoortest_path > current_dist)
+			foreach_adjacent_vertex_through_edge(mesh, v_current, [&](Vertex v) -> bool {
+				if (value<Scalar>(mesh, attr_dist, v) > current_dist + 1) {
+					stack.emplace(v);
+					value<Scalar>(mesh, attr_dist, v) = current_dist + 1;
+				}
+				if (isSameVertex(mesh, v.dart, a.dart)) {
+					shoortest_path = current_dist+1;
+					return false;
+				}
+				return true;
+			});
+	} while (!stack.empty());
 
 	v_current = a;
 	Scalar min_value = std::numeric_limits<Scalar>::max();
