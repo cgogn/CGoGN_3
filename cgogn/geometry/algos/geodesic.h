@@ -67,22 +67,27 @@ struct Joint
 {
 	Dart a;	// incoming halfedge
 	Dart b;	// outcoming halfedge
-	std::list<Edge>::iterator edge_ref;	// reference of the given edge
+	std::list<Edge>::iterator edge_ref_a;	// reference of the given edge a
+	std::list<Edge>::iterator edge_ref_b;	// reference of the given edge b
 	Scalar angle;		// extrinsic interior angle between a and b
 	bool inverted = false;	// true if a and b has been inverted
+	bool loop = false;	// true if a and b are disjoint so edge_ref_a is back and edge_ref_b is begin
 
 	/**
 	 * construct a joint A -> B from 2 consecutive edges
 	 * @param intr intrinsic triangulation
-	 * @param edge_iterator a list iterator pointing on an edge of a path, it has to be followed by at least one element
+	 * @param edge_iterator_a a list iterator pointing on an edge of a path
+	 * @param edge_iterator_b a list iterator pointing on an edge of a path
 	*/
 	Joint (IntrinsicTriangulation& intr,
-		std::list<Edge>::iterator edge_iterator)
+		std::list<Edge>::iterator edge_iterator_a,
+		std::list<Edge>::iterator edge_iterator_b)
 	{
 		CMap2& m = intr.getMesh();
-		edge_ref = edge_iterator;	// keep a ref to edge A
-		a = (*edge_iterator).dart;
-		b = (*(++edge_iterator)).dart;
+		edge_ref_a = edge_iterator_a;	// keep a ref to edge A
+		edge_ref_b = edge_iterator_b;	// keep a ref to edge B
+		a = (*edge_iterator_a).dart;
+		b = (*edge_iterator_b).dart;
 
 		// reorder as a -> b
 		if (isSameVertex(m, a, b)) {
@@ -150,14 +155,24 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 }
 
 inline JointsPriorityQueue buildJointList(IntrinsicTriangulation& intr,
-	std::list<Edge>& path)
+	std::list<Edge>& path,
+	bool loop = false)
 {
 	JointsPriorityQueue joints;
 	std::list<Edge>::iterator end_iter = end(path);
 	end_iter--;
 	for (std::list<Edge>::iterator e = begin(path); e != end_iter; e++)
 	{
-		Joint j {intr, e};
+		std::list<Edge>::iterator b = e;
+		++b;
+		Joint j {intr, e, b};
+		if (j.angle < M_PI && isFlexible(intr, path, j))
+			joints.push(j);
+	}
+	if (loop)
+	{
+		Joint j {intr, end_iter, begin(path)};
+		j.loop = true;
 		if (j.angle < M_PI && isFlexible(intr, path, j))
 			joints.push(j);
 	}
@@ -223,15 +238,16 @@ std::list<Edge> flip_out(
  * compute geodesic path with flip out algorithm on an intrinsic triangulation
  * @param intr an intrinsic triangulation, will be modified according to the geodesic
  * @param path an intrinsic connected path from the begin to the end of the vector, will be updated toward a geodesic
- * @param iteration optional, the maximum number of flip out to do
+ * @param iteration optional, the maximum number of flip out to do, default 100
+ * @param loop optional, true if the path is closed, default false
 */
 void geodesic_path(IntrinsicTriangulation& intr,
 	 std::list<Edge>& path,
-	 int iteration = 100)
+	 int iteration = 100, bool loop = false)
 {
 	const CMap2& mesh = intr.getMesh();
-
-	auto joints_priority_queue = buildJointList(intr, path);
+	
+	auto joints_priority_queue = buildJointList(intr, path, loop);
 	while (joints_priority_queue.size() > 0 && iteration > 0)
 	{
 		Joint j = joints_priority_queue.top();
@@ -255,12 +271,19 @@ void geodesic_path(IntrinsicTriangulation& intr,
 		}
 
 		// update
-		std::list<Edge>::iterator it = j.edge_ref;
-		++it;
-		it = path.erase(j.edge_ref, ++it);
-		path.splice(it, shorter_path);
+		if (j.loop)
+		{
+			path.pop_back();
+			path.pop_front();
+			path.splice(path.end(), shorter_path);
+		}
+		else
+		{
+			std::list<Edge>::iterator it = path.erase(j.edge_ref_a, ++j.edge_ref_b);
+			path.splice(it, shorter_path);
+		}
 
-		joints_priority_queue = buildJointList(intr, path);
+		joints_priority_queue = buildJointList(intr, path, loop);
 		--iteration;
 	}
 }

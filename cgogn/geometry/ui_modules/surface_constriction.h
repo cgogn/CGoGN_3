@@ -199,7 +199,7 @@ protected:
 				if (ImGui::Button("Compute geodesic") || ImGui::InputInt("Flip out iterations", &flip_out_iteration)) {
 					update_path_from_vertex_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
-					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration);
+					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration, cyclic);
 					update_intr_traced_set();
 					update_vbo();
 				}
