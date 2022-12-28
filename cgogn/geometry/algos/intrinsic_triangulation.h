@@ -35,9 +35,9 @@ namespace cgogn
 namespace geometry
 {
 /**
- * an intrinsic data structure,
+ * an intrinsic "signpost" data structure,
  * this class is a simplification of the paper "Navigating Intrinsic Triangulations" (Sharp, Crane, Soliman),
- * it use is only intended for the geodesic computation with the edgeflip function,
+ * it is primarily intended for the geodesic computation with the edgeflip function,
  * only manifold triangulated mesh are supported
 */
 class IntrinsicTriangulation
@@ -297,6 +297,7 @@ public:
 	}
 
 private:
+	// compute the next intersection from an edge
 	void trace_from_edge_()
 	{
 		Scalar barycenter, beta, B_gamma, C_gamma;
@@ -370,6 +371,7 @@ private:
 		}
 	}
 
+	// compute the next intersection from a vertex
 	void trace_from_vertex_()
 	{
 		Scalar angle = trace_parameters.intersection_angle;
@@ -457,7 +459,7 @@ private:
 		Scalar c = value<Scalar>(intr_, edge_length_, ij);
 		return acos((a*a + b*b - c*c) / (2*a*b));
 
-		/* more stable by Kahan's formula but fail more easily
+		/* Kahan's formula : more stable but fails more easily
 		Scalar mu;
 		if (c >= 0 && b >= c)
 			mu = c - a + b;
@@ -506,11 +508,11 @@ private:
 	static constexpr Scalar epsilon = 0.00001;
 	
 	struct {
-		Vec3 crossed_position;
-		Dart crossed_dart;
-		Scalar intersection_angle;
-		bool edge_crossed = false;
-	} trace_parameters;
+		Vec3 crossed_position;		// the extrinsic position of the intersection
+		Dart crossed_dart;			// the dart reference of the crossed cell
+		Scalar intersection_angle;	// the angle of the incoming trace
+		bool edge_crossed = false;	// true if the current intersection is an edge
+	} trace_parameters;	// used in the trace algorithm
 
 	const cgogn::CMap2& extr_;									// extrinsic mesh
 	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute

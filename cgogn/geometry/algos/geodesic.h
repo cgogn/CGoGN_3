@@ -50,6 +50,7 @@ using Edge = typename mesh_traits<CMap2>::Edge;
 
 constexpr Scalar epsilon = 0.00001;
 
+// check if the dart a and b are on the same vertex
 inline bool isSameVertex(const CMap2& m, Dart a, Dart b)
 {
 	bool r = false;
@@ -115,6 +116,7 @@ struct Joint
 	}
 };
 
+// the priority queue of joints to flip out sorted by minimum angle
 struct JointPriorityComparer {
 	typedef Joint const& param_type;
 	bool operator()(param_type a, param_type b) const {
@@ -123,6 +125,13 @@ struct JointPriorityComparer {
 };
 using JointsPriorityQueue = std::priority_queue<Joint, std::vector<Joint>, JointPriorityComparer>;
 
+/**
+ * check if dart is in a list of edge
+ * @param mesh a CMap2 data structure
+ * @param path a list of connected edges
+ * @param d the dart to check
+ * @returns true if the dart is contained in any edge of the list
+*/
 inline bool isInPath(const CMap2& mesh,
 	std::list<Edge>& path,
 	const Dart& d)
@@ -135,6 +144,13 @@ inline bool isInPath(const CMap2& mesh,
 	return false;
 }
 
+/**
+ * check if a joint is flexible, ie its wedges does not contain any path's edge
+ * @param intr an intrinsic triangulation
+ * @param path a list of connected edges
+ * @param joint the joint to check
+ * @returns true if the joint can be used in flip out
+*/
 inline bool isFlexible(IntrinsicTriangulation& intr,
 	std::list<Edge>& path,
 	const Joint& joint)
@@ -154,6 +170,13 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 	return true;
 }
 
+/**
+ * construct a priority queue of joints that can be flipped out
+ * @param intr an intrinsic triangulation
+ * @param path a list of connected edges
+ * @param loop true if the last nd first edge are connected
+ * @returns queue of joints to flip out
+*/
 inline JointsPriorityQueue buildJointList(IntrinsicTriangulation& intr,
 	std::list<Edge>& path,
 	bool loop = false)
@@ -241,8 +264,7 @@ std::list<Edge> flip_out(
  * @param iteration optional, the maximum number of flip out to do, default 100
  * @param loop optional, true if the path is closed, default false
 */
-void geodesic_path(IntrinsicTriangulation& intr,
-	 std::list<Edge>& path,
+void geodesic_path(IntrinsicTriangulation& intr, std::list<Edge>& path,
 	 int iteration = 100, bool loop = false)
 {
 	const CMap2& mesh = intr.getMesh();
@@ -290,6 +312,7 @@ void geodesic_path(IntrinsicTriangulation& intr,
 
 /**
  * find an arbitrary edge path from vertex a to b
+ * TODO templated version
  * @param mesh a CMap2 mesh
  * @param a begin vertex
  * @param b end param
@@ -299,6 +322,7 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 {
 	std::list<Edge> path;
 	
+	// initialize every distance to inf
 	std::shared_ptr<Attribute<Scalar>> attr_dist = add_attribute<Scalar, Vertex>(mesh, "__dist__");
 	parallel_foreach_cell(mesh, [&](Vertex v) -> bool {
 		value<Scalar>(mesh, attr_dist, v) = std::numeric_limits<Scalar>::max();
