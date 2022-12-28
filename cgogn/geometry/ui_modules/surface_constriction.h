@@ -142,27 +142,6 @@ protected:
 	}
 
 	/**
-	 * Construct a path with selected edges
-	*/
-	void update_path_from_edge_set()
-	{
-		geodesic_path_.clear();
-		if (selected_edges_set_ == nullptr)
-			return;
-
-		// TODO reorder edges
-		selected_edges_set_->foreach_cell([&] (Edge e) -> bool {
-			geodesic_path_.push_back(e);
-			return true;
-		});
-
-		if (!geometry::reorder_path(intr->getMesh(), geodesic_path_))
-		{
-			geodesic_path_.clear();
-		}
-	}
-
-	/**
 	 * Construct a path with vertices
 	*/
 	void update_path_from_vertex_set()
@@ -205,50 +184,33 @@ protected:
 
 			if (selected_vertex_position_)
 			{
-				ImGui::TextUnformatted("Selection set cell type");
-				ImGui::BeginGroup();
-				if (ImGui::RadioButton("Vertex##CellType", enum_selected_set_type == 0))
-					enum_selected_set_type = 0;
-				ImGui::SameLine();
-
-				if (ImGui::RadioButton("Edge##CellType", enum_selected_set_type == 1))
-					enum_selected_set_type = 1;
-				ImGui::SameLine();
-				ImGui::EndGroup();
-
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
-				if (enum_selected_set_type == 0)
-					imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
-										  [&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
-				else if (enum_selected_set_type == 1)
-					imgui_combo_cells_set(md, selected_edges_set_, "Source edges",
-										  [&](CellsSet<MESH, Edge>* cs) { selected_edges_set_ = cs; });
+				imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
+										[&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
 
 				if (ImGui::Button("Compute path")) {
-					if (enum_selected_set_type == 0)
-						update_path_from_vertex_set();
-					else if (enum_selected_set_type == 1)
-						update_path_from_edge_set();
+					update_path_from_vertex_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					update_intr_traced_set();
 					update_vbo();
 				}
 
 				if (ImGui::Button("Compute geodesic") || ImGui::InputInt("Flip out iterations", &flip_out_iteration)) {
-					if (enum_selected_set_type == 0)
-						update_path_from_vertex_set();
-					else if (enum_selected_set_type == 1)
-						update_path_from_edge_set();
+					update_path_from_vertex_set();
 					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration);
 					update_intr_traced_set();
 					update_vbo();
 				}
 
-				ImGui::Checkbox("Closed loop", &cyclic);
-				if(ImGui::Checkbox("Show intrinsic mesh", &show_intr))
-				{
+				if (ImGui::Checkbox("Closed loop", &cyclic)) {
+					update_path_from_vertex_set();
+					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					update_vbo();
+				}
+
+				if (ImGui::Checkbox("Show intrinsic mesh", &show_intr)) {
 					update_intr_traced_set();
 				}
 			}
@@ -266,13 +228,11 @@ private:
 	bool need_update = false;
 	bool show_intr = false;
 	bool cyclic = false;
-	int enum_selected_set_type = 0; // 0 -> vertex, 1 -> edges
 	int flip_out_iteration = 100;
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;
 	CellsSet<MESH, Vertex>* selected_vertices_set_ = nullptr;
-	CellsSet<MESH, Edge>* selected_edges_set_ = nullptr;
 
 	std::list<Edge> geodesic_path_;
 	std::vector<Vec3> intr_traced_;
