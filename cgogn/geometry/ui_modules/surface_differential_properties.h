@@ -79,7 +79,8 @@ public:
 	void compute_curvature(const MESH& m, Scalar radius, const Attribute<Vec3>* vertex_position,
 						   const Attribute<Vec3>* vertex_normal, const Attribute<Scalar>* edge_angle,
 						   Attribute<Scalar>* vertex_kmax, Attribute<Scalar>* vertex_kmin, Attribute<Vec3>* vertex_Kmax,
-						   Attribute<Vec3>* vertex_Kmin, Attribute<Vec3>* vertex_Knormal)
+						   Attribute<Vec3>* vertex_Kmin, Attribute<Vec3>* vertex_Knormal,
+						   Attribute<Scalar>* vertex_kgaussian)
 	{
 		geometry::compute_curvature(m, radius, vertex_position, vertex_normal, edge_angle, vertex_kmax, vertex_kmin,
 									vertex_Kmax, vertex_Kmin, vertex_Knormal);
@@ -88,6 +89,11 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_Kmax);
 		mesh_provider_->emit_attribute_changed(m, vertex_Kmin);
 		mesh_provider_->emit_attribute_changed(m, vertex_Knormal);
+
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			value<Scalar>(m, vertex_kgaussian, v) = value<Scalar>(m, vertex_kmin, v) * value<Scalar>(m, vertex_kmax, v);
+			return true;
+		});
 	}
 
 protected:
@@ -166,6 +172,9 @@ protected:
 					if (!selected_vertex_Knormal_)
 						selected_vertex_Knormal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
 
+					auto selected_vertex_kgaussian_ =
+						get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
+
 					std::shared_ptr<Attribute<Scalar>> edge_angle =
 						add_attribute<Scalar, Edge>(*selected_mesh_, "__edge_angle");
 					geometry::compute_angle(*selected_mesh_, selected_vertex_position_.get(), edge_angle.get());
@@ -176,7 +185,8 @@ protected:
 					compute_curvature(*selected_mesh_, mean_edge_length * 2.5, selected_vertex_position_.get(),
 									  selected_vertex_normal_.get(), edge_angle.get(), selected_vertex_kmax_.get(),
 									  selected_vertex_kmin_.get(), selected_vertex_Kmax_.get(),
-									  selected_vertex_Kmin_.get(), selected_vertex_Knormal_.get());
+									  selected_vertex_Kmin_.get(), selected_vertex_Knormal_.get(),
+									  selected_vertex_kgaussian_.get());
 
 					remove_attribute<Edge>(*selected_mesh_, edge_angle);
 				}
