@@ -30,6 +30,7 @@
 #include <cgogn/geometry/ui_modules/surface_constriction.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/geometry/ui_modules/surface_selection.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
 {
 	std::string filename;
 	if (argc < 2)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/gargoyle.off");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
 	else
 		filename = std::string(argv[1]);
 
@@ -61,14 +62,16 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceConstriction<Mesh> sc(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::SurfaceConstriction<Mesh> sc(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
+	v1->link_module(&ss);
 	v1->link_module(&sc);
 
 	Mesh* m = mp.load_surface_from_file(filename);
@@ -90,6 +93,10 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> face_normal = cgogn::add_attribute<Vec3, Face>(*m, "normal");
 	cgogn::geometry::compute_normal<Face>(*m, vertex_position.get(), face_normal.get());
+	
+	sc.set_vertex_position(*m, vertex_position);
+	ss.set_vertex_position(*m, vertex_position);
+	
 
 	return app.launch();
 }

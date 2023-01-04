@@ -138,6 +138,32 @@ void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Att
 	});
 }
 
+/**
+ * compute the sum of interior angles around a vertex on a well triangulated mesh
+ * @param m mesh
+ * @param v vertex
+ * @returns the sum of interior angles around v
+*/
+template <typename MESH>
+inline Scalar vertex_angle_sum(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+							   typename mesh_traits<MESH>::Vertex v)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	Vec3 v_position = value<Vec3>(m, vertex_position, v);
+	Scalar angle_sum{0};
+	std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
+
+	// sum incident directions angles
+	for (uint32 i = 0, size = uint32(vertices.size()); i < size; ++i)
+	{
+		Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
+		Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[i]);
+		angle_sum += angle(current_vertex - v_position, next_vertex - v_position);
+	}
+	return angle_sum;
+}
+
 } // namespace geometry
 
 } // namespace cgogn

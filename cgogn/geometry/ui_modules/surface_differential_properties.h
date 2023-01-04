@@ -31,6 +31,7 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/curvature.h>
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/normal.h>
@@ -61,8 +62,9 @@ public:
 	SurfaceDifferentialProperties(const App& app)
 		: Module(app, "SurfaceDifferentialProperties (" + std::string{mesh_traits<MESH>::name} + ")"),
 		  selected_mesh_(nullptr), selected_vertex_position_(nullptr), selected_vertex_normal_(nullptr),
-		  selected_vertex_kmax_(nullptr), selected_vertex_kmin_(nullptr), selected_vertex_Kmax_(nullptr),
-		  selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr)
+		  selected_vertex_kmax_(nullptr), selected_vertex_kmin_(nullptr), selected_vertex_kgaussian_(nullptr),
+		  selected_vertex_Kmax_(nullptr), selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr),
+		  selected_area_policy_(geometry::AreaPolicy::BARYCENTER)
 	{
 	}
 
@@ -78,9 +80,9 @@ public:
 
 	void compute_curvature(const MESH& m, Scalar radius, const Attribute<Vec3>* vertex_position,
 						   const Attribute<Vec3>* vertex_normal, const Attribute<Scalar>* edge_angle,
-						   Attribute<Scalar>* vertex_kmax, Attribute<Scalar>* vertex_kmin, Attribute<Vec3>* vertex_Kmax,
-						   Attribute<Vec3>* vertex_Kmin, Attribute<Vec3>* vertex_Knormal,
-						   Attribute<Scalar>* vertex_kgaussian)
+						   Attribute<Scalar>* vertex_kmax, Attribute<Scalar>* vertex_kmin,
+						   Attribute<Scalar>* vertex_kgaussian, Attribute<Vec3>* vertex_Kmax,
+						   Attribute<Vec3>* vertex_Kmin, Attribute<Vec3>* vertex_Knormal)
 	{
 		geometry::compute_curvature(m, radius, vertex_position, vertex_normal, edge_angle, vertex_kmax, vertex_kmin,
 									vertex_Kmax, vertex_Kmin, vertex_Knormal);
@@ -90,10 +92,20 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_Kmin);
 		mesh_provider_->emit_attribute_changed(m, vertex_Knormal);
 
+		// compute gaussian curvature kmax * kmin
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			value<Scalar>(m, vertex_kgaussian, v) = value<Scalar>(m, vertex_kmin, v) * value<Scalar>(m, vertex_kmax, v);
+			value<Scalar>(m, vertex_kgaussian, v) = value<Scalar>(m, vertex_kmax, v) * value<Scalar>(m, vertex_kmin, v);
 			return true;
 		});
+		mesh_provider_->emit_attribute_changed(m, vertex_kgaussian);
+	}
+
+	// compute angular defect gaussian curvature
+	void compute_gaussian_curvature(const MESH& m, const Attribute<Vec3>* vertex_position,
+									Attribute<Scalar>* vertex_kgaussian)
+	{
+		geometry::compute_gaussian_curvature(m, vertex_position, selected_area_policy_, vertex_kgaussian);
+		mesh_provider_->emit_attribute_changed(m, vertex_kgaussian);
 	}
 
 protected:
@@ -111,6 +123,7 @@ protected:
 			selected_vertex_normal_.reset();
 			selected_vertex_kmax_.reset();
 			selected_vertex_kmin_.reset();
+			selected_vertex_kgaussian_.reset();
 			selected_vertex_Kmax_.reset();
 			selected_vertex_Kmin_.reset();
 			selected_vertex_Knormal_.reset();
@@ -135,6 +148,10 @@ protected:
 				*selected_mesh_, selected_vertex_kmin_, "kmin",
 				[&](const decltype(selected_vertex_kmin_)& attribute) { selected_vertex_kmin_ = attribute; });
 
+			imgui_combo_attribute<Vertex, Scalar>(
+				*selected_mesh_, selected_vertex_kgaussian_, "kgaussian",
+				[&](const decltype(selected_vertex_kgaussian_)& attribute) { selected_vertex_kgaussian_ = attribute; });
+
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_Kmax_, "Kmax",
 				[&](const decltype(selected_vertex_Kmax_)& attribute) { selected_vertex_Kmax_ = attribute; });
@@ -155,6 +172,33 @@ protected:
 						selected_vertex_normal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "normal");
 					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
+
+				ImGui::TextUnformatted("Local area"); // local area to compute gaussian curvature
+				ImGui::BeginGroup();
+				if (ImGui::RadioButton("Baricenter##AreaPolicy",
+									   selected_area_policy_ == geometry::AreaPolicy::BARYCENTER))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::BARYCENTER;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Voronoï##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::VORONOI))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::VORONOI;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Mixed##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::MIXED))
+				{
+					selected_area_policy_ = geometry::AreaPolicy::MIXED;
+				}
+				ImGui::EndGroup();
+
+				if (ImGui::Button("Compute gaussian curvature"))
+				{
+					if (!selected_vertex_kgaussian_)
+						selected_vertex_kgaussian_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
+					compute_gaussian_curvature(*selected_mesh_, selected_vertex_position_.get(),
+											   selected_vertex_kgaussian_.get());
+				}
 			}
 
 			if (selected_vertex_position_ && selected_vertex_normal_)
@@ -165,6 +209,8 @@ protected:
 						selected_vertex_kmax_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kmax");
 					if (!selected_vertex_kmin_)
 						selected_vertex_kmin_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kmin");
+					if (!selected_vertex_kgaussian_)
+						selected_vertex_kgaussian_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
 					if (!selected_vertex_Kmax_)
 						selected_vertex_Kmax_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmax");
 					if (!selected_vertex_Kmin_)
@@ -184,9 +230,9 @@ protected:
 
 					compute_curvature(*selected_mesh_, mean_edge_length * 2.5, selected_vertex_position_.get(),
 									  selected_vertex_normal_.get(), edge_angle.get(), selected_vertex_kmax_.get(),
-									  selected_vertex_kmin_.get(), selected_vertex_Kmax_.get(),
-									  selected_vertex_Kmin_.get(), selected_vertex_Knormal_.get(),
-									  selected_vertex_kgaussian_.get());
+									  selected_vertex_kmin_.get(), selected_vertex_kgaussian_.get(),
+									  selected_vertex_Kmax_.get(), selected_vertex_Kmin_.get(),
+									  selected_vertex_Knormal_.get());
 
 					remove_attribute<Edge>(*selected_mesh_, edge_angle);
 				}
@@ -200,9 +246,11 @@ private:
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
 	std::shared_ptr<Attribute<Scalar>> selected_vertex_kmax_;
 	std::shared_ptr<Attribute<Scalar>> selected_vertex_kmin_;
+	std::shared_ptr<Attribute<Scalar>> selected_vertex_kgaussian_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmax_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmin_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Knormal_;
+	geometry::AreaPolicy selected_area_policy_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 

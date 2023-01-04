@@ -133,7 +133,7 @@ public:
 			md.init(m);
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
-				set_mesh_bb_vertex_position(m, vertex_position);
+				set_mesh_bb_vertex_position(*m, vertex_position);
 			boost::synapse::emit<mesh_added>(this, m);
 		}
 	}
