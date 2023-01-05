@@ -29,8 +29,8 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_constriction.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
-#include <cgogn/rendering/ui_modules/surface_render.h>
 #include <cgogn/geometry/ui_modules/surface_selection.h>
+#include <cgogn/rendering/ui_modules/surface_render.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -93,10 +93,9 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute<Vec3>> face_normal = cgogn::add_attribute<Vec3, Face>(*m, "normal");
 	cgogn::geometry::compute_normal<Face>(*m, vertex_position.get(), face_normal.get());
-	
+
 	sc.set_vertex_position(*m, vertex_position);
 	ss.set_vertex_position(*m, vertex_position);
-	
 
 	return app.launch();
 }

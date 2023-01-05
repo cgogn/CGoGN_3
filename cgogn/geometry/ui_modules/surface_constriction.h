@@ -33,13 +33,12 @@
 #include <cgogn/rendering/shaders/shader_bold_line.h>
 #include <cgogn/rendering/vbo_update.h>
 
-#include <GLFW/glfw3.h>
-
-#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/geodesic.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
+
+#include <cgogn/geometry/types/vector_traits.h>
+
 #include <boost/synapse/connect.hpp>
-#include <unordered_set>
 
 namespace cgogn
 {
@@ -114,7 +113,7 @@ protected:
 
 	/**
 	 * Update geodesic path VBO
-	*/
+	 */
 	void update_vbo()
 	{
 		rendering::update_vbo(intr->edge_list_trace(geodesic_path_), &edges_vbo_);
@@ -123,7 +122,7 @@ protected:
 
 	/**
 	 * Show complete intrinsic triangulation
-	*/
+	 */
 	void update_intr_traced_set()
 	{
 		intr_traced_.clear();
@@ -143,28 +142,28 @@ protected:
 
 	/**
 	 * Construct a path with vertices
-	*/
+	 */
 	void update_path_from_vertex_set()
 	{
 		geodesic_path_.clear();
 		if (selected_vertices_set_ == nullptr)
 			return;
-		
+
 		std::vector<Vertex> points_list;
-		selected_vertices_set_->foreach_cell([&] (Vertex v) -> bool {
+		selected_vertices_set_->foreach_cell([&](Vertex v) -> bool {
 			points_list.push_back(v);
 			return true;
 		});
 
-		int size = points_list.size();	// TODO cycles on one point
-		for (int i=1; i < size; ++i)
+		int size = points_list.size(); // TODO cycles on one point
+		for (int i = 1; i < size; ++i)
 		{
-			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[i-1], points_list[i]);
+			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[i - 1], points_list[i]);
 			geodesic_path_.splice(geodesic_path_.end(), segment);
 		}
 		if (cyclic)
 		{
-			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[size-1], points_list[0]);
+			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[size - 1], points_list[0]);
 			geodesic_path_.splice(geodesic_path_.end(), segment);
 		}
 	}
@@ -187,30 +186,37 @@ protected:
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
 				imgui_combo_cells_set(md, selected_vertices_set_, "Source vertices",
-										[&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
+									  [&](CellsSet<MESH, Vertex>* cs) { selected_vertices_set_ = cs; });
 
-				if (ImGui::Button("Compute path")) {
+				if (ImGui::Button("Compute path"))
+				{
 					update_path_from_vertex_set();
-					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					intr =
+						std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					update_intr_traced_set();
 					update_vbo();
 				}
 
-				if (ImGui::Button("Compute geodesic") || ImGui::InputInt("Flip out iterations", &flip_out_iteration)) {
+				if (ImGui::Button("Compute geodesic") || ImGui::InputInt("Flip out iterations", &flip_out_iteration))
+				{
 					update_path_from_vertex_set();
-					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					intr =
+						std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					geometry::geodesic_path(*intr, geodesic_path_, flip_out_iteration, cyclic);
 					update_intr_traced_set();
 					update_vbo();
 				}
 
-				if (ImGui::Checkbox("Closed loop", &cyclic)) {
+				if (ImGui::Checkbox("Closed loop", &cyclic))
+				{
 					update_path_from_vertex_set();
-					intr = std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
+					intr =
+						std::make_shared<geometry::IntrinsicTriangulation>(*selected_mesh_, selected_vertex_position_);
 					update_vbo();
 				}
 
-				if (ImGui::Checkbox("Show intrinsic mesh", &show_intr)) {
+				if (ImGui::Checkbox("Show intrinsic mesh", &show_intr))
+				{
 					update_intr_traced_set();
 				}
 			}
@@ -229,6 +235,7 @@ private:
 	bool show_intr = false;
 	bool cyclic = false;
 	int flip_out_iteration = 100;
+
 	MESH* selected_mesh_ = nullptr;
 	std::shared_ptr<geometry::IntrinsicTriangulation> intr;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_position_;

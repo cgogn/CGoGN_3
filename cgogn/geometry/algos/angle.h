@@ -39,6 +39,10 @@ namespace cgogn
 namespace geometry
 {
 
+///////////
+// CMap2 //
+///////////
+
 inline std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge e,
 										   const typename mesh_traits<CMap2>::template Attribute<Vec3>* vertex_position)
 {
@@ -58,6 +62,10 @@ inline std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge 
 		return {angle(p1 - p3, p2 - p3)};
 	}
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
 Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
@@ -96,6 +104,10 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	return angle(value<Vec3>(m, face_normal, faces[0]), value<Vec3>(m, face_normal, faces[1]));
 }
 
+//////////
+// CMap //
+//////////
+
 template <typename MESH>
 Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 			 const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
@@ -109,6 +121,10 @@ Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 
 	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
 void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
@@ -143,9 +159,10 @@ void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Att
  * @param m mesh
  * @param v vertex
  * @returns the sum of interior angles around v
-*/
+ */
 template <typename MESH>
-inline Scalar vertex_angle_sum(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+inline Scalar vertex_angle_sum(const MESH& m,
+							   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 							   typename mesh_traits<MESH>::Vertex v)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -157,7 +174,7 @@ inline Scalar vertex_angle_sum(const MESH& m, const typename mesh_traits<MESH>::
 	// sum incident directions angles
 	for (uint32 i = 0, size = uint32(vertices.size()); i < size; ++i)
 	{
-		Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i+1)%size]);
+		Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i + 1) % size]);
 		Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[i]);
 		angle_sum += angle(current_vertex - v_position, next_vertex - v_position);
 	}

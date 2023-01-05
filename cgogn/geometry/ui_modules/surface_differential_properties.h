@@ -64,7 +64,7 @@ public:
 		  selected_mesh_(nullptr), selected_vertex_position_(nullptr), selected_vertex_normal_(nullptr),
 		  selected_vertex_kmax_(nullptr), selected_vertex_kmin_(nullptr), selected_vertex_kgaussian_(nullptr),
 		  selected_vertex_Kmax_(nullptr), selected_vertex_Kmin_(nullptr), selected_vertex_Knormal_(nullptr),
-		  selected_area_policy_(geometry::AreaPolicy::BARYCENTER)
+		  selected_area_policy_(geometry::VertexAreaPolicy::BARYCENTER)
 	{
 	}
 
@@ -92,7 +92,7 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_Kmin);
 		mesh_provider_->emit_attribute_changed(m, vertex_Knormal);
 
-		// compute gaussian curvature kmax * kmin
+		// compute gaussian curvature using kmax * kmin
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			value<Scalar>(m, vertex_kgaussian, v) = value<Scalar>(m, vertex_kmax, v) * value<Scalar>(m, vertex_kmin, v);
 			return true;
@@ -102,9 +102,9 @@ public:
 
 	// compute angular defect gaussian curvature
 	void compute_gaussian_curvature(const MESH& m, const Attribute<Vec3>* vertex_position,
-									Attribute<Scalar>* vertex_kgaussian)
+									geometry::VertexAreaPolicy area_policy, Attribute<Scalar>* vertex_kgaussian)
 	{
-		geometry::compute_gaussian_curvature(m, vertex_position, selected_area_policy_, vertex_kgaussian);
+		geometry::compute_gaussian_curvature(m, vertex_position, area_policy, vertex_kgaussian);
 		mesh_provider_->emit_attribute_changed(m, vertex_kgaussian);
 	}
 
@@ -173,22 +173,24 @@ protected:
 					compute_normal(*selected_mesh_, selected_vertex_position_.get(), selected_vertex_normal_.get());
 				}
 
-				ImGui::TextUnformatted("Local area"); // local area to compute gaussian curvature
+				ImGui::TextUnformatted("Vertex area"); // vertex area policy to compute gaussian curvature
 				ImGui::BeginGroup();
-				if (ImGui::RadioButton("Baricenter##AreaPolicy",
-									   selected_area_policy_ == geometry::AreaPolicy::BARYCENTER))
+				if (ImGui::RadioButton("Barycenter##VertexAreaPolicy",
+									   selected_area_policy_ == geometry::VertexAreaPolicy::BARYCENTER))
 				{
-					selected_area_policy_ = geometry::AreaPolicy::BARYCENTER;
+					selected_area_policy_ = geometry::VertexAreaPolicy::BARYCENTER;
 				}
 				ImGui::SameLine();
-				if (ImGui::RadioButton("Voronoï##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::VORONOI))
+				if (ImGui::RadioButton("Voronoï##VertexAreaPolicy",
+									   selected_area_policy_ == geometry::VertexAreaPolicy::VORONOI))
 				{
-					selected_area_policy_ = geometry::AreaPolicy::VORONOI;
+					selected_area_policy_ = geometry::VertexAreaPolicy::VORONOI;
 				}
 				ImGui::SameLine();
-				if (ImGui::RadioButton("Mixed##AreaPolicy", selected_area_policy_ == geometry::AreaPolicy::MIXED))
+				if (ImGui::RadioButton("Mixed##VertexAreaPolicy",
+									   selected_area_policy_ == geometry::VertexAreaPolicy::MIXED))
 				{
-					selected_area_policy_ = geometry::AreaPolicy::MIXED;
+					selected_area_policy_ = geometry::VertexAreaPolicy::MIXED;
 				}
 				ImGui::EndGroup();
 
@@ -196,7 +198,7 @@ protected:
 				{
 					if (!selected_vertex_kgaussian_)
 						selected_vertex_kgaussian_ = get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
-					compute_gaussian_curvature(*selected_mesh_, selected_vertex_position_.get(),
+					compute_gaussian_curvature(*selected_mesh_, selected_vertex_position_.get(), selected_area_policy_,
 											   selected_vertex_kgaussian_.get());
 				}
 			}
@@ -250,7 +252,7 @@ private:
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmax_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Kmin_;
 	std::shared_ptr<Attribute<Vec3>> selected_vertex_Knormal_;
-	geometry::AreaPolicy selected_area_policy_;
+	geometry::VertexAreaPolicy selected_area_policy_;
 	MeshProvider<MESH>* mesh_provider_;
 };
 
