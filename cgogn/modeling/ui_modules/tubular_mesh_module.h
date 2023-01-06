@@ -301,17 +301,11 @@ public:
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
-		auto start_timer = std::chrono::high_resolution_clock::now();
-
 		if constexpr (std::is_same_v<GRAPH, Graph>)
 			hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
 		if constexpr (std::is_same_v<GRAPH, IncidenceGraph>)
 			hex_building_attributes_ig_ = modeling::incidenceGraph_to_hex(*graph_, *contact_surface_, *volume_);
-
-		auto end_timer = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
-		std::cout << "hex mesh generation in " << elapsed_seconds.count() << std::endl;
 
 		// if (!transversal_faces_marker_)
 		// {
@@ -1534,7 +1528,11 @@ private:
 	std::shared_ptr<VolumeAttribute<uint32>> volume_edge_index_ = nullptr;
 	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_ = nullptr;
 	Scalar length_mean_;
+
+public:
 	bool refresh_edge_target_length_ = true;
+
+private:
 	bool refresh_volume_cells_indexing_ = true;
 
 	CellsSet<VOLUME, VolumeVertex>* selected_frozen_vertices_set_ = nullptr;

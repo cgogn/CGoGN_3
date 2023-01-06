@@ -164,10 +164,43 @@ int main(int argc, char** argv)
 		// tm.set_current_graph_vertex_position(resampled_graph_vertex_position);
 		// tm.set_current_graph_vertex_radius(resampled_graph_vertex_radius);
 
-		// Volume* h = tm.build_hex_mesh();
-		// auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
+		// *********** //
 
+		// auto start_timer = std::chrono::high_resolution_clock::now();
+
+		// Volume* h = tm.build_hex_mesh();
+
+		// auto end_timer = std::chrono::high_resolution_clock::now();
+		// std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
+		// std::cout << "hex mesh generation in " << elapsed_seconds.count() << " seconds" << std::endl;
+
+		// start_timer = end_timer;
+
+		// for (int i = 0; i < 30; ++i)
+		// 	tm.regularize_surface_vertices(5.0);
+		// tm.add_volume_padding(true);
+		// for (int i = 0; i < 5; ++i)
+		// 	tm.relocate_interior_vertices();
+		// for (int i = 0; i < 15; ++i)
+		// {
+		// 	tm.refresh_edge_target_length_ = true;
+		// 	tm.optimize_volume_vertices(1.0, false);
+		// }
+		// tm.subdivide_volume();
+		// for (int i = 0; i < 20; ++i)
+		// 	tm.optimize_volume_vertices(1.0, false);
+		// tm.optimize_volume_vertices(1.0, true);
+		// // for (int i = 0; i < 10; ++i)
+		// // 	tm.optimize_volume_vertices(12.0, true);
+
+		// end_timer = std::chrono::high_resolution_clock::now();
+		// elapsed_seconds = end_timer - start_timer;
+		// std::cout << "regul + subdiv + optim in " << elapsed_seconds.count() << " seconds" << std::endl;
+
+		// auto volume_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Volume>::Vertex>(*h, "position");
 		// vr.set_vertex_position(*v, *h, volume_vertex_position);
+
+		// *********** //
 	}
 
 	// load volume
