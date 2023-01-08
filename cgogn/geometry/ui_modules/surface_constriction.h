@@ -150,19 +150,19 @@ protected:
 		if (selected_vertices_set_ == nullptr)
 			return;
 		
-		std::vector<Vertex> points_list;
+		std::vector<Vertex> points_list;	// could not be ordered, implementation defined
 		selected_vertices_set_->foreach_cell([&] (Vertex v) -> bool {
 			points_list.push_back(v);
 			return true;
 		});
 
-		int size = points_list.size();	// TODO cycles on one point
+		int size = points_list.size();
 		for (int i=1; i < size; ++i)
 		{
 			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[i-1], points_list[i]);
 			geodesic_path_.splice(geodesic_path_.end(), segment);
 		}
-		if (cyclic)
+		if (cyclic && size > 0)
 		{
 			std::list<Edge> segment = geometry::find_path(*selected_mesh_, points_list[size-1], points_list[0]);
 			geodesic_path_.splice(geodesic_path_.end(), segment);
