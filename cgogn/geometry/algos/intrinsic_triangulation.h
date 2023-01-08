@@ -505,14 +505,14 @@ private:
 	}
 
 private:
-	static constexpr Scalar epsilon = 0.00001;
+	static constexpr Scalar epsilon = 0.00001;	// epsilon value used to clamp the traced line on vertices instead on edges
 	
 	struct {
 		Vec3 crossed_position;		// the extrinsic position of the intersection
 		Dart crossed_dart;			// the dart reference of the crossed cell
 		Scalar intersection_angle;	// the angle of the incoming trace
 		bool edge_crossed = false;	// true if the current intersection is an edge
-	} trace_parameters;	// used in the trace algorithm
+	} trace_parameters;	// used in the trace algorithm to avoid stack
 
 	const cgogn::CMap2& extr_;									// extrinsic mesh
 	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute

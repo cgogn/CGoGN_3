@@ -239,7 +239,7 @@ std::list<Edge> flip_out(
 		wedge.push_back(d);
 
 	auto index = indexOfBi(intr, wedge);
-	while (index != end(wedge)) // update until stability
+	while (index != end(wedge)) // flip until stability
 	{
 		intr.flip_edge(Edge(*index));
 		wedge.erase(index);
@@ -305,6 +305,7 @@ void geodesic_path(IntrinsicTriangulation& intr, std::list<Edge>& path,
 			path.splice(it, shorter_path);
 		}
 
+		// update the priority queue with the new shorter path, in fact rebuild the whole path as every joint flexibility need to be checked
 		joints_priority_queue = buildJointList(intr, path, loop);
 		--iteration;
 	}
@@ -384,7 +385,7 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 }
 
 /**
- * Update a given list of edge so it can be computed by geodesic_path
+ * Reorder a given list of edge so it can be computed by geodesic_path
  * @param mesh a mesh
  * @param updated_path the path that will be updated
  * @returns false if the path could not be reordered when the path is not a connected component
