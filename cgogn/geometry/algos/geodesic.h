@@ -146,6 +146,8 @@ inline bool isInPath(const CMap2& mesh,
 
 /**
  * check if a joint is flexible, ie its wedges does not contain any path's edge
+ * check also for a case where any wedge cannot flip and the inner and outer joints form a convex diamond
+ * this last case will issue in the non convergence of the algorithm as it will loop over the two joints
  * @param intr an intrinsic triangulation
  * @param path a list of connected edges
  * @param joint the joint to check
@@ -156,14 +158,31 @@ inline bool isFlexible(IntrinsicTriangulation& intr,
 	const Joint& joint)
 {
 	const CMap2& mesh = intr.getMesh();
+	bool no_wedge_can_flip = true;
 
 	if (isInPath(mesh, path, phi <2, 1>(mesh, joint.a)))
 		return false;
+	// iterate over wedge segments
 	for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
 	{
 		if (isInPath(mesh, path, d))
 			return false;
 		if (isInPath(mesh, path, phi1(mesh, d)))
+			return false;
+		if (no_wedge_can_flip && intr.can_be_flipped(Edge(d)))
+			no_wedge_can_flip = false;
+	}
+
+	// check if the outer wedge is longer, if so return false
+	if (no_wedge_can_flip)
+	{
+		Scalar old_length = intr.getLength(joint.a) + intr.getLength(joint.b);
+
+		Scalar new_length = intr.getLength(phi<2, 1>(mesh, joint.a));
+		for(Dart d = phi<2, -1, 2>(mesh, joint.a); d != joint.b; d = phi<-1, 2>(mesh, d))
+			new_length += intr.getLength(phi1(mesh, d));
+		
+		if (old_length <= new_length)
 			return false;
 	}
 
@@ -208,8 +227,34 @@ inline JointsPriorityQueue buildJointList(IntrinsicTriangulation& intr,
  * @param wedge a list of consecutive adjacent halfedges
  * @returns an iterator to the founded wedge or end(wedge) if not found
 */
-inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
+inline std::list<Dart>::const_iterator indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge)
 {
+	auto chosen = end(wedge);
+	auto it = begin(wedge);
+	Scalar min_angle = M_PI;	// upper bound
+
+	while (it != end(wedge))
+	{
+		it = std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
+			if (!intr.can_be_flipped(Edge(d)))
+				return false;
+
+			Dart a = phi1(intr.getMesh(), d);
+			Dart b = phi<2, -1, 2>(intr.getMesh(), d);
+			Scalar angle = intr.intrinsicInteriorAngle(a, b);
+			if (angle < min_angle)
+			{
+				min_angle = angle;
+				return true;
+			}
+			return false;
+		});
+		if (it != end(wedge))
+			chosen = it;
+	}
+	return chosen;
+
+	/*	faster finding, the results looks the same but it is preferable to flip the biggest angle firstly
 	return std::find_if(begin(wedge), end(wedge), [&](const Dart& d) -> bool {
 		if (!intr.can_be_flipped(Edge(d)))
 			return false;
@@ -218,6 +263,7 @@ inline auto indexOfBi(IntrinsicTriangulation& intr, const std::list<Dart>& wedge
 		Dart b = phi<2, -1, 2>(intr.getMesh(), d);
 		return (intr.intrinsicInteriorAngle(a, b) < M_PI);
 	});
+	*/
 }
 
 /**
@@ -273,16 +319,8 @@ void geodesic_path(IntrinsicTriangulation& intr, std::list<Edge>& path,
 	while (joints_priority_queue.size() > 0 && iteration > 0)
 	{
 		Joint j = joints_priority_queue.top();
+		Scalar old_length = intr.getLength(j.a) + intr.getLength(j.b);
 		auto shorter_path = flip_out(intr, j);
-
-		// check if the new path is shorter than the old one, TODO fix on buildJointList
-		Scalar new_length = 0;
-		for (Edge e : shorter_path)
-			new_length += intr.getLength(e.dart);
-		if (new_length >= intr.getLength(j.a) + intr.getLength(j.b)) {
-			joints_priority_queue.pop();
-			continue;
-		}
 
 		// reverse the segment if needed to not break the path
 		if (j.inverted)
