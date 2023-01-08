@@ -206,7 +206,7 @@ public:
 		// Test if geometrically flippable (both signed areas of new triangles are positive)
 		Scalar A1 = cross_(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
 		Scalar A2 = cross_(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
-		if (A1 <= 0 || A2 <= 0) {
+		if (A1 <= epsilon || A2 <= epsilon) {
 			return false;
 		}
 
