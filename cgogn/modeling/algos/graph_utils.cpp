@@ -156,6 +156,8 @@ bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& igDat
 
 		if (info.first + info.second > 2)
 			igData.intersections.push_back(v);
+		else if (info.first == 0 && info.second == 0)
+			igData.leaflets_inside_vertices.push_back(v);
 		else if (info.first == 0 && info.second == 1)
 			igData.extremities.push_back(v);
 		else if (info.first == 0 && info.second == 2)

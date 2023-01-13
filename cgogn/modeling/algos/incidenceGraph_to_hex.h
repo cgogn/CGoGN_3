@@ -193,11 +193,13 @@ bool build_leaflets(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG
 					const IncidenceGraphData& incidenceGraph_data);
 bool build_leaflet_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
 						  const std::vector<IncidenceGraph::Face>& leaflet);
-bool sew_fan_edge_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3, IncidenceGraph::Edge e);
+bool sew_leaflet_fan_edge_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3, IncidenceGraph::Edge e);
 bool build_leaflet_boundary_edge_plate(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
 									   IG_M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Edge be);
 bool sew_leaflet_boundary_vertex_corner_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
 											   IncidenceGraph::Vertex bv);
+bool sew_leaflet_boundary_vertex_fan_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
+											IncidenceGraph::Vertex bv);
 bool register_leaflet_boundary_edge_plates_into_efjuncture(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
 														   IG_M2Attributes& m2Attribs, CMap3& m3,
 														   IncidenceGraph::Edge be, IncidenceGraph::Vertex bv);
