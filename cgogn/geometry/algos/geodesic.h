@@ -32,6 +32,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
 #include <cgogn/core/functions/traversals/vertex.h>
+#include <stack>
 
 namespace cgogn
 {
