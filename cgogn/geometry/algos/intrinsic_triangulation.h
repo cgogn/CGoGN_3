@@ -24,10 +24,10 @@
 #ifndef CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 #define CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
-#include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/geometry/algos/angle.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
+#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -39,7 +39,7 @@ namespace geometry
  * this class is a simplification of the paper "Navigating Intrinsic Triangulations" (Sharp, Crane, Soliman),
  * it is primarily intended for the geodesic computation with the edgeflip function,
  * only manifold triangulated mesh are supported
-*/
+ */
 class IntrinsicTriangulation
 {
 	template <typename T>
@@ -64,13 +64,14 @@ public:
 		// IntrinsicTriangulation(m_converted, vertex_position):
 	}
 	*/
-	
+
 	/**
 	 * construct an intrinsic triangulation
 	 * @param m an extrinsic mesh
 	 * @param vertex_position the position attribute related to m
-	*/
-	IntrinsicTriangulation(const CMap2& m, const std::shared_ptr<Attribute<Vec3>> vertex_position): extr_(m), vertex_position_(vertex_position)
+	 */
+	IntrinsicTriangulation(const CMap2& m, const std::shared_ptr<Attribute<Vec3>> vertex_position)
+		: extr_(m), vertex_position_(vertex_position)
 	{
 		// copy topology for cmap2
 		copy(intr_, m);
@@ -98,7 +99,7 @@ public:
 			// compute angle of each halfedge around vertex
 			Dart vdart = v.dart;
 			Dart it = phi<-1, 2>(intr_, vdart);
-			value<Scalar>(intr_, halfedge_angle_, HalfEdge(vdart)) = 0;	// reference direction
+			value<Scalar>(intr_, halfedge_angle_, HalfEdge(vdart)) = 0; // reference direction
 			while (it != vdart)
 			{
 				update_signpost(it);
@@ -106,12 +107,11 @@ public:
 			}
 			return true;
 		});
-			
 	}
 
 	/**
 	 * @returns the intrinsic mesh
-	*/
+	 */
 	CMap2& getMesh()
 	{
 		return intr_;
@@ -120,7 +120,7 @@ public:
 	/**
 	 * @param d an intrinsic halfedge
 	 * @returns the intrinsic angle of halfedge d
-	*/
+	 */
 	Scalar getAngle(Dart d)
 	{
 		return value<Scalar>(intr_, halfedge_angle_, HalfEdge(d));
@@ -129,7 +129,7 @@ public:
 	/**
 	 * @param d an intrinsic edge
 	 * @returns the intrinsic length of edge d
-	*/
+	 */
 	Scalar getLength(Dart d)
 	{
 		return value<Scalar>(intr_, edge_length_, Edge(d));
@@ -140,7 +140,7 @@ public:
 	 * @param a the first angle
 	 * @param b the second angle
 	 * @returns angle from a to b
-	*/
+	 */
 	Scalar intrinsicInteriorAngle(Dart a, Dart b)
 	{
 		Scalar a_angle = getAngle(a);
@@ -155,7 +155,8 @@ public:
 		Scalar tArea = area_(lAB, lBC, lCA);
 		Scalar h = 2. * tArea / lAB;
 		Scalar w = std::sqrt(std::max(0., lCA * lCA - h * h));
-		if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
+		if (lBC * lBC > (lAB * lAB + lCA * lCA))
+			w *= -1.0;
 		Vec2 vABn = (pB - pA) / lAB;
 		Vec2 vABnPerp{-(vABn[1]), vABn[0]};
 		Vec2 pC = pA + w * vABn + h * vABnPerp;
@@ -190,8 +191,8 @@ public:
 	 * check if an intrinsic edge can be flipped
 	 * @param e the edge to flip
 	 * @returns true if the edge can be flipped, false otherwise
-	*/
-	bool can_be_flipped (Edge e)
+	 */
+	bool can_be_flipped(Edge e)
 	{
 		Dart d = e.dart;
 		// check if the incident faces are triangles
@@ -206,11 +207,10 @@ public:
 		// Test if geometrically flippable (both signed areas of new triangles are positive)
 		Scalar A1 = cross_(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
 		Scalar A2 = cross_(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
-		if (A1 <= 0 || A2 <= 0) {
+		if (A1 <= epsilon || A2 <= epsilon)
 			return false;
-		}
 
-  		if (!std::isfinite((layoutPositions[1] - layoutPositions[3]).norm()))
+		if (!std::isfinite((layoutPositions[1] - layoutPositions[3]).norm()))
 			return false;
 
 		return true;
@@ -219,14 +219,14 @@ public:
 	/**
 	 * flip an intrinsic edge, does not check if it is flippable
 	 * @param e the edge to flip
-	*/
-	void flip_edge (Edge e)
+	 */
+	void flip_edge(Edge e)
 	{
 		Dart d = e.dart;
 		std::array<Vec2, 4> layoutPositions = layoutDiamond(d);
-  		value<Scalar>(intr_, edge_length_, e)= (layoutPositions[1] - layoutPositions[3]).norm();
+		value<Scalar>(intr_, edge_length_, e) = (layoutPositions[1] - layoutPositions[3]).norm();
 		cgogn::flip_edge(intr_, e);
-		
+
 		update_signpost(e.dart);
 		update_signpost(phi2(intr_, e.dart));
 	}
@@ -235,7 +235,7 @@ public:
 	 * compute the path of a list of edge to trace
 	 * @param e_list a list of adjacent edges to trace
 	 * @returns a list of pairs of positions
-	*/
+	 */
 	std::vector<Vec3> edge_list_trace(std::list<Edge> e_list)
 	{
 		std::vector<Vec3> geodesic_segments;
@@ -243,7 +243,7 @@ public:
 		{
 			std::vector<Vec3> points = trace(e.dart);
 			Vec3 last_p = points[0];
-			for(Vec3 p : points)
+			for (Vec3 p : points)
 			{
 				if (p != last_p)
 				{
@@ -260,7 +260,7 @@ public:
 	 * compute the extrinsic representation of an intrinsic edge
 	 * @param d the edge to trace
 	 * @returns a list of extrinsic positions
-	*/
+	 */
 	std::vector<Vec3> trace(Dart d, int max_intersection = 100)
 	{
 		std::vector<Vec3> positions;
@@ -303,55 +303,61 @@ private:
 		Scalar barycenter, beta, B_gamma, C_gamma;
 		Vec3 B_inter, C_inter;
 		bool C_side = false, B_side = false;
-		
+
 		Scalar alpha = trace_parameters.intersection_angle;
 		Dart B_dart = trace_parameters.crossed_dart;
 		Dart A_dart = phi_1(extr_, B_dart);
 		Dart C_dart = phi1(extr_, B_dart);
 
-		Vec3 X = trace_parameters.crossed_position;	// last_intersection
+		Vec3 X = trace_parameters.crossed_position; // last_intersection
 		Vec3 A = value<Vec3>(extr_, vertex_position_, Vertex(A_dart));
 		Vec3 B = value<Vec3>(extr_, vertex_position_, Vertex(B_dart));
 		Vec3 C = value<Vec3>(extr_, vertex_position_, Vertex(C_dart));
 
-		beta = geometry::angle((B-C).normalized(), (A-C).normalized());
-		C_side = beta + alpha < M_PI;	// if edge AC is intersected
-		if(C_side)
+		beta = geometry::angle((B - C).normalized(), (A - C).normalized());
+		C_side = beta + alpha < M_PI; // if edge AC is intersected
+		if (C_side)
 		{
-			Vec3 AC = A-C;
-			C_gamma = M_PI - (alpha + geometry::angle(AC.normalized(), (B-C).normalized()));
-			Scalar CX = (X-C).norm() * sin(alpha) / sin(C_gamma);	// distance between C_inter and C
+			Vec3 AC = A - C;
+			C_gamma = M_PI - (alpha + geometry::angle(AC.normalized(), (B - C).normalized()));
+			Scalar CX = (X - C).norm() * sin(alpha) / sin(C_gamma); // distance between C_inter and C
 			barycenter = CX / (AC).norm();
-			if (barycenter > 1-epsilon) {
+			if (barycenter > 1 - epsilon)
+			{
 				C_side = false;
-			} else {
-				C_inter = C*(1-barycenter) + A*barycenter;
+			}
+			else
+			{
+				C_inter = C * (1 - barycenter) + A * barycenter;
 			}
 		}
 
-		beta = geometry::angle((C-B).normalized(), (A-B).normalized());
+		beta = geometry::angle((C - B).normalized(), (A - B).normalized());
 		alpha = M_PI - alpha;
-		B_side = beta + alpha < M_PI ;	// if edge AB is intersected
-		if(B_side)
+		B_side = beta + alpha < M_PI; // if edge AB is intersected
+		if (B_side)
 		{
-			Vec3 AB = A-B;
-			B_gamma = M_PI - (alpha + geometry::angle(AB.normalized(), (C-B).normalized()));
-			Scalar BX = (X-B).norm() * sin(alpha) / sin(B_gamma);	// distance between B_inter and C
+			Vec3 AB = A - B;
+			B_gamma = M_PI - (alpha + geometry::angle(AB.normalized(), (C - B).normalized()));
+			Scalar BX = (X - B).norm() * sin(alpha) / sin(B_gamma); // distance between B_inter and C
 			barycenter = BX / (AB).norm();
-			if (barycenter > 1-epsilon){
+			if (barycenter > 1 - epsilon)
+			{
 				B_side = false;
-			} else {
-				B_inter = B*(1-barycenter) + A*barycenter;
+			}
+			else
+			{
+				B_inter = B * (1 - barycenter) + A * barycenter;
 			}
 		}
 
-		if (C_side && B_side)	// pick the nearest intersection
+		if (C_side && B_side) // pick the nearest intersection
 		{
-			if ((X-C_inter).norm() < (X-B_inter).norm())
+			if ((X - C_inter).norm() < (X - B_inter).norm())
 				B_side = false;
 			else
 				C_side = false;
-		} 
+		}
 		if (C_side)
 		{
 			trace_parameters.intersection_angle = M_PI - C_gamma;
@@ -363,11 +369,13 @@ private:
 			trace_parameters.intersection_angle = B_gamma;
 			trace_parameters.crossed_position = B_inter;
 			trace_parameters.crossed_dart = phi2(extr_, A_dart);
-		} else {
+		}
+		else
+		{
 			trace_parameters.edge_crossed = false;
 			trace_parameters.crossed_position = A;
-			trace_parameters.crossed_dart = phi<1,2>(extr_, B_dart);
-			update_trace_parameter_through_vertex_(M_PI, geometry::angle((C-A).normalized(), (X-A).normalized()));
+			trace_parameters.crossed_dart = phi<1, 2>(extr_, B_dart);
+			update_trace_parameter_through_vertex_(M_PI, geometry::angle((C - A).normalized(), (X - A).normalized()));
 		}
 	}
 
@@ -381,24 +389,27 @@ private:
 		Vec3 A = trace_parameters.crossed_position;
 		Vec3 B = value<Vec3>(extr_, vertex_position_, Vertex(B_dart));
 		Vec3 C = value<Vec3>(extr_, vertex_position_, Vertex(C_dart));
-		Vec3 CB = C-B;
-		Vec3 AB = A-B;
+		Vec3 CB = C - B;
+		Vec3 AB = A - B;
 		Scalar lambda = M_PI - (angle + geometry::angle(AB.normalized(), CB.normalized()));
 		Scalar BX = AB.norm() * sin(angle) / sin(lambda);
 		Scalar barycenter = BX / CB.norm();
-		
-		if (barycenter < epsilon) {	// intersect B
+
+		if (barycenter < epsilon)
+		{ // intersect B
 			trace_parameters.crossed_position = B;
 			trace_parameters.crossed_dart = phi_1(extr_, A_dart);
 			update_trace_parameter_through_vertex_(M_PI);
 		}
-		else if (barycenter > 1-epsilon) {	// intersect C
+		else if (barycenter > 1 - epsilon)
+		{ // intersect C
 			trace_parameters.crossed_position = C;
 			trace_parameters.crossed_dart = phi2(extr_, A_dart);
 			update_trace_parameter_through_vertex_(M_PI);
 		}
-		else {	// intersect BC edge
-			trace_parameters.crossed_position = B*(1-barycenter) + C*barycenter;
+		else
+		{ // intersect BC edge
+			trace_parameters.crossed_position = B * (1 - barycenter) + C * barycenter;
 			trace_parameters.edge_crossed = true;
 			trace_parameters.crossed_dart = B_dart;
 			trace_parameters.intersection_angle = lambda;
@@ -411,18 +422,19 @@ private:
 	 * it will update the angle and dart such as trace_parameters.crossed_dart will be turned at angle_max
 	 * @param angle_max normalized angle for rotation
 	 * @param offset unnormalize angle, used when the initial direction is not a vertex
-	*/
+	 */
 	void update_trace_parameter_through_vertex_(Scalar angle_max, Scalar offset = 0)
 	{
 		Dart it = trace_parameters.crossed_dart;
 		Vec3 v_position = value<Vec3>(extr_, vertex_position_, Vertex(it));
-		Vec3 current_dir = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_,it))) - v_position;
+		Vec3 current_dir = value<Vec3>(extr_, vertex_position_, Vertex(phi2(extr_, it))) - v_position;
 		current_dir.normalize();
 		Scalar angle_sum = vertex_angle_sum(extr_, vertex_position_.get(), Vertex(it));
 		Scalar normalized_coeff = 2 * M_PI / angle_sum;
 		Vec3 next_dir;
-		Scalar cumulated_angle {offset};
-		while (cumulated_angle < angle_max) {
+		Scalar cumulated_angle{offset};
+		while (cumulated_angle < angle_max)
+		{
 			it = phi_1(extr_, it);
 			next_dir = value<Vec3>(extr_, vertex_position_, Vertex(it)) - v_position;
 			it = phi2(extr_, it);
@@ -430,19 +442,22 @@ private:
 			cumulated_angle += normalized_coeff * geometry::angle(current_dir, next_dir);
 			current_dir = next_dir;
 		}
-		trace_parameters.crossed_dart = phi<2,1>(extr_, it);
-		trace_parameters.intersection_angle = angle_sum * (cumulated_angle - angle_max) * (M_1_PI * 0.5); // un-normalize
+		trace_parameters.crossed_dart = phi<2, 1>(extr_, it);
+		trace_parameters.intersection_angle =
+			angle_sum * (cumulated_angle - angle_max) * (M_1_PI * 0.5); // un-normalize
 	}
 
 	/**
 	 * update the angle of dart ik with the 3 edges lengths of the triangle ijk
 	 * @param jk the HalfEdge angle to update
-	*/
-	void update_signpost(Dart jk) {
+	 */
+	void update_signpost(Dart jk)
+	{
 		Dart ki = phi<2, 1>(intr_, jk);
 		Scalar angle = value<Scalar>(intr_, halfedge_angle_, HalfEdge(ki));
 		// normalize angle
-		angle += 2 * M_PI * angle_(Edge(jk), Edge(ki), Edge(phi1(intr_, ki))) / value<Scalar>(intr_, vertex_angle_sum_, Vertex(jk));
+		angle += 2 * M_PI * angle_(Edge(jk), Edge(ki), Edge(phi1(intr_, ki))) /
+				 value<Scalar>(intr_, vertex_angle_sum_, Vertex(jk));
 		value<Scalar>(intr_, halfedge_angle_, HalfEdge(jk)) = std::fmod(angle, 2 * M_PI);
 	}
 
@@ -452,12 +467,13 @@ private:
 	 * @param ki edge adjacent to ij and jk, incident to k
 	 * @param jk edge adjacent to ij and ki, incident to k
 	 * @returns the interior angle of ijk on point k incident to jk and ki
-	*/
-	inline Scalar angle_(Edge jk, Edge ki, Edge ij) {
+	 */
+	inline Scalar angle_(Edge jk, Edge ki, Edge ij)
+	{
 		Scalar a = value<Scalar>(intr_, edge_length_, jk);
 		Scalar b = value<Scalar>(intr_, edge_length_, ki);
 		Scalar c = value<Scalar>(intr_, edge_length_, ij);
-		return acos((a*a + b*b - c*c) / (2*a*b));
+		return acos((a * a + b * b - c * c) / (2 * a * b));
 
 		/* Kahan's formula : more stable but fails more easily
 		Scalar mu;
@@ -470,18 +486,19 @@ private:
 		return 2 * atan(sqrt( ((a-b+c)*mu) / ((a+b+c)*(a-c+b)) ));
 		*/
 	}
-	
+
 	/**
 	 * compute the area of a triangle face by Heron's formula
 	 * @param f a triangle face
 	 * @returns the area of the triangle
-	*/
-	inline Scalar area_(Face f) {
+	 */
+	inline Scalar area_(Face f)
+	{
 		Scalar a = value<Scalar>(intr_, edge_length_, Edge(f.dart));
 		Scalar b = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, f.dart)));
 		Scalar c = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, f.dart)));
-		Scalar s = (a+b+c) * Scalar(0.5);
-		return sqrt(s * (s-a) * (s-b) * (s-c));
+		Scalar s = (a + b + c) * Scalar(0.5);
+		return sqrt(s * (s - a) * (s - b) * (s - c));
 	}
 
 	/**
@@ -490,38 +507,41 @@ private:
 	 * @param b a triangle length
 	 * @param c a triangle length
 	 * @returns the area of the triangle
-	*/
-	inline Scalar area_(Scalar a, Scalar b, Scalar c) {
-		Scalar s = (a+b+c) * Scalar(0.5);
-		return sqrt(s * (s-a) * (s-b) * (s-c));
+	 */
+	inline Scalar area_(Scalar a, Scalar b, Scalar c)
+	{
+		Scalar s = (a + b + c) * Scalar(0.5);
+		return sqrt(s * (s - a) * (s - b) * (s - c));
 	}
 
 	/**
 	 * Compute the dual of the cross product
-	*/
+	 */
 	inline Scalar cross_(Vec2 u, Vec2 v)
 	{
 		return u[0] * v[1] - u[1] * v[0];
 	}
 
 private:
-	static constexpr Scalar epsilon = 0.00001;
-	
-	struct {
-		Vec3 crossed_position;		// the extrinsic position of the intersection
-		Dart crossed_dart;			// the dart reference of the crossed cell
-		Scalar intersection_angle;	// the angle of the incoming trace
-		bool edge_crossed = false;	// true if the current intersection is an edge
-	} trace_parameters;	// used in the trace algorithm
+	static constexpr Scalar epsilon =
+		0.00001; // epsilon value used to clamp the traced line on vertices instead on edges
 
-	const cgogn::CMap2& extr_;									// extrinsic mesh
-	const std::shared_ptr<Attribute<Vec3>> vertex_position_;	// extrinsic vertex position attribute
+	struct
+	{
+		Vec3 crossed_position;	   // the extrinsic position of the intersection
+		Dart crossed_dart;		   // the dart reference of the crossed cell
+		Scalar intersection_angle; // the angle of the incoming trace
+		bool edge_crossed = false; // true if the current intersection is an edge
+	} trace_parameters;			   // used in the trace algorithm to avoid stack
 
-	cgogn::CMap2 intr_;											// intrinsic mesh
-	std::shared_ptr<Attribute<Dart>> vertex_ref_;				// extrinsic link of intrinsic vertices
-	std::shared_ptr<Attribute<Scalar>> edge_length_;			// intrinsic euclidian edge length
-	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;			// interior angle
-	std::shared_ptr<Attribute<Scalar>> vertex_angle_sum_;		// vertex angle sum, avoid recomputing
+	const cgogn::CMap2& extr_;								 // extrinsic mesh
+	const std::shared_ptr<Attribute<Vec3>> vertex_position_; // extrinsic vertex position attribute
+
+	cgogn::CMap2 intr_;									  // intrinsic mesh
+	std::shared_ptr<Attribute<Dart>> vertex_ref_;		  // extrinsic link of intrinsic vertices
+	std::shared_ptr<Attribute<Scalar>> edge_length_;	  // intrinsic euclidian edge length
+	std::shared_ptr<Attribute<Scalar>> halfedge_angle_;	  // interior angle
+	std::shared_ptr<Attribute<Scalar>> vertex_angle_sum_; // vertex angle sum, avoid recomputing
 };
 
 } // namespace geometry
