@@ -33,6 +33,8 @@
 #include <cgogn/geometry/algos/intrinsic_triangulation.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+#include <stack>
+
 namespace cgogn
 {
 
