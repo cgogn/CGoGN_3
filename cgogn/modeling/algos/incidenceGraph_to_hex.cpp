@@ -2808,19 +2808,26 @@ bool register_leaflet_boundary_edge_plates_into_ffjuncture(IncidenceGraph& ig, I
 
 	CellMarker<IncidenceGraph, IncidenceGraph::Edge> edge_marker(ig);
 
+	const Vec3& bv_pos = value<Vec3>(ig, igAttribs.vertex_position, bv);
+
 	Vec3 leaflet_normal{0, 0, 0};
+	Vec3 leaflet_dir{0, 0, 0};
 	std::vector<IncidenceGraph::Edge> inc_leaflet_edges = get_incident_leaflet_edges(ig, bv, be);
 	for (IncidenceGraph::Edge el : inc_leaflet_edges)
 	{
 		edge_marker.mark(el);
+
 		const std::vector<IncidenceGraph::Face>& inc_faces = (*ig.edge_incident_faces_)[el.index_];
 		for (IncidenceGraph::Face iface : inc_faces)
-		{
-			const Vec3& n = value<Vec3>(ig, igAttribs.face_normal, iface);
-			leaflet_normal += n;
-		}
+			leaflet_normal += value<Vec3>(ig, igAttribs.face_normal, iface);
+
+		const std::pair<IncidenceGraph::Vertex, IncidenceGraph::Vertex>& inc_verts =
+			(*ig.edge_incident_vertices_)[el.index_];
+		IncidenceGraph::Vertex iv = inc_verts.first == bv ? inc_verts.second : inc_verts.first;
+		leaflet_dir += (value<Vec3>(ig, igAttribs.vertex_position, iv) - bv_pos).normalized();
 	}
 	leaflet_normal.normalize();
+	leaflet_dir.normalize();
 
 	Vec3 other_leaflet_normal{0, 0, 0};
 	foreach_incident_edge(ig, bv, [&](IncidenceGraph::Edge e) -> bool {
@@ -2853,17 +2860,16 @@ bool register_leaflet_boundary_edge_plates_into_ffjuncture(IncidenceGraph& ig, I
 		m2f = phi<1, 1>(m2, m2f);
 	}
 
-	// TODO: check rotation cases
-	Scalar dp = leaflet_normal.dot(other_leaflet_normal);
-	// should register to other edges of the connection surface according to the rotation w.r.t. the frame
+	// register to other edges of the connection surface according to the rotation w.r.t. the frame
+	Scalar dp = other_leaflet_normal.dot(leaflet_normal);
 	if (dp < -0.707)
 		m2f = phi<1, 1>(m2, m2f);
 	else if (dp < 0.707)
 	{
-		// if (frame.col(0).cross(leaflet_normal).dot(frame.col(2)) < 0)
-		// 	m2f = phi_1(m2, m2f);
-		// else
-		// 	m2f = phi1(m2, m2f);
+		if (other_leaflet_normal.cross(leaflet_normal).dot(leaflet_dir) < 0)
+			m2f = phi_1(m2, m2f);
+		else
+			m2f = phi1(m2, m2f);
 	}
 
 	value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(m2f)) = phi<2, 3, -1, 2, 1>(m3, edge_dart);

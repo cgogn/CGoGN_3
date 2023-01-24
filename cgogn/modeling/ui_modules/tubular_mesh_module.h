@@ -142,7 +142,7 @@ public:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l / 4.0);
+		graph_vertex_radius_->fill(l / 3.0);
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 	}
 
@@ -350,12 +350,25 @@ public:
 			modeling::padding(*volume_,
 							  pad_extremities ? nullptr : std::get<2>(hex_building_attributes_ig_).extremity_faces);
 
+		refresh_volume_skin();
+
+		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			Vec3 n = geometry::normal(*volume_skin_, v, volume_skin_vertex_position_.get());
+			Vec3 p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) + (0.1 * l) * n;
+			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = p;
+			value<Vec3>(*volume_, volume_vertex_position_,
+						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = p;
+			return true;
+		});
+
 		volume_provider_->emit_connectivity_changed(*volume_);
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
+		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());
+
 		refresh_edge_target_length_ = true;
 		refresh_volume_cells_indexing_ = true;
-		refresh_volume_skin_ = true;
 		refresh_solver_ = true;
 	}
 
@@ -640,7 +653,7 @@ public:
 
 		length_mean_ /= nbe;
 
-		refresh_edge_target_length_ = false;
+		// refresh_edge_target_length_ = false;
 		refresh_solver_matrix_values_only_ = true;
 	}
 
