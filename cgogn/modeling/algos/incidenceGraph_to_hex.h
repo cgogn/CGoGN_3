@@ -189,8 +189,26 @@ void insert_ortho_chunks(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m
 						 CMap3& m3);
 bool build_branch_section(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs,
 						  CMap3& m3, IG_M3Attributes& m3Attribs, IncidenceGraph::Edge e0);
-bool build_leaflet(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
-				   const std::vector<IncidenceGraph::Face>& leaflet);
+bool build_leaflets(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3,
+					const IncidenceGraphData& incidenceGraph_data);
+bool build_leaflet_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
+						  const std::vector<IncidenceGraph::Face>& leaflet);
+bool sew_leaflet_fan_edge_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3, IncidenceGraph::Edge e);
+bool build_leaflet_boundary_edge_plate(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
+									   IG_M2Attributes& m2Attribs, CMap3& m3, IncidenceGraph::Edge be);
+bool sew_leaflet_boundary_vertex_corner_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
+											   IncidenceGraph::Vertex bv);
+bool sew_leaflet_boundary_vertex_fan_plates(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap3& m3,
+											IncidenceGraph::Vertex bv);
+bool register_leaflet_boundary_edge_plates_into_efjuncture(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
+														   IG_M2Attributes& m2Attribs, CMap3& m3,
+														   IncidenceGraph::Edge be, IncidenceGraph::Vertex bv);
+bool register_leaflet_boundary_edge_plates_into_ffjuncture(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
+														   IG_M2Attributes& m2Attribs, CMap3& m3,
+														   IncidenceGraph::Edge be, IncidenceGraph::Vertex bv);
+bool register_leaflet_boundary_edge_plates_into_intersection(IncidenceGraph& ig, IG_GAttributes& igAttribs, CMap2& m2,
+															 IG_M2Attributes& m2Attribs, CMap3& m3,
+															 IncidenceGraph::Edge be, IncidenceGraph::Vertex bv);
 bool sew_sections_igh(CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3);
 bool set_volumes_geometry_igh(IncidenceGraph& ig, IG_GAttributes& igAttribs, IncidenceGraphData& incidenceGraph_data,
 							  CMap2& m2, IG_M2Attributes& m2Attribs, CMap3& m3, IG_M3Attributes& m3Attribs);

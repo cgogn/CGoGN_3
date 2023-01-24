@@ -75,6 +75,11 @@ struct IncidenceGraphData
 	std::vector<IncidenceGraph::Vertex> ffjunctures;
 	std::vector<IncidenceGraph::Vertex> intersections;
 	std::vector<std::vector<IncidenceGraph::Face>> leaflets;
+	std::vector<IncidenceGraph::Edge> fan_edges;
+	std::vector<IncidenceGraph::Edge> leaflets_boundary_edges;
+	std::vector<IncidenceGraph::Vertex> leaflets_inside_vertices;
+	std::vector<IncidenceGraph::Vertex> leaflets_boundary_vertices_corners;
+	std::vector<IncidenceGraph::Vertex> leaflets_boundary_vertices_fans;
 };
 
 std::pair<uint32, uint32> pseudo_degree(const IncidenceGraph& ig, IncidenceGraph::Vertex v);

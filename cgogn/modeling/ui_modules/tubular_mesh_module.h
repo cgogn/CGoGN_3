@@ -142,7 +142,7 @@ public:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l / 4.0);
+		graph_vertex_radius_->fill(l / 3.0);
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 	}
 
@@ -301,17 +301,11 @@ public:
 		contact_surface_ = surface_provider_->add_mesh("contact");
 		volume_ = volume_provider_->add_mesh("hex");
 
-		auto start_timer = std::chrono::high_resolution_clock::now();
-
 		if constexpr (std::is_same_v<GRAPH, Graph>)
 			hex_building_attributes_ = modeling::graph_to_hex(*graph_, *contact_surface_, *volume_);
 
 		if constexpr (std::is_same_v<GRAPH, IncidenceGraph>)
 			hex_building_attributes_ig_ = modeling::incidenceGraph_to_hex(*graph_, *contact_surface_, *volume_);
-
-		auto end_timer = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
-		std::cout << "hex mesh generation in " << elapsed_seconds.count() << std::endl;
 
 		// if (!transversal_faces_marker_)
 		// {
@@ -356,12 +350,25 @@ public:
 			modeling::padding(*volume_,
 							  pad_extremities ? nullptr : std::get<2>(hex_building_attributes_ig_).extremity_faces);
 
+		refresh_volume_skin();
+
+		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
+		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+			Vec3 n = geometry::normal(*volume_skin_, v, volume_skin_vertex_position_.get());
+			Vec3 p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) + (0.1 * l) * n;
+			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = p;
+			value<Vec3>(*volume_, volume_vertex_position_,
+						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = p;
+			return true;
+		});
+
 		volume_provider_->emit_connectivity_changed(*volume_);
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 
+		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());
+
 		refresh_edge_target_length_ = true;
 		refresh_volume_cells_indexing_ = true;
-		refresh_volume_skin_ = true;
 		refresh_solver_ = true;
 	}
 
@@ -646,7 +653,7 @@ public:
 
 		length_mean_ /= nbe;
 
-		refresh_edge_target_length_ = false;
+		// refresh_edge_target_length_ = false;
 		refresh_solver_matrix_values_only_ = true;
 	}
 
@@ -1534,7 +1541,11 @@ private:
 	std::shared_ptr<VolumeAttribute<uint32>> volume_edge_index_ = nullptr;
 	std::shared_ptr<VolumeAttribute<Scalar>> volume_edge_target_length_ = nullptr;
 	Scalar length_mean_;
+
+public:
 	bool refresh_edge_target_length_ = true;
+
+private:
 	bool refresh_volume_cells_indexing_ = true;
 
 	CellsSet<VOLUME, VolumeVertex>* selected_frozen_vertices_set_ = nullptr;
