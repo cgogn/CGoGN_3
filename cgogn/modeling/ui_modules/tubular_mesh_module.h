@@ -922,14 +922,14 @@ public:
 			solver_->analyzePattern(A);
 			solver_->factorize(A);
 			refresh_solver_ = false;
-			refresh_solver_matrix_values_only_ = false;
+			// refresh_solver_matrix_values_only_ = false;
 		}
 		else if (refresh_solver_matrix_values_only_)
 		{
 			refresh_solver_matrix_values(fit_to_data);
 			Eigen::SparseMatrix<Scalar, Eigen::ColMajor> A = solver_matrix_.transpose() * solver_matrix_;
 			solver_->factorize(A);
-			refresh_solver_matrix_values_only_ = false;
+			// refresh_solver_matrix_values_only_ = false;
 		}
 
 		MeshData<VOLUME>& mdv = volume_provider_->mesh_data(*volume_);
@@ -1456,10 +1456,10 @@ protected:
 			if (ImGui::Button("Relocate interior vertices"))
 				relocate_interior_vertices();
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
-			refresh_solver_matrix_values_only_ = true;
 
 			static float optimize_fit_to_surface = 1.0f;
-			ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0);
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
+				refresh_solver_matrix_values_only_ = true;
 			if (ImGui::Button("Optimize volume vertices (inside skin)"))
 				optimize_volume_vertices(optimize_fit_to_surface, true);
 
