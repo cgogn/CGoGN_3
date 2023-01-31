@@ -106,8 +106,10 @@ IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e0, boo
 	Vertex v = add_cell<Vertex>(ig);
 	(*ig.edge_incident_vertices_)[e0.index_] = {v0, v};
 	Edge e1 = add_edge(ig, v, v1);
+	(*ig.vertex_incident_edges_)[v.index_].push_back(e0);
 	for (Face f : (*ig.edge_incident_faces_)[e0.index_])
 	{
+		(*ig.edge_incident_faces_)[e1.index_].push_back(f);
 		(*ig.face_incident_edges_)[f.index_].push_back(e1);
 		sort_face_edges(ig, f); // TODO: could do more efficient (insert)
 	}

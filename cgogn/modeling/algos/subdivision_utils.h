@@ -27,15 +27,17 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/types/cmap/phi.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+
+#include <set>
 
 namespace cgogn
 {
 
 namespace modeling
 {
-
-using Vec3 = geometry::Vec3;
 
 ///////////
 // CMap2 //
@@ -81,6 +83,76 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	}
 
 	return Vertex(phi2(m, x));
+}
+
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+typename mesh_traits<MESH>::Vertex quadrangulate_face(
+	MESH& m, typename mesh_traits<MESH>::Face f,
+	const CellMarker<MESH, typename mesh_traits<MESH>::Vertex>& vertex_marker)
+{
+	return quadrangulate_face(m, f);
+}
+
+////////////////////
+// IncidenceGraph //
+////////////////////
+
+// vertices added by edge cuts are marked
+inline IncidenceGraph::Vertex quadrangulate_face(IncidenceGraph& ig, IncidenceGraph::Face f,
+												 CellMarker<IncidenceGraph, IncidenceGraph::Vertex>& vertex_marker)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+
+	cgogn_message_assert(codegree(ig, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
+
+	Vertex v = add_vertex(ig);
+	std::unordered_map<uint32, uint32> new_edges;
+	std::set<Vertex> corner_vertices;
+
+	const std::vector<Edge>& inc_edges = (*ig.face_incident_edges_)[f.index_];
+	for (uint32 i = 0; i < inc_edges.size(); ++i)
+	{
+		Edge e1 = inc_edges[i];
+		const std::pair<Vertex, Vertex>& inc_verts1 = (*ig.edge_incident_vertices_)[e1.index_];
+		// get the edge vertex
+		Vertex ev = vertex_marker.is_marked(inc_verts1.first) ? inc_verts1.first : inc_verts1.second;
+		// create the edge of the edge vertex if needed
+		if (new_edges.count(ev.index_) == 0)
+		{
+			Edge ne = add_edge(ig, v, ev);
+			new_edges[ev.index_] = ne.index_;
+		}
+		// get the corner vertex
+		Vertex cv = vertex_marker.is_marked(inc_verts1.first) ? inc_verts1.second : inc_verts1.first;
+		corner_vertices.insert(cv);
+	}
+	for (Vertex cv : corner_vertices)
+	{
+		std::vector<Edge> edges;
+		// find the two edges that are incident to cv
+		for (Edge e : inc_edges)
+		{
+			const std::pair<Vertex, Vertex>& inc_verts = (*ig.edge_incident_vertices_)[e.index_];
+			if (inc_verts.first == cv || inc_verts.second == cv)
+				edges.push_back(e);
+		}
+		// add the two new edges
+		const std::pair<Vertex, Vertex>& edge0_inc_verts = (*ig.edge_incident_vertices_)[edges[0].index_];
+		Vertex ev0 = vertex_marker.is_marked(edge0_inc_verts.first) ? edge0_inc_verts.first : edge0_inc_verts.second;
+		const std::pair<Vertex, Vertex>& edge1_inc_verts = (*ig.edge_incident_vertices_)[edges[1].index_];
+		Vertex ev1 = vertex_marker.is_marked(edge1_inc_verts.first) ? edge1_inc_verts.first : edge1_inc_verts.second;
+		edges.push_back(Edge(new_edges[ev1.index_]));
+		edges.push_back(Edge(new_edges[ev0.index_]));
+		// create the face
+		Face f = add_face(ig, edges);
+		sort_face_edges(ig, f);
+	}
+
+	remove_face(ig, f);
+
+	return v;
 }
 
 } // namespace modeling

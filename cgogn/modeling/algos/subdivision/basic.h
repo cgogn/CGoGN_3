@@ -69,12 +69,12 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 	CellCache<MESH> cache(m);
 	cache.template build<Face>();
 
-	CellMarker<MESH, Edge> cm(m);
+	CellMarker<MESH, Edge> em(m);
 	foreach_cell(cache, [&](Face f) -> bool {
 		foreach_incident_edge(m, f, [&](Edge ie) -> bool {
-			if (!cm.is_marked(ie))
+			if (!em.is_marked(ie))
 			{
-				cm.mark(ie);
+				em.mark(ie);
 				cache.add(ie);
 			}
 			return true;
@@ -82,13 +82,16 @@ void quadrangulate_all_faces(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_
 		return true;
 	});
 
+	CellMarker<MESH, Vertex> vm(m);
 	foreach_cell(cache, [&](Edge e) -> bool {
-		on_edge_cut(cut_edge(m, e));
+		Vertex v = cut_edge(m, e);
+		vm.mark(v);
+		on_edge_cut(v);
 		return true;
 	});
 
 	foreach_cell(cache, [&](Face f) -> bool {
-		on_face_cut(quadrangulate_face(m, f));
+		on_face_cut(quadrangulate_face(m, f, vm));
 		return true;
 	});
 }
