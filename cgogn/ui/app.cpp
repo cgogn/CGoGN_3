@@ -26,7 +26,7 @@
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
-
+#include <windows.h>
 #include <imgui/imgui_internal.h>
 
 #include <map>
@@ -184,6 +184,7 @@ App::App()
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	  // Enable Multi-Viewport / Platform Windows
 	// io.ConfigDockingWithShift = false;
 	// io.ConfigWindowsResizeFromEdges = true;
+	
 
 	ImGui::StyleColorsDark();
 
@@ -192,7 +193,7 @@ App::App()
 	style.Colors[ImGuiCol_WindowBg].w = 0.75f;
 
 	std::string fontpath = std::string(CGOGN_STR(CGOGN_DATA_PATH)) + std::string("fonts/Roboto-Medium.ttf");
-	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
+	/*ImFont* font = */ io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14 * get_dpi_scale());
 
 	glfwSetWindowUserPointer(window_, this);
 

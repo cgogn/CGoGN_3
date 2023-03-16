@@ -29,7 +29,7 @@
 
 #include <cgogn/ui/cgogn_ui_export.h>
 #include <cgogn/ui/inputs.h>
-
+#include <windows.h>
 #include <cgogn/rendering/shaders/shader_frame2d.h>
 
 #include <imgui/imgui.h>
@@ -118,6 +118,11 @@ public:
 		show_imgui_ = show;
 	}
 
+	inline float get_dpi_scale()
+	{
+		return static_cast<float> (GetSystemMetrics(SM_CXSCREEN)) / 1920.f;
+	}
+
 private:
 	void close_event();
 	void adapt_views_geometry();
@@ -153,6 +158,7 @@ private:
 	mutable std::vector<Module*> modules_;
 
 	std::shared_ptr<boost::synapse::thread_local_queue> tlq_;
+
 };
 
 } // namespace ui
