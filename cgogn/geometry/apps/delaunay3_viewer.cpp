@@ -66,7 +66,7 @@ using Volume = typename cgogn::mesh_traits<Mesh>::Volume;
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
 
-#define PERF_TEST
+//#define PERF_TEST
 
 void test_delaunay(Mesh* m)
 {
