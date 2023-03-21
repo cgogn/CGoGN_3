@@ -54,12 +54,12 @@ target_link_libraries(skeleton_extractor
 
 add_executable(voronoi_medial_mesh voronoi_medial_mesh.cpp)
 target_link_libraries(voronoi_medial_mesh
+	CGAL::CGAL
 	cgogn::core
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
-	CGAL::CGAL
 	${CMAKE_DL_LIBS}
 )
 

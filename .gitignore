@@ -36,3 +36,5 @@ CMakeLists.txt.user
 .vscode
 build
 /.vs
+/imgui.ini
+/CMakeSettings.json
