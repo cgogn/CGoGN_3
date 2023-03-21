@@ -39,3 +39,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 install(FILES ${HEADER_FILES} DESTINATION "include/cgogn/thirdparty")
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
+
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER thirdparty)

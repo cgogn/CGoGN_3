@@ -89,6 +89,8 @@ if (${CGOGN_USE_PARALLEL_GLIBCXX})
 endif()
 option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
 
+option(CGOGN_USE_CGAL "Add CGAL dependency and compile all that use it" OFF)
+
 
 #### Continuous integration options
 option(CGOGN_WITH_GPROF "Builds the project for performance analysis with gprof" OFF)

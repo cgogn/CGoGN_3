@@ -32,6 +32,7 @@
 #include "PQ.h"
 #include "LCA.h"
 
+#include <cstdint>
 
 #define LCA_REPAIRS
 
@@ -111,8 +112,9 @@ struct PerfectMatching::Edge : PriorityQueue<REAL>::Item
 	Edge*	prev[2];
 };
 
-typedef unsigned long POINTER_TYPE;
+//typedef unsigned long POINTER_TYPE;
 // if the declaration below fails, set POINTER_TYPE to be the appropriate integer type of the same length as (void*)
+typedef std::uintptr_t POINTER_TYPE;
 extern char dummy_array[2*(sizeof(void*)==sizeof(POINTER_TYPE))-1];
 
 #define ARC_TO_EDGE_PTR(a)       ( (Edge*) ( ((POINTER_TYPE)(a)) & (~1)      ) )
