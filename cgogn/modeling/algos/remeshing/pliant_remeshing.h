@@ -250,7 +250,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs=0.0; //init to zero for warning remove
+				Scalar lfs = 0.0; // init to zero for warning remove
 				Scalar coeff = 1.0;
 				if (lfs_adaptive)
 				{
@@ -370,12 +370,15 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			return true;
 		});
 
+		auto vertex_area = add_attribute<Scalar, Vertex>(m, "vertex_area__");
+		geometry::compute_area<Vertex>(m, vertex_position.get(), vertex_area.get());
+
 		// tangential relaxation
 		// + project back on surface
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
 			if (is_incident_to_boundary(m, v))
 				return true;
+			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
 			if (preserve_features)
 			{
 				if (!value<bool>(m, helper.feature_corner_, v))
@@ -402,13 +405,14 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 					else
 					{
 						Vec3 q(0, 0, 0);
-						uint32 count = 0;
+						Scalar total_area = 0.0;
 						foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-							q += value<Vec3>(m, vertex_position, av);
-							++count;
+							Scalar a = value<Scalar>(m, vertex_area, av);
+							q += a * value<Vec3>(m, vertex_position, av);
+							total_area += a;
 							return true;
 						});
-						q /= Scalar(count);
+						q /= Scalar(total_area);
 						Vec3 n = geometry::normal(m, v, vertex_position.get());
 						new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 						new_pos = helper.surface_bvh_->closest_point(new_pos);
@@ -418,13 +422,14 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			else
 			{
 				Vec3 q(0, 0, 0);
-				uint32 count = 0;
+				Scalar total_area = 0.0;
 				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-					q += value<Vec3>(m, vertex_position, av);
-					++count;
+					Scalar a = value<Scalar>(m, vertex_area, av);
+					q += a * value<Vec3>(m, vertex_position, av);
+					total_area += a;
 					return true;
 				});
-				q /= Scalar(count);
+				q /= Scalar(total_area);
 				Vec3 n = geometry::normal(m, v, vertex_position.get());
 				new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 				new_pos = helper.surface_bvh_->closest_point(new_pos);
@@ -432,6 +437,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			value<Vec3>(m, vertex_position, v) = new_pos;
 			return true;
 		});
+
+		remove_attribute<Vertex>(m, vertex_area);
 	}
 }
 

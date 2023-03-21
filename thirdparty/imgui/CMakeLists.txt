@@ -14,6 +14,7 @@ set(HEADER_FILES
 	imstb_rectpack.h
 	imstb_textedit.h
 	imstb_truetype.h
+	imgui-knobs.h
 )
 
 set(SOURCE_FILES
@@ -25,6 +26,7 @@ set(SOURCE_FILES
 	imgui_impl_glfw.cpp
 	imgui_impl_opengl3.cpp
 	imgui_widgets.cpp
+	imgui-knobs.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
@@ -45,3 +47,5 @@ endif()
 install(FILES ${HEADER_FILES} DESTINATION "include/cgogn/thirdparty")
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
+
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER thirdparty)

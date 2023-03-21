@@ -226,22 +226,21 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 	if (is_incident_to_boundary(m, e))
 		return;
 
-	Dart d0 = e.dart;
-	Dart d1 = phi2(m, d0);
-	Dart d_1 = phi_1(m, d0);
+	Dart d = e.dart;
+	Dart d_1 = phi_1(m, d);
+	Dart d2 = phi2(m, d);
+	Dart d2_1 = phi_1(m, d2);
 
-	phi1_sew(m, phi_1(m, d0), d1);
-	phi1_sew(m, phi_1(m, d1), d0);
+	phi1_sew(m, d_1, d2);
+	phi1_sew(m, d2_1, d);
+
+	remove_face(static_cast<CMap1&>(m), CMap1::Face(d), set_indices);
 
 	if (set_indices)
 	{
 		if (is_indexed<CMap2::Face>(m))
-			copy_index<CMap2::Face>(m, d_1, d0);
+			set_index(m, CMap2::Face(d_1), index_of(m, CMap2::Face(d_1)));
 	}
-
-	remove_face(static_cast<CMap1&>(m), CMap1::Face(d0), set_indices);
-
-	return;
 }
 
 /*****************************************************************************/
