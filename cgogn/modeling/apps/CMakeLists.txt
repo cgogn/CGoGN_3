@@ -9,7 +9,6 @@ find_package(cgogn_ui REQUIRED)
 find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_modeling REQUIRED)
-find_package(CGAL CONFIG REQUIRED)
 
 add_executable(modeling modeling.cpp)
 target_link_libraries(modeling
@@ -55,18 +54,6 @@ target_link_libraries(skeleton_extractor
 	Blossom5
 	${CMAKE_DL_LIBS}
 )
-
-add_executable(voronoi_medial_mesh voronoi_medial_mesh.cpp)
-target_link_libraries(voronoi_medial_mesh
-	CGAL::CGAL
-	cgogn::core
-	cgogn::ui
-	cgogn::io
-	cgogn::rendering
-	cgogn::modeling
-	${CMAKE_DL_LIBS}
-)
-
 
 add_executable(convex_hull convex_hull.cpp)
 target_link_libraries(convex_hull
