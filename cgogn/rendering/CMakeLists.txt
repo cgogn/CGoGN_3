@@ -42,6 +42,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/vector_per_vertex_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/topo_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/point_cloud_render.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"

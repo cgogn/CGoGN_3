@@ -445,17 +445,20 @@ public:
 			break;
 		case LINES:
 		case INDEX_EDGES:
-			if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
+			if constexpr (mesh_traits<MESH>::dimension >= 1)
 			{
-				init_lines<true>(m, table_indices, table_indices_emb);
-				func_update_ebo(INDEX_EDGES, table_indices_emb);
+				if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
+				{
+					init_lines<true>(m, table_indices, table_indices_emb);
+					func_update_ebo(INDEX_EDGES, table_indices_emb);
+				}
+				else
+				{
+					init_lines<false>(m, table_indices, table_indices_emb);
+					func_update_ebo2(INDEX_EDGES, table_indices_emb);
+				}
+				func_update_ebo(LINES, table_indices);
 			}
-			else
-			{
-				init_lines<false>(m, table_indices, table_indices_emb);
-				func_update_ebo2(INDEX_EDGES, table_indices_emb);
-			}
-			func_update_ebo(LINES, table_indices);
 			break;
 		case TRIANGLES:
 		case INDEX_FACES:

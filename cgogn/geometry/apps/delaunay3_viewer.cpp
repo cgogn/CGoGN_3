@@ -21,24 +21,23 @@
  *                                                                              *
  *******************************************************************************/
 
+//import CGoGn
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
-
 #include <cgogn/core/ui_modules/mesh_provider.h>
+
 #include <cgogn/rendering/ui_modules/volume_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/rendering/ui_modules/point_cloud_render.h>
 
-#include <cgogn/geometry/algos/centroid.h>
-#include <cgogn/geometry/functions/distance.h>
-
-#include <cgogn/modeling/algos/volume_utils.h>
-
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/io/utils.h>
+#include <cgogn/io/point/point_import.h>
 #include <cgogn/io/volume/volume_import.h>
 
+
+//import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -62,6 +61,15 @@ using Cgal_Surface_mesh = CGAL::Surface_mesh<Kernel::Point_3> ;
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
+using Mesh_Point = cgogn::CMap0;
+template <typename T> 
+using Attribute_Point = typename cgogn::mesh_traits<Mesh_Point>::Attribute<T>;
+using Vertex_Point = typename cgogn::mesh_traits<Mesh_Point>::Vertex;
+
+using Mesh_Surface = cgogn::CMap2;
+template <typename T>
+using Attribute_Surface = typename cgogn::mesh_traits<Mesh_Surface>::Attribute<T>;
+using Vertex_Surface = typename cgogn::mesh_traits<Mesh_Surface>::Vertex;
 
 using Mesh_Volumn = cgogn::CMap3;
 template <typename T>
@@ -74,37 +82,37 @@ using Volume = typename cgogn::mesh_traits<Mesh_Volumn>::Volume;
 using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
 
-using Mesh_surface = cgogn::CMap2;
-template <typename T>
-using Attribute_surface = typename cgogn::mesh_traits<Mesh_surface>::Attribute<T>;
-using namespace cgogn::numerics;
 
-using Vertex_surface = typename cgogn::mesh_traits<Mesh_surface>::Vertex;
 
 //#define PERF_TEST
 
-void test_delaunay(Mesh_Volumn* m, Cgal_Surface_mesh sm)
+void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
 {
 	cgogn::io::VolumeImportData volume_data;
+	cgogn::io::PointImportData point_data;
 
 	std::vector<Kernel::Point_3> mesh_samples;
-	CGAL::Polygon_mesh_processing::sample_triangle_mesh(sm, 
+	CGAL::Polygon_mesh_processing::sample_triangle_mesh(csm, 
 														std::back_inserter(mesh_samples),
 														CGAL::parameters::use_grid_sampling(true).grid_spacing(5));
+
+	//Add vertex into the volume data to construct the delauney tredrahedron
 	for (auto s : mesh_samples)
 	{
 		volume_data.vertex_position_.emplace_back(s[0], s[1], s[2]);
+		point_data.vertex_position_.emplace_back(s[0], s[1], s[2]);
 	}
-
+	import_point_data(*mp, point_data);
 	uint32 nb_vertices = volume_data.vertex_position_.size();
 
 	auto start_timer = std::chrono::high_resolution_clock::now();
 
 	std::vector<unsigned> indices;
 	indices.reserve(nb_vertices);
-	for (int i = 0; i < nb_vertices; ++i) 
+	for (unsigned int i = 0; i < nb_vertices; ++i) 
 		indices.push_back(i);
 
+	//Construct delauney tredrahedron using CGAL
 	std::vector<Point>* points = reinterpret_cast<std::vector<Point>*>(&volume_data.vertex_position_);
 
 	Delaunay tri(boost::make_zip_iterator(boost::make_tuple(points->begin(), indices.begin())),
@@ -128,7 +136,8 @@ void test_delaunay(Mesh_Volumn* m, Cgal_Surface_mesh sm)
 		volume_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
 	}
 
-	import_volume_data(*m, volume_data);
+	import_volume_data(*mv, volume_data);
+	
 
 	end_timer = std::chrono::high_resolution_clock::now();
 	elapsed_seconds = end_timer - start_timer;
@@ -157,41 +166,53 @@ int main(int argc, char** argv)
 	app.set_window_title("Delaunay volume viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh_Volumn> mp(app);
-	cgogn::ui::MeshProvider<Mesh_surface> mps(app);
+	cgogn::ui::MeshProvider<Mesh_Volumn> mpv(app);
+	cgogn::ui::MeshProvider<Mesh_Surface> mps(app);
+	cgogn::ui::MeshProvider<Mesh_Point> mpp(app);
 
 	cgogn::ui::VolumeRender<Mesh_Volumn> vr(app);
-	cgogn::ui::SurfaceRender<Mesh_surface> sr(app);
+	cgogn::ui::SurfaceRender<Mesh_Surface> sr(app);
+	cgogn::ui::PointCloudRender<Mesh_Point> pcr(app);
+	
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
-	v1->link_module(&mp);
+	v1->link_module(&mpv);
 	v1->link_module(&vr);
 	v1->link_module(&mps);
 	v1->link_module(&sr);
+	v1->link_module(&mpp);
+	v1->link_module(&pcr);
 
 
- 	Mesh_Volumn* m = new Mesh_Volumn{};
-	test_delaunay(m, surface_mesh);
-	mp.register_mesh(m, "delaunay");
-	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex_Volumn>(*m, "position");
-	mp.set_mesh_bb_vertex_position(*m, vertex_position);
-	vr.set_vertex_position(*v1, *m, vertex_position);
+ 	Mesh_Volumn* mv = new Mesh_Volumn{};
+	Mesh_Point* mpoint = new Mesh_Point{};
+	test_delaunay(mpoint, mv, surface_mesh);
+	mpv.register_mesh(mv, "delaunay");
+	mpp.register_mesh(mpoint, "sample point");
 
+
+	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex_Volumn>(*mv, "position");
+	mpv.set_mesh_bb_vertex_position(*mv, vertex_position);
+	vr.set_vertex_position(*v1, *mv, vertex_position);
+
+	std::shared_ptr<Attribute_Point<Vec3>> vertex_position_2 =
+		cgogn::get_attribute<Vec3, Vertex_Point>(*mv, "position");
+	pcr.set_vertex_position(*v1, *mpoint, vertex_position_2);
 
 	//Load surface mesh using CGoGn
-	Mesh_surface* original_m = mps.load_surface_from_file(filename);
+	Mesh_Surface* original_m = mps.load_surface_from_file(filename);
 	if (!original_m)
 	{
 		std::cout << "File could not be loaded" << std::endl;
 		return 1;
 	}
 
-	std::shared_ptr<Attribute_surface<Vec3>> vertex_position_2 = cgogn::get_attribute<Vec3, Vertex_surface>(*original_m, "position");
-	std::shared_ptr<Attribute_surface<Vec3>> vertex_normal_2 = cgogn::add_attribute<Vec3, Vertex_surface>(*original_m, "normal");
+	std::shared_ptr<Attribute_Surface<Vec3>> vertex_position_3 = cgogn::get_attribute<Vec3, Vertex_Surface>(*original_m, "position");
+	std::shared_ptr<Attribute_Surface<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex_Surface>(*original_m, "normal");
 
-	sr.set_vertex_position(*v1, *original_m, vertex_position_2);
-	sr.set_vertex_normal(*v1, *original_m, vertex_normal_2);
+	sr.set_vertex_position(*v1, *original_m, vertex_position_3);
+	sr.set_vertex_normal(*v1, *original_m, vertex_normal);
 
 	return app.launch();
 }

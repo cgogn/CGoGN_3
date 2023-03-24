@@ -37,6 +37,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/volume/meshb.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
 		
+		"${CMAKE_CURRENT_LIST_DIR}/point/point_import.h"
+		"${CMAKE_CURRENT_LIST_DIR}/point/point_import.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
 )
 
