@@ -38,7 +38,7 @@ namespace cgogn
 namespace io
 {
 
-void import_point_data(CMap0& m, PointImportData& point_data)
+void import_point_data(CMap0& m, const PointImportData& point_data)
 {
 	using Vertex = CMap0::Vertex;
 
