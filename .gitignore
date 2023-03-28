@@ -38,3 +38,4 @@ build
 /.vs
 /imgui.ini
 /CMakeSettings.json
+/data/
