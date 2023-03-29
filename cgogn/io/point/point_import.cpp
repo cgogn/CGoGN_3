@@ -46,8 +46,12 @@ void import_point_data(CMap0& m, const PointImportData& point_data)
 
 	for (uint32 i = 0u; i < point_data.nb_vertices_; ++i)
 	{
+		Dart d = add_dart(m);
+		Vertex v(d);
 		uint32 vertex_id = new_index<Vertex>(m);
+		set_index(m, v, vertex_id);
 		(*position)[vertex_id] = point_data.vertex_position_[i];
+
 	}
 }
 } // namespace io

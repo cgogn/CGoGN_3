@@ -106,15 +106,14 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
 
 	//Sampling the mesh surface 
 	std::vector<Kernel::Point_3> mesh_samples;
-	CGAL::Polygon_mesh_processing::sample_triangle_mesh(csm, 
-														std::back_inserter(mesh_samples),
-														CGAL::parameters::use_grid_sampling(true).grid_spacing(0.05));
-
-	//Add bounding box vertices in the sample points set
-	for (auto p : obb_points)
-	{
-		Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
-	}
+	CGAL::Polygon_mesh_processing::sample_triangle_mesh(csm, std::back_inserter(mesh_samples),
+														//CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(0.1));
+														CGAL::parameters::use_grid_sampling(true).grid_spacing(5));
+	// 	Add bounding box vertices in the sample points set
+ 	for (auto p : obb_points)
+ 	{
+ 		Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+ 	}
 
 	//Add sampled vertices into the volume data to construct the delauney tredrahedron
 	for (auto s : mesh_samples)
@@ -140,13 +139,7 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
 	std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
 	std::cout << "CGAL delaunay for " << nb_vertices << " points in " << elapsed_seconds.count() << std::endl;
 
-	// 2. For each sample point, compute its poles .
 	
-	
-	// 3. Compute the power diagram of the poles .
-	// 4. Label each pole either inside or outside .
-	// 5. Compute the regular triangulations Output the regular triangulation faces connecting inside poles as the power
-	// shape
 	start_timer = std::chrono::high_resolution_clock::now();
 	
 	uint32 nb_volumes = tri.number_of_finite_cells();
@@ -159,17 +152,31 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
 	Voronoi_Vertices_data.reserve(nb_volumes);
 	for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 	{
-		Delaunay_tri_3_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
-		auto circumcenter = tri.dual(cit);
-		Voronoi_Vertices_data.vertex_position_.push_back({circumcenter[0], circumcenter[1],circumcenter[2]});
-	}
+		Point p1 = Delaunay_tri_point[cit->vertex(0)->info()];
+		Point p2 = Delaunay_tri_point[cit->vertex(1)->info()];
+		Point p3 = Delaunay_tri_point[cit->vertex(2)->info()];
+		Point p4 = Delaunay_tri_point[cit->vertex(3)->info()];
+		bool cop = coplanar(p1, p2, p3, p4);
+		if (!cop)
+		{
+			Delaunay_tri_3_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
+			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
+			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
+			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
+			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());	
+			auto circumcenter = tri.dual(cit);
+			Voronoi_Vertices_data.vertex_position_.push_back({circumcenter[0], circumcenter[1], circumcenter[2]});
+		}
+		}
 
 	import_volume_data(*mv, Delaunay_tri_3_data);
 	import_point_data(*mp, Voronoi_Vertices_data);
+	// 2. For each sample point, compute its poles .
+
+	// 3. Compute the power diagram of the poles .
+	// 4. Label each pole either inside or outside .
+	// 5. Compute the regular triangulations Output the regular triangulation faces connecting inside poles as the power
+	// shape
 	end_timer = std::chrono::high_resolution_clock::now();
 	elapsed_seconds = end_timer - start_timer;
 	std::cout << "transfer to CGoGN in " << elapsed_seconds.count() << std::endl;
