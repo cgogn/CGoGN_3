@@ -41,6 +41,24 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////
+// CMap0 //
+///////////
+
+CMap0::Vertex add_vertex(CMap0& m, bool set_indices)
+{
+	using Vertex = CMap0::Vertex;
+
+	Dart d = add_dart(m);
+	Vertex v(d);
+	if (set_indices)
+	{
+		if (is_indexed<Vertex>(m))
+			set_index(m, v, new_index<Vertex>(g));
+	}
+	return v;
+}
+
+///////////
 // Graph //
 ///////////
 

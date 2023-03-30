@@ -222,13 +222,9 @@ int main(int argc, char** argv)
 	v1->link_module(&mpp);
 	v1->link_module(&pcr);
 
-
- 	Mesh_Volumn* mv = new Mesh_Volumn{};
-	Mesh_Point* mp = new Mesh_Point{};
+ 	Mesh_Volumn* mv = mpv.add_mesh("delaunay tredrehedra");
+	Mesh_Point* mp = mpp.add_mesh("delauney vertices");
 	test_delaunay(mp, mv, surface_mesh);
-	mpv.register_mesh(mv, "delaunay tredrehedra");
-	mpp.register_mesh(mp, "delauney vertices");
-
 
 	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex_Volumn>(*mv, "position");
 	mpv.set_mesh_bb_vertex_position(*mv, vertex_position);
@@ -236,6 +232,7 @@ int main(int argc, char** argv)
 
 	std::shared_ptr<Attribute_Point<Vec3>> vertex_position_2 =
 		cgogn::get_attribute<Vec3, Vertex_Point>(*mp, "position");
+	mpp.set_mesh_bb_vertex_position(*mp, vertex_position_2);
 	pcr.set_vertex_position(*v1, *mp, vertex_position_2);
 
 	//Load surface mesh using CGoGn

@@ -24,6 +24,7 @@
 #include <cgogn/io/point/point_import.h>
 
 #include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/core/types/cmap/cmap_ops.h>
 
@@ -46,14 +47,13 @@ void import_point_data(CMap0& m, const PointImportData& point_data)
 
 	for (uint32 i = 0u; i < point_data.nb_vertices_; ++i)
 	{
-		Dart d = add_dart(m);
-		Vertex v(d);
 		uint32 vertex_id = new_index<Vertex>(m);
+		Vertex v = add_vertex(m);
 		set_index(m, v, vertex_id);
 		(*position)[vertex_id] = point_data.vertex_position_[i];
-
 	}
 }
+
 } // namespace io
 
 } // namespace cgogn

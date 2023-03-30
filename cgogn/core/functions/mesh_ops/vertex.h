@@ -46,6 +46,12 @@ namespace cgogn
 // Graph //
 ///////////
 
+CMap0::Vertex CGOGN_CORE_EXPORT add_vertex(CMap0& m, bool set_indices = true);
+
+///////////
+// Graph //
+///////////
+
 Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
 
 ////////////////////
