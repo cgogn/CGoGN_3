@@ -53,7 +53,7 @@ CMap0::Vertex add_vertex(CMap0& m, bool set_indices)
 	if (set_indices)
 	{
 		if (is_indexed<Vertex>(m))
-			set_index(m, v, new_index<Vertex>(g));
+			set_index(m, v, new_index<Vertex>(m));
 	}
 	return v;
 }
