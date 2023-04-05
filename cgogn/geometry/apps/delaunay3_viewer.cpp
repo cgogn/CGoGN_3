@@ -43,11 +43,17 @@
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Regular_triangulation_3.h>
+#include <CGAL/Regular_triangulation_cell_base_3.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #include <CGAL/Polygon_mesh_processing/distance.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/IO/read_off_points.h>
 #include <CGAL/optimal_bounding_box.h>
+#include <CGAL/Object.h>
+#include <CGAL/Side_of_triangle_mesh.h>
+
+
 
 
 #include <vector>
@@ -55,14 +61,29 @@
 #include <chrono>
 
 
+//Kernel for construct delauney 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Vb = CGAL::Triangulation_vertex_base_with_info_3<uint32_t, K>;
 using Cb = CGAL::Delaunay_triangulation_cell_base_3<K>;
 using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
+using Regular = CGAL::Regular_triangulation_3<K, Tds, CGAL::Fast_location>;
 using Point = Delaunay::Point;
-using Kernel =  CGAL::Simple_cartesian<double>;
-using Cgal_Surface_mesh = CGAL::Surface_mesh<Kernel::Point_3> ;
+using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
+using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
+using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
+using Traits = CGAL::AABB_traits<K, Primitive>;
+using Tree = CGAL::AABB_tree<Traits>;
+
+//Kernel for test
+// using Point = Delaunay::Point;
+// using Kernel =  CGAL::Simple_cartesian<double>;
+// using Point_3 = K::Point_3;
+// using Cgal_Surface_mesh = CGAL::Surface_mesh<Point_3> ;
+// using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh,Kernel>;
+// using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
+// using Traits =  CGAL::AABB_traits<Kernel, Primitive>;
+// using Tree = CGAL::AABB_tree<Traits>;
 
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
@@ -92,32 +113,72 @@ using Graph = cgogn::Graph;
 
 //#define PERF_TEST
 
-void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
+bool pointInside(Tree &tree, Point& query)
+{
+	// Initialize the point-in-polyhedron tester
+	Point_inside inside_tester(tree);
+
+	// Determine the side and return true if inside!
+	return inside_tester(query) == CGAL::ON_BOUNDED_SIDE;
+}
+
+void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
 {
 	cgogn::io::VolumeImportData Delaunay_tri_3_data;
-	std::vector<Point> Delaunay_tri_point;
-
 	cgogn::io::PointImportData Voronoi_Vertices_data;
-	// 1. Compute the Voronoi diagram of the sample points S.
-	
-	//Compute the Bounding box of mesh
-	std::array<Kernel::Point_3, 8> obb_points;
-	CGAL::oriented_bounding_box(csm, obb_points, CGAL::parameters::use_convex_hull(true));
 
-	//Sampling the mesh surface 
-	std::vector<Kernel::Point_3> mesh_samples;
-	CGAL::Polygon_mesh_processing::sample_triangle_mesh(csm, std::back_inserter(mesh_samples),
-														//CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(0.1));
-														CGAL::parameters::use_grid_sampling(true).grid_spacing(5));
+	std::vector<Point> Delaunay_tri_point;
+	std::vector<Point> Power_point;
+	// 1. Compute the Voronoi diagram of the sample points S.
+	Tree tree(faces(csm).first, faces(csm).second, csm);
+	tree.accelerate_distance_queries();
+	// Compute the Bounding box of mesh
+	std::array<Point, 8> obb_points;
+	Point acc(0,0,0);
+	CGAL::oriented_bounding_box(csm, obb_points, CGAL::parameters::use_convex_hull(true));
+	for (size_t i = 0; i < obb_points.size(); i++)
+	{
+		acc += K::Vector_3(obb_points[i].x(), obb_points[i].y(), obb_points[i].z());
+	}
+	std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
+	//Create a large box surrounding object so that the Voronoi vertices are bounded
+	double offset = 2.0;
+	std::array<double, 3> offset_array = {offset, offset, offset};
+	std::array<std::array<double, 3>, 8> cube_corners = {
+		{{center[0] - offset_array[0], center[1] - offset_array[1],
+		  center[2] - offset_array[2]},
+		 {center[0] - offset_array[0], center[1] - offset_array[1],
+		  center[2] + offset_array[2]},
+		 {center[0] - offset_array[0], center[1] + offset_array[1],
+		  center[2] - offset_array[2]},
+		 {center[0] - offset_array[0], center[1] + offset_array[1],
+		  center[2] + offset_array[2]},
+		 {center[0] + offset_array[0], center[1] - offset_array[1],
+		  center[2] - offset_array[2]},
+		 {center[0] + offset_array[0], center[1] - offset_array[1],
+		  center[2] + offset_array[2]},
+		 {center[0] + offset_array[0], center[1] + offset_array[1],
+		  center[2] - offset_array[2]},
+		 {center[0] + offset_array[0], center[1] + offset_array[1],
+		  center[2] + offset_array[2]}}};
+
+	// Sampling the mesh surface
+	std::vector<Point> mesh_samples;
+	CGAL::Polygon_mesh_processing::sample_triangle_mesh(
+		csm, std::back_inserter(mesh_samples),
+		// CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(0.1));
+		CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
+
 	// 	Add bounding box vertices in the sample points set
- 	for (auto p : obb_points)
- 	{
- 		Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
- 	}
+	for (auto p : cube_corners)
+  	{
+		Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+  	}
 
 	//Add sampled vertices into the volume data to construct the delauney tredrahedron
 	for (auto s : mesh_samples)
 	{
+		
 		Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
 	}
 
@@ -138,36 +199,80 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn* mv, Cgal_Surface_mesh csm)
 	auto end_timer = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
 	std::cout << "CGAL delaunay for " << nb_vertices << " points in " << elapsed_seconds.count() << std::endl;
-
 	
 	start_timer = std::chrono::high_resolution_clock::now();
 	
 	uint32 nb_volumes = tri.number_of_finite_cells();
 	Delaunay_tri_3_data.reserve(nb_vertices, nb_volumes);
+	Voronoi_Vertices_data.reserve(nb_volumes);
+
 	for (auto p : Delaunay_tri_point)
 	{
 		Delaunay_tri_3_data.vertex_position_.push_back({p[0], p[1], p[2]});
 	}
 
-	Voronoi_Vertices_data.reserve(nb_volumes);
 	for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 	{
-		Point p1 = Delaunay_tri_point[cit->vertex(0)->info()];
-		Point p2 = Delaunay_tri_point[cit->vertex(1)->info()];
-		Point p3 = Delaunay_tri_point[cit->vertex(2)->info()];
-		Point p4 = Delaunay_tri_point[cit->vertex(3)->info()];
-		bool cop = coplanar(p1, p2, p3, p4);
-		if (!cop)
-		{
-			Delaunay_tri_3_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
-			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
-			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
-			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
-			Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());	
-			auto circumcenter = tri.dual(cit);
-			Voronoi_Vertices_data.vertex_position_.push_back({circumcenter[0], circumcenter[1], circumcenter[2]});
-		}
-		}
+		Delaunay_tri_3_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
+		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
+		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
+		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
+		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
+	}
+	//Find inside poles 
+ 	for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
+ 	{
+ 		double distance = 0.0f;
+ 		Delaunay::Vertex_handle v = vit;
+ 		Point farthest_vertex;
+ 		std::vector<Delaunay::Facet> facets;
+ 		tri.finite_incident_facets(vit, std::back_inserter(facets));
+ 		if (facets.size() != 0)
+ 		{
+ 			for (auto f = facets.begin(); f != facets.end(); ++f)
+ 			{
+ 				K::Object_3 o = tri.dual(*f);
+ 				if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
+ 				{
+ 					//Test for source to do
+ 					auto start = s->start(), source = s->source();
+					if (f == facets.begin() && pointInside(tree, start))
+					{
+ 						auto dis = CGAL::squared_distance(start, v->point());
+ 						if (dis > distance)
+ 						{
+ 							distance = dis;
+ 							farthest_vertex = start;
+ 						}
+ 					}
+					if (pointInside(tree, source))
+					{
+						auto dis = CGAL::squared_distance(source, v->point());
+						if (dis > distance)
+						{
+							distance = dis;
+							farthest_vertex = source;
+						}
+					}
+	
+ 				}
+ 			}
+ 			Voronoi_Vertices_data.vertex_position_.push_back(
+ 				{farthest_vertex[0], farthest_vertex[1], farthest_vertex[2]});
+			Power_point.push_back(farthest_vertex);
+ 		}
+ 		
+ 	}
+	//Build weighted delaunay tredrahedron
+
+
+	cgogn::io::VolumeImportData Power_shape_data;
+	std::vector<unsigned> power_indices;
+	unsigned power_vertices_nb = Power_point.size();
+	indices.reserve(power_vertices_nb);
+	for (unsigned int i = 0; i < power_vertices_nb; ++i)
+		power_indices.push_back(i);
+
 
 	import_volume_data(*mv, Delaunay_tri_3_data);
 	import_point_data(*mp, Voronoi_Vertices_data);
@@ -222,14 +327,20 @@ int main(int argc, char** argv)
 	v1->link_module(&mpp);
 	v1->link_module(&pcr);
 
- 	Mesh_Volumn* mv = mpv.add_mesh("delaunay tredrehedra");
-	Mesh_Point* mp = mpp.add_mesh("delauney vertices");
+	
+   	Mesh_Volumn* mv = new Mesh_Volumn{};
+	Mesh_Point* mp = new Mesh_Point{};
+
 	test_delaunay(mp, mv, surface_mesh);
+
+ 	mpv.register_mesh(mv, "delaunay tredrehedra");
+ 	mpp.register_mesh(mp, "power vertices");
+
 
 	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex_Volumn>(*mv, "position");
 	mpv.set_mesh_bb_vertex_position(*mv, vertex_position);
 	vr.set_vertex_position(*v1, *mv, vertex_position);
-
+	
 	std::shared_ptr<Attribute_Point<Vec3>> vertex_position_2 =
 		cgogn::get_attribute<Vec3, Vertex_Point>(*mp, "position");
 	mpp.set_mesh_bb_vertex_position(*mp, vertex_position_2);
@@ -247,6 +358,7 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute_Surface<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex_Surface>(*original_m, "normal");
 
 	sr.set_vertex_position(*v1, *original_m, vertex_position_3);
+	
 	sr.set_vertex_normal(*v1, *original_m, vertex_normal);
 
 	return app.launch();
