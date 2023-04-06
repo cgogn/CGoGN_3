@@ -68,7 +68,9 @@ using Cb = CGAL::Delaunay_triangulation_cell_base_3<K>;
 using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
 using Regular = CGAL::Regular_triangulation_3<K, Tds, CGAL::Fast_location>;
-using Point = Delaunay::Point;
+using Point = K::Point_3;
+using Weight = K::FT;
+using Weight_Point = Regular::Weighted_point;
 using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
 using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
 using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
@@ -126,9 +128,10 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
 {
 	cgogn::io::VolumeImportData Delaunay_tri_3_data;
 	cgogn::io::PointImportData Voronoi_Vertices_data;
+	cgogn::io::VolumeImportData Medial_axis_data;
 
 	std::vector<Point> Delaunay_tri_point;
-	std::vector<Point> Power_point;
+	std::vector<Weight_Point> Power_point;
 	// 1. Compute the Voronoi diagram of the sample points S.
 	Tree tree(faces(csm).first, faces(csm).second, csm);
 	tree.accelerate_distance_queries();
@@ -234,7 +237,6 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
  				K::Object_3 o = tri.dual(*f);
  				if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
  				{
- 					//Test for source to do
  					auto start = s->start(), source = s->source();
 					if (f == facets.begin() && pointInside(tree, start))
 					{
@@ -259,29 +261,34 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
  			}
  			Voronoi_Vertices_data.vertex_position_.push_back(
  				{farthest_vertex[0], farthest_vertex[1], farthest_vertex[2]});
-			Power_point.push_back(farthest_vertex);
+			Power_point.push_back(Weight_Point(farthest_vertex, distance));
  		}
- 		
  	}
 	//Build weighted delaunay tredrahedron
 
-
 	cgogn::io::VolumeImportData Power_shape_data;
-	std::vector<unsigned> power_indices;
-	unsigned power_vertices_nb = Power_point.size();
-	indices.reserve(power_vertices_nb);
-	for (unsigned int i = 0; i < power_vertices_nb; ++i)
-		power_indices.push_back(i);
+	Regular reg;
+	reg.insert(Power_point.begin(), Power_point.end());
+	for (auto p : Power_point)
+	{
+		Power_shape_data.vertex_position_.push_back({p.x(), p.y(), p.z()});
+	}
 
+	for (auto cit = reg.finite_cells_begin(); cit != reg.finite_cells_end(); ++cit)
+	{
+		Power_shape_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
+		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
+		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
+		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
+		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
+	}
 
-	import_volume_data(*mv, Delaunay_tri_3_data);
+	import_volume_data(*mv, Power_shape_data);
 	import_point_data(*mp, Voronoi_Vertices_data);
+	
 	// 2. For each sample point, compute its poles .
 
-	// 3. Compute the power diagram of the poles .
-	// 4. Label each pole either inside or outside .
-	// 5. Compute the regular triangulations Output the regular triangulation faces connecting inside poles as the power
-	// shape
+	
 	end_timer = std::chrono::high_resolution_clock::now();
 	elapsed_seconds = end_timer - start_timer;
 	std::cout << "transfer to CGoGN in " << elapsed_seconds.count() << std::endl;
