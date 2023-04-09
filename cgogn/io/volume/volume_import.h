@@ -71,6 +71,13 @@ struct VolumeImportData
 		volumes_vertex_indices_.reserve(nb_volumes * 8u);
 		vertex_id_after_import_.reserve(nb_vertices);
 	}
+
+	inline void set_parameter(uint32 nb_vertices, uint32 nb_volumes)
+	{
+		nb_vertices_ = nb_vertices;
+		nb_volumes_ = nb_volumes;
+		vertex_id_after_import_.reserve(nb_vertices);
+	}
 };
 
 void CGOGN_IO_EXPORT import_volume_data(CMap3& m, VolumeImportData& volume_data);

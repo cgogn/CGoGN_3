@@ -45,6 +45,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Regular_triangulation_3.h>
 #include <CGAL/Regular_triangulation_cell_base_3.h>
+#include <CGAL/Regular_triangulation_vertex_base_3.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #include <CGAL/Polygon_mesh_processing/distance.h>
 #include <CGAL/Surface_mesh.h>
@@ -64,28 +65,27 @@
 //Kernel for construct delauney 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Vb = CGAL::Triangulation_vertex_base_with_info_3<uint32_t, K>;
+
 using Cb = CGAL::Delaunay_triangulation_cell_base_3<K>;
 using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
-using Regular = CGAL::Regular_triangulation_3<K, Tds, CGAL::Fast_location>;
+
+using Vb0 = CGAL::Regular_triangulation_vertex_base_3<K>;
+using RVb = CGAL::Triangulation_vertex_base_with_info_3<std::pair<uint32_t,bool>, K, Vb0>;
+using RCb = CGAL::Regular_triangulation_cell_base_3<K>;
+using RTds = CGAL::Triangulation_data_structure_3<RVb, RCb>;
+using Regular = CGAL::Regular_triangulation_3<K, RTds, CGAL::Fast_location>;
+
 using Point = K::Point_3;
 using Weight = K::FT;
-using Weight_Point = Regular::Weighted_point;
+using Weight_Point = K::Weighted_point_3;
+
 using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
 using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
 using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
 using Traits = CGAL::AABB_traits<K, Primitive>;
 using Tree = CGAL::AABB_tree<Traits>;
 
-//Kernel for test
-// using Point = Delaunay::Point;
-// using Kernel =  CGAL::Simple_cartesian<double>;
-// using Point_3 = K::Point_3;
-// using Cgal_Surface_mesh = CGAL::Surface_mesh<Point_3> ;
-// using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh,Kernel>;
-// using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
-// using Traits =  CGAL::AABB_traits<Kernel, Primitive>;
-// using Tree = CGAL::AABB_tree<Traits>;
 
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
@@ -114,7 +114,29 @@ using Graph = cgogn::Graph;
 
 
 //#define PERF_TEST
+struct Pole
+{
+	Point _p;
+	Pole(Point& p)
+	{
+		_p = p;
+	}
 
+	bool operator==(const Pole& other) const
+	{
+		return _p.x() == other._p.x() && _p.y() == other._p.y() && _p.z() == other._p.z();
+	}
+};
+
+struct pole_hash
+{
+std::size_t operator()(const Pole& p) const
+	{
+		return ((std::hash<double>()(p._p.x())
+			^ (std::hash<double>()(p._p.y()) << 1)) >> 1)
+			^ (std::hash<double>()(p._p.z()) << 1);
+	}
+};;
 bool pointInside(Tree &tree, Point& query)
 {
 	// Initialize the point-in-polyhedron tester
@@ -173,13 +195,13 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
 		CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
 	// 	Add bounding box vertices in the sample points set
-	for (auto p : cube_corners)
+	for (auto& p : cube_corners)
   	{
 		Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
   	}
 
 	//Add sampled vertices into the volume data to construct the delauney tredrahedron
-	for (auto s : mesh_samples)
+	for (auto& s : mesh_samples)
 	{
 		
 		Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
@@ -207,8 +229,8 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
 	
 	uint32 nb_volumes = tri.number_of_finite_cells();
 	Delaunay_tri_3_data.reserve(nb_vertices, nb_volumes);
-	Voronoi_Vertices_data.reserve(nb_volumes);
-
+	
+	std::vector<std::pair<unsigned, bool>> power_indices;
 	for (auto p : Delaunay_tri_point)
 	{
 		Delaunay_tri_3_data.vertex_position_.push_back({p[0], p[1], p[2]});
@@ -222,73 +244,120 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
 		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
 		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
 	}
-	//Find inside poles 
+	//Find inside and outside poles 
+
+	unsigned int count = 0, inside_poles_count = 0;
+	Point farthest_inside_point, farthest_outside_point;
+	double farthest_inside_distance, farthest_outside_distance;
+	std::unordered_set<Pole, pole_hash> poles;
+	std::unordered_map<uint32, uint32> inside_poles_indices;
  	for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
- 	{
- 		double distance = 0.0f;
+ 	{	
+		
  		Delaunay::Vertex_handle v = vit;
- 		Point farthest_vertex;
  		std::vector<Delaunay::Facet> facets;
+		farthest_inside_distance = 0;
+		farthest_outside_distance = 0;
  		tri.finite_incident_facets(vit, std::back_inserter(facets));
- 		if (facets.size() != 0)
- 		{
- 			for (auto f = facets.begin(); f != facets.end(); ++f)
- 			{
- 				K::Object_3 o = tri.dual(*f);
- 				if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
- 				{
- 					auto start = s->start(), source = s->source();
-					if (f == facets.begin() && pointInside(tree, start))
+		if (facets.size() != 0)
+		{
+			for (auto f = facets.begin(); f != facets.end(); ++f)
+			{
+				K::Object_3 o = tri.dual(*f);
+				if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
+				{
+					auto start = s->start(), source = s->source();
+					if (f == facets.begin())
 					{
- 						auto dis = CGAL::squared_distance(start, v->point());
- 						if (dis > distance)
- 						{
- 							distance = dis;
- 							farthest_vertex = start;
- 						}
- 					}
-					if (pointInside(tree, source))
-					{
-						auto dis = CGAL::squared_distance(source, v->point());
-						if (dis > distance)
+						auto dis = CGAL::squared_distance(start, v->point());
+						if (pointInside(tree, start) && dis > farthest_inside_distance)
 						{
-							distance = dis;
-							farthest_vertex = source;
+							farthest_inside_point = start;
+							farthest_inside_distance = dis;
+						}
+						else if (!pointInside(tree, start) && dis > farthest_outside_distance)
+						{
+							farthest_outside_point = start;
+							farthest_outside_distance = dis;
 						}
 					}
-	
- 				}
- 			}
- 			Voronoi_Vertices_data.vertex_position_.push_back(
- 				{farthest_vertex[0], farthest_vertex[1], farthest_vertex[2]});
-			Power_point.push_back(Weight_Point(farthest_vertex, distance));
- 		}
+					auto dis = CGAL::squared_distance(source, v->point());
+					if (pointInside(tree, source) && dis > farthest_inside_distance)
+					{
+						farthest_inside_point = source;
+						farthest_inside_distance = dis;
+					}
+					else if (!pointInside(tree, source) && dis > farthest_outside_distance)
+					{
+						farthest_outside_point = source;
+						farthest_outside_distance = dis;
+					}
+				}
+			}
+		}
+		if (farthest_inside_distance!=0)
+		{ 
+			Pole inside_pole = Pole(farthest_inside_point);
+			if (poles.find(inside_pole) == poles.end()){
+				poles.insert(inside_pole);
+				Voronoi_Vertices_data.vertex_position_.push_back(
+					{farthest_inside_point[0], farthest_inside_point[1], farthest_inside_point[2]});
+				Power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
+				power_indices.push_back({count, true});
+				inside_poles_indices.insert({count++, inside_poles_count++});
+				
+			}
+		}
+		if (farthest_outside_distance != 0)
+		{
+			Pole outside_pole = Pole(farthest_outside_point);
+			if (poles.find(outside_pole) == poles.end())
+			{
+				poles.insert(outside_pole);
+				Voronoi_Vertices_data.vertex_position_.push_back(
+					{farthest_outside_point[0], farthest_outside_point[1], farthest_outside_point[2]});
+				Power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
+				power_indices.push_back({count++, false});
+			}
+		}
+
  	}
 	//Build weighted delaunay tredrahedron
 
 	cgogn::io::VolumeImportData Power_shape_data;
-	Regular reg;
-	reg.insert(Power_point.begin(), Power_point.end());
-	for (auto p : Power_point)
+
+	Regular reg(boost::make_zip_iterator(boost::make_tuple(Power_point.begin(), power_indices.begin())),
+				boost::make_zip_iterator(boost::make_tuple(Power_point.end(), power_indices.end())));
+
+	for (size_t idx = 0; idx < Power_point.size(); ++idx)
 	{
-		Power_shape_data.vertex_position_.push_back({p.x(), p.y(), p.z()});
+		if (power_indices[idx].second)
+			Power_shape_data.vertex_position_.push_back(
+				{Power_point[idx].x(), Power_point[idx].y(), Power_point[idx].z()});
 	}
 
 	for (auto cit = reg.finite_cells_begin(); cit != reg.finite_cells_end(); ++cit)
 	{
-		Power_shape_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
-		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
-		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
-		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
-		Power_shape_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
+		bool inside = cit->vertex(0)->info().second && cit->vertex(1)->info().second && cit->vertex(2)->info().second &&
+					  cit->vertex(3)->info().second;
+		if (inside)
+		{
+			Power_shape_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
+			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(0)->info().first]);
+			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(1)->info().first]);
+			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(2)->info().first]);
+			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(3)->info().first]);
+		}
 	}
+	uint32 power_nb_vertices = Power_shape_data.vertex_position_.size();
+	uint32 power_nb_volumes = Power_shape_data.volumes_types_.size();
+
+	Power_shape_data.set_parameter(power_nb_vertices, power_nb_volumes);
+	Voronoi_Vertices_data.reserve(power_nb_vertices);
 
 	import_volume_data(*mv, Power_shape_data);
 	import_point_data(*mp, Voronoi_Vertices_data);
-	
-	// 2. For each sample point, compute its poles .
 
-	
 	end_timer = std::chrono::high_resolution_clock::now();
 	elapsed_seconds = end_timer - start_timer;
 	std::cout << "transfer to CGoGN in " << elapsed_seconds.count() << std::endl;
