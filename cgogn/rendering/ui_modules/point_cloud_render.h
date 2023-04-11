@@ -136,7 +136,7 @@ private:
 						if (p.vertex_position_.get() == attribute)
 						{
 							MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
-							p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
+							p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 1000.0);
 						}
 						v->request_update();
 					}));
@@ -154,7 +154,7 @@ public:
 		if (p.vertex_position_)
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
-			p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 500.0);
+			p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 2000.0);
 			//p.vertex_base_size_ = 0.01f;
 			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			

@@ -137,10 +137,10 @@ std::size_t operator()(const Pole& p) const
 
 struct edge_hash
 {
-	std::size_t operator()(const std::pair<uint32, uint32>& p) const
+	std::size_t operator()(const std::pair<uint32, uint32>& edge) const
 	{
-		return ((std::hash<uint32>()(p.first)
-						^ (std::hash<uint32>()(p.second) << 1)) >> 1);
+		return std::hash<uint32>()(edge.first)
+						+ std::hash<uint32>()(edge.second);
 	}
 };
 
@@ -155,7 +155,7 @@ bool pointInside(Tree &tree, Point& query)
 
 void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh csm)
 {
-	cgogn::io::VolumeImportData Delaunay_tri_3_data;
+	
 	cgogn::io::PointImportData Voronoi_Vertices_data;
 
 	std::vector<Point> Delaunay_tri_point;
@@ -173,7 +173,7 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 	}
 	std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 	//Create a large box surrounding object so that the Voronoi vertices are bounded
-	double offset = 2.0;
+	double offset = 4.0;
 	std::array<double, 3> offset_array = {offset, offset, offset};
 	std::array<std::array<double, 3>, 8> cube_corners = {
 		{{center[0] - offset_array[0], center[1] - offset_array[1],
@@ -223,7 +223,6 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 		indices.push_back(i);
 
 	//Construct delauney tredrahedron using CGAL
-	
 	Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
 				 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
 
@@ -234,32 +233,17 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 	start_timer = std::chrono::high_resolution_clock::now();
 	
 	uint32 nb_volumes = tri.number_of_finite_cells();
-	Delaunay_tri_3_data.reserve(nb_vertices, nb_volumes);
 	
 	std::vector<std::pair<unsigned, bool>> power_indices;
-	for (auto p : Delaunay_tri_point)
-	{
-		Delaunay_tri_3_data.vertex_position_.push_back({p[0], p[1], p[2]});
-	}
-
-	for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
-	{
-		Delaunay_tri_3_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(0)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(1)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(2)->info());
-		Delaunay_tri_3_data.volumes_vertex_indices_.push_back(cit->vertex(3)->info());
-	}
 	//Find inside and outside poles 
-
 	unsigned int count = 0, inside_poles_count = 0;
 	Point farthest_inside_point, farthest_outside_point;
 	double farthest_inside_distance, farthest_outside_distance;
 	std::unordered_set<Pole, pole_hash> poles;
-	std::unordered_map<uint32, uint32> inside_poles_indices;
+	std::unordered_map<uint32, uint32> inside_poles_indices;//Use for the construction of medial axis
  	for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
  	{	
-		
+
  		Delaunay::Vertex_handle v = vit;
  		std::vector<Delaunay::Facet> facets;
 		farthest_inside_distance = 0;
@@ -331,7 +315,9 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 	//Build weighted delaunay tredrahedron
 
 	cgogn::io::IncidenceGraphImportData Power_shape_data;
-	std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_set;
+	std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_indices;
+	uint32 edge_count = 0;
+
 	Regular reg(boost::make_zip_iterator(boost::make_tuple(Power_point.begin(), power_indices.begin())),
 				boost::make_zip_iterator(boost::make_tuple(Power_point.end(), power_indices.end())));
 	//Add vertices
@@ -341,31 +327,18 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 			Power_shape_data.vertex_position_.push_back(
 				{Power_point[idx].x(), Power_point[idx].y(), Power_point[idx].z()});
 	}
-	//Add edges
+	
 	bool inside;
-	for (auto eit = reg.finite_edges_begin(); eit != reg.finite_edges_end(); ++eit)
-	{ 
-		//Edge = Tuple<Cell, idx1, id2> where idx1 and idx2 are two indices of the vertices in the cell
-		//Info = Tuple<idx, bool>
-		inside = eit->first->vertex(eit->second)->info().second && eit->first->vertex(eit->third)->info().second;
-		if (inside)
-		{
-			Power_shape_data.edges_vertex_indices_.push_back(
-				inside_poles_indices[eit->first->vertex(eit->second)->info().first]);
-			Power_shape_data.edges_vertex_indices_.push_back(
-				inside_poles_indices[eit->first->vertex(eit->third)->info().first]);
-		}
-	}
-	//Add faces
+	uint32 v, v1, v2;
+	int mask;
 	for (auto fit = reg.finite_facets_begin(); fit != reg.finite_facets_end(); ++fit)
 	{
 		inside = true;
-		int v = fit->second;
-		int mask = (1 << v);
-		//If face is inside
+		v = fit->second;
+		// If face is inside
 		for (size_t idx = 0; idx < 4; ++idx)
 		{
-			if ((mask & (1 << idx)) == 0)
+			if (idx != v)
 			{
 				inside &= fit->first->vertex(idx)->info().second;
 			}
@@ -373,17 +346,37 @@ void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh
 		if (inside)
 		{
 			Power_shape_data.faces_nb_edges_.push_back(3);
-			for (size_t idx = 0; idx < 4; ++idx)
+
+			for (size_t i = 0; i < 4; i++)
 			{
-				if ((mask & (1 << idx)) == 0)
-					Power_shape_data.faces_edge_indices_.push_back(
-						inside_poles_indices[fit->first->vertex(idx)->info().first]);
+				if (i != v)
+				{
+					for (size_t j = i + 1; j < 4; j++)
+					{
+						if (j != v)
+						{
+
+							// Add edge
+							v1 = inside_poles_indices[fit->first->vertex(i)->info().first];
+							v2 = inside_poles_indices[fit->first->vertex(j)->info().first];
+							if (edge_indices.find({v1, v2}) == edge_indices.end())
+							{
+								edge_indices.insert({{v1, v2}, edge_count});
+								Power_shape_data.edges_vertex_indices_.push_back(v1);
+								Power_shape_data.edges_vertex_indices_.push_back(v2);
+								edge_count++;
+							}
+							// Add face
+							Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
+						}
+					}
+				}
 			}
 		}
 	}
 	uint32 power_nb_vertices = Power_shape_data.vertex_position_.size();
 	uint32 power_nb_edges = Power_shape_data.edges_vertex_indices_.size() / 2;
-	uint32 power_nb_faces = Power_shape_data.faces_edge_indices_.size();
+	uint32 power_nb_faces = Power_shape_data.faces_nb_edges_.size();
 
 	Power_shape_data.set_parameter(power_nb_vertices, power_nb_edges, power_nb_faces);
 	Voronoi_Vertices_data.reserve(power_nb_vertices);
