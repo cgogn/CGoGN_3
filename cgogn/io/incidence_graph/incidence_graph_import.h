@@ -64,6 +64,13 @@ struct IncidenceGraphImportData
 		faces_nb_edges_.reserve(nb_faces);
 		faces_edge_indices_.reserve(nb_faces * 4u);
 	}
+
+	inline void set_parameter(uint32 nb_vertices, uint32 nb_edges, uint32 nb_faces)
+	{
+		nb_vertices_ = nb_vertices;
+		nb_edges_ = nb_edges;
+		nb_faces_ = nb_faces;
+	}
 };
 
 void CGOGN_IO_EXPORT import_incidence_graph_data(IncidenceGraph& ig, IncidenceGraphImportData& graph_data);

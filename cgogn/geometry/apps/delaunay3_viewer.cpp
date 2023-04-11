@@ -31,7 +31,7 @@
 #include <cgogn/rendering/ui_modules/volume_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
 #include <cgogn/rendering/ui_modules/point_cloud_render.h>
-
+#include "cgogn/rendering/ui_modules/graph_render.h"
 #include <cgogn/io/utils.h>
 #include <cgogn/io/point/point_import.h>
 #include <cgogn/io/volume/volume_import.h>
@@ -54,22 +54,20 @@
 #include <CGAL/Object.h>
 #include <CGAL/Side_of_triangle_mesh.h>
 
-
-
-
 #include <vector>
 #include <random>
 #include <chrono>
 
 
+
 //Kernel for construct delauney 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Vb = CGAL::Triangulation_vertex_base_with_info_3<uint32_t, K>;
-
+//Delaunay
 using Cb = CGAL::Delaunay_triangulation_cell_base_3<K>;
 using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
-
+//Regular
 using Vb0 = CGAL::Regular_triangulation_vertex_base_3<K>;
 using RVb = CGAL::Triangulation_vertex_base_with_info_3<std::pair<uint32_t,bool>, K, Vb0>;
 using RCb = CGAL::Regular_triangulation_cell_base_3<K>;
@@ -112,7 +110,6 @@ using Vec3 = cgogn::geometry::Vec3;
 using Scalar = cgogn::geometry::Scalar;
 using Graph = cgogn::Graph;
 
-
 //#define PERF_TEST
 struct Pole
 {
@@ -136,7 +133,17 @@ std::size_t operator()(const Pole& p) const
 			^ (std::hash<double>()(p._p.y()) << 1)) >> 1)
 			^ (std::hash<double>()(p._p.z()) << 1);
 	}
-};;
+};
+
+struct edge_hash
+{
+	std::size_t operator()(const std::pair<uint32, uint32>& p) const
+	{
+		return ((std::hash<uint32>()(p.first)
+						^ (std::hash<uint32>()(p.second) << 1)) >> 1);
+	}
+};
+
 bool pointInside(Tree &tree, Point& query)
 {
 	// Initialize the point-in-polyhedron tester
@@ -146,11 +153,10 @@ bool pointInside(Tree &tree, Point& query)
 	return inside_tester(query) == CGAL::ON_BOUNDED_SIDE;
 }
 
-void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
+void test_delaunay(Mesh_Point* mp, cgogn::IncidenceGraph * mv, Cgal_Surface_mesh csm)
 {
 	cgogn::io::VolumeImportData Delaunay_tri_3_data;
 	cgogn::io::PointImportData Voronoi_Vertices_data;
-	cgogn::io::VolumeImportData Medial_axis_data;
 
 	std::vector<Point> Delaunay_tri_point;
 	std::vector<Weight_Point> Power_point;
@@ -324,38 +330,65 @@ void test_delaunay(Mesh_Point* mp, Mesh_Volumn * mv, Cgal_Surface_mesh csm)
  	}
 	//Build weighted delaunay tredrahedron
 
-	cgogn::io::VolumeImportData Power_shape_data;
-
+	cgogn::io::IncidenceGraphImportData Power_shape_data;
+	std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_set;
 	Regular reg(boost::make_zip_iterator(boost::make_tuple(Power_point.begin(), power_indices.begin())),
 				boost::make_zip_iterator(boost::make_tuple(Power_point.end(), power_indices.end())));
-
+	//Add vertices
 	for (size_t idx = 0; idx < Power_point.size(); ++idx)
 	{
 		if (power_indices[idx].second)
 			Power_shape_data.vertex_position_.push_back(
 				{Power_point[idx].x(), Power_point[idx].y(), Power_point[idx].z()});
 	}
-
-	for (auto cit = reg.finite_cells_begin(); cit != reg.finite_cells_end(); ++cit)
-	{
-		bool inside = cit->vertex(0)->info().second && cit->vertex(1)->info().second && cit->vertex(2)->info().second &&
-					  cit->vertex(3)->info().second;
+	//Add edges
+	bool inside;
+	for (auto eit = reg.finite_edges_begin(); eit != reg.finite_edges_end(); ++eit)
+	{ 
+		//Edge = Tuple<Cell, idx1, id2> where idx1 and idx2 are two indices of the vertices in the cell
+		//Info = Tuple<idx, bool>
+		inside = eit->first->vertex(eit->second)->info().second && eit->first->vertex(eit->third)->info().second;
 		if (inside)
 		{
-			Power_shape_data.volumes_types_.push_back(cgogn::io::VolumeType::Tetra);
-			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(0)->info().first]);
-			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(1)->info().first]);
-			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(2)->info().first]);
-			Power_shape_data.volumes_vertex_indices_.push_back(inside_poles_indices[cit->vertex(3)->info().first]);
+			Power_shape_data.edges_vertex_indices_.push_back(
+				inside_poles_indices[eit->first->vertex(eit->second)->info().first]);
+			Power_shape_data.edges_vertex_indices_.push_back(
+				inside_poles_indices[eit->first->vertex(eit->third)->info().first]);
+		}
+	}
+	//Add faces
+	for (auto fit = reg.finite_facets_begin(); fit != reg.finite_facets_end(); ++fit)
+	{
+		inside = true;
+		int v = fit->second;
+		int mask = (1 << v);
+		//If face is inside
+		for (size_t idx = 0; idx < 4; ++idx)
+		{
+			if ((mask & (1 << idx)) == 0)
+			{
+				inside &= fit->first->vertex(idx)->info().second;
+			}
+		}
+		if (inside)
+		{
+			Power_shape_data.faces_nb_edges_.push_back(3);
+			for (size_t idx = 0; idx < 4; ++idx)
+			{
+				if ((mask & (1 << idx)) == 0)
+					Power_shape_data.faces_edge_indices_.push_back(
+						inside_poles_indices[fit->first->vertex(idx)->info().first]);
+			}
 		}
 	}
 	uint32 power_nb_vertices = Power_shape_data.vertex_position_.size();
-	uint32 power_nb_volumes = Power_shape_data.volumes_types_.size();
+	uint32 power_nb_edges = Power_shape_data.edges_vertex_indices_.size() / 2;
+	uint32 power_nb_faces = Power_shape_data.faces_edge_indices_.size();
 
-	Power_shape_data.set_parameter(power_nb_vertices, power_nb_volumes);
+	Power_shape_data.set_parameter(power_nb_vertices, power_nb_edges, power_nb_faces);
 	Voronoi_Vertices_data.reserve(power_nb_vertices);
 
-	import_volume_data(*mv, Power_shape_data);
+	import_incidence_graph_data(*mv, Power_shape_data);
 	import_point_data(*mp, Voronoi_Vertices_data);
 
 	end_timer = std::chrono::high_resolution_clock::now();
@@ -385,11 +418,11 @@ int main(int argc, char** argv)
 	app.set_window_title("Delaunay volume viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Mesh_Volumn> mpv(app);
+	cgogn::ui::MeshProvider<cgogn::IncidenceGraph> mpv(app);
 	cgogn::ui::MeshProvider<Mesh_Surface> mps(app);
 	cgogn::ui::MeshProvider<Mesh_Point> mpp(app);
 
-	cgogn::ui::VolumeRender<Mesh_Volumn> vr(app);
+	cgogn::ui::SurfaceRender<cgogn::IncidenceGraph> vr(app);
 	cgogn::ui::SurfaceRender<Mesh_Surface> sr(app);
 	cgogn::ui::PointCloudRender<Mesh_Point> pcr(app);
 	
@@ -404,7 +437,7 @@ int main(int argc, char** argv)
 	v1->link_module(&pcr);
 
 	
-   	Mesh_Volumn* mv = new Mesh_Volumn{};
+   	cgogn::IncidenceGraph* mv = new cgogn::IncidenceGraph{};
 	Mesh_Point* mp = new Mesh_Point{};
 
 	test_delaunay(mp, mv, surface_mesh);
@@ -413,9 +446,10 @@ int main(int argc, char** argv)
  	mpp.register_mesh(mp, "power vertices");
 
 
-	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex_Volumn>(*mv, "position");
-	mpv.set_mesh_bb_vertex_position(*mv, vertex_position);
-	vr.set_vertex_position(*v1, *mv, vertex_position);
+// 	std::shared_ptr<Attribute_Volumn<Vec3>> vertex_position =
+// 		cgogn::get_attribute<Vec3, Vertex_Volumn>(*mv, "position");
+// 	mpv.set_mesh_bb_vertex_position(*mv, vertex_position);
+// 	vr.set_vertex_position(*v1, *mv, vertex_position);
 	
 	std::shared_ptr<Attribute_Point<Vec3>> vertex_position_2 =
 		cgogn::get_attribute<Vec3, Vertex_Point>(*mp, "position");
