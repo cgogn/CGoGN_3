@@ -92,7 +92,6 @@ Graph::Vertex CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indic
 // CMap2 //
 ///////////
 
-CMap2::Vertex CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
 ///////////
 // CMap3 //
@@ -152,7 +151,6 @@ CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_
 // CMap2 //
 ///////////
 
-bool CGOGN_CORE_EXPORT flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
 } // namespace cgogn
 

@@ -73,6 +73,22 @@ struct mesh_traits<CMap2>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
+CMap2::Vertex CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+bool CGOGN_CORE_EXPORT flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+CMap2::Face CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+CMap2::Edge CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
+
+CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
+
+uint32 close(CMap2& m, bool set_indices = true);
+
+void reverse_orientation(CMap2& m);
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_CMAP2_H_
