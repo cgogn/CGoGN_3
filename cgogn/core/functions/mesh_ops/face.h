@@ -46,7 +46,6 @@ namespace cgogn
 // CMap1 //
 ///////////
 
-CMap1::Face CGOGN_CORE_EXPORT add_face(CMap1& m, uint32 size, bool set_indices = true);
 
 ///////////
 // CMap2 //
@@ -86,7 +85,6 @@ void CGOGN_CORE_EXPORT remove_face(IncidenceGraph& ig, IncidenceGraph::Face f);
 // CMap1 //
 ///////////
 
-void CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
 
 /*****************************************************************************/
 
