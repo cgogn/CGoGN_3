@@ -28,7 +28,6 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/portable-file-dialogs.h>
 
-#include <cgogn/core/functions/mesh_ops/global.h>
 #include <cgogn/core/ui_modules/mesh_data.h>
 #include <cgogn/core/utils/string.h>
 

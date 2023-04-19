@@ -26,7 +26,6 @@
 
 #include <cgogn/core/types/cells_set.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/rendering/mesh_render.h>

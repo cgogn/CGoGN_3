@@ -25,7 +25,6 @@
 #define CGOGN_GEOMETRY_TYPES_GRID_H_
 
 #include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 
 #include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>

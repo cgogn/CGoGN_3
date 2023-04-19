@@ -24,7 +24,6 @@
 #ifndef CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 #define CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/types/cmap/cmap2.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>

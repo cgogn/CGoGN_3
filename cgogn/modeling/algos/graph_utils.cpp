@@ -24,7 +24,6 @@
 #include <cgogn/modeling/algos/graph_utils.h>
 
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/halfedge.h>
 
 namespace cgogn

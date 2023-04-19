@@ -24,8 +24,6 @@
 #ifndef CGOGN_MODELING_ALGOS_SKELETON_H_
 #define CGOGN_MODELING_ALGOS_SKELETON_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/halfedge.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 

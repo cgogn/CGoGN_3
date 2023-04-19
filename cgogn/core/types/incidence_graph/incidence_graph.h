@@ -180,7 +180,99 @@ struct mesh_traits<IncidenceGraph>
 	using MarkAttribute = IncidenceGraph::MarkAttribute;
 };
 
+
+
+bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f);
+
+bool same_edge(IncidenceGraph& ig, IncidenceGraph::Edge e1, IncidenceGraph::Edge e2);
+
+void remove_edge_in_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v, IncidenceGraph::Edge edge_to_remove);
+
+
+void remove_face_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Face face_to_remove);
+
+void remove_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge edge_to_remove);
+
+void replace_vertex_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex old_vertex,
+								   IncidenceGraph::Vertex new_vertex);
+
+void replace_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge old_edge,
+								 IncidenceGraph::Edge new_edge);
+
+
+IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1);
+
+std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& ig, IncidenceGraph::Face f);
+
+
+IncidenceGraph::Vertex CGOGN_CORE_EXPORT add_vertex(IncidenceGraph& ig);
+
+void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v);
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT connect_vertices(IncidenceGraph& g, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2);
+
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
+
+IncidenceGraph::Vertex CGOGN_CORE_EXPORT cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
+
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,IncidenceGraph::Edge e, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
+
+IncidenceGraph::Face CGOGN_CORE_EXPORT add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges);
+
+void CGOGN_CORE_EXPORT remove_face(IncidenceGraph& ig, IncidenceGraph::Face f);
+
+IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1,
+												IncidenceGraph::Vertex v2);
+
+inline void copy(IncidenceGraph& /*dst*/, const IncidenceGraph& /*src*/)
+{
+	// TODO
+}
+
+
+template <typename CELL>
+CELL add_cell(IncidenceGraph& ig)
+{
+	return CELL(ig.attribute_containers_[CELL::CELL_INDEX].new_index());
+}
+
+template <typename CELL>
+void remove_cell(IncidenceGraph& ig, CELL c)
+{
+	ig.attribute_containers_[CELL::CELL_INDEX].release_index(c.index_);
+}
+
+
+
+
+template <typename CELL>
+bool is_indexed(const IncidenceGraph& /*m*/)
+{
+	return true;
+}
+
+
+
+template <typename CELL>
+uint32 index_of(const IncidenceGraph& /*m*/, CELL c)
+{
+	return c.index_;
+}
+
+
+template <typename CELL>
+uint32 new_index(const IncidenceGraph& ig)
+{
+	uint32 id = ig.attribute_containers_[CELL::CELL_INDEX].new_index();
+	// (*ig.cells_indices_[CELL::CELL_INDEX])[id] = id;
+	return id;
+}
+
 } // namespace cgogn
 
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_attrib.hpp>
+#include <cgogn/core/types/incidence_graph/incidence_graph_traversals.hpp>
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_H_

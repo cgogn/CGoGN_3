@@ -26,9 +26,6 @@
 
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/modeling/algos/subdivision_utils.h>
 
 namespace cgogn

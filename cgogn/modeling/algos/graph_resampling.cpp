@@ -23,9 +23,6 @@
 
 #include <cgogn/modeling/algos/graph_resampling.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/traversals/halfedge.h>
 
 #include <cgogn/geometry/algos/centroid.h>

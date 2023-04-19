@@ -27,9 +27,6 @@
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/simulation/algos/shallow_water/shallow_water.h>
 
 #include <boost/synapse/connect.hpp>

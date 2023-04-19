@@ -35,7 +35,6 @@ extern "C"
 #include <cgogn/io/utils.h>
 #include <cgogn/io/volume/volume_import.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/utils/numerics.h>
 

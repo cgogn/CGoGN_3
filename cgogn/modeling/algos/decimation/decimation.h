@@ -24,9 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
 #define CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/QEM_helper.h>

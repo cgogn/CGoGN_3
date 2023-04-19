@@ -23,12 +23,8 @@
 
 #include <cgogn/io/volume/volume_import.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/mesh_ops/volume.h>
-
-#include <cgogn/core/types/cmap/cmap_ops.h>
-
+	
 #include <vector>
 
 namespace cgogn

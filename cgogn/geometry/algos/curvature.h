@@ -26,9 +26,8 @@
 
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
+
 
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/selection.h>

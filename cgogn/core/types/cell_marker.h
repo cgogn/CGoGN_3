@@ -26,7 +26,6 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/functions/cells.h>
 #include <cgogn/core/utils/type_traits.h>
 #include <cgogn/core/types/mesh_traits.h>
 

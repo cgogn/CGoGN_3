@@ -26,7 +26,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/edge.h>
 
 namespace cgogn

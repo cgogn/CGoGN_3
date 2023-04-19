@@ -41,7 +41,6 @@
 #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
 
 // using Graph = cgogn::Graph;
