@@ -35,4 +35,68 @@ CMapBase::~CMapBase()
 {
 }
 
+
+Dart add_dart(CMapBase& m)
+{
+	uint32 index = m.darts_.new_index();
+	Dart d(index);
+	for (auto& rel : m.relations_)
+		(*rel)[d.index] = d;
+	for (auto& emb : m.cells_indices_)
+		if (emb)
+			(*emb)[d.index] = INVALID_INDEX;
+	return d;
+}
+
+
+void remove_dart(CMapBase& m, Dart d)
+{
+	for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
+	{
+		if (m.cells_indices_[orbit])
+		{
+			uint32 index = (*m.cells_indices_[orbit])[d.index];
+			if (index != INVALID_INDEX)
+				m.attribute_containers_[orbit].unref_index(index);
+		}
+	}
+	m.darts_.release_index(d.index);
+}
+
+
+
+void clear(CMapBase& m, bool keep_attributes)
+{
+	// clear darts and keep attributes (phi relations)
+	m.darts_.clear_attributes();
+	if (!keep_attributes)
+	{
+		// remove cells indices attributes
+		for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
+		{
+			if (m.cells_indices_[orbit] != nullptr)
+			{
+				m.darts_.remove_attribute(m.cells_indices_[orbit]);
+				m.cells_indices_[orbit].reset();
+			}
+		}
+	}
+
+	// clear all cell attributes
+	for (CMapBase::AttributeContainer& container : m.attribute_containers_)
+	{
+		if (keep_attributes)
+			container.clear_attributes();
+		else
+		{
+			container.clear_attributes();
+			// if there are still shared_ptr somewhere, some attributes may not be removed
+			container.remove_attributes();
+		}
+	}
+}
+
+
+
+
 } // namespace cgogn

@@ -78,6 +78,23 @@ CMap1::Face CGOGN_CORE_EXPORT add_face(CMap1& m, uint32 size, bool set_indices =
 
 void CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f, bool set_indices = true);
 
+bool check_integrity(CMap1& m, bool verbose = true);
+
+inline Dart phi1(const CMap1& m, Dart d)
+{
+	return (*(m.phi1_))[d.index];
+}
+
+inline Dart phi_1(const CMap1& m, Dart d)
+{
+	return (*(m.phi_1_))[d.index];
+}
+
+void phi1_sew(CMap1& m, Dart d, Dart e);
+
+void phi1_unsew(CMap1& m, Dart d);
+
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_CMAP1_H_

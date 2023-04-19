@@ -43,18 +43,6 @@ namespace cgogn
 // CMapBase (or convertible) //
 ///////////////////////////////
 
-template <typename MESH, typename CELL, typename FUNC>
-auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
-{
-	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
-
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, HalfEdge>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-
-	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(HalfEdge(d)); });
-}
 
 /*****************************************************************************/
 

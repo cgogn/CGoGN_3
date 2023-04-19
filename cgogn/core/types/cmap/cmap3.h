@@ -81,6 +81,27 @@ struct mesh_traits<CMap3>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
+
+CMap3::Vertex CGOGN_CORE_EXPORT cut_edge(CMap3& m, CMap3::Edge e, bool set_indices = true);
+
+CMap3::Edge CGOGN_CORE_EXPORT cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices = true);
+
+CMap3::Face CGOGN_CORE_EXPORT cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
+CMap3::Volume CGOGN_CORE_EXPORT close_hole(CMap3& m, Dart d, bool set_indices = true);
+
+uint32 CGOGN_CORE_EXPORT close(CMap3& m, bool set_indices = true);
+
+inline Dart phi3(const CMap3& m, Dart d)
+{
+	return (*(m.phi3_))[d.index];
+}
+
+void phi3_sew(CMap3& m, Dart d, Dart e);
+
+void phi3_unsew(CMap3& m, Dart d);
+
+bool check_integrity(CMap3& m, bool verbose = true);
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_CMAP3_H_

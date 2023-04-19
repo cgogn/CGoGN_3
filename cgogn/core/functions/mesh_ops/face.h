@@ -24,150 +24,15 @@
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/cmap3.h>
-#include <cgogn/core/types/cmap/cph3.h>
-#include <cgogn/core/types/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+// #include <cgogn/core/types/cmap/cmap3.h>
+// #include <cgogn/core/types/cmap/cph3.h>
+// #include <cgogn/core/types/cmap/graph.h>
+// #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Face
-// add_face(MESH& m, uint32 size, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap1 //
-///////////
-
-
-///////////
-// CMap2 //
-///////////
-
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Face
-// add_face(MESH& m, std::vector<typename mesh_traits<MESH>::Edge edges);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Face CGOGN_CORE_EXPORT add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// remove_face(MESH& m, typename mesh_traits<MESH>::Face f);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-void CGOGN_CORE_EXPORT remove_face(IncidenceGraph& ig, IncidenceGraph::Face f);
-
-///////////
-// CMap1 //
-///////////
-
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// merge_incident_faces(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Edge
-// cut_face(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool set_indices =
-// true);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Edge CGOGN_CORE_EXPORT cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1,
-												IncidenceGraph::Vertex v2);
-
-///////////
-// CMap2 //
-///////////
-
-///////////
-// CMap3 //
-///////////
-
-CMap3::Edge CGOGN_CORE_EXPORT cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices = true);
-
-//////////
-// CPH3 //
-//////////
-
-CPH3::CMAP::Edge CGOGN_CORE_EXPORT cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
-											bool set_indices = true);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Face
-// close_hole(MESH& m, Dart d, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// uint32
-// close(MESH& m, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// reverse_orientation(MESH& m);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
-
 } // namespace cgogn
 
 #endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_FACE_H_

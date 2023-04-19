@@ -29,6 +29,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/core/functions/traversals/volume.h>
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/picking.h>

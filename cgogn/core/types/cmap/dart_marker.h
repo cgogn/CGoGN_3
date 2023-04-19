@@ -24,10 +24,10 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
 #define CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
 
-#include <cgogn/core/cgogn_core_export.h>
-#include <cgogn/core/types/cmap/cmap_base.h>
-#include <cgogn/core/utils/tuples.h>
-#include <cgogn/core/utils/type_traits.h>
+// #include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/types/cmap/cmap_base.h>
+// #include <cgogn/core/utils/tuples.h>
+// #include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
@@ -65,8 +65,8 @@ inline void release_dart_mark_attribute(const CMapBase& m, CMapBase::MarkAttribu
 }
 
 /*****************************************************************************/
-
 template <typename CMAP>
+
 class CGOGN_CORE_EXPORT DartMarker
 {
 private:
@@ -111,7 +111,7 @@ template <typename CMAP>
 class CGOGN_CORE_EXPORT DartMarkerStore
 {
 private:
-	const CMAP& map_;
+	const CMapBase& map_;
 	typename mesh_traits<CMAP>::MarkAttribute* mark_attribute_;
 	std::vector<Dart> marked_darts_;
 

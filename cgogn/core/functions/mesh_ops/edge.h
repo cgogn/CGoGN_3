@@ -24,133 +24,15 @@
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_OPS_EDGE_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/cmap3.h>
-#include <cgogn/core/types/cmap/cph3.h>
-#include <cgogn/core/types/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+// #include <cgogn/core/types/cmap/cmap3.h>
+// #include <cgogn/core/types/cmap/cph3.h>
+// #include <cgogn/core/types/cmap/graph.h>
+// #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Edge
-// add_edge(MESH& m, typename mesh_traits<MESH>::Vertex v0, typename mesh_traits<MESH>::Vertex v1);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Edge CGOGN_CORE_EXPORT add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0,
-												IncidenceGraph::Vertex v1);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// remove_edge(MESH& m, typename mesh_traits<MESH>::Edge e);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-void CGOGN_CORE_EXPORT remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// cut_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Vertex CGOGN_CORE_EXPORT cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
-
-///////////
-// Graph //
-///////////
-
-Graph::Vertex CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
-
-///////////
-// CMap1 //
-///////////
-
-
-///////////
-// CMap2 //
-///////////
-
-
-///////////
-// CMap3 //
-///////////
-
-CMap3::Vertex CGOGN_CORE_EXPORT cut_edge(CMap3& m, CMap3::Edge e, bool set_indices = true);
-
-//////////
-// CPH3 //
-//////////
-
-CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// collapse_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-// returns a vector of removed edges (except e) in addition to the resulting vertex
-std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
-																				   IncidenceGraph::Edge e,
-																				   bool set_indices = true);
-
-///////////
-// Graph //
-///////////
-
-Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices = true);
-
-///////////
-// CMap1 //
-///////////
-
-
-///////////
-// CMap2 //
-///////////
-
-CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// bool
-// flip_edge(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// CMap2 //
-///////////
-
 
 } // namespace cgogn
 

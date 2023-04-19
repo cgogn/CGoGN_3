@@ -75,9 +75,17 @@ struct mesh_traits<CMap2>
 
 CMap2::Vertex CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
+CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
 bool CGOGN_CORE_EXPORT flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
 CMap2::Face CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
+
+CMap2::Volume CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indices = true);
+
+CMap2::Volume CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT remove_volume(CMap2& m, CMap2::Volume v);
 
 void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
 
@@ -88,6 +96,23 @@ CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
 uint32 close(CMap2& m, bool set_indices = true);
 
 void reverse_orientation(CMap2& m);
+
+
+bool check_integrity(CMap2& m, bool verbose = true);
+
+bool edge_can_collapse(const CMap2& m, CMap2::Edge e);
+
+bool edge_can_flip(const CMap2& m, CMap2::Edge e);
+
+
+inline Dart phi2(const CMap2& m, Dart d)
+{
+	return (*(m.phi2_))[d.index];
+}
+
+void phi2_sew(CMap2& m, Dart d, Dart e);
+
+void phi2_unsew(CMap2& m, Dart d);
 
 } // namespace cgogn
 

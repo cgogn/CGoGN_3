@@ -25,6 +25,7 @@
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
+#include <cgogn/core/types/cmap/cmap2.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>

@@ -278,7 +278,7 @@ public:
 	}
 
 	MarkAttribute* get_mark_attribute()
-	{
+	{	
 		uint32 thread_index = current_thread_index();
 		if (available_mark_attributes_[thread_index].size() > 0)
 		{

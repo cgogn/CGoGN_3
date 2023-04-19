@@ -24,7 +24,7 @@
 #ifndef CGOGN_CORE_INCIDENCE_GRAPH_H_
 #define CGOGN_CORE_INCIDENCE_GRAPH_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
+#include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
@@ -182,4 +182,5 @@ struct mesh_traits<IncidenceGraph>
 
 } // namespace cgogn
 
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_H_

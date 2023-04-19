@@ -24,8 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 #define CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 
-#include <cgogn/core/functions/mesh_ops/face.h>
-
 //#include <cgogn/geometry/types/geometry_traits.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
@@ -219,7 +217,7 @@ class EarTriangulation
 	// CMapBase (and convertible) //
 	////////////////////////////////
 
-	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, CMapBase&>>* = nullptr>
+	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, struct CMapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
 		MESHTYPE& /*m*/, const typename mesh_traits<MESHTYPE>::Face f)
 	{

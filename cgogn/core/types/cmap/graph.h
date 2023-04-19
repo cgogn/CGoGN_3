@@ -73,6 +73,72 @@ struct mesh_traits<Graph>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
+Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
+
+Graph::Edge CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
+
+void CGOGN_CORE_EXPORT merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
+
+Graph::Vertex CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
+
+Graph::Vertex CGOGN_CORE_EXPORT collapse_edge(Graph& g, Graph::Edge e, bool set_indices = true);
+
+
+template <typename CELL, typename FUNC>
+void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
+{
+	static_assert(is_in_tuple<CELL, typename Graph::Cells>::value, "Cell not supported in a Graph");
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	static const Orbit orbit = CELL::ORBIT;
+	switch (orbit)
+	{
+	case DART:
+		f(c.dart);
+		break;
+	case PHI2:
+		foreach_dart_of_ALPHA0(m, c.dart, f);
+		break;
+	case PHI21:
+		foreach_dart_of_ALPHA1(m, c.dart, f);
+		break;
+	default:
+		break;
+	}
+}
+
+inline Dart alpha0(const Graph& m, Dart d)
+{
+	return (*m.alpha0_)[d.index];
+}
+
+inline Dart alpha1(const Graph& m, Dart d)
+{
+	return (*m.alpha1_)[d.index];
+}
+
+inline Dart alpha_1(const Graph& m, Dart d)
+{
+	return (*m.alpha_1_)[d.index];
+}
+
+void alpha0_sew(Graph& m, Dart d, Dart e);
+
+void alpha0_unsew(Graph& m, Dart d);
+
+void alpha1_sew(Graph& m, Dart d, Dart e);
+
+void alpha1_unsew(Graph& m, Dart d);
+
+inline bool is_vertex_isolated(Graph& g, Graph::Vertex v)
+{
+	return alpha0(g, v.dart) == alpha1(g, v.dart); 
+};
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_CMAP_GRAPH_H_

@@ -24,107 +24,15 @@
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/cmap3.h>
-#include <cgogn/core/types/cmap/cph3.h>
-#include <cgogn/core/types/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+// #include <cgogn/core/types/cmap/cmap3.h>
+// #include <cgogn/core/types/cmap/cph3.h>
+// #include <cgogn/core/types/cmap/graph.h>
+// #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 namespace cgogn
 {
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Vertex
-// add_vertex(MESH& m, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Vertex CGOGN_CORE_EXPORT add_vertex(IncidenceGraph& ig);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// remove_vertex(MESH& m, typename mesh_traits<MESH>::Vertex v, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-void CGOGN_CORE_EXPORT remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-void CGOGN_CORE_EXPORT remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Edge
-// connect_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool
-// set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-Graph::Edge CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
-
-////////////////////
-// IncidenceGraph //
-////////////////////
-
-IncidenceGraph::Edge CGOGN_CORE_EXPORT connect_vertices(IncidenceGraph& g, IncidenceGraph::Vertex v1,
-														IncidenceGraph::Vertex v2);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// void
-// disconnect_vertices(MESH& m, typename mesh_traits<MESH>::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-void CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
-
-/*****************************************************************************/
-
-// template <typename MESH>
-// typename mesh_traits<MESH>::Edge
-// merge_vertices(MESH& m, typename mesh_traits<MESH>::Vertex v1, typename mesh_traits<MESH>::Vertex v2, bool
-// set_indices = true);
-
-/*****************************************************************************/
-
-///////////
-// Graph //
-///////////
-
-void CGOGN_CORE_EXPORT merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
-
 } // namespace cgogn
 
 #endif // CGOGN_CORE_FUNCTIONS_MESH_OPS_VERTEX_H_

@@ -24,22 +24,9 @@
 #ifndef CGOGN_RENDERING_MESH_RENDER_H_
 #define CGOGN_RENDERING_MESH_RENDER_H_
 
-#include <cgogn/rendering/cgogn_rendering_export.h>
-
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-
-#include <cgogn/core/utils/numerics.h>
-
+#include <cgogn/rendering/mesh_render_base.h>
 #include <cgogn/geometry/algos/ear_triangulation.h>
 
-#include <cgogn/rendering/ebo.h>
-#include <cgogn/rendering/vbo.h>
-
-#include <memory>
 
 namespace cgogn
 {
@@ -47,89 +34,8 @@ namespace cgogn
 namespace rendering
 {
 
-using TablesIndices = std::vector<std::vector<uint32>>;
-
-enum DrawingType : uint32
-{
-	POINTS = 0,
-	LINES,
-	TRIANGLES,
-
-	VOLUMES_FACES,
-	VOLUMES_EDGES,
-	VOLUMES_VERTICES,
-
-	INDEX_EDGES,
-	INDEX_FACES,
-	INDEX_VOLUMES,
-
-	POINTS_TB,
-	LINES_TB,
-	TRIANGLES_TB,
-
-	VOLUMES_FACES_TB,
-	VOLUMES_EDGES_TB,
-	VOLUMES_VERTICES_TB,
-
-	INDEX_EDGES_TB,
-	INDEX_FACES_TB,
-	INDEX_VOLUMES_TB
-};
-
-static const uint32 SIZE_BUFFER = uint32(POINTS_TB);
-
-inline DrawingType& operator++(DrawingType& d)
-{
-	++*reinterpret_cast<int32*>(&d);
-	return d;
-}
-
-inline int32* operator&(DrawingType& d)
-{
-	return reinterpret_cast<int*>(&d);
-}
-
-static std::vector<std::string> primitives_names = {
-	"POINTS",			"LINES",		  "TRIANGLES",		  "VOLUMES_FACES",	  "VOLUMES_EDGES",
-	"VOLUMES_VERTICES", "INDEX_EDGES",	  "INDEX_FACES",	  "INDEX_VOLUMES",	  "POINTS_TB",
-	"LINES_TB",			"TRIANGLES_TB",	  "VOLUMES_FACES_TB", "VOLUMES_EDGES_TB", "VOLUMES_VERTICES_TB",
-	"INDEX_EDGES_TB",	"INDEX_FACES_TB", "INDEX_VOLUMES_TB"};
-
-class CGOGN_RENDERING_EXPORT MeshRender
-{
-protected:
-	std::array<std::unique_ptr<EBO>, SIZE_BUFFER> indices_buffers_;
-	std::array<bool, SIZE_BUFFER> indices_buffers_uptodate_;
-
-public:
-	MeshRender();
-	~MeshRender();
-	CGOGN_NOT_COPYABLE_NOR_MOVABLE(MeshRender);
-
-	inline bool is_primitive_uptodate(DrawingType prim)
-	{
-		return indices_buffers_uptodate_[prim % SIZE_BUFFER];
-	}
-
-	inline void set_primitive_dirty(DrawingType prim)
-	{
-		indices_buffers_uptodate_[prim % SIZE_BUFFER] = false;
-	}
-
-	inline void set_all_primitives_dirty()
-	{
-		for (DrawingType p = POINTS; p < SIZE_BUFFER; ++p)
-			indices_buffers_uptodate_[p] = false;
-	}
-
-	inline EBO* get_EBO(DrawingType prim)
-	{
-		return indices_buffers_[prim % SIZE_BUFFER].get();
-	}
-
-protected:
 	template <typename MESH>
-	inline void init_points(const MESH& m, TablesIndices& table_indices)
+	void MeshRender::init_points(const MESH& m, TablesIndices& table_indices)
 	{
 		using Vertex = typename mesh_traits<MESH>::Vertex;
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
@@ -139,7 +45,7 @@ protected:
 	}
 
 	template <bool EMB, typename MESH>
-	inline void init_lines(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_edge)
+	void MeshRender::init_lines(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_edge)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 0)
 		{
@@ -162,7 +68,7 @@ protected:
 	}
 
 	template <bool EMB, typename MESH>
-	inline void init_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face)
+	void MeshRender::init_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 1)
 		{
@@ -195,7 +101,7 @@ protected:
 	}
 
 	template <bool EMB, typename MESH>
-	inline void init_ear_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face,
+	void MeshRender::init_ear_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face,
 								   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
 		if constexpr (mesh_traits<MESH>::dimension > 1)
@@ -260,7 +166,7 @@ protected:
 	//	}
 
 	template <bool EMB, typename MESH>
-	inline void init_volumes(const MESH& m, TablesIndices& table_indices_f, TablesIndices& table_indices_e,
+	void MeshRender::init_volumes(const MESH& m, TablesIndices& table_indices_f, TablesIndices& table_indices_e,
 							 TablesIndices& table_indices_v, TablesIndices& table_emb_vol,
 							 const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
@@ -329,11 +235,10 @@ protected:
 		}
 	}
 
-public:
 	template <typename MESH>
-	inline void init_primitives(
+	void MeshRender::init_primitives(
 		const MESH& m, DrawingType prim,
-		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr)
+		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position)
 	{
 		unused_parameters(position); // for constexpr case dim<2 !
 
@@ -514,8 +419,6 @@ public:
 		// std::cout << "init primitive " << prim << " in " << elapsed_seconds.count() << std::endl;
 	}
 
-	void draw(DrawingType prim);
-};
 
 } // namespace rendering
 
