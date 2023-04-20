@@ -35,9 +35,14 @@
 namespace cgogn
 {
 
+struct CMap1;
+struct CMap2;
+struct CMap3;
+struct Graph;
+
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI1(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -52,7 +57,7 @@ auto foreach_dart_of_PHI1(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI2(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -62,7 +67,7 @@ auto foreach_dart_of_PHI2(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI21(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -77,7 +82,7 @@ auto foreach_dart_of_PHI21(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI1_PHI2(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -112,7 +117,7 @@ auto foreach_dart_of_PHI1_PHI2(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI1_PHI3(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -125,7 +130,7 @@ auto foreach_dart_of_PHI1_PHI3(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -143,7 +148,7 @@ auto foreach_dart_of_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI21_PHI31(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -172,7 +177,7 @@ auto foreach_dart_of_PHI21_PHI31(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI1_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -209,7 +214,7 @@ auto foreach_dart_of_PHI1_PHI2_PHI3(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_ALPHA0(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -219,7 +224,7 @@ auto foreach_dart_of_ALPHA0(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_ALPHA1(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
@@ -237,7 +242,7 @@ auto foreach_dart_of_ALPHA1(const MESH& m, Dart d, const FUNC& f)
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
@@ -298,14 +303,14 @@ auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_incident_edge(m, c, func, CMapBase::TraversalPolicy::AUTO);
 }
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 
@@ -313,21 +318,21 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct Graph&> && mesh_traits<MESH>::dimension == 1)
+	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex>)
 		{
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap1&> && mesh_traits<MESH>::dimension == 1)
+	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2)
+	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
@@ -336,7 +341,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
@@ -381,7 +386,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH>::Edge e, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_adjacent_edge_through_face(m, e, func, CMapBase::TraversalPolicy::AUTO);
 }
@@ -389,14 +394,14 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH>::Edge e, const FUNC& func,
 										CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2)
+	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		using Face = typename mesh_traits<MESH>::Face;
 
@@ -407,7 +412,7 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 		if (!is_boundary(m, d2))
 			foreach_dart_of_orbit(m, Face(d2), [&](Dart d) -> bool { return d != d2 ? func(Edge(d)) : true; });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		using Face2 = typename mesh_traits<MESH>::Face2;
 
@@ -421,14 +426,14 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_incident_face(m, c, func, CMapBase::TraversalPolicy::AUTO);
 }
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Face = typename mesh_traits<MESH>::Face;
 
@@ -436,7 +441,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2 &&
+	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 &&
 				  (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex> ||
 				   std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
 				   std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>))
@@ -447,7 +452,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 			return true;
 		});
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3 &&
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 &&
 					   std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 	{
 		Dart d = c.dart;
@@ -521,7 +526,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH>::Face f, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_adjacent_face_through_edge(m, f, func, CMapBase::TraversalPolicy::AUTO);
 }
@@ -529,14 +534,14 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH>::Face f, const FUNC& func,
 										CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Face = typename mesh_traits<MESH>::Face;
 
 	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2)
+	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		foreach_dart_of_orbit(m, f, [&](Dart d) -> bool {
 			Dart d2 = phi2(m, d);
@@ -545,7 +550,7 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 			return true;
 		});
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		using Face2 = typename mesh_traits<MESH>::Face2;
 		using Edge = typename mesh_traits<MESH>::Edge;
@@ -598,7 +603,7 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
 
@@ -614,7 +619,7 @@ auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)
 
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_adjacent_vertex_through_edge(m, v, func, CMapBase::TraversalPolicy::AUTO);
 }
@@ -623,22 +628,22 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 template <typename MESH, typename FUNC>
 auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<MESH>::Vertex v, const FUNC& func,
 										  CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct Graph&> && mesh_traits<MESH>::dimension == 1)
+	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1)
 	{
 		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool { return func(Vertex(alpha0(m, d))); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2)
+	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		foreach_dart_of_orbit(m, v, [&](Dart d) -> bool { return func(Vertex(phi2(m, d))); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Vertex>(m))
 		{
@@ -675,7 +680,7 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_incident_vertex(m, c, func, CMapBase::TraversalPolicy::AUTO);
 }
@@ -683,7 +688,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func)
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
@@ -691,14 +696,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct Graph&> && mesh_traits<MESH>::dimension == 1)
+	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap1&> && mesh_traits<MESH>::dimension == 1)
+	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1)
 	{
 
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
@@ -706,7 +711,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2 )
+	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 )
 		{
 			if constexpr  (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
@@ -715,7 +720,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 				foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 			}
 		}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 		{
 			if constexpr  (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
@@ -724,7 +729,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 									[&](Dart d) -> bool { return func(Vertex(d)); });
 			}
 		}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
@@ -769,14 +774,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_incident_volume(m, c, func, CMapBase::TraversalPolicy::AUTO);
 }
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using Volume = typename mesh_traits<MESH>::Volume;
 
@@ -784,11 +789,11 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	static_assert(is_func_parameter_same<FUNC, Volume>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, struct CMap2&> && mesh_traits<MESH>::dimension == 2)
+	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		func(Volume(c.dart));
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
@@ -804,7 +809,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::
 			} while (d != c.dart);
 		}
 	}
-	else if constexpr (std::is_convertible_v<MESH&, struct CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
@@ -878,14 +883,14 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::
 }
 
 template <typename MESH, typename FUNC>
-auto foreach_cell(const MESH& m, const FUNC& func) -> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+auto foreach_cell(const MESH& m, const FUNC& func) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	foreach_cell(m, func, CMapBase::TraversalPolicy::AUTO);
 }
 
 template <typename MESH, typename FUNC>
 auto foreach_cell(const MESH& m, const FUNC& f, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -927,7 +932,7 @@ auto foreach_cell(const MESH& m, const FUNC& f, CMapBase::TraversalPolicy traver
 
 template <typename MESH, typename FUNC>
 auto parallel_foreach_cell(const MESH& m, const FUNC& f) 
--> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");

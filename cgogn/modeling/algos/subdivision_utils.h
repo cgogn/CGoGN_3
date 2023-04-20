@@ -55,7 +55,7 @@ inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
 // CMapBase //
 //////////////
 
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_traits<MESH>::Face f)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;

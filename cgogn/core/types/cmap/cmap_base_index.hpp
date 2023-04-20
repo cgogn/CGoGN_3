@@ -120,7 +120,7 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 
 
 template <typename CELL, typename MESH>
-auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
@@ -132,7 +132,7 @@ auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_conver
 
 
 template <typename CELL, typename MESH>
-auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -174,7 +174,7 @@ inline void init_cells_indexing(CMapBase& m, Orbit orbit)
 
 
 template <typename CELL, typename MESH>
-auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>
+auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
@@ -201,7 +201,7 @@ auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, struc
 
 
 template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>* = nullptr>
+		  typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -214,7 +214,7 @@ std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute
 
 
 template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>* = nullptr>
+		  typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 std::shared_ptr<CMapBase::Attribute<T>> get_attribute(const MESH& m, const std::string& name)
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -284,7 +284,7 @@ T& get_attribute(CMapBase& m, const std::string& name)
 
 template <typename CELL, typename MESH>
 auto get_mark_attribute(const MESH& m)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>, typename mesh_traits<MESH>::MarkAttribute*>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, typename mesh_traits<MESH>::MarkAttribute*>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
@@ -302,7 +302,7 @@ void release_mark_attribute(const CMapBase& m, CMapBase::MarkAttribute* attribut
 void clear(CMapBase& m, bool keep_attributes = true);
 
 
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
 void copy(MESH& dst, const MESH& src)
 {
 	clear(dst, false);
@@ -320,7 +320,7 @@ void copy(MESH& dst, const MESH& src)
 
 
 template <typename MESH, typename CELL>
-auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, struct CMapBase&>, bool>
+auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, bool>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	bool result = false;
