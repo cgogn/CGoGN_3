@@ -74,12 +74,13 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	uint32 count = 0;
 	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		Vec3 newpos = approx(*it);
+		auto it_e = *it;
+		Vec3 newpos = approx(it_e);
 
 		Edge e1, e2;
-		pre_collapse(m, *it, e1, e2, edge_queue, edge_queue_info.get());
-		before(*it);
-		Vertex v = collapse_edge(m, *it);
+		pre_collapse(m, it_e, e1, e2, edge_queue, edge_queue_info.get());
+		before(it_e);
+		Vertex v = collapse_edge(m, it_e);
 		value<Vec3>(m, vertex_position, v) = newpos;
 		after(v);
 		post_collapse(m, e1, e2, edge_queue, edge_queue_info.get(), edge_cost);

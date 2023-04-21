@@ -34,12 +34,6 @@
 
 namespace cgogn
 {
-
-struct CMap1;
-struct CMap2;
-struct CMap3;
-struct Graph;
-
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_PHI1(const MESH& m, Dart d, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
@@ -308,6 +302,11 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func)
 	foreach_incident_edge(m, c, func, CMapBase::TraversalPolicy::AUTO);
 }
 
+struct CMap1;
+struct CMap2;
+struct CMap3;
+struct Graph;
+
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
@@ -318,36 +317,24 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, CMapBase::Tr
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1)
+	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1 && std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex>)
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex>)
-		{
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
-		}
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1)
+	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1 && std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
-		}
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
-	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex> ||
+	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 && (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
-						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
-		}
-	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
+						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Face2(c.dart),
-								[&](Dart d) -> bool { return func(Edge(d)); });
-		}
+			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
+	}
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 && (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
+	{
+		foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Face2(c.dart),
+							[&](Dart d) -> bool { return func(Edge(d)); });
 	}
 	else
 	{
@@ -696,46 +683,30 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1)
+	if constexpr (std::is_convertible_v<MESH&, Graph&> && mesh_traits<MESH>::dimension == 1 && std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
-		{
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
-		}
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1)
+	else if constexpr (std::is_convertible_v<MESH&, CMap1&> && mesh_traits<MESH>::dimension == 1 && std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
-		}
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
 	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 )
-		{
-			if constexpr  (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+	else if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2 && (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
 						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge> ||
-						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-			{
-				foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
-			}
-		}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
-		{
-			if constexpr  (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
-						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
-			{
-				foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Edge2(c.dart),
-									[&](Dart d) -> bool { return func(Vertex(d)); });
-			}
-		}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
+						std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Face2(c.dart),
-								[&](Dart d) -> bool { return func(Vertex(d)); });
-		}
+		foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Vertex(d)); });
+	}
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 && (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
+						std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>))
+	{
+		foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Edge2(c.dart),
+							[&](Dart d) -> bool { return func(Vertex(d)); });
+	}
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 && std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
+	{
+		foreach_dart_of_orbit(m, typename mesh_traits<MESH>::Face2(c.dart),
+							[&](Dart d) -> bool { return func(Vertex(d)); });
 	}
 	else
 	{
@@ -793,34 +764,28 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::
 	{
 		func(Volume(c.dart));
 	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 && std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
+		Dart d = c.dart;
+		do
 		{
-			Dart d = c.dart;
-			do
+			if (!is_boundary(m, d))
 			{
-				if (!is_boundary(m, d))
-				{
-					if (!func(Volume(d)))
-						break;
-				}
-				d = phi3(m, phi2(m, d));
-			} while (d != c.dart);
-		}
-	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3)
-	{
-		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-		{
-			Dart d = c.dart;
-			if (!is_boundary(m, d))
 				if (!func(Volume(d)))
-					return;
-			d = phi3(m, d);
-			if (!is_boundary(m, d))
-				func(Volume(d));
-		}
+					break;
+			}
+			d = phi3(m, phi2(m, d));
+		} while (d != c.dart);
+	}
+	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 && std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
+	{
+		Dart d = c.dart;
+		if (!is_boundary(m, d))
+			if (!func(Volume(d)))
+				return;
+		d = phi3(m, d);
+		if (!is_boundary(m, d))
+			func(Volume(d));
 	}
 	else
 	{

@@ -79,7 +79,8 @@ void update_edge_queue(
 // CMapBase //
 //////////////
 
-template <typename MESH, typename std::enable_if_t<std::is_base_of<struct CMapBase, MESH>::value>* = nullptr>
+
+template <typename MESH, typename std::enable_if_t<std::is_base_of<CMapBase, MESH>::value>* = nullptr>
 void pre_collapse(
 	const MESH& m, typename mesh_traits<MESH>::Edge e, typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2, CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
@@ -171,7 +172,7 @@ void post_collapse(
 ////////////////
 
 template <typename MESH, typename FUNC,
-		  typename std::enable_if<std::is_base_of<struct CMapBase, MESH>::value>::type* = nullptr>
+		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
 void post_collapse(
 	const CellFilter<MESH>& cf, typename mesh_traits<MESH>::Edge& e1, typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,

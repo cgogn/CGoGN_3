@@ -31,7 +31,6 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base_check.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap0.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap1.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap1.cpp"
