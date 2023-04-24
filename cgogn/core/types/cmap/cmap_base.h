@@ -93,7 +93,10 @@ struct CGOGN_CORE_EXPORT CMapBase
 		return std::any_cast<T&>(it->second);
 	}
 
-	inline std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name);
+	inline std::shared_ptr<Attribute<Dart>> add_relation(const std::string& name)
+	{
+		return relations_.emplace_back(darts_.add_attribute<Dart>(name));
+	}
 
 	inline Dart begin() const
 	{
@@ -133,7 +136,10 @@ inline void set_boundary(const CMapBase& m, Dart d, bool b)
 } // namespace cgogn
 
 #include <cgogn/core/types/cmap/cmap_base_index.hpp>
-#include <cgogn/core/types/cmap/cmap_base_traversals.hpp>
-#include <cgogn/core/types/cmap/cmap_base_check.hpp>
+#include <cgogn/core/types/cmap/cmap_base_attribute.hpp>
+#include <cgogn/core/types/cmap/cmap_base_orbit_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_local_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_global_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_functions.hpp>
 
 #endif // CGOGN_CORE_CMAP_CMAP_BASE_H_
