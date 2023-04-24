@@ -37,6 +37,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class ShallowWater : public Module
 {
@@ -48,10 +51,6 @@ class ShallowWater : public Module
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-
 	using BoundaryCondition = simulation::shallow_water::BoundaryCondition;
 
 public:

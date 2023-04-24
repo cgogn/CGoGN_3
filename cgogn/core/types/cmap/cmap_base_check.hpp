@@ -104,6 +104,44 @@ bool check_indexing(MESH& m, bool verbose = true)
 
 
 
+
+void clear(CMapBase& m, bool keep_attributes = true);
+
+
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+void copy(MESH& dst, const MESH& src)
+{
+	clear(dst, false);
+	for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
+	{
+		if (src.cells_indices_[orbit] != nullptr)
+			init_cells_indexing(dst, Orbit(orbit));
+	}
+	dst.darts_.copy(src.darts_);
+	for (uint32 i = 0; i < NB_ORBITS; ++i)
+		dst.attribute_containers_[i].copy(src.attribute_containers_[i]);
+	dst.boundary_marker_ = dst.darts_.get_mark_attribute();
+	dst.boundary_marker_->copy(*src.boundary_marker_);
+}
+
+
+template <typename MESH, typename CELL>
+auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, bool>
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	bool result = false;
+	foreach_dart_of_orbit(m, c, [&m, &result](Dart d) -> bool {
+		if (is_boundary(m, d))
+		{
+			result = true;
+			return false;
+		}
+		return true;
+	});
+	return result;
+}
+
+
 } // namespace cgogn
 
 

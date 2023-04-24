@@ -58,6 +58,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
@@ -83,9 +86,6 @@ class SurfaceRender : public ViewModule
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 	// using Volume = typename mesh_traits<MESH>::Volume;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{

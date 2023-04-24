@@ -38,6 +38,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class Registration : public Module
 {
@@ -46,9 +49,6 @@ class Registration : public Module
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 public:
 	Registration(const App& app) : Module(app, "Registration (" + std::string{mesh_traits<MESH>::name} + ")")

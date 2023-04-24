@@ -37,7 +37,7 @@ struct CMap3;
 namespace io
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 enum VolumeType
 {

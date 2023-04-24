@@ -61,6 +61,10 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+using geometry::Mat3;
+
 template <typename GRAPH, typename SURFACE, typename VOLUME>
 class TubularMesh : public ViewModule
 {
@@ -83,10 +87,6 @@ class TubularMesh : public ViewModule
 	using VolumeEdge = typename mesh_traits<VOLUME>::Edge;
 	using VolumeFace = typename mesh_traits<VOLUME>::Face;
 	using VolumeVolume = typename mesh_traits<VOLUME>::Volume;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-	using Mat3 = geometry::Mat3;
 
 public:
 	TubularMesh(const App& app) : ViewModule(app, "TubularMesh")

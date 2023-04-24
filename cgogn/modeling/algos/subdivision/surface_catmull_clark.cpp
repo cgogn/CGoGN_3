@@ -35,8 +35,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Scalar = geometry::Scalar;
-using Vec3 = geometry::Vec3;
+using geometry::Scalar;
+using geometry::Vec3;
 
 ///////////
 // CMap2 //

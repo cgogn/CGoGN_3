@@ -20,7 +20,7 @@ void do_something(MESH& m)
 	});
 }
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 int main()
 {

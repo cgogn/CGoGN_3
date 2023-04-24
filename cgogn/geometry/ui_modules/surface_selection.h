@@ -59,6 +59,10 @@ namespace cgogn
 namespace ui
 {
 
+
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class SurfaceSelection : public ViewModule
 {
@@ -86,9 +90,6 @@ class SurfaceSelection : public ViewModule
 		FlatArea,
 		ConnectedComponent
 	};
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{

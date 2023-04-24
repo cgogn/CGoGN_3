@@ -33,14 +33,13 @@
 
 namespace cgogn
 {
+struct CMap2;
 
 namespace geometry
 {
 
 //CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
 //						   const typename CMap2::template Attribute<Vec3>* vertex_position);
-
-struct ::cgogn::CMap2;
 
 template <typename MESH, typename std::enable_if_t<std::is_same_v<MESH, CMap2>>* = nullptr>
 CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex center, geometry::Scalar radius,
@@ -95,9 +94,9 @@ CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex 
 	mark_vertex(center);
 
 	uint32 i = 0;
-	while (i < cache.cell_vector<Vertex>().size())
+	while (i < cache.template cell_vector<Vertex>().size())
 	{
-		Vertex v = cache.cell_vector<Vertex>()[i];
+		Vertex v = cache.template cell_vector<Vertex>()[i];
 		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 			const Vec3& p = value<Vec3>(m, vertex_position, av);
 			if (in_sphere(p, center_position, radius))

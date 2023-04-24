@@ -34,7 +34,7 @@ struct CMap2;
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 ///////////
 // CMap2 //
@@ -43,7 +43,7 @@ using Vec3 = geometry::Vec3;
 template <typename MESH, typename std::enable_if_t<std::is_same_v<MESH&, CMap2&>>* = nullptr>
 void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 {
-	using Vertex = typename mesh_traits<MESH>:Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
 	Dart d0 = phi1(m, f.dart);
 	Dart d1 = phi<1, 1>(m, d0);

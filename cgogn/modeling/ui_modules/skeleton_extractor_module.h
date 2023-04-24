@@ -49,6 +49,10 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+using geometry::Mat3;
+
 template <typename SURFACE, typename NONMANIFOLD, typename GRAPH>
 class SkeletonExtractor : public Module
 {
@@ -70,9 +74,6 @@ class SkeletonExtractor : public Module
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
 
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-	using Mat3 = geometry::Mat3;
 
 public:
 	SkeletonExtractor(const App& app)

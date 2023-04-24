@@ -35,8 +35,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 using Mat3 = geometry::Mat3;
 
 struct IG_GAttributes

@@ -58,6 +58,9 @@ namespace ui
 
 class App;
 
+using geometry::Scalar;
+using geometry::Vec3;
+
 template <typename MESH>
 class MeshProvider : public ProviderModule
 {
@@ -66,9 +69,6 @@ class MeshProvider : public ProviderModule
 	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-
-	using Scalar = geometry::Scalar;
-	using Vec3 = geometry::Vec3;
 
 public:
 	MeshProvider(const App& app)

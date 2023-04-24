@@ -40,7 +40,7 @@ struct IncidenceGraph;
 namespace io
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 struct SurfaceImportData
 {
