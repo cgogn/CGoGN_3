@@ -50,6 +50,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 namespace cgogn
 {
@@ -199,6 +200,7 @@ public:
 		{
 			MeshData<MESH>& md = mesh_data(*m);
 			md.init(m);
+			mesh_filename_[m] = filename;
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_mesh_bb_vertex_position(*m, vertex_position);
@@ -256,6 +258,7 @@ public:
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
+				mesh_filename_[m] = filename;
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
 					set_mesh_bb_vertex_position(*m, vertex_position);
@@ -307,6 +310,7 @@ public:
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
+				mesh_filename_[m] = filename;
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
 					set_mesh_bb_vertex_position(*m, vertex_position);
@@ -360,6 +364,14 @@ public:
 			std::find_if(meshes_.begin(), meshes_.end(), [&](const auto& pair) { return pair.second.get() == &m; });
 		if (it != meshes_.end())
 			return it->first;
+		else
+			return "";
+	}
+
+	std::string mesh_filename(const MESH& m)
+	{
+		if (mesh_filename_.count(&m) > 0)
+			return mesh_filename_[&m];
 		else
 			return "";
 	}
@@ -672,6 +684,7 @@ private:
 	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
+	std::unordered_map<const MESH*, std::string> mesh_filename_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };
