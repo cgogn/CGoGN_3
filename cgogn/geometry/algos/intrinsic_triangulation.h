@@ -299,7 +299,7 @@ private:
 	// compute the next intersection from an edge
 	void trace_from_edge_()
 	{
-		Scalar barycenter, beta, B_gamma, C_gamma;
+		Scalar barycenter=0, beta=0, B_gamma=0, C_gamma=0;
 		Vec3 B_inter, C_inter;
 		bool C_side = false, B_side = false;
 

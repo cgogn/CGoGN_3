@@ -59,7 +59,7 @@ void main()
 
 
 ShaderParamShape::ShaderParamShape(ShaderProgram* prg) : ShaderParam(prg),
-	color_(0.8, 0, 0, 1), roughness_(150), shininess_(0.5), light_position_(10, 100, 1000)
+	color_(0.8f, 0, 0, 1), roughness_(150), shininess_(0.5), light_position_(10, 100, 1000)
 {
 }
 

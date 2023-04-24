@@ -25,15 +25,14 @@
 #define CGOGN_IO_VOLUME_IMPORT_H_
 
 #include <cgogn/io/cgogn_io_export.h>
-
-#include <cgogn/core/types/cmap/cmap3.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
 namespace cgogn
 {
+// forward
+struct CMap3;
 
 namespace io
 {
@@ -72,6 +71,8 @@ struct VolumeImportData
 		vertex_id_after_import_.reserve(nb_vertices);
 	}
 };
+
+
 
 void CGOGN_IO_EXPORT import_volume_data(CMap3& m, VolumeImportData& volume_data);
 

@@ -24,6 +24,8 @@
 #ifndef CGOGN_MODULE_SURFACE_DEFORMATION_H_
 #define CGOGN_MODULE_SURFACE_DEFORMATION_H_
 
+#include <cgogn/core/types/mesh_views/cell_cache.h>
+
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/imgui_helpers.h>

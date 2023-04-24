@@ -27,7 +27,6 @@
 #include <cgogn/core/types/cmap/graph.h>
 #include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
-#include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/core/types/cells_set.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/io/surface/surface_import.h>

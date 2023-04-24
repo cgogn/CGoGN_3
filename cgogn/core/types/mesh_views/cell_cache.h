@@ -28,12 +28,14 @@
 
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/tuples.h>
+#include <vector>
 
 namespace cgogn
 {
 
 template <class>
 struct tuple_of_vectors_of_T_from_tuple_of_T;
+
 template <template <typename... Args> class tuple, typename... T>
 struct tuple_of_vectors_of_T_from_tuple_of_T<tuple<T...>>
 {
@@ -143,8 +145,6 @@ template <typename MESH>
 struct mesh_traits<CellCache<MESH>> : public mesh_traits<MESH>
 {
 };
-
-
 
 
 template <typename MESH, typename FUNC>

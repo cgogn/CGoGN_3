@@ -20,11 +20,10 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-
+#include <cgogn/core/types/cmap/cmap3.h>
 #include <cgogn/io/volume/volume_import.h>
-
 #include <cgogn/core/functions/mesh_info.h>
-	
+#include <cgogn/core/types/mesh_views/cell_cache.h>
 #include <vector>
 
 namespace cgogn

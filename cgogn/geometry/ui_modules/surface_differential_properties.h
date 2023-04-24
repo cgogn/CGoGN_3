@@ -219,9 +219,9 @@ protected:
 						selected_vertex_Kmin_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Kmin");
 					if (!selected_vertex_Knormal_)
 						selected_vertex_Knormal_ = get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "Knormal");
-
-					auto selected_vertex_kgaussian_ =
-						get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
+// TODO: CHECK WITH PK
+					//auto selected_vertex_kgaussian_ =
+					//	get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "kgaussian");
 
 					std::shared_ptr<Attribute<Scalar>> edge_angle =
 						add_attribute<Scalar, Edge>(*selected_mesh_, "__edge_angle");

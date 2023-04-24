@@ -23,7 +23,9 @@
 
 #ifndef CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
 #define CGOGN_CORE_FUNCTIONS_MESH_INFO_H_
+
 #include <memory>
+#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {

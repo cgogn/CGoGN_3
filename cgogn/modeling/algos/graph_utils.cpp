@@ -199,13 +199,13 @@ bool get_incidenceGraph_data(const IncidenceGraph& ig, IncidenceGraphData& igDat
 	// get each leaflet faces
 	// for each leaflet, the orientation of the first face is propagated to all the faces of the leaflet
 	CellMarker<IncidenceGraph, Face> face_marker(ig);
-	foreach_cell(ig, [&](Face f) -> bool {
-		if (face_marker.is_marked(f))
+	foreach_cell(ig, [&](Face fa) -> bool {
+		if (face_marker.is_marked(fa))
 			return true;
 
-		face_marker.mark(f);
+		face_marker.mark(fa);
 		std::vector<Face>& leaflet_faces = igData.leaflets.emplace_back();
-		leaflet_faces.push_back(f);
+		leaflet_faces.push_back(fa);
 		for (uint32 i = 0; i < leaflet_faces.size(); ++i)
 		{
 			Face f = leaflet_faces[i];

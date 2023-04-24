@@ -402,7 +402,7 @@ void blossom_quad_remeshing(MESH& m,
 	});
 
 	PerfectMatching pm(nb_faces, nb_graph_edges);
-	for (int i = 0; i < nb_graph_edges; ++i)
+	for (uint32 i = 0; i < nb_graph_edges; ++i)
 		pm.AddEdge(edges[2 * i], edges[2 * i + 1], weights[i]);
 	pm.Solve();
 
