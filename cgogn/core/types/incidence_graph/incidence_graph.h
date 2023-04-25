@@ -273,6 +273,7 @@ uint32 new_index(const IncidenceGraph& ig)
 
 } // namespace cgogn
 
-#include <cgogn/core/types/incidence_graph/incidence_graph_attrib.hpp>
-#include <cgogn/core/types/incidence_graph/incidence_graph_traversals.hpp>
+#include <cgogn/core/types/incidence_graph/incidence_graph_attribute.hpp>
+#include <cgogn/core/types/incidence_graph/incidence_graph_local_traversals.hpp>
+#include <cgogn/core/types/incidence_graph/incidence_graph_global_traversals.hpp>
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_H_

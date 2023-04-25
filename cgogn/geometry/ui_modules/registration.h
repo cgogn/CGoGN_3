@@ -122,9 +122,9 @@ protected:
 			if (ImGui::Checkbox("Relax", &relax))
 			{
 				if (relax)
-					fit_to_target = 5.0;
+					fit_to_target = 5.0f;
 				else
-					fit_to_target = 0.05;
+					fit_to_target = 0.05f;
 			}
 			if (ImGui::Button("Non-rigid registration"))
 				non_rigid_register_mesh(*selected_source_mesh_, selected_source_vertex_position_,

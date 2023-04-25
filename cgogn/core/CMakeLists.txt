@@ -52,8 +52,9 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_attrib.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_attribute.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_local_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_global_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
