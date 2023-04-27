@@ -17,6 +17,7 @@ target_sources(${PROJECT_NAME}
 #		"${CMAKE_CURRENT_LIST_DIR}/volume_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/volume_drawer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/mesh_render_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.cpp"

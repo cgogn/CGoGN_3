@@ -29,12 +29,12 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
-
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/vbo.h>
 
 #include <memory>
+#include <vector>
+#include <string>
 
 namespace cgogn
 {
