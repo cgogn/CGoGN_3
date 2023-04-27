@@ -88,7 +88,7 @@ CMap2::Vertex collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 		phi2_unsew(m, dd1);
 		phi2_unsew(m, dd_1);
 		phi2_sew(m, dd12, dd_12);
-		remove_face(static_cast<CMap1&>(m), CMap1::Face(dd1), false);
+		remove_face(static_cast<CMap1&>(m), CMap1::Face(dd1));
 	}
 
 	if (codegree(m, CMap2::Face(ee_1)) == 2u)
@@ -98,7 +98,7 @@ CMap2::Vertex collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 		phi2_unsew(m, ee1);
 		phi2_unsew(m, ee_1);
 		phi2_sew(m, ee12, ee_12);
-		remove_face(static_cast<CMap1&>(m), CMap1::Face(ee1), false);
+		remove_face(static_cast<CMap1&>(m), CMap1::Face(ee1));
 	}
 
 	CMap2::Vertex v(dd_12);
@@ -236,7 +236,7 @@ void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_in
 	phi1_sew(m, d_1, d2);
 	phi1_sew(m, d2_1, d);
 
-	remove_face(static_cast<CMap1&>(m), CMap1::Face(d), set_indices);
+	remove_face(static_cast<CMap1&>(m), CMap1::Face(d));
 
 	if (set_indices)
 	{

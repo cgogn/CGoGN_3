@@ -21,58 +21,79 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_CORE_TYPES_GMAP_GMAP0_H_
+#define CGOGN_CORE_TYPES_GMAP_GMAP0_H_
 
-#include <cgogn/io/cgogn_io_export.h>
-#include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/cgogn_core_export.h>
 
-#include <vector>
+#include <cgogn/core/types/cmap/cmap_base.h>
+#include <cgogn/core/types/cmap/cell.h>
 
 namespace cgogn
 {
 
-//forward
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
-
-namespace io
+struct CGOGN_CORE_EXPORT GMap0 : public CMapBase
 {
+	static const uint8 dimension = 0;
 
-using geometry::Vec3;
+	using Vertex = Cell < Orbit::DART > ;
+	using Edge = Cell < Orbit::BETA0 > ;
 
-struct SurfaceImportData
-{
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
+	using Cells = std::tuple<Vertex,Edge>;
 
-	std::vector<Vec3> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
+	std::shared_ptr<Attribute<Dart>> beta0_;
 
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	GMap0()
 	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
+		beta0_ = add_relation("beta0");
 	}
+
 };
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
+template <>
+struct mesh_traits<GMap0>
+{
+	using MeshType = GMap0;
+	static constexpr const char* name = "GMap0";
+	static constexpr const uint8 dimension = 0;
 
-} // namespace io
+	using Vertex = typename GMap0::Vertex;
+	using Edge = typename GMap0::Edge;
+
+	using Cells = std::tuple<Vertex,Edge>;
+	static constexpr const char* cell_names[] = {"Vertex","Edge"};
+
+	template <typename T>
+	using Attribute = CMapBase::Attribute<T>;
+	using AttributeGen = CMapBase::AttributeGen;
+	using MarkAttribute = CMapBase::MarkAttribute;
+};
+
+inline Dart beta0(const GMap0& m, Dart d)
+{
+	return (*(m.beta0_))[d.index];
+}
+
+inline void beta0_sew(GMap0& m, Dart d, Dart e)
+{
+	cgogn_assert(beta0(m, d) == d);
+	cgogn_assert(beta0(m, e) == e);
+	(*(m.beta0_))[d.index] = e;
+	(*(m.beta0_))[e.index] = d;
+}
+
+inline void beta0_unsew(GMap0& m, Dart d)
+{
+	Dart e = beta0(m, d);
+	(*(m.beta0_))[d.index] = d;
+	(*(m.beta0_))[e.index] = e;
+}
+
+
+GMap0::Edge add_edge(GMap0& m, bool set_indices = true);
+
+void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice = true);
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_CORE_TYPES_GMAP_GMAP0_H_

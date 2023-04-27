@@ -21,58 +21,36 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_CORE_TYPES_GMAP_BETA_H_
+#define CGOGN_CORE_TYPES_GMAP_BETA_H_
 
-#include <cgogn/io/cgogn_io_export.h>
-#include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/core/utils/numerics.h>
+#include <cgogn/core/types/cmap/dart.h>
+#include <cgogn/core/types/mesh_traits.h>
 
-#include <vector>
 
 namespace cgogn
 {
 
-//forward
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
-
-namespace io
+template <int8 Arg, int8... Args, typename MESH>
+auto beta(const MESH& m, Dart d) -> std::enable_if_t < std::is_convertible_v<MESH&, GMap0&>, Dart >
 {
+	static_assert((Arg >= 0 && Arg <= mesh_traits<MESH>::dimension), "Bad phi value");
 
-using geometry::Vec3;
+	Dart res;
+	if constexpr (Arg == 0)
+		res = beta0(m, d);
+	if constexpr (Arg == 1)
+		res = beta1(m, d);
+	if constexpr (Arg == 2)
+		res = beta2(m, d);
+	if constexpr (Arg == 3)
+		res = beta3(m, d);
 
-struct SurfaceImportData
-{
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
-
-	std::vector<Vec3> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
-
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
-	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
-	}
-};
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
-
-} // namespace io
-
+	if constexpr (sizeof...(Args) > 0)
+		return beta<Args...>(m, res);
+	else
+		return res;
+}
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_CORE_TYPES_GMAP_PHI_H_

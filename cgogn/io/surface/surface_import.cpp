@@ -24,6 +24,7 @@
 #include <cgogn/io/surface/surface_import.h>
 
 #include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/cmap/gmap/gmap2.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <algorithm>
@@ -36,9 +37,10 @@ namespace cgogn
 namespace io
 {
 
-void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
+template <typename MAP2, typename MAP1>
+void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
 {
-	using Vertex = CMap2::Vertex;
+	using Vertex = typename MAP2::Vertex;
 
 	auto position = get_or_add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
 
@@ -77,7 +79,7 @@ void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 		nbv = uint32(vertices_buffer.size());
 		if (nbv > 2u)
 		{
-			CMap1::Face f = add_face(static_cast<CMap1&>(m), nbv, false);
+			typename MAP1::Face f = add_face(static_cast<MAP1&>(m), nbv, false);
 			Dart d = f.dart;
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
@@ -140,6 +142,18 @@ void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
+
+
+void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
+{
+	import_surface_data_tmpl<CMap2,CMap1>(m,surface_data);
+}
+
+void import_surface_data(GMap2& m, SurfaceImportData& surface_data)
+{
+	import_surface_data_tmpl<GMap2,GMap1>(m,surface_data);
+}
+
 
 void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
 {

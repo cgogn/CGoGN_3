@@ -88,7 +88,7 @@ CMap1::Face add_face(CMap1& m, uint32 size, bool set_indices)
 	return f;
 }
 
-void remove_face(CMap1& m, CMap1::Face f, bool set_indices)
+void remove_face(CMap1& m, CMap1::Face f)
 {
 	Dart it = phi1(m, f.dart);
 	while (it != f.dart)
@@ -98,10 +98,6 @@ void remove_face(CMap1& m, CMap1::Face f, bool set_indices)
 		it = next;
 	}
 	remove_dart(m, f.dart);
-
-	if (set_indices)
-	{
-	}
 }
 
 

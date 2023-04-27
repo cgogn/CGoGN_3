@@ -21,11 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/types/cmap/gmap/gmap2.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
-#include <cgogn/core/types/cmap/cmap2.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
@@ -34,7 +34,7 @@
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 // using Mesh = cgogn::IncidenceGraph;
-using Mesh = cgogn::CMap2;
+using Mesh = cgogn::GMap2;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;

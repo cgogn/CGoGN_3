@@ -20,59 +20,43 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
-
-#include <cgogn/io/cgogn_io_export.h>
-#include <cgogn/geometry/types/vector_traits.h>
-#include <cgogn/core/utils/numerics.h>
-
-#include <vector>
+#include <iomanip>
+#include <cgogn/core/types/cmap/gmap/gmap0.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
 
-//forward
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
 
-namespace io
+GMap0::Edge add_edge(GMap0& m, bool set_indices)
 {
+	Dart d = add_dart(m);
+	Dart e = add_dart(m);
+	beta0_sew(m, d, e);
 
-using geometry::Vec3;
+	GMap0::Edge edge{d};
 
-struct SurfaceImportData
-{
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
-
-	std::vector<Vec3> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
-
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	if (set_indices)
 	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
+		if (is_indexed<GMap0::Vertex>(m))
+		{
+			set_index(m, GMap0::Vertex{d}, new_index<GMap0::Vertex>(m));
+			set_index(m, GMap0::Vertex{e}, new_index<GMap0::Vertex>(m));
+		}
+
+		if (is_indexed<GMap0::Edge>(m))
+		{
+			set_index(m, edge, new_index<GMap0::Edge>(m));
+		}
 	}
-};
+	return edge;
+}
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
-
-} // namespace io
+void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice)
+{
+	remove_dart(m, e.dart);
+	remove_dart(m, beta0(m, e.dart));
+}
 
 } // namespace cgogn
-
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+                    

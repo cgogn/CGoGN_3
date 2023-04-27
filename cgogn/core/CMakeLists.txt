@@ -46,6 +46,14 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_orbit_traversal.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap0.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap0.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap1.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap1.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap3.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
 
@@ -55,6 +63,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_attrib.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
+
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"

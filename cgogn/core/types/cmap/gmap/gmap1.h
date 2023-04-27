@@ -21,45 +21,44 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_CMAP1_H_
-#define CGOGN_CORE_TYPES_CMAP_CMAP1_H_
+#ifndef CGOGN_CORE_TYPES_GMAP_GMAP1_H_
+#define CGOGN_CORE_TYPES_GMAP_GMAP1_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cmap/cmap0.h>
+#include <cgogn/core/types/cmap/gmap/gmap0.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT CMap1 : public CMap0
+struct CGOGN_CORE_EXPORT GMap1 : public GMap0
 {
 	static const uint8 dimension = 1;
 
-	using Vertex = Cell<DART>;
-	using Edge = Cell<DART>;
-	using Face = Cell<PHI1>;
+	using Vertex = Cell<Orbit::BETA1>;
+	using Edge = typename GMap0::Edge;
+	using Face = Cell<Orbit::BETA0_BETA1>;
 
 	using Cells = std::tuple<Vertex, Edge, Face>;
 
-	std::shared_ptr<Attribute<Dart>> phi1_;
-	std::shared_ptr<Attribute<Dart>> phi_1_;
+	std::shared_ptr<Attribute<Dart>> beta1_;
 
-	CMap1() : CMap0()
+	GMap1() : GMap0()
 	{
-		phi1_ = add_relation("phi1");
-		phi_1_ = add_relation("phi_1");
+		beta1_ = add_relation("beta1");
 	}
+
 };
 
 template <>
-struct mesh_traits<CMap1>
+struct mesh_traits<GMap1>
 {
-	static constexpr const char* name = "CMap1";
+	using MeshType = GMap1;
 	static constexpr const uint8 dimension = 1;
 
-	using Vertex = CMap1::Vertex;
-	using Edge = CMap1::Edge;
-	using Face = CMap1::Face;
+	using Vertex = GMap1::Vertex;
+	using Edge = GMap1::Edge;
+	using Face = GMap1::Face;
 
 	using Cells = std::tuple<Vertex, Edge, Face>;
 	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
@@ -67,34 +66,66 @@ struct mesh_traits<CMap1>
 	template <typename T>
 	using Attribute = CMapBase::Attribute<T>;
 	using AttributeGen = CMapBase::AttributeGen;
+	static constexpr const char* name = "GMap1";
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
-CMap1::Vertex CGOGN_CORE_EXPORT cut_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
 
-CMap1::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices = true);
+GMap1::Vertex CGOGN_CORE_EXPORT cut_edge(GMap1& m, GMap1::Edge e, bool set_indices = true);
 
-CMap1::Face CGOGN_CORE_EXPORT add_face(CMap1& m, uint32 size, bool set_indices = true);
+GMap1::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices);
 
-void CGOGN_CORE_EXPORT remove_face(CMap1& m, CMap1::Face f);
+GMap1::Face CGOGN_CORE_EXPORT add_face(GMap1& m, uint32 size, bool set_indices = true);
 
-bool check_integrity(CMap1& m, bool verbose = true);
+void CGOGN_CORE_EXPORT remove_face(GMap1& m, GMap1::Face f);
 
-inline Dart phi1(const CMap1& m, Dart d)
+bool CGOGN_CORE_EXPORT check_integrity(GMap1& m, bool verbose = true);
+
+
+inline Dart beta1(const GMap1& m, Dart d)
 {
-	return (*(m.phi1_))[d.index];
+	return (*(m.beta1_))[d.index];
 }
 
-inline Dart phi_1(const CMap1& m, Dart d)
+inline Dart boundary_beta1(const GMap1& m, Dart d)
 {
-	return (*(m.phi_1_))[d.index];
+	return beta1(m,d);
 }
 
-void phi1_sew(CMap1& m, Dart d, Dart e);
 
-void phi1_unsew(CMap1& m, Dart d);
+inline Dart phi1(const GMap1& m, Dart d)
+{
+	return beta1(m,beta0(m,d));
+}
 
+
+inline Dart phi_1(const GMap1& m, Dart d)
+{
+	return beta0(m,beta1(m,d));
+}
+
+
+inline void beta1_sew(GMap1& m, Dart d, Dart e)
+{
+	cgogn_assert(beta1(m, d) == d);
+	cgogn_assert(beta1(m, e) == e);
+	(*(m.beta1_))[d.index] = e;
+	(*(m.beta1_))[e.index] = d;
+}
+
+inline void beta1_unsew(GMap1& m, Dart d)
+{
+	Dart e = beta1(m, d);
+	(*(m.beta1_))[d.index] = d;
+	(*(m.beta1_))[e.index] = e;
+}
+
+
+
+
+/*}****************************************************************************/
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_CMAP1_H_
+#endif // CGOGN_CORE_TYPES_GMAP_GMAP1_H_
+
