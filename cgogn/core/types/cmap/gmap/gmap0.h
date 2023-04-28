@@ -32,7 +32,7 @@
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT GMap0 : public CMapBase
+struct CGOGN_CORE_EXPORT GMap0 : public GMapBase
 {
 	static const uint8 dimension = 0;
 
@@ -64,9 +64,9 @@ struct mesh_traits<GMap0>
 	static constexpr const char* cell_names[] = {"Vertex","Edge"};
 
 	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
+	using Attribute = MapBase::Attribute<T>;
+	using AttributeGen = MapBase::AttributeGen;
+	using MarkAttribute = MapBase::MarkAttribute;
 };
 
 inline Dart beta0(const GMap0& m, Dart d)

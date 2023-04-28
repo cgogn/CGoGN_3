@@ -43,7 +43,7 @@
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT CMapBase
+struct CGOGN_CORE_EXPORT MapBase
 {
 	// using AttributeContainer = AttributeContainerT<Vector>;
 	using AttributeContainer = AttributeContainerT<ChunkArray>;
@@ -82,8 +82,8 @@ struct CGOGN_CORE_EXPORT CMapBase
 		DART_MARKING
 	};
 
-	CMapBase();
-	~CMapBase();
+	MapBase();
+	~MapBase();
 
 	// Map-wise attributes
 	template <typename T>
@@ -115,19 +115,25 @@ struct CGOGN_CORE_EXPORT CMapBase
 
 };
 
-void CGOGN_CORE_EXPORT dump_map_darts(const CMapBase& m);
 
-Dart CGOGN_CORE_EXPORT add_dart(CMapBase& m);
+struct CGOGN_CORE_EXPORT CMapBase : public MapBase
+{
+};
 
-void CGOGN_CORE_EXPORT remove_dart(CMapBase& m, Dart d);
+
+void CGOGN_CORE_EXPORT dump_map_darts(const MapBase& m);
+
+Dart CGOGN_CORE_EXPORT add_dart(MapBase& m);
+
+void CGOGN_CORE_EXPORT remove_dart(MapBase& m, Dart d);
 
 
-inline uint32 nb_darts(const CMapBase& m)
+inline uint32 nb_darts(const MapBase& m)
 {
 	return m.darts_.nb_elements();
 }
 
-inline void set_boundary(const CMapBase& m, Dart d, bool b)
+inline void set_boundary(const MapBase& m, Dart d, bool b)
 {
 	(*m.boundary_marker_)[d.index] = b ? 1u : 0u;
 }

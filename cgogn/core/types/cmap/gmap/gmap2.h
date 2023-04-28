@@ -104,6 +104,7 @@ GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices);
 
 int32 close(GMap2& m, bool set_indices=false);
 
+
 inline Dart beta2(const GMap2& m, Dart d)
 {
 	return (*(m.beta2_))[d.index];

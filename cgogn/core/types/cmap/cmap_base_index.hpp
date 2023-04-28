@@ -36,7 +36,7 @@ namespace cgogn
 
 
 template <typename CELL>
-bool is_indexed(const CMapBase& m)
+bool is_indexed(const MapBase& m)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -44,7 +44,7 @@ bool is_indexed(const CMapBase& m)
 }
 
 
-inline bool is_indexed(const CMapBase& m, Orbit orbit)
+inline bool is_indexed(const MapBase& m, Orbit orbit)
 {
 	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	return m.cells_indices_[orbit] != nullptr;
@@ -52,7 +52,7 @@ inline bool is_indexed(const CMapBase& m, Orbit orbit)
 
 
 template <typename CELL>
-uint32 maximum_index(const CMapBase& m)
+uint32 maximum_index(const MapBase& m)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -63,7 +63,7 @@ uint32 maximum_index(const CMapBase& m)
 
 
 template <typename CELL>
-uint32 index_of(const CMapBase& m, CELL c)
+uint32 index_of(const MapBase& m, CELL c)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -71,14 +71,14 @@ uint32 index_of(const CMapBase& m, CELL c)
 	return (*m.cells_indices_[orbit])[c.dart.index];
 }
 
-inline bool is_boundary(const CMapBase& m, Dart d)
+inline bool is_boundary(const MapBase& m, Dart d)
 {
 	return (*m.boundary_marker_)[d.index] != 0u;
 }
 
 
 template <typename CELL>
-CELL of_index(const CMapBase& m, uint32 i)
+CELL of_index(const MapBase& m, uint32 i)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -98,14 +98,14 @@ CELL of_index(const CMapBase& m, uint32 i)
 
 
 template <typename CELL>
-uint32 new_index(const CMapBase& m)
+uint32 new_index(const MapBase& m)
 {
 	return m.attribute_containers_[CELL::ORBIT].new_index();
 }
 
 
 template <typename CELL>
-void set_index(CMapBase& m, Dart d, uint32 index)
+void set_index(MapBase& m, Dart d, uint32 index)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -119,30 +119,8 @@ void set_index(CMapBase& m, Dart d, uint32 index)
 }
 
 
-template <typename CELL, typename MESH>
-auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
-{
-	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
-	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
-	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-		set_index<CELL>(m, d, index);
-		return true;
-	});
-}
-
-
-template <typename CELL, typename MESH>
-auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
-{
-	static const Orbit orbit = CELL::ORBIT;
-	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-	set_index<CELL>(m, dest, index_of(m, CELL(src)));
-}
-
-
-
 template <typename CELL>
-void init_cells_indexing(CMapBase& m)
+void init_cells_indexing(MapBase& m)
 {
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
@@ -156,7 +134,7 @@ void init_cells_indexing(CMapBase& m)
 }
 
 
-inline void init_cells_indexing(CMapBase& m, Orbit orbit)
+inline void init_cells_indexing(MapBase& m, Orbit orbit)
 {
 	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	if (!is_indexed(m, orbit))
@@ -171,13 +149,38 @@ inline void init_cells_indexing(CMapBase& m, Orbit orbit)
 
 
 template <typename CELL, typename MESH>
-auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
+auto set_index(MESH& m, CELL c, uint32 index) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
+{
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
+	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
+	foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
+		set_index<CELL>(m, d, index);
+		return true;
+	});
+}
+
+
+template <typename CELL, typename MESH>
+auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	set_index<CELL>(m, dest, index_of(m, CELL(src)));
+}
+
+
+
+
+
+
+template <typename CELL, typename MESH>
+auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
 		init_cells_indexing<CELL>(m);
 
-	CMapBase& base = static_cast<CMapBase&>(m);
+	MapBase& base = static_cast<MapBase&>(m);
 	DartMarker dm(m);
 	for (Dart d = base.begin(), end = base.end(); d != end; d = base.next(d))
 	{
