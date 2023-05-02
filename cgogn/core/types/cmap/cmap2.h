@@ -35,6 +35,8 @@ struct CGOGN_CORE_EXPORT CMap2 : public CMap1
 {
 	static const uint8 dimension = 2;
 
+	using Parent = CMap1;
+
 	using Vertex = Cell<PHI21>;
 	using HalfEdge = Cell<DART>;
 	using Edge = Cell<PHI2>;
@@ -57,6 +59,8 @@ struct mesh_traits<CMap2>
 {
 	static constexpr const char* name = "CMap2";
 	static constexpr const uint8 dimension = 2;
+
+	using Parent = CMap2::Parent;
 
 	using Vertex = CMap2::Vertex;
 	using HalfEdge = CMap2::HalfEdge;

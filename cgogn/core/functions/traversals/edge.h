@@ -24,16 +24,16 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_EDGE_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/utils/tuples.h>
-#include <cgogn/core/utils/type_traits.h>
+// #include <cgogn/core/utils/tuples.h>
+// #include <cgogn/core/utils/type_traits.h>
 
-#include <cgogn/core/types/cell_marker.h>
+// #include <cgogn/core/types/cell_marker.h>
 
-#include <cgogn/core/types/cmap/cmap_info.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
-#include <cgogn/core/types/cmap/orbit_traversal.h>
+// #include <cgogn/core/types/cmap/cmap_info.h>
+// #include <cgogn/core/types/cmap/dart_marker.h>
+// #include <cgogn/core/types/cmap/orbit_traversal.h>
 
 namespace cgogn
 {

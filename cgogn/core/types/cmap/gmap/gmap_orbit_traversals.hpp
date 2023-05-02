@@ -25,6 +25,7 @@
 #define CGOGN_CORE_TYPES_GMAP_ORBIT_TRAVERSAL_H_
 
 #include <cgogn/core/types/cmap/gmap/beta.h>
+#include <cgogn/core/types/cmap/dart_marker.h>
 
 namespace cgogn
 {
@@ -178,12 +179,12 @@ auto foreach_dart_of_BETA0_BETA2_BETA3(const MESH& m, Dart d, const FUNC& f)
 	{
 		if (!f(it))
 			return;
-		if (!f(beta0(it)))
+		if (!f(beta0(m,it)))
 			return;
 		it = beta2(m, it);
 		if (!f(it))
 			return;
-		if (!f(beta0(it)))
+		if (!f(beta0(m,it)))
 			return;
 		it = beta3(m, it);
 	} while ((it != d));

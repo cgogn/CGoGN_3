@@ -33,6 +33,8 @@ struct CGOGN_CORE_EXPORT CMap1 : public CMap0
 {
 	static const uint8 dimension = 1;
 
+	using Parent = CMap0;
+
 	using Vertex = Cell<DART>;
 	using Edge = Cell<DART>;
 	using Face = Cell<PHI1>;
@@ -54,6 +56,8 @@ struct mesh_traits<CMap1>
 {
 	static constexpr const char* name = "CMap1";
 	static constexpr const uint8 dimension = 1;
+
+	using Parent = CMap1::Parent;
 
 	using Vertex = CMap1::Vertex;
 	using Edge = CMap1::Edge;

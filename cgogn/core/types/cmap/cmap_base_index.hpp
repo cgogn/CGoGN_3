@@ -24,7 +24,6 @@
 #ifndef CGOGN_CORE_CMAP_CMAP_BASE_IND_H_
 #define CGOGN_CORE_CMAP_CMAP_BASE_IND_H_
 
-#include <cgogn/core/types/cmap/dart_marker.h>
 
 #include <sstream>
 #include <iostream>

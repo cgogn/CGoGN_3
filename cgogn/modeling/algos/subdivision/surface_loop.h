@@ -24,11 +24,12 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_SURFACE_LOOP_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_SURFACE_LOOP_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/mesh_views/cell_cache.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
+struct MapBase;
 
 namespace modeling
 {

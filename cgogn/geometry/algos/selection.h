@@ -47,10 +47,10 @@ CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex 
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 //	typename std::enable_if_t<std::is_same_v<MESH, CMap2>, CellCache<MESH>>;
 {
-	using Vertex = typename MESH::Vertex;
-	using HalfEdge = typename MESH::HalfEdge;
-	using Edge = typename MESH::Edge;
-	using Face = typename MESH::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
 	CellCache<MESH> cache(m);
 

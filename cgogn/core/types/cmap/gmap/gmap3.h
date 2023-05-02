@@ -35,6 +35,8 @@ struct CGOGN_CORE_EXPORT GMap3 : public GMap2
 {
 	static const uint8 dimension = 3;
 
+	using Parent = GMap2;
+
 	using Vertex = Cell<Orbit::BETA1_BETA2_BETA3>;
 	using Vertex2 = Cell<Orbit::BETA1_BETA2>;
 	using HalfEdge = Cell<Orbit::BETA0>;
@@ -63,6 +65,8 @@ struct mesh_traits<GMap3>
 	using MeshType = GMap3;
 	static constexpr const char* name = "GMap3";
 	static constexpr const uint8 dimension = 3;
+
+	using Parent = GMap3::Parent;
 
 	using Vertex = GMap3::Vertex;
 	using Vertex2 = GMap3::Vertex2;

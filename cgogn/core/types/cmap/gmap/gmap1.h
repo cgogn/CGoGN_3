@@ -35,6 +35,8 @@ struct CGOGN_CORE_EXPORT GMap1 : public GMap0
 {
 	static const uint8 dimension = 1;
 
+	using Parent = GMap0;
+
 	using Vertex = Cell<Orbit::BETA1>;
 	using Edge = typename GMap0::Edge;
 	using Face = Cell<Orbit::BETA0_BETA1>;
@@ -54,6 +56,7 @@ template <>
 struct mesh_traits<GMap1>
 {
 	using MeshType = GMap1;
+	using Parent = GMap1::Parent;
 	static constexpr const uint8 dimension = 1;
 
 	using Vertex = GMap1::Vertex;
