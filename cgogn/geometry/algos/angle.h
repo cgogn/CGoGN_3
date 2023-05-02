@@ -36,9 +36,9 @@
 
 namespace cgogn
 {
-
-struct CMap2;
-struct GMap2;
+//
+//struct CMap2;
+//struct GMap2;
 
 namespace geometry
 {
@@ -46,7 +46,8 @@ namespace geometry
 ///////////
 // CMap2 //
 ///////////
-template <typename MAP2, typename std::enable_if_t<std::is_same_v<MAP2,CMap2>|| std::is_same_v<MAP2,GMap2>>* = nullptr>
+//template <typename MAP2, typename std::enable_if_t<std::is_same_v<MAP2,CMap2>|| std::is_same_v<MAP2,GMap2>>* = nullptr>
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
 std::vector<Scalar> opposite_angles(const MAP2& m, typename MAP2::Edge e,
 										   const typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
 {

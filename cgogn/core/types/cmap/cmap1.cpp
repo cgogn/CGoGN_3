@@ -78,7 +78,7 @@ CMap1::Face add_face(CMap1& m, uint32 size, bool set_indices)
 					set_index(m, v, new_index<CMap1::Vertex>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (is_indexed<CMap1::Face>(m))

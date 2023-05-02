@@ -71,9 +71,9 @@ struct mesh_traits<GMap2>
 	static constexpr const char* cell_names[] = {"Vertex", "HalfEdge", "Edge", "Face", "Volume"};
 
 	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
+	using Attribute = MapBase::Attribute<T>;
+	using AttributeGen = MapBase::AttributeGen;
+	using MarkAttribute = MapBase::MarkAttribute;
 };
 
 GMap2::Vertex CGOGN_CORE_EXPORT cut_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
@@ -100,10 +100,16 @@ bool CGOGN_CORE_EXPORT edge_can_flip(const GMap2& m, GMap2::Edge e);
 
 bool CGOGN_CORE_EXPORT check_integrity(GMap2& m, bool verbose = true);
 
-GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices);
+GMap2::Face CGOGN_CORE_EXPORT close_hole(GMap2& m, Dart d, bool set_indices);
 
-int32 close(GMap2& m, bool set_indices=false);
+int32 CGOGN_CORE_EXPORT close(GMap2& m, bool set_indices = false);
 
+GMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
+
+inline void reverse_orientation(GMap2& m)
+{
+	// NOTHING TO DO
+}
 
 inline Dart beta2(const GMap2& m, Dart d)
 {

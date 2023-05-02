@@ -23,7 +23,6 @@
 #include <iomanip>
 #include <cgogn/core/types/cmap/gmap/gmap2.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/types/cmap/gmap/beta.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 namespace cgogn
@@ -393,7 +392,7 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, v, new_index<GMap2::Vertex>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::HalfEdge>(m))
 		{
@@ -404,7 +403,7 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, GMap2::HalfEdge(phi2(m, e.dart)), new_index<GMap2::HalfEdge>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Edge>(m))
 		{
@@ -414,7 +413,7 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, e, new_index<GMap2::Edge>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Face>(m))
 		{
@@ -424,7 +423,7 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, f, new_index<GMap2::Face>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Volume>(m))
 			set_index(m, vol, new_index<GMap2::Volume>(m));
@@ -461,7 +460,7 @@ GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, v, new_index<GMap2::Vertex>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::HalfEdge>(m))
 		{
@@ -472,7 +471,7 @@ GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, GMap2::HalfEdge(phi2(m, e.dart)), new_index<GMap2::HalfEdge>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Edge>(m))
 		{
@@ -482,7 +481,7 @@ GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, e, new_index<GMap2::Edge>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Face>(m))
 		{
@@ -492,7 +491,7 @@ GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 					set_index(m, f, new_index<GMap2::Face>(m));
 					return true;
 				},
-				CMapBase::TraversalPolicy::DART_MARKING);
+				MapBase::TraversalPolicy::DART_MARKING);
 		}
 		if (is_indexed<GMap2::Volume>(m))
 			set_index(m, vol, new_index<GMap2::Volume>(m));
@@ -508,10 +507,13 @@ void CGOGN_CORE_EXPORT remove_volume(GMap2& m, GMap2::Volume v)
 {
 	std::vector<Dart> darts;
 	darts.reserve(96);
+
+
 	foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 		darts.push_back(d);
 		return true;
 	});
+
 	for (Dart d : darts)
 		remove_dart(m, d);
 }
@@ -575,15 +577,19 @@ bool CGOGN_CORE_EXPORT edge_can_collapse(const GMap2& m, GMap2::Edge e)
 }
 
 
-//WIP
-GMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
+
+
+GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 {
 	Dart dd = e.dart;
 	Dart dd_1 = phi_1(m, dd);
 	Dart dd_12 = phi2(m, dd_1);
+	Dart ee = phi2(m, dd);
+	Dart ee_1 = phi_1(m, ee);
+	Dart ee_12 = phi2(m, ee_1);
 
 	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(dd), false);
-
+	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(ee), false);
 
 	if (codegree(m, GMap2::Face(dd_1)) == 2u)
 	{
@@ -595,10 +601,6 @@ GMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap2& m, GMap2::Edge e, bool set_
 		remove_face(static_cast<GMap1&>(m), GMap1::Face(dd1));
 	}
 
-	Dart ee = phi2(m, dd);
-	Dart ee_1 = phi_1(m, ee);
-	Dart ee_12 = phi2(m, ee_1);
-	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(ee), false);
 	if (codegree(m, GMap2::Face(ee_1)) == 2u)
 	{
 		Dart ee1 = phi1(m, ee_1);

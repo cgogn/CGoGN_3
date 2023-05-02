@@ -78,9 +78,9 @@ struct mesh_traits<GMap3>
 												 "Edge2",  "Face",	  "Face2",	  "Volume"};
 
 	template <typename T>
-	using Attribute = CMapBase::Attribute<T>;
-	using AttributeGen = CMapBase::AttributeGen;
-	using MarkAttribute = CMapBase::MarkAttribute;
+	using Attribute = MapBase::Attribute<T>;
+	using AttributeGen = MapBase::AttributeGen;
+	using MarkAttribute = MapBase::MarkAttribute;
 };
 
 

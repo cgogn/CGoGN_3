@@ -118,7 +118,6 @@ void set_index(MapBase& m, Dart d, uint32 index)
 	(*m.cells_indices_[orbit])[d.index] = index;		 // affect the index to the dart
 }
 
-
 template <typename CELL>
 void init_cells_indexing(MapBase& m)
 {

@@ -32,7 +32,7 @@ namespace cgogn
 {
 
 template <int8 Arg, int8... Args, typename MESH>
-auto beta(const MESH& m, Dart d) -> std::enable_if_t < std::is_convertible_v<MESH&, GMap0&>, Dart >
+auto beta(const MESH& m, Dart d) -> std::enable_if_t < std::is_convertible_v<MESH&, GMapBase&>, Dart >
 {
 	static_assert((Arg >= 0 && Arg <= mesh_traits<MESH>::dimension), "Bad phi value");
 
@@ -51,6 +51,7 @@ auto beta(const MESH& m, Dart d) -> std::enable_if_t < std::is_convertible_v<MES
 	else
 		return res;
 }
+
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_PHI_H_
+#endif // CGOGN_CORE_TYPES_GMAP_BETA_H_

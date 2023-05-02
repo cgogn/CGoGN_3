@@ -21,7 +21,17 @@
  *                                                                              *
  *******************************************************************************/
 
+#define USE_GMAP
+
+#ifdef USE_GMAP
 #include <cgogn/core/types/cmap/gmap/gmap2.h>
+using Mesh = cgogn::GMap2;
+#else
+#include <cgogn/core/types/cmap/cmap2.h>
+using Mesh = cgogn::CMap2;
+#endif
+
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -33,8 +43,8 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
-// using Mesh = cgogn::IncidenceGraph;
-using Mesh = cgogn::GMap2;
+//using Mesh = cgogn::IncidenceGraph;
+
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -47,9 +57,9 @@ using Scalar = cgogn::geometry::Scalar;
 int main(int argc, char** argv)
 {
 	std::string filename;
-	if (argc > 1)
-	// 	filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
-	// else
+	if (argc <= 1)
+	 	filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
+	else
 		filename = std::string(argv[1]);
 
 	cgogn::thread_start();

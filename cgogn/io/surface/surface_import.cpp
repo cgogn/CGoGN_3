@@ -113,6 +113,13 @@ void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
 					{
 						phi2_sew(m, d, *it);
 						phi2_found = true;
+
+						if constexpr (std::is_same_v<MAP2, GMap2>)
+						{
+							copy_index<Vertex>(m, beta2(m, d), d);
+							Dart dd = beta0(m, d);
+							copy_index<Vertex>(m, dd, beta2(m, dd));
+						}
 					}
 					else
 						first_OK = false;

@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/map_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base_index.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base_attribute.hpp"
@@ -46,7 +47,10 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.cpp"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_orbit_traversal.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/beta.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_orbit_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap0.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap0.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap1.h"
@@ -54,6 +58,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap3.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_local_traversals.hpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
 

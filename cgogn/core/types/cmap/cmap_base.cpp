@@ -26,17 +26,17 @@
 namespace cgogn
 {
 
-CMapBase::CMapBase()
+MapBase::MapBase()
 {
 	boundary_marker_ = darts_.get_mark_attribute();
 }
 
-CMapBase::~CMapBase()
+MapBase::~MapBase()
 {
 }
 
 
-Dart add_dart(CMapBase& m)
+Dart add_dart(MapBase& m)
 {
 	uint32 index = m.darts_.new_index();
 	Dart d(index);
@@ -49,7 +49,7 @@ Dart add_dart(CMapBase& m)
 }
 
 
-void remove_dart(CMapBase& m, Dart d)
+void remove_dart(MapBase& m, Dart d)
 {
 	for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)
 	{
@@ -65,7 +65,7 @@ void remove_dart(CMapBase& m, Dart d)
 
 
 
-void clear(CMapBase& m, bool keep_attributes)
+void clear(MapBase& m, bool keep_attributes)
 {
 	// clear darts and keep attributes (phi relations)
 	m.darts_.clear_attributes();
@@ -83,7 +83,7 @@ void clear(CMapBase& m, bool keep_attributes)
 	}
 
 	// clear all cell attributes
-	for (CMapBase::AttributeContainer& container : m.attribute_containers_)
+	for (MapBase::AttributeContainer& container : m.attribute_containers_)
 	{
 		if (keep_attributes)
 			container.clear_attributes();
@@ -97,7 +97,7 @@ void clear(CMapBase& m, bool keep_attributes)
 }
 
 
-void dump_map_darts(const CMapBase& m)
+void dump_map_darts(const MapBase& m)
 {
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{

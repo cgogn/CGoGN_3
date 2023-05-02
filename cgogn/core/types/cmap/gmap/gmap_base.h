@@ -21,47 +21,25 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_INFO_H_
-#define CGOGN_CORE_CMAP_CMAP_INFO_H_
+#ifndef CGOGN_CORE_GMAP_GMAP_BASE_H_
+#define CGOGN_CORE_GMAP_GMAP_BASE_H_
 
-#include <cgogn/core/types/cmap/cmap_base.h>
-#include <cgogn/core/types/cmap/orbit_traversal.h>
-
-#include <iomanip>
+#include <cgogn/core/types/cmap/map_base.h>
 
 namespace cgogn
 {
 
-/*****************************************************************************/
-
-// template <typename CELL, typename CMAP>
-// uint32 nb_darts_of_orbit(const CMAP& m, CELL c);
-
-/*****************************************************************************/
-
-/////////////
-// GENERIC //
-/////////////
-template <typename CELL, typename MAP>
-uint32 nb_darts_of_orbit(const MAP& m, CELL c)
+struct CGOGN_CORE_EXPORT GMapBase : public MapBase
 {
-	static_assert(is_in_tuple<CELL, typename CMAP::Cells>::value, "CELL not supported in this MAP");
-	uint32 result = 0;
-	foreach_dart_of_orbit(m, c, [&](Dart) -> bool {
-		++result;
-		return true;
-	});
-	return result;
-}
-
-/*****************************************************************************/
-
-// template <typename CMAP>
-// void is_boundary(const CMAP& m, Dart d)
-
-/*****************************************************************************/
-
+};
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_CMAP_CMAP_INFO_H_
+#include <cgogn/core/types/cmap/gmap/gmap_orbit_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_index.hpp>
+#include <cgogn/core/types/cmap/cmap_base_attribute.hpp>
+#include <cgogn/core/types/cmap/gmap/gmap_local_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_global_traversals.hpp>
+#include <cgogn/core/types/cmap/cmap_base_functions.hpp>
+
+#endif // CGOGN_CORE_CMAP_CMAP_BASE_H_

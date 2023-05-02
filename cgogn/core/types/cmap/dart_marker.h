@@ -25,7 +25,7 @@
 #define CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
 
 // #include <cgogn/core/cgogn_core_export.h>
-// #include <cgogn/core/types/cmap/cmap_base.h>
+// #include <cgogn/core/types/cmap/map_base.h>
 // #include <cgogn/core/utils/tuples.h>
 // #include <cgogn/core/utils/type_traits.h>
 
@@ -40,10 +40,10 @@ namespace cgogn
 /*****************************************************************************/
 
 ///////////////////////////////
-// CMapBase (or convertible) //
+// MapBase (or convertible) //
 ///////////////////////////////
 
-inline typename CMapBase::MarkAttribute* get_dart_mark_attribute(const CMapBase& m)
+inline typename MapBase::MarkAttribute* get_dart_mark_attribute(const MapBase& m)
 {
 	return m.darts_.get_mark_attribute();
 }
@@ -56,25 +56,25 @@ inline typename CMapBase::MarkAttribute* get_dart_mark_attribute(const CMapBase&
 /*****************************************************************************/
 
 ///////////////////////////////
-// CMapBase (or convertible) //
+// MapBase (or convertible) //
 ///////////////////////////////
 
-inline void release_dart_mark_attribute(const CMapBase& m, CMapBase::MarkAttribute* attribute)
+inline void release_dart_mark_attribute(const MapBase& m, MapBase::MarkAttribute* attribute)
 {
 	return m.darts_.release_mark_attribute(attribute);
 }
 
 /*****************************************************************************/
-template <typename CMAP>
+template <typename MAP>
 
 class CGOGN_CORE_EXPORT DartMarker
 {
 private:
-	const CMAP& map_;
-	typename mesh_traits<CMAP>::MarkAttribute* mark_attribute_;
+	const MAP& map_;
+	typename mesh_traits<MAP>::MarkAttribute* mark_attribute_;
 
 public:
-	DartMarker(const CMAP& map) : map_(map)
+	DartMarker(const MAP& map) : map_(map)
 	{
 		mark_attribute_ = get_dart_mark_attribute(map_);
 	}
@@ -107,16 +107,16 @@ public:
 	}
 };
 
-template <typename CMAP>
+template <typename MAP>
 class CGOGN_CORE_EXPORT DartMarkerStore
 {
 private:
-	const CMapBase& map_;
-	typename mesh_traits<CMAP>::MarkAttribute* mark_attribute_;
+	const MapBase& map_;
+	typename mesh_traits<MAP>::MarkAttribute* mark_attribute_;
 	std::vector<Dart> marked_darts_;
 
 public:
-	DartMarkerStore(const CMAP& map) : map_(map)
+	DartMarkerStore(const MAP& map) : map_(map)
 	{
 		mark_attribute_ = get_dart_mark_attribute(map_);
 		marked_darts_.reserve(512u);

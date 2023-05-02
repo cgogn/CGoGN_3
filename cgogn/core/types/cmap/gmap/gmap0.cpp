@@ -20,9 +20,7 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-#include <iomanip>
 #include <cgogn/core/types/cmap/gmap/gmap0.h>
-#include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
 {
@@ -54,8 +52,9 @@ GMap0::Edge add_edge(GMap0& m, bool set_indices)
 
 void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice)
 {
+	Dart ee = beta0(m, e.dart);
 	remove_dart(m, e.dart);
-	remove_dart(m, beta0(m, e.dart));
+	remove_dart(m, ee);
 }
 
 } // namespace cgogn

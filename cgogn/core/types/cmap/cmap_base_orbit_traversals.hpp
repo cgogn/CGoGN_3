@@ -25,7 +25,7 @@
 #define CGOGN_CORE_CMAP_CMAP_BASE_ORBIT_TRAVERSALS_HPP_
 
 
-#include <cgogn/core/functions/mesh_info.h>
+//#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/cmap/phi.h>
 
 

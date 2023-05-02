@@ -42,7 +42,8 @@ namespace geometry
 // CMap2 //
 ///////////
 
-Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<Vec3>* vertex_position)
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
+Scalar edge_cotan_weight(const MAP2& m, typename MAP2::Edge e, const typename MAP2::template Attribute<Vec3>* vertex_position)
 {
 	Scalar result = 0.0;
 

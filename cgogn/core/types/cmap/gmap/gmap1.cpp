@@ -83,6 +83,7 @@ GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 
 	Dart e0 = e.dart;
 	Dart e1 = beta0(m, e0);
+	beta0_unsew(m, e0);
 
 	Dart vd0 = add_dart(m);
 	Dart vd1 = add_dart(m);
@@ -118,7 +119,8 @@ GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 {
 	using Vertex = GMap1::Vertex;
 	Dart d1 = beta1(m, e.dart);
-	Dart d2 = beta1(m, beta0(m, e.dart));
+	Dart ee = beta0(m, e.dart);
+	Dart d2 = beta1(m, ee);
 
 	beta1_unsew(m, d1);
 	beta1_unsew(m, d2);

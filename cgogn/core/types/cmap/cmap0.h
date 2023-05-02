@@ -24,7 +24,6 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_CMAP0_H_
 #define CGOGN_CORE_TYPES_CMAP_CMAP0_H_
 
-#include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/cmap/cmap_base.h>
 

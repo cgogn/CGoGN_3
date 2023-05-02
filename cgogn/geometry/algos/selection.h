@@ -42,7 +42,7 @@ namespace geometry
 //CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
 //						   const typename CMap2::template Attribute<Vec3>* vertex_position);
 
-template <typename MESH, typename std::enable_if_t<std::is_same_v<MESH, CMap2> || std::is_same_v<MESH, GMap2>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex center, geometry::Scalar radius,
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 //	typename std::enable_if_t<std::is_same_v<MESH, CMap2>, CellCache<MESH>>;

@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_BASE_CHECK_IND_HPP_
-#define CGOGN_CORE_CMAP_CMAP_BASE_CHECK_IND_HPP_
+#ifndef CGOGN_CORE_CMAP_CMAP_BASE_FUNC_HPP_
+#define CGOGN_CORE_CMAP_CMAP_BASE_FUNC_HPP_
 
 #include <sstream>
 #include <iostream>
@@ -32,7 +32,7 @@
 namespace cgogn
 {
 
-template <typename CELL, typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+template <typename CELL, typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 bool check_indexing(MESH& m, bool verbose = true)
 {
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
@@ -72,7 +72,7 @@ bool check_indexing(MESH& m, bool verbose = true)
 			result &= valid_index && all_darts_same_index;
 			return true;
 		},
-		CMapBase::TraversalPolicy::DART_MARKING);
+		MapBase::TraversalPolicy::DART_MARKING);
 
 	// check that all lines of the attribute container are used
 	for (uint32 i = m.attribute_containers_[CELL::ORBIT].first_index(),
@@ -105,10 +105,10 @@ bool check_indexing(MESH& m, bool verbose = true)
 
 
 
-void clear(CMapBase& m, bool keep_attributes = true);
+void clear(MapBase& m, bool keep_attributes = true);
 
 
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 void copy(MESH& dst, const MESH& src)
 {
 	clear(dst, false);
@@ -126,7 +126,7 @@ void copy(MESH& dst, const MESH& src)
 
 
 template <typename MESH, typename CELL>
-auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>, bool>
+auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>, bool>
 {
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	bool result = false;
