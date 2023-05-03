@@ -155,8 +155,10 @@ inline Dart phi2(const GMap2& m, Dart d)
 
 inline void phi2_sew(GMap2& m, Dart d, Dart e)
 {
-	beta2_sew(m, d, beta0(m,e));
-	beta2_sew(m, beta0(m, d), e);
+	Dart e0 = beta0(m, e);
+	beta2_sew(m, d, e0);
+	Dart d0 = beta0(m, d);
+	beta2_sew(m, d0, e);
 }
 
 inline void phi2_unsew(GMap2& m, Dart d)

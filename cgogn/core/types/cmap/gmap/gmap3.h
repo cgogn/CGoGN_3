@@ -111,7 +111,26 @@ inline void beta3_unsew(GMap3& m, Dart d, Dart e)
 	(*(m.beta3_))[e.index] = e;
 }
 
+inline Dart phi3(const GMap3& m, Dart d)
+{
+	Dart dd = beta3(m, d);
+	if (dd == d)
+		return d;
+	return beta0(m, dd);
+}
 
+inline void phi3_sew(GMap3& m, Dart d, Dart e)
+{
+	beta3_sew(m, d, beta0(m, e));
+	beta3_sew(m, beta0(m, d), e);
+}
+
+inline void phi3_unsew(GMap3& m, Dart d)
+{
+	Dart e = beta0(m, d);
+	beta3_unsew(m, d, beta3(m,d));
+	beta3_unsew(m, e, beta3(m,e));
+}
 
 
 } // namespace cgogn

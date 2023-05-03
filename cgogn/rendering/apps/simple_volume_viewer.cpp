@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/cmap/gmap/gmap3.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -38,7 +38,7 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
-using Mesh = cgogn::CMap3;
+using Mesh = cgogn::GMap3;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 
@@ -121,14 +121,14 @@ int main(int argc, char** argv)
 
 	/********************************/
 
-	cgogn::ui::MeshProvider<cgogn::CMap2> mps(app);
-	cgogn::CMap2 volume_skin;
-	auto volume_skin_vertex_position = cgogn::add_attribute<Vec3, cgogn::CMap2::Vertex>(volume_skin, "position");
+	//cgogn::ui::MeshProvider<cgogn::CMap2> mps(app);
+	//cgogn::CMap2 volume_skin;
+	//auto volume_skin_vertex_position = cgogn::add_attribute<Vec3, cgogn::CMap2::Vertex>(volume_skin, "position");
 
-	cgogn::modeling::extract_volume_surface(*m, vertex_position.get(), volume_skin, volume_skin_vertex_position.get());
-	// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
-	cgogn::geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-	mps.save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
+	//cgogn::modeling::extract_volume_surface(*m, vertex_position.get(), volume_skin, volume_skin_vertex_position.get());
+	//// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
+	//cgogn::geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
+	//mps.save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 
 	return app.launch();
 }
