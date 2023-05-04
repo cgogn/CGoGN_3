@@ -22,6 +22,7 @@
  *******************************************************************************/
 
 #include <cgogn/core/types/cmap/gmap/gmap3.h>
+//#include <cgogn/core/types/cmap/cmap3.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -39,6 +40,7 @@
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using Mesh = cgogn::GMap3;
+//using Mesh = cgogn::CMap3;
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 

@@ -118,9 +118,11 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 
 			for (Dart dv : vertices_of_tetra)
 			{
+//				std::cout << "Dart of vertex "<< std::endl;
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 				foreach_dart_of_orbit(m, MESH3::Vertex2(dv), [&](Dart d) -> bool {
+//					std::cout << "Dart" << d.index << std::endl;
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
 				});

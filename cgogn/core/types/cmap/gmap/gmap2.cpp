@@ -202,23 +202,21 @@ void CGOGN_CORE_EXPORT merge_incident_faces(GMap2& m, GMap2::Edge e, bool set_in
 
 GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices)
 {
-	cgogn_message_assert(phi2(m, d) == d, "GMap2: close hole called on a dart that is not a phi2 fix point");
+	cgogn_message_assert(beta2(m, d) == d, "GMap2: close hole called on a dart that is not a phi2 fix point");
 
 	std::vector<Dart> vd;
 	vd.reserve(128);
-	Dart d_next = d; // Turn around the hole
-	Dart dd1; // to complete the face
+	Dart dd1 = d; 
 	do
 	{
-//		d_next = beta0(m, d_next);
+		Dart d_next; 
+		dd1 = beta0(m, dd1);
 		do
 		{
-			dd1 = phi1(m, d_next);
-			d_next = phi2(m, dd1);
-		} while (d_next != dd1 && dd1 != d);
-
-		if (dd1 != d)
-			vd.push_back(d);
+			d_next = beta1(m, dd1);
+			dd1 = beta2(m, d_next);
+		} while (d_next != dd1);
+		vd.push_back(dd1);
 	} while (dd1 != d);
 
 	GMap1::Face f = add_face(static_cast<GMap1&>(m), vd.size(), false);
@@ -226,7 +224,7 @@ GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices)
 	for (Dart dh : vd)
 	{
 		phi2_sew(m, dh, df);
-		df = phi1(m, df);
+		df = phi_1(m, df);
 	}
 
 	if (set_indices)
@@ -369,16 +367,50 @@ GMap2::Face CGOGN_CORE_EXPORT add_face(GMap2& m, uint32 size, bool set_indices)
 
 GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 {
+	auto dump = [&](Dart fa) {
+		std::cout << "Face " << std::endl;
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta0(m, fa);
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta1(m, fa);
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta0(m, fa);
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta1(m, fa);
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta0(m, fa);
+		std::cout << fa.index << " -> b0: " << beta0(m, fa) << " -> b1: " << beta1(m, fa) << " -> b2: " << beta2(m, fa)
+				  << std::endl;
+		fa = beta1(m, fa);
+	};
+
 	GMap1::Face first = add_face(static_cast<GMap1&>(m), 3u, false); // First triangle
+//	dump(first.dart);
+
 	Dart current = first.dart;
 	for (uint32 i = 1u; i < size; ++i) // Next triangles
 	{
 		GMap1::Face next = add_face(static_cast<GMap1&>(m), 3u, false);
+		//dump(next.dart);
+
 		phi2_sew(m, phi_1(m, current), phi1(m, next.dart));
 		current = next.dart;
 	}
+
 	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the umbrella
+
+	std::cout << "close " << std::endl;
 	GMap2::Face base = close_hole(m, first.dart, false); // Add the base face
+	//dump(Dart(0));
+	//dump(Dart(6));
+	//dump(Dart(12));
+	//dump(Dart(18));
+
 
 	GMap2::Volume vol(base.dart);
 
