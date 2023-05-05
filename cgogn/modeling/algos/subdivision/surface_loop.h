@@ -90,7 +90,7 @@ void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_pos
 		uint32 nb_e = 0;
 		foreach_incident_edge(m, v, [&](Edge e) -> bool {
 			nb_e++;
-			sum += value<Vec3>(m, vertex_position, CMap2::Vertex(phi<1, 1>(m, e.dart)));
+			sum += value<Vec3>(m, vertex_position, MAP2::Vertex(phi<1, 1>(m, e.dart)));
 			if (is_boundary(m, e.dart))
 				boundary = e.dart;
 			return true;

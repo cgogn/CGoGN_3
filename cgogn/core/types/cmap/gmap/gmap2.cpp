@@ -62,6 +62,9 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	Dart d2 = (cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e2}, false)).dart;
 	beta2_sew(m, d1, d2);
 	beta2_sew(m, beta1(m, d1), beta1(m, d2));
+	set_boundary(m, d1.dart, is_boundary(m, d1));
+	set_boundary(m, 2.dart, is_boundary(m, d2));
+
 
 	GMap2::Vertex vert{d1};
 	if (set_indices)
@@ -246,6 +249,7 @@ GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices)
 
 int32 close(GMap2& m, bool set_indices)
 {
+
 	uint32 nb_holes = 0u;
 
 	std::vector<Dart> fix_point_darts;
@@ -259,7 +263,7 @@ int32 close(GMap2& m, bool set_indices)
 		{
 			GMap2::Face h = close_hole(m, d, set_indices);
 			foreach_dart_of_orbit(m, h, [&](Dart hd) -> bool {
-//				set_boundary(m, hd, true);
+				set_boundary(m, hd, true);
 				return true;
 			});
 			++nb_holes;
@@ -404,7 +408,7 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 
 	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the umbrella
 
-	std::cout << "close " << std::endl;
+//	std::cout << "close " << std::endl;
 	GMap2::Face base = close_hole(m, first.dart, false); // Add the base face
 	//dump(Dart(0));
 	//dump(Dart(6));

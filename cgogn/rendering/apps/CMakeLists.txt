@@ -11,6 +11,17 @@ find_package(cgogn_rendering REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 
+add_executable(simple_gc_viewer simple_gc_viewer.cpp)
+target_link_libraries(simple_gc_viewer
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	${CMAKE_DL_LIBS}
+)
+
+
 add_executable(simple_graph_viewer simple_graph_viewer.cpp)
 target_link_libraries(simple_graph_viewer
 	cgogn::core
