@@ -119,13 +119,22 @@ private:
 			return _p.x() == other._p.x() && _p.y() == other._p.y() && _p.z() == other._p.z();
 		}
 	};
-
+	
 	struct pole_hash
 	{
 		std::size_t operator()(const Pole& p) const
 		{
 			return ((std::hash<double>()(p._p.x()) ^ (std::hash<double>()(p._p.y()) << 1)) >> 1) ^
 				   (std::hash<double>()(p._p.z()) << 1);
+		}
+	};
+
+	struct point_hash
+	{
+		std::size_t operator()(const Point& p) const
+		{
+			return ((std::hash<double>()(p.x()) ^ (std::hash<double>()(p.y()) << 1)) >> 1) ^
+				   (std::hash<double>()(p.z()) << 1);
 		}
 	};
 
@@ -147,30 +156,9 @@ private:
 	}
 
 public:
-	void compute_power_shape(SURFACE& surface)
+	Delaunay compute_delaunay_tredrahedron(Cgal_Surface_mesh& csm, Tree& tree)
 	{
-		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_power_shape");
-		
-		Cgal_Surface_mesh csm;
-
-		std::string filename = surface_provider_->mesh_filename(surface);
-		if (!filename.empty())
-		{
-			std::ifstream input(filename);
-			if (!input || !(input >> csm))
-			{
-				std::cerr << "Error: input file could not be read" << std::endl;
-				return;
-			}
-		}
-
 		std::vector<Point> Delaunay_tri_point;
-		std::vector<Weight_Point> Power_point;
-
-		// 1. Compute the Voronoi diagram of the sample points S.
-		Tree tree(faces(csm).first, faces(csm).second, csm);
-		tree.accelerate_distance_queries();
-		// Compute the Bounding box of mesh
 		std::array<Point, 8> obb_points;
 		Point acc(0, 0, 0);
 		CGAL::oriented_bounding_box(csm, obb_points, CGAL::parameters::use_convex_hull(true));
@@ -178,9 +166,9 @@ public:
 		{
 			acc += K::Vector_3(obb_points[i].x(), obb_points[i].y(), obb_points[i].z());
 		}
-		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8}; //TODO
+		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8}; // TODO
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
-		double offset = 2.0;//TODO
+		double offset = 2.0; // TODO
 		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
@@ -213,7 +201,7 @@ public:
 
 		uint32 nb_vertices = Delaunay_tri_point.size();
 
-//		auto start_timer = std::chrono::high_resolution_clock::now();
+		//		auto start_timer = std::chrono::high_resolution_clock::now();
 
 		// Indices info for constructing volume data in Cgogn
 		std::vector<unsigned> indices;
@@ -224,16 +212,59 @@ public:
 		// Construct delauney tredrahedron using CGAL
 		Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
 					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
+		return tri;
+	}
+	
+	void compute_inner_voronoi(Delaunay& tri, Tree& tree, std::vector<Weight_Point>& power_point,
+							   std::vector<std::pair<uint32, bool>>& point_info,
+							   std::unordered_map<uint32, uint32>& inside_indices)
+	{
+		uint32 count = 0, inside_vertices_count = 0;
+		double dis;
+		std::unordered_set<Point, point_hash> voronoi_vertices;
+		std::vector<Delaunay::Cell_handle> cells;
+		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
+		{
+			cells.clear();
+			tri.finite_incident_cells(vit, std::back_inserter(cells));
+			if (cells.size())
+			{
+				for (auto c = cells.begin(); c != cells.end(); ++c)
+				{
+					Point centroid = tri.dual(*c);
+					auto dis = CGAL::squared_distance(centroid, vit->point());
+					if (voronoi_vertices.find(centroid) == voronoi_vertices.end())
+					{
+						voronoi_vertices.insert(centroid);
+						power_point.push_back(Weight_Point(centroid, dis));
+						if (pointInside(tree, centroid))
+						{
+							point_info.push_back({count, true});
+							inside_indices.insert({count++, inside_vertices_count++});
+						}
+						else if (!pointInside(tree, centroid))
+						{
+							point_info.push_back({count++, false});
+						
+						}
+					}
+				}
+			}
+		}
+	}
 
-		// Indices of poles and a bool to indicate if it is inside of the object
+	void compute_inner_poles(Delaunay& tri, Tree& tree, std::vector<Weight_Point>& power_point,
+							 std::vector<std::pair<uint32, bool>>& point_info,
+							 std::unordered_map<uint32, uint32>& inside_indices)
+	{
 		std::vector<std::pair<uint32, bool>> power_indices;
 		// Find inside and outside poles
 		uint32 count = 0, inside_poles_count = 0;
 		double dis;
 		Point farthest_inside_point, farthest_outside_point;
 		double farthest_inside_distance, farthest_outside_distance;
-		std::unordered_set<Pole, pole_hash> poles;
-		std::unordered_map<uint32, uint32> inside_poles_indices; // Use for the construction of medial axis
+		std::unordered_set<Point, point_hash> poles;
+		 // Use for the construction of medial axis
 		std::vector<Delaunay::Cell_handle> cells;
 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
 		{
@@ -261,85 +292,44 @@ public:
 			}
 			if (farthest_inside_distance != 0)
 			{
-				Pole inside_pole = Pole(farthest_inside_point);
-				if (poles.find(inside_pole) == poles.end())
+				if (poles.find(farthest_inside_point) == poles.end())
 				{
-					poles.insert(inside_pole);
-					Power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
-					power_indices.push_back({count, true});
-					inside_poles_indices.insert({count++, inside_poles_count++});
+					poles.insert(farthest_inside_point);
+					power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
+					point_info.push_back({count, true});
+					inside_indices.insert({count++, inside_poles_count++});
 				}
 			}
 			if (farthest_outside_distance != 0)
 			{
 				Pole outside_pole = Pole(farthest_outside_point);
-				if (poles.find(outside_pole) == poles.end())
+				if (poles.find(farthest_outside_point) == poles.end())
 				{
-					poles.insert(outside_pole);
-					Power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
-					power_indices.push_back({count++, false});
+					poles.insert(farthest_outside_point);
+					power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
+					point_info.push_back({count++, false});
 				}
 			}
 		}
-// 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
-// 		{
-// 			Delaunay::Vertex_handle v = vit;
-// 			std::vector<Delaunay::Facet> facets;
-// 			farthest_inside_distance = 0;
-// 			farthest_outside_distance = 0;
-// 			tri.finite_incident_facets(vit, std::back_inserter(facets));
-// 			if (facets.size() != 0)
-// 			{
-// 				for (auto f = facets.begin(); f != facets.end(); ++f)
-// 				{
-// 					K::Object_3 o = tri.dual(*f);
-// 					if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
-// 					{
-// 						auto start = s->start(), source = s->source();
-// 						if (f == facets.begin())
-// 						{
-// 							auto dis = CGAL::squared_distance(start, v->point());
-// 							if (pointInside(tree, start) && dis > farthest_inside_distance)
-// 							{
-// 								farthest_inside_point = start;
-// 								farthest_inside_distance = dis;
-// 							}
-// 							else if (!pointInside(tree, start) && dis > farthest_outside_distance)
-// 							{
-// 								farthest_outside_point = start;
-// 								farthest_outside_distance = dis;
-// 							}
-// 						}
-// 						auto dis = CGAL::squared_distance(source, v->point());
-// 						if (pointInside(tree, source) && dis > farthest_inside_distance)
-// 						{
-// 							farthest_inside_point = source;
-// 							farthest_inside_distance = dis;
-// 						}
-// 						else if (!pointInside(tree, source) && dis > farthest_outside_distance)
-// 						{
-// 							farthest_outside_point = source;
-// 							farthest_outside_distance = dis;
-// 						}
-// 					}
-// 				}
-// 			}
-// 			
-// 		}
-		// Build weighted delaunay tredrahedron
-
+	}
+	
+	void constrcut_power_diagram(NONMANIFOLD* mv, SURFACE& surface, std::vector<Weight_Point>& power_point,
+								 std::vector<std::pair<uint32, bool>>& point_info,
+								 std::unordered_map<uint32, uint32>& inside_indices)
+	{
+		
 		cgogn::io::IncidenceGraphImportData Power_shape_data;
 		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_indices;
 		uint32 edge_count = 0;
 
-		Regular reg(boost::make_zip_iterator(boost::make_tuple(Power_point.begin(), power_indices.begin())),
-					boost::make_zip_iterator(boost::make_tuple(Power_point.end(), power_indices.end())));
+		Regular reg(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
+					boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
 		// Add vertices
-		for (size_t idx = 0; idx < Power_point.size(); ++idx)
+		for (size_t idx = 0; idx < power_point.size(); ++idx)
 		{
-			if (power_indices[idx].second)
+			if (point_info[idx].second)
 				Power_shape_data.vertex_position_.push_back(
-					{Power_point[idx].x(), Power_point[idx].y(), Power_point[idx].z()});
+					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
 		}
 		bool inside;
 		uint32 v, v1, v2;
@@ -370,8 +360,8 @@ public:
 							{
 
 								// Add edge
-								v1 = inside_poles_indices[fit->first->vertex(i)->info().first];
-								v2 = inside_poles_indices[fit->first->vertex(j)->info().first];
+								v1 = inside_indices[fit->first->vertex(i)->info().first];
+								v2 = inside_indices[fit->first->vertex(j)->info().first];
 								if (edge_indices.find({v1, v2}) == edge_indices.end())
 								{
 									edge_indices.insert({{v1, v2}, edge_count});
@@ -392,15 +382,65 @@ public:
 		uint32 power_nb_faces = Power_shape_data.faces_nb_edges_.size();
 
 		Power_shape_data.set_parameter(power_nb_vertices, power_nb_edges, power_nb_faces);
-		
 
 		import_incidence_graph_data(*mv, Power_shape_data);
 
-		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position = get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
+		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
+			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
 		if (mv_vertex_position)
 			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
+	}
+
+	void compute_power_shape(SURFACE& surface)
+	{
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_power_shape");
+		Cgal_Surface_mesh csm;
+
+		std::string filename = surface_provider_->mesh_filename(surface);
+		if (!filename.empty())
+		{
+			std::ifstream input(filename);
+			if (!input || !(input >> csm))
+			{
+				std::cerr << "Error: input file could not be read" << std::endl;
+				return;
+			}
+		}
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
+		Delaunay tri = compute_delaunay_tredrahedron(csm,tree);
+		std::vector<Weight_Point> Power_point;
+		std::vector<std::pair<uint32, bool>> Point_info;
+		std::unordered_map<uint32, uint32> Inside_indices;
+		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
+		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
+	}
+
+	void compute_original_power_diagram(SURFACE& surface)
+	{
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_medial_axis");
+		Cgal_Surface_mesh csm;
+
+		std::string filename = surface_provider_->mesh_filename(surface);
+		if (!filename.empty())
+		{
+			std::ifstream input(filename);
+			if (!input || !(input >> csm))
+			{
+				std::cerr << "Error: input file could not be read" << std::endl;
+				return;
+			}
+		}
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
+		Delaunay tri = compute_delaunay_tredrahedron(csm, tree);
+		std::vector<Weight_Point> Power_point;
+		std::vector<std::pair<uint32, bool>> Point_info;
+		std::unordered_map<uint32, uint32> Inside_indices;
+		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
+		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
 
 protected:
@@ -423,6 +463,8 @@ protected:
 		{
 			if (ImGui::Button("Power shape"))
 				compute_power_shape(*selected_surface_mesh_);
+			if (ImGui::Button("Original Medial Axis"))
+				compute_original_power_diagram(*selected_surface_mesh_);
 		}
 	}
 
