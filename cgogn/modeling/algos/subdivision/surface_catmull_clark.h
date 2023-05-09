@@ -48,11 +48,11 @@ using geometry::Scalar;
 
 template <typename MAP2,
 		  typename std::enable_if_t < std::is_convertible_v<MAP2&, MapBase&> &&( mesh_traits<MAP2>::dimension == 2)>* = nullptr >
-void subdivide_catmull_clark(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_position)
+void subdivide_catmull_clark(MAP2& m, typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename MAP2::Vertex;
-	using Edge = typename MAP2::Edge;
-	using Face = typename MAP2::Face;
+	using Vertex = typename mesh_traits<MAP2>::Vertex;
+	using Edge = typename mesh_traits<MAP2>::Edge;
+	using Face = typename mesh_traits<MAP2>::Face;
 
 	CellCache<MAP2> cache_old(m);
 	cache_old.template build<Vertex>();
@@ -89,7 +89,7 @@ void subdivide_catmull_clark(MAP2& m, typename MAP2::template Attribute<Vec3>* v
 		return true;
 	});
 
-	parallel_foreach_cell(cache_old, [&](MAP2::Vertex v) -> bool {
+	parallel_foreach_cell(cache_old, [&](Vertex v) -> bool {
 		Vec3 sum_F{0, 0, 0};
 		Vec3 sum_E{0, 0, 0};
 
@@ -97,14 +97,14 @@ void subdivide_catmull_clark(MAP2& m, typename MAP2::template Attribute<Vec3>* v
 		uint32 nb_f = 0;
 		uint32 nb_e = 0;
 
-		foreach_incident_edge(m, v, [&](MAP2::Edge e) -> bool {
+		foreach_incident_edge(m, v, [&](Edge e) -> bool {
 			++nb_e;
 			sum_E += 0.5 * (value<Vec3>(m, vertex_position, v) +
-							value<Vec3>(m, vertex_position, MAP2::Vertex(phi<1, 2, 1, 1>(m, e.dart))));
+							value<Vec3>(m, vertex_position, Vertex(phi<1, 2, 1, 1>(m, e.dart))));
 			if (!is_boundary(m, e.dart))
 			{
 				++nb_f;
-				sum_F += value<Vec3>(m, vertex_position, MAP2::Vertex(phi<1, 1>(m, e.dart)));
+				sum_F += value<Vec3>(m, vertex_position, Vertex(phi<1, 1>(m, e.dart)));
 			}
 			else
 				boundary = e.dart;

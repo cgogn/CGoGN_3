@@ -109,8 +109,6 @@ void set_index(MapBase& m, Dart d, uint32 index)
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 
-	int orbbb = orbit;
-
 	const uint32 old = (*m.cells_indices_[orbit])[d.index];
 	// ref_index() is done before unref_index() to avoid deleting the index if old == index
 	if (index != INVALID_INDEX)

@@ -90,6 +90,13 @@ struct mesh_traits<GMap3>
 
 GMap3::Vertex CGOGN_CORE_EXPORT cut_edge(GMap3& m, GMap3::Edge e, bool set_indices = true);
 
+GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indices = true);
+
+GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
+GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices);
+
+uint32 close(GMap3& m, bool set_indices);
 
 inline Dart beta3(const GMap3& m, Dart d)
 {
@@ -105,8 +112,9 @@ inline void beta3_sew(GMap3& m, Dart d, Dart e)
 	(*(m.beta3_))[e.index] = d;
 }
 
-inline void beta3_unsew(GMap3& m, Dart d, Dart e)
+inline void beta3_unsew(GMap3& m, Dart d)
 {
+	Dart e = beta3(m, d);
 	(*(m.beta3_))[d.index] = d;
 	(*(m.beta3_))[e.index] = e;
 }
@@ -128,10 +136,9 @@ inline void phi3_sew(GMap3& m, Dart d, Dart e)
 inline void phi3_unsew(GMap3& m, Dart d)
 {
 	Dart e = beta0(m, d);
-	beta3_unsew(m, d, beta3(m,d));
-	beta3_unsew(m, e, beta3(m,e));
+	beta3_unsew(m, d);
+	beta3_unsew(m, e);
 }
-
 
 } // namespace cgogn
 

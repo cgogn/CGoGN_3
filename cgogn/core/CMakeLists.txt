@@ -58,6 +58,7 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap2.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap3.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap3.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/gmap/gmap_local_traversals.hpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"

@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 #include <iomanip>
-#include <cgogn/core/types/cmap/gmap/gmap3.h>
+#include <cgogn/core/types/cmap/gmap/gmap1.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn
@@ -129,7 +129,7 @@ GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 
 	remove_edge(m, e);
 
-	Vertex v(d1);
+	Vertex v(d2);
 
 	if (set_indices)
 		copy_index<Vertex>(m, d2, d1);

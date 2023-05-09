@@ -38,7 +38,8 @@ struct CGOGN_CORE_EXPORT GMap2 : public GMap1
 	using Parent = GMap1;
 	
 	using Vertex = Cell<Orbit::BETA1_BETA2>;
-	using HalfEdge = Cell<Orbit::BETA0>;
+//	using HalfEdge = Cell<Orbit::BETA0>;
+	using HalfEdge = Cell<Orbit::DART>;
 	using Edge = Cell<Orbit::BETA0_BETA2>;
 	using Face = Cell<Orbit::BETA0_BETA1>;
 	using Volume = Cell<Orbit::BETA0_BETA1_BETA2>;

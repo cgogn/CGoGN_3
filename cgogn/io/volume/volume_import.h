@@ -26,7 +26,7 @@
 
 #include <cgogn/io/cgogn_io_export.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn/core/functions/traversals/edge.h>
 #include <vector>
 
 namespace cgogn
@@ -85,6 +85,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 	using Vertex = typename MESH3::Vertex;
 	using Volume = typename MESH3::Volume;
 	using MESH2 = typename MESH3::Parent;
+	using Vertex2 = typename MESH3::Vertex2;
 
 	auto position = get_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
 	if (!position)
@@ -102,6 +103,16 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 	uint32 index = 0u;
 	DartMarker dart_marker(m);
 	uint32 vol_emb = 0u;
+
+	auto mark_n_store = [&](Dart dv,const uint32 vertex_index)
+	{
+		foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart dd) 
+		{
+			dart_marker.mark(dd);
+			(*darts_per_vertex)[vertex_index].push_back(dd);
+			return true;
+		});
+	};
 
 	// for each volume of table
 	for (uint32 i = 0u; i < volume_data.nb_volumes_; ++i)
@@ -121,19 +132,22 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 //				std::cout << "Dart of vertex "<< std::endl;
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
+
 				foreach_dart_of_orbit(m, MESH3::Vertex2(dv), [&](Dart d) -> bool {
 //					std::cout << "Dart" << d.index << std::endl;
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
 				});
 
-				Dart dd = dv;
-				do
-				{
-					dart_marker.mark(dd);
-					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = phi1(m, phi2(m, dd));
-				} while (dd != dv);
+
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
 			}
 		}
 		else if (vol_type == VolumeType::Pyramid) // pyramidal case
@@ -152,13 +166,14 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 					return true;
 				});
 
-				Dart dd = dv;
-				do
-				{
-					dart_marker.mark(dd);
-					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = phi1(m, phi2(m, dd));
-				} while (dd != dv);
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
 			}
 		}
 		else if (vol_type == VolumeType::TriangularPrism) // prism case
@@ -181,13 +196,14 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 					return true;
 				});
 
-				Dart dd = dv;
-				do
-				{
-					dart_marker.mark(dd);
-					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = phi1(m, phi2(m, dd));
-				} while (dd != dv);
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
 			}
 		}
 		else if (vol_type == VolumeType::Hexa) // hexahedral case
@@ -212,13 +228,14 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 					return true;
 				});
 
-				Dart dd = dv;
-				do
-				{
-					dart_marker.mark(dd);
-					(*darts_per_vertex)[vertex_index].push_back(dd);
-					dd = phi1(m, phi2(m, dd));
-				} while (dd != dv);
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
 			}
 		}
 		else // end of hexa
@@ -234,6 +251,8 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 			set_index(m, vol, vol_emb++);
 	}
 
+
+	//dump_map_darts(m);
 	// reconstruct neighbourhood
 	uint32 nb_boundary_faces = 0u;
 	DartMarkerStore marker(m);
@@ -266,25 +285,54 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 
 			if (!good_dart.is_nil())
 			{
-				const uint32 degD = codegree(m, MESH3::Face(d));
-				const uint32 degGD = codegree(m, MESH3::Face(good_dart));
+				//const uint32 degD = codegree(m, MESH3::Face(d));
+				//const uint32 degGD = codegree(m, MESH3::Face(good_dart));
 
-				if (degD == degGD) // normal case : the two opposite faces have the same degree
+				//if (degD == degGD) // normal case : the two opposite faces have the same degree
+				//{
+				//	Dart it1 = d;
+				//	Dart it2 = good_dart;
+				//	do
+				//	{
+				//		phi3_sew(m, it1, it2);
+				//		it1 = phi1(m, it1);
+				//		it2 = phi_1(m, it2);
+				//	} while (it1 != d);
+				//}
+				//else
+				//{
+				//	// there is one face of degree 4 and one face of degree 3
+				//	// -> stamp volume
+				//}
+
+				std::vector<std::pair<Dart,Dart>> vd;
+				vd.reserve(32);
+				Dart it1 = d;
+				Dart it2 = good_dart;
+				bool stop1 = false;
+				bool stop2 = false;
+				do
 				{
-					Dart it1 = d;
-					Dart it2 = good_dart;
-					do
-					{
-						phi3_sew(m, it1, it2);
-						it1 = phi1(m, it1);
-						it2 = phi_1(m, it2);
-					} while (it1 != d);
+					vd.push_back(std::make_pair(it1, it2));
+					it1 = phi1(m, it1);
+					stop1 = (it1 == d);
+					it2 = phi_1(m, it2);
+					stop2 = (it2 == good_dart);
+				} while (stop1 || stop2);
+
+				if (stop1 && stop2) // normal case : the two opposite faces have the same degree
+				{
+					for (const auto& p : vd)
+						phi3_sew(m, p.first, p.second);
 				}
 				else
 				{
 					// there is one face of degree 4 and one face of degree 3
 					// -> stamp volume
 				}
+
+
+
 			}
 			else
 				++nb_boundary_faces;

@@ -57,16 +57,24 @@ bool check_integrity(GMap2& m, bool verbose)
 
 GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 {
-	Dart e2 = beta2(m, e.dart);
-	Dart d1 = (cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e.dart}, false)).dart;
-	Dart d2 = (cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e2}, false)).dart;
-	beta2_sew(m, d1, d2);
-	beta2_sew(m, beta1(m, d1), beta1(m, d2));
-	set_boundary(m, d1.dart, is_boundary(m, d1));
-	set_boundary(m, 2.dart, is_boundary(m, d2));
+	Dart e1 = e.dart;
+	Dart e2 = beta2(m, e1);
+	Dart ne1 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e1}, false).dart;
+	Dart ne2 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e2}, false).dart;
+	beta2_sew(m, ne1, ne2);
+	Dart ne1b = beta1(m, ne1);
+	Dart ne2b = beta1(m, ne2);
+	beta2_sew(m, ne1b , ne2b);
+
+	bool b1 = is_boundary(m, e1);
+	bool b2 = is_boundary(m, e2);
+	set_boundary(m, ne1, b1 );
+	set_boundary(m, ne1b, b1);
+	set_boundary(m, ne2, b2);
+	set_boundary(m, ne2b, b2);
 
 
-	GMap2::Vertex vert{d1};
+	GMap2::Vertex vert{ne1};
 	if (set_indices)
 	{
 		if (is_indexed<GMap2::Vertex>(m))
@@ -75,20 +83,20 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 		if (is_indexed<GMap2::Edge>(m))
 		{
 			uint32 ind = index_of(m, GMap2::Edge(e.dart));
-			set_index<GMap2::Edge>(m, d1, ind);
-			set_index<GMap2::Edge>(m, d2, ind);
-			set_index<GMap2::Edge>(m, beta1(m, d1), ind);
-			set_index<GMap2::Edge>(m, beta1(m, d2), ind);
+			set_index<GMap2::Edge>(m, ne1, ind);
+			set_index<GMap2::Edge>(m, ne2, ind);
+			set_index<GMap2::Edge>(m, beta1(m, ne1), ind);
+			set_index<GMap2::Edge>(m, beta1(m, ne2), ind);
 		}
 
 		if (is_indexed<GMap2::Face>(m))
 		{
 			uint32 ind1 = index_of(m, GMap2::Face(e.dart));
-			set_index<GMap2::Edge>(m, d1, ind1);
-			set_index<GMap2::Edge>(m, beta1(m, d1), ind1);
+			set_index<GMap2::Edge>(m, ne1, ind1);
+			set_index<GMap2::Edge>(m, beta1(m, ne1), ind1);
 			uint32 ind2 = index_of(m, GMap2::Face(e2));
-			set_index<GMap2::Edge>(m, d2, ind2);
-			set_index<GMap2::Edge>(m, beta1(m, d2), ind2);
+			set_index<GMap2::Edge>(m, ne2, ind2);
+			set_index<GMap2::Edge>(m, beta1(m, ne2), ind2);
 		}
 	}
 	return vert;
@@ -111,6 +119,13 @@ GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indi
 
 	Dart e1 = add_edge(m, false).dart;
 	Dart e2 = add_edge(m, false).dart;
+
+
+	bool b1 = is_boundary(m, d1);
+	set_boundary(m, e1, b1);
+	set_boundary(m, beta0(m,e1), b1);
+	set_boundary(m, e2, b1);
+	set_boundary(m, beta0(m,e2), b1);
 
 	beta1_sew(m, d1, e1);
 	beta1_sew(m, d2, e2);
@@ -618,34 +633,41 @@ bool CGOGN_CORE_EXPORT edge_can_collapse(const GMap2& m, GMap2::Edge e)
 GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 {
 	Dart dd = e.dart;
-	Dart dd_1 = phi_1(m, dd);
-	Dart dd_12 = phi2(m, dd_1);
-	Dart ee = phi2(m, dd);
-	Dart ee_1 = phi_1(m, ee);
-	Dart ee_12 = phi2(m, ee_1);
+	Dart dd_1 = beta1(m, dd);
+	Dart dd_12 = beta2(m, dd_1);
+	Dart ee = beta2(m, dd);
+	Dart ee_1 = beta1(m, ee);
+	Dart ee_12 = beta<0,2>(m, ee_1);
 
 	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(dd), false);
 	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(ee), false);
 
 	if (codegree(m, GMap2::Face(dd_1)) == 2u)
 	{
-		Dart dd1 = phi1(m, dd_1);
-		Dart dd12 = phi2(m, dd1);
-		phi2_unsew(m, dd1);
-		phi2_unsew(m, dd_1);
-		phi2_sew(m, dd12, dd_12);
+		Dart dd1 = beta1(m, dd_1);
+		Dart dd12 = beta2(m, dd1);
+		beta2_unsew(m, dd1);
+		beta2_unsew(m, beta0(m, dd1));
+		beta2_unsew(m, dd_1);
+		beta2_unsew(m, beta0(m, dd_1));
+		beta2_sew(m, dd_12,dd12);
+		beta2_sew(m, beta0(m,dd_12),beta0(m,dd12));
 		remove_face(static_cast<GMap1&>(m), GMap1::Face(dd1));
 	}
 
 	if (codegree(m, GMap2::Face(ee_1)) == 2u)
 	{
-		Dart ee1 = phi1(m, ee_1);
-		Dart ee12 = phi2(m, ee1);
-		phi2_unsew(m, ee1);
-		phi2_unsew(m, ee_1);
-		phi2_sew(m, ee12, ee_12);
+		Dart ee1 = beta1(m, ee_1);
+		Dart ee12 = beta2(m, ee1);
+		beta2_unsew(m, ee1);
+		beta2_unsew(m, beta0(m, ee1));
+		beta2_unsew(m, ee_1);
+		beta2_unsew(m, beta0(m, ee_1));
+		beta2_sew(m, ee_12, ee12);
+		beta2_sew(m, beta0(m, ee_12), beta0(m, ee12));
 		remove_face(static_cast<GMap1&>(m), GMap1::Face(ee1));
 	}
+
 
 	GMap2::Vertex v(dd_12);
 
@@ -653,6 +675,7 @@ GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	{
 		if (is_indexed<GMap2::Vertex>(m))
 			set_index(m, v, index_of(m, v));
+			
 		if (is_indexed<GMap2::Edge>(m))
 		{
 			copy_index<GMap2::Edge>(m, dd_12, phi2(m, dd_12));

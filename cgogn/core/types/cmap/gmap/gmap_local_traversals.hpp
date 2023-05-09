@@ -232,7 +232,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 	
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 && (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
-		foreach_dart_of_BETA21(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
+		foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
 		return;
 	}
 

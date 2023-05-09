@@ -49,18 +49,14 @@ using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 int main(int argc, char** argv)
 {
 	using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+	using Edge = typename cgogn::mesh_traits<Mesh>::Edge;
 	using Volume = typename cgogn::mesh_traits<Mesh>::Volume;
 
 	using Vec3 = cgogn::geometry::Vec3;
 	using Scalar = cgogn::geometry::Scalar;
 
 	std::string filename;
-	if (argc < 2)
-	{
-//		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hex_dominant.meshb");
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
-	}
-	else
+	if (argc >= 2)
 		filename = std::string(argv[1]);
 
 	cgogn::thread_start();
@@ -78,62 +74,115 @@ int main(int argc, char** argv)
 	v1->link_module(&mp);
 	v1->link_module(&vr);
 
-	Mesh* m = mp.load_volume_from_file(filename);
-	if (!m)
+	Mesh* m = nullptr;
+	std::shared_ptr<Attribute<Vec3>> vertex_position = nullptr;
+
+	auto setPosV = [&](cgogn::Dart d, const Vec3& P) { cgogn::value<Vec3>(*m, vertex_position, Vertex(d)) = P; };
+
+	if (filename.empty())
 	{
-		std::cout << "File could not be loaded" << std::endl;
-		return 1;
+		m = mp.add_mesh("simple");
+		cgogn::init_cells_indexing<Vertex>(*m);
+		vertex_position = cgogn::add_attribute<Vec3, Vertex>(*m, "position");
+
+		cgogn::Dart d_pyra = add_pyramid(*m, 4,false).dart;
+		cgogn::Dart d_hexa = add_prism(*m, 4,false).dart;
+		for (int i = 0; i < 4; ++i)
+		{
+			cgogn::phi3_sew(*m, d_pyra, d_hexa);
+			d_pyra = cgogn::phi1(*m, d_pyra);
+			d_hexa = cgogn::phi_1(*m, d_hexa);
+		}
+
+
+		cgogn::close(*m, false);
+
+		cgogn::foreach_cell(
+			*m,
+			[&](Vertex v) {
+				cgogn::set_index(*m, v, cgogn::new_index<Vertex>(*m));
+				return true;
+			},
+			cgogn::MapBase::TraversalPolicy::DART_MARKING);
+
+
+		setPosV(d_pyra, Vec3(-1, -1, -1));
+		d_pyra = cgogn::phi1(*m, d_pyra);
+		setPosV(d_pyra, Vec3(-1, 1, -1));
+		d_pyra = cgogn::phi1(*m, d_pyra);
+		setPosV(d_pyra, Vec3(1, 1, -1));
+		d_pyra = cgogn::phi1(*m, d_pyra);
+		setPosV(d_pyra, Vec3(1, -1, -1));
+		setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
+
+		cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
+		setPosV(dh, Vec3(-1, -1, -2));
+		dh = cgogn::phi1(*m, dh);
+		setPosV(dh, Vec3(-1, 1, -2));
+		dh = cgogn::phi1(*m, dh);
+		setPosV(dh, Vec3(1, 1, -2));
+		dh = cgogn::phi1(*m, dh);
+		setPosV(dh, Vec3(1, -1, -2));
+
+//		cgogn::dump_map_darts(*m);
+
+				std::vector<Edge> ve;
+		cgogn::foreach_cell(*m, [&](Edge e) {
+			ve.push_back(e);
+			return true;
+		});
+
+		for (Edge e : ve)
+		{
+			Vertex v1(e.dart);
+			Vertex v2(cgogn::phi1(*m,e.dart));
+			Vertex v3 = cgogn::cut_edge(*m, e);
+			cgogn::value<Vec3>(*m, vertex_position, v3) =
+				(cgogn::value<Vec3>(*m, vertex_position, v1) + cgogn::value<Vec3>(*m, vertex_position, v2)) / 2.0;
+		}
+
+		dh = d_pyra;
+		for (int i=0; i<4; ++i)
+		{
+			cgogn::Dart dv1 = cgogn::phi<2,1,1>(*m, dh);
+			cgogn::Dart dv2 = cgogn::phi<1,1>(*m, dv1);
+			cgogn::cut_face(*m, Vertex(dv1), Vertex(dv2));
+			dh = cgogn::phi<1, 1>(*m, dh);
+		}
+
+		std::vector<cgogn::Dart> vp;
+		dh = cgogn::phi<2, 1, 1>(*m, d_pyra);
+		vp.push_back(dh);
+		dh = cgogn::phi<1, 2, 1>(*m, dh);
+		vp.push_back(dh);
+		dh = cgogn::phi<1, 2, 1>(*m, dh);
+		vp.push_back(dh);
+		dh = cgogn::phi<1, 2, 1>(*m, dh);
+		vp.push_back(dh);
+
+		cgogn::cut_volume(*m, vp);
+	
+		cgogn::index_cells<Volume>(*m);
+
+		cgogn::dump_map_darts(*m);
+
+		mp.emit_connectivity_changed(*m);
+	}
+	else
+	{
+		m = mp.load_volume_from_file(filename);
+		if (!m)
+		{
+			std::cout << "File could not be loaded" << std::endl;
+			return 1;
+		}
+		vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	}
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Scalar>> volume_scalar = cgogn::add_attribute<Scalar, Volume>(*m, "scalar");
-	std::shared_ptr<Attribute<Vec3>> volume_color = cgogn::add_attribute<Vec3, Volume>(*m, "color");
-
-	auto bb = mp.meshes_bb();
-	Vec3 shiftVec = (bb.second - bb.first) / 4;
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position2 = cgogn::add_attribute<Vec3, Vertex>(*m, "position_2");
-
-	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
-		cgogn::value<Vec3>(*m, vertex_position2, v) = cgogn::value<Vec3>(*m, vertex_position, v) +shiftVec;
-		return true;
-	});
-
-	std::shared_ptr<Attribute<Vec3>> vertex_position3 = cgogn::add_attribute<Vec3, Vertex>(*m, "position_3");
-
-	cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
-		cgogn::value<Vec3>(*m, vertex_position3, v) = cgogn::value<Vec3>(*m, vertex_position, v) - shiftVec;
-		return true;
-	});
-
-
-	cgogn::foreach_cell(*m, [&](Volume v) -> bool {
-		Vec3 c(0, 0, 0);
-		c[rand() % 3] = 1;
-		cgogn::value<Vec3>(*m, volume_color, v) = c;
-		cgogn::value<Scalar>(*m, volume_scalar, v) = double(rand()) / RAND_MAX;
-		return true;
-	});
-
+	
+	vr.set_vertex_position(*v1, *m, vertex_position);
 	mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
-
-
-	vr.set_vertex_position(*v1, *m, vertex_position);
-//	vr.set_vertex_clipping_position(*v1, *m, vertex_position_clip);
-	vr.set_volume_scalar(*v1, *m, volume_scalar);
-	vr.set_volume_color(*v1, *m, volume_color);
-
-	/********************************/
-
-	//cgogn::ui::MeshProvider<cgogn::CMap2> mps(app);
-	//cgogn::CMap2 volume_skin;
-	//auto volume_skin_vertex_position = cgogn::add_attribute<Vec3, cgogn::CMap2::Vertex>(volume_skin, "position");
-
-	//cgogn::modeling::extract_volume_surface(*m, vertex_position.get(), volume_skin, volume_skin_vertex_position.get());
-	//// modeling::catmull_clark_approx(volume_skin, volume_skin_vertex_position.get(), 2);
-	//cgogn::geometry::apply_ear_triangulation(volume_skin, volume_skin_vertex_position.get());
-	//mps.save_surface_to_file(volume_skin, volume_skin_vertex_position.get(), "off", "surface");
 
 	return app.launch();
 }
