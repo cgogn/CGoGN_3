@@ -225,60 +225,37 @@ public:
 		Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
 					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
 
-// 		auto end_timer = std::chrono::high_resolution_clock::now();
-// 		std::chrono::duration<double> elapsed_seconds = end_timer - start_timer;
-// 		std::cout << "CGAL delaunay for " << nb_vertices << " points in " << elapsed_seconds.count() << std::endl;
-
-//		start_timer = std::chrono::high_resolution_clock::now();
-
 		// Indices of poles and a bool to indicate if it is inside of the object
 		std::vector<std::pair<uint32, bool>> power_indices;
 		// Find inside and outside poles
 		uint32 count = 0, inside_poles_count = 0;
+		double dis;
 		Point farthest_inside_point, farthest_outside_point;
 		double farthest_inside_distance, farthest_outside_distance;
 		std::unordered_set<Pole, pole_hash> poles;
 		std::unordered_map<uint32, uint32> inside_poles_indices; // Use for the construction of medial axis
+		std::vector<Delaunay::Cell_handle> cells;
 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
 		{
-			Delaunay::Vertex_handle v = vit;
-			std::vector<Delaunay::Facet> facets;
 			farthest_inside_distance = 0;
 			farthest_outside_distance = 0;
-			tri.finite_incident_facets(vit, std::back_inserter(facets));
-			if (facets.size() != 0)
+			cells.clear();
+			tri.finite_incident_cells(vit, std::back_inserter(cells));
+			if (cells.size())
 			{
-				for (auto f = facets.begin(); f != facets.end(); ++f)
+				for (auto c = cells.begin(); c != cells.end(); ++c)
 				{
-					K::Object_3 o = tri.dual(*f);
-					if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
+					Point centroid = tri.dual(*c);
+					auto dis = CGAL::squared_distance(centroid, vit->point());
+					if (pointInside(tree, centroid) && dis > farthest_inside_distance)
 					{
-						auto start = s->start(), source = s->source();
-						if (f == facets.begin())
-						{
-							auto dis = CGAL::squared_distance(start, v->point());
-							if (pointInside(tree, start) && dis > farthest_inside_distance)
-							{
-								farthest_inside_point = start;
-								farthest_inside_distance = dis;
-							}
-							else if (!pointInside(tree, start) && dis > farthest_outside_distance)
-							{
-								farthest_outside_point = start;
-								farthest_outside_distance = dis;
-							}
-						}
-						auto dis = CGAL::squared_distance(source, v->point());
-						if (pointInside(tree, source) && dis > farthest_inside_distance)
-						{
-							farthest_inside_point = source;
-							farthest_inside_distance = dis;
-						}
-						else if (!pointInside(tree, source) && dis > farthest_outside_distance)
-						{
-							farthest_outside_point = source;
-							farthest_outside_distance = dis;
-						}
+						farthest_inside_point = centroid;
+						farthest_inside_distance = dis;
+					}
+					else if (!pointInside(tree, centroid) && dis > farthest_outside_distance)
+					{
+						farthest_outside_point = centroid;
+						farthest_outside_distance = dis;
 					}
 				}
 			}
@@ -304,6 +281,51 @@ public:
 				}
 			}
 		}
+// 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
+// 		{
+// 			Delaunay::Vertex_handle v = vit;
+// 			std::vector<Delaunay::Facet> facets;
+// 			farthest_inside_distance = 0;
+// 			farthest_outside_distance = 0;
+// 			tri.finite_incident_facets(vit, std::back_inserter(facets));
+// 			if (facets.size() != 0)
+// 			{
+// 				for (auto f = facets.begin(); f != facets.end(); ++f)
+// 				{
+// 					K::Object_3 o = tri.dual(*f);
+// 					if (const K::Segment_3* s = CGAL::object_cast<K::Segment_3>(&o))
+// 					{
+// 						auto start = s->start(), source = s->source();
+// 						if (f == facets.begin())
+// 						{
+// 							auto dis = CGAL::squared_distance(start, v->point());
+// 							if (pointInside(tree, start) && dis > farthest_inside_distance)
+// 							{
+// 								farthest_inside_point = start;
+// 								farthest_inside_distance = dis;
+// 							}
+// 							else if (!pointInside(tree, start) && dis > farthest_outside_distance)
+// 							{
+// 								farthest_outside_point = start;
+// 								farthest_outside_distance = dis;
+// 							}
+// 						}
+// 						auto dis = CGAL::squared_distance(source, v->point());
+// 						if (pointInside(tree, source) && dis > farthest_inside_distance)
+// 						{
+// 							farthest_inside_point = source;
+// 							farthest_inside_distance = dis;
+// 						}
+// 						else if (!pointInside(tree, source) && dis > farthest_outside_distance)
+// 						{
+// 							farthest_outside_point = source;
+// 							farthest_outside_distance = dis;
+// 						}
+// 					}
+// 				}
+// 			}
+// 			
+// 		}
 		// Build weighted delaunay tredrahedron
 
 		cgogn::io::IncidenceGraphImportData Power_shape_data;
@@ -319,7 +341,6 @@ public:
 				Power_shape_data.vertex_position_.push_back(
 					{Power_point[idx].x(), Power_point[idx].y(), Power_point[idx].z()});
 		}
-
 		bool inside;
 		uint32 v, v1, v2;
 		int mask;

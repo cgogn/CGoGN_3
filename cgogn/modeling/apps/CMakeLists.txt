@@ -20,7 +20,19 @@ target_link_libraries(modeling
 	Blossom5
 	${CMAKE_DL_LIBS}
 )
-
+if (CGOGN_USE_CGAL)
+	find_package(CGAL REQUIRED)
+	add_executable(power_shape power_shape.cpp)
+	target_link_libraries(power_shape
+		CGAL::CGAL
+		cgogn::core
+		cgogn::ui
+		cgogn::io
+		cgogn::rendering
+		cgogn::modeling
+		${CMAKE_DL_LIBS}
+	)
+endif()
 add_executable(tubular_mesh tubular_mesh.cpp)
 target_link_libraries(tubular_mesh
 	cgogn::core
