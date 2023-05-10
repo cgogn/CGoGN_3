@@ -23,12 +23,15 @@
 
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
-
+#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/types/maps/dart.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
 //forward for SFINAE
+struct MapBase;
 struct CMap2;
 
 namespace modeling
@@ -40,7 +43,7 @@ using geometry::Vec3;
 // CMap2 //
 ///////////
 
-template <typename MESH, typename std::enable_if_t<std::is_same_v<MESH&, CMap2&>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> && (mesh_traits<MESH>::dimension==2)>* = nullptr>
 void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -51,11 +54,11 @@ void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 	Dart d2 = phi<1, 1>(m, d1);
 	cut_face(m, Vertex(d1), Vertex(d2));
 	Dart d3 = phi<1, 1>(m, d2);
-	cut_face(m, Vertex(d2), Vertex(d3));
+	cut_face(m, Vertex(d2),Vertex(d3));
 }
 
 //////////////
-// CMapBase //
+// MapBase //
 //////////////
 
 template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>

@@ -24,9 +24,9 @@
 #ifndef CGOGN_CORE_CMAP_ORBIT_TRAVERSAL_H_
 #define CGOGN_CORE_CMAP_ORBIT_TRAVERSAL_H_
 
-// #include <cgogn/core/types/cmap/cell.h>
-// #include <cgogn/core/types/cmap/dart_marker.h>
-// #include <cgogn/core/types/cmap/phi.h>
+// #include <cgogn/core/types/maps/cell.h>
+// #include <cgogn/core/types/maps/dart_marker.h>
+// #include <cgogn/core/types/maps/cmap/phi.h>
 
 // #include <cgogn/core/utils/tuples.h>
 // #include <cgogn/core/utils/type_traits.h>

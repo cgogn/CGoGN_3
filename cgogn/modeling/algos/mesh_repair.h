@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 #define CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 namespace cgogn

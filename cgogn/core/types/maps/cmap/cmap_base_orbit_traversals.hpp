@@ -26,8 +26,8 @@
 
 
 //#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/types/cmap/phi.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/cmap/phi.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 
 namespace cgogn
 {

@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 #define CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/vertex.h>

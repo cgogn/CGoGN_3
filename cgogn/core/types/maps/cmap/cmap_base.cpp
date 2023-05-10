@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/cmap/cmap_base.h>
+#include <cgogn/core/types/maps/cmap/cmap_base.h>
 
 namespace cgogn
 {

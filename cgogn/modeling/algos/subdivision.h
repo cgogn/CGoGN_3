@@ -26,8 +26,8 @@
 
 #include <cgogn/modeling/algos/subdivision/basic.h>
 #include <cgogn/modeling/algos/subdivision_utils.h>
-#include <cgogn/core/types/cmap/cmap3.h>
-#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#include <cgogn/core/types/maps/cmap/cph3.h>
 
 #include <cgogn/geometry/algos/angle.h>
 

@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/cmap/cph3.h>
+#include <cgogn/core/types/maps/cmap/cph3.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 

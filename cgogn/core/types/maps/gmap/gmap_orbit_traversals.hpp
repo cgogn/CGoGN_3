@@ -24,8 +24,8 @@
 #ifndef CGOGN_CORE_TYPES_GMAP_ORBIT_TRAVERSAL_H_
 #define CGOGN_CORE_TYPES_GMAP_ORBIT_TRAVERSAL_H_
 
-#include <cgogn/core/types/cmap/gmap/beta.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/gmap/beta.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 
 namespace cgogn
 {

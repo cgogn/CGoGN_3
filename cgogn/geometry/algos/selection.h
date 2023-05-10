@@ -25,7 +25,7 @@
 #define CGOGN_GEOMETRY_ALGOS_SELECTION_H_
 
 #include <cgogn/core/types/mesh_views/cell_cache.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/functions/inclusion.h>

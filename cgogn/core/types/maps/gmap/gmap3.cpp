@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 #include <iomanip>
-#include <cgogn/core/types/cmap/gmap/gmap3.h>
+#include <cgogn/core/types/maps/gmap/gmap3.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 namespace cgogn

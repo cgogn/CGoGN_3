@@ -25,7 +25,7 @@
 #define CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
 
 // #include <cgogn/core/cgogn_core_export.h>
-// #include <cgogn/core/types/cmap/map_base.h>
+// #include <cgogn/core/types/maps/map_base.h>
 // #include <cgogn/core/utils/tuples.h>
 // #include <cgogn/core/utils/type_traits.h>
 

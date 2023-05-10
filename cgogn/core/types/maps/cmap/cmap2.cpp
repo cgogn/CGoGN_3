@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 namespace cgogn
 {

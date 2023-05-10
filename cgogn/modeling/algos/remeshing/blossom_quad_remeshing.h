@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_REMESHING_BLOSSOM_QUAD_REMESHING_H_
 #define CGOGN_MODELING_ALGOS_REMESHING_BLOSSOM_QUAD_REMESHING_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/types/vector_traits.h>

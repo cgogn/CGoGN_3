@@ -27,7 +27,7 @@
 
 #include <cgogn/core/functions/mesh_info.h>
 
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/io/surface/surface_import.h>

@@ -31,9 +31,9 @@
 
 // #include <cgogn/core/types/cell_marker.h>
 
-// #include <cgogn/core/types/cmap/cmap_info.h>
-// #include <cgogn/core/types/cmap/dart_marker.h>
-// #include <cgogn/core/types/cmap/orbit_traversal.h>
+// #include <cgogn/core/types/maps/cmap/cmap_info.h>
+// #include <cgogn/core/types/maps/dart_marker.h>
+// #include <cgogn/core/types/maps/cmap/orbit_traversal.h>
 
 namespace cgogn
 {

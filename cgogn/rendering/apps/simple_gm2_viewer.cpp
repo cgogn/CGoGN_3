@@ -24,10 +24,10 @@
 #define USE_GMAP
 
 #ifdef USE_GMAP
-#include <cgogn/core/types/cmap/gmap/gmap2.h>
+#include <cgogn/core/types/maps/gmap/gmap2.h>
 using Mesh = cgogn::GMap2;
 #else
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 using Mesh = cgogn::CMap2;
 #endif
 

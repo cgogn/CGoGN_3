@@ -24,13 +24,13 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_CELL_H_
 #define CGOGN_CORE_TYPES_CMAP_CELL_H_
 
-#include <cgogn/core/types/cmap/dart.h>
+#include <cgogn/core/types/maps/dart.h>
 
 #include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/numerics.h>
 
 /**
- * \file cgogn/core/types/cmap/cell.h
+ * \file cgogn/core/types/maps/cell.h
  * \brief Orbit and cell definitions used in cgogn.
  */
 

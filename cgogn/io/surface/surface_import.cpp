@@ -23,8 +23,8 @@
 
 #include <cgogn/io/surface/surface_import.h>
 
-#include <cgogn/core/types/cmap/cmap2.h>
-#include <cgogn/core/types/cmap/gmap/gmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
+#include <cgogn/core/types/maps/gmap/gmap2.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <algorithm>

@@ -24,7 +24,7 @@
 #ifndef CGOGN_CORE_TYPES_GMAP_BETA_H_
 #define CGOGN_CORE_TYPES_GMAP_BETA_H_
 
-#include <cgogn/core/types/cmap/dart.h>
+#include <cgogn/core/types/maps/dart.h>
 #include <cgogn/core/types/mesh_traits.h>
 
 

@@ -24,7 +24,7 @@
 #ifndef CGOGN_CORE_TYPES_CMAP_CPH3_H_
 #define CGOGN_CORE_TYPES_CMAP_CPH3_H_
 
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
 
 #include <unordered_set>
 

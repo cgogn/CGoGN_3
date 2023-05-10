@@ -24,8 +24,8 @@
 #ifndef CGOGN_CORE_CMAP_CMAP_INFO_H_
 #define CGOGN_CORE_CMAP_CMAP_INFO_H_
 
-#include <cgogn/core/types/cmap/cmap_base.h>
-#include <cgogn/core/types/cmap/orbit_traversal.h>
+#include <cgogn/core/types/maps/cmap/cmap_base.h>
+#include <cgogn/core/types/maps/cmap/orbit_traversal.h>
 
 #include <iomanip>
 

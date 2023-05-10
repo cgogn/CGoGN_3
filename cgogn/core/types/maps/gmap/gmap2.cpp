@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 #include <iomanip>
-#include <cgogn/core/types/cmap/gmap/gmap2.h>
+#include <cgogn/core/types/maps/gmap/gmap2.h>
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 

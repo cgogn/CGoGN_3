@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/cmap/cmap2.h>
-#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
