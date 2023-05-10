@@ -51,7 +51,7 @@ void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 	Dart d2 = phi<1, 1>(m, d1);
 	cut_face(m, Vertex(d1), Vertex(d2));
 	Dart d3 = phi<1, 1>(m, d2);
-	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
+	cut_face(m, Vertex(d2), Vertex(d3));
 }
 
 //////////////

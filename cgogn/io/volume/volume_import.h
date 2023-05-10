@@ -83,9 +83,13 @@ template <typename MESH3, typename std::enable_if_t<std::is_same_v<MESH3,CMap3> 
 void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 {
 	using Vertex = typename MESH3::Vertex;
+	using Edge = typename MESH3::Edge;
+	using Face = typename MESH3::Face;
 	using Volume = typename MESH3::Volume;
-	using MESH2 = typename MESH3::Parent;
 	using Vertex2 = typename MESH3::Vertex2;
+	using Face2 = typename MESH3::Face2;
+	using MESH2 = typename MESH3::Parent;
+
 
 	auto position = get_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
 	if (!position)
@@ -133,7 +137,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
 
-				foreach_dart_of_orbit(m, MESH3::Vertex2(dv), [&](Dart d) -> bool {
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
 //					std::cout << "Dart" << d.index << std::endl;
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
@@ -161,7 +165,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 			{
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
-				foreach_dart_of_orbit(m, MESH3::Vertex2(dv), [&](Dart d) -> bool {
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
 				});
@@ -191,7 +195,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 			{
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
-				foreach_dart_of_orbit(m, MESH3::Vertex2(dv), [&](Dart d) -> bool {
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
 				});
@@ -223,7 +227,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 			{
 				const uint32 vertex_index =
 					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
-				foreach_dart_of_orbit(static_cast<MESH2&>(m), MESH3::Vertex2(dv), [&](Dart d) -> bool {
+				foreach_dart_of_orbit(static_cast<MESH2&>(m), Vertex2(dv), [&](Dart d) -> bool {
 					set_index<Vertex>(m, d, vertex_index);
 					return true;
 				});
@@ -261,7 +265,7 @@ void import_volume_data(MESH3& m, VolumeImportData& volume_data)
 	{
 		if (phi3(m, d) == d && !marker.is_marked(d))
 		{
-			foreach_dart_of_orbit(m, MESH3::Face2(d), [&](Dart fd) -> bool {
+			foreach_dart_of_orbit(m, Face2(d), [&](Dart fd) -> bool {
 				marker.mark(fd);
 				return true;
 			});
