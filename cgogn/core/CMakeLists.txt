@@ -41,7 +41,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/face_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/volume_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/halfedge_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base_functions.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_functions.hpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_info.h"
