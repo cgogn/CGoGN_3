@@ -36,11 +36,16 @@ struct CGOGN_CORE_EXPORT CMapBase : public MapBase
 
 } // namespace cgogn
 
-#include <cgogn/core/types/maps/cmap/cmap_base_orbit_traversals.hpp>
-#include <cgogn/core/types/maps/cmap/cmap_base_index.hpp>
-#include <cgogn/core/types/maps/cmap/cmap_base_attribute.hpp>
-#include <cgogn/core/types/maps/cmap/cmap_base_local_traversals.hpp>
-#include <cgogn/core/types/maps/cmap/cmap_base_global_traversals.hpp>
-#include <cgogn/core/types/maps/cmap/cmap_base_functions.hpp>
+#include <cgogn/core/types/maps/cmap/orbit_traversals.hpp>
+#include <cgogn/core/types/maps/map_index.hpp>
+#include <cgogn/core/types/maps/map_attribute.hpp>
+
+#include <cgogn/core/types/maps/cmap/vertex_traversals.hpp>
+#include <cgogn/core/types/maps/cmap/edge_traversals.hpp>
+#include <cgogn/core/types/maps/cmap/halfedge_traversals.hpp>
+#include <cgogn/core/types/maps/cmap/face_traversals.hpp>
+#include <cgogn/core/types/maps/cmap/volume_traversals.hpp>
+#include <cgogn/core/types/maps/global_traversals.hpp>
+#include <cgogn/core/types/maps/map_functions.hpp>
 
 #endif // CGOGN_CORE_CMAP_CMAP_BASE_H_

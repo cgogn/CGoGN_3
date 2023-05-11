@@ -14,8 +14,7 @@ find_package(Threads REQUIRED)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cells_set.h"
@@ -28,15 +27,22 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cell.h"
-	
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/global_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_index.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_attribute.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_functions.hpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/phi.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_index.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_attribute.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_orbit_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_local_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_global_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base_functions.hpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/orbit_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/vertex_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/edge_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/face_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/volume_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/halfedge_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base_functions.hpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_info.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.h"
@@ -53,7 +59,7 @@ target_sources(${PROJECT_NAME}
 
 		
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/beta.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap_orbit_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/orbit_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.cpp"
@@ -63,7 +69,11 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap2.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap_local_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/vertex_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/edge_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/face_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/volume_traversals.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/halfedge_traversals.hpp"
 
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
@@ -102,6 +112,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_provider.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_data.h"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 # use of target_compile_options to have transitive flags
 if(CGOGN_USE_SIMD)

@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_BASE_ATTRIBUTE_HPP_
-#define CGOGN_CORE_CMAP_CMAP_BASE_ATTRIBUTE_HPP_
+#ifndef CGOGN_CORE_MAP_MAP_BASE_ATTRIBUTE_HPP_
+#define CGOGN_CORE_MAP_MAP_BASE_ATTRIBUTE_HPP_
 
 namespace cgogn
 {
@@ -120,4 +120,4 @@ void release_mark_attribute(const MapBase& m, MapBase::MarkAttribute* attribute)
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_CMAP_CMAP_BASE_ATTRIBUTE_HPP_
+#endif // CGOGN_CORE_MAP_MAP_BASE_ATTRIBUTE_HPP_

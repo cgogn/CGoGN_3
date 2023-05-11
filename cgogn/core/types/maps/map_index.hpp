@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_CMAP_CMAP_BASE_IND_H_
-#define CGOGN_CORE_CMAP_CMAP_BASE_IND_H_
+#ifndef CGOGN_CORE_MAP_MAP_BASE_IND_H_
+#define CGOGN_CORE_MAP_MAP_BASE_IND_H_
 
 
 #include <sstream>
@@ -201,4 +201,4 @@ auto index_cells(MESH& m) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBa
 } // namespace cgogn
 
 
-#endif // CGOGN_CORE_CMAP_CMAP_BASE_IND_H_
+#endif // CGOGN_CORE_MAP_MAP_BASE_IND_H_
