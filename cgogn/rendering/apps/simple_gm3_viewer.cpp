@@ -21,8 +21,13 @@
  *                                                                              *
  *******************************************************************************/
 
+#define USE_GMAP
+
+#ifdef USE_GMAP
 #include <cgogn/core/types/maps/gmap/gmap3.h>
-//#include <cgogn/core/types/maps/cmap/cmap3.h>
+#else
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#endif
 
 
 #include <cgogn/geometry/types/vector_traits.h>
@@ -40,9 +45,11 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
+#ifdef USE_GMAP
 using Mesh = cgogn::GMap3;
-//using Mesh = cgogn::CMap3;
-
+#else
+using Mesh = cgogn::CMap3;
+#endif
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
 
@@ -116,15 +123,14 @@ int main(int argc, char** argv)
 		setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
 
 		cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
-		setPosV(dh, Vec3(-1, -1, -2));
+		setPosV(dh, Vec3(-1, -1, -3));
 		dh = cgogn::phi1(*m, dh);
-		setPosV(dh, Vec3(-1, 1, -2));
+		setPosV(dh, Vec3(-1, 1, -3));
 		dh = cgogn::phi1(*m, dh);
-		setPosV(dh, Vec3(1, 1, -2));
+		setPosV(dh, Vec3(1, 1, -3));
 		dh = cgogn::phi1(*m, dh);
-		setPosV(dh, Vec3(1, -1, -2));
+		setPosV(dh, Vec3(1, -1, -3));
 
-//		cgogn::dump_map_darts(*m);
 
 				std::vector<Edge> ve;
 		cgogn::foreach_cell(*m, [&](Edge e) {
@@ -164,7 +170,7 @@ int main(int argc, char** argv)
 	
 		cgogn::index_cells<Volume>(*m);
 
-		cgogn::dump_map_darts(*m);
+	//	cgogn::dump_map_darts(*m);
 
 		mp.emit_connectivity_changed(*m);
 	}
