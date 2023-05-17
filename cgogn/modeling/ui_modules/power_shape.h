@@ -106,29 +106,7 @@ public:
 	}
 
 private:
-	struct Pole
-	{
-		Point _p;
-		Pole(Point& p)
-		{
-			_p = p;
-		}
-
-		bool operator==(const Pole& other) const
-		{
-			return _p.x() == other._p.x() && _p.y() == other._p.y() && _p.z() == other._p.z();
-		}
-	};
 	
-	struct pole_hash
-	{
-		std::size_t operator()(const Pole& p) const
-		{
-			return ((std::hash<double>()(p._p.x()) ^ (std::hash<double>()(p._p.y()) << 1)) >> 1) ^
-				   (std::hash<double>()(p._p.z()) << 1);
-		}
-	};
-
 	struct point_hash
 	{
 		std::size_t operator()(const Point& p) const
@@ -442,6 +420,86 @@ public:
 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
 		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
+
+
+	void collapse_non_manifold_using_QMat()
+	{
+		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
+		using EdgeQueueIt = typename EdgeQueue::const_iterator;
+		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
+
+		EdgeQueue queue;
+		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(*non_manifold_, "__non_manifold_edge_queue_it");
+		foreach_cell(*non_manifold_, [&](NonManifoldEdge e) -> bool {
+			value<EdgeInfo>(*non_manifold_, edge_queue_it, e) = {
+				true, queue.emplace(geometry::length(*non_manifold_, e, non_manifold_vertex_position_.get()), e)};
+			return true;
+		});
+
+		using PositionAccu = std::vector<Vec3>;
+		auto vertex_position_accu =
+			add_attribute<PositionAccu, NonManifoldVertex>(*non_manifold_, "__non_manifold_vertex_position_accu");
+		foreach_cell(*non_manifold_, [&](NonManifoldVertex v) -> bool {
+			value<PositionAccu>(*non_manifold_, vertex_position_accu,
+								v) = {value<Vec3>(*non_manifold_, non_manifold_vertex_position_, v)};
+			return true;
+		});
+
+		while (!queue.empty())
+		{
+			auto it = queue.begin();
+			NonManifoldEdge e = (*it).second;
+			queue.erase(it);
+			value<EdgeInfo>(*non_manifold_, edge_queue_it, e).first = false;
+
+			std::vector<NonManifoldFace> ifaces = incident_faces(*non_manifold_, e);
+			if (ifaces.size() == 0)
+				continue;
+
+			// iv[0] will be removed and iv[1] will survive
+			std::vector<NonManifoldVertex> iv = incident_vertices(*non_manifold_, e);
+			PositionAccu& accu0 = value<PositionAccu>(*non_manifold_, vertex_position_accu, iv[0]);
+			PositionAccu& accu1 = value<PositionAccu>(*non_manifold_, vertex_position_accu, iv[1]);
+			accu1.insert(accu1.end(), accu0.begin(), accu0.end());
+
+			auto [v, removed_edges] = collapse_edge(*non_manifold_, e);
+			for (NonManifoldEdge re : removed_edges)
+			{
+				EdgeInfo einfo = value<EdgeInfo>(*non_manifold_, edge_queue_it, re);
+				if (einfo.first)
+					queue.erase(einfo.second);
+			}
+
+			foreach_incident_edge(*non_manifold_, v, [&](NonManifoldEdge ie) -> bool {
+				EdgeInfo einfo = value<EdgeInfo>(*non_manifold_, edge_queue_it, ie);
+				if (einfo.first)
+					queue.erase(einfo.second);
+				value<EdgeInfo>(*non_manifold_, edge_queue_it, ie) = {
+					true, queue.emplace(geometry::length(*non_manifold_, ie, non_manifold_vertex_position_.get()), ie)};
+				return true;
+			});
+		}
+
+		foreach_cell(*non_manifold_, [&](NonManifoldVertex v) -> bool {
+			Vec3 mean{0, 0, 0};
+			uint32 count = 0;
+			for (Vec3& p : value<PositionAccu>(*non_manifold_, vertex_position_accu, v))
+			{
+				mean += p;
+				++count;
+			}
+			mean /= count;
+			value<Vec3>(*non_manifold_, non_manifold_vertex_position_, v) = mean;
+			return true;
+		});
+
+		remove_attribute<NonManifoldEdge>(*non_manifold_, edge_queue_it);
+		remove_attribute<NonManifoldVertex>(*non_manifold_, vertex_position_accu);
+
+		non_manifold_provider_->emit_connectivity_changed(*non_manifold_);
+		non_manifold_provider_->emit_attribute_changed(*non_manifold_, non_manifold_vertex_position_.get());
+	}
+
 
 protected:
 	void init() override
