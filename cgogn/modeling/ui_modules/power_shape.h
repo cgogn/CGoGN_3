@@ -255,7 +255,7 @@ public:
 				for (auto c = cells.begin(); c != cells.end(); ++c)
 				{
 					Point centroid = tri.dual(*c);
-					auto dis = CGAL::squared_distance(centroid, vit->point());
+					dis = CGAL::squared_distance(centroid, vit->point());
 					if (pointInside(tree, centroid) && dis > farthest_inside_distance)
 					{
 						farthest_inside_point = centroid;
@@ -280,7 +280,6 @@ public:
 			}
 			if (farthest_outside_distance != 0)
 			{
-				Pole outside_pole = Pole(farthest_outside_point);
 				if (poles.find(farthest_outside_point) == poles.end())
 				{
 					poles.insert(farthest_outside_point);
@@ -300,19 +299,21 @@ public:
 		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_indices;
 		uint32 edge_count = 0;
 
-		Regular reg(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
+		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
 					boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
 		// Add vertices
 		for (size_t idx = 0; idx < power_point.size(); ++idx)
 		{
 			if (point_info[idx].second)
+			{
 				Power_shape_data.vertex_position_.push_back(
 					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
+				
+			}	
 		}
 		bool inside;
 		uint32 v, v1, v2;
-		int mask;
-		for (auto fit = reg.finite_facets_begin(); fit != reg.finite_facets_end(); ++fit)
+		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
 		{
 			inside = true;
 			v = fit->second;
@@ -362,6 +363,13 @@ public:
 		Power_shape_data.set_parameter(power_nb_vertices, power_nb_edges, power_nb_faces);
 
 		import_incidence_graph_data(*mv, Power_shape_data);
+
+		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "radius");
+		for (uint32 i = 0u; i < power_point.size(); ++i)
+		{
+			uint32 vertex_id = inside_indices[point_info[i].first];
+			(*sphere_raidus)[vertex_id] = power_point[i].weight();
+		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
 			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
@@ -421,7 +429,32 @@ public:
 		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
 
+	double compute_stability_ratio(IncidenceGraph& ig, NonManifoldEdge e)
+	{
+		//To do
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(ig, "radius");
+		auto position = get_attribute<double, NonManifoldVertex>(ig, "position");
+		NonManifoldVertex [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+		Vec3 v1_p = value<Vec3>(ig, position, v1);
+		Vec3 v2_p = value<Vec3>(ig, position, v2);
+		double r1 = value<double>(ig, sphere_radius, v1);
+		double r2 = value<double>(ig, sphere_radius, v2);
+		double dis = std::max(0.0, ((v1_p - v2_p).squaredNorm() - std::abs(r1 - r2)));
+		double stability = dis / (v1_p - v2_p).squaredNorm();
+		return stability;
+	}
 
+ 	void compute_stability_ratio(NONMANIFOLD& mv)
+	{
+		auto stability_ratio = add_attribute<double, NonManifoldEdge>(mv, "stability_ratio");
+		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(mv, "stability_color");
+		foreach_cell(mv, [&](NonManifoldEdge e) -> bool {
+			double stability = compute_stability_ratio(mv, e); 
+			(*stability_ratio)[e.index_] = stability;
+			(*stability_color)[e.index_] = Vec3(stability, (1 - stability), 0);
+			return true;
+		});
+	}
 	void collapse_non_manifold_using_QMat()
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
@@ -516,11 +549,25 @@ protected:
 			selected_surface_mesh_ = &m;
 			surface_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
+		imgui_mesh_selector(nonmanifold_provider_, selected_medial_axis, "Medial_axis", [&](NONMANIFOLD& nm) {
+			selected_medial_axis = &nm;
+			nonmanifold_provider_->mesh_data(nm).outlined_until_ = App::frame_time_ + 1.0;
+		});
+
 
 		if (selected_surface_mesh_)
 		{
 			if (ImGui::Button("Power shape"))
+			{
 				compute_power_shape(*selected_surface_mesh_);
+				if (selected_medial_axis)
+				{
+					if (ImGui::Button("Compute stablility ratio"))
+					{
+						compute_stability_ratio(*selected_medial_axis);
+					}
+				}
+			}
 			if (ImGui::Button("Original Medial Axis"))
 				compute_original_power_diagram(*selected_surface_mesh_);
 		}
@@ -528,8 +575,10 @@ protected:
 
 private:
 	SURFACE* selected_surface_mesh_;
+	NONMANIFOLD* selected_medial_axis;
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
+	Regular medial_axis;
 };
 
 } // namespace ui
