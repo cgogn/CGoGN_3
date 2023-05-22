@@ -210,7 +210,7 @@ public:
 				for (auto c = cells.begin(); c != cells.end(); ++c)
 				{
 					Point centroid = tri.dual(*c);
-					auto dis = CGAL::squared_distance(centroid, vit->point());
+					dis = CGAL::squared_distance(centroid, vit->point());
 					if (voronoi_vertices.find(centroid) == voronoi_vertices.end())
 					{
 						voronoi_vertices.insert(centroid);
@@ -308,7 +308,6 @@ public:
 			{
 				Power_shape_data.vertex_position_.push_back(
 					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
-				
 			}	
 		}
 		bool inside;
@@ -337,7 +336,6 @@ public:
 						{
 							if (j != v)
 							{
-
 								// Add edge
 								v1 = inside_indices[fit->first->vertex(i)->info().first];
 								v2 = inside_indices[fit->first->vertex(j)->info().first];
@@ -364,11 +362,12 @@ public:
 
 		import_incidence_graph_data(*mv, Power_shape_data);
 
-		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "radius");
+		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		for (uint32 i = 0u; i < power_point.size(); ++i)
 		{
 			uint32 vertex_id = inside_indices[point_info[i].first];
-			(*sphere_raidus)[vertex_id] = power_point[i].weight();
+			//The radius is sqrt of the weight!
+			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -429,29 +428,34 @@ public:
 		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
 
-	double compute_stability_ratio(IncidenceGraph& ig, NonManifoldEdge e)
-	{
-		//To do
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(ig, "radius");
-		auto position = get_attribute<double, NonManifoldVertex>(ig, "position");
-		NonManifoldVertex [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
-		Vec3 v1_p = value<Vec3>(ig, position, v1);
-		Vec3 v2_p = value<Vec3>(ig, position, v2);
-		double r1 = value<double>(ig, sphere_radius, v1);
-		double r2 = value<double>(ig, sphere_radius, v2);
-		double dis = std::max(0.0, ((v1_p - v2_p).squaredNorm() - std::abs(r1 - r2)));
-		double stability = dis / (v1_p - v2_p).squaredNorm();
-		return stability;
-	}
 
  	void compute_stability_ratio(NONMANIFOLD& mv)
 	{
-		auto stability_ratio = add_attribute<double, NonManifoldEdge>(mv, "stability_ratio");
-		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(mv, "stability_color");
-		foreach_cell(mv, [&](NonManifoldEdge e) -> bool {
-			double stability = compute_stability_ratio(mv, e); 
+		IncidenceGraph& ig = static_cast<IncidenceGraph&>(mv);
+		auto stability_ratio = add_attribute<double, NonManifoldEdge>(ig, "stability_ratio");
+		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(ig, "stability_color");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(ig, "sphere_radius");
+		auto position = get_attribute<Vec3, NonManifoldVertex>(ig, "position");
+		
+		parallel_foreach_cell(mv, [&](NonManifoldEdge e) -> bool {
+			auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+			const Vec3& v1_p = value<Vec3>(ig, position, v1);
+			const Vec3& v2_p = value<Vec3>(ig, position, v2);
+			const double& r1 = value<double>(ig, sphere_radius, v1);
+			const double& r2 = value<double>(ig, sphere_radius, v2);
+			const double center_dist = (v1_p - v2_p).norm();
+			double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+			double stability = dis / center_dist;
+			//std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
 			(*stability_ratio)[e.index_] = stability;
-			(*stability_color)[e.index_] = Vec3(stability, (1 - stability), 0);
+			if (stability <= 0.5)
+			{
+				(*stability_color)[e.index_] = Vec3(0, stability, (0.5 - stability));
+			}
+			else
+			{
+				(*stability_color)[e.index_] = Vec3(stability-0.5, (1-stability),0);
+			}
 			return true;
 		});
 	}
@@ -465,7 +469,8 @@ public:
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(*non_manifold_, "__non_manifold_edge_queue_it");
 		foreach_cell(*non_manifold_, [&](NonManifoldEdge e) -> bool {
 			value<EdgeInfo>(*non_manifold_, edge_queue_it, e) = {
-				true, queue.emplace(geometry::length(*non_manifold_, e, non_manifold_vertex_position_.get()), e)};
+				true, 
+				queue.emplace(geometry::length(*non_manifold_, e, non_manifold_vertex_position_.get()),e)};
 			return true;
 		});
 
@@ -560,22 +565,24 @@ protected:
 			if (ImGui::Button("Power shape"))
 			{
 				compute_power_shape(*selected_surface_mesh_);
-				if (selected_medial_axis)
-				{
-					if (ImGui::Button("Compute stablility ratio"))
-					{
-						compute_stability_ratio(*selected_medial_axis);
-					}
-				}
+				
 			}
 			if (ImGui::Button("Original Medial Axis"))
 				compute_original_power_diagram(*selected_surface_mesh_);
+			if (selected_medial_axis)
+			{
+				if (ImGui::Button("Compute stablility ratio"))
+				{
+				
+					compute_stability_ratio(*selected_medial_axis);
+				}
+			}
 		}
 	}
 
 private:
 	SURFACE* selected_surface_mesh_;
-	NONMANIFOLD* selected_medial_axis;
+	NONMANIFOLD* selected_medial_axis = nullptr;
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
 	Regular medial_axis;
