@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME}
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/types/grid.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/types/quadric.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/slab_quadric.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/angle.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/area.h"

@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME}	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_approximator.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/edge_queue_update.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/QEM_helper.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/decimation/SQEM_helper.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/convex_hull.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/graph_resampling.cpp"

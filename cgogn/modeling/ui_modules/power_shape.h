@@ -27,9 +27,9 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/module.h>
-
+#include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn\modeling\algos\decimation\SQEM_helper.h>
 // import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
@@ -93,6 +93,7 @@ class PowerShape : public Module
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
 
+	using Vec4 = geometry::Vec4;
 	using Vec3 = geometry::Vec3;
 	using Scalar = geometry::Scalar;
 
@@ -425,12 +426,13 @@ public:
 		std::vector<std::pair<uint32, bool>> Point_info;
 		std::unordered_map<uint32, uint32> Inside_indices;
 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
-		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
+ 		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
 
 
  	void compute_stability_ratio(NONMANIFOLD& mv)
 	{
+		//TO do : better way to get attributes?
 		IncidenceGraph& ig = static_cast<IncidenceGraph&>(mv);
 		auto stability_ratio = add_attribute<double, NonManifoldEdge>(ig, "stability_ratio");
 		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(ig, "stability_color");
@@ -438,6 +440,7 @@ public:
 		auto position = get_attribute<Vec3, NonManifoldVertex>(ig, "position");
 		
 		parallel_foreach_cell(mv, [&](NonManifoldEdge e) -> bool {
+			// TO do : better way to get attributes?
 			auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
 			const Vec3& v1_p = value<Vec3>(ig, position, v1);
 			const Vec3& v2_p = value<Vec3>(ig, position, v2);
@@ -459,86 +462,81 @@ public:
 			return true;
 		});
 	}
-	void collapse_non_manifold_using_QMat()
+
+	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase)
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
 		using EdgeQueueIt = typename EdgeQueue::const_iterator;
 		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
+		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 
+		uint32 count = 0;
 		EdgeQueue queue;
-		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(*non_manifold_, "__non_manifold_edge_queue_it");
-		foreach_cell(*non_manifold_, [&](NonManifoldEdge e) -> bool {
-			value<EdgeInfo>(*non_manifold_, edge_queue_it, e) = {
+		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
+		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
+		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
+		foreach_cell(nm,
+					 [&](NonManifoldVertex v) {
+						 Vec3 p = value<Vec3>(nm, position, v);
+			value<Vec4>(nm, sphere_info, v) = Vec4(p[0], p[1], p[2], value<double>(nm,sphere_radius,v));
+			return true;
+		});
+		QMatHelper helper(nm, sphere_info.get()); 
+
+		 foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+			Vec4 sphere_opt = helper.edge_optimal(e);
+			value<EdgeInfo>(nm, edge_queue_it, e) = {
 				true, 
-				queue.emplace(geometry::length(*non_manifold_, e, non_manifold_vertex_position_.get()),e)};
+				queue.emplace(helper.edge_cost(e,sphere_opt),e)};
 			return true;
 		});
 
-		using PositionAccu = std::vector<Vec3>;
-		auto vertex_position_accu =
-			add_attribute<PositionAccu, NonManifoldVertex>(*non_manifold_, "__non_manifold_vertex_position_accu");
-		foreach_cell(*non_manifold_, [&](NonManifoldVertex v) -> bool {
-			value<PositionAccu>(*non_manifold_, vertex_position_accu,
-								v) = {value<Vec3>(*non_manifold_, non_manifold_vertex_position_, v)};
-			return true;
-		});
-
-		while (!queue.empty())
+		 while (!queue.empty() && count < number_vertices_erase)
 		{
 			auto it = queue.begin();
 			NonManifoldEdge e = (*it).second;
 			queue.erase(it);
-			value<EdgeInfo>(*non_manifold_, edge_queue_it, e).first = false;
+			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
 
-			std::vector<NonManifoldFace> ifaces = incident_faces(*non_manifold_, e);
+			std::vector<NonManifoldFace> ifaces = incident_faces(nm, e);
+			//TO do : add cone error to collapse edge
 			if (ifaces.size() == 0)
 				continue;
 
-			// iv[0] will be removed and iv[1] will survive
-			std::vector<NonManifoldVertex> iv = incident_vertices(*non_manifold_, e);
-			PositionAccu& accu0 = value<PositionAccu>(*non_manifold_, vertex_position_accu, iv[0]);
-			PositionAccu& accu1 = value<PositionAccu>(*non_manifold_, vertex_position_accu, iv[1]);
-			accu1.insert(accu1.end(), accu0.begin(), accu0.end());
-
-			auto [v, removed_edges] = collapse_edge(*non_manifold_, e);
+			auto [v, removed_edges] = collapse_edge(nm, e);
+			Vec4 opt = helper.edge_optimal(e);
+			value<Vec4>(nm, sphere_info, v) = opt;
 			for (NonManifoldEdge re : removed_edges)
 			{
-				EdgeInfo einfo = value<EdgeInfo>(*non_manifold_, edge_queue_it, re);
+				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, re);
 				if (einfo.first)
 					queue.erase(einfo.second);
 			}
 
-			foreach_incident_edge(*non_manifold_, v, [&](NonManifoldEdge ie) -> bool {
-				EdgeInfo einfo = value<EdgeInfo>(*non_manifold_, edge_queue_it, ie);
+			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
+				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
 				if (einfo.first)
 					queue.erase(einfo.second);
-				value<EdgeInfo>(*non_manifold_, edge_queue_it, ie) = {
-					true, queue.emplace(geometry::length(*non_manifold_, ie, non_manifold_vertex_position_.get()), ie)};
+				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(helper.edge_cost(ie, opt), e)};
 				return true;
 			});
+			++count;
 		}
 
-		foreach_cell(*non_manifold_, [&](NonManifoldVertex v) -> bool {
-			Vec3 mean{0, 0, 0};
-			uint32 count = 0;
-			for (Vec3& p : value<PositionAccu>(*non_manifold_, vertex_position_accu, v))
-			{
-				mean += p;
-				++count;
-			}
-			mean /= count;
-			value<Vec3>(*non_manifold_, non_manifold_vertex_position_, v) = mean;
+		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
+			value<Vec3>(nm, position, v) = value<Vec4>(nm, sphere_info, v).head<3>();
 			return true;
 		});
 
-		remove_attribute<NonManifoldEdge>(*non_manifold_, edge_queue_it);
-		remove_attribute<NonManifoldVertex>(*non_manifold_, vertex_position_accu);
+		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
+		remove_attribute<NonManifoldVertex>(nm, sphere_info);
 
-		non_manifold_provider_->emit_connectivity_changed(*non_manifold_);
-		non_manifold_provider_->emit_attribute_changed(*non_manifold_, non_manifold_vertex_position_.get());
+		nonmanifold_provider_->emit_connectivity_changed(nm);
+		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 	}
 
-
+	
 protected:
 	void init() override
 	{
@@ -573,9 +571,16 @@ protected:
 			{
 				if (ImGui::Button("Compute stablility ratio"))
 				{
-				
 					compute_stability_ratio(*selected_medial_axis);
 				}
+				static int32 percent_vertices_to_remove = 10;
+				ImGui::SliderInt("% vertices to keep", &percent_vertices_to_remove, 1, 99);
+				 if (ImGui::Button("QMAT"))
+				{
+						collapse_non_manifold_using_QMat(*selected_medial_axis,1000);
+					
+				}
+				
 			}
 		}
 	}
