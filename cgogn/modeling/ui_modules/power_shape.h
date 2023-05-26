@@ -164,7 +164,7 @@ public:
 		CGAL::Polygon_mesh_processing::sample_triangle_mesh(
 			csm, std::back_inserter(mesh_samples),
 			// CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(0.01));
-			CGAL::parameters::use_grid_sampling(true).grid_spacing(0.1));
+			CGAL::parameters::use_grid_sampling(true).grid_spacing(0.05));
 
 		// 	Add bounding box vertices in the sample points set
 		for (auto& p : cube_corners)
@@ -429,7 +429,12 @@ public:
  		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
 	}
 
+	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
+	{
+		return (point - center).norm() < radius;
+	}
 
+	
  	void compute_stability_ratio(NONMANIFOLD& mv)
 	{
 		//TO do : better way to get attributes?
@@ -545,7 +550,7 @@ public:
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");	
+		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		uint32 count = 0;
 		EdgeQueue queue;
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
@@ -561,46 +566,43 @@ public:
 			NonManifoldEdge e = (*it).second;
 			queue.erase(it);
 			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
-			if (value<double>(nm, stability_ratio, e) > 0.80)
+			if (value<double>(nm, stability_ratio, e) > 0.90)
 				break;
-			std::vector<NonManifoldFace> ifaces = incident_faces(nm, e);
-			// TO do : add cone error to collapse edge
-			if (ifaces.size() == 0)
-				continue;
-			std::vector<NonManifoldVertex> iv = incident_vertices(nm, e);
 			auto [v, removed_edges] = collapse_edge(nm, e);
+			//remove_edge_stability(nm, e);
 			for (NonManifoldEdge re : removed_edges)
 			{
 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, re);
 				if (einfo.first)
 					queue.erase(einfo.second);
 			}
-			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
-				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
-				if (einfo.first)
-					queue.erase(einfo.second);
-				std::vector<NonManifoldVertex> iv = incident_vertices(nm, ie);
-				const Vec3& v1_p = value<Vec3>(nm, position, iv[0]);
-				const Vec3& v2_p = value<Vec3>(nm, position, iv[1]);
-				const double& r1 = value<double>(nm, sphere_radius, iv[0]);
-				const double& r2 = value<double>(nm, sphere_radius, iv[1]);
-				const double center_dist = (v1_p - v2_p).norm();
-				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
-				double stability = dis / center_dist;
-				// std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
-				value<double>(nm, stability_ratio,ie) = stability;
-				if (stability <= 0.5)
-				{
-					value<Vec3>(nm, stability_color, ie) = Vec3(0, stability, (0.5 - stability));
-				}
-				else
-				{
-					value<Vec3>(nm, stability_color, ie) = Vec3(stability - 0.5, (1 - stability), 0);
-				}
-				value<EdgeInfo>(nm, edge_queue_it, ie) = {
-					true, queue.emplace(stability, ie)};
-				return true;
-			});
+
+// 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
+// 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
+// 				if (einfo.first)
+// 					queue.erase(einfo.second);
+// 				std::vector<NonManifoldVertex> iv = incident_vertices(nm, ie);
+// 				const Vec3& v1_p = value<Vec3>(nm, position, iv[0]);
+// 				const Vec3& v2_p = value<Vec3>(nm, position, iv[1]);
+// 				const double& r1 = value<double>(nm, sphere_radius, iv[0]);
+// 				const double& r2 = value<double>(nm, sphere_radius, iv[1]);
+// 				const double center_dist = (v1_p - v2_p).norm();
+// 				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+// 				double stability = dis / center_dist;
+// 				// std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
+// 				value<double>(nm, stability_ratio,ie) = stability;
+// 				if (stability <= 0.5)
+// 				{
+// 					value<Vec3>(nm, stability_color, ie) = Vec3(0, stability, (0.5 - stability));
+// 				}
+// 				else
+// 				{
+// 					value<Vec3>(nm, stability_color, ie) = Vec3(stability - 0.5, (1 - stability), 0);
+// 				}
+// 				value<EdgeInfo>(nm, edge_queue_it, ie) = {
+// 					true, queue.emplace(stability, ie)};
+// 				return true;
+// 			});
 			++count;
 		}
 
@@ -608,10 +610,28 @@ public:
 
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
-		nonmanifold_provider_->emit_attribute_changed(nm, stability_ratio.get());
-		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
+// 		nonmanifold_provider_->emit_attribute_changed(nm, stability_ratio.get());
+// 		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 	}
 
+// 	 void point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
+// 	{
+// 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
+// 		auto sphere_radius = get_attribute<double, NonManifoldVertex)(mv,"sphere_radius");
+// 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
+// 		double inner_point_nb = nb_cells<NonManifoldVertex>(nm);
+// 		double sample_point_nb = nb_cells<Vertex>(surface);
+// 		Eigen::MatrixXi A(nb_cells<Vertex>(surface), nb_cells<NonManifoldVertex>(mv));
+// 		foreach_cell(nm, [&](NonManifoldVertex nv) {
+// 			foreach_cell(Surface, [&](Vertex v) {
+// 				A(nv.index_, v.index_) =
+// 					inside_sphere(value<Vec3>(mv, inner_position, nv), value<Vec3>(surface, sample_position, surface),
+// 								  value<double>(mv, sphere_radius, mv)*(1+dilation_factor));
+// 			});
+// 		});
+// 		Eigen::VectorXi b(inner_point_nb);
+// 
+// 	}
 	
 protected:
 	void init() override
@@ -653,7 +673,9 @@ protected:
 				ImGui::SliderInt("% vertices to keep", &percent_vertices_to_remove, 1, 99);
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_stability_ratio(*selected_medial_axis, 100);
+					collapse_non_manifold_using_stability_ratio(*selected_medial_axis,
+																0.01*percent_vertices_to_remove *
+																	nb_cells<NonManifoldVertex>(*selected_medial_axis));
 					
 				}
 				

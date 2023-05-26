@@ -408,6 +408,27 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 ////////////////////
 // IncidenceGraph //
 ////////////////////
+void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+	
+	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+	
+	remove_edge(ig, e);
+
+	//remove isolated vertex
+	if ((*ig.vertex_incident_edges_)[v1.index_].size() == 0)
+	{
+		remove_cell<Vertex>(ig,v1);
+	}
+	if ((*ig.vertex_incident_edges_)[v2.index_].size() == 0)
+	{
+		remove_cell<Vertex>(ig, v2);
+	}
+
+ }
 
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,

@@ -65,6 +65,8 @@ int main(int argc, char** argv)
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
+
+	
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srnm);
@@ -84,7 +86,11 @@ int main(int argc, char** argv)
 
 		sr.set_vertex_position(*v1, *m, vertex_position);
 		sr.set_vertex_normal(*v1, *m, vertex_normal);
+		sr.set_render_edges(*v1, *m, false);
+		sr.set_render_vertices(*v1, *m, false);
+		sr.set_ghost_mode(*v1, *m, true);
 	}
 
+	
 	return app.launch();
 }
