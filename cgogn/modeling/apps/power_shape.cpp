@@ -65,8 +65,6 @@ int main(int argc, char** argv)
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
-
-	
 	v1->link_module(&mp);
 	v1->link_module(&sr);
 	v1->link_module(&srnm);

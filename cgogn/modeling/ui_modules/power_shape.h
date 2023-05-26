@@ -434,7 +434,6 @@ public:
 		return (point - center).norm() < radius;
 	}
 
-	
  	void compute_stability_ratio(NONMANIFOLD& mv)
 	{
 		//TO do : better way to get attributes?
@@ -576,7 +575,6 @@ public:
 				if (einfo.first)
 					queue.erase(einfo.second);
 			}
-
 // 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
 // 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
 // 				if (einfo.first)
