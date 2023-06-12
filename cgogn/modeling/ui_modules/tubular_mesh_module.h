@@ -143,7 +143,7 @@ public:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l / 2.0);
+		graph_vertex_radius_->fill(l);// / 2.0);
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 	}
 
@@ -1437,6 +1437,8 @@ protected:
 		{
 			if (ImGui::Button("Init radius from edge length"))
 				init_graph_radius_from_edge_length();
+			if (ImGui::Button("Subdivide leaflets"))
+				subdivide_leaflets();
 		}
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_ && surface_ && surface_vertex_position_)
 		{
@@ -1446,8 +1448,6 @@ protected:
 				recenter_graph_from_surface();
 			if (ImGui::Button("Extend graph extremities"))
 				extend_graph_extremities();
-			if (ImGui::Button("Subdivide leaflets"))
-				subdivide_leaflets();
 		}
 		if (graph_ && graph_vertex_position_ && graph_vertex_radius_)
 		{
