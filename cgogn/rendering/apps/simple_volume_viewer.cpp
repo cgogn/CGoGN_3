@@ -57,8 +57,8 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc < 2)
 	{
-//		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hex_dominant.meshb");
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hex_dominant.meshb");
+//		filename = std::string(DEFAULT_MESH_PATH) + std::string("tet/hand.tet");
 	}
 	else
 		filename = std::string(argv[1]);

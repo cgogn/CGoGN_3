@@ -82,11 +82,12 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 
 		if (is_indexed<GMap2::Edge>(m))
 		{
-			uint32 ind = index_of(m, GMap2::Edge(e.dart));
-			set_index<GMap2::Edge>(m, ne1, ind);
-			set_index<GMap2::Edge>(m, ne2, ind);
-			set_index<GMap2::Edge>(m, beta1(m, ne1), ind);
-			set_index<GMap2::Edge>(m, beta1(m, ne2), ind);
+			uint32 ind1 = index_of(m, GMap2::Edge(e.dart));
+			set_index<GMap2::Edge>(m, ne1, ind1);
+			set_index<GMap2::Edge>(m, ne2, ind1);
+			uint32 ind2 = new_index<GMap2::Vertex>(m);
+			set_index<GMap2::Edge>(m, beta1(m, ne1), ind2);
+			set_index<GMap2::Edge>(m, beta1(m, ne2), ind2);
 		}
 
 		if (is_indexed<GMap2::Face>(m))
@@ -119,7 +120,6 @@ GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indi
 
 	Dart e1 = add_edge(m, false).dart;
 	Dart e2 = add_edge(m, false).dart;
-
 
 	bool b1 = is_boundary(m, d1);
 	set_boundary(m, e1, b1);
@@ -637,7 +637,7 @@ GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	Dart dd_12 = beta2(m, dd_1);
 	Dart ee = beta2(m, dd);
 	Dart ee_1 = beta1(m, ee);
-	Dart ee_12 = beta<0,2>(m, ee_1);
+	Dart ee_12 = beta2(m, dd_1);
 
 	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(dd), false);
 	collapse_edge(static_cast<GMap1&>(m), GMap1::Edge(ee), false);
@@ -646,10 +646,9 @@ GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	{
 		Dart dd1 = beta1(m, dd_1);
 		Dart dd12 = beta2(m, dd1);
-		beta2_unsew(m, dd1);
-		beta2_unsew(m, beta0(m, dd1));
-		beta2_unsew(m, dd_1);
-		beta2_unsew(m, beta0(m, dd_1));
+		foreach_dart_of_orbit(m, GMap2::Face(dd_1), [&](Dart di) {
+			beta2_unsew(m, di);
+			return true; });
 		beta2_sew(m, dd_12,dd12);
 		beta2_sew(m, beta0(m,dd_12),beta0(m,dd12));
 		remove_face(static_cast<GMap1&>(m), GMap1::Face(dd1));
@@ -659,10 +658,16 @@ GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	{
 		Dart ee1 = beta1(m, ee_1);
 		Dart ee12 = beta2(m, ee1);
-		beta2_unsew(m, ee1);
-		beta2_unsew(m, beta0(m, ee1));
-		beta2_unsew(m, ee_1);
-		beta2_unsew(m, beta0(m, ee_1));
+		std::vector<Dart> vd;
+		foreach_dart_of_orbit(m, GMap2::Face(ee_1), [&](Dart di) {
+			vd.push_back(beta2(m,di));
+			//beta2_unsew(m, di);
+			return true;
+		});
+		for (Dart di : vd)
+		{
+			beta2_unsew(m, di);
+		}
 		beta2_sew(m, ee_12, ee12);
 		beta2_sew(m, beta0(m, ee_12), beta0(m, ee12));
 		remove_face(static_cast<GMap1&>(m), GMap1::Face(ee1));
@@ -678,8 +683,13 @@ GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 			
 		if (is_indexed<GMap2::Edge>(m))
 		{
-			copy_index<GMap2::Edge>(m, dd_12, phi2(m, dd_12));
-			copy_index<GMap2::Edge>(m, ee_12, phi2(m, ee_12));
+			uint32 emb1 = index_of(m, GMap2::Vertex(beta2(m, dd_12)));
+			set_index<GMap2::Edge>(m, dd_12, emb1);
+			set_index<GMap2::Edge>(m, beta0(m, dd_12), emb1);
+
+			uint32 emb2 = index_of(m, GMap2::Vertex(beta2(m, ee_12)));
+			set_index<GMap2::Edge>(m, ee_12, emb2);
+			set_index<GMap2::Edge>(m, beta0(m, ee_12), emb2);
 		}
 	}
 

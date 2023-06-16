@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 	if (filename.empty())
 	{
 		m = mp.add_mesh("simple");
-		cgogn::init_cells_indexing<Vertex>(*m);
+//		cgogn::init_cells_indexing<Vertex>(*m);
 		vertex_position = cgogn::add_attribute<Vec3, Vertex>(*m, "position");
 
 		cgogn::Dart d_pyra = add_pyramid(*m, 4,false).dart;
@@ -104,35 +104,50 @@ int main(int argc, char** argv)
 
 		cgogn::close(*m, false);
 
-		cgogn::foreach_cell(
-			*m,
-			[&](Vertex v) {
-				cgogn::set_index(*m, v, cgogn::new_index<Vertex>(*m));
-				return true;
-			},
-			cgogn::MapBase::TraversalPolicy::DART_MARKING);
-
+		cgogn::index_cells<Vertex>(*m);
+		cgogn::index_cells<Volume>(*m);
 
 		setPosV(d_pyra, Vec3(-1, -1, -1));
 		d_pyra = cgogn::phi1(*m, d_pyra);
-		setPosV(d_pyra, Vec3(-1, 1, -1));
+		setPosV(d_pyra, Vec3(-1.4, 1.4, -1));
 		d_pyra = cgogn::phi1(*m, d_pyra);
 		setPosV(d_pyra, Vec3(1, 1, -1));
 		d_pyra = cgogn::phi1(*m, d_pyra);
-		setPosV(d_pyra, Vec3(1, -1, -1));
+		setPosV(d_pyra, Vec3(1.4, -1.4, -1));
 		setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
 
 		cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
-		setPosV(dh, Vec3(-1, -1, -3));
+		setPosV(dh, Vec3(-1.2, -1.2, -3));
 		dh = cgogn::phi1(*m, dh);
 		setPosV(dh, Vec3(-1, 1, -3));
 		dh = cgogn::phi1(*m, dh);
-		setPosV(dh, Vec3(1, 1, -3));
+		setPosV(dh, Vec3(1.2, 1.2, -3));
 		dh = cgogn::phi1(*m, dh);
 		setPosV(dh, Vec3(1, -1, -3));
 
+		//setPosV(d_pyra, Vec3(-1, -1, -1));
+		//d_pyra = cgogn::phi1(*m, d_pyra);
+		//setPosV(d_pyra, Vec3(-1, 1, -1));
+		//d_pyra = cgogn::phi1(*m, d_pyra);
+		//setPosV(d_pyra, Vec3(1, 1, -1));
+		//d_pyra = cgogn::phi1(*m, d_pyra);
+		//setPosV(d_pyra, Vec3(1, -1, -1));
+		//setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
 
-				std::vector<Edge> ve;
+		//cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
+		//setPosV(dh, Vec3(-1, -1, -3));
+		//dh = cgogn::phi1(*m, dh);
+		//setPosV(dh, Vec3(-1, 1, -3));
+		//dh = cgogn::phi1(*m, dh);
+		//setPosV(dh, Vec3(1, 1, -3));
+		//dh = cgogn::phi1(*m, dh);
+		//setPosV(dh, Vec3(1, -1, -3));
+
+		
+		cgogn::dump_map_darts(*m);
+		std::cout << "CUT !!!!!!!" << std::endl;
+
+		std::vector<Edge> ve;
 		cgogn::foreach_cell(*m, [&](Edge e) {
 			ve.push_back(e);
 			return true;
@@ -168,9 +183,8 @@ int main(int argc, char** argv)
 
 		cgogn::cut_volume(*m, vp);
 	
-		cgogn::index_cells<Volume>(*m);
 
-	//	cgogn::dump_map_darts(*m);
+		cgogn::dump_map_darts(*m);
 
 		mp.emit_connectivity_changed(*m);
 	}

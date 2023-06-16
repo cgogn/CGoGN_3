@@ -294,7 +294,7 @@ protected:
 		{
 			cgogn::DartMarker<Mesh> dm(*mesh_);
 			cgogn::foreach_dart_of_orbit(*mesh_, Volume(d_moeb_), [&](cgogn::Dart d) {
-				dm.mark(d);
+					dm.mark(d);
 				return true;
 			});
 		
@@ -327,7 +327,7 @@ private:
 	Volume d_hex_;
 	Volume d_prism_;
 
-
+		
 };
 
 
