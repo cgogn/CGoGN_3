@@ -71,8 +71,9 @@ void remove_face(GMap1& m, GMap1::Face f)
 		remove_edge(m, GMap1::Edge{it});
 		it = next;
 	}
-	remove_dart(m, f.dart);
+	remove_edge(m, GMap1::Edge{f.dart});
 }
+
 
 
 GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)

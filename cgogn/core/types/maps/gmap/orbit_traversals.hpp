@@ -77,8 +77,41 @@ auto foreach_dart_of_BETA0_BETA1(const MESH& m, Dart d, const FUNC& f)
 	} while ((it != d));
 }
 
-template <typename MESH, typename BETA, typename FUNC>
-auto foreach_dart_of_BETAs(const MESH& m, Dart d, const BETA& betas, const FUNC& f)
+//template <typename MESH, typename BETA, typename FUNC>
+//auto foreach_dart_of_BETAs(const MESH& m, Dart d, const BETA& betas, const FUNC& f)
+//	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
+//{
+//	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+//	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+//
+//	Dart it = d;
+//	do
+//	{
+//		if (!f(it))
+//			return;
+//		it = betas(m, it);
+//	} while (it != d);
+//}
+
+
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_BETA01(const MESH& m, Dart d, const FUNC& f)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
+{
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	Dart it = d;
+	do
+	{
+		if (!f(it))
+			return;
+
+		it = beta<0,1>(m, it);
+	} while (it != d);
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_dart_of_BETA21(const MESH& m, Dart d, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
@@ -89,37 +122,8 @@ auto foreach_dart_of_BETAs(const MESH& m, Dart d, const BETA& betas, const FUNC&
 	{
 		if (!f(it))
 			return;
-		it = betas(m, it);
-	} while (it != d);
-}
-
-
-template <typename MESH, typename FUNC>
-auto foreach_dart_of_BETA01(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
-{
-	foreach_dart_of_BETAs(
-		m, d, [&](const MESH& bm, Dart bd) { return beta<0, 1>(bm, bd); }, f);
-
-	//static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-	//static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	//Dart it = d;
-	//do
-	//{
-	//	if (!f(it))
-	//		return;
-	//	it = beta0(m, it);
-	//	it = beta1(m, it);
-	//} while (it != d);
-}
-
-template <typename MESH, typename FUNC>
-auto foreach_dart_of_BETA21(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
-{
-//	foreach_dart_of_BETAs(m, d, beta<2, 1>, f);
-	foreach_dart_of_BETAs(
-		m, d, [&](const MESH& bm, Dart bd) { return beta<2, 1>(bm, bd); }, f);
+		it = beta<2,1>(m, it);
+	} while ((it != d));
 }
 
 template <typename MESH, typename FUNC>

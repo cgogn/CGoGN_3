@@ -21,125 +21,73 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_GMAP_GMAP3_H_
-#define CGOGN_CORE_TYPES_GMAP_GMAP3_H_
+#ifndef CGOGN_CORE_TYPES_CHAINOFMAP_CHMAP3_H_
+#define CGOGN_CORE_TYPES_CHAINOFMAP_CHMAP3_H_
 
 #include <cgogn/core/cgogn_core_export.h>
 
 #include <cgogn/core/types/maps/gmap/gmap2.h>
+#include <cgogn/core/types/maps/chain_of_maps/chain_of_map2.h>
 
 namespace cgogn
 {
-
-struct CGOGN_CORE_EXPORT GMap3 : public GMap2
+	
+struct ChainOfMap3 : public ChainOfMap2
 {
 	static const uint8 dimension = 3;
+	GMap2 gm_volumes_;
+	using Volume = GMap2::Volume;
 
-	using Parent = GMap2;
+	std::shared_ptr<Attribute<Dart>> sigma3_0_;
+	std::shared_ptr<Attribute<Dart>> sigma3_1_;
+	std::shared_ptr<Attribute<Dart>> sigma3_2_;
+	std::shared_ptr<Attribute<std::vector<Dart>>> sigma0_3_;
+	std::shared_ptr<Attribute<std::vector<Dart>>> sigma1_3_;
+	std::shared_ptr<Attribute<std::vector<Dart>>> sigma2_3_;
 
-	using Vertex = Cell<Orbit::BETA1_BETA2_BETA3>;
-	using Vertex2 = Cell<Orbit::BETA1_BETA2>;
-	using HalfEdge = Cell<Orbit::BETA0>;
-	using Edge = Cell<Orbit::BETA0_BETA2_BETA3>;
-	using Edge2 = Cell<Orbit::BETA0_BETA2>;
-	using Face = Cell<Orbit::BETA0_BETA1_BETA3>;
-	using Face2 = Cell<Orbit::BETA0_BETA1>;
-	using Volume = Cell<Orbit::BETA0_BETA1_BETA2>;
-	using CC = Cell<Orbit::BETA0_BETA1_BETA2_BETA3>;
-	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
-
-	std::shared_ptr<Attribute<Dart>> beta3_;
-
-
-	inline GMap3() : GMap2()
+	ChainOfMap3() : ChainOfMap2()
 	{
-		beta3_ = add_relation("beta3");
+		sigma3_0_ = gm_volumes_.add_relation("sigma3_0");
+		sigma3_1_ = gm_volumes_.add_relation("sigma3_1");
+		sigma3_2_ = gm_volumes_.add_relation("sigma3_2");
+		sigma0_3_ = relations_vect_.emplace_back(darts_.add_attribute<std::vector<Dart>>("sigma0_3_"));
+		sigma1_3_ = relations_vect_.emplace_back(gm_edges_.darts_.add_attribute<std::vector<Dart>>("sigma1_2_"));
+		sigma2_3_ = relations_vect_.emplace_back(gm_edges_.darts_.add_attribute<std::vector<Dart>>("sigma2_3_"));
 	}
-
-
 };
 
 template <>
-struct mesh_traits<GMap3>
+struct mesh_traits<ChainOfMap3>
 {
-	using MeshType = GMap3;
-	static constexpr const char* name = "GMap3";
+	static constexpr const char* name = "ChMap3";
 	static constexpr const uint8 dimension = 3;
 
-	using Parent = GMap3::Parent;
+	using Vertex = ChainOfMap0::Vertex;
+	using Edge = ChainOfMap1::Edge;
+	using Face = ChainOfMap2::Face;
+	using Volume = ChainOfMap3::Volume;
 
-	using Vertex = GMap3::Vertex;
-	using Vertex2 = GMap3::Vertex2;
-	using HalfEdge = GMap3::HalfEdge;
-	using Edge = GMap3::Edge;
-	using Edge2 = GMap3::Edge2;
-	using Face = GMap3::Face;
-	using Face2 = GMap3::Face2;
-	using Volume = GMap3::Volume;
-
-	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
-	static constexpr const char* cell_names[] = {"Vertex", "Vertex2", "HalfEdge", "Edge",
-												 "Edge2",  "Face",	  "Face2",	  "Volume"};
+	using Cells = std::tuple<Vertex, Edge, Face, Volume>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face", "Volume"};
 
 	template <typename T>
-	using Attribute = MapBase::Attribute<T>;
-	using AttributeGen = MapBase::AttributeGen;
-	using MarkAttribute = MapBase::MarkAttribute;
+	using Attribute = ChainOfMapBase::Attribute<T>;
+	using AttributeGen = ChainOfMapBase::AttributeGen;
+	using MarkAttribute = ChainOfMapBase::MarkAttribute;
 };
 
-
-GMap3::Vertex CGOGN_CORE_EXPORT cut_edge(GMap3& m, GMap3::Edge e, bool set_indices = true);
-
-GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indices = true);
-
-GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices = true);
-
-GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices);
-
-uint32 close(GMap3& m, bool set_indices);
-
-inline Dart beta3(const GMap3& m, Dart d)
+inline Dart sigma3_2(const ChainOfMap3& cm, Dart d)
 {
-	return (*(m.beta3_))[d.index];
+	return (*(cm.sigma3_2_))[d.index];
+}
+
+const std::vector<Dart>& sigma2_3(const ChainOfMap3& cm, Dart d)
+{
+	return (*(cm.sigma2_3_))[d.index];
 }
 
 
-inline void beta3_sew(GMap3& m, Dart d, Dart e)
-{
-	cgogn_assert(beta3(m, d) == d);
-	cgogn_assert(beta3(m, e) == e);
-	(*(m.beta3_))[d.index] = e;
-	(*(m.beta3_))[e.index] = d;
-}
-
-inline void beta3_unsew(GMap3& m, Dart d)
-{
-	Dart e = beta3(m, d);
-	(*(m.beta3_))[d.index] = d;
-	(*(m.beta3_))[e.index] = e;
-}
-
-inline Dart phi3(const GMap3& m, Dart d)
-{
-	Dart dd = beta3(m, d);
-	if (dd == d)
-		return d;
-	return beta0(m, dd);
-}
-
-inline void phi3_sew(GMap3& m, Dart d, Dart e)
-{
-	beta3_sew(m, d, beta0(m, e));
-	beta3_sew(m, beta0(m, d), e);
-}
-
-inline void phi3_unsew(GMap3& m, Dart d)
-{
-	Dart e = beta0(m, d);
-	beta3_unsew(m, d);
-	beta3_unsew(m, e);
-}
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_GMAP3_H_
+#endif // CGOGN_CORE_TYPES_CHAINOFMAP_CHMAP3_H_

@@ -67,12 +67,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
 			if (func(Vertex(c.dart)))
-				func(Vertex(beta0(m, c.dart)));
+				func(Vertex(phi2(m, c.dart)));
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
 		{
 			//TODO
+			func(Vertex(c.dart))
+			// CHECK
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
@@ -350,13 +352,12 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
-			foreach_dart_of_BETAs(
-				m, c.dart, [&](const MESH& bm, Dart bd) { return beta2(bm, bd); },
-				[&](Dart d) -> bool {
-				if (!is_boundary(m, d))
-					return func(Face(d));
-				return true;
-			});
+			if (!is_boundary(m, c.dart))
+				if (!func(Face(c.dart)))
+					return;
+			Dart d2 = beta<2, 0>(m, c.dart);
+			if (!is_boundary(m, d2))
+				func(Face(d2));
 			return;
 		}
 	}
