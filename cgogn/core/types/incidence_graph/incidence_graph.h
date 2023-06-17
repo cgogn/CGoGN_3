@@ -271,6 +271,12 @@ uint32 new_index(const IncidenceGraph& ig)
 	return id;
 }
 
+inline void dump_map_darts(const IncidenceGraph& /*dst*/)
+{
+	// TODO mettre dans un fichier hpp en dernier
+}
+
+
 } // namespace cgogn
 
 #include <cgogn/core/types/incidence_graph/incidence_graph_attribute.hpp>

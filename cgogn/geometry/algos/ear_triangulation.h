@@ -217,7 +217,7 @@ class EarTriangulation
 	// CMapBase (and convertible) //
 	////////////////////////////////
 
-	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, struct CMapBase&>>* = nullptr>
+	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, MapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
 		MESHTYPE& /*m*/, const typename mesh_traits<MESHTYPE>::Face f)
 	{

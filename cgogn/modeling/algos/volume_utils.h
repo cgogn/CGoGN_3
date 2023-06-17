@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 #define CGOGN_MODELING_ALGOS_VOLUME_UTILS_H_
 
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -43,6 +43,12 @@ void extract_volume_surface(CMap3& m3, CMap3::Attribute<Vec3>* m3_vertex_positio
 							CMap2::Attribute<Vec3>* m2_vertex_position,
 							CMap2::Attribute<CMap3::Vertex>* m2_vertex_m3_vertex = nullptr,
 							CMap3::Attribute<CMap2::Vertex>* m3_vertex_m2_vertex = nullptr);
+
+
+//void extract_volume_surface(GMap3& m3, GMap3::Attribute<Vec3>* m3_vertex_position, GMap2& m2,
+//							GMap2::Attribute<Vec3>* m2_vertex_position,
+//							GMap2::Attribute<GMap3::Vertex>* m2_vertex_m3_vertex = nullptr,
+//							GMap3::Attribute<GMap2::Vertex>* m3_vertex_m2_vertex = nullptr);
 
 } // namespace modeling
 

@@ -26,13 +26,14 @@
 
 #include <cgogn/io/cgogn_io_export.h>
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn/core/functions/traversals/edge.h>
 #include <vector>
 
 namespace cgogn
 {
 // forward
 struct CMap3;
+struct GMap3;
 
 namespace io
 {
@@ -74,7 +75,284 @@ struct VolumeImportData
 
 
 
-void CGOGN_IO_EXPORT import_volume_data(CMap3& m, VolumeImportData& volume_data);
+//void CGOGN_IO_EXPORT import_volume_data(CMap3& m, VolumeImportData& volume_data);
+
+
+
+template <typename MESH3, typename std::enable_if_t<std::is_same_v<MESH3,CMap3> || std::is_same_v<MESH3,GMap3>> * = nullptr>
+void import_volume_data(MESH3& m, VolumeImportData& volume_data)
+{
+	using Vertex = typename MESH3::Vertex;
+	using Edge = typename MESH3::Edge;
+	using Face = typename MESH3::Face;
+	using Volume = typename MESH3::Volume;
+	using Vertex2 = typename MESH3::Vertex2;
+	using Face2 = typename MESH3::Face2;
+	using MESH2 = typename MESH3::Parent;
+
+
+	auto position = get_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
+	if (!position)
+		position = add_attribute<geometry::Vec3, Vertex>(m, volume_data.vertex_position_attribute_name_);
+
+	for (uint32 i = 0u; i < volume_data.nb_vertices_; ++i)
+	{
+		uint32 vertex_id = new_index<Vertex>(m);
+		(*position)[vertex_id] = volume_data.vertex_position_[i];
+		volume_data.vertex_id_after_import_.push_back(vertex_id);
+	}
+
+	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
+
+	uint32 index = 0u;
+	DartMarker dart_marker(m);
+	uint32 vol_emb = 0u;
+
+	auto mark_n_store = [&](Dart dv,const uint32 vertex_index)
+	{
+		foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart dd) 
+		{
+			dart_marker.mark(dd);
+			(*darts_per_vertex)[vertex_index].push_back(dd);
+			return true;
+		});
+	};
+
+	// for each volume of table
+	for (uint32 i = 0u; i < volume_data.nb_volumes_; ++i)
+	{
+		Volume vol;
+		const VolumeType vol_type = volume_data.volumes_types_[i];
+
+		if (vol_type == VolumeType::Tetra) // tetrahedral case
+		{
+			vol = add_pyramid(static_cast<MESH2&>(m), 3u, false);
+
+			const std::array<Dart, 4> vertices_of_tetra = {vol.dart, phi1(m, vol.dart), phi_1(m, vol.dart),
+														   phi<-1, 2, -1>(m, vol.dart)};
+
+			for (Dart dv : vertices_of_tetra)
+			{
+//				std::cout << "Dart of vertex "<< std::endl;
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
+
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
+//					std::cout << "Dart" << d.index << std::endl;
+					set_index<Vertex>(m, d, vertex_index);
+					return true;
+				});
+
+
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
+			}
+		}
+		else if (vol_type == VolumeType::Pyramid) // pyramidal case
+		{
+			vol = add_pyramid(static_cast<MESH2&>(m), 4u, false);
+
+			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi<1, 1>(m, vol.dart),
+															 phi_1(m, vol.dart), phi<-1, 2, -1>(m, vol.dart)};
+
+			for (Dart dv : vertices_of_pyramid)
+			{
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
+					set_index<Vertex>(m, d, vertex_index);
+					return true;
+				});
+
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
+			}
+		}
+		else if (vol_type == VolumeType::TriangularPrism) // prism case
+		{
+			vol = add_prism(static_cast<MESH2&>(m), 3u, false);
+
+			const std::array<Dart, 6> vertices_of_prism = {vol.dart,
+														   phi1(m, vol.dart),
+														   phi_1(m, vol.dart),
+														   phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														   phi<2, 1, 1, 2>(m, vol.dart),
+														   phi<1, 2, 1, 1, 2>(m, vol.dart)};
+
+			for (Dart dv : vertices_of_prism)
+			{
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
+				foreach_dart_of_orbit(m, Vertex2(dv), [&](Dart d) -> bool {
+					set_index<Vertex>(m, d, vertex_index);
+					return true;
+				});
+
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
+			}
+		}
+		else if (vol_type == VolumeType::Hexa) // hexahedral case
+		{
+			vol = add_prism(static_cast<MESH2&>(m), 4u, false);
+
+			const std::array<Dart, 8> vertices_of_hexa = {vol.dart,
+														  phi1(m, vol.dart),
+														  phi<1, 1>(m, vol.dart),
+														  phi_1(m, vol.dart),
+														  phi<-1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 2, 1, 1, 2>(m, vol.dart),
+														  phi<1, 1, 2, 1, 1, 2>(m, vol.dart)};
+
+			for (Dart dv : vertices_of_hexa)
+			{
+				const uint32 vertex_index =
+					volume_data.vertex_id_after_import_[volume_data.volumes_vertex_indices_[index++]];
+				foreach_dart_of_orbit(static_cast<MESH2&>(m), Vertex2(dv), [&](Dart d) -> bool {
+					set_index<Vertex>(m, d, vertex_index);
+					return true;
+				});
+
+				//Dart dd = dv;
+				//do
+				//{
+				//	dart_marker.mark(dd);
+				//	(*darts_per_vertex)[vertex_index].push_back(dd);
+				//	dd = phi1(m, phi2(m, dd));
+				//} while (dd != dv);
+				mark_n_store(dv, vertex_index);
+			}
+		}
+		else // end of hexa
+		{
+			if (vol_type == VolumeType::Connector)
+			{
+				index += 4u;
+				// The second part of the code generates connectors automatically. We don't have to do anything here.
+			}
+		}
+
+		if (is_indexed<Volume>(m))
+			set_index(m, vol, vol_emb++);
+	}
+
+
+	//dump_map_darts(m);
+	// reconstruct neighbourhood
+	uint32 nb_boundary_faces = 0u;
+	DartMarkerStore marker(m);
+
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (phi3(m, d) == d && !marker.is_marked(d))
+		{
+			foreach_dart_of_orbit(m, Face2(d), [&](Dart fd) -> bool {
+				marker.mark(fd);
+				return true;
+			});
+
+			Dart good_dart;
+
+			// 1st step : for every dart of the face we try to find a valid phi3 candidate. If we can't it's a boundary
+			// face.
+			Dart d_it = d;
+			do
+			{
+				uint32 vindex1 = index_of(m, Vertex(d_it));
+				uint32 vindex2 = index_of(m, Vertex(phi1(m, phi1(m, d_it))));
+				const std::vector<Dart>& vec = value<std::vector<Dart>>(m, darts_per_vertex, Vertex(phi1(m, d_it)));
+				for (auto it = vec.begin(); it != vec.end() && good_dart.is_nil(); ++it)
+					if (index_of(m, Vertex(phi1(m, *it))) == vindex1 && index_of(m, Vertex(phi_1(m, *it))) == vindex2)
+						good_dart = *it;
+				d_it = phi1(m, d_it);
+			} while (good_dart.is_nil() && (d_it != d));
+			d = phi_1(m, d_it);
+
+			if (!good_dart.is_nil())
+			{
+				//const uint32 degD = codegree(m, MESH3::Face(d));
+				//const uint32 degGD = codegree(m, MESH3::Face(good_dart));
+
+				//if (degD == degGD) // normal case : the two opposite faces have the same degree
+				//{
+				//	Dart it1 = d;
+				//	Dart it2 = good_dart;
+				//	do
+				//	{
+				//		phi3_sew(m, it1, it2);
+				//		it1 = phi1(m, it1);
+				//		it2 = phi_1(m, it2);
+				//	} while (it1 != d);
+				//}
+				//else
+				//{
+				//	// there is one face of degree 4 and one face of degree 3
+				//	// -> stamp volume
+				//}
+
+				std::vector<std::pair<Dart,Dart>> vd;
+				vd.reserve(32);
+				Dart it1 = d;
+				Dart it2 = good_dart;
+				bool stop1 = false;
+				bool stop2 = false;
+				do
+				{
+					vd.push_back(std::make_pair(it1, it2));
+					it1 = phi1(m, it1);
+					stop1 = (it1 == d);
+					it2 = phi_1(m, it2);
+					stop2 = (it2 == good_dart);
+				} while (stop1 || stop2);
+
+				if (stop1 && stop2) // normal case : the two opposite faces have the same degree
+				{
+					for (const auto& p : vd)
+						phi3_sew(m, p.first, p.second);
+				}
+				else
+				{
+					// there is one face of degree 4 and one face of degree 3
+					// -> stamp volume
+				}
+
+
+
+			}
+			else
+				++nb_boundary_faces;
+		}
+	}
+
+	if (nb_boundary_faces > 0u)
+	{
+		uint32 nb_holes = close(m);
+		std::cout << nb_holes << " hole(s) have been closed" << std::endl;
+		std::cout << nb_boundary_faces << " boundary faces" << std::endl;
+	}
+
+	remove_attribute<Vertex>(m, darts_per_vertex);
+}
+
 
 } // namespace io
 

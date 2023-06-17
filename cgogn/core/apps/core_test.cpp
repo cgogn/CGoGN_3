@@ -1,6 +1,6 @@
 
 
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/geometry/types/vector_traits.h>
 

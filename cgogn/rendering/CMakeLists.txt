@@ -8,8 +8,7 @@ find_package(ImGUI REQUIRED)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::rendering ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
 #		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
@@ -120,6 +119,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"

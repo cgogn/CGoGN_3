@@ -25,7 +25,7 @@
 #define CGOGN_GEOMETRY_ALGOS_SELECTION_H_
 
 #include <cgogn/core/types/mesh_views/cell_cache.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/functions/inclusion.h>
@@ -34,6 +34,7 @@
 namespace cgogn
 {
 struct CMap2;
+struct GMap2;
 
 namespace geometry
 {
@@ -41,15 +42,15 @@ namespace geometry
 //CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
 //						   const typename CMap2::template Attribute<Vec3>* vertex_position);
 
-template <typename MESH, typename std::enable_if_t<std::is_same_v<MESH, CMap2>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex center, geometry::Scalar radius,
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 //	typename std::enable_if_t<std::is_same_v<MESH, CMap2>, CellCache<MESH>>;
 {
-	using Vertex = typename MESH::Vertex;
-	using HalfEdge = typename MESH::HalfEdge;
-	using Edge = typename MESH::Edge;
-	using Face = typename MESH::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
 	CellCache<MESH> cache(m);
 

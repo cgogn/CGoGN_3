@@ -42,17 +42,19 @@ namespace geometry
 // CMap2 //
 ///////////
 
-Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<Vec3>* vertex_position)
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
+Scalar edge_cotan_weight(const MAP2& m, typename MAP2::Edge e, const typename MAP2::template Attribute<Vec3>* vertex_position)
 {
+	using Vertex = typename mesh_traits<MAP2>::Vertex;
 	Scalar result = 0.0;
 
 	Dart d1 = e.dart;
 	Dart d2 = phi2(m, d1);
 
-	const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(d1));
-	const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(d2));
+	const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(d1));
+	const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(d2));
 
-	const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, d1)));
+	const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, d1)));
 	Vec3 vecR = p1 - p3;
 	Vec3 vecL = p2 - p3;
 	Scalar e1value = vecR.dot(vecL) / vecR.cross(vecL).norm();
@@ -61,7 +63,7 @@ Scalar edge_cotan_weight(const CMap2& m, CMap2::Edge e, const CMap2::Attribute<V
 
 	if (!is_boundary(m, d2))
 	{
-		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, d2)));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, d2)));
 		Vec3 vecR = p2 - p4;
 		Vec3 vecL = p1 - p4;
 		Scalar e2value = vecR.dot(vecL) / vecR.cross(vecL).norm();

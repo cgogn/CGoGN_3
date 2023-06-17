@@ -22,7 +22,7 @@
  *******************************************************************************/
 
 
-#include <cgogn/core/types/cmap/cmap3.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
