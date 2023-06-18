@@ -74,6 +74,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 		{
 			//TODO
 			func(Vertex(c.dart));
+			func(Vertex(beta0(m,c.dart)));
 			// CHECK
 			return;
 		}
