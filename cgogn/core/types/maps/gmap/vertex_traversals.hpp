@@ -73,7 +73,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
 		{
 			//TODO
-			func(Vertex(c.dart))
+			func(Vertex(c.dart));
 			// CHECK
 			return;
 		}
