@@ -10,6 +10,11 @@ find_package(cgogn_io REQUIRED)
 find_package(cgogn_rendering REQUIRED)
 find_package(cgogn_modeling REQUIRED)
 
+#set(HIGHS_DIR path_to_highs_install/lib/cmake/highs)
+
+find_package(HIGHS REQUIRED)
+find_package(Threads REQUIRED)
+
 add_executable(modeling modeling.cpp)
 target_link_libraries(modeling
 	cgogn::core
@@ -23,7 +28,7 @@ target_link_libraries(modeling
 if (CGOGN_USE_CGAL)
 	find_package(CGAL REQUIRED)
 	add_executable(power_shape power_shape.cpp)
-	target_link_libraries(power_shape
+	target_link_libraries(power_shape highs::highs
 		CGAL::CGAL
 		cgogn::core
 		cgogn::ui

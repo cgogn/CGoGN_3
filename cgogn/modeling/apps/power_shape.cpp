@@ -29,13 +29,16 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/modeling/ui_modules/power_shape.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/rendering/ui_modules/point_cloud_render.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
 using Graph = cgogn::Graph;
+using Point = cgogn::CMap0;
 using NonManifold = cgogn::IncidenceGraph;
 using Surface = cgogn::CMap2;
+
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Surface>::Attribute<T>;
 using Vertex = typename cgogn::mesh_traits<Surface>::Vertex;
@@ -56,23 +59,29 @@ int main(int argc, char** argv)
 	app.set_window_title("Power shape viewer");
 	app.set_window_size(1000, 800);
 
-	cgogn::ui::MeshProvider<Surface> mp(app);
+	cgogn::ui::MeshProvider<Point> mp(app);
+	cgogn::ui::MeshProvider<Surface> ms(app);
 	cgogn::ui::MeshProvider<NonManifold> mpnm(app);
+	cgogn::ui::PointCloudRender<Point> srp(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::SurfaceRender<NonManifold> srnm(app);
-	cgogn::ui::PowerShape<Surface, NonManifold> pw(app);
+	cgogn::ui::PowerShape<Point, Surface, NonManifold> pw(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
+	
 	v1->link_module(&mp);
+	v1->link_module(&ms);
+	v1->link_module(&mpnm);
 	v1->link_module(&sr);
+	v1->link_module(&srp);
 	v1->link_module(&srnm);
 
 
 	if (filename.length() > 0)
 	{
-		Surface* m = mp.load_surface_from_file(filename);
+		Surface* m = ms.load_surface_from_file(filename);
 		if (!m)
 		{
 			std::cout << "File could not be loaded" << std::endl;

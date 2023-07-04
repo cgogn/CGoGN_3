@@ -30,6 +30,7 @@
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn\modeling\algos\decimation\SQEM_helper.h>
+#include <cgogn/io/point/point_import.h>
 // import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
@@ -45,13 +46,15 @@
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #include <CGAL/optimal_bounding_box.h>
 
+#include <Highs.h>
+
 namespace cgogn
 {
 
 namespace ui
 {
 
-template <typename SURFACE, typename NONMANIFOLD>
+template <typename POINT, typename SURFACE, typename NONMANIFOLD>
 class PowerShape : public Module
 {
 	static_assert(mesh_traits<SURFACE>::dimension >= 2, "PowerShape can only be used with meshes of dimension >= 2");
@@ -84,7 +87,7 @@ class PowerShape : public Module
 	using NonManifoldAttribute = typename mesh_traits<NONMANIFOLD>::template Attribute<T>;
 	template <typename T>
 	using SurfaceAttribute = typename mesh_traits<SURFACE>::template Attribute<T>;
-
+	using PointVertex = typename mesh_traits<POINT>::Vertex; 
 	using NonManifoldVertex = typename mesh_traits<NONMANIFOLD>::Vertex;
 	using NonManifoldEdge = typename mesh_traits<NONMANIFOLD>::Edge;
 	using NonManifoldFace = typename mesh_traits<NONMANIFOLD>::Face;
@@ -124,6 +127,40 @@ private:
 			return std::hash<uint32>()(edge.first) + std::hash<uint32>()(edge.second);
 		}
 	};
+	struct edge_equal
+	{
+		bool operator()(const std::pair<uint32, uint32>& edge1, const std::pair<uint32, uint32>& edge2) const
+		{
+			return ((edge1.first == edge2.first && edge1.second == edge2.second) ||
+					(edge1.first == edge2.second && edge1.second == edge2.first));
+		}
+	};
+	struct face_hash
+	{
+		std::size_t operator()(const std::tuple<uint32, uint32, uint32>& triangle) const
+		{
+			std::size_t seed = 0;
+			seed ^= std::hash<uint32>{}(std::get<0>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<uint32>{}(std::get<1>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<uint32>{}(std::get<2>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		}
+	};
+
+	struct face_equal
+	{
+		bool operator()(const std::tuple<uint32, uint32, uint32>& lhs,
+						const std::tuple<uint32, uint32, uint32>& rhs) const
+		{
+			std::array<uint32, 3> lhsIndices = {std::get<0>(lhs), std::get<1>(lhs), std::get<2>(lhs)};
+			std::array<uint32, 3> rhsIndices = {std::get<0>(rhs), std::get<1>(rhs), std::get<2>(rhs)};
+
+			std::sort(lhsIndices.begin(), lhsIndices.end());
+			std::sort(rhsIndices.begin(), rhsIndices.end());
+
+			return lhsIndices == rhsIndices;
+		}
+	};
 
 	bool pointInside(Tree& tree, Point& query)
 	{
@@ -135,8 +172,9 @@ private:
 	}
 
 public:
-	Delaunay compute_delaunay_tredrahedron(Cgal_Surface_mesh& csm, Tree& tree)
+	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
+		cgogn::io::PointImportData samples;
 		std::vector<Point> Delaunay_tri_point;
 		std::array<Point, 8> obb_points;
 		Point acc(0, 0, 0);
@@ -145,9 +183,10 @@ public:
 		{
 			acc += K::Vector_3(obb_points[i].x(), obb_points[i].y(), obb_points[i].z());
 		}
-		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8}; // TODO
+		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
-		double offset = 2.0; // TODO
+		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
+		double offset = (md.bb_max_ - md.bb_min_).norm() *0.7;
 		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
@@ -163,19 +202,21 @@ public:
 		std::vector<Point> mesh_samples;
 		CGAL::Polygon_mesh_processing::sample_triangle_mesh(
 			csm, std::back_inserter(mesh_samples),
-			// CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(0.01));
-			CGAL::parameters::use_grid_sampling(true).grid_spacing(0.05));
+		    //CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(50));
+			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
 		// 	Add bounding box vertices in the sample points set
 		for (auto& p : cube_corners)
 		{
 			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+			samples.vertex_position_.emplace_back(p[0], p[1], p[2]);
 		}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
 		for (auto& s : mesh_samples)
 		{
 			Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
+			samples.vertex_position_.emplace_back(s[0], s[1], s[2]);
 		}
 
 		uint32 nb_vertices = Delaunay_tri_point.size();
@@ -187,7 +228,12 @@ public:
 		indices.reserve(nb_vertices);
 		for (unsigned int i = 0; i < nb_vertices; ++i)
 			indices.push_back(i);
-
+		//Collect point data
+		samples.reserve(nb_vertices);
+		cgogn::io::import_point_data(*surface_sample, samples);
+		auto position = get_attribute<Vec3, PointVertex>(*surface_sample, "position");
+		if (position)
+			point_provider_->set_mesh_bb_vertex_position(*surface_sample, position);
 		// Construct delauney tredrahedron using CGAL
 		Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
 					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
@@ -290,84 +336,65 @@ public:
 			}
 		}
 	}
-	
-	void constrcut_power_diagram(NONMANIFOLD* mv, SURFACE& surface, std::vector<Weight_Point>& power_point,
-								 std::vector<std::pair<uint32, bool>>& point_info,
-								 std::unordered_map<uint32, uint32>& inside_indices)
+	void construct_complete_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
+										  std::vector<std::pair<uint32, bool>>& point_info)
 	{
-		
-		cgogn::io::IncidenceGraphImportData Power_shape_data;
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash> edge_indices;
+		cgogn::io::IncidenceGraphImportData Complete_Power_shape_data;
+
+		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
 		uint32 edge_count = 0;
 
 		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
-					boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
-		// Add vertices
+							  boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
+
 		for (size_t idx = 0; idx < power_point.size(); ++idx)
 		{
-			if (point_info[idx].second)
-			{
-				Power_shape_data.vertex_position_.push_back(
-					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
-			}	
+			Complete_Power_shape_data.vertex_position_.push_back(
+				{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
 		}
-		bool inside;
 		uint32 v, v1, v2;
 		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
 		{
-			inside = true;
 			v = fit->second;
-			// If face is inside
-			for (size_t idx = 0; idx < 4; ++idx)
+			Complete_Power_shape_data.faces_nb_edges_.push_back(3);
+			for (size_t i = 0; i < 4; i++)
 			{
-				if (idx != v)
+				if (i != v)
 				{
-					inside &= fit->first->vertex(idx)->info().second;
-				}
-			}
-			if (inside)
-			{
-				Power_shape_data.faces_nb_edges_.push_back(3);
-
-				for (size_t i = 0; i < 4; i++)
-				{
-					if (i != v)
+					for (size_t j = i + 1; j < 4; j++)
 					{
-						for (size_t j = i + 1; j < 4; j++)
+						if (j != v)
 						{
-							if (j != v)
+							// Add edge
+							v1 = fit->first->vertex(i)->info().first;
+							v2 = fit->first->vertex(j)->info().first;
+							if (edge_indices.find({v1, v2}) == edge_indices.end())
 							{
-								// Add edge
-								v1 = inside_indices[fit->first->vertex(i)->info().first];
-								v2 = inside_indices[fit->first->vertex(j)->info().first];
-								if (edge_indices.find({v1, v2}) == edge_indices.end())
-								{
-									edge_indices.insert({{v1, v2}, edge_count});
-									Power_shape_data.edges_vertex_indices_.push_back(v1);
-									Power_shape_data.edges_vertex_indices_.push_back(v2);
-									edge_count++;
-								}
-								// Add face
-								Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
+								edge_indices.insert({{v1, v2}, edge_count});
+								Complete_Power_shape_data.edges_vertex_indices_.push_back(v1);
+								Complete_Power_shape_data.edges_vertex_indices_.push_back(v2);
+								edge_count++;
 							}
+							// Add face
+							Complete_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
 						}
 					}
 				}
 			}
+			
 		}
-		uint32 power_nb_vertices = Power_shape_data.vertex_position_.size();
-		uint32 power_nb_edges = Power_shape_data.edges_vertex_indices_.size() / 2;
-		uint32 power_nb_faces = Power_shape_data.faces_nb_edges_.size();
+		uint32 complete_power_nb_vertices = Complete_Power_shape_data.vertex_position_.size();
+		uint32 complete_power_nb_edges = Complete_Power_shape_data.edges_vertex_indices_.size() / 2;
+		uint32 complete_power_nb_faces = Complete_Power_shape_data.faces_nb_edges_.size()/3;
 
-		Power_shape_data.set_parameter(power_nb_vertices, power_nb_edges, power_nb_faces);
+		Complete_Power_shape_data.set_parameter(complete_power_nb_vertices, complete_power_nb_edges,
+												complete_power_nb_faces);
 
-		import_incidence_graph_data(*mv, Power_shape_data);
-
+		import_incidence_graph_data(*mv, Complete_Power_shape_data);
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		for (uint32 i = 0u; i < power_point.size(); ++i)
 		{
-			uint32 vertex_id = inside_indices[point_info[i].first];
-			//The radius is sqrt of the weight!
+			uint32 vertex_id = point_info[i].first;
 			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
 		}
 
@@ -378,10 +405,206 @@ public:
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
+	void constrcut_inner_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
+									   std::vector<std::pair<uint32, bool>>& point_info,
+									   std::unordered_map<uint32, uint32>& inside_indices)
+	{
+
+		cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
+
+		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
+		std::unordered_set<std::tuple<uint32, uint32, uint32>, face_hash, face_equal> face_sets;
+		uint32 edge_count = 0;
+
+		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
+							  boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
+
+		for (size_t idx = 0; idx < power_point.size(); ++idx)
+		{
+			// if the point is inside
+			if (point_info[idx].second)
+			{
+				Inner_Power_shape_data.vertex_position_.push_back(
+					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
+			}
+		}
+		bool inside;
+		uint32 v, v_ind1, v_ind2, v1, v2;
+		for (auto eit = medial_axis.finite_edges_begin(); eit != medial_axis.finite_edges_end(); ++eit)
+		{
+			v_ind1 = eit->second;
+			v_ind2 = eit->third;
+			inside = eit->first->vertex(v_ind1)->info().second && eit->first->vertex(v_ind2)->info().second;
+			if (inside)
+			{
+				//Add edge
+				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
+				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
+				if (edge_indices.find({v1, v2}) == edge_indices.end())
+				{
+					edge_indices.insert({{v1, v2}, edge_count});
+					Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
+					Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
+					edge_count++;
+				}
+			}
+		}
+		std::tuple<uint32, uint32, uint32> face_tuple;
+		std::vector<uint32> face_indices; 
+		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
+		{
+			face_indices.clear();
+			inside = true;
+			v = fit->second;
+			// If face is inside
+			for (size_t idx = 0; idx < 4; ++idx)
+			{
+				if (idx != v)
+				{
+					inside &= fit->first->vertex(idx)->info().second;
+					face_indices.push_back(inside_indices[fit->first->vertex(idx)->info().first]);
+				}
+			}
+			if (inside)
+			{
+				face_tuple = std::make_tuple(face_indices[0], face_indices[1], face_indices[2]);
+				if (face_sets.find(face_tuple) == face_sets.end())
+				{
+					Inner_Power_shape_data.faces_nb_edges_.push_back(3);
+					for (size_t i = 0; i < 4; i++)
+					{
+						if (i != v)
+						{
+							for (size_t j = i + 1; j < 4; j++)
+							{
+								if (j != v)
+								{
+									v1 = inside_indices[fit->first->vertex(i)->info().first];
+									v2 = inside_indices[fit->first->vertex(j)->info().first];
+									Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
+								}
+							}
+						}
+					}
+					face_sets.insert(face_tuple);
+				}
+			}
+		}
+		uint32 inner_power_nb_vertices = Inner_Power_shape_data.vertex_position_.size();
+		uint32 inner_power_nb_edges = Inner_Power_shape_data.edges_vertex_indices_.size() / 2;
+		uint32 inner_power_nb_faces = Inner_Power_shape_data.faces_nb_edges_.size();
+
+		Inner_Power_shape_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
+
+		import_incidence_graph_data(*mv, Inner_Power_shape_data);
+		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
+		for (uint32 i = 0u; i < power_point.size(); ++i)
+		{
+			uint32 vertex_id = inside_indices[point_info[i].first];
+			// The radius is sqrt of the weight!
+			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+		}
+
+		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
+			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
+		if (mv_vertex_position)
+			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
+
+		nonmanifold_provider_->emit_connectivity_changed(*mv);
+	}
+	//void constrcut_inner_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
+	//							 std::vector<std::pair<uint32, bool>>& point_info,
+	//							 std::unordered_map<uint32, uint32>& inside_indices)
+	//{
+	//	
+	//	cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
+	//	
+	//	std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
+	//	uint32 edge_count = 0;
+
+	//	medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
+	//				boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
+
+	//	for (size_t idx = 0; idx < power_point.size(); ++idx)
+	//	{
+	//		//if the point is inside
+	//		if (point_info[idx].second)
+	//		{
+	//			Inner_Power_shape_data.vertex_position_.push_back(
+	//				{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
+	//		}	
+	//	}
+	//	bool inside;
+	//	uint32 v, v1, v2;
+	//	for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
+	//	{
+	//		inside = true;
+	//		v = fit->second;
+	//		// If face is inside
+	//		for (size_t idx = 0; idx < 4; ++idx)
+	//		{
+	//			if (idx != v)
+	//			{
+	//				inside &= fit->first->vertex(idx)->info().second;
+	//			}
+	//		}
+	//		if (inside)
+	//		{
+	//			Inner_Power_shape_data.faces_nb_edges_.push_back(3);
+	//			for (size_t i = 0; i < 4; i++)
+	//			{
+	//				if (i != v)
+	//				{
+	//					for (size_t j = i + 1; j < 4; j++)
+	//					{
+	//						if (j != v)
+	//						{
+	//							// Add edge
+	//							v1 = inside_indices[fit->first->vertex(i)->info().first];
+	//							v2 = inside_indices[fit->first->vertex(j)->info().first];
+	//							if (edge_indices.find({v1, v2}) == edge_indices.end())
+	//							{
+	//								edge_indices.insert({{v1, v2}, edge_count});
+	//								Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
+	//								Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
+	//								edge_count++;
+	//							}
+	//							// Add face
+	//							Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
+	//						}
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//	uint32 inner_power_nb_vertices = Inner_Power_shape_data.vertex_position_.size();
+	//	uint32 inner_power_nb_edges = Inner_Power_shape_data.edges_vertex_indices_.size() / 2;
+	//	uint32 inner_power_nb_faces = Inner_Power_shape_data.faces_nb_edges_.size();
+
+	//	Inner_Power_shape_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
+
+	//	import_incidence_graph_data(*mv, Inner_Power_shape_data);
+	//	auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
+	//	for (uint32 i = 0u; i < power_point.size(); ++i)
+	//	{
+	//		uint32 vertex_id = inside_indices[point_info[i].first];
+	//		//The radius is sqrt of the weight!
+	//		(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+	//	}
+
+	//	std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
+	//		get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
+	//	if (mv_vertex_position)
+	//		nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
+
+	//	nonmanifold_provider_->emit_connectivity_changed(*mv);
+	//}
 
 	void compute_power_shape(SURFACE& surface)
 	{
-		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_power_shape");
+		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_power_shape");
+		NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_complete_power_shape");
 		Cgal_Surface_mesh csm;
 
 		std::string filename = surface_provider_->mesh_filename(surface);
@@ -396,17 +619,20 @@ public:
 		}
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
-		Delaunay tri = compute_delaunay_tredrahedron(csm,tree);
+		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
 		std::vector<Weight_Point> Power_point;
 		std::vector<std::pair<uint32, bool>> Point_info;
 		std::unordered_map<uint32, uint32> Inside_indices;
 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
-		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
+		constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
+		construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	void compute_original_power_diagram(SURFACE& surface)
 	{
-		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_medial_axis");
+		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_medial_axis");
+		NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_complete_medial_axis");
 		Cgal_Surface_mesh csm;
 
 		std::string filename = surface_provider_->mesh_filename(surface);
@@ -421,12 +647,13 @@ public:
 		}
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
-		Delaunay tri = compute_delaunay_tredrahedron(csm, tree);
+		Delaunay tri = compute_delaunay_tredrahedron(surface,csm, tree);
 		std::vector<Weight_Point> Power_point;
 		std::vector<std::pair<uint32, bool>> Point_info;
 		std::unordered_map<uint32, uint32> Inside_indices;
 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
- 		constrcut_power_diagram(mv, surface, Power_point, Point_info, Inside_indices);
+ 		constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
+		construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
@@ -438,7 +665,7 @@ public:
 	{
 		//TO do : better way to get attributes?
 		IncidenceGraph& ig = static_cast<IncidenceGraph&>(mv);
-		auto stability_ratio = add_attribute<double, NonManifoldEdge>(ig, "stability_ratio");
+		stability_ratio_ = add_attribute<double, NonManifoldEdge>(ig, "stability_ratio");
 		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(ig, "stability_color");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(ig, "sphere_radius");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(ig, "position");
@@ -454,7 +681,7 @@ public:
 			double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
 			double stability = dis / center_dist;
 			//std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
-			(*stability_ratio)[e.index_] = stability;
+			(*stability_ratio_)[e.index_] = stability;
 			if (stability <= 0.5)
 			{
 				(*stability_color)[e.index_] = Vec3(0, stability, (0.5 - stability));
@@ -547,7 +774,6 @@ public:
 		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
 
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
-		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		uint32 count = 0;
@@ -555,7 +781,7 @@ public:
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
 
 		foreach_cell(nm, [&](NonManifoldEdge e) -> bool{
-			value<EdgeInfo>(nm, edge_queue_it, e) = {true, queue.emplace(value<double>(nm, stability_ratio, e), e)};
+			value<EdgeInfo>(nm, edge_queue_it, e) = {true, queue.emplace(value<double>(nm, stability_ratio_, e), e)};
 			return true;
 		});
 
@@ -565,7 +791,7 @@ public:
 			NonManifoldEdge e = (*it).second;
 			queue.erase(it);
 			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
-			if (value<double>(nm, stability_ratio, e) > 0.90)
+			if (value<double>(nm, stability_ratio_, e) > 0.90)
 				break;
 			auto [v, removed_edges] = collapse_edge(nm, e);
 			//remove_edge_stability(nm, e);
@@ -634,6 +860,8 @@ public:
 protected:
 	void init() override
 	{
+		point_provider_ = static_cast<ui::MeshProvider<POINT>*>(
+			app_.module("MeshProvider (" + std::string{mesh_traits<POINT>::name} + ")"));
 		surface_provider_ = static_cast<ui::MeshProvider<SURFACE>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<SURFACE>::name} + ")"));
 		nonmanifold_provider_ = static_cast<ui::MeshProvider<NONMANIFOLD>*>(
@@ -682,8 +910,11 @@ protected:
 	}
 
 private:
-	SURFACE* selected_surface_mesh_;
+	POINT* surface_sample = nullptr;
+	SURFACE* selected_surface_mesh_ = nullptr;
 	NONMANIFOLD* selected_medial_axis = nullptr;
+	std::shared_ptr<NonManifoldAttribute<double>> stability_ratio_ = nullptr;
+	MeshProvider<POINT>* point_provider_;
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
 	Regular medial_axis;
