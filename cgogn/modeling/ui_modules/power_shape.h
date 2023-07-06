@@ -658,7 +658,7 @@ public:
 
 	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
 	{
-		return (point - center).norm() < radius;
+		return (point - center).norm() <= radius;
 	}
 
  	void compute_stability_ratio(NONMANIFOLD& mv)
@@ -838,24 +838,67 @@ public:
 // 		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 	}
 
-// 	 void point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
-// 	{
-// 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
-// 		auto sphere_radius = get_attribute<double, NonManifoldVertex)(mv,"sphere_radius");
-// 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
-// 		double inner_point_nb = nb_cells<NonManifoldVertex>(nm);
-// 		double sample_point_nb = nb_cells<Vertex>(surface);
-// 		Eigen::MatrixXi A(nb_cells<Vertex>(surface), nb_cells<NonManifoldVertex>(mv));
-// 		foreach_cell(nm, [&](NonManifoldVertex nv) {
-// 			foreach_cell(Surface, [&](Vertex v) {
-// 				A(nv.index_, v.index_) =
-// 					inside_sphere(value<Vec3>(mv, inner_position, nv), value<Vec3>(surface, sample_position, surface),
-// 								  value<double>(mv, sphere_radius, mv)*(1+dilation_factor));
-// 			});
-// 		});
-// 		Eigen::VectorXi b(inner_point_nb);
-// 
-// 	}
+ 	 void point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
+	{
+
+		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
+		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
+		auto inner_point_nb = nb_cells<NonManifoldVertex>(mv);
+		auto sample_point_nb = nb_cells<Vertex>(surface);
+		Eigen::MatrixXi A(sample_point_nb, inner_point_nb);
+		foreach_cell(mv, [&](NonManifoldVertex nv) {
+			foreach_cell(surface, [&](Vertex v) {
+				A(index_of(mv,nv),
+				index_of(surface,v)) =
+					inside_sphere(value<Vec3>(mv, inner_position, nv), value<Vec3>(surface, sample_position, v),
+								  value<double>(mv, sphere_radius, nv) * (1 + dilation_factor));
+				return true;
+			});
+			return true;
+		});
+		HighsLp lp;
+		lp.num_col_ = A.cols();
+		lp.num_row_ = A.rows();
+
+		// Adding decision variable bounds
+		HighsVarType type = HighsVarType::kInteger;
+		lp.col_lower_ = std::vector<double>(lp.num_col_, 0.0);
+		lp.col_upper_ = std::vector<double>(lp.num_col_, 1.0);
+		lp.row_lower_ = std::vector<double>(lp.num_row_, 1.0);
+		lp.row_upper_ = std::vector<double>(lp.num_row_, 1e30);
+		lp.integrality_ = std::vector<HighsVarType>(lp.num_col_, type);
+
+		lp.a_matrix_.num_col_ = lp.num_col_;
+		lp.a_matrix_.num_row_ = lp.num_row_;
+		int currentStart = 0;
+		for (int col = 0; col < lp.a_matrix_.num_col_; ++col)
+		{
+			lp.a_matrix_.start_.push_back(currentStart);
+
+			for (int row = 0; row < lp.a_matrix_.num_row_; ++row)
+			{
+				double value = A(row, col);
+				if (value != 0.0)
+				{
+					lp.a_matrix_.index_.push_back(row);
+					lp.a_matrix_.value_.push_back(value);
+					currentStart++;
+				}
+			}
+		}
+
+		lp.col_cost_ = std::vector<double>(lp.num_col_, 1.0);
+
+		Highs highs;
+		HighsStatus status = highs.passModel(lp);
+
+		if (status == HighsStatus::kOk)
+		{
+			highs.run();
+			auto solutions = highs.getSolution();
+		}
+	}
 	
 protected:
 	void init() override
@@ -903,6 +946,12 @@ protected:
 																0.01*percent_vertices_to_remove *
 																	nb_cells<NonManifoldVertex>(*selected_medial_axis));
 					
+				}
+				if (ImGui::Button("Coverage Axis"))
+				{
+					static float dilation_factor = 0.1f;
+					ImGui::SliderFloat("Dilation factor", &dilation_factor, 0.0f, 1.0f, "%.4f");
+					point_selection_by_coverage_axis(*selected_surface_mesh_, * selected_medial_axis, dilation_factor );
 				}
 				
 			}
