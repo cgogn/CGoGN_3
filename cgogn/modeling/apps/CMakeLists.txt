@@ -12,8 +12,8 @@ find_package(cgogn_modeling REQUIRED)
 
 #set(HIGHS_DIR path_to_highs_install/lib/cmake/highs)
 
-find_package(HIGHS REQUIRED)
-find_package(Threads REQUIRED)
+#find_package(HIGHS REQUIRED)
+#find_package(Threads REQUIRED)
 
 add_executable(modeling modeling.cpp)
 target_link_libraries(modeling

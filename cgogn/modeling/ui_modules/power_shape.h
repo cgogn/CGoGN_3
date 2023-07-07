@@ -322,7 +322,10 @@ public:
 					poles.insert(farthest_inside_point);
 					power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
 					point_info.push_back({count, true});
-					inside_indices.insert({count++, inside_poles_count++});
+					inside_indices.insert({count, inside_poles_count});
+					count++;
+					inside_poles_count++;
+
 				}
 			}
 			if (farthest_outside_distance != 0)
@@ -331,7 +334,8 @@ public:
 				{
 					poles.insert(farthest_outside_point);
 					power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
-					point_info.push_back({count++, false});
+					point_info.push_back({count, false});
+					count++;
 				}
 			}
 		}
@@ -849,54 +853,89 @@ public:
 		Eigen::MatrixXi A(sample_point_nb, inner_point_nb);
 		foreach_cell(mv, [&](NonManifoldVertex nv) {
 			foreach_cell(surface, [&](Vertex v) {
-				A(index_of(mv,nv),
-				index_of(surface,v)) =
-					inside_sphere(value<Vec3>(mv, inner_position, nv), value<Vec3>(surface, sample_position, v),
-								  value<double>(mv, sphere_radius, nv) * (1 + dilation_factor));
+				A(index_of(surface, v), index_of(mv, nv) ) =
+					inside_sphere(value<Vec3>(surface, sample_position, v),
+								  value<Vec3>(mv, inner_position, nv),
+								  value<double>(mv, sphere_radius, nv) + dilation_factor) ? 1 : 0;
 				return true;
 			});
 			return true;
 		});
-		HighsLp lp;
-		lp.num_col_ = A.cols();
-		lp.num_row_ = A.rows();
+		HighsModel model;
+		model.lp_.num_col_ = A.cols();
+		model.lp_.num_row_ = A.rows();
 
 		// Adding decision variable bounds
 		HighsVarType type = HighsVarType::kInteger;
-		lp.col_lower_ = std::vector<double>(lp.num_col_, 0.0);
-		lp.col_upper_ = std::vector<double>(lp.num_col_, 1.0);
-		lp.row_lower_ = std::vector<double>(lp.num_row_, 1.0);
-		lp.row_upper_ = std::vector<double>(lp.num_row_, 1e30);
-		lp.integrality_ = std::vector<HighsVarType>(lp.num_col_, type);
+		model.lp_.col_lower_ = std::vector<double>(model.lp_.num_col_, 0.0);
+		model.lp_.col_upper_ = std::vector<double>(model.lp_.num_col_, 1.0);
+		model.lp_.row_lower_ = std::vector<double>(model.lp_.num_row_, 1.0);
+		model.lp_.row_upper_ = std::vector<double>(model.lp_.num_row_, 1e30);
+		model.lp_.integrality_ = std::vector<HighsVarType>(model.lp_.num_col_, type);
 
-		lp.a_matrix_.num_col_ = lp.num_col_;
-		lp.a_matrix_.num_row_ = lp.num_row_;
+		model.lp_.a_matrix_.num_col_ = model.lp_.num_col_;
+		model.lp_.a_matrix_.num_row_ = model.lp_.num_row_;
 		int currentStart = 0;
-		for (int col = 0; col < lp.a_matrix_.num_col_; ++col)
+		for (int col = 0; col < model.lp_.a_matrix_.num_col_; ++col)
 		{
-			lp.a_matrix_.start_.push_back(currentStart);
+			model.lp_.a_matrix_.start_.push_back(currentStart);
 
-			for (int row = 0; row < lp.a_matrix_.num_row_; ++row)
+			for (int row = 0; row < model.lp_.a_matrix_.num_row_; ++row)
 			{
 				double value = A(row, col);
 				if (value != 0.0)
 				{
-					lp.a_matrix_.index_.push_back(row);
-					lp.a_matrix_.value_.push_back(value);
+					model.lp_.a_matrix_.index_.push_back(row);
+					model.lp_.a_matrix_.value_.push_back(value);
 					currentStart++;
 				}
 			}
 		}
 
-		lp.col_cost_ = std::vector<double>(lp.num_col_, 1.0);
+		model.lp_.col_cost_ = std::vector<double>(model.lp_.num_col_, 1.0);
 
 		Highs highs;
-		HighsStatus status = highs.passModel(lp);
+		HighsStatus status = highs.passModel(model);
+		highs.setOptionValue("time_limit", 60);
 
 		if (status == HighsStatus::kOk)
 		{
 			highs.run();
-			auto solutions = highs.getSolution();
+			
+			assert(status == HighsStatus::kOk);
+			const HighsSolution& solution = highs.getSolution();
+			const HighsInfo& info = highs.getInfo();
+			// Get the primal solution values
+			std::vector<Weight_Point> power_point;
+			std::vector<std::pair<uint32, bool>> point_info;
+			std::unordered_map<uint32, uint32> inside_indices;
+			uint32 count = 0;
+			foreach_cell(mv, [&](NonManifoldVertex nv) {
+				if (solution.col_value[index_of(mv, nv)] > 0)
+				{
+					Vec3 pos = value<Vec3>(mv, inner_position, nv);
+					power_point.push_back(
+						Weight_Point(Point(pos[0], pos[1], pos[2]),
+									 value<double>(mv, sphere_radius, nv) * value<double>(mv, sphere_radius, nv)));
+					point_info.push_back({count, true});
+					inside_indices[count] = count;
+					count++;
+				}
+				return true;
+			});
+			
+			foreach_cell(surface, [&](Vertex v) {
+				Vec3 pos = value<Vec3>(surface, sample_position, v);
+				power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
+				point_info.push_back({count, false});
+				count++;
+				
+				return true;
+			});
+				
+			NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "coverage_axis");
+			constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
+			
 		}
 	}
 	
@@ -947,10 +986,11 @@ protected:
 																	nb_cells<NonManifoldVertex>(*selected_medial_axis));
 					
 				}
+				static float dilation_factor = 0.1f;
+				ImGui::SliderFloat("Dilation factor", &dilation_factor, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
-					static float dilation_factor = 0.1f;
-					ImGui::SliderFloat("Dilation factor", &dilation_factor, 0.0f, 1.0f, "%.4f");
+					
 					point_selection_by_coverage_axis(*selected_surface_mesh_, * selected_medial_axis, dilation_factor );
 				}
 				
