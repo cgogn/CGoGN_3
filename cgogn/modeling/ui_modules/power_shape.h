@@ -135,33 +135,6 @@ private:
 					(edge1.first == edge2.second && edge1.second == edge2.first));
 		}
 	};
-	struct face_hash
-	{
-		std::size_t operator()(const std::tuple<uint32, uint32, uint32>& triangle) const
-		{
-			std::size_t seed = 0;
-			seed ^= std::hash<uint32>{}(std::get<0>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<uint32>{}(std::get<1>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<uint32>{}(std::get<2>(triangle)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			return seed;
-		}
-	};
-
-	struct face_equal
-	{
-		bool operator()(const std::tuple<uint32, uint32, uint32>& lhs,
-						const std::tuple<uint32, uint32, uint32>& rhs) const
-		{
-			std::array<uint32, 3> lhsIndices = {std::get<0>(lhs), std::get<1>(lhs), std::get<2>(lhs)};
-			std::array<uint32, 3> rhsIndices = {std::get<0>(rhs), std::get<1>(rhs), std::get<2>(rhs)};
-
-			std::sort(lhsIndices.begin(), lhsIndices.end());
-			std::sort(rhsIndices.begin(), rhsIndices.end());
-
-			return lhsIndices == rhsIndices;
-		}
-	};
-
 	bool pointInside(Tree& tree, Point& query)
 	{
 		// Initialize the point-in-polyhedron tester
@@ -223,7 +196,7 @@ public:
 
 		//		auto start_timer = std::chrono::high_resolution_clock::now();
 
-		// Indices info for constructing volume data in Cgogn
+		// Indices info for constructing volume data in CGogn
 		std::vector<unsigned> indices;
 		indices.reserve(nb_vertices);
 		for (unsigned int i = 0; i < nb_vertices; ++i)
@@ -246,34 +219,19 @@ public:
 	{
 		uint32 count = 0, inside_vertices_count = 0;
 		double dis;
-		std::unordered_set<Point, point_hash> voronoi_vertices;
-		std::vector<Delaunay::Cell_handle> cells;
-		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
+		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
-			cells.clear();
-			tri.finite_incident_cells(vit, std::back_inserter(cells));
-			if (cells.size())
+			Point centroid = CGAL::circumcenter(tri.tetrahedron(cit));
+			dis = CGAL::squared_distance(centroid, cit->vertex(0)->point());
+			power_point.push_back(Weight_Point(centroid, dis));
+			if (pointInside(tree, centroid))
 			{
-				for (auto c = cells.begin(); c != cells.end(); ++c)
-				{
-					Point centroid = tri.dual(*c);
-					dis = CGAL::squared_distance(centroid, vit->point());
-					if (voronoi_vertices.find(centroid) == voronoi_vertices.end())
-					{
-						voronoi_vertices.insert(centroid);
-						power_point.push_back(Weight_Point(centroid, dis));
-						if (pointInside(tree, centroid))
-						{
-							point_info.push_back({count, true});
-							inside_indices.insert({count++, inside_vertices_count++});
-						}
-						else if (!pointInside(tree, centroid))
-						{
-							point_info.push_back({count++, false});
-						
-						}
-					}
-				}
+				point_info.push_back({count, true});
+				inside_indices.insert({count++, inside_vertices_count++});
+			}
+			else if (!pointInside(tree, centroid))
+			{
+				point_info.push_back({count++, false});
 			}
 		}
 	}
@@ -314,30 +272,30 @@ public:
 						farthest_outside_distance = dis;
 					}
 				}
-			}
-			if (farthest_inside_distance != 0)
-			{
-				if (poles.find(farthest_inside_point) == poles.end())
+				if (farthest_inside_distance != 0)
 				{
-					poles.insert(farthest_inside_point);
-					power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
-					point_info.push_back({count, true});
-					inside_indices.insert({count, inside_poles_count});
-					count++;
-					inside_poles_count++;
-
+					if (poles.find(farthest_inside_point) == poles.end())
+					{
+						poles.insert(farthest_inside_point);
+						power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
+						point_info.push_back({count, true});
+						inside_indices.insert({count, inside_poles_count});
+						count++;
+						inside_poles_count++;
+					}
+				}
+				if (farthest_outside_distance != 0)
+				{
+					if (poles.find(farthest_outside_point) == poles.end())
+					{
+						poles.insert(farthest_outside_point);
+						power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
+						point_info.push_back({count, false});
+						count++;
+					}
 				}
 			}
-			if (farthest_outside_distance != 0)
-			{
-				if (poles.find(farthest_outside_point) == poles.end())
-				{
-					poles.insert(farthest_outside_point);
-					power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
-					point_info.push_back({count, false});
-					count++;
-				}
-			}
+			
 		}
 	}
 	void construct_complete_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
@@ -399,7 +357,9 @@ public:
 		for (uint32 i = 0u; i < power_point.size(); ++i)
 		{
 			uint32 vertex_id = point_info[i].first;
+			// The radius is sqrt of the weight!
 			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+			
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -417,9 +377,7 @@ public:
 		cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
 
 		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-		std::unordered_set<std::tuple<uint32, uint32, uint32>, face_hash, face_equal> face_sets;
 		uint32 edge_count = 0;
-
 		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
 							  boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
 
@@ -444,20 +402,15 @@ public:
 				//Add edge
 				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
 				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
-				if (edge_indices.find({v1, v2}) == edge_indices.end())
-				{
-					edge_indices.insert({{v1, v2}, edge_count});
-					Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
-					Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
-					edge_count++;
-				}
+				edge_indices.insert({{v1, v2}, edge_count}); 
+				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
+				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
+				edge_count++;
+				
 			}
 		}
-		std::tuple<uint32, uint32, uint32> face_tuple;
-		std::vector<uint32> face_indices; 
 		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
 		{
-			face_indices.clear();
 			inside = true;
 			v = fit->second;
 			// If face is inside
@@ -466,31 +419,25 @@ public:
 				if (idx != v)
 				{
 					inside &= fit->first->vertex(idx)->info().second;
-					face_indices.push_back(inside_indices[fit->first->vertex(idx)->info().first]);
 				}
 			}
 			if (inside)
 			{
-				face_tuple = std::make_tuple(face_indices[0], face_indices[1], face_indices[2]);
-				if (face_sets.find(face_tuple) == face_sets.end())
+				Inner_Power_shape_data.faces_nb_edges_.push_back(3);
+				for (size_t i = 0; i < 4; i++)
 				{
-					Inner_Power_shape_data.faces_nb_edges_.push_back(3);
-					for (size_t i = 0; i < 4; i++)
+					if (i != v)
 					{
-						if (i != v)
+						for (size_t j = i + 1; j < 4; j++)
 						{
-							for (size_t j = i + 1; j < 4; j++)
+							if (j != v)
 							{
-								if (j != v)
-								{
-									v1 = inside_indices[fit->first->vertex(i)->info().first];
-									v2 = inside_indices[fit->first->vertex(j)->info().first];
-									Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
-								}
+								v1 = inside_indices[fit->first->vertex(i)->info().first];
+								v2 = inside_indices[fit->first->vertex(j)->info().first];
+								Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
 							}
 						}
 					}
-					face_sets.insert(face_tuple);
 				}
 			}
 		}
@@ -504,9 +451,12 @@ public:
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		for (uint32 i = 0u; i < power_point.size(); ++i)
 		{
-			uint32 vertex_id = inside_indices[point_info[i].first];
-			// The radius is sqrt of the weight!
-			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+			if (point_info[i].second)
+			{
+				uint32 vertex_id = inside_indices[point_info[i].first];
+				// The radius is sqrt of the weight!
+				(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+			}
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -516,94 +466,7 @@ public:
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
-	//void constrcut_inner_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
-	//							 std::vector<std::pair<uint32, bool>>& point_info,
-	//							 std::unordered_map<uint32, uint32>& inside_indices)
-	//{
-	//	
-	//	cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
-	//	
-	//	std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-	//	uint32 edge_count = 0;
-
-	//	medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
-	//				boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
-
-	//	for (size_t idx = 0; idx < power_point.size(); ++idx)
-	//	{
-	//		//if the point is inside
-	//		if (point_info[idx].second)
-	//		{
-	//			Inner_Power_shape_data.vertex_position_.push_back(
-	//				{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
-	//		}	
-	//	}
-	//	bool inside;
-	//	uint32 v, v1, v2;
-	//	for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
-	//	{
-	//		inside = true;
-	//		v = fit->second;
-	//		// If face is inside
-	//		for (size_t idx = 0; idx < 4; ++idx)
-	//		{
-	//			if (idx != v)
-	//			{
-	//				inside &= fit->first->vertex(idx)->info().second;
-	//			}
-	//		}
-	//		if (inside)
-	//		{
-	//			Inner_Power_shape_data.faces_nb_edges_.push_back(3);
-	//			for (size_t i = 0; i < 4; i++)
-	//			{
-	//				if (i != v)
-	//				{
-	//					for (size_t j = i + 1; j < 4; j++)
-	//					{
-	//						if (j != v)
-	//						{
-	//							// Add edge
-	//							v1 = inside_indices[fit->first->vertex(i)->info().first];
-	//							v2 = inside_indices[fit->first->vertex(j)->info().first];
-	//							if (edge_indices.find({v1, v2}) == edge_indices.end())
-	//							{
-	//								edge_indices.insert({{v1, v2}, edge_count});
-	//								Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
-	//								Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
-	//								edge_count++;
-	//							}
-	//							// Add face
-	//							Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//	uint32 inner_power_nb_vertices = Inner_Power_shape_data.vertex_position_.size();
-	//	uint32 inner_power_nb_edges = Inner_Power_shape_data.edges_vertex_indices_.size() / 2;
-	//	uint32 inner_power_nb_faces = Inner_Power_shape_data.faces_nb_edges_.size();
-
-	//	Inner_Power_shape_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
-
-	//	import_incidence_graph_data(*mv, Inner_Power_shape_data);
-	//	auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
-	//	for (uint32 i = 0u; i < power_point.size(); ++i)
-	//	{
-	//		uint32 vertex_id = inside_indices[point_info[i].first];
-	//		//The radius is sqrt of the weight!
-	//		(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
-	//	}
-
-	//	std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
-	//		get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
-	//	if (mv_vertex_position)
-	//		nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
-
-	//	nonmanifold_provider_->emit_connectivity_changed(*mv);
-	//}
-
+	
 	void compute_power_shape(SURFACE& surface)
 	{
 		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
@@ -864,9 +727,10 @@ public:
 		HighsModel model;
 		model.lp_.num_col_ = A.cols();
 		model.lp_.num_row_ = A.rows();
-
+		model.lp_.sense_ = ObjSense::kMinimize;
 		// Adding decision variable bounds
 		HighsVarType type = HighsVarType::kInteger;
+		model.lp_.col_cost_ = std::vector<double>(model.lp_.num_col_, 1.0);
 		model.lp_.col_lower_ = std::vector<double>(model.lp_.num_col_, 0.0);
 		model.lp_.col_upper_ = std::vector<double>(model.lp_.num_col_, 1.0);
 		model.lp_.row_lower_ = std::vector<double>(model.lp_.num_row_, 1.0);
@@ -892,7 +756,7 @@ public:
 			}
 		}
 
-		model.lp_.col_cost_ = std::vector<double>(model.lp_.num_col_, 1.0);
+		
 
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
