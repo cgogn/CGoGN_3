@@ -159,7 +159,7 @@ public:
 		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
-		double offset = (md.bb_max_ - md.bb_min_).norm() *0.7;
+		double offset = (md.bb_max_ - md.bb_min_).norm() *20.0;
 		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
@@ -227,11 +227,14 @@ public:
 			if (pointInside(tree, centroid))
 			{
 				point_info.push_back({count, true});
-				inside_indices.insert({count++, inside_vertices_count++});
+				inside_indices.insert({count, inside_vertices_count});
+				count++;
+				inside_vertices_count++;
 			}
 			else if (!pointInside(tree, centroid))
 			{
-				point_info.push_back({count++, false});
+				point_info.push_back({count, false});
+				count++;
 			}
 		}
 	}
@@ -707,7 +710,7 @@ public:
 
  	 void point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
 	{
-
+		
 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
@@ -724,7 +727,13 @@ public:
 			});
 			return true;
 		});
+		
+		std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAA " << std::endl;
 		HighsModel model;
+		std::cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbb " << std::endl;
+	
+		std::cout << "CCCCCCCCCCCCCCCCCCCCCCCCCCCC " << std::endl;
+		
 		model.lp_.num_col_ = A.cols();
 		model.lp_.num_row_ = A.rows();
 		model.lp_.sense_ = ObjSense::kMinimize;
@@ -756,11 +765,9 @@ public:
 			}
 		}
 
-		
-
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
-		highs.setOptionValue("time_limit", 60);
+		highs.setOptionValue("time_limit",1000);
 
 		if (status == HighsStatus::kOk)
 		{
@@ -797,9 +804,16 @@ public:
 				return true;
 			});
 				
-			NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "coverage_axis");
+			NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis");
+			NonManifold* ca_complet =
+				nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis_complete");
 			constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
-			
+			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
+			foreach_cell(*ca, [&](NonManifoldVertex v) { 
+				value<double>(*ca, sphere_radius, v) += dilation_factor;
+				return true;
+			});
+			construct_complete_power_diagram(ca_complet, power_point, point_info);
 		}
 	}
 	
@@ -851,7 +865,7 @@ protected:
 					
 				}
 				static float dilation_factor = 0.1f;
-				ImGui::SliderFloat("Dilation factor", &dilation_factor, 0.0f, 1.0f, "%.4f");
+				ImGui::DragFloat("Dilation factor", &dilation_factor, 0.001f, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
 					
