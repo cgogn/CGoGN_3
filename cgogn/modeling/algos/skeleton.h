@@ -98,7 +98,9 @@ struct MeanCurvatureSkeleton_Helper
 		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal_.get());
 
 		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
-		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get());
+		vertex_medial_point_radius_ = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
+		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get(),
+										 vertex_medial_point_radius_.get());
 
 		// TODO: regularize medial axis ?
 
@@ -119,6 +121,7 @@ struct MeanCurvatureSkeleton_Helper
 	{
 		remove_attribute<Vertex>(m_, vertex_normal_);
 		remove_attribute<Vertex>(m_, vertex_medial_point_);
+		remove_attribute<Vertex>(m_, vertex_medial_point_radius_);
 		remove_attribute<Vertex>(m_, vertex_is_fixed_);
 		remove_attribute<Vertex>(m_, vertex_index_);
 		remove_attribute<Edge>(m_, edge_weight_);
@@ -129,6 +132,7 @@ struct MeanCurvatureSkeleton_Helper
 	std::shared_ptr<Attribute<Vec3>> vertex_position_;
 	std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 	std::shared_ptr<Attribute<Vec3>> vertex_medial_point_;
+	std::shared_ptr<Attribute<Scalar>> vertex_medial_point_radius_;
 	std::shared_ptr<Attribute<bool>> vertex_is_fixed_;
 	std::shared_ptr<Attribute<Vec3>> vertex_is_fixed_color_;
 	std::shared_ptr<Attribute<uint32>> vertex_index_;
@@ -174,10 +178,10 @@ void mean_curvature_skeleton(MESH& m,
 		uint32 vidx2 = value<uint32>(m, helper.vertex_index_, iv[1]);
 		Scalar v_wL1 = value<bool>(m, helper.vertex_is_fixed_, iv[0]) ? 0.0 : wL;
 		Scalar v_wL2 = value<bool>(m, helper.vertex_is_fixed_, iv[1]) ? 0.0 : wL;
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w* v_wL1));
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w* v_wL1));
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w* v_wL2));
-		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w* v_wL2));
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx2), w * v_wL1));
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx1), int(vidx1), -w * v_wL1));
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx1), w * v_wL2));
+		Acoeffs.push_back(Eigen::Triplet<Scalar>(int(vidx2), int(vidx2), -w * v_wL2));
 		return true;
 	});
 
