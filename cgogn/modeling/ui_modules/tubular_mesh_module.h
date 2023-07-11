@@ -30,7 +30,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/centroid.h>
@@ -63,6 +62,10 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Mat3;
+using geometry::Scalar;
+using geometry::Vec3;
+
 template <typename GRAPH, typename SURFACE, typename VOLUME>
 class TubularMesh : public ViewModule
 {
@@ -85,10 +88,6 @@ class TubularMesh : public ViewModule
 	using VolumeEdge = typename mesh_traits<VOLUME>::Edge;
 	using VolumeFace = typename mesh_traits<VOLUME>::Face;
 	using VolumeVolume = typename mesh_traits<VOLUME>::Volume;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-	using Mat3 = geometry::Mat3;
 
 public:
 	TubularMesh(const App& app) : ViewModule(app, "TubularMesh")
@@ -143,7 +142,7 @@ public:
 	void init_graph_radius_from_edge_length()
 	{
 		Scalar l = geometry::mean_edge_length(*graph_, graph_vertex_position_.get());
-		graph_vertex_radius_->fill(l);// / 2.0);
+		graph_vertex_radius_->fill(l); // / 2.0);
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
 	}
 

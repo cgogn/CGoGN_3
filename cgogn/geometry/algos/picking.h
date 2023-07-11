@@ -25,7 +25,6 @@
 #define CGOGN_GEOMETRY_ALGOS_PICKING_H_
 
 #include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 
 #include <cgogn/geometry/functions/distance.h>
 #include <cgogn/geometry/functions/intersection.h>

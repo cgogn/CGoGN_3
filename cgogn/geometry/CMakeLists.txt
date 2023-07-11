@@ -13,8 +13,7 @@ find_package(Eigen3 3.2)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
 	    "${CMAKE_CURRENT_LIST_DIR}/types/vector_traits.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/types/grid.h"
 	    "${CMAKE_CURRENT_LIST_DIR}/types/quadric.h"
@@ -51,6 +50,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_selection.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_selection.h"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"

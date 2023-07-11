@@ -27,7 +27,6 @@
 #include <cgogn/io/incidence_graph/incidence_graph_import.h>
 #include <cgogn/io/utils.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/numerics.h>
 
 #include <cgogn/geometry/types/vector_traits.h>

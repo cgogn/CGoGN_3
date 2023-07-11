@@ -26,7 +26,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/edge.h>
 
 namespace cgogn
@@ -35,8 +34,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 template <typename MESH>
 Vec3 mid_point(const MESH& m, typename mesh_traits<MESH>::Edge e,

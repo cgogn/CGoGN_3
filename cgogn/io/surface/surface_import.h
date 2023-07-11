@@ -25,21 +25,23 @@
 #define CGOGN_IO_SURFACE_IMPORT_H_
 
 #include <cgogn/io/cgogn_io_export.h>
-
-#include <cgogn/core/types/cmap/cmap2.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/utils/numerics.h>
 
 #include <vector>
 
 namespace cgogn
 {
 
+//forward
+struct CMap2;
+struct GMap2;
+struct IncidenceGraph;
+
 namespace io
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 struct SurfaceImportData
 {
@@ -66,6 +68,7 @@ struct SurfaceImportData
 };
 
 void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
+void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
 void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
 
 } // namespace io

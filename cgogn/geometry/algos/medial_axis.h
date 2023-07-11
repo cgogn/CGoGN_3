@@ -24,7 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 #define CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/functions/angle.h>
@@ -42,8 +41,8 @@ namespace cgogn
 namespace geometry
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 inline Scalar compute_radius(const Vec3& p, const Vec3& n, const Vec3& q)
 {

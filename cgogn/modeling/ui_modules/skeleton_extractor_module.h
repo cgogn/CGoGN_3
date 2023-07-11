@@ -29,9 +29,6 @@
 #include <cgogn/ui/module.h>
 
 #include <cgogn/core/functions/convert.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 
 #include <cgogn/core/functions/traversals/face.h>
 #include <cgogn/core/functions/traversals/vertex.h>
@@ -51,6 +48,10 @@ namespace cgogn
 
 namespace ui
 {
+
+using geometry::Vec3;
+using geometry::Scalar;
+using geometry::Mat3;
 
 template <typename SURFACE, typename NONMANIFOLD, typename GRAPH>
 class SkeletonExtractor : public Module
@@ -73,9 +74,6 @@ class SkeletonExtractor : public Module
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
 
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-	using Mat3 = geometry::Mat3;
 
 public:
 	SkeletonExtractor(const App& app)

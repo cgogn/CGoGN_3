@@ -24,8 +24,6 @@
 #ifndef CGOGN_MODELING_ALGOS_SKELETON_H_
 #define CGOGN_MODELING_ALGOS_SKELETON_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/halfedge.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
@@ -51,8 +49,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 ///////////
 // CMap2 //

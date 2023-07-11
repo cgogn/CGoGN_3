@@ -21,6 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -28,12 +31,6 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
-
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 #include <cgogn/modeling/algos/incidenceGraph_to_hex.h>
 
 using IGraph = cgogn::IncidenceGraph;

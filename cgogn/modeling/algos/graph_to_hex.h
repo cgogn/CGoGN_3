@@ -24,6 +24,9 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_TO_HEX_H_
 
+#include <cgogn/core/types/maps/cmap/graph.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#include <cgogn/core/types/mesh_views/cell_cache.h>
 #include <cgogn/core/types/cells_set.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/io/surface/surface_import.h>
@@ -38,9 +41,9 @@ class CellMarker;
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 using Vec3i = geometry::Vec3i;
-using Scalar = geometry::Scalar;
+using geometry::Scalar;
 using Mat3 = geometry::Mat3;
 
 struct GAttributes

@@ -26,7 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/fbo.h>
-#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/rendering/mesh_render_base.h>
 #include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
 

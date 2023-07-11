@@ -24,9 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
 #define CGOGN_MODELING_ALGOS_DECIMATION_CELL_QUEUE_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-
+#include <cgogn/core/utils/numerics.h>
 #include <map>
 
 namespace cgogn

@@ -28,11 +28,7 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
@@ -51,7 +47,7 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 template <typename MESH>
 void debug_off(MESH& _m)
@@ -79,7 +75,10 @@ void debug_off(MESH& _m)
 	file << "COFF" << std::endl << nb_vertices << " " << nb_faces << " 0" << std::endl;
 
 	std::unordered_map<uint32, Vertex> vertices;
-	foreach_cell(_m, [&](Vertex v) -> bool { vertices[_m.index_of(v)] = v; });
+	foreach_cell(_m, [&](Vertex v) -> bool {
+		vertices[_m.index_of(v)] = v;
+		return true;
+	});
 
 	float32 mean_charac = 0;
 	float32 min_charac = value<float32>(_m, charac, vertices[0]);

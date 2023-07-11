@@ -24,12 +24,10 @@
 #ifndef CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 #define CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/length.h>
@@ -46,27 +44,33 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 ///////////
 // CMap2 //
 ///////////
 
-inline void triangulate_incident_faces(CMap2& m, CMap2::Vertex v)
+
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
+												   (mesh_traits<MAP2>::dimension >= 1)>* = nullptr>
+void triangulate_incident_faces(MAP2& m, typename MAP2::Vertex v)
 {
-	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
-	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
+	std::vector<typename MAP2::Face> ifaces = incident_faces(m, v);
+	for (typename MAP2::Face f : ifaces)
+		cut_face(m, typename MAP2::Vertex(f.dart), typename MAP2::Vertex(phi<1, 1>(m, f.dart)));
 }
 
-inline bool edge_should_flip(CMap2& m, CMap2::Edge e)
+
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
+												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
+inline bool edge_should_flip(MAP2& m, typename MAP2::Edge e)
 {
-	std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
+	std::vector<typename MAP2::Vertex> iv = incident_vertices(m, e);
 	const int32 w = degree(m, iv[0]);
 	const int32 x = degree(m, iv[1]);
-	const int32 y = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[0].dart)));
-	const int32 z = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[1].dart)));
+	const int32 y = degree(m, typename MAP2::Vertex(phi<1, 1>(m, iv[0].dart)));
+	const int32 z = degree(m, typename MAP2::Vertex(phi<1, 1>(m, iv[1].dart)));
 
 	if (w < 4 || x < 4)
 		return false;

@@ -24,21 +24,19 @@
 #ifndef CGOGN_MODELING_ALGOS_INCIDENCEGRAPH_TO_HEX_H_
 #define CGOGN_MODELING_ALGOS_INCIDENCEGRAPH_TO_HEX_H_
 
-#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/modeling/algos/graph_utils.h>
 
 namespace cgogn
 {
 
-template <typename MESH, typename CELL>
-class CellMarker;
-
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 using Mat3 = geometry::Mat3;
 
 struct IG_GAttributes

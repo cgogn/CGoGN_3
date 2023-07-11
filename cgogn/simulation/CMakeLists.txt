@@ -12,13 +12,14 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::simulation ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
         "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/shallow_water.h"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"

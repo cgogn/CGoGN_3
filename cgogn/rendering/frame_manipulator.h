@@ -36,7 +36,8 @@ namespace cgogn
 
 namespace rendering
 {
-
+using geometry::Vec3;
+using geometry::Scalar;
 /**
  * @brief The FrameManipulator class
  *
@@ -65,9 +66,6 @@ namespace rendering
  */
 class CGOGN_RENDERING_EXPORT FrameManipulator
 {
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-
 	std::unique_ptr<VBO> vbo_grid_;
 	std::unique_ptr<ShaderNoIllum::Param> param_grid_;
 

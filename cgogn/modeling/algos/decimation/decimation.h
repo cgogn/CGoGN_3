@@ -24,9 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
 #define CGOGN_GEOMETRY_ALGOS_DECIMATION_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/modeling/algos/decimation/QEM_helper.h>
@@ -39,8 +36,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 /////////////
 // GENERIC //
@@ -77,12 +74,13 @@ void decimate(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* ver
 	uint32 count = 0;
 	for (auto it = edge_queue.begin(); it != edge_queue.end(); ++it)
 	{
-		Vec3 newpos = approx(*it);
+		auto it_e = *it;
+		Vec3 newpos = approx(it_e);
 
 		Edge e1, e2;
-		pre_collapse(m, *it, e1, e2, edge_queue, edge_queue_info.get());
-		before(*it);
-		Vertex v = collapse_edge(m, *it);
+		pre_collapse(m, it_e, e1, e2, edge_queue, edge_queue_info.get());
+		before(it_e);
+		Vertex v = collapse_edge(m, it_e);
 		value<Vec3>(m, vertex_position, v) = newpos;
 		after(v);
 		post_collapse(m, e1, e2, edge_queue, edge_queue_info.get(), edge_cost);

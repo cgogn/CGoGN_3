@@ -21,6 +21,10 @@
  *                                                                              *
  *******************************************************************************/
 
+
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -37,7 +41,6 @@
 #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/rendering/ui_modules/volume_render.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/utils/string.h>
 
 // using Graph = cgogn::Graph;

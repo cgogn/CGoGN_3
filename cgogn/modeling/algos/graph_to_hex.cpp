@@ -23,24 +23,11 @@
 
 #include <cgogn/modeling/algos/graph_to_hex.h>
 
-#include <cgogn/core/types/cell_marker.h>
-
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/halfedge.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/mesh_ops/vertex.h>
-#include <cgogn/core/functions/mesh_ops/volume.h>
 
 #include <cgogn/core/functions/mesh_info.h>
 
-#include <cgogn/core/types/cmap/cmap_ops.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/io/surface/surface_import.h>
