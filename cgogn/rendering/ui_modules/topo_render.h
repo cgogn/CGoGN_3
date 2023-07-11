@@ -54,8 +54,8 @@ class TopoRender : public ViewModule
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Volume = typename mesh_traits<MESH>::Volume;
 
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
+	using geometry::Vec3;
+	using geometry::Scalar;
 
 	struct Parameters
 	{

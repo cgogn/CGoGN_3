@@ -21,9 +21,10 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>

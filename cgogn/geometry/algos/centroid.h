@@ -24,10 +24,8 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_CENTROID_H_
 #define CGOGN_GEOMETRY_ALGOS_CENTROID_H_
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
 
+#include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn

@@ -26,7 +26,6 @@
 
 #include <cgogn/core/types/cells_set.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/rendering/mesh_render.h>
@@ -46,14 +45,14 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+
 template <typename MESH>
 struct MeshData
 {
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
-
-	using Vec3 = geometry::Vec3;
 
 	MeshData() : mesh_(nullptr), bb_vertex_position_(nullptr), bb_min_(0, 0, 0), bb_max_(0, 0, 0), outlined_until_(0.0)
 	{
@@ -69,6 +68,7 @@ struct MeshData
 	void init(const MESH* m)
 	{
 		mesh_ = m;
+//		dump_map_darts(*m);
 		update_nb_cells();
 	}
 

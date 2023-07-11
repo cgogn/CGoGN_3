@@ -24,8 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 #define CGOGN_MODELING_ALGOS_MESH_REPAIR_H_
 
-#include <cgogn/core/functions/mesh_ops/volume.h>
-#include <cgogn/core/functions/traversals/global.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 namespace cgogn
@@ -38,8 +37,12 @@ namespace modeling
 // CMap2 //
 ///////////
 
-inline void fill_holes(CMap2& m, bool set_indices = true)
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
+												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
+inline void fill_holes(MAP2& m, bool set_indices = true)
 {
+	using Face = typename MAP2::Face;
+
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
 		if (is_boundary(m, d))
@@ -47,10 +50,10 @@ inline void fill_holes(CMap2& m, bool set_indices = true)
 			set_boundary(m, d, false);
 			if (set_indices)
 			{
-				if (is_indexed<CMap2::Face>(m))
+				if (is_indexed<Face>(m))
 				{
-					if (index_of(m, CMap2::Face(d)) == INVALID_INDEX)
-						set_index(m, CMap2::Face(d), new_index<CMap2::Face>(m));
+					if (index_of(m, Face(d)) == INVALID_INDEX)
+						set_index(m, Face(d), new_index<Face>(m));
 				}
 			}
 		}

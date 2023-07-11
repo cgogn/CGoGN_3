@@ -26,7 +26,7 @@
 
 #include <cgogn/io/cgogn_io_export.h>
 
-#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
@@ -39,7 +39,7 @@ namespace cgogn
 namespace io
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 struct IncidenceGraphImportData
 {
@@ -67,6 +67,7 @@ struct IncidenceGraphImportData
 };
 
 void CGOGN_IO_EXPORT import_incidence_graph_data(IncidenceGraph& ig, IncidenceGraphImportData& graph_data);
+
 void CGOGN_IO_EXPORT import_incidence_graph_data(Graph& g, IncidenceGraphImportData& graph_data);
 
 } // namespace io

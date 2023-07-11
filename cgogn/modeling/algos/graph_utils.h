@@ -24,11 +24,10 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/cell_marker.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {

@@ -24,8 +24,7 @@
 #ifndef CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 #define CGOGN_CORE_TYPES_INTRINSIC_TRIANGULATION_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/types/cmap/cmap2.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -300,7 +299,7 @@ private:
 	// compute the next intersection from an edge
 	void trace_from_edge_()
 	{
-		Scalar barycenter, beta, B_gamma, C_gamma;
+		Scalar barycenter=0, beta=0, B_gamma=0, C_gamma=0;
 		Vec3 B_inter, C_inter;
 		bool C_side = false, B_side = false;
 

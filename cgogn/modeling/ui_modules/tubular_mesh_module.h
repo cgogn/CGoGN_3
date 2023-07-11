@@ -30,7 +30,6 @@
 
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/centroid.h>
@@ -62,6 +61,10 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+using geometry::Mat3;
+
 template <typename GRAPH, typename SURFACE, typename VOLUME>
 class TubularMesh : public ViewModule
 {
@@ -84,10 +87,6 @@ class TubularMesh : public ViewModule
 	using VolumeEdge = typename mesh_traits<VOLUME>::Edge;
 	using VolumeFace = typename mesh_traits<VOLUME>::Face;
 	using VolumeVolume = typename mesh_traits<VOLUME>::Volume;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-	using Mat3 = geometry::Mat3;
 
 public:
 	TubularMesh(const App& app) : ViewModule(app, "TubularMesh")
@@ -1458,7 +1457,7 @@ protected:
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 
 			static float optimize_fit_to_surface = 1.0f;
-			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 10.0))
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1f, 10.0f))
 				refresh_solver_matrix_values_only_ = true;
 			if (ImGui::Button("Optimize volume vertices (inside skin)"))
 				optimize_volume_vertices(optimize_fit_to_surface, true);
@@ -1484,7 +1483,7 @@ protected:
 				static bool init_steady_pos = false;
 				ImGui::Checkbox("Init steady pos", &init_steady_pos);
 				static float registration_fit_to_target = 0.05f;
-				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01, 0.5);
+				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01f, 0.5f);
 				static int proximity = geometry::NEAREST_POINT;
 				ImGui::RadioButton("Nearest", &proximity, geometry::NEAREST_POINT);
 				ImGui::SameLine();

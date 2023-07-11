@@ -24,147 +24,20 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_VOLUME_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_VOLUME_H_
 
-#include <cgogn/core/cgogn_core_export.h>
+// #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/utils/tuples.h>
-#include <cgogn/core/utils/type_traits.h>
+// #include <cgogn/core/utils/tuples.h>
+// #include <cgogn/core/utils/type_traits.h>
 
-#include <cgogn/core/types/cell_marker.h>
+// #include <cgogn/core/types/cell_marker.h>
 
-#include <cgogn/core/types/cmap/cmap_info.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
-#include <cgogn/core/types/cmap/orbit_traversal.h>
+// #include <cgogn/core/types/maps/cmap/cmap_info.h>
+// #include <cgogn/core/types/maps/dart_marker.h>
+// #include <cgogn/core/types/maps/cmap/orbit_traversal.h>
 
 namespace cgogn
 {
 
-/*****************************************************************************/
-
-// template <typename MESH, typename CELL, typename FUNC>
-// void foreach_incident_volume(const MESH& m, CELL c, const FUNC& f);
-
-/*****************************************************************************/
-
-///////////////////////////////
-// CMapBase (or convertible) //
-///////////////////////////////
-
-template <typename MESH, typename CELL, typename FUNC>
-auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
-{
-	foreach_incident_volume(m, c, func, CMapBase::TraversalPolicy::AUTO);
-}
-
-template <typename MESH, typename CELL, typename FUNC>
-auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, CMapBase::TraversalPolicy traversal_policy)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>
-{
-	using Volume = typename mesh_traits<MESH>::Volume;
-
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, Volume>::value, "Wrong function cell parameter type");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-
-	if constexpr (std::is_convertible_v<MESH&, CMap2&> && mesh_traits<MESH>::dimension == 2)
-	{
-		func(Volume(c.dart));
-	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 &&
-					   std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
-	{
-		Dart d = c.dart;
-		do
-		{
-			if (!is_boundary(m, d))
-			{
-				if (!func(Volume(d)))
-					break;
-			}
-			d = phi3(m, phi2(m, d));
-		} while (d != c.dart);
-	}
-	else if constexpr (std::is_convertible_v<MESH&, CMap3&> && mesh_traits<MESH>::dimension == 3 &&
-					   std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
-	{
-		Dart d = c.dart;
-		if (!is_boundary(m, d))
-			if (!func(Volume(d)))
-				return;
-		d = phi3(m, d);
-		if (!is_boundary(m, d))
-			func(Volume(d));
-	}
-	else
-	{
-		if (traversal_policy == CMapBase::TraversalPolicy::AUTO && is_indexed<Volume>(m))
-		{
-			CellMarkerStore<MESH, Volume> marker(m);
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				Volume v(d);
-				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
-				{
-					if (!is_boundary(m, d) && !marker.is_marked(v))
-					{
-						marker.mark(v);
-						return func(v);
-					}
-				}
-				else
-				{
-					if (!marker.is_marked(v))
-					{
-						marker.mark(v);
-						return func(v);
-					}
-				}
-				return true;
-			});
-		}
-		else
-		{
-			DartMarkerStore<MESH> marker(m);
-			foreach_dart_of_orbit(m, c, [&](Dart d) -> bool {
-				if constexpr (mesh_traits<MESH>::dimension == 3) // volumes can be boundary cells
-				{
-					if (!is_boundary(m, d) && !marker.is_marked(d))
-					{
-						Volume v(d);
-						foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-							marker.mark(d);
-							return true;
-						});
-						return func(v);
-					}
-				}
-				else
-				{
-					if (!marker.is_marked(d))
-					{
-						Volume v(d);
-						foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
-							marker.mark(d);
-							return true;
-						});
-						return func(v);
-					}
-				}
-				return true;
-			});
-		}
-	}
-}
-
-/*****************************************************************************/
-
-// template <typename MESH, typename CELL>
-// std::vector<typename mesh_traits<MESH>::Volume> incident_volumes(const MESH& m, CELL c);
-
-/*****************************************************************************/
-
-/////////////
-// GENERIC //
-/////////////
 
 template <typename MESH, typename CELL>
 std::vector<typename mesh_traits<MESH>::Volume> incident_volumes(const MESH& m, CELL c)

@@ -46,8 +46,8 @@ class VolumeMRModeling : public Module
 	using Vertex = typename mesh_traits<CPH3>::Vertex;
 	using Edge = typename mesh_traits<CPH3>::Edge;
 
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
+	using geometry::Vec3;
+	using geometry::Scalar;
 
 public:
 	VolumeMRModeling(const App& app)

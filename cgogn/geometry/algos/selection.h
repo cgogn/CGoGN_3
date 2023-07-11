@@ -24,35 +24,35 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_SELECTION_H_
 #define CGOGN_GEOMETRY_ALGOS_SELECTION_H_
 
-#include <cgogn/core/types/cmap/cmap2.h>
-#include <cgogn/core/types/cmap/dart_marker.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
-
-#include <cgogn/geometry/algos/angle.h>
+#include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/geometry/algos/normal.h>
+#include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/edge.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-
 namespace cgogn
 {
+struct CMap2;
+struct GMap2;
 
 namespace geometry
 {
 
-CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
-							   const typename CMap2::template Attribute<Vec3>* vertex_position)
-{
-	using Vertex = typename CMap2::Vertex;
-	using HalfEdge = typename CMap2::HalfEdge;
-	using Edge = typename CMap2::Edge;
-	using Face = typename CMap2::Face;
+//CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
+//						   const typename CMap2::template Attribute<Vec3>* vertex_position);
 
-	CellCache<CMap2> cache(m);
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
+CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex center, geometry::Scalar radius,
+							  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+//	typename std::enable_if_t<std::is_same_v<MESH, CMap2>, CellCache<MESH>>;
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	CellCache<MESH> cache(m);
 
 	const Vec3& center_position = value<Vec3>(m, vertex_position, center);
 
@@ -95,9 +95,9 @@ CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, ge
 	mark_vertex(center);
 
 	uint32 i = 0;
-	while (i < cache.cell_vector<Vertex>().size())
+	while (i < cache.template cell_vector<Vertex>().size())
 	{
-		Vertex v = cache.cell_vector<Vertex>()[i];
+		Vertex v = cache.template cell_vector<Vertex>()[i];
 		foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
 			const Vec3& p = value<Vec3>(m, vertex_position, av);
 			if (in_sphere(p, center_position, radius))
@@ -118,6 +118,8 @@ CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, ge
 	return cache;
 }
 
+
+
 template <typename CELL, typename MESH>
 std::vector<CELL> within_normal_angle_threshold(
 	const MESH& m, CELL start, geometry::Scalar angle_threshold,
@@ -127,7 +129,8 @@ std::vector<CELL> within_normal_angle_threshold(
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	Vec3 n = normal(m, start, vertex_position);
-	CellMarker<CMap2, CELL> marker(m);
+//	CellMarker<MESH, CELL> marker(m);
+	CellMarker<MESH, CELL> marker(m);
 	std::vector<CELL> cells;
 	cells.push_back(start);
 
@@ -159,6 +162,7 @@ std::vector<CELL> within_normal_angle_threshold(
 
 } // namespace geometry
 
+void gg(CMap2& c);
 } // namespace cgogn
 
 #endif // CGOGN_GEOMETRY_ALGOS_SELECTION_H_

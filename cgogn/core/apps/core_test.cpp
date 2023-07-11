@@ -1,9 +1,7 @@
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 
+
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/io/surface/off.h>
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 using namespace cgogn;
@@ -22,7 +20,7 @@ void do_something(MESH& m)
 	});
 }
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 int main()
 {

@@ -24,7 +24,6 @@
 #ifndef CGOGN_CORE_ATTRIBUTE_HANDLER_H_
 #define CGOGN_CORE_ATTRIBUTE_HANDLER_H_
 
-#include <cgogn/core/functions/attributes.h>
 #include <memory>
 
 namespace cgogn

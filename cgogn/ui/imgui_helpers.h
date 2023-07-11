@@ -26,8 +26,6 @@
 
 #include <imgui/imgui.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/ui_modules/mesh_data.h>
 
 #include <cgogn/rendering/shaders/shader_function_color_maps.h>

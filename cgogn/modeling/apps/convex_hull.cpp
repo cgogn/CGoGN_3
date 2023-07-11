@@ -21,6 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/types/maps/cmap/cmap2.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>

@@ -23,41 +23,45 @@
 
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
-
+#include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/types/cmap/phi.h>
+#include <cgogn/core/types/maps/dart.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 namespace cgogn
 {
+//forward for SFINAE
+struct MapBase;
+struct CMap2;
 
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 ///////////
 // CMap2 //
 ///////////
 
-inline void hexagon_to_triangles(CMap2& m, CMap2::Face f)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> && (mesh_traits<MESH>::dimension==2)>* = nullptr>
+void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 {
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
 	Dart d0 = phi1(m, f.dart);
 	Dart d1 = phi<1, 1>(m, d0);
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(d1));
+	cut_face(m, Vertex(d0), Vertex(d1));
 	Dart d2 = phi<1, 1>(m, d1);
-	cut_face(m, CMap2::Vertex(d1), CMap2::Vertex(d2));
+	cut_face(m, Vertex(d1), Vertex(d2));
 	Dart d3 = phi<1, 1>(m, d2);
-	cut_face(m, CMap2::Vertex(d2), CMap2::Vertex(d3));
+	cut_face(m, Vertex(d2),Vertex(d3));
 }
 
 //////////////
-// CMapBase //
+// MapBase //
 //////////////
 
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_traits<MESH>::Face f)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;

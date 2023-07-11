@@ -24,11 +24,8 @@
 #ifndef CGOGN_CORE_FUNCTIONS_CONVERT_H_
 #define CGOGN_CORE_FUNCTIONS_CONVERT_H_
 
-#include <cgogn/core/functions/attributes.h>
-
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/functions/traversals/volume.h>
 
