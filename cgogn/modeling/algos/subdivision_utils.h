@@ -25,10 +25,13 @@
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/types/incidence_graph.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/dart.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <set>
+#include <unordered_map>
 
 namespace cgogn
 {
@@ -88,13 +91,13 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 	return Vertex(phi2(m, x));
 }
 
-// template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, CMapBase&>>* = nullptr>
-// typename mesh_traits<MESH>::Vertex quadrangulate_face(
-// 	MESH& m, typename mesh_traits<MESH>::Face f,
-// 	const CellMarker<MESH, typename mesh_traits<MESH>::Vertex>& vertex_marker)
-// {
-// 	return quadrangulate_face(m, f);
-// }
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
+typename mesh_traits<MESH>::Vertex quadrangulate_face(
+	MESH& m, typename mesh_traits<MESH>::Face f,
+	const CellMarker<MESH, typename mesh_traits<MESH>::Vertex>& vertex_marker)
+{
+	return quadrangulate_face(m, f);
+}
 
 ////////////////////
 // IncidenceGraph //

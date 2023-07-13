@@ -24,18 +24,8 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_VERTEX_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_VERTEX_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
-
-// #include <cgogn/core/utils/tuples.h>
-// #include <cgogn/core/utils/type_traits.h>
-
-
 namespace cgogn
 {
-
-/////////////
-// GENERIC //
-/////////////
 
 template <typename MESH, typename CELL>
 std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m, CELL c)
@@ -50,7 +40,6 @@ std::vector<typename mesh_traits<MESH>::Vertex> incident_vertices(const MESH& m,
 	return vertices;
 }
 
-
 template <typename MESH, typename CELL>
 void append_incident_vertices(const MESH& m, CELL c, std::vector<typename mesh_traits<MESH>::Vertex>& vertices)
 {
@@ -60,10 +49,6 @@ void append_incident_vertices(const MESH& m, CELL c, std::vector<typename mesh_t
 		return true;
 	});
 }
-
-/////////////
-// GENERIC //
-/////////////
 
 template <typename MESH>
 std::vector<typename mesh_traits<MESH>::Vertex> adjacent_vertices_through_edge(const MESH& m,

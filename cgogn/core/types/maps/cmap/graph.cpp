@@ -21,10 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/graph.h>
 
 namespace cgogn
 {
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 Graph::Vertex add_vertex(Graph& g, bool set_indices)
 {
@@ -286,39 +291,6 @@ Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices)
 	}
 
 	return v;
-}
-
-void alpha0_sew(Graph& m, Dart d, Dart e)
-{
-	(*m.alpha0_)[d.index] = e;
-	(*m.alpha0_)[e.index] = d;
-}
-
-void alpha0_unsew(Graph& m, Dart d)
-{
-	Dart e = alpha0(m, d);
-	(*m.alpha0_)[d.index] = d;
-	(*m.alpha0_)[e.index] = e;
-}
-
-void alpha1_sew(Graph& m, Dart d, Dart e)
-{
-	Dart f = alpha1(m, d);
-	Dart g = alpha1(m, e);
-	(*m.alpha1_)[d.index] = g;
-	(*m.alpha1_)[e.index] = f;
-	(*m.alpha_1_)[g.index] = d;
-	(*m.alpha_1_)[f.index] = e;
-}
-
-void alpha1_unsew(Graph& m, Dart d)
-{
-	Dart e = alpha1(m, d);
-	Dart f = alpha_1(m, d);
-	(*m.alpha1_)[f.index] = e;
-	(*m.alpha1_)[d.index] = d;
-	(*m.alpha_1_)[e.index] = f;
-	(*m.alpha_1_)[d.index] = d;
 }
 
 } // namespace cgogn

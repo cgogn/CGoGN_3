@@ -21,10 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cmap1.h>
 
 namespace cgogn
 {
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 CMap1::Vertex cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
@@ -100,6 +105,10 @@ void remove_face(CMap1& m, CMap1::Face f)
 	remove_dart(m, f.dart);
 }
 
+/*************************************************************************/
+// Debugging helper functions
+/*************************************************************************/
+
 bool check_integrity(CMap1& m, bool verbose)
 {
 	bool result = true;
@@ -115,26 +124,6 @@ bool check_integrity(CMap1& m, bool verbose)
 	result &= check_indexing<CMap1::Edge>(m);
 	result &= check_indexing<CMap1::Face>(m);
 	return result;
-}
-
-void phi1_sew(CMap1& m, Dart d, Dart e)
-{
-	Dart f = phi1(m, d);
-	Dart g = phi1(m, e);
-	(*(m.phi1_))[d.index] = g;
-	(*(m.phi1_))[e.index] = f;
-	(*(m.phi_1_))[g.index] = d;
-	(*(m.phi_1_))[f.index] = e;
-}
-
-void phi1_unsew(CMap1& m, Dart d)
-{
-	Dart e = phi1(m, d);
-	Dart f = phi1(m, e);
-	(*(m.phi1_))[d.index] = f;
-	(*(m.phi1_))[e.index] = e;
-	(*(m.phi_1_))[f.index] = d;
-	(*(m.phi_1_))[e.index] = e;
 }
 
 } // namespace cgogn

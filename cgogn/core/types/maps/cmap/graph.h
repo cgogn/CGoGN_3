@@ -21,18 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_GRAPH_H_
-#define CGOGN_CORE_TYPES_CMAP_GRAPH_H_
+#ifndef CGOGN_CORE_TYPES_MAPS_CMAP_GRAPH_H_
+#define CGOGN_CORE_TYPES_MAPS_CMAP_GRAPH_H_
 
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/maps/cell.h>
 #include <cgogn/core/types/maps/cmap/cmap_base.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT Graph : public CMapBase
+struct Graph : public CMapBase
 {
 	static const uint8 dimension = 1;
 
@@ -73,43 +70,9 @@ struct mesh_traits<Graph>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
-Graph::Vertex CGOGN_CORE_EXPORT add_vertex(Graph& g, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
-
-Graph::Edge CGOGN_CORE_EXPORT connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
-
-Graph::Vertex CGOGN_CORE_EXPORT cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
-
-Graph::Vertex CGOGN_CORE_EXPORT collapse_edge(Graph& g, Graph::Edge e, bool set_indices = true);
-
-
-template <typename CELL, typename FUNC>
-void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
-{
-	static_assert(is_in_tuple<CELL, typename Graph::Cells>::value, "Cell not supported in a Graph");
-	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	static const Orbit orbit = CELL::ORBIT;
-	switch (orbit)
-	{
-	case DART:
-		f(c.dart);
-		break;
-	case PHI2:
-		foreach_dart_of_ALPHA0(m, c.dart, f);
-		break;
-	case PHI21:
-		foreach_dart_of_ALPHA1(m, c.dart, f);
-		break;
-	default:
-		break;
-	}
-}
+/*************************************************************************/
+// Basic alpha functions
+/*************************************************************************/
 
 inline Dart alpha0(const Graph& m, Dart d)
 {
@@ -126,19 +89,111 @@ inline Dart alpha_1(const Graph& m, Dart d)
 	return (*m.alpha_1_)[d.index];
 }
 
-void alpha0_sew(Graph& m, Dart d, Dart e);
+inline void alpha0_sew(Graph& m, Dart d, Dart e)
+{
+	(*m.alpha0_)[d.index] = e;
+	(*m.alpha0_)[e.index] = d;
+}
 
-void alpha0_unsew(Graph& m, Dart d);
+inline void alpha0_unsew(Graph& m, Dart d)
+{
+	Dart e = alpha0(m, d);
+	(*m.alpha0_)[d.index] = d;
+	(*m.alpha0_)[e.index] = e;
+}
 
-void alpha1_sew(Graph& m, Dart d, Dart e);
+inline void alpha1_sew(Graph& m, Dart d, Dart e)
+{
+	Dart f = alpha1(m, d);
+	Dart g = alpha1(m, e);
+	(*m.alpha1_)[d.index] = g;
+	(*m.alpha1_)[e.index] = f;
+	(*m.alpha_1_)[g.index] = d;
+	(*m.alpha_1_)[f.index] = e;
+}
 
-void alpha1_unsew(Graph& m, Dart d);
+inline void alpha1_unsew(Graph& m, Dart d)
+{
+	Dart e = alpha1(m, d);
+	Dart f = alpha_1(m, d);
+	(*m.alpha1_)[f.index] = e;
+	(*m.alpha1_)[d.index] = d;
+	(*m.alpha_1_)[e.index] = f;
+	(*m.alpha_1_)[d.index] = d;
+}
+
+/*************************************************************************/
+// Orbit traversals
+/*************************************************************************/
+
+template <typename FUNC>
+void foreach_dart_of_ALPHA0(const Graph& m, Dart d, const FUNC& f)
+{
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if (f(d))
+		f(alpha0(m, d));
+}
+
+template <typename FUNC>
+void foreach_dart_of_ALPHA1(const Graph& m, Dart d, const FUNC& f)
+{
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	Dart it = d;
+	do
+	{
+		if (!f(it))
+			break;
+		it = alpha1(m, it);
+	} while (it != d);
+}
+
+template <typename CELL, typename FUNC>
+void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
+{
+	static_assert(is_in_tuple<CELL, typename Graph::Cells>::value, "Cell not supported in a Graph");
+	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	static const Orbit orbit = CELL::ORBIT;
+
+	switch (orbit)
+	{
+	case DART:
+		f(c.dart);
+		break;
+	case PHI2:
+		foreach_dart_of_ALPHA0(m, c.dart, f);
+		break;
+	case PHI21:
+		foreach_dart_of_ALPHA1(m, c.dart, f);
+		break;
+	default:
+		break;
+	}
+}
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+Graph::Vertex add_vertex(Graph& g, bool set_indices = true);
+void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices = true);
+void merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
+Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
+void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
 
 inline bool is_vertex_isolated(Graph& g, Graph::Vertex v)
 {
-	return alpha0(g, v.dart) == alpha1(g, v.dart); 
+	return alpha0(g, v.dart) == alpha1(g, v.dart);
 };
+
+Graph::Vertex cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);
+Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices = true);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_GRAPH_H_
+#endif // CGOGN_CORE_TYPES_MAPS_CMAP_GRAPH_H_

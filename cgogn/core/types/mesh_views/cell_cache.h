@@ -24,16 +24,18 @@
 #ifndef CGOGN_CORE_TYPES_MESH_VIEWS_CELL_CACHE_H_
 #define CGOGN_CORE_TYPES_MESH_VIEWS_CELL_CACHE_H_
 
-#include <cgogn/core/cgogn_core_export.h>
-#include <cgogn/core/utils/type_traits.h>
-#include <cgogn/core/types/mesh_traits.h>
-#include <cgogn/core/utils/tuples.h>
-#include <vector>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
+#include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/type_traits.h>
+
+#include <vector>
 
 namespace cgogn
 {
+
+template <typename MESH>
+struct mesh_traits;
 
 template <class>
 struct tuple_of_vectors_of_T_from_tuple_of_T;
@@ -148,7 +150,6 @@ struct mesh_traits<CellCache<MESH>> : public mesh_traits<MESH>
 {
 };
 
-
 template <typename MESH, typename FUNC>
 void foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
@@ -161,7 +162,6 @@ void foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 		if (!f(*it))
 			break;
 }
-
 
 template <typename MESH, typename FUNC>
 void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)

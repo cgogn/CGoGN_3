@@ -24,8 +24,10 @@
 #ifndef CGOGN_CORE_TYPES_GMAP_ORBIT_TRAVERSAL_H_
 #define CGOGN_CORE_TYPES_GMAP_ORBIT_TRAVERSAL_H_
 
-#include <cgogn/core/types/maps/gmap/beta.h>
 #include <cgogn/core/types/maps/dart_marker.h>
+#include <cgogn/core/types/maps/gmap/beta.h>
+#include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/type_traits.h>
 
 namespace cgogn
 {
@@ -45,7 +47,6 @@ auto foreach_dart_of_BETA0(const MESH& m, Dart d, const FUNC& f)
 		f(beta0(m, d));
 }
 
-
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA1(const MESH& m, Dart d, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
@@ -57,15 +58,14 @@ auto foreach_dart_of_BETA1(const MESH& m, Dart d, const FUNC& f)
 		f(beta1(m, d));
 }
 
-
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA0_BETA1(const MESH& m, Dart d, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension>=1)>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
 {
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	Dart it =d;
+	Dart it = d;
 	do
 	{
 		if (!f(it))
@@ -93,7 +93,6 @@ auto foreach_dart_of_BETAs(const MESH& m, Dart d, const BETA& betas, const FUNC&
 	} while (it != d);
 }
 
-
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA01(const MESH& m, Dart d, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
@@ -101,23 +100,23 @@ auto foreach_dart_of_BETA01(const MESH& m, Dart d, const FUNC& f)
 	foreach_dart_of_BETAs(
 		m, d, [&](const MESH& bm, Dart bd) { return beta<0, 1>(bm, bd); }, f);
 
-	//static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
-	//static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
-	//Dart it = d;
-	//do
+	// static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
+	// static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+	// Dart it = d;
+	// do
 	//{
 	//	if (!f(it))
 	//		return;
 	//	it = beta0(m, it);
 	//	it = beta1(m, it);
-	//} while (it != d);
+	// } while (it != d);
 }
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA21(const MESH& m, Dart d, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&> && (mesh_traits<MESH>::dimension >= 1)>
 {
-//	foreach_dart_of_BETAs(m, d, beta<2, 1>, f);
+	//	foreach_dart_of_BETAs(m, d, beta<2, 1>, f);
 	foreach_dart_of_BETAs(
 		m, d, [&](const MESH& bm, Dart bd) { return beta<2, 1>(bm, bd); }, f);
 }
@@ -140,7 +139,6 @@ auto foreach_dart_of_BETA1_BETA2(const MESH& m, Dart d, const FUNC& f)
 		it = beta2(m, it);
 	} while ((it != d));
 }
-
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA0_BETA2(const MESH& m, Dart d, const FUNC& f)
@@ -179,17 +177,16 @@ auto foreach_dart_of_BETA0_BETA2_BETA3(const MESH& m, Dart d, const FUNC& f)
 	{
 		if (!f(it))
 			return;
-		if (!f(beta0(m,it)))
+		if (!f(beta0(m, it)))
 			return;
 		it = beta2(m, it);
 		if (!f(it))
 			return;
-		if (!f(beta0(m,it)))
+		if (!f(beta0(m, it)))
 			return;
 		it = beta3(m, it);
 	} while ((it != d));
 }
-
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA0_BETA1_BETA2(const MESH& m, Dart d, const FUNC& f)
@@ -198,8 +195,7 @@ auto foreach_dart_of_BETA0_BETA1_BETA2(const MESH& m, Dart d, const FUNC& f)
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-
-		// NON OPTIMIZED (BUT SO SIMPLE TO CODE!)
+	// NON OPTIMIZED (BUT SO SIMPLE TO CODE!)
 
 	DartMarkerStore<MESH> marker(m);
 	const std::vector<Dart>& marked_darts = marker.marked_darts();
@@ -222,19 +218,19 @@ auto foreach_dart_of_BETA0_BETA1_BETA2(const MESH& m, Dart d, const FUNC& f)
 		if (!marker.is_marked(d2))
 			marker.mark(d2);
 	}
-	//DartMarkerStore<MESH> marker(m);
+	// DartMarkerStore<MESH> marker(m);
 
-	//std::vector<Dart> visited_faces;
-	//visited_faces.reserve(32);
-	//visited_faces.push_back(d); // Start with the face of d
+	// std::vector<Dart> visited_faces;
+	// visited_faces.reserve(32);
+	// visited_faces.push_back(d); // Start with the face of d
 
 	//// For every face added to the list
-	//for (uint32 i = 0; i < uint32(visited_faces.size()); ++i)
+	// for (uint32 i = 0; i < uint32(visited_faces.size()); ++i)
 	//{
 	//	const Dart e = visited_faces[i];
 	//	if (!marker.is_marked(e)) // Face has not been visited yet
 	//	{
-	//		foreach_dart_of_orbit(m, GMap1::Face(d), [&](Dart fd) -> bool 
+	//		foreach_dart_of_orbit(m, GMap1::Face(d), [&](Dart fd) -> bool
 	//		{
 	//			if (!f(fd))
 	//				return false;
@@ -245,9 +241,8 @@ auto foreach_dart_of_BETA0_BETA1_BETA2(const MESH& m, Dart d, const FUNC& f)
 	//			return true;
 	//		});
 	//	}
-	//}
+	// }
 }
-
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA0_BETA1_BETA3(const MESH& m, Dart d, const FUNC& f)
@@ -265,8 +260,6 @@ auto foreach_dart_of_BETA0_BETA1_BETA3(const MESH& m, Dart d, const FUNC& f)
 		return false;
 	});
 }
-
-
 
 template <typename MESH, typename FUNC>
 auto foreach_dart_of_BETA1_BETA2_BETA3(const MESH& m, Dart d, const FUNC& f)
@@ -297,7 +290,6 @@ auto foreach_dart_of_BETA1_BETA2_BETA3(const MESH& m, Dart d, const FUNC& f)
 			marker.mark(d3);
 	}
 }
-
 
 // TODO optimized version
 template <typename MESH, typename FUNC>
@@ -334,7 +326,6 @@ auto foreach_dart_of_BETA0_BETA1_BETA2_BETA3(const MESH& m, Dart d, const FUNC& 
 			marker.mark(d3);
 	}
 }
-
 
 template <typename MESH, typename CELL, typename FUNC>
 auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)

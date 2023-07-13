@@ -21,12 +21,10 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_CPH3_H_
-#define CGOGN_CORE_TYPES_CMAP_CPH3_H_
+#ifndef CGOGN_CORE_TYPES_MAPS_CMAP_CPH3_H_
+#define CGOGN_CORE_TYPES_MAPS_CMAP_CPH3_H_
 
 #include <cgogn/core/types/maps/cmap/cmap3.h>
-
-#include <unordered_set>
 
 namespace cgogn
 {
@@ -183,7 +181,18 @@ struct mesh_traits<CPH3> : public mesh_traits<CMap3>
 	static constexpr const char* name = "CPH3";
 };
 
+/*************************************************************************/
+// Basic phi functions
+/*************************************************************************/
 
+Dart phi1(const CPH3& m, Dart d);
+Dart phi_1(const CPH3& m, Dart d);
+Dart phi2(const CPH3& m, Dart d);
+Dart phi3(const CPH3& m, Dart d);
+
+/*************************************************************************/
+// Specific overloads
+/*************************************************************************/
 
 template <typename MRMAP, typename CELL>
 inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MRMAP&, CPH3&>, uint32>
@@ -200,22 +209,18 @@ inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convert
 	return index_of(static_cast<const CPH3::CMAP&>(m), c);
 }
 
+Dart add_dart(CPH3& m);
 
-Dart CGOGN_CORE_EXPORT add_dart(CPH3& m);
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
-CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices = true);
+CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices = true);
 
-CPH3::CMAP::Edge CGOGN_CORE_EXPORT cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
-											bool set_indices = true);
+CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2, bool set_indices = true);
 
 CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_indices = true);
 
-
-Dart phi1(const CPH3& m, Dart d);
-Dart phi_1(const CPH3& m, Dart d);
-Dart phi2(const CPH3& m, Dart d);
-Dart phi3(const CPH3& m, Dart d);
-
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_CPH3_H_
+#endif // CGOGN_CORE_TYPES_MAPS_CMAP_CPH3_H_

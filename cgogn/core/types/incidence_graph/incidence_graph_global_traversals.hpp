@@ -24,14 +24,13 @@
 #ifndef CGOGN_CORE_INCIDENCE_GRAPH_GLOBAL_TRAVERSAL_H_
 #define CGOGN_CORE_INCIDENCE_GRAPH_GLOBAL_TRAVERSAL_H_
 
-#include <cgogn/core/types/cell_marker.h>
 #include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/types/cell_marker.h>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
 
 namespace cgogn
 {
-
 
 template <typename FUNC>
 auto foreach_cell(const IncidenceGraph& ig, const FUNC& f)
@@ -46,8 +45,6 @@ auto foreach_cell(const IncidenceGraph& ig, const FUNC& f)
 			break;
 	}
 }
-
-
 
 template <typename FUNC>
 auto parallel_foreach_cell(const IncidenceGraph& m, const FUNC& f)
@@ -121,7 +118,6 @@ auto parallel_foreach_cell(const IncidenceGraph& m, const FUNC& f)
 	for (auto& b : cells_buffers[1u])
 		buffers->release_buffer(b);
 }
-
 
 } // namespace cgogn
 

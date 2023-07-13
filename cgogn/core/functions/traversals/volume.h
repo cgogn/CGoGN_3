@@ -24,20 +24,8 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_VOLUME_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_VOLUME_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
-
-// #include <cgogn/core/utils/tuples.h>
-// #include <cgogn/core/utils/type_traits.h>
-
-// #include <cgogn/core/types/cell_marker.h>
-
-// #include <cgogn/core/types/maps/cmap/cmap_info.h>
-// #include <cgogn/core/types/maps/dart_marker.h>
-// #include <cgogn/core/types/maps/cmap/orbit_traversal.h>
-
 namespace cgogn
 {
-
 
 template <typename MESH, typename CELL>
 std::vector<typename mesh_traits<MESH>::Volume> incident_volumes(const MESH& m, CELL c)

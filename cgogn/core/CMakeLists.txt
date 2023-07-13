@@ -24,27 +24,12 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cell.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/global_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_index.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_attribute.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_functions.hpp"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/phi.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/orbit_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/vertex_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/edge_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/face_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/volume_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/halfedge_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_functions.hpp"
-
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_info.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.cpp"
@@ -56,10 +41,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cph3.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/graph.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/graph.cpp"
-
 		
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/beta.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/orbit_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.cpp"
@@ -69,11 +51,6 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap2.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/vertex_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/edge_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/face_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/volume_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/halfedge_traversals.hpp"
 
 #		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_map_base.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map0.cpp"
@@ -94,7 +71,6 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_local_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_global_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
-
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
@@ -346,4 +322,3 @@ cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
 # VisualStudio nice source organisation
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)
-

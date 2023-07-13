@@ -21,16 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_CMAP0_H_
-#define CGOGN_CORE_TYPES_CMAP_CMAP0_H_
-
+#ifndef CGOGN_CORE_TYPES_MAPS_CMAP_CMAP0_H_
+#define CGOGN_CORE_TYPES_MAPS_CMAP_CMAP0_H_
 
 #include <cgogn/core/types/maps/cmap/cmap_base.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT CMap0 : public CMapBase
+struct CMap0 : public CMapBase
 {
 	static const uint8 dimension = 0;
 
@@ -62,4 +61,4 @@ struct mesh_traits<CMap0>
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_CMAP0_H_
+#endif // CGOGN_CORE_TYPES_MAPS_CMAP_CMAP0_H_

@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_ATTRIBUTE_HANDLER_H_
-#define CGOGN_CORE_ATTRIBUTE_HANDLER_H_
+#ifndef CGOGN_CORE_TYPES_ATTRIBUTE_HANDLER_H_
+#define CGOGN_CORE_TYPES_ATTRIBUTE_HANDLER_H_
 
 #include <memory>
 
@@ -61,4 +61,4 @@ inline AttributeHandler<CELL, T, ATTRIBUTE, MESH> attribute_handler(MESH* m, con
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_ATTRIBUTE_HANDLER_H_
+#endif // CGOGN_CORE_TYPES_ATTRIBUTE_HANDLER_H_

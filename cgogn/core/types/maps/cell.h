@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_CELL_H_
-#define CGOGN_CORE_TYPES_CMAP_CELL_H_
+#ifndef CGOGN_CORE_TYPES_MAPS_CELL_H_
+#define CGOGN_CORE_TYPES_MAPS_CELL_H_
 
 #include <cgogn/core/types/maps/dart.h>
 
@@ -39,21 +39,27 @@ namespace cgogn
 
 enum Orbit : uint32
 {
-	DART = 0,	BETA1, // 1VERTEX 
-	PHI1,			BETA0_BETA1 = PHI1, // 2FACE// 2FACE = 1CC
-	PHI2,			BETA0_BETA2 = PHI2, // 2EDGE
-	PHI21,			BETA1_BETA2 = PHI21,// 2VERTEX
-	PHI1_PHI2,		BETA0_BETA1_BETA2 = PHI1_PHI2,// 3VOLUME 2CC
-	PHI1_PHI3,		BETA0_BETA1_BETA3 = PHI1_PHI3, // 3FACE
-	PHI2_PHI3,		BETA0_BETA2_BETA3 = PHI2_PHI3,// 3EDGE
-	PHI21_PHI31,	BETA1_BETA2_BETA3 = PHI21_PHI31 ,// 3VERTEX
-	PHI1_PHI2_PHI3, BETA0_BETA1_BETA2_BETA3 = PHI1_PHI2_PHI3, //3CC
+	DART = 0,								  // 1VERTEX
+	BETA1,									  // 1VERTEX
+	PHI1,									  // 2FACE
+	BETA0_BETA1 = PHI1,						  // 2FACE = 1CC
+	PHI2,									  // 2EDGE
+	BETA0_BETA2 = PHI2,						  // 2EDGE
+	PHI21,									  // 2VERTEX
+	BETA1_BETA2 = PHI21,					  // 2VERTEX
+	PHI1_PHI2,								  // 3VOLUME
+	BETA0_BETA1_BETA2 = PHI1_PHI2,			  // 3VOLUME = 2CC
+	PHI1_PHI3,								  // 3FACE
+	BETA0_BETA1_BETA3 = PHI1_PHI3,			  // 3FACE
+	PHI2_PHI3,								  // 3EDGE
+	BETA0_BETA2_BETA3 = PHI2_PHI3,			  // 3EDGE
+	PHI21_PHI31,							  // 3VERTEX
+	BETA1_BETA2_BETA3 = PHI21_PHI31,		  // 3VERTEX
+	PHI1_PHI2_PHI3,							  // 3CC
+	BETA0_BETA1_BETA2_BETA3 = PHI1_PHI2_PHI3, // 3CC
 	BETA0,
 	END_ORBIT
-
 };
-
-
 
 static const std::size_t NB_ORBITS = Orbit::END_ORBIT;
 
@@ -63,6 +69,8 @@ inline std::string orbit_name(Orbit orbit)
 	{
 	case Orbit::DART:
 		return "cgogn::Orbit::DART";
+	case Orbit::BETA1:
+		return "cgogn::Orbit::BETA1";
 	case Orbit::PHI1:
 		return "cgogn::Orbit::PHI1";
 	case Orbit::PHI2:
@@ -79,7 +87,11 @@ inline std::string orbit_name(Orbit orbit)
 		return "cgogn::Orbit::PHI21_PHI31";
 	case Orbit::PHI1_PHI2_PHI3:
 		return "cgogn::Orbit::PHI1_PHI2_PHI3";
-		//		default: cgogn_assert_not_reached("This orbit does not exist"); return "UNKNOWN";
+	case Orbit::BETA0:
+		return "cgogn::Orbit::BETA0";
+	default:
+		cgogn_assert_not_reached("This orbit does not exist");
+		return "UNKNOWN";
 	}
 	cgogn_assert_not_reached("This orbit does not exist");
 #ifdef NDEBUG
@@ -172,4 +184,4 @@ struct Cell
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_CELL_H_
+#endif // CGOGN_CORE_TYPES_MAPS_CELL_H_

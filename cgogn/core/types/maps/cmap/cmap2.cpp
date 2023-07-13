@@ -21,11 +21,16 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 
 namespace cgogn
 {
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 CMap2::Vertex cut_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 {
@@ -167,6 +172,85 @@ bool flip_edge(CMap2& m, CMap2::Edge e, bool set_indices)
 	return true;
 }
 
+bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
+{
+	using Vertex = CMap2::Vertex;
+	using Face = CMap2::Face;
+
+	auto vertices = incident_vertices(m, e);
+
+	if (is_incident_to_boundary(m, vertices[0]) || is_incident_to_boundary(m, vertices[1]))
+		return false;
+
+	uint32 val_v1 = degree(m, vertices[0]);
+	uint32 val_v2 = degree(m, vertices[1]);
+
+	if (val_v1 + val_v2 < 8 || val_v1 + val_v2 > 14)
+		return false;
+
+	Dart e1 = e.dart;
+	Dart e2 = phi2(m, e.dart);
+	if (codegree(m, Face(e1)) == 3)
+	{
+		if (degree(m, Vertex(phi_1(m, e1))) < 4)
+			return false;
+	}
+	if (codegree(m, Face(e2)) == 3)
+	{
+		if (degree(m, Vertex(phi_1(m, e2))) < 4)
+			return false;
+	}
+
+	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
+
+	// Check vertex sharing condition
+	std::vector<uint32> vn1;
+	Dart it = next_edge(next_edge(e1));
+	Dart end = phi1(m, e2);
+	do
+	{
+		vn1.push_back(index_of(m, Vertex(phi1(m, it))));
+		it = next_edge(it);
+	} while (it != end);
+	it = next_edge(next_edge(e2));
+	end = phi1(m, e1);
+	do
+	{
+		auto vn1it = std::find(vn1.begin(), vn1.end(), index_of(m, Vertex(phi1(m, it))));
+		if (vn1it != vn1.end())
+			return false;
+		it = next_edge(it);
+	} while (it != end);
+
+	return true;
+}
+
+bool edge_can_flip(const CMap2& m, CMap2::Edge e)
+{
+	if (is_incident_to_boundary(m, e))
+		return false;
+
+	Dart e1 = e.dart;
+	Dart e2 = phi2(m, e1);
+
+	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
+
+	if (codegree(m, CMap2::Face(e1)) == 3 && codegree(m, CMap2::Face(e2)) == 3)
+	{
+		uint32 idxv2 = index_of(m, CMap2::Vertex(phi_1(m, e2)));
+		Dart d = phi_1(m, e1);
+		Dart it = d;
+		do
+		{
+			if (index_of(m, CMap2::Vertex(phi1(m, it))) == idxv2)
+				return false;
+			it = next_edge(it);
+		} while (it != d);
+	}
+
+	return true;
+}
+
 CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 {
 	CMap2::Face f = add_face(static_cast<CMap1&>(m), size, false);
@@ -220,7 +304,7 @@ CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices)
 	return f;
 }
 
-void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices)
+void merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices)
 {
 	if (is_incident_to_boundary(m, e))
 		return;
@@ -281,90 +365,6 @@ CMap2::Edge cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indi
 	}
 
 	return e;
-}
-
-CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices)
-{
-	cgogn_message_assert(phi2(m, d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
-
-	Dart first = add_dart(m); // First edge of the face that will fill the hole
-	phi2_sew(m, d, first);	  // 2-sew the new edge to the hole
-
-	Dart d_next = d; // Turn around the hole
-	Dart d_phi1;	 // to complete the face
-	do
-	{
-		do
-		{
-			d_phi1 = phi1(m, d_next); // Search and put in d_next
-			d_next = phi2(m, d_phi1); // the next dart of the hole
-		} while (d_next != d_phi1 && d_phi1 != d);
-
-		if (d_phi1 != d)
-		{
-			Dart next = add_dart(m); // Add a vertex into the built face
-			phi1_sew(m, first, next);
-			phi2_sew(m, d_next, next); // and 2-sew the face to the hole
-		}
-	} while (d_phi1 != d);
-
-	CMap2::Face hole(first);
-
-	if (set_indices)
-	{
-		foreach_dart_of_orbit(m, hole, [&](Dart hd) -> bool {
-			Dart hd2 = phi2(m, hd);
-			if (is_indexed<CMap2::Vertex>(m))
-				copy_index<CMap2::Vertex>(m, hd, phi1(m, hd2));
-			if (is_indexed<CMap2::Edge>(m))
-				copy_index<CMap2::Edge>(m, hd, hd2);
-			if (is_indexed<CMap2::Volume>(m))
-				copy_index<CMap2::Volume>(m, hd, hd2);
-			return true;
-		});
-	}
-
-	return hole;
-}
-
-uint32 close(CMap2& m, bool set_indices)
-{
-	uint32 nb_holes = 0u;
-
-	std::vector<Dart> fix_point_darts;
-	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
-		if (phi2(m, d) == d)
-			fix_point_darts.push_back(d);
-
-	for (Dart d : fix_point_darts)
-	{
-		if (phi2(m, d) == d)
-		{
-			CMap2::Face h = close_hole(m, d, set_indices);
-			foreach_dart_of_orbit(m, h, [&](Dart hd) -> bool {
-				set_boundary(m, hd, true);
-				return true;
-			});
-			++nb_holes;
-		}
-	}
-
-	return nb_holes;
-}
-
-void reverse_orientation(CMap2& m)
-{
-	if (is_indexed<CMap2::Vertex>(m))
-	{
-		auto new_vertex_indices = m.darts_.add_attribute<uint32>("__new_vertex_indices");
-		new_vertex_indices->fill(INVALID_INDEX);
-		for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
-			(*new_vertex_indices)[d.index] = index_of(m, CMap2::Vertex(phi1(m, d)));
-		m.cells_indices_[CMap2::Vertex::ORBIT]->swap(new_vertex_indices.get());
-		m.darts_.remove_attribute(new_vertex_indices);
-	}
-
-	m.phi1_->swap(m.phi_1_.get());
 }
 
 CMap2::Volume add_pyramid(CMap2& m, uint32 size, bool set_indices)
@@ -509,6 +509,94 @@ void remove_volume(CMap2& m, CMap2::Volume v)
 		remove_dart(m, d);
 }
 
+CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices)
+{
+	cgogn_message_assert(phi2(m, d) == d, "CMap2: close hole called on a dart that is not a phi2 fix point");
+
+	Dart first = add_dart(m); // First edge of the face that will fill the hole
+	phi2_sew(m, d, first);	  // 2-sew the new edge to the hole
+
+	Dart d_next = d; // Turn around the hole
+	Dart d_phi1;	 // to complete the face
+	do
+	{
+		do
+		{
+			d_phi1 = phi1(m, d_next); // Search and put in d_next
+			d_next = phi2(m, d_phi1); // the next dart of the hole
+		} while (d_next != d_phi1 && d_phi1 != d);
+
+		if (d_phi1 != d)
+		{
+			Dart next = add_dart(m); // Add a vertex into the built face
+			phi1_sew(m, first, next);
+			phi2_sew(m, d_next, next); // and 2-sew the face to the hole
+		}
+	} while (d_phi1 != d);
+
+	CMap2::Face hole(first);
+
+	if (set_indices)
+	{
+		foreach_dart_of_orbit(m, hole, [&](Dart hd) -> bool {
+			Dart hd2 = phi2(m, hd);
+			if (is_indexed<CMap2::Vertex>(m))
+				copy_index<CMap2::Vertex>(m, hd, phi1(m, hd2));
+			if (is_indexed<CMap2::Edge>(m))
+				copy_index<CMap2::Edge>(m, hd, hd2);
+			if (is_indexed<CMap2::Volume>(m))
+				copy_index<CMap2::Volume>(m, hd, hd2);
+			return true;
+		});
+	}
+
+	return hole;
+}
+
+uint32 close(CMap2& m, bool set_indices)
+{
+	uint32 nb_holes = 0u;
+
+	std::vector<Dart> fix_point_darts;
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+		if (phi2(m, d) == d)
+			fix_point_darts.push_back(d);
+
+	for (Dart d : fix_point_darts)
+	{
+		if (phi2(m, d) == d)
+		{
+			CMap2::Face h = close_hole(m, d, set_indices);
+			foreach_dart_of_orbit(m, h, [&](Dart hd) -> bool {
+				set_boundary(m, hd, true);
+				return true;
+			});
+			++nb_holes;
+		}
+	}
+
+	return nb_holes;
+}
+
+void reverse_orientation(CMap2& m)
+{
+	if (is_indexed<CMap2::Vertex>(m))
+	{
+		auto new_vertex_indices = m.darts_.add_attribute<uint32>("__new_vertex_indices");
+		new_vertex_indices->fill(INVALID_INDEX);
+		for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+			(*new_vertex_indices)[d.index] = index_of(m, CMap2::Vertex(phi1(m, d)));
+		m.cells_indices_[CMap2::Vertex::ORBIT]->swap(new_vertex_indices.get());
+		m.darts_.remove_attribute(new_vertex_indices);
+	}
+
+	m.phi1_->swap(m.phi_1_.get());
+}
+
+/*************************************************************************/
+// Debugging helper functions
+/*************************************************************************/
+
 bool check_integrity(CMap2& m, bool verbose)
 {
 	bool result = true;
@@ -539,100 +627,6 @@ bool check_integrity(CMap2& m, bool verbose)
 	result &= check_indexing<CMap2::Face>(m);
 	result &= check_indexing<CMap2::Volume>(m);
 	return result;
-}
-
-bool edge_can_collapse(const CMap2& m, CMap2::Edge e)
-{
-	using Vertex = CMap2::Vertex;
-	using Face = CMap2::Face;
-
-	auto vertices = incident_vertices(m, e);
-
-	if (is_incident_to_boundary(m, vertices[0]) || is_incident_to_boundary(m, vertices[1]))
-		return false;
-
-	uint32 val_v1 = degree(m, vertices[0]);
-	uint32 val_v2 = degree(m, vertices[1]);
-
-	if (val_v1 + val_v2 < 8 || val_v1 + val_v2 > 14)
-		return false;
-
-	Dart e1 = e.dart;
-	Dart e2 = phi2(m, e.dart);
-	if (codegree(m, Face(e1)) == 3)
-	{
-		if (degree(m, Vertex(phi_1(m, e1))) < 4)
-			return false;
-	}
-	if (codegree(m, Face(e2)) == 3)
-	{
-		if (degree(m, Vertex(phi_1(m, e2))) < 4)
-			return false;
-	}
-
-	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
-
-	// Check vertex sharing condition
-	std::vector<uint32> vn1;
-	Dart it = next_edge(next_edge(e1));
-	Dart end = phi1(m, e2);
-	do
-	{
-		vn1.push_back(index_of(m, Vertex(phi1(m, it))));
-		it = next_edge(it);
-	} while (it != end);
-	it = next_edge(next_edge(e2));
-	end = phi1(m, e1);
-	do
-	{
-		auto vn1it = std::find(vn1.begin(), vn1.end(), index_of(m, Vertex(phi1(m, it))));
-		if (vn1it != vn1.end())
-			return false;
-		it = next_edge(it);
-	} while (it != end);
-
-	return true;
-}
-
-bool edge_can_flip(const CMap2& m, CMap2::Edge e)
-{
-	if (is_incident_to_boundary(m, e))
-		return false;
-
-	Dart e1 = e.dart;
-	Dart e2 = phi2(m, e1);
-
-	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
-
-	if (codegree(m, CMap2::Face(e1)) == 3 && codegree(m, CMap2::Face(e2)) == 3)
-	{
-		uint32 idxv2 = index_of(m, CMap2::Vertex(phi_1(m, e2)));
-		Dart d = phi_1(m, e1);
-		Dart it = d;
-		do
-		{
-			if (index_of(m, CMap2::Vertex(phi1(m, it))) == idxv2)
-				return false;
-			it = next_edge(it);
-		} while (it != d);
-	}
-
-	return true;
-}
-
-void phi2_sew(CMap2& m, Dart d, Dart e)
-{
-	cgogn_assert(phi2(m, d) == d);
-	cgogn_assert(phi2(m, e) == e);
-	(*(m.phi2_))[d.index] = e;
-	(*(m.phi2_))[e.index] = d;
-}
-
-void phi2_unsew(CMap2& m, Dart d)
-{
-	Dart e = phi2(m, d);
-	(*(m.phi2_))[d.index] = d;
-	(*(m.phi2_))[e.index] = e;
 }
 
 } // namespace cgogn

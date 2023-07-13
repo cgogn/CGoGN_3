@@ -21,7 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/types/maps/cmap/cmap_base.h>
+#include <cgogn/core/types/maps/map_base.h>
+
+#include <iomanip>
 
 namespace cgogn
 {
@@ -35,7 +37,6 @@ MapBase::~MapBase()
 {
 }
 
-
 Dart add_dart(MapBase& m)
 {
 	uint32 index = m.darts_.new_index();
@@ -47,7 +48,6 @@ Dart add_dart(MapBase& m)
 			(*emb)[d.index] = INVALID_INDEX;
 	return d;
 }
-
 
 void remove_dart(MapBase& m, Dart d)
 {
@@ -62,8 +62,6 @@ void remove_dart(MapBase& m, Dart d)
 	}
 	m.darts_.release_index(d.index);
 }
-
-
 
 void clear(MapBase& m, bool keep_attributes)
 {
@@ -96,7 +94,6 @@ void clear(MapBase& m, bool keep_attributes)
 	}
 }
 
-
 void dump_map_darts(const MapBase& m)
 {
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
@@ -110,6 +107,5 @@ void dump_map_darts(const MapBase& m)
 		std::cout << " boundary: " << std::boolalpha << is_boundary(m, d) << std::endl;
 	}
 }
-
 
 } // namespace cgogn

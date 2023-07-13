@@ -24,11 +24,6 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_FACE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_FACE_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
-
-// #include <cgogn/core/utils/tuples.h>
-// #include <cgogn/core/utils/type_traits.h>
-
 namespace cgogn
 {
 
