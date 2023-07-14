@@ -26,6 +26,7 @@
 
 #include <cgogn/core/functions/mesh_info.h>
 
+#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
