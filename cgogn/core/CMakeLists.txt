@@ -15,10 +15,10 @@ add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
 set(src_list
-		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cells_set.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
@@ -66,10 +66,8 @@ set(src_list
 #		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/halfedge_traversals.hpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/vertex_traversals.hpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_attribute.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_local_traversals.hpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_global_traversals.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
@@ -77,6 +75,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/convert.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.h"

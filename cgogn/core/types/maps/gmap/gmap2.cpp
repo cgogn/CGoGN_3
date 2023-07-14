@@ -25,6 +25,8 @@
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/maps/gmap/gmap2.h>
 
+#include <cgogn/core/types/cell_marker.h>
+
 namespace cgogn
 {
 

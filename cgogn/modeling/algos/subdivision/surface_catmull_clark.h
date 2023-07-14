@@ -24,12 +24,14 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_SURFACE_CATMULL_CLARK_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_SURFACE_CATMULL_CLARK_H_
 
+#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/modeling/algos/subdivision_utils.h>
-#include <cgogn/geometry/types/vector_traits.h>
+
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 namespace cgogn
 {
+
 struct MapBase;
 struct CMapBase;
 struct GMapBase;
@@ -37,29 +39,27 @@ struct GMapBase;
 namespace modeling
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
-///////////
-// MAP2 //
+///////////////
+// MapBase:2 //
+///////////////
 
-///////////
-//void subdivide_catmull_clark(MAP2& m, MAP2::Attribute<Vec3>* vertex_position);
-
-template <typename MAP2,
-		  typename std::enable_if_t < std::is_convertible_v<MAP2&, MapBase&> &&( mesh_traits<MAP2>::dimension == 2)>* = nullptr >
-void subdivide_catmull_clark(MAP2& m, typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+void subdivide_catmull_clark(MESH& m, typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename mesh_traits<MAP2>::Vertex;
-	using Edge = typename mesh_traits<MAP2>::Edge;
-	using Face = typename mesh_traits<MAP2>::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
-	CellCache<MAP2> cache_old(m);
+	CellCache<MESH> cache_old(m);
 	cache_old.template build<Vertex>();
 	cache_old.template build<Edge>();
 	cache_old.template build<Face>();
 
-	CellCache<MAP2> cache_new(m);
+	CellCache<MESH> cache_new(m);
 
 	foreach_cell(cache_old, [&](Edge e) -> bool {
 		std::vector<Vertex> iv = incident_vertices(m, e);
@@ -131,7 +131,6 @@ void subdivide_catmull_clark(MAP2& m, typename mesh_traits<MAP2>::template Attri
 		return true;
 	});
 }
-
 
 } // namespace modeling
 

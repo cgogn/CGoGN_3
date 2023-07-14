@@ -26,13 +26,15 @@
 
 #include <cgogn/io/cgogn_io_export.h>
 
-#include <cgogn/core/types/maps/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/utils/numerics.h>
 
 #include <vector>
 
 namespace cgogn
 {
+
+struct Graph;
+struct IncidenceGraph;
 
 namespace io
 {

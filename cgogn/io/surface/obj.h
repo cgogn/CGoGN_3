@@ -27,13 +27,7 @@
 #include <cgogn/io/surface/surface_import.h>
 #include <cgogn/io/utils.h>
 
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/utils/numerics.h>
-
-#include <cgogn/geometry/types/vector_traits.h>
-
 #include <fstream>
-#include <vector>
 
 namespace cgogn
 {
@@ -83,7 +77,7 @@ bool import_OBJ(MESH& m, const std::string& filename)
 	fp.seekg(0, std::ios::beg);
 
 	// read faces (vertex indices)
-	//uint32 nb_faces = 0;
+	// uint32 nb_faces = 0;
 	do
 	{
 		fp >> tag;

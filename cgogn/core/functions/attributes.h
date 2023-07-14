@@ -21,46 +21,54 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/io/graph/graph_import.h>
+#ifndef CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
+#define CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
-#include <cgogn/core/types/maps/cmap/graph.h>
+#include <cgogn/core/utils/tuples.h>
+
+#include <memory>
 
 namespace cgogn
 {
 
-namespace io
+template <typename MESH>
+struct mesh_traits;
+
+// some generic functions to get/set values of attributes on cells
+
+template <typename T, typename CELL, typename MESH>
+std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> get_or_add_attribute(MESH& m,
+																						const std::string& name)
 {
-
-void import_graph_data(Graph& g, const GraphImportData& graph_data)
-{
-	using Vertex = Graph::Vertex;
-
-	auto vertex_dart = add_attribute<Dart, Vertex>(g, "__vertex_dart");
-
-	for (uint32 vertex_id : graph_data.vertices_id_)
-	{
-		Vertex v = add_vertex(g, false);
-		set_index(g, v, vertex_id);
-		(*vertex_dart)[vertex_id] = v.dart;
-	}
-
-	for (uint32 i = 0; i < uint32(graph_data.edges_vertex_indices_.size()); i += 2)
-	{
-		connect_vertices(g, Vertex((*vertex_dart)[graph_data.edges_vertex_indices_[i]]),
-						 Vertex((*vertex_dart)[graph_data.edges_vertex_indices_[i + 1]]));
-	}
-
-	remove_attribute<Vertex>(g, vertex_dart);
+	auto attribute = get_attribute<T, CELL>(m, name);
+	if (!attribute)
+		return add_attribute<T, CELL>(m, name);
+	else
+		return attribute;
 }
 
-void import_graph_data(IncidenceGraph& ig, const GraphImportData& graph_data)
+template <typename T, typename CELL, typename MESH>
+inline T& value(const MESH& m, const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute,
+				CELL c)
 {
-	using Vertex = IncidenceGraph::Vertex;
-	for (uint32 i = 0; i < uint32(graph_data.edges_vertex_indices_.size()); i += 2)
-		add_edge(ig, Vertex(graph_data.edges_vertex_indices_[i]), Vertex(graph_data.edges_vertex_indices_[i + 1]));
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
 }
 
-} // namespace io
+template <typename T, typename CELL, typename MESH>
+inline T& value(const MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
+}
+
+template <typename T, typename CELL, typename MESH>
+inline const T& value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
+}
 
 } // namespace cgogn
+
+#endif // CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_

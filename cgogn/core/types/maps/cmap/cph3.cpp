@@ -24,6 +24,8 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cph3.h>
 
+#include <cgogn/core/types/cell_marker.h>
+
 #include <unordered_set>
 
 namespace cgogn

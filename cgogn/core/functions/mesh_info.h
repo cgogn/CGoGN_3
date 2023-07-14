@@ -27,47 +27,13 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/tuples.h>
 
-#include <memory>
-#include <string>
-
 namespace cgogn
 {
 
 template <typename MESH>
 struct mesh_traits;
 
-template <typename T, typename CELL, typename MESH>
-std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> get_or_add_attribute(MESH& m,
-																						const std::string& name)
-{
-	auto attribute = get_attribute<T, CELL>(m, name);
-	if (!attribute)
-		return add_attribute<T, CELL>(m, name);
-	else
-		return attribute;
-}
-
-template <typename T, typename CELL, typename MESH>
-inline T& value(const MESH& m, const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute,
-				CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return (*attribute)[index_of(m, c)];
-}
-
-template <typename T, typename CELL, typename MESH>
-inline T& value(const MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return (*attribute)[index_of(m, c)];
-}
-
-template <typename T, typename CELL, typename MESH>
-inline const T& value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return (*attribute)[index_of(m, c)];
-}
+// some generic functions to get info about a mesh and its cells
 
 template <typename CELL, typename MESH>
 std::string cell_name(const MESH&)

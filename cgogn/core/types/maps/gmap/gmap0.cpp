@@ -23,6 +23,8 @@
 
 #include <cgogn/core/types/maps/gmap/gmap0.h>
 
+#include <cgogn/core/types/cell_marker.h>
+
 namespace cgogn
 {
 

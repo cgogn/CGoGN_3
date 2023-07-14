@@ -24,8 +24,15 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_FACE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_FACE_H_
 
+#include <vector>
+
 namespace cgogn
 {
+
+template <typename MESH>
+struct mesh_traits;
+
+// some generic functions to gather local neighborhood cells
 
 template <typename MESH, typename CELL>
 std::vector<typename mesh_traits<MESH>::Face> incident_faces(const MESH& m, CELL c)

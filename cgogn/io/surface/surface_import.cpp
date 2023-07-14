@@ -23,14 +23,15 @@
 
 #include <cgogn/io/surface/surface_import.h>
 
-#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/maps/gmap/gmap2.h>
 
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
+
 #include <algorithm>
 #include <set>
-#include <vector>
 
 namespace cgogn
 {

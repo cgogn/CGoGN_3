@@ -26,12 +26,16 @@
 
 #include <cgogn/core/cgogn_core_export.h>
 
-#include <cgogn/core/types/cell_marker.h>
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
 #include <cgogn/core/types/container/vector.h>
+
 #include <cgogn/core/types/maps/cell.h>
 #include <cgogn/core/types/maps/dart_marker.h>
+
+#include <cgogn/core/functions/mesh_info.h>
+
+#include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
 #include <cgogn/core/utils/tuples.h>
@@ -127,6 +131,12 @@ struct MapBase
 		return Dart(darts_.next_index(d.index));
 	}
 };
+
+template <typename MESH, typename CELL>
+struct CellMarker;
+
+template <typename MESH, typename CELL>
+struct CellMarkerStore;
 
 /*************************************************************************/
 // Darts basic functions
@@ -622,8 +632,8 @@ void clear(MapBase& m, bool keep_attributes = true);
 // Copy map
 /*************************************************************************/
 
-template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
-void copy(MESH& dst, const MESH& src)
+template <typename MESH>
+auto copy(MESH& dst, const MESH& src) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	clear(dst, false);
 	for (uint32 orbit = 0; orbit < NB_ORBITS; ++orbit)

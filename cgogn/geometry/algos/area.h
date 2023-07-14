@@ -24,9 +24,9 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_AREA_H_
 #define CGOGN_GEOMETRY_ALGOS_AREA_H_
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
 
-#include <cgogn/geometry/algos/centroid.h>
 #include <cgogn/geometry/functions/area.h>
 #include <cgogn/geometry/types/vector_traits.h>
 

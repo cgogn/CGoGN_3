@@ -24,6 +24,8 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/gmap/gmap1.h>
 
+#include <cgogn/core/types/cell_marker.h>
+
 namespace cgogn
 {
 
