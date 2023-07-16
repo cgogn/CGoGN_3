@@ -24,36 +24,15 @@
 #ifndef CGOGN_CORE_FUNCTIONS_TRAVERSALS_HALFEDGE_H_
 #define CGOGN_CORE_FUNCTIONS_TRAVERSALS_HALFEDGE_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
-
-// #include <cgogn/core/utils/tuples.h>
-// #include <cgogn/core/utils/type_traits.h>
+#include <vector>
 
 namespace cgogn
 {
 
-/*****************************************************************************/
+template <typename MESH>
+struct mesh_traits;
 
-// template <typename MESH, typename CELL, typename FUNC>
-// void foreach_incident_halfedge(MESH& m, CELL c, const FUNC& f);
-
-/*****************************************************************************/
-
-///////////////////////////////
-// CMapBase (or convertible) //
-///////////////////////////////
-
-
-/*****************************************************************************/
-
-// template <typename MESH, typename CELL>
-// std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(MESH& m, CELL c);
-
-/*****************************************************************************/
-
-/////////////
-// GENERIC //
-/////////////
+// some generic functions to gather local neighborhood cells
 
 template <typename MESH, typename CELL>
 std::vector<typename mesh_traits<MESH>::HalfEdge> incident_halfedges(const MESH& m, CELL c)

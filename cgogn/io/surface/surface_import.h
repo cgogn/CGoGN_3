@@ -25,15 +25,15 @@
 #define CGOGN_IO_SURFACE_IMPORT_H_
 
 #include <cgogn/io/cgogn_io_export.h>
-#include <cgogn/geometry/types/vector_traits.h>
+
 #include <cgogn/core/utils/numerics.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
 namespace cgogn
 {
 
-//forward
 struct CMap2;
 struct GMap2;
 struct IncidenceGraph;

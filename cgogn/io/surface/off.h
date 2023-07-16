@@ -27,13 +27,10 @@
 #include <cgogn/io/surface/surface_import.h>
 #include <cgogn/io/utils.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/utils/numerics.h>
-
-#include <cgogn/geometry/types/vector_traits.h>
 
 #include <fstream>
-#include <vector>
 
 namespace cgogn
 {

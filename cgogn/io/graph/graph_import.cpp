@@ -23,7 +23,8 @@
 
 #include <cgogn/io/graph/graph_import.h>
 
-#include <vector>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 
 namespace cgogn
 {

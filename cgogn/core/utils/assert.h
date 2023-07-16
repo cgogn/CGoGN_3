@@ -83,7 +83,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 	{                                                                                                                  \
 		if (!(x))                                                                                                      \
 		{                                                                                                              \
-			cgogn::assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                             \
+			assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                                    \
 		}                                                                                                              \
 	} while (false)
 
@@ -99,7 +99,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 	{                                                                                                                  \
 		if (!(x))                                                                                                      \
 		{                                                                                                              \
-			cgogn::assertion_failed(#x, msg, __FILE__, __func__, __LINE__);                                            \
+			assertion_failed(#x, msg, __FILE__, __func__, __LINE__);                                                   \
 		}                                                                                                              \
 	} while (false)
 
@@ -111,7 +111,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 #define _internal_cgogn_assert_not_reached(msg)                                                                        \
 	do                                                                                                                 \
 	{                                                                                                                  \
-		cgogn::should_not_have_reached(msg, __FILE__, __func__, __LINE__);                                             \
+		should_not_have_reached(msg, __FILE__, __func__, __LINE__);                                                    \
 	} while (false)
 
 /**
@@ -126,7 +126,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 	{                                                                                                                  \
 		if (!(x))                                                                                                      \
 		{                                                                                                              \
-			cgogn::assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                             \
+			assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                                    \
 		}                                                                                                              \
 	} while (false)
 
@@ -142,7 +142,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 	{                                                                                                                  \
 		if (!(x))                                                                                                      \
 		{                                                                                                              \
-			cgogn::assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                             \
+			assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                                    \
 		}                                                                                                              \
 	} while (false)
 
@@ -158,7 +158,7 @@ CGOGN_NORETURN CGOGN_CORE_EXPORT void should_not_have_reached(const std::string&
 	{                                                                                                                  \
 		if (!(x))                                                                                                      \
 		{                                                                                                              \
-			cgogn::assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                             \
+			assertion_failed(#x, "", __FILE__, __func__, __LINE__);                                                    \
 		}                                                                                                              \
 	} while (false)
 

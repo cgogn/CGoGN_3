@@ -20,12 +20,18 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-#include <iomanip>
-#include <cgogn/core/types/maps/gmap/gmap3.h>
+
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/types/maps/gmap/gmap3.h>
+
+#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 {
@@ -47,12 +53,10 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 	Dart e1 = beta0(m, e.dart);
 	Dart e2 = beta0(m, beta3(m, e.dart));
 	beta3_sew(m, e1, e2);
-	beta3_sew(m, beta1(m,e1), beta1(m,e2));
+	beta3_sew(m, beta1(m, e1), beta1(m, e2));
 
 	if (set_indices)
 	{
-
-
 		if (is_indexed<GMap3::Vertex>(m))
 			set_index(m, v, new_index<GMap3::Vertex>(m));
 
@@ -72,7 +76,7 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 			uint32 emb1 = index_of(m, v);
 			uint32 emb2 = new_index<GMap3::Edge>(m);
 			set_index(m, GMap3::Edge(v.dart), emb1);
-			set_index(m, GMap3::Edge(beta1(m,v.dart)), emb2);
+			set_index(m, GMap3::Edge(beta1(m, v.dart)), emb2);
 		}
 
 		if (is_indexed<GMap3::Face2>(m))
@@ -100,9 +104,9 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 			foreach_dart_of_orbit(m, v, [&](Dart di) -> bool {
 				if (is_boundary(m, di))
 					return true;
-				std::cout << "Dart of v" << di << " : beta0 "<< beta0(m, di) << " -> " << index_of(m, GMap3::Volume(beta0(m, di)))
-						  << std::endl;
-				copy_index<GMap3::Volume>(m, di, beta0(m,di));
+				std::cout << "Dart of v" << di << " : beta0 " << beta0(m, di) << " -> "
+						  << index_of(m, GMap3::Volume(beta0(m, di))) << std::endl;
+				copy_index<GMap3::Volume>(m, di, beta0(m, di));
 				return true;
 			});
 		}
@@ -125,15 +129,14 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 	Dart e10 = beta0(m, e1.dart);
 	Dart e20 = beta0(m, e2.dart);
 
-	//beta3_sew(m, e1.dart, e20);
-	//beta3_sew(m, e2.dart, e10);
-	//beta3_sew(m, beta2(m, e1.dart), beta2(m, e20));
-	//beta3_sew(m, beta2(m, e2.dart), beta2(m, e10));
+	// beta3_sew(m, e1.dart, e20);
+	// beta3_sew(m, e2.dart, e10);
+	// beta3_sew(m, beta2(m, e1.dart), beta2(m, e20));
+	// beta3_sew(m, beta2(m, e2.dart), beta2(m, e10));
 	beta3_sew(m, e1.dart, e2.dart);
 	beta3_sew(m, e10, e20);
 	beta3_sew(m, beta2(m, e1.dart), beta2(m, e2.dart));
 	beta3_sew(m, beta2(m, e10), beta2(m, e20));
-
 
 	if (set_indices)
 	{
@@ -196,9 +199,9 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 		{
 			if (!is_boundary(m, e1.dart))
 			{
-				copy_index<GMap3::Face2>(m, e1.dart, beta1(m,e1.dart));
+				copy_index<GMap3::Face2>(m, e1.dart, beta1(m, e1.dart));
 				copy_index<GMap3::Face2>(m, e10, beta1(m, e10));
-				set_index(m, GMap3::Face2(beta2(m,e10)), new_index<GMap3::Face2>(m));
+				set_index(m, GMap3::Face2(beta2(m, e10)), new_index<GMap3::Face2>(m));
 			}
 			if (!is_boundary(m, e2.dart))
 			{
@@ -206,7 +209,6 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 				copy_index<GMap3::Face2>(m, e20, beta1(m, e20));
 				set_index(m, GMap3::Face2(beta2(m, e20)), new_index<GMap3::Face2>(m));
 			}
-
 		}
 
 		if (is_indexed<GMap3::Face>(m))
@@ -423,6 +425,4 @@ uint32 close(GMap3& m, bool set_indices)
 	return nb_holes;
 }
 
-
 } // namespace cgogn
-                    

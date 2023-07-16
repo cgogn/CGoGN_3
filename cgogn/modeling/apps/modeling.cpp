@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#define USE_GMAP
+// #define USE_GMAP
 
 #ifdef USE_GMAP
 #include <cgogn/core/types/maps/gmap/gmap2.h>
@@ -53,7 +53,6 @@ using Mesh = cgogn::GMap2;
 #else
 using Mesh = cgogn::CMap2;
 #endif
-
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;

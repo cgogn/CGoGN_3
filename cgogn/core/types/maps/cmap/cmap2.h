@@ -21,17 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_CMAP2_H_
-#define CGOGN_CORE_TYPES_CMAP_CMAP2_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_CMAP_CMAP2_H_
+#define CGOGN_CORE_TYPES_MAPS_CMAP_CMAP2_H_
 
 #include <cgogn/core/types/maps/cmap/cmap1.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT CMap2 : public CMap1
+struct CMap2 : public CMap1
 {
 	static const uint8 dimension = 2;
 
@@ -77,47 +75,60 @@ struct mesh_traits<CMap2>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
-CMap2::Vertex CGOGN_CORE_EXPORT cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-CMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-bool CGOGN_CORE_EXPORT flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-CMap2::Face CGOGN_CORE_EXPORT add_face(CMap2& m, uint32 size, bool set_indices = true);
-
-CMap2::Volume CGOGN_CORE_EXPORT add_pyramid(CMap2& m, uint32 size, bool set_indices = true);
-
-CMap2::Volume CGOGN_CORE_EXPORT add_prism(CMap2& m, uint32 size, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT remove_volume(CMap2& m, CMap2::Volume v);
-
-void CGOGN_CORE_EXPORT merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
-
-CMap2::Edge CGOGN_CORE_EXPORT cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
-
-CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
-
-uint32 close(CMap2& m, bool set_indices = true);
-
-void reverse_orientation(CMap2& m);
-
-
-bool check_integrity(CMap2& m, bool verbose = true);
-
-bool edge_can_collapse(const CMap2& m, CMap2::Edge e);
-
-bool edge_can_flip(const CMap2& m, CMap2::Edge e);
-
+/*************************************************************************/
+// Basic phi functions
+/*************************************************************************/
 
 inline Dart phi2(const CMap2& m, Dart d)
 {
 	return (*(m.phi2_))[d.index];
 }
 
-void phi2_sew(CMap2& m, Dart d, Dart e);
+inline void phi2_sew(CMap2& m, Dart d, Dart e)
+{
+	cgogn_assert(phi2(m, d) == d);
+	cgogn_assert(phi2(m, e) == e);
+	(*(m.phi2_))[d.index] = e;
+	(*(m.phi2_))[e.index] = d;
+}
 
-void phi2_unsew(CMap2& m, Dart d);
+inline void phi2_unsew(CMap2& m, Dart d)
+{
+	Dart e = phi2(m, d);
+	(*(m.phi2_))[d.index] = d;
+	(*(m.phi2_))[e.index] = e;
+}
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+CMap2::Vertex cut_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+CMap2::Vertex collapse_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+bool flip_edge(CMap2& m, CMap2::Edge e, bool set_indices = true);
+
+bool edge_can_collapse(const CMap2& m, CMap2::Edge e);
+bool edge_can_flip(const CMap2& m, CMap2::Edge e);
+
+CMap2::Face add_face(CMap2& m, uint32 size, bool set_indices = true);
+void merge_incident_faces(CMap2& m, CMap2::Edge e, bool set_indices = true);
+CMap2::Edge cut_face(CMap2& m, CMap2::Vertex v1, CMap2::Vertex v2, bool set_indices = true);
+
+CMap2::Volume add_pyramid(CMap2& m, uint32 size, bool set_indices = true);
+CMap2::Volume add_prism(CMap2& m, uint32 size, bool set_indices = true);
+void remove_volume(CMap2& m, CMap2::Volume v);
+
+CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
+uint32 close(CMap2& m, bool set_indices = true);
+
+void reverse_orientation(CMap2& m);
+
+/*************************************************************************/
+// Debugging helper functions
+/*************************************************************************/
+
+bool check_integrity(CMap2& m, bool verbose = true);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_CMAP2_H_
+#endif // CGOGN_CORE_TYPES_MAPS_CMAP_CMAP2_H_

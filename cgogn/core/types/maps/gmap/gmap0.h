@@ -21,25 +21,22 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_GMAP_GMAP0_H_
-#define CGOGN_CORE_TYPES_GMAP_GMAP0_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_
+#define CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_
 
 #include <cgogn/core/types/maps/gmap/gmap_base.h>
-//#include <cgogn/core/types/maps/cell.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT GMap0 : public GMapBase
+struct GMap0 : public GMapBase
 {
 	static const uint8 dimension = 0;
 
-	using Vertex = Cell < Orbit::DART > ;
-	using Edge = Cell < Orbit::BETA0 > ;
+	using Vertex = Cell<Orbit::DART>;
+	using Edge = Cell<Orbit::BETA0>;
 
-	using Cells = std::tuple<Vertex,Edge>;
+	using Cells = std::tuple<Vertex, Edge>;
 
 	std::shared_ptr<Attribute<Dart>> beta0_;
 
@@ -47,27 +44,29 @@ struct CGOGN_CORE_EXPORT GMap0 : public GMapBase
 	{
 		beta0_ = add_relation("beta0");
 	}
-
 };
 
 template <>
 struct mesh_traits<GMap0>
 {
-	using MeshType = GMap0;
 	static constexpr const char* name = "GMap0";
 	static constexpr const uint8 dimension = 0;
 
 	using Vertex = typename GMap0::Vertex;
 	using Edge = typename GMap0::Edge;
 
-	using Cells = std::tuple<Vertex,Edge>;
-	static constexpr const char* cell_names[] = {"Vertex","Edge"};
+	using Cells = std::tuple<Vertex, Edge>;
+	static constexpr const char* cell_names[] = {"Vertex", "Edge"};
 
 	template <typename T>
 	using Attribute = MapBase::Attribute<T>;
 	using AttributeGen = MapBase::AttributeGen;
 	using MarkAttribute = MapBase::MarkAttribute;
 };
+
+/*************************************************************************/
+// Basic beta functions
+/*************************************************************************/
 
 inline Dart beta0(const GMap0& m, Dart d)
 {
@@ -89,11 +88,13 @@ inline void beta0_unsew(GMap0& m, Dart d)
 	(*(m.beta0_))[e.index] = e;
 }
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 GMap0::Edge add_edge(GMap0& m, bool set_indices = true);
-
 void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice = true);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_GMAP0_H_
+#endif // CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_

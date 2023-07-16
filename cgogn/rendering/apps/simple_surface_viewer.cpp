@@ -21,14 +21,13 @@
  *                                                                              *
  *******************************************************************************/
 
-#define USE_GMAP
+// #define USE_GMAP
 
 #ifdef USE_GMAP
 #include <cgogn/core/types/maps/gmap/gmap2.h>
 #else
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 #endif
-
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -46,8 +45,7 @@ using Mesh = cgogn::GMap2;
 #else
 using Mesh = cgogn::CMap2;
 #endif
-//using Mesh = cgogn::IncidenceGraph;
-
+// using Mesh = cgogn::IncidenceGraph;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -61,7 +59,7 @@ int main(int argc, char** argv)
 {
 	std::string filename;
 	if (argc <= 1)
-	 	filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
 	else
 		filename = std::string(argv[1]);
 
@@ -93,18 +91,18 @@ int main(int argc, char** argv)
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 		std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
 
-		 std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
-		 std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
+		std::shared_ptr<Attribute<Vec3>> face_color = cgogn::add_attribute<Vec3, Face>(*m, "color");
+		std::shared_ptr<Attribute<Scalar>> face_weight = cgogn::add_attribute<Scalar, Face>(*m, "weight");
 
-		 cgogn::foreach_cell(*m, [&](Face f) -> bool {
-		 	Vec3 c(0, 0, 0);
-		 	c[rand() % 3] = 1;
-		 	cgogn::value<Vec3>(*m, face_color, f) = c;
-		 	cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
-		 	return true;
-		 });
+		cgogn::foreach_cell(*m, [&](Face f) -> bool {
+			Vec3 c(0, 0, 0);
+			c[rand() % 3] = 1;
+			cgogn::value<Vec3>(*m, face_color, f) = c;
+			cgogn::value<Scalar>(*m, face_weight, f) = double(rand()) / RAND_MAX;
+			return true;
+		});
 
-		 mp.set_mesh_bb_vertex_position(*m, vertex_position);
+		mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
 		sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 

@@ -23,13 +23,15 @@
 
 #include <cgogn/io/surface/surface_import.h>
 
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/maps/gmap/gmap2.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 #include <algorithm>
 #include <set>
-#include <vector>
 
 namespace cgogn
 {
@@ -37,10 +39,13 @@ namespace cgogn
 namespace io
 {
 
-template <typename MAP2, typename MAP1>
-void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
+template <typename MESH>
+auto import_surface_data_map_tmpl(MESH& m, SurfaceImportData& surface_data)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
-	using Vertex = typename MAP2::Vertex;
+	using ParentMESH = typename MESH::Parent;
+
+	using Vertex = typename MESH::Vertex;
 
 	auto position = get_or_add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
 
@@ -79,7 +84,7 @@ void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
 		nbv = uint32(vertices_buffer.size());
 		if (nbv > 2u)
 		{
-			typename MAP1::Face f = add_face(static_cast<MAP1&>(m), nbv, false);
+			typename ParentMESH::Face f = add_face(static_cast<ParentMESH&>(m), nbv, false);
 			Dart d = f.dart;
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
@@ -114,7 +119,7 @@ void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
 						phi2_sew(m, d, *it);
 						phi2_found = true;
 
-						if constexpr (std::is_same_v<MAP2, GMap2>)
+						if constexpr (std::is_same_v<MESH, GMap2>)
 						{
 							copy_index<Vertex>(m, beta2(m, d), d);
 							Dart dd = beta0(m, d);
@@ -150,17 +155,15 @@ void import_surface_data_tmpl(MAP2& m, SurfaceImportData& surface_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
-
 void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 {
-	import_surface_data_tmpl<CMap2,CMap1>(m,surface_data);
+	import_surface_data_map_tmpl<CMap2>(m, surface_data);
 }
 
 void import_surface_data(GMap2& m, SurfaceImportData& surface_data)
 {
-	import_surface_data_tmpl<GMap2,GMap1>(m,surface_data);
+	import_surface_data_map_tmpl<GMap2>(m, surface_data);
 }
-
 
 void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
 {

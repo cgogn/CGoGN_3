@@ -21,17 +21,15 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_GMAP_GMAP3_H_
-#define CGOGN_CORE_TYPES_GMAP_GMAP3_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_GMAP_GMAP3_H_
+#define CGOGN_CORE_TYPES_MAPS_GMAP_GMAP3_H_
 
 #include <cgogn/core/types/maps/gmap/gmap2.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT GMap3 : public GMap2
+struct GMap3 : public GMap2
 {
 	static const uint8 dimension = 3;
 
@@ -46,23 +44,20 @@ struct CGOGN_CORE_EXPORT GMap3 : public GMap2
 	using Face2 = Cell<Orbit::BETA0_BETA1>;
 	using Volume = Cell<Orbit::BETA0_BETA1_BETA2>;
 	using CC = Cell<Orbit::BETA0_BETA1_BETA2_BETA3>;
+
 	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
 
 	std::shared_ptr<Attribute<Dart>> beta3_;
-
 
 	inline GMap3() : GMap2()
 	{
 		beta3_ = add_relation("beta3");
 	}
-
-
 };
 
 template <>
 struct mesh_traits<GMap3>
 {
-	using MeshType = GMap3;
 	static constexpr const char* name = "GMap3";
 	static constexpr const uint8 dimension = 3;
 
@@ -87,22 +82,14 @@ struct mesh_traits<GMap3>
 	using MarkAttribute = MapBase::MarkAttribute;
 };
 
-
-GMap3::Vertex CGOGN_CORE_EXPORT cut_edge(GMap3& m, GMap3::Edge e, bool set_indices = true);
-
-GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indices = true);
-
-GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices = true);
-
-GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices);
-
-uint32 close(GMap3& m, bool set_indices);
+/*************************************************************************/
+// Basic beta functions
+/*************************************************************************/
 
 inline Dart beta3(const GMap3& m, Dart d)
 {
 	return (*(m.beta3_))[d.index];
 }
-
 
 inline void beta3_sew(GMap3& m, Dart d, Dart e)
 {
@@ -140,6 +127,19 @@ inline void phi3_unsew(GMap3& m, Dart d)
 	beta3_unsew(m, e);
 }
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices = true);
+
+GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indices = true);
+
+GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices = true);
+
+GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices);
+uint32 close(GMap3& m, bool set_indices);
+
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_GMAP3_H_
+#endif // CGOGN_CORE_TYPES_MAPS_GMAP_GMAP3_H_

@@ -21,24 +21,21 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_GMAP_GMAP2_H_
-#define CGOGN_CORE_TYPES_GMAP_GMAP2_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_GMAP_GMAP2_H_
+#define CGOGN_CORE_TYPES_MAPS_GMAP_GMAP2_H_
 
 #include <cgogn/core/types/maps/gmap/gmap1.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT GMap2 : public GMap1
+struct GMap2 : public GMap1
 {
 	static const uint8 dimension = 2;
 
 	using Parent = GMap1;
-	
+
 	using Vertex = Cell<Orbit::BETA1_BETA2>;
-//	using HalfEdge = Cell<Orbit::BETA0>;
 	using HalfEdge = Cell<Orbit::DART>;
 	using Edge = Cell<Orbit::BETA0_BETA2>;
 	using Face = Cell<Orbit::BETA0_BETA1>;
@@ -53,17 +50,15 @@ struct CGOGN_CORE_EXPORT GMap2 : public GMap1
 	{
 		beta2_ = add_relation("beta2");
 	}
-
 };
 
 template <>
 struct mesh_traits<GMap2>
 {
-	using MeshType = GMap2;
-	using Parent = GMap2::Parent;
-
 	static constexpr const char* name = "GMap2";
 	static constexpr const uint8 dimension = 2;
+
+	using Parent = GMap2::Parent;
 
 	using Vertex = GMap2::Vertex;
 	using HalfEdge = GMap2::HalfEdge;
@@ -80,40 +75,9 @@ struct mesh_traits<GMap2>
 	using MarkAttribute = MapBase::MarkAttribute;
 };
 
-GMap2::Vertex CGOGN_CORE_EXPORT cut_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
-
-GMap2::Edge CGOGN_CORE_EXPORT cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indices = true);
-
-bool CGOGN_CORE_EXPORT flip_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT merge_incident_faces(GMap2& m, GMap2::Edge e, bool set_indices = true);
-
-GMap2::Face CGOGN_CORE_EXPORT add_face(GMap2& m, uint32 size, bool set_indices = true);
-
-GMap2::Volume CGOGN_CORE_EXPORT add_pyramid(GMap2& m, uint32 size, bool set_indices = true);
-
-GMap2::Volume CGOGN_CORE_EXPORT add_prism(GMap2& m, uint32 size, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT remove_volume(GMap2& m, GMap2::Volume v);
-
-//void CGOGN_CORE_EXPORT reverse_orientation(GMap2& m);
-
-bool CGOGN_CORE_EXPORT edge_can_collapse(const GMap2& m, GMap2::Edge e);
-
-bool CGOGN_CORE_EXPORT edge_can_flip(const GMap2& m, GMap2::Edge e);
-
-bool CGOGN_CORE_EXPORT check_integrity(GMap2& m, bool verbose = true);
-
-GMap2::Face CGOGN_CORE_EXPORT close_hole(GMap2& m, Dart d, bool set_indices);
-
-int32 CGOGN_CORE_EXPORT close(GMap2& m, bool set_indices = false);
-
-GMap2::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
-
-inline void reverse_orientation(GMap2& m)
-{
-	// NOTHING TO DO
-}
+/*************************************************************************/
+// Basic beta functions
+/*************************************************************************/
 
 inline Dart beta2(const GMap2& m, Dart d)
 {
@@ -129,7 +93,6 @@ inline bool on_boundary(const GMap2& m, Dart d)
 {
 	return beta2(m, d) == d;
 }
-
 
 inline void beta2_sew(GMap2& m, Dart d, Dart e)
 {
@@ -169,7 +132,39 @@ inline void phi2_unsew(GMap2& m, Dart d)
 	beta2_unsew(m, e);
 }
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
+GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
+bool flip_edge(GMap2& m, GMap2::Edge e, bool set_indices = true);
+
+bool edge_can_collapse(const GMap2& m, GMap2::Edge e);
+bool edge_can_flip(const GMap2& m, GMap2::Edge e);
+
+GMap2::Face add_face(GMap2& m, uint32 size, bool set_indices = true);
+void merge_incident_faces(GMap2& m, GMap2::Edge e, bool set_indices = true);
+GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indices = true);
+
+GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices = true);
+GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices = true);
+void remove_volume(GMap2& m, GMap2::Volume v);
+
+GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices);
+int32 close(GMap2& m, bool set_indices = false);
+
+inline void reverse_orientation(GMap2& m)
+{
+	// NOTHING TO DO
+}
+
+/*************************************************************************/
+// Debugging helper functions
+/*************************************************************************/
+
+bool check_integrity(GMap2& m, bool verbose = true);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_GMAP2_H_
+#endif // CGOGN_CORE_TYPES_MAPS_GMAP_GMAP2_H_

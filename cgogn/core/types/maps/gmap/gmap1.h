@@ -21,10 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_GMAP_GMAP1_H_
-#define CGOGN_CORE_TYPES_GMAP_GMAP1_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_GMAP_GMAP1_H_
+#define CGOGN_CORE_TYPES_MAPS_GMAP_GMAP1_H_
 
 #include <cgogn/core/types/maps/gmap/gmap0.h>
 
@@ -49,15 +47,15 @@ struct CGOGN_CORE_EXPORT GMap1 : public GMap0
 	{
 		beta1_ = add_relation("beta1");
 	}
-
 };
 
 template <>
 struct mesh_traits<GMap1>
 {
-	using MeshType = GMap1;
-	using Parent = GMap1::Parent;
+	static constexpr const char* name = "GMap1";
 	static constexpr const uint8 dimension = 1;
+
+	using Parent = GMap1::Parent;
 
 	using Vertex = GMap1::Vertex;
 	using Edge = GMap1::Edge;
@@ -69,21 +67,12 @@ struct mesh_traits<GMap1>
 	template <typename T>
 	using Attribute = MapBase::Attribute<T>;
 	using AttributeGen = MapBase::AttributeGen;
-	static constexpr const char* name = "GMap1";
 	using MarkAttribute = MapBase::MarkAttribute;
 };
 
-
-GMap1::Vertex CGOGN_CORE_EXPORT cut_edge(GMap1& m, GMap1::Edge e, bool set_indices = true);
-
-GMap1::Vertex CGOGN_CORE_EXPORT collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices);
-
-GMap1::Face CGOGN_CORE_EXPORT add_face(GMap1& m, uint32 size, bool set_indices = true);
-
-void CGOGN_CORE_EXPORT remove_face(GMap1& m, GMap1::Face f);
-
-bool CGOGN_CORE_EXPORT check_integrity(GMap1& m, bool verbose = true);
-
+/*************************************************************************/
+// Basic beta functions
+/*************************************************************************/
 
 inline Dart beta1(const GMap1& m, Dart d)
 {
@@ -92,21 +81,18 @@ inline Dart beta1(const GMap1& m, Dart d)
 
 inline Dart boundary_beta1(const GMap1& m, Dart d)
 {
-	return beta1(m,d);
+	return beta1(m, d);
 }
-
 
 inline Dart phi1(const GMap1& m, Dart d)
 {
-	return beta1(m,beta0(m,d));
+	return beta1(m, beta0(m, d));
 }
-
 
 inline Dart phi_1(const GMap1& m, Dart d)
 {
-	return beta0(m,beta1(m,d));
+	return beta0(m, beta1(m, d));
 }
-
 
 inline void beta1_sew(GMap1& m, Dart d, Dart e)
 {
@@ -123,12 +109,16 @@ inline void beta1_unsew(GMap1& m, Dart d)
 	(*(m.beta1_))[e.index] = e;
 }
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
+GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices = true);
+GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices);
 
-
-/*}****************************************************************************/
+GMap1::Face add_face(GMap1& m, uint32 size, bool set_indices = true);
+void remove_face(GMap1& m, GMap1::Face f);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_GMAP_GMAP1_H_
-
+#endif // CGOGN_CORE_TYPES_MAPS_GMAP_GMAP1_H_

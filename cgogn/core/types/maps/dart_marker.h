@@ -21,53 +21,19 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
-#define CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
-
-// #include <cgogn/core/cgogn_core_export.h>
-// #include <cgogn/core/types/maps/map_base.h>
-// #include <cgogn/core/utils/tuples.h>
-// #include <cgogn/core/utils/type_traits.h>
+#ifndef CGOGN_CORE_TYPES_MAPS_DART_MARKER_H_
+#define CGOGN_CORE_TYPES_MAPS_DART_MARKER_H_
 
 namespace cgogn
 {
 
-/*****************************************************************************/
-
-// template <typename CELL, typename MESH>
-// typename mesh_traits<MESH>::MarkAttribute* get_dart_mark_attribute(MESH& m);
+template <typename MESH>
+struct mesh_traits;
 
 /*****************************************************************************/
 
-///////////////////////////////
-// MapBase (or convertible) //
-///////////////////////////////
-
-inline typename MapBase::MarkAttribute* get_dart_mark_attribute(const MapBase& m)
-{
-	return m.darts_.get_mark_attribute();
-}
-
-/*****************************************************************************/
-
-// template <typename CELL, typename MESH>
-// void release_dart_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute);
-
-/*****************************************************************************/
-
-///////////////////////////////
-// MapBase (or convertible) //
-///////////////////////////////
-
-inline void release_dart_mark_attribute(const MapBase& m, MapBase::MarkAttribute* attribute)
-{
-	return m.darts_.release_mark_attribute(attribute);
-}
-
-/*****************************************************************************/
 template <typename MAP>
-
-class CGOGN_CORE_EXPORT DartMarker
+class DartMarker
 {
 private:
 	const MAP& map_;
@@ -108,10 +74,10 @@ public:
 };
 
 template <typename MAP>
-class CGOGN_CORE_EXPORT DartMarkerStore
+class DartMarkerStore
 {
 private:
-	const MapBase& map_;
+	const MAP& map_;
 	typename mesh_traits<MAP>::MarkAttribute* mark_attribute_;
 	std::vector<Dart> marked_darts_;
 
@@ -170,4 +136,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_CMAP_DART_MARKER_H_
+#endif // CGOGN_CORE_TYPES_MAPS_DART_MARKER_H_

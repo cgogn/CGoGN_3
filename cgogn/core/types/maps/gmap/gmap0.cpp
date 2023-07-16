@@ -20,11 +20,17 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
+
 #include <cgogn/core/types/maps/gmap/gmap0.h>
+
+#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 GMap0::Edge add_edge(GMap0& m, bool set_indices)
 {
@@ -47,6 +53,7 @@ GMap0::Edge add_edge(GMap0& m, bool set_indices)
 			set_index(m, edge, new_index<GMap0::Edge>(m));
 		}
 	}
+
 	return edge;
 }
 
@@ -58,4 +65,3 @@ void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice)
 }
 
 } // namespace cgogn
-                    

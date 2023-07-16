@@ -20,61 +20,18 @@
  * Contact information: cgogn@unistra.fr                                        *
  *                                                                              *
  *******************************************************************************/
-#include <iomanip>
-#include <cgogn/core/types/maps/gmap/gmap1.h>
+
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/types/maps/gmap/gmap1.h>
+
+#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
 
-GMap1::Face add_face(GMap1& m, uint32 size, bool set_indices)
-{
-	using Vertex = GMap1::Vertex;
-	using Edge = GMap1::Edge;
-	using Face = GMap1::Face;
-
-	Edge e0 = add_edge(m, false);
-	Edge ep = e0;
-	for (uint32 i = 1u; i < size; ++i)
-	{
-		Edge e = add_edge(m, false);
-		beta1_sew(m, e.dart, beta0(m, ep.dart));
-		ep = e;
-	}
-	beta1_sew(m, e0.dart, beta0(m, ep.dart));
-
-
-	if (set_indices)
-	{
-		for (uint32 i = 0u; i < size; ++i)
-		{
-			Edge e{phi1(m, ep.dart)};
-			if (is_indexed<Vertex>(m))
-				set_index(m, Vertex{e.dart}, new_index<Vertex>(m));
-			if (is_indexed<Edge>(m))
-				set_index(m, e, new_index<Edge>(m));
-
-			ep = e;
-		}
-		if (is_indexed<Face>(m))
-			set_index(m, Face{ep.dart}, new_index<Face>(m));
-	}
-	return Face{e0.dart};
-}
-
-void remove_face(GMap1& m, GMap1::Face f)
-{
-	Dart it = phi1(m, f.dart);
-	while (it != f.dart)
-	{
-		Dart next = phi1(m, it);
-		remove_edge(m, GMap1::Edge{it});
-		it = next;
-	}
-	remove_edge(m, GMap1::Edge{f.dart});
-}
-
-
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 {
@@ -115,7 +72,6 @@ GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 	return v;
 }
 
-
 GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 {
 	using Vertex = GMap1::Vertex;
@@ -138,5 +94,50 @@ GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 	return v;
 }
 
+GMap1::Face add_face(GMap1& m, uint32 size, bool set_indices)
+{
+	using Vertex = GMap1::Vertex;
+	using Edge = GMap1::Edge;
+	using Face = GMap1::Face;
+
+	Edge e0 = add_edge(m, false);
+	Edge ep = e0;
+	for (uint32 i = 1u; i < size; ++i)
+	{
+		Edge e = add_edge(m, false);
+		beta1_sew(m, e.dart, beta0(m, ep.dart));
+		ep = e;
+	}
+	beta1_sew(m, e0.dart, beta0(m, ep.dart));
+
+	if (set_indices)
+	{
+		for (uint32 i = 0u; i < size; ++i)
+		{
+			Edge e{phi1(m, ep.dart)};
+			if (is_indexed<Vertex>(m))
+				set_index(m, Vertex{e.dart}, new_index<Vertex>(m));
+			if (is_indexed<Edge>(m))
+				set_index(m, e, new_index<Edge>(m));
+
+			ep = e;
+		}
+		if (is_indexed<Face>(m))
+			set_index(m, Face{ep.dart}, new_index<Face>(m));
+	}
+	return Face{e0.dart};
+}
+
+void remove_face(GMap1& m, GMap1::Face f)
+{
+	Dart it = phi1(m, f.dart);
+	while (it != f.dart)
+	{
+		Dart next = phi1(m, it);
+		remove_edge(m, GMap1::Edge{it});
+		it = next;
+	}
+	remove_edge(m, GMap1::Edge{f.dart});
+}
+
 } // namespace cgogn
-                    

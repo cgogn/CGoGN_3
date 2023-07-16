@@ -21,26 +21,17 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cmap3.h>
+
+#include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
 {
 
-void phi3_sew(CMap3& m, Dart d, Dart e)
-{
-	cgogn_assert(phi3(m, d) == d);
-	cgogn_assert(phi3(m, e) == e);
-	(*(m.phi3_))[d.index] = e;
-	(*(m.phi3_))[e.index] = d;
-}
-
-void phi3_unsew(CMap3& m, Dart d)
-{
-	Dart e = phi3(m, d);
-	(*(m.phi3_))[d.index] = d;
-	(*(m.phi3_))[e.index] = e;
-}
-
+/*************************************************************************/
+// Operators
+/*************************************************************************/
 
 CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 {
@@ -269,7 +260,6 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 	return CMap3::Face(f0);
 }
 
-
 CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 {
 	cgogn_message_assert(phi3(m, d) == d, "CMap3: close hole called on a dart that is not a phi3 fix point");
@@ -357,7 +347,6 @@ CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 	return hole;
 }
 
-
 uint32 close(CMap3& m, bool set_indices)
 {
 	uint32 nb_holes = 0u;
@@ -383,7 +372,9 @@ uint32 close(CMap3& m, bool set_indices)
 	return nb_holes;
 }
 
-
+/*************************************************************************/
+// Debugging helper functions
+/*************************************************************************/
 
 bool check_integrity(CMap3& m, bool verbose)
 {

@@ -21,11 +21,54 @@
  *                                                                              *
  *******************************************************************************/
 
-// #include <cgogn/core/types/maps/cmap/cph3.h>
-// #include <cgogn/core/types/maps/cmap/phi.h>
+#ifndef CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
+#define CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
+
+#include <cgogn/core/utils/tuples.h>
+
+#include <memory>
 
 namespace cgogn
 {
 
+template <typename MESH>
+struct mesh_traits;
+
+// some generic functions to get/set values of attributes on cells
+
+template <typename T, typename CELL, typename MESH>
+std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> get_or_add_attribute(MESH& m,
+																						const std::string& name)
+{
+	auto attribute = get_attribute<T, CELL>(m, name);
+	if (!attribute)
+		return add_attribute<T, CELL>(m, name);
+	else
+		return attribute;
+}
+
+template <typename T, typename CELL, typename MESH>
+inline T& value(const MESH& m, const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute,
+				CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
+}
+
+template <typename T, typename CELL, typename MESH>
+inline T& value(const MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
+}
+
+template <typename T, typename CELL, typename MESH>
+inline const T& value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
+{
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	return (*attribute)[index_of(m, c)];
+}
 
 } // namespace cgogn
+
+#endif // CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_

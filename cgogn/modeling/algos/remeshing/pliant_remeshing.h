@@ -140,7 +140,9 @@ struct PliantRemeshing_Helper
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
-		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
+		auto vertex_medial_point_radius = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
+		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get(),
+										 vertex_medial_point_radius.get());
 
 		vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
 		lfs_min_ = std::numeric_limits<float64>::max();
@@ -163,6 +165,7 @@ struct PliantRemeshing_Helper
 
 		remove_attribute<Vertex>(m_, vertex_normal);
 		remove_attribute<Vertex>(m_, vertex_medial_point);
+		remove_attribute<Vertex>(m_, vertex_medial_point_radius);
 
 		std::cout << "lfs min: " << lfs_min_ << std::endl;
 		std::cout << "lfs max: " << lfs_max_ << std::endl;

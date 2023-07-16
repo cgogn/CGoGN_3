@@ -90,7 +90,10 @@ public:
 	void medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
 	{
 		auto sbc = get_or_add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get());
+		auto sbr = get_or_add_attribute<Scalar, SurfaceVertex>(s, "shrinking_ball_radius");
+		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get(), sbr.get());
+		surface_provider_->emit_attribute_changed(s, sbc.get());
+		surface_provider_->emit_attribute_changed(s, sbr.get());
 	}
 
 	void skeletonize(SURFACE& s, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
