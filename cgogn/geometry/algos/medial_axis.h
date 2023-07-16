@@ -24,7 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 #define CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/functions/angle.h>
@@ -42,8 +41,8 @@ namespace cgogn
 namespace geometry
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 inline Scalar compute_radius(const Vec3& p, const Vec3& n, const Vec3& q)
 {
@@ -61,12 +60,12 @@ const Scalar delta_convergence = 1e-5;
 const uint32 iteration_limit = 30;
 
 template <typename MESH>
-Vec3 shrinking_ball_center(MESH& m, typename mesh_traits<MESH>::Vertex v,
-						   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-						   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
-						   const acc::BVHTree<uint32, Vec3>* surface_bvh,
-						   const std::vector<typename mesh_traits<MESH>::Face>& bvh_faces,
-						   const acc::KDTree<3, uint32>* surface_kdt)
+std::pair<Vec3, Scalar> shrinking_ball_center(
+	MESH& m, typename mesh_traits<MESH>::Vertex v,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
+	const acc::BVHTree<uint32, Vec3>* surface_bvh, const std::vector<typename mesh_traits<MESH>::Face>& bvh_faces,
+	const acc::KDTree<3, uint32>* surface_kdt)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -138,7 +137,7 @@ Vec3 shrinking_ball_center(MESH& m, typename mesh_traits<MESH>::Vertex v,
 		j++;
 	}
 
-	return c;
+	return {c, r};
 }
 
 // adapted from https://github.com/tudelft3d/masbcpp
@@ -146,7 +145,8 @@ Vec3 shrinking_ball_center(MESH& m, typename mesh_traits<MESH>::Vertex v,
 template <typename MESH>
 void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 							const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
-							typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_shrinking_ball_center)
+							typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_shrinking_ball_center,
+							typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_shrinking_ball_radius)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -187,8 +187,9 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 	acc::KDTree<3, uint32>* surface_kdt = new acc::KDTree<3, uint32>(vertex_position_vector);
 
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		value<Vec3>(m, vertex_shrinking_ball_center, v) =
-			shrinking_ball_center(m, v, vertex_position, vertex_normal, surface_bvh, bvh_faces, surface_kdt);
+		auto [c, r] = shrinking_ball_center(m, v, vertex_position, vertex_normal, surface_bvh, bvh_faces, surface_kdt);
+		value<Vec3>(m, vertex_shrinking_ball_center, v) = c;
+		value<Scalar>(m, vertex_shrinking_ball_radius, v) = r;
 		return true;
 	});
 

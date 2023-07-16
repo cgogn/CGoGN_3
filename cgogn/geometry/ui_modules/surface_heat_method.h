@@ -29,7 +29,6 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
-#include <cgogn/core/functions/attributes.h>
 #include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/laplacian.h>
 #include <cgogn/geometry/functions/angle.h>

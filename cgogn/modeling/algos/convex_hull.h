@@ -26,12 +26,6 @@
 
 #include <cgogn/core/utils/numerics.h>
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/mesh_ops/volume.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/vertex.h>
-
 #include <cgogn/geometry/functions/distance.h>
 #include <cgogn/geometry/functions/normal.h>
 #include <cgogn/geometry/functions/orientation.h>
@@ -46,8 +40,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 ///////////
 // CMap2 //

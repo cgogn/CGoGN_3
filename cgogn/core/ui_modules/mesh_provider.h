@@ -28,7 +28,6 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/portable-file-dialogs.h>
 
-#include <cgogn/core/functions/mesh_ops/global.h>
 #include <cgogn/core/ui_modules/mesh_data.h>
 #include <cgogn/core/utils/string.h>
 
@@ -41,7 +40,7 @@
 #include <cgogn/io/surface/obj.h>
 #include <cgogn/io/surface/off.h>
 #include <cgogn/io/surface/ply.h>
-#include <cgogn/io/volume/cgns.h>
+// #include <cgogn/io/volume/cgns.h>
 #include <cgogn/io/volume/mesh.h>
 #include <cgogn/io/volume/meshb.h>
 #include <cgogn/io/volume/tet.h>
@@ -59,6 +58,9 @@ namespace ui
 
 class App;
 
+using geometry::Scalar;
+using geometry::Vec3;
+
 template <typename MESH>
 class MeshProvider : public ProviderModule
 {
@@ -67,9 +69,6 @@ class MeshProvider : public ProviderModule
 	using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-
-	using Scalar = geometry::Scalar;
-	using Vec3 = geometry::Vec3;
 
 public:
 	MeshProvider(const App& app)
@@ -133,7 +132,7 @@ public:
 			md.init(m);
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
-				set_mesh_bb_vertex_position(m, vertex_position);
+				set_mesh_bb_vertex_position(*m, vertex_position);
 			boost::synapse::emit<mesh_added>(this, m);
 		}
 	}
@@ -178,6 +177,8 @@ public:
 				imported = cgogn::io::import_CG(*m, filename);
 			else if (ext.compare("cgr") == 0)
 				imported = cgogn::io::import_CGR(*m, filename);
+			else if (ext.compare("ig") == 0)
+				imported = cgogn::io::import_IG(*m, filename);
 			else if (ext.compare("skel") == 0)
 				imported = cgogn::io::import_SKEL(*m, filename);
 			else
@@ -217,6 +218,8 @@ public:
 		{
 			if (filetype.compare("cg") == 0)
 				cgogn::io::export_CG(m, vertex_position, filename + ".cg");
+			else if (filetype.compare("ig") == 0)
+				cgogn::io::export_IG(m, vertex_position, filename + ".ig");
 			// else if (filetype.compare("cgr") == 0)
 			// 	// TODO cgogn::io::export_CGR();
 			// else if (filetype.compare("skel") == 0)
@@ -651,14 +654,14 @@ protected:
 	}
 
 private:
-	std::vector<std::string> supported_graph_formats_ = {"cg", "cgr", "skel"};
-	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.cgr *.skel"};
+	std::vector<std::string> supported_graph_formats_ = {"cg", "ig", "cgr", "skel"};
+	std::vector<std::string> supported_graph_files_ = {"Graph", "*.cg *.ig *.cgr *.skel"};
 
 	std::vector<std::string> supported_surface_formats_ = {"off", "obj", "ply", "ig"};
 	std::vector<std::string> supported_surface_files_ = {"Surface", "*.off *.obj *.ply *.ig"};
 
-	std::vector<std::string> supported_volume_formats_ = {"mesh", "cgns"};
-	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh *.cgns"};
+	std::vector<std::string> supported_volume_formats_ = {"mesh"};			 //, "cgns"};
+	std::vector<std::string> supported_volume_files_ = {"Volume", "*.mesh"}; // *.cgns"};
 
 	std::vector<std::string>* supported_formats_ = nullptr;
 

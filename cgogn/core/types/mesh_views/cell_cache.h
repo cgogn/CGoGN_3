@@ -24,17 +24,22 @@
 #ifndef CGOGN_CORE_TYPES_MESH_VIEWS_CELL_CACHE_H_
 #define CGOGN_CORE_TYPES_MESH_VIEWS_CELL_CACHE_H_
 
-#include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/thread.h>
+#include <cgogn/core/utils/thread_pool.h>
 #include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/type_traits.h>
+
+#include <vector>
 
 namespace cgogn
 {
 
+template <typename MESH>
+struct mesh_traits;
+
 template <class>
 struct tuple_of_vectors_of_T_from_tuple_of_T;
+
 template <template <typename... Args> class tuple, typename... T>
 struct tuple_of_vectors_of_T_from_tuple_of_T<tuple<T...>>
 {
@@ -144,6 +149,91 @@ template <typename MESH>
 struct mesh_traits<CellCache<MESH>> : public mesh_traits<MESH>
 {
 };
+
+template <typename MESH, typename FUNC>
+void foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
+{
+	using CELL = func_parameter_type<FUNC>;
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	for (auto it = cc.template begin<CELL>(), end = cc.template end<CELL>(); it != end; it++)
+		if (!f(*it))
+			break;
+}
+
+template <typename MESH, typename FUNC>
+void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
+{
+	using CELL = func_parameter_type<FUNC>;
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	ThreadPool* pool = thread_pool();
+	uint32 nb_workers = pool->nb_workers();
+	if (nb_workers == 0)
+		return foreach_cell(cc, f);
+
+	using VecCell = std::vector<uint32>;
+	using Future = std::future<void>;
+
+	std::array<std::vector<VecCell*>, 2> cells_buffers;
+	std::array<std::vector<Future>, 2> futures;
+	cells_buffers[0].reserve(nb_workers);
+	cells_buffers[1].reserve(nb_workers);
+	futures[0].reserve(nb_workers);
+	futures[1].reserve(nb_workers);
+
+	Buffers<uint32>* buffers = uint32_buffers();
+
+	auto it = cc.template begin<CELL>();
+	auto last = cc.template end<CELL>();
+
+	uint32 i = 0u; // buffer id (0/1)
+	uint32 j = 0u; // thread id (0..nb_workers)
+
+	while (it != last)
+	{
+		// fill buffer
+		cells_buffers[i].push_back(buffers->buffer());
+		VecCell& cells = *cells_buffers[i].back();
+		cells.reserve(PARALLEL_BUFFER_SIZE);
+		for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it != last; ++k)
+		{
+			cells.push_back((*it).dart.index);
+			it++;
+		}
+		// launch thread
+		futures[i].push_back(pool->enqueue([&cells, &f]() {
+			for (uint32 index : cells)
+				f(CELL(Dart(index)));
+		}));
+		// next thread
+		if (++j == nb_workers)
+		{ // again from 0 & change buffer
+			j = 0;
+			i = (i + 1u) % 2u;
+			for (auto& fu : futures[i])
+				fu.wait();
+			for (auto& b : cells_buffers[i])
+				buffers->release_buffer(b);
+			futures[i].clear();
+			cells_buffers[i].clear();
+		}
+	}
+
+	// clean all at the end
+	for (auto& fu : futures[0u])
+		fu.wait();
+	for (auto& b : cells_buffers[0u])
+		buffers->release_buffer(b);
+	for (auto& fu : futures[1u])
+		fu.wait();
+	for (auto& b : cells_buffers[1u])
+		buffers->release_buffer(b);
+}
 
 } // namespace cgogn
 

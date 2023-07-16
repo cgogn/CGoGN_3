@@ -26,9 +26,8 @@
 
 #include <cgogn/core/types/cell_marker.h>
 
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/utils/type_traits.h>
 
 #include <unordered_map>
 

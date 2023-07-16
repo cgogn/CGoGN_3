@@ -35,6 +35,7 @@
 
 #include <cgogn/modeling/algos/decimation/decimation.h>
 #include <cgogn/modeling/algos/mesh_repair.h>
+#include <cgogn/modeling/algos/remeshing/blossom_quad_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/remeshing/topstoc.h>
 #include <cgogn/modeling/algos/subdivision.h>
@@ -47,6 +48,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class SurfaceModeling : public Module
 {
@@ -58,9 +62,6 @@ class SurfaceModeling : public Module
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 public:
 	SurfaceModeling(const App& app)
@@ -182,9 +183,14 @@ public:
 
 	void quad_remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
-		// modeling::quad_remesh(m, vertex_position);
+		// modeling::greedy_quad_remeshing(m, vertex_position);
+		modeling::blossom_quad_remeshing(m, vertex_position);
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
+	}
+
+	void optimize_quad_mesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position)
+	{
 	}
 
 	void regularize_mesh(MESH& m, Attribute<Vec3>* vertex_position)

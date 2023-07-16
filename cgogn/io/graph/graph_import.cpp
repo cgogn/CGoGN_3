@@ -23,13 +23,8 @@
 
 #include <cgogn/io/graph/graph_import.h>
 
-#include <cgogn/core/functions/attributes.h>
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/vertex.h>
-
-#include <cgogn/core/types/cmap/cmap_ops.h>
-
-#include <vector>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 
 namespace cgogn
 {

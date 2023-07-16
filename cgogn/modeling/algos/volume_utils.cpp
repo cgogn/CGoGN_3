@@ -25,8 +25,7 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
-
+#include <cgogn/core/types/cell_marker.h>
 #include <cgogn/io/surface/surface_import.h>
 
 namespace cgogn

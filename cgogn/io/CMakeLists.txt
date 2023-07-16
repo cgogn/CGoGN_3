@@ -13,8 +13,7 @@ find_package(Eigen3 3.2)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::io ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/incidence_graph_import.h"
 		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/incidence_graph_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/incidence_graph/ig.h"
@@ -29,16 +28,19 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/surface/surface_import.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/obj.h"
 		"${CMAKE_CURRENT_LIST_DIR}/surface/off.h"
+		"${CMAKE_CURRENT_LIST_DIR}/surface/ply.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.h"
-		"${CMAKE_CURRENT_LIST_DIR}/volume/volume_import.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/volume/cgns.h"
+		# "${CMAKE_CURRENT_LIST_DIR}/volume/cgns.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/mesh.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/meshb.h"
 		"${CMAKE_CURRENT_LIST_DIR}/volume/tet.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/utils.h"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
+
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"

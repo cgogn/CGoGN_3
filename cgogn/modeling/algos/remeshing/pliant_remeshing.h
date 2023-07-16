@@ -24,12 +24,10 @@
 #ifndef CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 #define CGOGN_MODELING_ALGOS_REMESHING_PLIANT_REMESHING_H_
 
-#include <cgogn/core/functions/mesh_ops/edge.h>
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
-#include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
+#include <cgogn/core/functions/traversals/face.h>
+#include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/angle.h>
 #include <cgogn/geometry/algos/length.h>
@@ -46,27 +44,33 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 ///////////
 // CMap2 //
 ///////////
 
-inline void triangulate_incident_faces(CMap2& m, CMap2::Vertex v)
+
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
+												   (mesh_traits<MAP2>::dimension >= 1)>* = nullptr>
+void triangulate_incident_faces(MAP2& m, typename MAP2::Vertex v)
 {
-	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
-	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
+	std::vector<typename MAP2::Face> ifaces = incident_faces(m, v);
+	for (typename MAP2::Face f : ifaces)
+		cut_face(m, typename MAP2::Vertex(f.dart), typename MAP2::Vertex(phi<1, 1>(m, f.dart)));
 }
 
-inline bool edge_should_flip(CMap2& m, CMap2::Edge e)
+
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
+												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
+inline bool edge_should_flip(MAP2& m, typename MAP2::Edge e)
 {
-	std::vector<CMap2::Vertex> iv = incident_vertices(m, e);
+	std::vector<typename MAP2::Vertex> iv = incident_vertices(m, e);
 	const int32 w = degree(m, iv[0]);
 	const int32 x = degree(m, iv[1]);
-	const int32 y = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[0].dart)));
-	const int32 z = degree(m, CMap2::Vertex(phi<1, 1>(m, iv[1].dart)));
+	const int32 y = degree(m, typename MAP2::Vertex(phi<1, 1>(m, iv[0].dart)));
+	const int32 z = degree(m, typename MAP2::Vertex(phi<1, 1>(m, iv[1].dart)));
 
 	if (w < 4 || x < 4)
 		return false;
@@ -136,7 +140,9 @@ struct PliantRemeshing_Helper
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
-		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get());
+		auto vertex_medial_point_radius = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
+		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get(),
+										 vertex_medial_point_radius.get());
 
 		vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
 		lfs_min_ = std::numeric_limits<float64>::max();
@@ -159,6 +165,7 @@ struct PliantRemeshing_Helper
 
 		remove_attribute<Vertex>(m_, vertex_normal);
 		remove_attribute<Vertex>(m_, vertex_medial_point);
+		remove_attribute<Vertex>(m_, vertex_medial_point_radius);
 
 		std::cout << "lfs min: " << lfs_min_ << std::endl;
 		std::cout << "lfs max: " << lfs_max_ << std::endl;
@@ -250,7 +257,7 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			has_long_edge = false;
 			foreach_cell(cache, [&](Edge e) -> bool {
 				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs=0.0; //init to zero for warning remove
+				Scalar lfs = 0.0; // init to zero for warning remove
 				Scalar coeff = 1.0;
 				if (lfs_adaptive)
 				{
@@ -370,12 +377,15 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			return true;
 		});
 
+		auto vertex_area = add_attribute<Scalar, Vertex>(m, "vertex_area__");
+		geometry::compute_area<Vertex>(m, vertex_position.get(), vertex_area.get());
+
 		// tangential relaxation
 		// + project back on surface
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
 			if (is_incident_to_boundary(m, v))
 				return true;
+			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
 			if (preserve_features)
 			{
 				if (!value<bool>(m, helper.feature_corner_, v))
@@ -402,13 +412,14 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 					else
 					{
 						Vec3 q(0, 0, 0);
-						uint32 count = 0;
+						Scalar total_area = 0.0;
 						foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-							q += value<Vec3>(m, vertex_position, av);
-							++count;
+							Scalar a = value<Scalar>(m, vertex_area, av);
+							q += a * value<Vec3>(m, vertex_position, av);
+							total_area += a;
 							return true;
 						});
-						q /= Scalar(count);
+						q /= Scalar(total_area);
 						Vec3 n = geometry::normal(m, v, vertex_position.get());
 						new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 						new_pos = helper.surface_bvh_->closest_point(new_pos);
@@ -418,13 +429,14 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			else
 			{
 				Vec3 q(0, 0, 0);
-				uint32 count = 0;
+				Scalar total_area = 0.0;
 				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-					q += value<Vec3>(m, vertex_position, av);
-					++count;
+					Scalar a = value<Scalar>(m, vertex_area, av);
+					q += a * value<Vec3>(m, vertex_position, av);
+					total_area += a;
 					return true;
 				});
-				q /= Scalar(count);
+				q /= Scalar(total_area);
 				Vec3 n = geometry::normal(m, v, vertex_position.get());
 				new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
 				new_pos = helper.surface_bvh_->closest_point(new_pos);
@@ -432,6 +444,8 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			value<Vec3>(m, vertex_position, v) = new_pos;
 			return true;
 		});
+
+		remove_attribute<Vertex>(m, vertex_area);
 	}
 }
 

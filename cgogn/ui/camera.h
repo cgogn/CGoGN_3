@@ -31,6 +31,9 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/rendering/types.h>
 
+#include <cgogn/io/utils.h>
+#include <ostream>
+
 namespace cgogn
 {
 
@@ -186,6 +189,40 @@ public:
 	inline const rendering::GLMat4& modelview_matrix() const
 	{
 		return mv_;
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const Camera& c)
+	{
+		os << c.type_ << "\n";
+		os << c.aspect_ratio_ << "\n";
+		os << c.scene_radius_ << "\n";
+		os << c.field_of_view_ << "\n";
+		os << c.pivot_point_[0] << " " << c.pivot_point_[1] << " " << c.pivot_point_[2] << "\n";
+		os << c.frame_.matrix();
+
+		return os;
+	}
+
+	friend std::istream& operator>>(std::istream& is, Camera& c)
+	{
+		std::string line;
+		line.reserve(64u);
+
+		c.type_ = Type(io::read_uint(is, line));
+		c.set_aspect_ratio(io::read_double(is, line));
+		c.set_scene_radius(io::read_double(is, line));
+		c.set_field_of_view(io::read_double(is, line));
+		c.set_pivot_point(
+			rendering::GLVec3d(io::read_double(is, line), io::read_double(is, line), io::read_double(is, line)));
+		rendering::GLMat4d m;
+		m << io::read_double(is, line), io::read_double(is, line), io::read_double(is, line), io::read_double(is, line),
+			io::read_double(is, line), io::read_double(is, line), io::read_double(is, line), io::read_double(is, line),
+			io::read_double(is, line), io::read_double(is, line), io::read_double(is, line), io::read_double(is, line),
+			io::read_double(is, line), io::read_double(is, line), io::read_double(is, line), io::read_double(is, line);
+		c.frame_.matrix() = m;
+		c.update_matrices();
+
+		return is;
 	}
 };
 

@@ -24,12 +24,10 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
-#include <cgogn/core/functions/mesh_ops/face.h>
-#include <cgogn/core/functions/mesh_ops/volume.h>
-#include <cgogn/core/functions/traversals/global.h>
-
 #include <cgogn/modeling/algos/subdivision/basic.h>
 #include <cgogn/modeling/algos/subdivision_utils.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
+#include <cgogn/core/types/maps/cmap/cph3.h>
 
 #include <cgogn/geometry/algos/angle.h>
 
@@ -39,7 +37,7 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
+using geometry::Vec3;
 
 ///////////
 // CMap3 //

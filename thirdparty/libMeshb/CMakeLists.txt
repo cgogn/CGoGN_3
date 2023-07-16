@@ -26,7 +26,7 @@ install(FILES "libmeshb.h" DESTINATION "include/cgogn/thirdparty")
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
-set_target_properties(Meshb PROPERTIES FOLDER thirdparty)
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER thirdparty)
 
 
 

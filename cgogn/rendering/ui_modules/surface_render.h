@@ -58,6 +58,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class SurfaceRender : public ViewModule
 {
@@ -84,9 +87,6 @@ class SurfaceRender : public ViewModule
 	using Face = typename mesh_traits<MESH>::Face;
 	// using Volume = typename mesh_traits<MESH>::Volume;
 
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
-
 	struct Parameters
 	{
 		Parameters()
@@ -102,10 +102,10 @@ class SurfaceRender : public ViewModule
 			  auto_update_face_scalar_min_max_(true)
 		{
 			param_point_sprite_ = rendering::ShaderPointSprite::generate_param();
-			param_point_sprite_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
+			param_point_sprite_->color_ = {0.75f, 1.0f, 0.0f, 1.0f};
 
 			param_point_sprite_size_ = rendering::ShaderPointSpriteSize::generate_param();
-			param_point_sprite_size_->color_ = {1.0f, 0.5f, 0.0f, 1.0f};
+			param_point_sprite_size_->color_ = {0.75f, 1.0f, 0.0f, 1.0f};
 
 			param_point_sprite_color_ = rendering::ShaderPointSpriteColor::generate_param();
 

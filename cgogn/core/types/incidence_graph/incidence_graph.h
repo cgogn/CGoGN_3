@@ -21,144 +21,27 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_INCIDENCE_GRAPH_H_
-#define CGOGN_CORE_INCIDENCE_GRAPH_H_
+#ifndef CGOGN_CORE_TYPES_INCIDENCE_GRAPH_H_
+#define CGOGN_CORE_TYPES_INCIDENCE_GRAPH_H_
 
-// #include <cgogn/core/cgogn_core_export.h>
-
-#include <cgogn/core/types/container/attribute_container.h>
-#include <cgogn/core/types/container/chunk_array.h>
-#include <cgogn/core/types/container/vector.h>
-#include <cgogn/core/types/mesh_traits.h>
-
-#include <any>
-#include <array>
+#include <cgogn/core/types/incidence_graph/incidence_graph_base.h>
 
 namespace cgogn
 {
 
-struct CGOGN_CORE_EXPORT IncidenceGraph
+struct IncidenceGraph : public IncidenceGraphBase
 {
-	// using AttributeContainer = AttributeContainerT<Vector>;
-	using AttributeContainer = AttributeContainerT<ChunkArray>;
+	static const uint8 dimension = 2;
 
-	template <typename T>
-	using Attribute = AttributeContainer::Attribute<T>;
-	using AttributeGen = AttributeContainer::AttributeGen;
-	using MarkAttribute = AttributeContainer::MarkAttribute;
+	using Vertex = IncidenceGraphBase::Vertex;
+	using Edge = IncidenceGraphBase::Edge;
+	using Face = IncidenceGraphBase::Face;
 
-	/*************************************************************************/
-	// Graph attributes container
-	/*************************************************************************/
+	using Cells = std::tuple<Vertex, Edge, Face>;
 
-	// std::unordered_map<std::string, std::any> attributes_;
-
-	struct Vertex
+	IncidenceGraph() : IncidenceGraphBase()
 	{
-		static const uint32 CELL_INDEX = 0;
-		uint32 index_;
-		inline Vertex() : index_(INVALID_INDEX)
-		{
-		}
-		inline Vertex(uint32 id) : index_(id)
-		{
-		}
-		bool operator<(Vertex v) const
-		{
-			return index_ < v.index_;
-		}
-		bool operator==(Vertex v) const
-		{
-			return index_ == v.index_;
-		}
-		bool operator!=(Vertex v) const
-		{
-			return index_ != v.index_;
-		}
-		inline bool is_valid() const
-		{
-			return index_ != INVALID_INDEX;
-		}
-	};
-
-	struct Edge
-	{
-		static const uint32 CELL_INDEX = 1;
-		uint32 index_;
-		inline Edge() : index_(INVALID_INDEX)
-		{
-		}
-		inline Edge(uint32 id) : index_(id)
-		{
-		}
-		bool operator<(Edge e) const
-		{
-			return index_ < e.index_;
-		}
-		bool operator==(Edge e) const
-		{
-			return index_ == e.index_;
-		}
-		bool operator!=(Edge e) const
-		{
-			return index_ != e.index_;
-		}
-		inline bool is_valid() const
-		{
-			return index_ != INVALID_INDEX;
-		}
-	};
-
-	struct Face
-	{
-		static const uint32 CELL_INDEX = 2;
-		uint32 index_;
-		inline Face() : index_(INVALID_INDEX)
-		{
-		}
-		inline Face(uint32 id) : index_(id)
-		{
-		}
-		bool operator<(Face f) const
-		{
-			return index_ < f.index_;
-		}
-		bool operator==(Face f) const
-		{
-			return index_ == f.index_;
-		}
-		bool operator!=(Face f) const
-		{
-			return index_ != f.index_;
-		}
-		inline bool is_valid() const
-		{
-			return index_ != INVALID_INDEX;
-		}
-	};
-
-	mutable std::array<AttributeContainer, 3> attribute_containers_;
-
-	std::shared_ptr<Attribute<std::vector<Edge>>> vertex_incident_edges_;
-	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
-	std::shared_ptr<Attribute<std::vector<Face>>> edge_incident_faces_;
-	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
-	std::shared_ptr<Attribute<std::vector<uint8>>> face_incident_edges_dir_;
-
-	IncidenceGraph()
-	{
-		vertex_incident_edges_ =
-			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
-		edge_incident_vertices_ =
-			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
-		edge_incident_faces_ =
-			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::vector<Face>>("incident_faces");
-		face_incident_edges_ =
-			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
-		face_incident_edges_dir_ =
-			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
-	};
-	// ~IncidenceGraph();
+	}
 };
 
 template <>
@@ -175,11 +58,275 @@ struct mesh_traits<IncidenceGraph>
 	static constexpr const char* cell_names[] = {"Vertex", "Edge", "Face"};
 
 	template <typename T>
-	using Attribute = IncidenceGraph::Attribute<T>;
-	using AttributeGen = IncidenceGraph::AttributeGen;
-	using MarkAttribute = IncidenceGraph::MarkAttribute;
+	using Attribute = IncidenceGraphBase::Attribute<T>;
+	using AttributeGen = IncidenceGraphBase::AttributeGen;
+	using MarkAttribute = IncidenceGraphBase::MarkAttribute;
 };
+
+/*************************************************************************/
+// Local vertex traversals
+/*************************************************************************/
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_vertex(const MESH& ig, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, Edge>)
+	{
+		const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[c.index_];
+		if (func(evs.first))
+			func(evs.second);
+	}
+	else if constexpr (std::is_same_v<CELL, Face>)
+	{
+		// strong precondition: edges are sorted in the face & edges dirs are computed
+		const std::vector<Edge>& edges = (*ig.face_incident_edges_)[c.index_];
+		const std::vector<uint8>& edges_dir = (*ig.face_incident_edges_dir_)[c.index_];
+		for (uint32 i = 0, end = edges.size(); i < end - 1; ++i)
+		{
+			const std::pair<Vertex, Vertex>& evs = (*ig.edge_incident_vertices_)[edges[i].index_];
+			if (i == 0)
+			{
+				if (edges_dir[i] == 0)
+				{
+					if (!func(evs.first))
+						break;
+					if (!func(evs.second))
+						break;
+				}
+				else
+				{
+					if (!func(evs.second))
+						break;
+					if (!func(evs.first))
+						break;
+				}
+			}
+			else
+			{
+				if (edges_dir[i] == 0)
+				{
+					if (!func(evs.second))
+						break;
+				}
+				else
+				{
+					if (!func(evs.first))
+						break;
+				}
+			}
+		}
+	}
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_adjacent_vertex_through_edge(const MESH& ig, typename mesh_traits<MESH>::Vertex v, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	for (Edge e : (*ig.vertex_incident_edges_)[v.index_])
+	{
+		const std::pair<Vertex, Vertex>& ev = (*ig.edge_incident_vertices_)[e.index_];
+		if (ev.first.index_ != v.index_)
+		{
+			if (!func(ev.first))
+				break;
+		}
+		else
+		{
+			if (!func(ev.second))
+				break;
+		}
+	}
+}
+
+/*************************************************************************/
+// Local edge traversals
+/*************************************************************************/
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_edge(const MESH& ig, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, Vertex>)
+	{
+		for (auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		{
+			if (!func(ep))
+				break;
+		}
+	}
+	else if constexpr (std::is_same_v<CELL, Face>)
+	{
+		for (auto& ep : (*ig.face_incident_edges_)[c.index_])
+		{
+			if (!func(ep))
+				break;
+		}
+	}
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_adjacent_edge_through_face(const MESH& ig, typename mesh_traits<MESH>::Edge e, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	bool stop = false;
+	CellMarkerStore<MESH, Edge> marker(ig);
+	marker.mark(e);
+	foreach_incident_face(ig, e, [&](Face f0) -> bool {
+		foreach_incident_edge(ig, f0, [&](Edge e1) -> bool {
+			if (!marker.is_marked(e1))
+			{
+				marker.mark(e1);
+				stop = !func(e1);
+			}
+			return !stop;
+		});
+		return !stop;
+	});
+}
+
+/*************************************************************************/
+// Local face traversals
+/*************************************************************************/
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_face(const MESH& ig, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value,
+				  "CELL not supported in this IncidenceGraph");
+	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, Vertex>)
+	{
+		CellMarkerStore<MESH, Face> marker(ig);
+		for (auto& ep : (*ig.vertex_incident_edges_)[c.index_])
+		{
+			bool stop = false;
+			for (auto& fp : (*ig.edge_incident_faces_)[ep.index_])
+			{
+				if (!marker.is_marked(fp))
+				{
+					marker.mark(fp);
+					stop = !func(fp);
+					if (stop)
+						break;
+				}
+			}
+			if (stop)
+				break;
+		}
+	}
+	else if constexpr (std::is_same_v<CELL, Edge>)
+	{
+		for (auto& fp : (*ig.edge_incident_faces_)[c.index_])
+		{
+			if (!func(fp))
+				break;
+		}
+	}
+}
+
+template <typename MESH, typename FUNC>
+auto foreach_adjacent_face_through_edge(const MESH& ig, typename mesh_traits<MESH>::Face f, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraph&>>
+{
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	bool stop = false;
+	CellMarkerStore<MESH, Face> marker(ig);
+	marker.mark(f);
+	for (auto& ie : (*ig.face_incident_edges_)[f.index_])
+	{
+		for (auto& iface : (*ig.edge_incident_faces_)[ie.index_])
+		{
+			if (!marker.is_marked(iface))
+			{
+				marker.mark(iface);
+				stop = !func(iface);
+			}
+			if (stop)
+				break;
+		}
+		if (stop)
+			break;
+	}
+}
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+IncidenceGraph::Vertex add_vertex(IncidenceGraph& ig);
+IncidenceGraph::Edge connect_vertices(IncidenceGraph& g, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2);
+void remove_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v);
+
+IncidenceGraph::Edge add_edge(IncidenceGraph& ig, IncidenceGraph::Vertex v0, IncidenceGraph::Vertex v1);
+IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool set_indices = true);
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
+																				   IncidenceGraph::Edge e,
+																				   bool set_indices = true);
+void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
+
+IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges);
+IncidenceGraph::Edge cut_face(IncidenceGraph& m, IncidenceGraph::Vertex v1, IncidenceGraph::Vertex v2);
+void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f);
+
+/*************************************************************************/
+// Helper functions
+/*************************************************************************/
+
+bool same_edge(IncidenceGraph& ig, IncidenceGraph::Edge e1, IncidenceGraph::Edge e2);
+IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1);
+
+void remove_edge_in_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex v, IncidenceGraph::Edge edge_to_remove);
+
+void remove_face_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Face face_to_remove);
+void replace_vertex_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, IncidenceGraph::Vertex old_vertex,
+							IncidenceGraph::Vertex new_vertex);
+
+void remove_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge edge_to_remove);
+void replace_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge old_edge,
+						  IncidenceGraph::Edge new_edge);
+std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& ig, IncidenceGraph::Face f);
+bool sort_face_edges(IncidenceGraph& ig, IncidenceGraph::Face f);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_INCIDENCE_GRAPH_H_
+#endif // CGOGN_CORE_TYPES_INCIDENCE_GRAPH_H_

@@ -24,9 +24,10 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 #define CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 
-#include <cgogn/core/functions/attributes.h>
+
 #include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
+
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/algos/normal.h>
@@ -35,29 +36,43 @@
 
 namespace cgogn
 {
+//
+//struct CMap2;
+//struct GMap2;
 
 namespace geometry
 {
 
-inline std::vector<Scalar> opposite_angles(const CMap2& m, typename CMap2::Edge e,
-										   const typename mesh_traits<CMap2>::template Attribute<Vec3>* vertex_position)
+///////////
+// CMap2 //
+///////////
+//template <typename MAP2, typename std::enable_if_t<std::is_same_v<MAP2,CMap2>|| std::is_same_v<MAP2,GMap2>>* = nullptr>
+template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
+std::vector<Scalar> opposite_angles(const MAP2& m, typename MAP2::Edge e,
+										   const typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
 {
+	using Vertex = typename MAP2::Vertex;
+
 	if (!is_incident_to_boundary(m, e))
 	{
-		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, e.dart)));
-		const Vec3& p4 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi<2, -1>(m, e.dart)));
+		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart)));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, Vertex(phi<2, -1>(m, e.dart)));
 		return {angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4)};
 	}
 	else
 	{
-		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi_1(m, e.dart)));
+		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart)));
 		return {angle(p1 - p3, p2 - p3)};
 	}
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
 Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
@@ -96,6 +111,10 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	return angle(value<Vec3>(m, face_normal, faces[0]), value<Vec3>(m, face_normal, faces[1]));
 }
 
+//////////
+// CMap //
+//////////
+
 template <typename MESH>
 Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 			 const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
@@ -109,6 +128,10 @@ Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 
 	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename MESH>
 void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
@@ -136,6 +159,33 @@ void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Att
 		value<Scalar>(m, edge_angle, e) = angle(m, e, vertex_position, face_normal);
 		return true;
 	});
+}
+
+/**
+ * compute the sum of interior angles around a vertex on a well triangulated mesh
+ * @param m mesh
+ * @param v vertex
+ * @returns the sum of interior angles around v
+ */
+template <typename MESH>
+inline Scalar vertex_angle_sum(const MESH& m,
+							   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+							   typename mesh_traits<MESH>::Vertex v)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	Vec3 v_position = value<Vec3>(m, vertex_position, v);
+	Scalar angle_sum{0};
+	std::vector<Vertex> vertices = adjacent_vertices_through_edge(m, v);
+
+	// sum incident directions angles
+	for (uint32 i = 0, size = uint32(vertices.size()); i < size; ++i)
+	{
+		Vec3 current_vertex = value<Vec3>(m, vertex_position, vertices[(i + 1) % size]);
+		Vec3 next_vertex = value<Vec3>(m, vertex_position, vertices[i]);
+		angle_sum += angle(current_vertex - v_position, next_vertex - v_position);
+	}
+	return angle_sum;
 }
 
 } // namespace geometry

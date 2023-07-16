@@ -24,7 +24,6 @@
 #ifndef CGOGN_CORE_TYPES_MESH_TRAITS_H_
 #define CGOGN_CORE_TYPES_MESH_TRAITS_H_
 
-#include <cgogn/core/cgogn_core_export.h>
 #include <cgogn/core/utils/numerics.h>
 
 namespace cgogn

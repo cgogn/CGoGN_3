@@ -17,6 +17,7 @@ target_link_libraries(modeling
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 
@@ -28,6 +29,7 @@ target_link_libraries(tubular_mesh
 	cgogn::rendering
 	cgogn::modeling
 	simpleICP
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 
@@ -38,6 +40,7 @@ target_link_libraries(deformation
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 
@@ -48,6 +51,7 @@ target_link_libraries(skeleton_extractor
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 
@@ -58,6 +62,7 @@ target_link_libraries(convex_hull
 	cgogn::io
 	cgogn::rendering
 	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 

@@ -26,10 +26,8 @@
 
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/face.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
-#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/functions/normal.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -100,16 +98,31 @@ Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Face2 f,
 }
 
 template <typename MESH>
+Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Edge e,
+			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+
+	using Face = typename mesh_traits<MESH>::Face;
+	Vec3 n{0.0, 0.0, 0.0};
+	foreach_incident_face(m, e, [&](Face f) -> bool {
+		n += normal(m, f, vertex_position); // * area(m, f, vertex_position);
+		return true;
+	});
+	n.normalize();
+	return n;
+}
+
+template <typename MESH>
 Vec3 normal(const MESH& m, typename mesh_traits<MESH>::Vertex v,
 			const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
 
-	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 	Vec3 n{0.0, 0.0, 0.0};
 	foreach_incident_face(m, v, [&](Face f) -> bool {
-		n += normal(m, f, vertex_position) * area(m, f, vertex_position);
+		n += normal(m, f, vertex_position); // * area(m, f, vertex_position);
 		return true;
 	});
 	n.normalize();
@@ -121,6 +134,7 @@ void compute_normal(const MESH& m, const typename mesh_traits<MESH>::template At
 					typename mesh_traits<MESH>::template Attribute<Vec3>* cell_normal)
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "MESH dimension should be >= 2");
+	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	parallel_foreach_cell(m, [&](CELL c) -> bool {
 		value<Vec3>(m, cell_normal, c) = normal(m, c, vertex_position);

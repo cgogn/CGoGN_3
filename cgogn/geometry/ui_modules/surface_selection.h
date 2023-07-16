@@ -29,6 +29,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/core/functions/traversals/volume.h>
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/picking.h>
@@ -42,6 +43,11 @@
 
 #include <boost/synapse/connect.hpp>
 
+#include <imgui/imgui-knobs.h>
+
+#include <GLFW/glfw3.h>
+
+#include <algorithm>
 #include <unordered_map>
 
 #undef near
@@ -52,6 +58,10 @@ namespace cgogn
 
 namespace ui
 {
+
+
+using geometry::Vec3;
+using geometry::Scalar;
 
 template <typename MESH>
 class SurfaceSelection : public ViewModule
@@ -77,16 +87,14 @@ class SurfaceSelection : public ViewModule
 	{
 		SingleCell = 0,
 		WithinSphere,
+		FlatArea,
 		ConnectedComponent
 	};
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_scale_factor_(1.0), sphere_scale_factor_(10.0),
+			: vertex_position_(nullptr), vertex_scale_factor_(1.0), sphere_scale_factor_(10.0), angle_threshold_(0.5f),
 			  selected_vertices_set_(nullptr), selected_edges_set_(nullptr), selected_faces_set_(nullptr),
 			  selecting_cell_(VertexSelect), selection_method_(SingleCell)
 		{
@@ -163,6 +171,7 @@ class SurfaceSelection : public ViewModule
 		float32 vertex_scale_factor_;
 		float32 vertex_base_size_;
 		float32 sphere_scale_factor_;
+		float32 angle_threshold_;
 
 		rendering::VBO selected_vertices_vbo_;
 		rendering::VBO selected_edges_vbo_;
@@ -180,6 +189,21 @@ public:
 	SurfaceSelection(const App& app)
 		: ViewModule(app, "SurfaceSelection (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr)
 	{
+		param_point_sprite_selecting_sphere_ = rendering::ShaderPointSprite::generate_param();
+		param_point_sprite_selecting_sphere_->color_ = rendering::GLColor(1, 0.5, 0, 0.65f);
+		param_point_sprite_selecting_sphere_->set_vbos({&selecting_spheres_vbo_});
+
+		param_edge_selecting_edge_ = rendering::ShaderBoldLine::generate_param();
+		param_edge_selecting_edge_->color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
+		param_edge_selecting_edge_->width_ = 8.0f;
+		param_edge_selecting_edge_->set_vbos({&selecting_edges_vbo_});
+
+		param_flat_selecting_face_ = rendering::ShaderFlat::generate_param();
+		param_flat_selecting_face_->front_color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
+		param_flat_selecting_face_->back_color_ = rendering::GLColor(1, 0.5, 0, 0.35f);
+		param_flat_selecting_face_->double_side_ = true;
+		param_flat_selecting_face_->ambiant_color_ = rendering::GLColor(0.1f, 0.1f, 0.1f, 1);
+		param_flat_selecting_face_->set_vbos({&selecting_faces_vbo_});
 	}
 
 	~SurfaceSelection()
@@ -241,6 +265,168 @@ private:
 				}));
 	}
 
+	void update_seleting_cells(View* view, int32 x, int32 y)
+	{
+		if (selecting_)
+		{
+			Parameters& p = parameters_[selected_mesh_];
+
+			rendering::GLVec3d near = view->unproject(x, y, 0.0);
+			rendering::GLVec3d far_d = view->unproject(x, y, 1.0);
+			Vec3 A{near.x(), near.y(), near.z()};
+			Vec3 B{far_d.x(), far_d.y(), far_d.z()};
+
+			switch (p.selection_method_)
+			{
+			case SingleCell:
+			case ConnectedComponent: {
+				switch (p.selecting_cell_)
+				{
+				case VertexSelect: {
+					selecting_vertices_.clear();
+					std::vector<Vertex> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_vertices_.push_back(picked[0]);
+						std::vector<Vec3> selecting_points;
+						selecting_points.reserve(selecting_vertices_.size());
+						for (Vertex v : selecting_vertices_)
+							selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
+						rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
+					}
+				}
+				break;
+				case EdgeSelect: {
+					selecting_edges_.clear();
+					std::vector<Edge> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_edges_.push_back(picked[0]);
+						std::vector<Vec3> selecting_segments;
+						selecting_segments.reserve(2 * selecting_edges_.size());
+						for (Edge e : selecting_edges_)
+						{
+							std::vector<Vertex> vertices = incident_vertices(*selected_mesh_, e);
+							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[0]));
+							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[1]));
+						}
+						rendering::update_vbo(selecting_segments, &selecting_edges_vbo_);
+					}
+				}
+				break;
+				case FaceSelect: {
+					selecting_faces_.clear();
+					std::vector<Face> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_faces_.push_back(picked[0]);
+						std::vector<Vec3> selecting_polygons;
+						selecting_polygons.reserve(3 * selecting_faces_.size());
+						for (Face f : selecting_faces_)
+						{
+							foreach_incident_vertex(*selected_mesh_, f, [&](Vertex v) -> bool {
+								selecting_polygons.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
+								return true;
+							});
+						}
+						rendering::update_vbo(selecting_polygons, &selecting_faces_vbo_);
+					}
+				}
+				break;
+				}
+			}
+			break;
+			case FlatArea: {
+				switch (p.selecting_cell_)
+				{
+				case VertexSelect: {
+					std::vector<Vertex> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_vertices_ = geometry::within_normal_angle_threshold<Vertex>(
+							*selected_mesh_, picked[0], p.angle_threshold_, p.vertex_position_.get());
+						std::vector<Vec3> selecting_points;
+						selecting_points.reserve(selecting_vertices_.size());
+						for (Vertex v : selecting_vertices_)
+							selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
+						rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
+					}
+					else
+						selecting_vertices_.clear();
+				}
+				break;
+				case EdgeSelect: {
+					std::vector<Edge> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_edges_ = geometry::within_normal_angle_threshold<Edge>(
+							*selected_mesh_, picked[0], p.angle_threshold_, p.vertex_position_.get());
+						std::vector<Vec3> selecting_segments;
+						selecting_segments.reserve(2 * selecting_edges_.size());
+						for (Edge e : selecting_edges_)
+						{
+							std::vector<Vertex> vertices = incident_vertices(*selected_mesh_, e);
+							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[0]));
+							selecting_segments.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, vertices[1]));
+						}
+						rendering::update_vbo(selecting_segments, &selecting_edges_vbo_);
+					}
+					else
+						selecting_edges_.clear();
+				}
+				break;
+				case FaceSelect: {
+					std::vector<Face> picked;
+					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+					if (!picked.empty())
+					{
+						selecting_faces_ = geometry::within_normal_angle_threshold<Face>(
+							*selected_mesh_, picked[0], p.angle_threshold_, p.vertex_position_.get());
+						std::vector<Vec3> selecting_polygons;
+						selecting_polygons.reserve(3 * selecting_faces_.size());
+						for (Face f : selecting_faces_)
+						{
+							foreach_incident_vertex(*selected_mesh_, f, [&](Vertex v) -> bool {
+								selecting_polygons.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
+								return true;
+							});
+						}
+						rendering::update_vbo(selecting_polygons, &selecting_faces_vbo_);
+					}
+					else
+						selecting_faces_.clear();
+				}
+				break;
+				}
+			}
+			break;
+			case WithinSphere: {
+				selecting_vertices_.clear();
+				std::vector<Vertex> picked;
+				cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
+				if (!picked.empty())
+				{
+					selecting_vertices_.push_back(picked[0]);
+					std::vector<Vec3> selecting_points;
+					selecting_points.reserve(selecting_vertices_.size());
+					for (Vertex v : selecting_vertices_)
+						selecting_points.push_back(value<Vec3>(*selected_mesh_, p.vertex_position_, v));
+					rendering::update_vbo(selecting_points, &selecting_spheres_vbo_);
+				}
+			}
+			break;
+			}
+
+			for (View* v : linked_views_)
+				v->request_update();
+		}
+	}
+
 public:
 	void set_vertex_position(const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
@@ -254,6 +440,8 @@ public:
 			p.update_selected_edges_vbo();
 			p.update_selected_faces_vbo();
 		}
+		else
+			selecting_ = false;
 
 		for (View* v : linked_views_)
 			v->request_update();
@@ -269,253 +457,320 @@ protected:
 			mesh_provider_, this, &SurfaceSelection<MESH>::init_mesh));
 	}
 
-	void mouse_press_event(View* view, int32 button, int32 x, int32 y) override
+	void key_press_event(View* view, int32 key_code) override
 	{
-		if (selected_mesh_ && view->shift_pressed())
+		if (selected_mesh_ && key_code == GLFW_KEY_S)
 		{
-			// MeshData<MESH>* md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
-			if (p.vertex_position_)
+			if (p.vertex_position_ && (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ ||
+									   p.selecting_cell_ == EdgeSelect && p.selected_edges_set_ ||
+									   p.selecting_cell_ == FaceSelect && p.selected_faces_set_))
 			{
-				rendering::GLVec3d near = view->unproject(x, y, 0.0);
-				rendering::GLVec3d far_d = view->unproject(x, y, 1.0);
-				Vec3 A{near.x(), near.y(), near.z()};
-				Vec3 B{far_d.x(), far_d.y(), far_d.z()};
+				selecting_ = true;
+				selecting_vertices_.clear();
+				selecting_edges_.clear();
+				selecting_faces_.clear();
+			}
+		}
+	}
 
-				switch (p.selection_method_)
+	void key_release_event(View* view, int32 key_code) override
+	{
+		if (key_code == GLFW_KEY_S)
+		{
+			selecting_ = false;
+			selecting_vertices_.clear();
+			selecting_edges_.clear();
+			selecting_faces_.clear();
+
+			for (View* v : linked_views_)
+				v->request_update();
+		}
+	}
+
+	void mouse_wheel_event(View* view, int32 dx, int32 dy) override
+	{
+		if (selecting_)
+		{
+			Parameters& p = parameters_[selected_mesh_];
+			if (p.selection_method_ == WithinSphere)
+			{
+				p.sphere_scale_factor_ += dy > 0 ? 1 : -1;
+				p.sphere_scale_factor_ = std::clamp(p.sphere_scale_factor_, 10.0f, 100.0f);
+				view->stop_event();
+				view->request_update();
+			}
+			else if (p.selection_method_ == FlatArea)
+			{
+				p.angle_threshold_ += dy > 0 ? 0.01 : -0.01;
+				p.angle_threshold_ = std::clamp(p.angle_threshold_, 0.0f, 1.57f);
+				update_seleting_cells(view, view->previous_mouse_x(), view->previous_mouse_y());
+				view->stop_event();
+				view->request_update();
+			}
+		}
+	}
+
+	void mouse_move_event(View* view, int32 x, int32 y) override
+	{
+		update_seleting_cells(view, x, y);
+	}
+
+	void mouse_press_event(View* view, int32 button, int32 x, int32 y) override
+	{
+		if (selecting_)
+		{
+			Parameters& p = parameters_[selected_mesh_];
+
+			switch (p.selection_method_)
+			{
+			case SingleCell: {
+				switch (p.selecting_cell_)
 				{
-				case SingleCell: {
+				case VertexSelect:
+					if (!selecting_vertices_.empty())
+					{
+						switch (button)
+						{
+						case 0:
+							p.selected_vertices_set_->select(selecting_vertices_.front());
+							break;
+						case 1:
+							p.selected_vertices_set_->unselect(selecting_vertices_.front());
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+					}
+					break;
+				case EdgeSelect:
+					if (!selecting_edges_.empty())
+					{
+						switch (button)
+						{
+						case 0:
+							p.selected_edges_set_->select(selecting_edges_.front());
+							break;
+						case 1:
+							p.selected_edges_set_->unselect(selecting_edges_.front());
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+					}
+					break;
+				case FaceSelect:
+					if (!selecting_faces_.empty())
+					{
+						switch (button)
+						{
+						case 0:
+							p.selected_faces_set_->select(selecting_faces_.front());
+							break;
+						case 1:
+							p.selected_faces_set_->unselect(selecting_faces_.front());
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+					}
+					break;
+				}
+			}
+			break;
+			case WithinSphere: {
+				if (!selecting_vertices_.empty())
+				{
+					CellCache<MESH> cache =
+						geometry::within_sphere(*selected_mesh_, selecting_vertices_.front(),
+												p.vertex_base_size_ * p.sphere_scale_factor_, p.vertex_position_.get());
 					switch (p.selecting_cell_)
 					{
 					case VertexSelect:
-						if (p.selected_vertices_set_)
+						switch (button)
 						{
-							std::vector<Vertex> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								switch (button)
-								{
-								case 0:
-									p.selected_vertices_set_->select(picked[0]);
-									break;
-								case 1:
-									p.selected_vertices_set_->unselect(picked[0]);
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
-							}
+						case 0:
+							foreach_cell(cache, [&p](Vertex v) -> bool {
+								p.selected_vertices_set_->select(v);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_cell(cache, [&p](Vertex v) -> bool {
+								p.selected_vertices_set_->unselect(v);
+								return true;
+							});
+							break;
 						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 						break;
 					case EdgeSelect:
-						if (p.selected_edges_set_)
+						switch (button)
 						{
-							std::vector<Edge> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								switch (button)
-								{
-								case 0:
-									p.selected_edges_set_->select(picked[0]);
-									break;
-								case 1:
-									p.selected_edges_set_->unselect(picked[0]);
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
-							}
+						case 0:
+							foreach_cell(cache, [&p](Edge e) -> bool {
+								p.selected_edges_set_->select(e);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_cell(cache, [&p](Edge e) -> bool {
+								p.selected_edges_set_->unselect(e);
+								return true;
+							});
+							break;
 						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
 						break;
 					case FaceSelect:
-						if (p.selected_faces_set_)
+						switch (button)
 						{
-							std::vector<Face> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								switch (button)
-								{
-								case 0:
-									p.selected_faces_set_->select(picked[0]);
-									break;
-								case 1:
-									p.selected_faces_set_->unselect(picked[0]);
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
-							}
+						case 0:
+							foreach_cell(cache, [&p](Face f) -> bool {
+								p.selected_faces_set_->select(f);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_cell(cache, [&p](Face f) -> bool {
+								p.selected_faces_set_->unselect(f);
+								return true;
+							});
+							break;
 						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 						break;
 					}
-					break;
 				}
-				case WithinSphere: {
-					std::vector<Vertex> picked;
-					cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-					if (!picked.empty())
+			}
+			break;
+			case FlatArea: {
+				switch (p.selecting_cell_)
+				{
+				case VertexSelect:
+					if (!selecting_vertices_.empty())
 					{
-						CellCache<MESH> cache = geometry::within_sphere(*selected_mesh_, picked[0],
-																		p.vertex_base_size_ * p.sphere_scale_factor_,
-																		p.vertex_position_.get());
-						switch (p.selecting_cell_)
+						switch (button)
 						{
-						case VertexSelect:
-							if (p.selected_vertices_set_)
-							{
-								switch (button)
-								{
-								case 0:
-									foreach_cell(cache, [&p](Vertex v) -> bool {
-										p.selected_vertices_set_->select(v);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_cell(cache, [&p](Vertex v) -> bool {
-										p.selected_vertices_set_->unselect(v);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
-							}
+						case 0:
+							for (Vertex v : selecting_vertices_)
+								p.selected_vertices_set_->select(v);
 							break;
-						case EdgeSelect:
-							if (p.selected_edges_set_)
-							{
-								switch (button)
-								{
-								case 0:
-									foreach_cell(cache, [&p](Edge e) -> bool {
-										p.selected_edges_set_->select(e);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_cell(cache, [&p](Edge e) -> bool {
-										p.selected_edges_set_->unselect(e);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
-							}
-							break;
-						case FaceSelect:
-							if (p.selected_faces_set_)
-							{
-								switch (button)
-								{
-								case 0:
-									foreach_cell(cache, [&p](Face f) -> bool {
-										p.selected_faces_set_->select(f);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_cell(cache, [&p](Face f) -> bool {
-										p.selected_faces_set_->unselect(f);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
-							}
+						case 1:
+							for (Vertex v : selecting_vertices_)
+								p.selected_vertices_set_->unselect(v);
 							break;
 						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 					}
 					break;
-				}
-				case ConnectedComponent: {
-					switch (p.selecting_cell_)
+				case EdgeSelect:
+					if (!selecting_edges_.empty())
 					{
-					case VertexSelect:
-						if (p.selected_vertices_set_)
+						switch (button)
 						{
-							std::vector<Vertex> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
-								switch (button)
-								{
-								case 0:
-									foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
-										p.selected_vertices_set_->select(v);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
-										p.selected_vertices_set_->unselect(v);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
-							}
+						case 0:
+							for (Edge e : selecting_edges_)
+								p.selected_edges_set_->select(e);
+							break;
+						case 1:
+							for (Edge e : selecting_edges_)
+								p.selected_edges_set_->unselect(e);
+							break;
 						}
-						break;
-					case EdgeSelect:
-						if (p.selected_edges_set_)
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+					}
+					break;
+				case FaceSelect:
+					if (!selecting_faces_.empty())
+					{
+						switch (button)
 						{
-							std::vector<Edge> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
-								switch (button)
-								{
-								case 0:
-									foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
-										p.selected_edges_set_->select(e);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
-										p.selected_edges_set_->unselect(e);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
-							}
+						case 0:
+							for (Face f : selecting_faces_)
+								p.selected_faces_set_->select(f);
+							break;
+						case 1:
+							for (Face f : selecting_faces_)
+								p.selected_faces_set_->unselect(f);
+							break;
 						}
-						break;
-					case FaceSelect:
-						if (p.selected_faces_set_)
-						{
-							std::vector<Face> picked;
-							cgogn::geometry::picking(*selected_mesh_, p.vertex_position_.get(), A, B, picked);
-							if (!picked.empty())
-							{
-								Volume vol = incident_volumes(*selected_mesh_, picked[0])[0];
-								switch (button)
-								{
-								case 0:
-									foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
-										p.selected_faces_set_->select(f);
-										return true;
-									});
-									break;
-								case 1:
-									foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
-										p.selected_faces_set_->unselect(f);
-										return true;
-									});
-									break;
-								}
-								mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
-							}
-						}
-						break;
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 					}
 					break;
 				}
+			}
+			break;
+			case ConnectedComponent: {
+				switch (p.selecting_cell_)
+				{
+				case VertexSelect:
+					if (!selecting_vertices_.empty())
+					{
+						Volume vol = incident_volumes(*selected_mesh_, selecting_vertices_.front())[0];
+						switch (button)
+						{
+						case 0:
+							foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
+								p.selected_vertices_set_->select(v);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_incident_vertex(*selected_mesh_, vol, [&](Vertex v) -> bool {
+								p.selected_vertices_set_->unselect(v);
+								return true;
+							});
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+					}
+					break;
+				case EdgeSelect:
+					if (!selecting_edges_.empty())
+					{
+						Volume vol = incident_volumes(*selected_mesh_, selecting_edges_.front())[0];
+						switch (button)
+						{
+						case 0:
+							foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
+								p.selected_edges_set_->select(e);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_incident_edge(*selected_mesh_, vol, [&](Edge e) -> bool {
+								p.selected_edges_set_->unselect(e);
+								return true;
+							});
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+					}
+					break;
+				case FaceSelect:
+					if (!selecting_faces_.empty())
+					{
+						Volume vol = incident_volumes(*selected_mesh_, selecting_faces_.front())[0];
+						switch (button)
+						{
+						case 0:
+							foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
+								p.selected_faces_set_->select(f);
+								return true;
+							});
+							break;
+						case 1:
+							foreach_incident_face(*selected_mesh_, vol, [&](Face f) -> bool {
+								p.selected_faces_set_->unselect(f);
+								return true;
+							});
+							break;
+						}
+						mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+					}
+					break;
 				}
+			}
+			break;
 			}
 		}
 	}
@@ -526,6 +781,8 @@ protected:
 		{
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
+
+			// draw selected cells
 
 			if (p.selecting_cell_ == VertexSelect && p.selected_vertices_set_ && p.selected_vertices_set_->size() > 0 &&
 				p.param_point_sprite_->attributes_initialized())
@@ -548,6 +805,48 @@ protected:
 				p.param_flat_->bind(proj_matrix, view_matrix);
 				glDrawArrays(GL_TRIANGLES, 0, p.selected_faces_set_->size() * 3); // TODO: manage polygonal faces
 				p.param_flat_->release();
+			}
+
+			// draw selection helpers
+
+			if (selecting_)
+			{
+				if (p.selection_method_ == WithinSphere && !selecting_vertices_.empty())
+				{
+					param_point_sprite_selecting_sphere_->point_size_ = p.vertex_base_size_ * p.sphere_scale_factor_;
+					param_point_sprite_selecting_sphere_->bind(proj_matrix, view_matrix);
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					glDrawArrays(GL_POINTS, 0, selecting_vertices_.size());
+					glDisable(GL_BLEND);
+					param_point_sprite_selecting_sphere_->release();
+				}
+				else // SingleCell & ConnectedComponent
+				{
+					if (p.selecting_cell_ == VertexSelect && !selecting_vertices_.empty())
+					{
+						param_point_sprite_selecting_sphere_->point_size_ =
+							p.vertex_base_size_ * p.vertex_scale_factor_;
+						param_point_sprite_selecting_sphere_->bind(proj_matrix, view_matrix);
+						glEnable(GL_BLEND);
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+						glDrawArrays(GL_POINTS, 0, selecting_vertices_.size());
+						glDisable(GL_BLEND);
+						param_point_sprite_selecting_sphere_->release();
+					}
+					if (p.selecting_cell_ == EdgeSelect && !selecting_edges_.empty())
+					{
+						param_edge_selecting_edge_->bind(proj_matrix, view_matrix);
+						glDrawArrays(GL_LINES, 0, 2 * selecting_edges_.size());
+						param_edge_selecting_edge_->release();
+					}
+					if (p.selecting_cell_ == FaceSelect && !selecting_faces_.empty())
+					{
+						param_flat_selecting_face_->bind(proj_matrix, view_matrix);
+						glDrawArrays(GL_TRIANGLES, 0, 3 * selecting_faces_.size()); // TODO: manage polygonal faces
+						param_flat_selecting_face_->release();
+					}
+				}
 			}
 		}
 	}
@@ -586,9 +885,14 @@ protected:
 				ImGui::RadioButton("Sphere", reinterpret_cast<int*>(&p.selection_method_), WithinSphere);
 				ImGui::SameLine();
 				ImGui::RadioButton("CC", reinterpret_cast<int*>(&p.selection_method_), ConnectedComponent);
+				ImGui::SameLine();
+				ImGui::RadioButton("Flat", reinterpret_cast<int*>(&p.selection_method_), FlatArea);
 
 				if (p.selection_method_ == WithinSphere)
 					ImGui::SliderFloat("Sphere radius", &(p.sphere_scale_factor_), 10.0f, 100.0f);
+				if (p.selection_method_ == FlatArea)
+					// ImGui::SliderFloat("Angle threshold", &(p.angle_threshold_), 0.0f, M_PI);
+					ImGuiKnobs::Knob("Angle", &(p.angle_threshold_), 0.0f, 1.57f, 0.01f, "%.2f", ImGuiKnobVariant_Tick);
 
 				MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 
@@ -603,6 +907,7 @@ protected:
 					});
 					if (p.selected_vertices_set_)
 					{
+						ImGui::TextUnformatted("Press S to select vertices");
 						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
 						if (ImGui::Button("Clear##vertices_set"))
 						{
@@ -626,10 +931,11 @@ protected:
 					});
 					if (p.selected_edges_set_)
 					{
+						ImGui::TextUnformatted("Press S to select edges");
 						ImGui::Text("(nb elements: %d)", p.selected_edges_set_->size());
 						if (ImGui::Button("Clear##edges_set"))
 						{
-							p.selected_vertices_set_->clear();
+							p.selected_edges_set_->clear();
 							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
 						}
 					}
@@ -649,10 +955,11 @@ protected:
 					});
 					if (p.selected_faces_set_)
 					{
+						ImGui::TextUnformatted("Press S to select faces");
 						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
 						if (ImGui::Button("Clear##faces_set"))
 						{
-							p.selected_vertices_set_->clear();
+							p.selected_faces_set_->clear();
 							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 						}
 					}
@@ -674,6 +981,21 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
+
+	bool selecting_ = false;
+
+	std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_selecting_sphere_;
+	rendering::VBO selecting_spheres_vbo_;
+	// bool has_selecting_vertex_ = false;
+	std::vector<Vertex> selecting_vertices_;
+	std::unique_ptr<rendering::ShaderBoldLine::Param> param_edge_selecting_edge_;
+	rendering::VBO selecting_edges_vbo_;
+	// bool has_selecting_edge_ = false;
+	std::vector<Edge> selecting_edges_;
+	std::unique_ptr<rendering::ShaderFlat::Param> param_flat_selecting_face_;
+	rendering::VBO selecting_faces_vbo_;
+	// bool has_selecting_face_ = false;
+	std::vector<Face> selecting_faces_;
 };
 
 } // namespace ui

@@ -51,7 +51,7 @@ struct is_in_tuple<V, std::tuple<>>
 };
 
 template <typename V, typename T>
-inline constexpr bool is_in_tuple_v = is_in_tuple<V,T>::value;
+inline constexpr bool is_in_tuple_v = is_in_tuple<V, T>::value;
 
 template <class T, class Tuple>
 struct tuple_type_index;

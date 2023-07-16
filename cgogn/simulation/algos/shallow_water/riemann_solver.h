@@ -35,7 +35,7 @@ namespace simulation
 namespace shallow_water
 {
 
-using Scalar = geometry::Scalar;
+using geometry::Scalar;
 
 enum BoundaryCondition
 {

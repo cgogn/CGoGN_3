@@ -24,11 +24,12 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_UTILS_H_
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 
-#include <cgogn/core/functions/mesh_info.h>
-#include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/types/cell_marker.h>
+
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
@@ -75,6 +76,11 @@ struct IncidenceGraphData
 	std::vector<IncidenceGraph::Vertex> ffjunctures;
 	std::vector<IncidenceGraph::Vertex> intersections;
 	std::vector<std::vector<IncidenceGraph::Face>> leaflets;
+	std::vector<IncidenceGraph::Edge> fan_edges;
+	std::vector<IncidenceGraph::Edge> leaflets_boundary_edges;
+	std::vector<IncidenceGraph::Vertex> leaflets_inside_vertices;
+	std::vector<IncidenceGraph::Vertex> leaflets_boundary_vertices_corners;
+	std::vector<IncidenceGraph::Vertex> leaflets_boundary_vertices_fans;
 };
 
 std::pair<uint32, uint32> pseudo_degree(const IncidenceGraph& ig, IncidenceGraph::Vertex v);

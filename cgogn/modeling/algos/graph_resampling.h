@@ -24,7 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 #define CGOGN_MODELING_ALGOS_GRAPH_RESAMPLING_H_
 
-#include <cgogn/core/types/cmap/graph.h>
+#include <cgogn/core/types/maps/cmap/graph.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -34,8 +34,8 @@ namespace cgogn
 namespace modeling
 {
 
-using Vec3 = geometry::Vec3;
-using Scalar = geometry::Scalar;
+using geometry::Vec3;
+using geometry::Scalar;
 
 ///////////
 // Graph //

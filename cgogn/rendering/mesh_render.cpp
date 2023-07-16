@@ -21,7 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/mesh_render.h>
+#include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/rendering/mesh_render_base.h>
 
 namespace cgogn
 {

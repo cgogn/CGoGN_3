@@ -38,6 +38,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class Registration : public Module
 {
@@ -46,9 +49,6 @@ class Registration : public Module
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 public:
 	Registration(const App& app) : Module(app, "Registration (" + std::string{mesh_traits<MESH>::name} + ")")
@@ -122,9 +122,9 @@ protected:
 			if (ImGui::Checkbox("Relax", &relax))
 			{
 				if (relax)
-					fit_to_target = 5.0;
+					fit_to_target = 5.0f;
 				else
-					fit_to_target = 0.05;
+					fit_to_target = 0.05f;
 			}
 			if (ImGui::Button("Non-rigid registration"))
 				non_rigid_register_mesh(*selected_source_mesh_, selected_source_vertex_position_,

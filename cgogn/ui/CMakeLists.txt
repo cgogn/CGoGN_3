@@ -11,8 +11,7 @@ find_package(synapse REQUIRED)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::ui ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
+set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/app.h"
 		"${CMAKE_CURRENT_LIST_DIR}/app.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/camera.h"
@@ -27,6 +26,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/view.h"
 		"${CMAKE_CURRENT_LIST_DIR}/view.cpp"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"

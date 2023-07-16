@@ -30,7 +30,7 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/geometry/algos/centroid.h>
 
 #include <cgogn/rendering/shaders/shader_vector_per_vertex.h>
 

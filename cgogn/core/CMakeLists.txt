@@ -14,37 +14,61 @@ find_package(Threads REQUIRED)
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::core ALIAS ${PROJECT_NAME})
 
-target_sources(${PROJECT_NAME}
-	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
+set(src_list
+		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cell_marker.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/cells_set.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/attribute_handler.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_traits.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_cache.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/mesh_views/cell_filter.h"
 
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cell.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_base.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_info.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap_ops.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap0.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap1.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap2.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cmap3.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cph3.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/cph3.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart_marker.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/dart.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/graph.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/orbit_traversal.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/types/cmap/phi.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/map_base.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart_marker.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/dart.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cell.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap2.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap2.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap3.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap3.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cph3.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cph3.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/graph.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/graph.cpp"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap_base.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap0.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap1.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap1.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap2.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap2.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/gmap/gmap3.cpp"
+
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_map_base.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map0.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map0.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map1.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map1.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map2.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map2.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map3.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/chain_of_map3.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/edge_traversals.hpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/face_traversals.hpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/halfedge_traversals.hpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/types/maps/chain_of_maps/vertex_traversals.hpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_ops.h"
-		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph_ops.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
@@ -52,19 +76,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/vector.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/functions/attributes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/cells.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/convert.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_info.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/global.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/vertex.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/edge.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/face.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/volume.h"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/mesh_ops/volume.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/global.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/vertex.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/halfedge.h"
 		"${CMAKE_CURRENT_LIST_DIR}/functions/traversals/edge.h"
@@ -88,6 +101,8 @@ target_sources(${PROJECT_NAME}
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_provider.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/mesh_data.h"
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 # use of target_compile_options to have transitive flags
 if(CGOGN_USE_SIMD)

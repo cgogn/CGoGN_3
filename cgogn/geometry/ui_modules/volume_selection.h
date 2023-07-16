@@ -52,6 +52,9 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Vec3;
+using geometry::Scalar;
+
 template <typename MESH>
 class VolumeSelection : public ViewModule
 {
@@ -74,9 +77,6 @@ class VolumeSelection : public ViewModule
 	{
 		SingleCell
 	};
-
-	using Vec3 = geometry::Vec3;
-	using Scalar = geometry::Scalar;
 
 	struct Parameters
 	{
@@ -459,32 +459,22 @@ protected:
 
 				if (p.selecting_cell_ == VertexSelect)
 				{
-					if (ImGui::BeginCombo("Sets", p.selected_vertices_set_ ? p.selected_vertices_set_->name().c_str()
-																		   : "-- select --"))
-					{
-						md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-							bool is_selected = &cs == p.selected_vertices_set_;
-							if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							{
-								p.selected_vertices_set_ = &cs;
-								p.update_selected_vertices_vbo();
-								for (View* v : linked_views_)
-									v->request_update();
-							}
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-						});
-						ImGui::EndCombo();
-					}
-					if (p.selected_vertices_set_)
-					{
-						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-						if (ImGui::Button("X##selected_vertices_set"))
-							p.selected_vertices_set_ = nullptr;
-						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
-					}
 					if (ImGui::Button("Create set##vertices_set"))
 						md.template add_cells_set<Vertex>();
+					imgui_combo_cells_set(md, p.selected_vertices_set_, "Sets", [&](CellsSet<MESH, Vertex>* cs) {
+						p.selected_vertices_set_ = cs;
+						p.update_selected_vertices_vbo();
+						need_update = true;
+					});
+					if (p.selected_vertices_set_)
+					{
+						ImGui::Text("(nb elements: %d)", p.selected_vertices_set_->size());
+						if (ImGui::Button("Clear##vertices_set"))
+						{
+							p.selected_vertices_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+						}
+					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
@@ -492,32 +482,22 @@ protected:
 				}
 				else if (p.selecting_cell_ == FaceSelect)
 				{
-					if (ImGui::BeginCombo("Sets", p.selected_faces_set_ ? p.selected_faces_set_->name().c_str()
-																		: "-- select --"))
-					{
-						md.template foreach_cells_set<Face>([&](CellsSet<MESH, Face>& cs) {
-							bool is_selected = &cs == p.selected_faces_set_;
-							if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							{
-								p.selected_faces_set_ = &cs;
-								p.update_selected_faces_vbo();
-								for (View* v : linked_views_)
-									v->request_update();
-							}
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-						});
-						ImGui::EndCombo();
-					}
-					if (p.selected_faces_set_)
-					{
-						ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-						if (ImGui::Button("X##selected_faces_set"))
-							p.selected_faces_set_ = nullptr;
-						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
-					}
 					if (ImGui::Button("Create set##faces_set"))
 						md.template add_cells_set<Face>();
+					imgui_combo_cells_set(md, p.selected_faces_set_, "Sets", [&](CellsSet<MESH, Face>* cs) {
+						p.selected_faces_set_ = cs;
+						p.update_selected_faces_vbo();
+						need_update = true;
+					});
+					if (p.selected_faces_set_)
+					{
+						ImGui::Text("(nb elements: %d)", p.selected_faces_set_->size());
+						if (ImGui::Button("Clear##faces_set"))
+						{
+							p.selected_vertices_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+						}
+					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("front color##flat", p.param_flat_->front_color_.data(),
 													 ImGuiColorEditFlags_NoInputs);
