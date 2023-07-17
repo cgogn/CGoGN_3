@@ -495,7 +495,7 @@ public:
 		std::unordered_map<uint32, uint32> Inside_indices;
 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
 		constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
-		construct_complete_power_diagram(mp, Power_point, Point_info);
+		//construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	void compute_original_power_diagram(SURFACE& surface)
@@ -523,7 +523,7 @@ public:
 		std::unordered_map<uint32, uint32> Inside_indices;
 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
  		constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
-		construct_complete_power_diagram(mp, Power_point, Point_info);
+		//construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
@@ -716,13 +716,13 @@ public:
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
 		auto inner_point_nb = nb_cells<NonManifoldVertex>(mv);
 		auto sample_point_nb = nb_cells<Vertex>(surface);
-		Eigen::MatrixXi A(sample_point_nb, inner_point_nb);
+		Eigen::MatrixXd A(sample_point_nb, inner_point_nb);
 		foreach_cell(mv, [&](NonManifoldVertex nv) {
 			foreach_cell(surface, [&](Vertex v) {
 				A(index_of(surface, v), index_of(mv, nv) ) =
 					inside_sphere(value<Vec3>(surface, sample_position, v),
 								  value<Vec3>(mv, inner_position, nv),
-								  value<double>(mv, sphere_radius, nv) + dilation_factor) ? 1 : 0;
+								  value<double>(mv, sphere_radius, nv) + dilation_factor) ? 1.0 : 0.0;
 				return true;
 			});
 			return true;
@@ -739,13 +739,13 @@ public:
 		model.lp_.sense_ = ObjSense::kMinimize;
 		// Adding decision variable bounds
 		HighsVarType type = HighsVarType::kInteger;
-		model.lp_.col_cost_ = std::vector<double>(model.lp_.num_col_, 1.0);
-		model.lp_.col_lower_ = std::vector<double>(model.lp_.num_col_, 0.0);
-		model.lp_.col_upper_ = std::vector<double>(model.lp_.num_col_, 1.0);
-		model.lp_.row_lower_ = std::vector<double>(model.lp_.num_row_, 1.0);
+		model.lp_.col_cost_ = std::vector<double>(model.lp_.num_col_, 1);
+		model.lp_.col_lower_ = std::vector<double>(model.lp_.num_col_, 0);
+		model.lp_.col_upper_ = std::vector<double>(model.lp_.num_col_, 1);
+		model.lp_.row_lower_ = std::vector<double>(model.lp_.num_row_, 1);
 		model.lp_.row_upper_ = std::vector<double>(model.lp_.num_row_, 1e30);
 		model.lp_.integrality_ = std::vector<HighsVarType>(model.lp_.num_col_, type);
-
+		model.lp_.a_matrix_.format_ = MatrixFormat::kColwise;
 		model.lp_.a_matrix_.num_col_ = model.lp_.num_col_;
 		model.lp_.a_matrix_.num_row_ = model.lp_.num_row_;
 		int currentStart = 0;
@@ -767,8 +767,7 @@ public:
 
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
-		highs.setOptionValue("time_limit",1000);
-
+		highs.setOptionValue("time_limit", 100);
 		if (status == HighsStatus::kOk)
 		{
 			highs.run();
@@ -782,12 +781,13 @@ public:
 			std::unordered_map<uint32, uint32> inside_indices;
 			uint32 count = 0;
 			foreach_cell(mv, [&](NonManifoldVertex nv) {
-				if (solution.col_value[index_of(mv, nv)] > 0)
+				if (solution.col_value[index_of(mv, nv)] > 1e-5)
 				{
 					Vec3 pos = value<Vec3>(mv, inner_position, nv);
 					power_point.push_back(
 						Weight_Point(Point(pos[0], pos[1], pos[2]),
-									 value<double>(mv, sphere_radius, nv) * value<double>(mv, sphere_radius, nv)));
+									value<double>(mv, sphere_radius, nv) * 
+							value<double>(mv, sphere_radius, nv)));
 					point_info.push_back({count, true});
 					inside_indices[count] = count;
 					count++;
