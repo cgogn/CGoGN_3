@@ -146,23 +146,21 @@ private:
 	}
 
 public:
-	void mesh_normalisation(Cgal_Surface_mesh& mesh)
-	{
-		CGAL::Bbox_3 bbox = CGAL::bound;
-		;
-	
-		K::Vector_3 bmin = K::Vector_3(bbox.xmin(), bbox.ymin(), bbox.zmin());
-		K::Vector_3 bmax = K::Vector_3(bbox.xmax(), bbox.ymax(), bbox.zmax());
-
-		K::Vector_3 range = bmax - bmin;
-		double max = std::max(std::max(range[0], range[1]), range[2]);
-		K::Vector_3 scale = (range / max);
-		for (auto& p : mesh.points())
-		{
-			p = Point((p.x() - bmin.x()) / range.x() * scale.x(), (p.y() - bmin.y()) / range.y() * scale.y(),
-					  (p.z() - bmin.z()) / range.z() * scale.z());
-		}
-	}
+// 	void mesh_normalisation(Cgal_Surface_mesh& mesh)
+// 	{
+// 		
+// 		K::Vector_3 bmin = K::Vector_3(bbox.xmin(), bbox.ymin(), bbox.zmin());
+// 		K::Vector_3 bmax = K::Vector_3(bbox.xmax(), bbox.ymax(), bbox.zmax());
+// 
+// 		K::Vector_3 range = bmax - bmin;
+// 		double max = std::max(std::max(range[0], range[1]), range[2]);
+// 		K::Vector_3 scale = (range / max);
+// 		for (auto& p : mesh.points())
+// 		{
+// 			p = Point((p.x() - bmin.x()) / range.x() * scale.x(), (p.y() - bmin.y()) / range.y() * scale.y(),
+// 					  (p.z() - bmin.z()) / range.z() * scale.z());
+// 		}
+// 	}
 
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
@@ -506,7 +504,7 @@ public:
 				return;
 			}
 		}
-		mesh_normalisation(csm);
+		//mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
@@ -535,7 +533,7 @@ public:
 				return;
 			}
 		}
-		mesh_normalisation(csm);
+		//mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface,csm, tree);
@@ -658,28 +656,7 @@ public:
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 	}
 
-	void collapse_non_manifold_coverage_axis(NONMANIFOLD& nm, vector<uint32>selection_points)
-	{
-		using EdgeQueue = std::set<NonManifoldEdge>;
-		using EdgeQueueIt = typename EdgeQueue::const_iterator;
-		EdgeQueue queue;
-		auto edge_queue_it = add_attribute<EdgeQueueIt, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
-			auto [v1, v2] = vertices(nm, e);
-			if (selection_points[index_of(nm, v1)] || selection_points[index_of(nm, v2)])
-			{
-				value<EdgeInfo>(nm, edge_queue_it, e) = queue.emplace(e);
-			}
-			return true;
-		});
-		while (!queue.empty())
-		{
-			auto it = queue.begin();
-			NonManifoldEdge e = (*it).second;
-			queue.erase(it);
-
-		}
-	}
+	
 	 void collapse_non_manifold_using_stability_ratio(NONMANIFOLD& nm, uint32 number_vertices_erase)
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
@@ -751,7 +728,70 @@ public:
 // 		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 	}
 
- 	 void point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
+	void coverage_axis_PD(SURFACE& surface, NONMANIFOLD& mv, HighsSolution& solution, double dilation_factor)
+	{
+		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
+		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
+		std::vector<Weight_Point> power_point;
+		std::vector<std::pair<uint32, bool>> point_info;
+		std::unordered_map<uint32, uint32> inside_indices;
+		uint32 count = 0;
+		foreach_cell(mv, [&](NonManifoldVertex nv) {
+			if (solution.col_value[index_of(mv, nv)] > 1e-5)
+			{
+				Vec3 pos = value<Vec3>(mv, inner_position, nv);
+				power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]),
+												   (value<double>(mv, sphere_radius, nv) + dilation_factor) *
+													   (value<double>(mv, sphere_radius, nv) + dilation_factor)));
+				point_info.push_back({count, true});
+				inside_indices[count] = count;
+				count++;
+			}
+			return true;
+		});
+
+		foreach_cell(surface, [&](Vertex v) {
+			Vec3 pos = value<Vec3>(surface, sample_position, v);
+			power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * 4 * dilation_factor));
+			point_info.push_back({count, false});
+			count++;
+			return true;
+		});
+
+		NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis");
+		constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
+	}
+
+	void coverage_axis_collapse(NONMANIFOLD& nm, std::vector<double> selection_points)
+	{
+		using EdgeQueue = std::set<NonManifoldEdge>;
+		using EdgeQueueIt = typename EdgeQueue::const_iterator;
+		EdgeQueue queue;
+		auto edge_queue_it = add_attribute<EdgeQueueIt, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
+		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+			value<EdgeQueueIt>(nm, edge_queue_it, e) = queue.emplace(e).first;
+			return true;
+		});
+		while (!queue.empty())
+		{
+			auto it = queue.begin();
+			NonManifoldEdge e = (*it);
+			queue.erase(it);
+			auto [removed_edges, added_edges] = collapse_edge_with_fixed_vertices(nm, e, selection_points);
+			for (NonManifoldEdge re : removed_edges)
+			{
+				EdgeQueueIt einfo = value<EdgeQueueIt>(nm, edge_queue_it, re);
+				queue.erase(einfo);
+			}
+			for (NonManifoldEdge& ad : added_edges)
+			{
+				value<EdgeQueueIt>(nm, edge_queue_it, ad) = queue.emplace(ad).first;
+			}
+		}
+	}
+	
+ 	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
 	{
 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
@@ -805,18 +845,19 @@ public:
 
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
-		highs.setOptionValue("time_limit", 100);
+		HighsSolution solution; 
+		highs.setOptionValue("time_limit", 1000);
 		if (status == HighsStatus::kOk)
 		{
 			highs.run();
 			
 			assert(status == HighsStatus::kOk);
-			const HighsSolution& solution = highs.getSolution();
-			const HighsInfo& info = highs.getInfo();
+			solution = highs.getSolution();
+			
 
- 			Eigen::VectorXd x = Eigen::VectorXd::Zero(A.cols());
-
- 			/*for (int i = 0; i < solution.col_value.size(); ++i)
+ 			/*Eigen::VectorXd x = Eigen::VectorXd::Zero(A.cols());
+			
+ 			for (int i = 0; i < solution.col_value.size(); ++i)
  			{
  				x[i] = solution.col_value[i];
  			}
@@ -830,37 +871,7 @@ public:
 			std::cout << "compare " << std::endl;
 			std::cout << A * x << std::endl;*/
 			// Get the primal solution values
-			std::vector<Weight_Point> power_point;
-			std::vector<std::pair<uint32, bool>> point_info;
-			std::unordered_map<uint32, uint32> inside_indices;
-			uint32 count = 0;
-			foreach_cell(mv, [&](NonManifoldVertex nv) {
-				if (solution.col_value[index_of(mv, nv)] > 1e-5)
-				{
-					Vec3 pos = value<Vec3>(mv, inner_position, nv);
-					power_point.push_back(
-						Weight_Point(Point(pos[0], pos[1], pos[2]),
-									(value<double>(mv, sphere_radius, nv)+dilation_factor) * 
-							(value<double>(mv, sphere_radius, nv)+dilation_factor)));
-					point_info.push_back({count, true});
-					inside_indices[count] = count;
-					count++;
-				}
-				return true;
-			});
 			
-			foreach_cell(surface, [&](Vertex v) {
-				Vec3 pos = value<Vec3>(surface, sample_position, v);
-				power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
-				point_info.push_back({count, false});
-				count++;
-				return true;
-			});
-				
-			NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis");
-			NonManifold* ca_complet =
-				nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis_complete");
-			constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
 // 			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
 // 			foreach_cell(*ca, [&](NonManifoldVertex v) { 
 // 				value<double>(*ca, sphere_radius, v) += dilation_factor;
@@ -888,6 +899,7 @@ public:
 
 			//construct_complete_power_diagram(ca_complet, power_point, point_info);
 		}
+		return solution;
 	}
 	
 protected:
@@ -911,7 +923,6 @@ protected:
 			selected_medial_axis = &nm;
 			nonmanifold_provider_->mesh_data(nm).outlined_until_ = App::frame_time_ + 1.0;
 		});
-
 
 		if (selected_surface_mesh_)
 		{
@@ -941,11 +952,21 @@ protected:
 				ImGui::DragFloat("Dilation factor", &dilation_factor, 0.001f, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
+					solution = point_selection_by_coverage_axis(*selected_surface_mesh_, *selected_medial_axis, dilation_factor);
 					
-					point_selection_by_coverage_axis(*selected_surface_mesh_, * selected_medial_axis, dilation_factor );
 				}
-				
+				if (solution.col_value.size() > 0)
+				{
+
+					if (ImGui::Button("Collpase"))
+						coverage_axis_collapse(*selected_medial_axis, solution.col_value);
+					if (ImGui::Button("PD"))
+						coverage_axis_PD(*selected_surface_mesh_, *selected_medial_axis, solution, dilation_factor);
+				}
 			}
+				
+				
+			
 		}
 	}
 
@@ -958,6 +979,7 @@ private:
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
 	Regular medial_axis;
+	HighsSolution solution;
 };
 
 } // namespace ui

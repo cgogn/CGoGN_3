@@ -430,6 +430,8 @@ void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e)
 
  }
 
+
+
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,
 																				   bool /*set_indices*/)
@@ -500,6 +502,81 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 	return {v2, removed_edges};
 }
 
+std::pair<std::vector<IncidenceGraph::Edge>, std::vector<IncidenceGraph::Edge>> collapse_edge_with_fixed_vertices(
+	IncidenceGraph& ig, IncidenceGraph::Edge e, std::vector<double> selected_points)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+	std::vector<Edge> removed_edges;
+	std::vector<Edge> added_edges;
+
+	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+	if (selected_points[v1.index_] > 0 && selected_points[v2.index_] > 0)
+	{
+	}
+	else
+	{
+		remove_edge(ig, e);
+
+		// remove incident face of edge
+		for (Face iface : (*ig.edge_incident_faces_)[e.index_])
+		{
+			remove_edge_in_face(ig, iface, e);
+			// remove degenerate faces
+			if ((*ig.face_incident_edges_)[iface.index_].size() < 3)
+				remove_face(ig, iface);
+		}
+		// if v1 is selected, do nothing
+		// if v2 is selected, swap v1 and v2
+		if (selected_points[index_of(ig, v2)])
+		{
+			Vertex tmp = v2;
+			v2 = v1;
+			v1 = tmp;
+		}
+		// if none is selected, do nothing
+
+		// collapse edge to v1
+		std::unordered_set<Vertex*> adjacent_vertices_to_v2;
+		// remove adjacent edges of v2 and store adjacent vertices of v2 which will serve to create new edges
+		for (Edge& adjacent_edge : (*ig.vertex_incident_edges_)[v2.index_])
+		{
+			auto ev2 = (*ig.edge_incident_vertices_)[adjacent_edge.index_];
+			if (ev2.first == v2)
+			{
+				adjacent_vertices_to_v2.insert(&ev2.second);
+			}
+			if (ev2.second == v2)
+			{
+				adjacent_vertices_to_v2.insert(&ev2.first);
+			}
+			remove_edge(ig, adjacent_edge);
+			removed_edges.push_back(adjacent_edge);
+		}
+		// test all adjacent vertices of v2 to see if they are already adjacent to v1, if not, create new edge
+		for (Edge& adjacent_edge : (*ig.vertex_incident_edges_)[v1.index_])
+		{
+			auto ev1 = (*ig.edge_incident_vertices_)[adjacent_edge.index_];
+			if (adjacent_vertices_to_v2.find(&ev1.first) != adjacent_vertices_to_v2.end())
+			{
+				adjacent_vertices_to_v2.erase(&ev1.first);
+			}
+			if (adjacent_vertices_to_v2.find(&ev1.second) != adjacent_vertices_to_v2.end())
+			{
+				adjacent_vertices_to_v2.erase(&ev1.second);
+			}
+		}
+		// create new edges
+		for (Vertex* va : adjacent_vertices_to_v2)
+		{
+			added_edges.push_back(add_edge(ig, v1, *va));
+		}
+		// remove vertex
+		remove_cell<Vertex>(ig, v2);
+	}
+	return std::make_pair(removed_edges, added_edges);
+}
 ///////////
 // Graph //
 ///////////

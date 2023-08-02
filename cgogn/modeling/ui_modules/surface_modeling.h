@@ -198,8 +198,13 @@ public:
 		geometry::filter_regularize(m, vertex_position, vertex_position, 8.0);
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
+	void rescale_mesh(MESH& m, Attribute<Vec3>* vertex_position)
+	{
+		geometry::rescale(*vertex_position, 1.0);
+		mesh_provider_->emit_attribute_changed(m, vertex_position);
+	}
 
-protected:
+ protected:
 	void init() override
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
@@ -269,6 +274,8 @@ protected:
 				ImGui::Separator();
 				if (ImGui::Button("Quad remesh"))
 					quad_remesh(*selected_mesh_, selected_vertex_position_);
+				if (ImGui::Button("Rescale"))
+					rescale_mesh(*selected_mesh_, selected_vertex_position_.get());
 			}
 		}
 	}

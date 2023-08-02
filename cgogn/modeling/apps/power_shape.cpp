@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
 	if (filename.length() > 0)
 	{
-		Surface* m = ms.load_surface_from_file(filename, true);
+		Surface* m = ms.load_surface_from_file(filename);
 		if (!m)
 		{
 			std::cout << "File could not be loaded" << std::endl;

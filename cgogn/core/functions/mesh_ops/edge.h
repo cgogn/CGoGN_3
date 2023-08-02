@@ -127,7 +127,9 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 																				   IncidenceGraph::Edge e,
 																				   bool set_indices = true);
 
-///////////
+std::pair<std::vector<IncidenceGraph::Edge>, std::vector<IncidenceGraph::Edge>> collapse_edge_with_fixed_vertices(
+	IncidenceGraph& ig, IncidenceGraph::Edge e, std::vector<double> selected_points);
+	///////////
 // Graph //
 ///////////
 
