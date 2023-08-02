@@ -230,7 +230,7 @@ public:
 		}
 	}
 
-	MESH* load_surface_from_file(const std::string& filename)
+	MESH* load_surface_from_file(const std::string& filename, bool normalise = false)
 	{
 		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
 		{
@@ -260,8 +260,17 @@ public:
 				md.init(m);
 				mesh_filename_[m] = filename;
 				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				
 				if (vertex_position)
+				{
+					if (normalise)
+					{
+						geometry::rescale(*vertex_position, 1);
+
+					}
 					set_mesh_bb_vertex_position(*m, vertex_position);
+				}
+					
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}

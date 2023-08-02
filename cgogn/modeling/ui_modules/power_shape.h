@@ -43,9 +43,10 @@
 #include <CGAL/Regular_triangulation_vertex_base_3.h>
 #include <CGAL/Side_of_triangle_mesh.h>
 #include <CGAL/Surface_mesh.h>
+#include <CGAL/double.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #include <CGAL/optimal_bounding_box.h>
-
+#include <CGAL/Bbox_3.h>
 #include <Highs.h>
 
 namespace cgogn
@@ -145,6 +146,24 @@ private:
 	}
 
 public:
+	void mesh_normalisation(Cgal_Surface_mesh& mesh)
+	{
+		CGAL::Bbox_3 bbox = CGAL::bound;
+		;
+	
+		K::Vector_3 bmin = K::Vector_3(bbox.xmin(), bbox.ymin(), bbox.zmin());
+		K::Vector_3 bmax = K::Vector_3(bbox.xmax(), bbox.ymax(), bbox.zmax());
+
+		K::Vector_3 range = bmax - bmin;
+		double max = std::max(std::max(range[0], range[1]), range[2]);
+		K::Vector_3 scale = (range / max);
+		for (auto& p : mesh.points())
+		{
+			p = Point((p.x() - bmin.x()) / range.x() * scale.x(), (p.y() - bmin.y()) / range.y() * scale.y(),
+					  (p.z() - bmin.z()) / range.z() * scale.z());
+		}
+	}
+
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
 		cgogn::io::PointImportData samples;
@@ -182,7 +201,7 @@ public:
 		for (auto& p : cube_corners)
 		{
 			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
-			samples.vertex_position_.emplace_back(p[0], p[1], p[2]);
+			//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
 		}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
@@ -191,15 +210,15 @@ public:
 			Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
 			samples.vertex_position_.emplace_back(s[0], s[1], s[2]);
 		}
-
-		uint32 nb_vertices = Delaunay_tri_point.size();
+		//uint32 nb_vertices = Delaunay_tri_point.size(); //Only for debugging
+		uint32 nb_vertices = mesh_samples.size();
 
 		//		auto start_timer = std::chrono::high_resolution_clock::now();
 
 		// Indices info for constructing volume data in CGogn
 		std::vector<unsigned> indices;
-		indices.reserve(nb_vertices);
-		for (unsigned int i = 0; i < nb_vertices; ++i)
+		indices.reserve(Delaunay_tri_point.size());
+		for (unsigned int i = 0; i < Delaunay_tri_point.size(); ++i)
 			indices.push_back(i);
 		//Collect point data
 		samples.reserve(nb_vertices);
@@ -487,6 +506,7 @@ public:
 				return;
 			}
 		}
+		mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
@@ -515,6 +535,7 @@ public:
 				return;
 			}
 		}
+		mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface,csm, tree);
@@ -637,6 +658,28 @@ public:
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 	}
 
+	void collapse_non_manifold_coverage_axis(NONMANIFOLD& nm, vector<uint32>selection_points)
+	{
+		using EdgeQueue = std::set<NonManifoldEdge>;
+		using EdgeQueueIt = typename EdgeQueue::const_iterator;
+		EdgeQueue queue;
+		auto edge_queue_it = add_attribute<EdgeQueueIt, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
+		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+			auto [v1, v2] = vertices(nm, e);
+			if (selection_points[index_of(nm, v1)] || selection_points[index_of(nm, v2)])
+			{
+				value<EdgeInfo>(nm, edge_queue_it, e) = queue.emplace(e);
+			}
+			return true;
+		});
+		while (!queue.empty())
+		{
+			auto it = queue.begin();
+			NonManifoldEdge e = (*it).second;
+			queue.erase(it);
+
+		}
+	}
 	 void collapse_non_manifold_using_stability_ratio(NONMANIFOLD& nm, uint32 number_vertices_erase)
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
@@ -773,7 +816,7 @@ public:
 
  			Eigen::VectorXd x = Eigen::VectorXd::Zero(A.cols());
 
- 			for (int i = 0; i < solution.col_value.size(); ++i)
+ 			/*for (int i = 0; i < solution.col_value.size(); ++i)
  			{
  				x[i] = solution.col_value[i];
  			}
@@ -785,7 +828,7 @@ public:
 			}
 			std::cout << std::endl;
 			std::cout << "compare " << std::endl;
-			std::cout << A * x << std::endl;
+			std::cout << A * x << std::endl;*/
 			// Get the primal solution values
 			std::vector<Weight_Point> power_point;
 			std::vector<std::pair<uint32, bool>> point_info;
@@ -797,8 +840,8 @@ public:
 					Vec3 pos = value<Vec3>(mv, inner_position, nv);
 					power_point.push_back(
 						Weight_Point(Point(pos[0], pos[1], pos[2]),
-									value<double>(mv, sphere_radius, nv) * 
-							value<double>(mv, sphere_radius, nv)));
+									(value<double>(mv, sphere_radius, nv)+dilation_factor) * 
+							(value<double>(mv, sphere_radius, nv)+dilation_factor)));
 					point_info.push_back({count, true});
 					inside_indices[count] = count;
 					count++;
@@ -818,27 +861,30 @@ public:
 			NonManifold* ca_complet =
 				nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis_complete");
 			constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
-			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
-			foreach_cell(*ca, [&](NonManifoldVertex v) { 
-				value<double>(*ca, sphere_radius, v) += dilation_factor;
-				return true;
-			});
+// 			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
+// 			foreach_cell(*ca, [&](NonManifoldVertex v) { 
+// 				value<double>(*ca, sphere_radius, v) += dilation_factor;
+// 				return true;
+// 			});
 
-			auto ca_sphere_center = get_attribute<Vec3, NonManifoldVertex>(*ca, "position");
-
-			foreach_cell(surface, [&](Vertex v) { 
-				Vec3 pos = value<Vec3>(surface, sample_position, v);
-				bool inside = false;
-				foreach_cell(*ca, [&](NonManifoldVertex nv) {
-					Vec3 capos = value<Vec3>(*ca, ca_sphere_center, nv);
-					double radius = value<double>(*ca, ca_sphere_radius, nv);
-					inside |= inside_sphere(pos, capos, radius);
-					return true;
-				});
-				if (!inside)
-					std::cout << "Fault! " << std::endl;
-				return true;
-			});
+// 			auto ca_sphere_center = get_attribute<Vec3, NonManifoldVertex>(*ca, "position");
+// 			uint32 outside_count = 0;
+// 			foreach_cell(surface, [&](Vertex v) { 
+// 				Vec3 pos = value<Vec3>(surface, sample_position, v);
+// 				bool inside = false;
+// 				foreach_cell(*ca, [&](NonManifoldVertex nv) {
+// 					Vec3 capos = value<Vec3>(*ca, ca_sphere_center, nv);
+// 					double radius = value<double>(*ca, ca_sphere_radius, nv);
+// 					inside |= inside_sphere(pos, capos, radius);
+// 					return true;
+// 				});
+// 				if (!inside)
+// 				{
+// 					outside_count++;
+// 					std::cout << "Fault! " << outside_count << std::endl;
+// 				}
+// 					return true;
+// 			});
 
 			//construct_complete_power_diagram(ca_complet, power_point, point_info);
 		}
