@@ -146,21 +146,6 @@ private:
 	}
 
 public:
-// 	void mesh_normalisation(Cgal_Surface_mesh& mesh)
-// 	{
-// 		
-// 		K::Vector_3 bmin = K::Vector_3(bbox.xmin(), bbox.ymin(), bbox.zmin());
-// 		K::Vector_3 bmax = K::Vector_3(bbox.xmax(), bbox.ymax(), bbox.zmax());
-// 
-// 		K::Vector_3 range = bmax - bmin;
-// 		double max = std::max(std::max(range[0], range[1]), range[2]);
-// 		K::Vector_3 scale = (range / max);
-// 		for (auto& p : mesh.points())
-// 		{
-// 			p = Point((p.x() - bmin.x()) / range.x() * scale.x(), (p.y() - bmin.y()) / range.y() * scale.y(),
-// 					  (p.z() - bmin.z()) / range.z() * scale.z());
-// 		}
-// 	}
 
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
@@ -421,6 +406,7 @@ public:
 				//Add edge
 				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
 				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
+				std::cout << v1 << ", " << v2 << ", count: " << edge_count << std::endl;
 				edge_indices.insert({{v1, v2}, edge_count}); 
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
@@ -428,6 +414,7 @@ public:
 				
 			}
 		}
+	
 		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
 		{
 			inside = true;
@@ -753,7 +740,7 @@ public:
 
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
-			power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * 4 * dilation_factor));
+			power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
 			point_info.push_back({count, false});
 			count++;
 			return true;
@@ -778,17 +765,15 @@ public:
 			auto it = queue.begin();
 			NonManifoldEdge e = (*it);
 			queue.erase(it);
-			auto [removed_edges, added_edges] = collapse_edge_with_fixed_vertices(nm, e, selection_points);
+			auto removed_edges = collapse_edge_with_fixed_vertices(nm, e, selection_points);
 			for (NonManifoldEdge re : removed_edges)
 			{
 				EdgeQueueIt einfo = value<EdgeQueueIt>(nm, edge_queue_it, re);
 				queue.erase(einfo);
 			}
-			for (NonManifoldEdge& ad : added_edges)
-			{
-				value<EdgeQueueIt>(nm, edge_queue_it, ad) = queue.emplace(ad).first;
-			}
 		}
+		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
+		nonmanifold_provider_->emit_connectivity_changed(nm);
 	}
 	
  	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
