@@ -24,6 +24,7 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cmap3.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
@@ -370,6 +371,29 @@ uint32 close(CMap3& m, bool set_indices)
 	}
 
 	return nb_holes;
+}
+
+/*************************************************************************/
+// Cells information
+/*************************************************************************/
+
+std::vector<uint32> hexahedra_vertex_indices(const CMap3& m, CMap3::Attribute<uint32>* vertex_id, CMap3::Volume v)
+{
+	using Vertex = CMap3::Vertex;
+
+	Dart d1 = v.dart;
+	Dart d2 = phi<2, 1, 1, 2>(m, d1);
+
+	return {value<uint32>(m, vertex_id, Vertex(d1)),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(d2)),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d1)))
+
+	};
 }
 
 /*************************************************************************/

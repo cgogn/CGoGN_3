@@ -107,7 +107,7 @@ protected:
 	int32 width_;
 	int32 height_;
 
-	// viewport_width_ & viewport_heght_ are in GLViewer
+	// viewport_width_ & viewport_height_ are in GLViewer
 	int32 viewport_x_offset_;
 	int32 viewport_y_offset_;
 

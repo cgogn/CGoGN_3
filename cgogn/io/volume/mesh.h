@@ -157,19 +157,7 @@ void export_MESH(MESH& m, const typename mesh_traits<MESH>::template Attribute<g
 	out_file << nb_volumes << "\n";
 
 	foreach_cell(m, [&](Volume v) -> bool {
-		Dart d1 = v.dart;
-		Dart d2 = phi<2, 1, 1, 2>(m, d1);
-
-		std::vector<uint32> indices{value<uint32>(m, vertex_id, Vertex(d1)),
-									value<uint32>(m, vertex_id, Vertex(phi1(m, d2))),
-									value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d2))),
-									value<uint32>(m, vertex_id, Vertex(phi_1(m, d1))),
-									value<uint32>(m, vertex_id, Vertex(phi1(m, d1))),
-									value<uint32>(m, vertex_id, Vertex(d2)),
-									value<uint32>(m, vertex_id, Vertex(phi_1(m, d2))),
-									value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d1)))
-
-		};
+		std::vector<uint32> indices = hexahedra_vertex_indices(m, vertex_id.get(), v);
 
 		for (uint32 i : indices)
 			out_file << i << " ";

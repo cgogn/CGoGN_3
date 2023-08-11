@@ -78,32 +78,32 @@ struct mesh_traits<CMap1>
 
 inline Dart phi1(const CMap1& m, Dart d)
 {
-	return (*(m.phi1_))[d.index];
+	return (*(m.phi1_))[d.index_];
 }
 
 inline Dart phi_1(const CMap1& m, Dart d)
 {
-	return (*(m.phi_1_))[d.index];
+	return (*(m.phi_1_))[d.index_];
 }
 
 inline void phi1_sew(CMap1& m, Dart d, Dart e)
 {
 	Dart f = phi1(m, d);
 	Dart g = phi1(m, e);
-	(*(m.phi1_))[d.index] = g;
-	(*(m.phi1_))[e.index] = f;
-	(*(m.phi_1_))[g.index] = d;
-	(*(m.phi_1_))[f.index] = e;
+	(*(m.phi1_))[d.index_] = g;
+	(*(m.phi1_))[e.index_] = f;
+	(*(m.phi_1_))[g.index_] = d;
+	(*(m.phi_1_))[f.index_] = e;
 }
 
 inline void phi1_unsew(CMap1& m, Dart d)
 {
 	Dart e = phi1(m, d);
 	Dart f = phi1(m, e);
-	(*(m.phi1_))[d.index] = f;
-	(*(m.phi1_))[e.index] = e;
-	(*(m.phi_1_))[f.index] = d;
-	(*(m.phi_1_))[e.index] = e;
+	(*(m.phi1_))[d.index_] = f;
+	(*(m.phi1_))[e.index_] = e;
+	(*(m.phi_1_))[f.index_] = d;
+	(*(m.phi_1_))[e.index_] = e;
 }
 
 /*************************************************************************/

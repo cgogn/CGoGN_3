@@ -81,22 +81,22 @@ struct mesh_traits<CMap2>
 
 inline Dart phi2(const CMap2& m, Dart d)
 {
-	return (*(m.phi2_))[d.index];
+	return (*(m.phi2_))[d.index_];
 }
 
 inline void phi2_sew(CMap2& m, Dart d, Dart e)
 {
 	cgogn_assert(phi2(m, d) == d);
 	cgogn_assert(phi2(m, e) == e);
-	(*(m.phi2_))[d.index] = e;
-	(*(m.phi2_))[e.index] = d;
+	(*(m.phi2_))[d.index_] = e;
+	(*(m.phi2_))[e.index_] = d;
 }
 
 inline void phi2_unsew(CMap2& m, Dart d)
 {
 	Dart e = phi2(m, d);
-	(*(m.phi2_))[d.index] = d;
-	(*(m.phi2_))[e.index] = e;
+	(*(m.phi2_))[d.index_] = d;
+	(*(m.phi2_))[e.index_] = e;
 }
 
 /*************************************************************************/

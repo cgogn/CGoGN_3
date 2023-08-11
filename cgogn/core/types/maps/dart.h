@@ -33,9 +33,9 @@ namespace cgogn
 
 struct Dart
 {
-	uint32 index;
+	uint32 index_;
 
-	inline Dart() : index(INVALID_INDEX)
+	inline Dart() : index_(INVALID_INDEX)
 	{
 	}
 
@@ -49,7 +49,7 @@ struct Dart
 	 *
 	 * \param[in] v the value of the new dart
 	 */
-	inline explicit Dart(uint32 v) : index(v)
+	inline explicit Dart(uint32 v) : index_(v)
 	{
 	}
 
@@ -58,7 +58,7 @@ struct Dart
 	 * Creates a new Dart from an another one.
 	 * \param[in] d a dart
 	 */
-	inline Dart(const Dart& d) : index(d.index)
+	inline Dart(const Dart& d) : index_(d.index_)
 	{
 	}
 
@@ -69,7 +69,7 @@ struct Dart
 	 */
 	inline bool is_nil() const
 	{
-		return index == INVALID_INDEX;
+		return index_ == INVALID_INDEX;
 	}
 
 	/**
@@ -80,7 +80,7 @@ struct Dart
 	 */
 	inline Dart& operator=(Dart rhs)
 	{
-		index = rhs.index;
+		index_ = rhs.index_;
 		return *this;
 	}
 
@@ -93,7 +93,7 @@ struct Dart
 	 */
 	inline bool operator==(Dart rhs) const
 	{
-		return index == rhs.index;
+		return index_ == rhs.index_;
 	}
 
 	/**
@@ -105,7 +105,7 @@ struct Dart
 	 */
 	inline bool operator!=(Dart rhs) const
 	{
-		return index != rhs.index;
+		return index_ != rhs.index_;
 	}
 
 	/**
@@ -115,7 +115,7 @@ struct Dart
 	 */
 	inline friend std::ostream& operator<<(std::ostream& out, const Dart& rhs)
 	{
-		return out << rhs.index;
+		return out << rhs.index_;
 	}
 
 	/**
@@ -125,14 +125,14 @@ struct Dart
 	 */
 	inline friend std::istream& operator>>(std::istream& in, Dart& rhs)
 	{
-		in >> rhs.index;
+		in >> rhs.index_;
 		return in;
 	}
 };
 
 } // namespace cgogn
 
-// hash function to use with the std (i.e unordered set)
+// hash function to use with the std (i.e unordered_set)
 namespace std
 {
 
@@ -141,7 +141,7 @@ struct hash<cgogn::Dart>
 {
 	size_t operator()(const cgogn::Dart& x) const
 	{
-		return std::hash<cgogn::numerics::uint32>()(x.index);
+		return std::hash<cgogn::numerics::uint32>()(x.index_);
 	}
 };
 

@@ -63,9 +63,14 @@ void rescale(CONTAINER<VEC>& container, typename vector_traits<VEC>::Scalar s)
 	using Scalar = typename vector_traits<VEC>::Scalar;
 	const std::size_t dimension = vector_traits<VEC>::SIZE;
 
-	auto [bb_min, bb_max] = geometry::bounding_box(container);
+	auto [bb_min, bb_max] = bounding_box(container);
 	VEC range = bb_max - bb_min;
-	Scalar max = std::max(std::max(range[0], range[1]), range[2]);
+	Scalar max = 0;
+	for (std::size_t i = 0; i < dimension; ++i)
+	{
+		if (range[i] > max)
+			max = range[i];
+	}
 	VEC scale = (range / max) * s;
 	for (VEC& v : container)
 	{

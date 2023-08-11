@@ -31,6 +31,7 @@
 #include <cgogn/core/ui_modules/mesh_data.h>
 #include <cgogn/core/utils/string.h>
 
+#include <cgogn/geometry/functions/bounding_box.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/io/graph/cg.h>
@@ -114,7 +115,7 @@ public:
 			remove_extension(m_name) + "_" + std::to_string(number_of_meshes()) + "." + extension(m_name);
 		MESH* result = add_mesh(name);
 		copy(*result, m);
-		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*result, "position");
+		std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*result, "position");
 		if (vertex_position)
 			set_mesh_bb_vertex_position(*result, vertex_position);
 		boost::synapse::emit<mesh_added>(this, result);
@@ -130,7 +131,7 @@ public:
 		{
 			MeshData<MESH>& md = mesh_data_[m];
 			md.init(m);
-			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_mesh_bb_vertex_position(*m, vertex_position);
 			boost::synapse::emit<mesh_added>(this, m);
@@ -174,22 +175,22 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 1 && std::is_default_constructible_v<MESH>)
 		{
 			if (ext.compare("cg") == 0)
-				imported = cgogn::io::import_CG(*m, filename);
+				imported = io::import_CG(*m, filename);
 			else if (ext.compare("cgr") == 0)
-				imported = cgogn::io::import_CGR(*m, filename);
+				imported = io::import_CGR(*m, filename);
 			else if (ext.compare("ig") == 0)
-				imported = cgogn::io::import_IG(*m, filename);
+				imported = io::import_IG(*m, filename);
 			else if (ext.compare("skel") == 0)
-				imported = cgogn::io::import_SKEL(*m, filename);
+				imported = io::import_SKEL(*m, filename);
 			else
 				imported = false;
 		}
 		else if constexpr (std::is_same_v<MESH, IncidenceGraph>)
 		{
 			if (ext.compare("cg") == 0)
-				imported = cgogn::io::import_CG(*m, filename);
+				imported = io::import_CG(*m, filename);
 			else if (ext.compare("ig") == 0)
-				imported = cgogn::io::import_IG(*m, filename);
+				imported = io::import_IG(*m, filename);
 			else
 				imported = false;
 		}
@@ -198,7 +199,7 @@ public:
 		{
 			MeshData<MESH>& md = mesh_data(*m);
 			md.init(m);
-			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+			std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_mesh_bb_vertex_position(*m, vertex_position);
 			boost::synapse::emit<mesh_added>(this, m);
@@ -217,17 +218,17 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 1)
 		{
 			if (filetype.compare("cg") == 0)
-				cgogn::io::export_CG(m, vertex_position, filename + ".cg");
+				io::export_CG(m, vertex_position, filename + ".cg");
 			else if (filetype.compare("ig") == 0)
-				cgogn::io::export_IG(m, vertex_position, filename + ".ig");
+				io::export_IG(m, vertex_position, filename + ".ig");
 			// else if (filetype.compare("cgr") == 0)
-			// 	// TODO cgogn::io::export_CGR();
+			// 	// TODO io::export_CGR();
 			// else if (filetype.compare("skel") == 0)
-			// 	// TODO cgogn::io::export_SKEL();
+			// 	// TODO io::export_SKEL();
 		}
 	}
 
-	MESH* load_surface_from_file(const std::string& filename)
+	MESH* load_surface_from_file(const std::string& filename, bool normalized = true)
 	{
 		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
 		{
@@ -240,24 +241,28 @@ public:
 			std::string ext = extension(filename);
 			bool imported = false;
 			if (ext.compare("off") == 0)
-				imported = cgogn::io::import_OFF(*m, filename);
+				imported = io::import_OFF(*m, filename);
 			else if (ext.compare("obj") == 0)
-				imported = cgogn::io::import_OBJ(*m, filename);
+				imported = io::import_OBJ(*m, filename);
 			else if (ext.compare("ply") == 0)
-				imported = cgogn::io::import_PLY(*m, filename);
+				imported = io::import_PLY(*m, filename);
 			else if (ext.compare("ig") == 0)
 			{
 				if constexpr (std::is_same_v<MESH, IncidenceGraph>)
-					imported = cgogn::io::import_IG(*m, filename);
+					imported = io::import_IG(*m, filename);
 			}
 
 			if (imported)
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
-				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
+				{
+					if (normalized)
+						geometry::rescale(*vertex_position, 1);
 					set_mesh_bb_vertex_position(*m, vertex_position);
+				}
 				boost::synapse::emit<mesh_added>(this, m);
 				return m;
 			}
@@ -277,9 +282,12 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 2)
 		{
 			if (filetype.compare("off") == 0)
-				cgogn::io::export_OFF(m, vertex_position, filename + ".off");
+				io::export_OFF(m, vertex_position, filename + ".off");
 			else if (filetype.compare("ig") == 0)
-				cgogn::io::export_IG(m, vertex_position, filename + ".ig");
+			{
+				if constexpr (has_edge<MESH>::value)
+					io::export_IG(m, vertex_position, filename + ".ig");
+			}
 		}
 	}
 
@@ -296,9 +304,9 @@ public:
 			std::string ext = extension(filename);
 			bool imported;
 			if (ext.compare("tet") == 0)
-				imported = cgogn::io::import_TET(*m, filename);
+				imported = io::import_TET(*m, filename);
 			else if (ext.compare("mesh") == 0 || ext.compare("meshb") == 0)
-				imported = cgogn::io::import_MESHB(*m, filename);
+				imported = io::import_MESHB(*m, filename);
 			else
 				imported = false;
 
@@ -306,7 +314,7 @@ public:
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
-				std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
+				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
 					set_mesh_bb_vertex_position(*m, vertex_position);
 				boost::synapse::emit<mesh_added>(this, m);
@@ -328,14 +336,14 @@ public:
 		if constexpr (mesh_traits<MESH>::dimension == 3)
 		{
 			if (filetype.compare("mesh") == 0)
-				cgogn::io::export_MESH(m, vertex_position, filename + ".mesh");
+				io::export_MESH(m, vertex_position, filename + ".mesh");
 			// else if (filetype.compare("cgns") == 0)
-			// 	cgogn::io::export_CGNS(m, vertex_position, filename + ".cgns");
+			// 	io::export_CGNS(m, vertex_position, filename + ".cgns");
 
 			// else if (filetype.compare("tet") == 0)
-			// 	// TODO cgogn::io::export_TET();
+			// 	// TODO io::export_TET();
 			// else if (filetype.compare("meshb") == 0)
-			// 	// TODO cgogn::io::export_MESHB();
+			// 	// TODO io::export_MESHB();
 		}
 	}
 

@@ -24,13 +24,14 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 #define CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 
-//#include <cgogn/geometry/types/geometry_traits.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <set>
+#include <cgogn/core/utils/numerics.h>
+
 #include <cmath>
+#include <set>
 
 namespace cgogn
 {
@@ -85,7 +86,7 @@ class EarTriangulation
 	// normal to polygon (for orientation of angles)
 	Vec3 normalPoly_;
 
-	// ref on map
+	// ref on mesh
 	MESH& m_;
 
 	// pointer to position attribute
@@ -172,7 +173,7 @@ class EarTriangulation
 		vp->length_ = Scalar((Td - Ta).squaredNorm());
 		vp2->ear_ = ears_.insert(vp2);
 
-		// polygon if convex only if all vertices have convex angle (last have ...)
+		// polygon is convex only if all vertices have convex angle (last have ...)
 		convex_ = (*(ears_.rbegin()))->value_ < Scalar(5);
 	}
 
@@ -213,9 +214,12 @@ class EarTriangulation
 		return true;
 	}
 
-	////////////////////////////////
-	// CMapBase (and convertible) //
-	////////////////////////////////
+	///////////////////////////////
+	// MapBase (and convertible) //
+	///////////////////////////////
+
+	struct MapBase;
+	struct Dart;
 
 	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, MapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
@@ -411,6 +415,7 @@ public:
 	/**
 	 * @brief apply the ear triangulation the face
 	 */
+	// TODO: not generic (call to phi function)
 	void apply()
 	{
 		while (nb_verts_ > 3)

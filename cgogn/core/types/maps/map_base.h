@@ -128,7 +128,7 @@ struct MapBase
 
 	inline Dart next(Dart d) const
 	{
-		return Dart(darts_.next_index(d.index));
+		return Dart(darts_.next_index(d.index_));
 	}
 };
 
@@ -171,12 +171,12 @@ auto nb_darts_of_orbit(const MESH& m, CELL c) -> std::enable_if_t<std::is_conver
 
 inline void set_boundary(const MapBase& m, Dart d, bool b)
 {
-	(*m.boundary_marker_)[d.index] = b ? 1u : 0u;
+	(*m.boundary_marker_)[d.index_] = b ? 1u : 0u;
 }
 
 inline bool is_boundary(const MapBase& m, Dart d)
 {
-	return (*m.boundary_marker_)[d.index] != 0u;
+	return (*m.boundary_marker_)[d.index_] != 0u;
 }
 
 // indicates if a cell is incident to the boundary of the mesh
@@ -215,13 +215,13 @@ void set_index(MapBase& m, Dart d, uint32 index)
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 
-	const uint32 old = (*m.cells_indices_[orbit])[d.index];
+	const uint32 old = (*m.cells_indices_[orbit])[d.index_];
 	// ref_index() is done before unref_index() to avoid deleting the index line if old == index
 	if (index != INVALID_INDEX)
 		m.attribute_containers_[orbit].ref_index(index); // ref the new index
 	if (old != INVALID_INDEX)
 		m.attribute_containers_[orbit].unref_index(old); // unref the old index
-	(*m.cells_indices_[orbit])[d.index] = index;		 // affect the index to the dart
+	(*m.cells_indices_[orbit])[d.index_] = index;		 // affect the index to the dart
 }
 
 // copy the index of the given CELL type from the src dart to the dest dart
@@ -234,6 +234,22 @@ auto copy_index(MESH& m, Dart dest, Dart src) -> std::enable_if_t<std::is_conver
 	set_index<CELL>(m, dest, index_of(m, CELL(src)));
 }
 
+// indicates if the map is currently globally indexing the given CELL type
+template <typename CELL>
+bool is_indexed(const MapBase& m)
+{
+	static const Orbit orbit = CELL::ORBIT;
+	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	return m.cells_indices_[orbit] != nullptr;
+}
+
+// indicates if the map is currently globally indexing the given orbit (same as previous one but not templated)
+inline bool is_indexed(const MapBase& m, Orbit orbit)
+{
+	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
+	return m.cells_indices_[orbit] != nullptr;
+}
+
 // get the index of the given cell
 template <typename CELL>
 uint32 index_of(const MapBase& m, CELL c)
@@ -241,7 +257,7 @@ uint32 index_of(const MapBase& m, CELL c)
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
-	return (*m.cells_indices_[orbit])[c.dart.index];
+	return (*m.cells_indices_[orbit])[c.dart.index_];
 }
 
 // get the cell of the given index
@@ -261,22 +277,6 @@ CELL of_index(const MapBase& m, uint32 i)
 		}
 	}
 	return CELL();
-}
-
-// indicates if the map is currently globally indexing the given CELL type
-template <typename CELL>
-bool is_indexed(const MapBase& m)
-{
-	static const Orbit orbit = CELL::ORBIT;
-	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-	return m.cells_indices_[orbit] != nullptr;
-}
-
-// indicates if the map is currently globally indexing the given orbit (same as previous one but not templated)
-inline bool is_indexed(const MapBase& m, Orbit orbit)
-{
-	cgogn_message_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
-	return m.cells_indices_[orbit] != nullptr;
 }
 
 // creates the Dart attribute needed to store the indices of the given CELL type
@@ -425,10 +425,13 @@ auto get_mark_attribute(const MESH& m)
 	return mb.attribute_containers_[CELL::ORBIT].get_mark_attribute();
 }
 
-template <typename CELL>
-void release_mark_attribute(const MapBase& m, MapBase::MarkAttribute* attribute)
+template <typename CELL, typename MESH>
+auto release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
-	return m.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	const MapBase& mb = static_cast<const MapBase&>(m);
+	return mb.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
 }
 
 inline typename MapBase::MarkAttribute* get_dart_mark_attribute(const MapBase& m)
@@ -461,7 +464,6 @@ auto foreach_cell(const MESH& m, const FUNC& f, MapBase::TraversalPolicy travers
 	using CELL = func_parameter_type<FUNC>;
 
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	if (traversal_policy == MapBase::TraversalPolicy::AUTO && is_indexed<CELL>(m))
@@ -503,7 +505,6 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 	using CELL = func_parameter_type<FUNC>;
 
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();
@@ -532,19 +533,19 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 	if (is_indexed<CELL>(m))
 	{
 		CellMarker<MESH, CELL> cm(m);
-		while (it.index < last.index)
+		while (it.index_ < last.index_)
 		{
 			// fill buffer
 			cells_buffers[i].push_back(buffers->buffer());
 			VecCell& cells = *cells_buffers[i].back();
 			cells.reserve(PARALLEL_BUFFER_SIZE);
-			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index;)
+			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index_ < last.index_;)
 			{
 				CELL c(it);
 				if (!is_boundary(m, it) && !cm.is_marked(c))
 				{
 					cm.mark(c);
-					cells.push_back(c.dart.index);
+					cells.push_back(c.dart.index_);
 					++k;
 				}
 				it = m.next(it);
@@ -571,13 +572,13 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 	else
 	{
 		DartMarker dm(m);
-		while (it.index < last.index)
+		while (it.index_ < last.index_)
 		{
 			// fill buffer
 			cells_buffers[i].push_back(buffers->buffer());
 			VecCell& cells = *cells_buffers[i].back();
 			cells.reserve(PARALLEL_BUFFER_SIZE);
-			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index < last.index;)
+			for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it.index_ < last.index_;)
 			{
 				if (!is_boundary(m, it) && !dm.is_marked(it))
 				{
@@ -586,7 +587,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 						dm.mark(d);
 						return true;
 					});
-					cells.push_back(c.dart.index);
+					cells.push_back(c.dart.index_);
 					++k;
 				}
 				it = m.next(it);

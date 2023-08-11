@@ -587,7 +587,7 @@ void reverse_orientation(CMap2& m)
 		auto new_vertex_indices = m.darts_.add_attribute<uint32>("__new_vertex_indices");
 		new_vertex_indices->fill(INVALID_INDEX);
 		for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
-			(*new_vertex_indices)[d.index] = index_of(m, CMap2::Vertex(phi1(m, d)));
+			(*new_vertex_indices)[d.index_] = index_of(m, CMap2::Vertex(phi1(m, d)));
 		m.cells_indices_[CMap2::Vertex::ORBIT]->swap(new_vertex_indices.get());
 		m.darts_.remove_attribute(new_vertex_indices);
 	}

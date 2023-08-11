@@ -160,6 +160,14 @@ struct Cell
 		return *this;
 	}
 
+	// /**
+	//  * \brief Converts a cell to an uint32 (dart index, not the index of the cell in the map)
+	//  */
+	// inline operator uint32() const
+	// {
+	// 	return dart.index_;
+	// }
+
 	/**
 	 * \brief Prints a cell to a stream.
 	 * \param[out] out the stream to print on

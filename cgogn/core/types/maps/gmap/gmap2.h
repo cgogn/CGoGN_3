@@ -81,7 +81,7 @@ struct mesh_traits<GMap2>
 
 inline Dart beta2(const GMap2& m, Dart d)
 {
-	return (*(m.beta2_))[d.index];
+	return (*(m.beta2_))[d.index_];
 }
 
 inline Dart boundary_beta1(const GMap2& m, Dart d)
@@ -98,15 +98,15 @@ inline void beta2_sew(GMap2& m, Dart d, Dart e)
 {
 	cgogn_assert(beta2(m, d) == d);
 	cgogn_assert(beta2(m, e) == e);
-	(*(m.beta2_))[d.index] = e;
-	(*(m.beta2_))[e.index] = d;
+	(*(m.beta2_))[d.index_] = e;
+	(*(m.beta2_))[e.index_] = d;
 }
 
 inline void beta2_unsew(GMap2& m, Dart d)
 {
 	Dart e = beta2(m, d);
-	(*(m.beta2_))[d.index] = d;
-	(*(m.beta2_))[e.index] = e;
+	(*(m.beta2_))[d.index_] = d;
+	(*(m.beta2_))[e.index_] = e;
 }
 
 inline Dart phi2(const GMap2& m, Dart d)

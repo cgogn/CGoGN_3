@@ -176,6 +176,7 @@ void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 	if (nb_workers == 0)
 		return foreach_cell(cc, f);
 
+	// CELL type should be able to fallback to uint32
 	using VecCell = std::vector<uint32>;
 	using Future = std::future<void>;
 
@@ -202,13 +203,13 @@ void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 		cells.reserve(PARALLEL_BUFFER_SIZE);
 		for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it != last; ++k)
 		{
-			cells.push_back((*it).dart.index);
+			cells.push_back(*it);
 			it++;
 		}
 		// launch thread
 		futures[i].push_back(pool->enqueue([&cells, &f]() {
-			for (uint32 index : cells)
-				f(CELL(Dart(index)));
+			for (uint32 c : cells)
+				f(CELL(c));
 		}));
 		// next thread
 		if (++j == nb_workers)

@@ -24,7 +24,6 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 #define CGOGN_GEOMETRY_ALGOS_ANGLE_H_
 
-
 #include <cgogn/core/functions/mesh_info.h>
 
 #include <cgogn/core/functions/mesh_info.h>
@@ -36,20 +35,20 @@
 
 namespace cgogn
 {
-//
-//struct CMap2;
-//struct GMap2;
+
+struct MapBase;
 
 namespace geometry
 {
 
-///////////
-// CMap2 //
-///////////
-//template <typename MAP2, typename std::enable_if_t<std::is_same_v<MAP2,CMap2>|| std::is_same_v<MAP2,GMap2>>* = nullptr>
+///////////////////
+// CMap2 / GMap2 //
+///////////////////
+// TODO: should not really be here...
+
 template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
 std::vector<Scalar> opposite_angles(const MAP2& m, typename MAP2::Edge e,
-										   const typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
+									const typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
 {
 	using Vertex = typename MAP2::Vertex;
 
@@ -111,12 +110,8 @@ Scalar angle(const MESH& m, typename mesh_traits<MESH>::Edge e,
 	return angle(value<Vec3>(m, face_normal, faces[0]), value<Vec3>(m, face_normal, faces[1]));
 }
 
-//////////
-// CMap //
-//////////
-
 template <typename MESH>
-Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
+Scalar angle(const MESH& m, typename mesh_traits<MESH>::Face f1, typename mesh_traits<MESH>::Face f2,
 			 const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
 	const Vec3 n1 = normal(m, f1, vertex_position);
@@ -128,10 +123,6 @@ Scalar angle(const MESH& m, Cell<Orbit::PHI1> f1, Cell<Orbit::PHI1> f2,
 
 	return atan2(edge.dot(n1.cross(n2)), n1.dot(n2));
 }
-
-/////////////
-// GENERIC //
-/////////////
 
 template <typename MESH>
 void compute_angle(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,

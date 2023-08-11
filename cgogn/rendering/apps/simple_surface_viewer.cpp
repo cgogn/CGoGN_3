@@ -23,11 +23,13 @@
 
 // #define USE_GMAP
 
-#ifdef USE_GMAP
-#include <cgogn/core/types/maps/gmap/gmap2.h>
-#else
-#include <cgogn/core/types/maps/cmap/cmap2.h>
-#endif
+// #ifdef USE_GMAP
+// #include <cgogn/core/types/maps/gmap/gmap2.h>
+// #else
+// #include <cgogn/core/types/maps/cmap/cmap2.h>
+// #endif
+
+#include <cgogn/core/types/triangle_soup/triangle_soup.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -40,12 +42,14 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
-#ifdef USE_GMAP
-using Mesh = cgogn::GMap2;
-#else
-using Mesh = cgogn::CMap2;
-#endif
+// #ifdef USE_GMAP
+// using Mesh = cgogn::GMap2;
+// #else
+// using Mesh = cgogn::CMap2;
+// #endif
 // using Mesh = cgogn::IncidenceGraph;
+
+using Mesh = cgogn::TriangleSoup;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -71,13 +75,17 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	// cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
+
+	// cgogn::ui::View* v2 = app.add_view();
+	// v2->link_module(&mp);
+	// v2->link_module(&sr);
 
 	if (filename.length() > 0)
 	{
@@ -104,10 +112,10 @@ int main(int argc, char** argv)
 
 		mp.set_mesh_bb_vertex_position(*m, vertex_position);
 
-		sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
+		// sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
 
-		sr.set_vertex_position(*v1, *m, vertex_position);
-		sr.set_vertex_normal(*v1, *m, vertex_normal);
+		// sr.set_vertex_position(*v1, *m, vertex_position);
+		// sr.set_vertex_normal(*v1, *m, vertex_normal);
 	}
 
 	return app.launch();

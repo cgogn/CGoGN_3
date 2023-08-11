@@ -21,80 +21,45 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_
-#define CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_
-
-#include <cgogn/core/types/maps/gmap/gmap_base.h>
+#include <cgogn/core/types/triangle_soup/triangle_soup.h>
 
 namespace cgogn
 {
 
-struct GMap0 : public GMapBase
+/*************************************************************************/
+// Clear mesh
+/*************************************************************************/
+
+void clear(TriangleSoup& ts, bool keep_attributes)
 {
-	static const uint8 dimension = 0;
-
-	using Vertex = Cell<Orbit::DART>;
-	using Edge = Cell<Orbit::BETA0>;
-
-	using Cells = std::tuple<Vertex, Edge>;
-
-	std::shared_ptr<Attribute<Dart>> beta0_;
-
-	GMap0()
+	for (TriangleSoup::AttributeContainer& container : ts.attribute_containers_)
 	{
-		beta0_ = add_relation("beta0");
+		container.clear_attributes();
+		if (!keep_attributes)
+			container.remove_attributes();
 	}
-};
-
-template <>
-struct mesh_traits<GMap0>
-{
-	static constexpr const char* name = "GMap0";
-	static constexpr const uint8 dimension = 0;
-
-	using Vertex = typename GMap0::Vertex;
-	using Edge = typename GMap0::Edge;
-
-	using Cells = std::tuple<Vertex, Edge>;
-	static constexpr const char* cell_names[] = {"Vertex", "Edge"};
-
-	template <typename T>
-	using Attribute = MapBase::Attribute<T>;
-	using AttributeGen = MapBase::AttributeGen;
-	using MarkAttribute = MapBase::MarkAttribute;
-};
-
-/*************************************************************************/
-// Basic beta functions
-/*************************************************************************/
-
-inline Dart beta0(const GMap0& m, Dart d)
-{
-	return (*(m.beta0_))[d.index_];
 }
 
-inline void beta0_sew(GMap0& m, Dart d, Dart e)
-{
-	cgogn_assert(beta0(m, d) == d);
-	cgogn_assert(beta0(m, e) == e);
-	(*(m.beta0_))[d.index_] = e;
-	(*(m.beta0_))[e.index_] = d;
-}
+/*************************************************************************/
+// Copy mesh
+/*************************************************************************/
 
-inline void beta0_unsew(GMap0& m, Dart d)
+void copy(TriangleSoup& dst, const TriangleSoup& src)
 {
-	Dart e = beta0(m, d);
-	(*(m.beta0_))[d.index_] = d;
-	(*(m.beta0_))[e.index_] = e;
+	clear(dst, false);
+	for (uint32 i = 0; i < dst.attribute_containers_.size(); ++i)
+		dst.attribute_containers_[i].copy(src.attribute_containers_[i]);
 }
 
 /*************************************************************************/
 // Operators
 /*************************************************************************/
 
-GMap0::Edge add_edge(GMap0& m, bool set_indices = true);
-void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice = true);
+TriangleSoup::Face add_face(TriangleSoup& ts, TriangleSoup::Vertex v1, TriangleSoup::Vertex v2, TriangleSoup::Vertex v3)
+{
+	TriangleSoup::Face f = new_index<TriangleSoup::Face>(ts);
+	(*ts.face_incident_vertices_)[f] = {v1, v2, v3};
+	return f;
+}
 
 } // namespace cgogn
-
-#endif // CGOGN_CORE_TYPES_MAPS_GMAP_GMAP0_H_

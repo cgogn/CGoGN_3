@@ -37,6 +37,7 @@ namespace cgogn
 struct CMap2;
 struct GMap2;
 struct IncidenceGraph;
+struct TriangleSoup;
 
 namespace io
 {
@@ -70,6 +71,7 @@ struct SurfaceImportData
 void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
 void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
 void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
+void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);
 
 } // namespace io
 

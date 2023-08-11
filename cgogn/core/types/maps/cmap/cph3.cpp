@@ -37,7 +37,7 @@ namespace cgogn
 
 uint32 CPH3::dart_level(Dart d) const
 {
-	return (*dart_level_)[d.index];
+	return (*dart_level_)[d.index_];
 }
 
 void CPH3::set_dart_level(Dart d, uint32 l)
@@ -57,7 +57,7 @@ void CPH3::set_dart_level(Dart d, uint32 l)
 			nb_darts_per_level_.pop_back();
 		}
 	}
-	(*dart_level_)[d.index] = l;
+	(*dart_level_)[d.index_] = l;
 }
 
 /***************************************************
@@ -66,12 +66,12 @@ void CPH3::set_dart_level(Dart d, uint32 l)
 
 uint32 CPH3::edge_id(Dart d) const
 {
-	return (*edge_id_)[d.index];
+	return (*edge_id_)[d.index_];
 }
 
 void CPH3::set_edge_id(Dart d, uint32 i)
 {
-	(*edge_id_)[d.index] = i;
+	(*edge_id_)[d.index_] = i;
 }
 
 uint32 CPH3::refinement_edge_id(Dart d, Dart e) const
@@ -102,12 +102,12 @@ uint32 CPH3::refinement_edge_id(Dart d, Dart e) const
 
 uint32 CPH3::face_id(Dart d) const
 {
-	return (*face_id_)[d.index];
+	return (*face_id_)[d.index_];
 }
 
 void CPH3::set_face_id(Dart d, uint32 i)
 {
-	(*face_id_)[d.index] = i;
+	(*face_id_)[d.index_] = i;
 }
 
 uint32 CPH3::refinement_face_id(const std::vector<Dart>& cut_path) const
