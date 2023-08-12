@@ -382,57 +382,57 @@ auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
 	if constexpr (orbit == DART)
 	{
 		unused_parameters(m);
-		f(c.dart);
+		f(c.dart_);
 		return;
 	}
 	if constexpr (orbit == BETA0)
 	{
-		foreach_dart_of_BETA0(m, c.dart, f);
+		foreach_dart_of_BETA0(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA1)
 	{
-		foreach_dart_of_BETA1(m, c.dart, f);
+		foreach_dart_of_BETA1(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA1)
 	{
-		foreach_dart_of_BETA0_BETA1(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA1(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA2)
 	{
-		foreach_dart_of_BETA0_BETA2(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA2(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA1_BETA2)
 	{
-		foreach_dart_of_BETA1_BETA2(m, c.dart, f);
+		foreach_dart_of_BETA1_BETA2(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA1_BETA2)
 	{
-		foreach_dart_of_BETA0_BETA1_BETA2(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA1_BETA2(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA1_BETA3)
 	{
-		foreach_dart_of_BETA0_BETA1_BETA3(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA1_BETA3(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA2_BETA3)
 	{
-		foreach_dart_of_BETA0_BETA2_BETA3(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA2_BETA3(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA1_BETA2_BETA3)
 	{
-		foreach_dart_of_BETA1_BETA2_BETA3(m, c.dart, f);
+		foreach_dart_of_BETA1_BETA2_BETA3(m, c.dart_, f);
 		return;
 	}
 	if constexpr (orbit == BETA0_BETA1_BETA2_BETA3)
 	{
-		foreach_dart_of_BETA0_BETA1_BETA2_BETA3(m, c.dart, f);
+		foreach_dart_of_BETA0_BETA1_BETA2_BETA3(m, c.dart_, f);
 		return;
 	}
 }
@@ -461,28 +461,28 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 	if constexpr (std::is_convertible_v<MESH&, GMap1&> && mesh_traits<MESH>::dimension == 1 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-		foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Vertex(d)); });
+		foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Vertex(d)); });
 		return;
 	}
 	if constexpr (std::is_convertible_v<MESH&, GMap2&> && (mesh_traits<MESH>::dimension == 2))
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
-			if (func(Vertex(c.dart)))
-				func(Vertex(phi2(m, c.dart)));
+			if (func(Vertex(c.dart_)))
+				func(Vertex(phi2(m, c.dart_)));
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
 		{
 			// TODO
-			func(Vertex(c.dart));
-			func(Vertex(beta0(m, c.dart)));
+			func(Vertex(c.dart_));
+			func(Vertex(beta0(m, c.dart_)));
 			// CHECK
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
-			foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Vertex(d)); });
+			foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Vertex(d)); });
 			return;
 		}
 	}
@@ -491,14 +491,14 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 				  (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge> ||
 				   std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>))
 	{
-		if (func(Vertex(c.dart)))
-			func(Vertex(beta0(m, c.dart)));
+		if (func(Vertex(c.dart_)))
+			func(Vertex(beta0(m, c.dart_)));
 		return;
 	}
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-		foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Vertex(d)); });
+		foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Vertex(d)); });
 		return;
 	}
 	if (traversal_policy == MapBase::TraversalPolicy::AUTO && is_indexed<Vertex>(m))
@@ -551,7 +551,7 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 
 	if constexpr (std::is_convertible_v<MESH&, GMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
-		foreach_dart_of_BETA21(m, v.dart, [&](Dart d) -> bool { return func(Vertex(phi2(m, d))); });
+		foreach_dart_of_BETA21(m, v.dart_, [&](Dart d) -> bool { return func(Vertex(phi2(m, d))); });
 	}
 	else if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3)
 	{
@@ -573,7 +573,7 @@ auto foreach_adjacent_vertex_through_edge(const MESH& m, typename mesh_traits<ME
 			DartMarkerStore<MESH> marker(m);
 			foreach_dart_of_orbit(m, v, [&](Dart d) -> bool {
 				Vertex av(phi2(m, d));
-				if (!marker.is_marked(av.dart))
+				if (!marker.is_marked(av.dart_))
 				{
 					foreach_dart_of_orbit(m, av, [&](Dart d) -> bool {
 						marker.mark(d);
@@ -628,26 +628,26 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 	if constexpr (std::is_convertible_v<MESH&, GMap1&> && mesh_traits<MESH>::dimension == 1 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-		foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
+		foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Edge(d)); });
 		return;
 	}
 	if constexpr (std::is_convertible_v<MESH&, GMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex>)
 		{
-			foreach_dart_of_BETA21(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
+			foreach_dart_of_BETA21(m, c.dart_, [&](Dart d) -> bool { return func(Edge(d)); });
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
 		{
-			func(Edge(c.dart));
-			func(Edge(phi2(m, c.dart)));
+			func(Edge(c.dart_));
+			func(Edge(phi2(m, c.dart_)));
 			// foreach_dart_of_orbit(m, c, [&](Dart d) -> bool { return func(Edge(d)); });
 			return;
 		}
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 		{
-			foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
+			foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Edge(d)); });
 			return;
 		}
 	}
@@ -655,7 +655,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 &&
 				  (std::is_same_v<CELL, typename mesh_traits<MESH>::Face>))
 	{
-		foreach_dart_of_BETA01(m, c.dart, [&](Dart d) -> bool { return func(Edge(d)); });
+		foreach_dart_of_BETA01(m, c.dart_, [&](Dart d) -> bool { return func(Edge(d)); });
 		return;
 	}
 
@@ -711,7 +711,7 @@ auto foreach_adjacent_edge_through_face(const MESH& m, typename mesh_traits<MESH
 	{
 		using Face = typename mesh_traits<MESH>::Face;
 
-		Dart d1 = e.dart;
+		Dart d1 = e.dart_;
 		Dart d2 = phi2(m, d1);
 		if (!is_boundary(m, d1))
 			foreach_dart_of_BETA01(m, d1, [&](Dart d) -> bool { return d != d1 ? func(Edge(d)) : true; });
@@ -755,7 +755,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 	{
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Vertex>)
 		{
-			foreach_dart_of_BETA21(m, c.dart, [&](Dart d) -> bool {
+			foreach_dart_of_BETA21(m, c.dart_, [&](Dart d) -> bool {
 				if (!is_boundary(m, d))
 					return func(Face(d));
 				return true;
@@ -765,17 +765,17 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::HalfEdge>)
 		{
-			if (!is_boundary(m, c.dart))
-				func(Face(c.dart));
+			if (!is_boundary(m, c.dart_))
+				func(Face(c.dart_));
 			return;
 		}
 
 		if constexpr (std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 		{
-			if (!is_boundary(m, c.dart))
-				if (!func(Face(c.dart)))
+			if (!is_boundary(m, c.dart_))
+				if (!func(Face(c.dart_)))
 					return;
-			Dart d2 = beta<2, 0>(m, c.dart);
+			Dart d2 = beta<2, 0>(m, c.dart_);
 			if (!is_boundary(m, d2))
 				func(Face(d2));
 			return;
@@ -784,13 +784,13 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 	{
-		Dart d = c.dart;
+		Dart d = c.dart_;
 		do
 		{
 			if (!func(Face(d)))
 				break;
 			d = phi3(m, phi2(m, d));
-		} while (d != c.dart);
+		} while (d != c.dart_);
 		return;
 	}
 
@@ -870,7 +870,7 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 
 	if constexpr (std::is_convertible_v<MESH&, GMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
-		foreach_dart_of_BETA01(m, f.dart, [&](Dart d) -> bool {
+		foreach_dart_of_BETA01(m, f.dart_, [&](Dart d) -> bool {
 			Dart d2 = phi2(m, d);
 			if (!is_boundary(m, d2))
 				return func(Face(d2));
@@ -887,7 +887,7 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 		{
 			CellMarkerStore<MESH, Face> marker(m);
 			marker.mark(f);
-			foreach_dart_of_orbit(m, Face2(f.dart), [&](Dart d) -> bool {
+			foreach_dart_of_orbit(m, Face2(f.dart_), [&](Dart d) -> bool {
 				bool cont = true;
 				foreach_incident_face(m, Edge(d), [&](Face iface) -> bool {
 					if (!marker.is_marked(iface))
@@ -908,10 +908,10 @@ auto foreach_adjacent_face_through_edge(const MESH& m, typename mesh_traits<MESH
 				marker.mark(d);
 				return true;
 			});
-			foreach_dart_of_orbit(m, Face2(f.dart), [&](Dart d) -> bool {
+			foreach_dart_of_orbit(m, Face2(f.dart_), [&](Dart d) -> bool {
 				bool cont = true;
 				foreach_incident_face(m, Edge(d), [&](Face iface) -> bool {
-					if (!marker.is_marked(iface.dart))
+					if (!marker.is_marked(iface.dart_))
 					{
 						cont = func(iface);
 						foreach_dart_of_orbit(m, iface, [&](Dart d) -> bool {
@@ -951,13 +951,13 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, MapBase::T
 
 	if constexpr (std::is_convertible_v<MESH&, GMap2&> && mesh_traits<MESH>::dimension == 2)
 	{
-		func(Volume(c.dart));
+		func(Volume(c.dart_));
 		return;
 	}
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Edge>)
 	{
-		Dart d = c.dart;
+		Dart d = c.dart_;
 		do
 		{
 			if (!is_boundary(m, d))
@@ -966,13 +966,13 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, MapBase::T
 					break;
 			}
 			d = phi3(m, phi2(m, d));
-		} while (d != c.dart);
+		} while (d != c.dart_);
 		return;
 	}
 	if constexpr (std::is_convertible_v<MESH&, GMap3&> && mesh_traits<MESH>::dimension == 3 &&
 				  std::is_same_v<CELL, typename mesh_traits<MESH>::Face>)
 	{
-		Dart d = c.dart;
+		Dart d = c.dart_;
 		if (!is_boundary(m, d))
 			if (!func(Volume(d)))
 				return;

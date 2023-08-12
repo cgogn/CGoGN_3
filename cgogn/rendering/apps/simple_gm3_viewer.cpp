@@ -29,7 +29,6 @@
 #include <cgogn/core/types/maps/cmap/cmap3.h>
 #endif
 
-
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -89,18 +88,17 @@ int main(int argc, char** argv)
 	if (filename.empty())
 	{
 		m = mp.add_mesh("simple");
-//		cgogn::init_cells_indexing<Vertex>(*m);
+		//		cgogn::init_cells_indexing<Vertex>(*m);
 		vertex_position = cgogn::add_attribute<Vec3, Vertex>(*m, "position");
 
-		cgogn::Dart d_pyra = add_pyramid(*m, 4,false).dart;
-		cgogn::Dart d_hexa = add_prism(*m, 4,false).dart;
+		cgogn::Dart d_pyra = add_pyramid(*m, 4, false).dart_;
+		cgogn::Dart d_hexa = add_prism(*m, 4, false).dart_;
 		for (int i = 0; i < 4; ++i)
 		{
 			cgogn::phi3_sew(*m, d_pyra, d_hexa);
 			d_pyra = cgogn::phi1(*m, d_pyra);
 			d_hexa = cgogn::phi_1(*m, d_hexa);
 		}
-
 
 		cgogn::close(*m, false);
 
@@ -125,25 +123,24 @@ int main(int argc, char** argv)
 		dh = cgogn::phi1(*m, dh);
 		setPosV(dh, Vec3(1, -1, -3));
 
-		//setPosV(d_pyra, Vec3(-1, -1, -1));
-		//d_pyra = cgogn::phi1(*m, d_pyra);
-		//setPosV(d_pyra, Vec3(-1, 1, -1));
-		//d_pyra = cgogn::phi1(*m, d_pyra);
-		//setPosV(d_pyra, Vec3(1, 1, -1));
-		//d_pyra = cgogn::phi1(*m, d_pyra);
-		//setPosV(d_pyra, Vec3(1, -1, -1));
-		//setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
+		// setPosV(d_pyra, Vec3(-1, -1, -1));
+		// d_pyra = cgogn::phi1(*m, d_pyra);
+		// setPosV(d_pyra, Vec3(-1, 1, -1));
+		// d_pyra = cgogn::phi1(*m, d_pyra);
+		// setPosV(d_pyra, Vec3(1, 1, -1));
+		// d_pyra = cgogn::phi1(*m, d_pyra);
+		// setPosV(d_pyra, Vec3(1, -1, -1));
+		// setPosV(cgogn::phi<2, -1>(*m, d_pyra), Vec3(0, 0, 1));
 
-		//cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
-		//setPosV(dh, Vec3(-1, -1, -3));
-		//dh = cgogn::phi1(*m, dh);
-		//setPosV(dh, Vec3(-1, 1, -3));
-		//dh = cgogn::phi1(*m, dh);
-		//setPosV(dh, Vec3(1, 1, -3));
-		//dh = cgogn::phi1(*m, dh);
-		//setPosV(dh, Vec3(1, -1, -3));
+		// cgogn::Dart dh = cgogn::phi<2, 1, 1, 2>(*m, d_hexa);
+		// setPosV(dh, Vec3(-1, -1, -3));
+		// dh = cgogn::phi1(*m, dh);
+		// setPosV(dh, Vec3(-1, 1, -3));
+		// dh = cgogn::phi1(*m, dh);
+		// setPosV(dh, Vec3(1, 1, -3));
+		// dh = cgogn::phi1(*m, dh);
+		// setPosV(dh, Vec3(1, -1, -3));
 
-		
 		cgogn::dump_map_darts(*m);
 		std::cout << "CUT !!!!!!!" << std::endl;
 
@@ -155,18 +152,18 @@ int main(int argc, char** argv)
 
 		for (Edge e : ve)
 		{
-			Vertex v1(e.dart);
-			Vertex v2(cgogn::phi1(*m,e.dart));
+			Vertex v1(e.dart_);
+			Vertex v2(cgogn::phi1(*m, e.dart_));
 			Vertex v3 = cgogn::cut_edge(*m, e);
 			cgogn::value<Vec3>(*m, vertex_position, v3) =
 				(cgogn::value<Vec3>(*m, vertex_position, v1) + cgogn::value<Vec3>(*m, vertex_position, v2)) / 2.0;
 		}
 
 		dh = d_pyra;
-		for (int i=0; i<4; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
-			cgogn::Dart dv1 = cgogn::phi<2,1,1>(*m, dh);
-			cgogn::Dart dv2 = cgogn::phi<1,1>(*m, dv1);
+			cgogn::Dart dv1 = cgogn::phi<2, 1, 1>(*m, dh);
+			cgogn::Dart dv2 = cgogn::phi<1, 1>(*m, dv1);
 			cgogn::cut_face(*m, Vertex(dv1), Vertex(dv2));
 			dh = cgogn::phi<1, 1>(*m, dh);
 		}
@@ -182,7 +179,6 @@ int main(int argc, char** argv)
 		vp.push_back(dh);
 
 		cgogn::cut_volume(*m, vp);
-	
 
 		cgogn::dump_map_darts(*m);
 
@@ -199,10 +195,8 @@ int main(int argc, char** argv)
 		vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 	}
 
-	
 	vr.set_vertex_position(*v1, *m, vertex_position);
 	mp.set_mesh_bb_vertex_position(*m, vertex_position);
-
 
 	return app.launch();
 }

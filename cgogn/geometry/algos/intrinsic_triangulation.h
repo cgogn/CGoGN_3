@@ -33,6 +33,7 @@ namespace cgogn
 
 namespace geometry
 {
+
 /**
  * an intrinsic "signpost" data structure,
  * this class is a simplification of the paper "Navigating Intrinsic Triangulations" (Sharp, Crane, Soliman),
@@ -78,8 +79,8 @@ public:
 		// compute edge length
 		edge_length_ = add_attribute<Scalar, Edge>(intr_, "intr_length");
 		parallel_foreach_cell(intr_, [&](Edge e) -> bool {
-			const Vec3& a = value<Vec3>(intr_, vertex_position, Vertex(e.dart));
-			const Vec3& b = value<Vec3>(intr_, vertex_position, Vertex(phi2(intr_, e.dart)));
+			const Vec3& a = value<Vec3>(intr_, vertex_position, Vertex(e.dart_));
+			const Vec3& b = value<Vec3>(intr_, vertex_position, Vertex(phi2(intr_, e.dart_)));
 
 			value<Scalar>(intr_, edge_length_, e) = (a - b).norm();
 			return true;
@@ -93,10 +94,10 @@ public:
 			// sum interior angles
 			value<Scalar>(intr_, vertex_angle_sum_, v) = vertex_angle_sum(extr_, vertex_position_.get(), v);
 			// determine extrinsic reference
-			value<Dart>(intr_, vertex_ref_, v) = v.dart;
+			value<Dart>(intr_, vertex_ref_, v) = v.dart_;
 
 			// compute angle of each halfedge around vertex
-			Dart vdart = v.dart;
+			Dart vdart = v.dart_;
 			Dart it = phi<-1, 2>(intr_, vdart);
 			value<Scalar>(intr_, halfedge_angle_, HalfEdge(vdart)) = 0; // reference direction
 			while (it != vdart)
@@ -193,7 +194,7 @@ public:
 	 */
 	bool can_be_flipped(Edge e)
 	{
-		Dart d = e.dart;
+		Dart d = e.dart_;
 		// check if the incident faces are triangles
 		if (codegree(intr_, Face(d)) != 3 || codegree(intr_, Face(phi2(intr_, d))) != 3)
 			return false;
@@ -221,13 +222,13 @@ public:
 	 */
 	void flip_edge(Edge e)
 	{
-		Dart d = e.dart;
+		Dart d = e.dart_;
 		std::array<Vec2, 4> layoutPositions = layoutDiamond(d);
 		value<Scalar>(intr_, edge_length_, e) = (layoutPositions[1] - layoutPositions[3]).norm();
 		cgogn::flip_edge(intr_, e);
 
-		update_signpost(e.dart);
-		update_signpost(phi2(intr_, e.dart));
+		update_signpost(e.dart_);
+		update_signpost(phi2(intr_, e.dart_));
 	}
 
 	/**
@@ -240,7 +241,7 @@ public:
 		std::vector<Vec3> geodesic_segments;
 		for (Edge e : e_list)
 		{
-			std::vector<Vec3> points = trace(e.dart);
+			std::vector<Vec3> points = trace(e.dart_);
 			Vec3 last_p = points[0];
 			for (Vec3 p : points)
 			{
@@ -299,7 +300,7 @@ private:
 	// compute the next intersection from an edge
 	void trace_from_edge_()
 	{
-		Scalar barycenter=0, beta=0, B_gamma=0, C_gamma=0;
+		Scalar barycenter = 0, beta = 0, B_gamma = 0, C_gamma = 0;
 		Vec3 B_inter, C_inter;
 		bool C_side = false, B_side = false;
 
@@ -493,9 +494,9 @@ private:
 	 */
 	inline Scalar area_(Face f)
 	{
-		Scalar a = value<Scalar>(intr_, edge_length_, Edge(f.dart));
-		Scalar b = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, f.dart)));
-		Scalar c = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, f.dart)));
+		Scalar a = value<Scalar>(intr_, edge_length_, Edge(f.dart_));
+		Scalar b = value<Scalar>(intr_, edge_length_, Edge(phi1(intr_, f.dart_)));
+		Scalar c = value<Scalar>(intr_, edge_length_, Edge(phi_1(intr_, f.dart_)));
 		Scalar s = (a + b + c) * Scalar(0.5);
 		return sqrt(s * (s - a) * (s - b) * (s - c));
 	}

@@ -114,29 +114,29 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 		set_index(new_g, v2, new_index<Graph::Vertex>(new_g));
 
 		// store the new edge extremity darts in the graph branch end vertices
-		value<std::vector<Dart>>(g, g_vertex_new_g_vertices, Graph::Vertex(branch.first.dart)).push_back(ed);
-		value<std::vector<Dart>>(g, g_vertex_new_g_vertices, Graph::Vertex(branch.second.dart)).push_back(edd);
+		value<std::vector<Dart>>(g, g_vertex_new_g_vertices, Graph::Vertex(branch.first.dart_)).push_back(ed);
+		value<std::vector<Dart>>(g, g_vertex_new_g_vertices, Graph::Vertex(branch.second.dart_)).push_back(edd);
 
 		// set the position of the new graph vertices
 		value<Vec3>(new_g, new_g_vertex_position, v1) =
-			value<Vec3>(g, g_vertex_position, Graph::Vertex(branch.first.dart));
+			value<Vec3>(g, g_vertex_position, Graph::Vertex(branch.first.dart_));
 		value<Vec3>(new_g, new_g_vertex_position, v2) =
-			value<Vec3>(g, g_vertex_position, Graph::Vertex(branch.second.dart));
+			value<Vec3>(g, g_vertex_position, Graph::Vertex(branch.second.dart_));
 		// set the radius of the new graph vertices
 		value<Scalar>(new_g, new_g_vertex_radius, v1) =
-			value<Scalar>(g, g_vertex_radius, Graph::Vertex(branch.first.dart));
+			value<Scalar>(g, g_vertex_radius, Graph::Vertex(branch.first.dart_));
 		value<Scalar>(new_g, new_g_vertex_radius, v2) =
-			value<Scalar>(g, g_vertex_radius, Graph::Vertex(branch.second.dart));
+			value<Scalar>(g, g_vertex_radius, Graph::Vertex(branch.second.dart_));
 		// set the arclength of the new graph vertices
 		value<Scalar>(new_g, new_g_vertex_arclength, v1) = 0.0;
 		value<Scalar>(new_g, new_g_vertex_arclength, v2) = 1.0;
 
-		resample_branch(g, {branch.first.dart, branch.second.dart}, {0.0, 1.0}, new_g, Graph::Edge(ed),
+		resample_branch(g, {branch.first.dart_, branch.second.dart_}, {0.0, 1.0}, new_g, Graph::Edge(ed),
 						g_vertex_position, g_vertex_radius, new_g_vertex_position, new_g_vertex_radius,
 						new_g_vertex_arclength.get(), density);
 
 		// average new branch vertices data along the old branch
-		Scalar branch_length = internal::branch_length(g, {branch.first.dart, branch.second.dart}, g_vertex_position);
+		Scalar branch_length = internal::branch_length(g, {branch.first.dart_, branch.second.dart_}, g_vertex_position);
 		std::vector<Graph::Vertex> new_vertices;
 		std::vector<Scalar> filtered_arclength;
 		Dart cur = ed;
@@ -157,8 +157,8 @@ void resample_graph(Graph& g, Graph::Attribute<Vec3>* g_vertex_position, Graph::
 			}
 			for (uint32 i = 0; i < new_vertices.size(); ++i)
 			{
-				auto location = internal::arclength_value(g, {branch.first.dart, branch.second.dart}, g_vertex_position,
-														  branch_length, filtered_arclength[i]);
+				auto location = internal::arclength_value(g, {branch.first.dart_, branch.second.dart_},
+														  g_vertex_position, branch_length, filtered_arclength[i]);
 				Dart e1 = location.first;
 				Dart e2 = alpha0(g, e1);
 				Scalar alpha = location.second;
@@ -243,11 +243,11 @@ void resample_branch(Graph& g, std::pair<Dart, Dart> g_branch, std::pair<Scalar,
 		// recursive calls on the right and left branches
 		Scalar g_v_arclength = g_branch_arclength.first + (g_branch_arclength.second - g_branch_arclength.first) * 0.5;
 		value<Scalar>(new_g, new_g_vertex_arclength, new_g_v) = g_v_arclength;
-		resample_branch(g, {g_branch.first, g_v.dart}, {g_branch_arclength.first, g_v_arclength}, new_g, new_g_edge,
+		resample_branch(g, {g_branch.first, g_v.dart_}, {g_branch_arclength.first, g_v_arclength}, new_g, new_g_edge,
 						g_vertex_position, g_vertex_radius, new_g_vertex_position, new_g_vertex_radius,
 						new_g_vertex_arclength, density);
-		resample_branch(g, {alpha1(g, g_v.dart), g_branch.second}, {g_v_arclength, g_branch_arclength.second}, new_g,
-						Graph::Edge(alpha1(new_g, new_g_v.dart)), g_vertex_position, g_vertex_radius,
+		resample_branch(g, {alpha1(g, g_v.dart_), g_branch.second}, {g_v_arclength, g_branch_arclength.second}, new_g,
+						Graph::Edge(alpha1(new_g, new_g_v.dart_)), g_vertex_position, g_vertex_radius,
 						new_g_vertex_position, new_g_vertex_radius, new_g_vertex_arclength, density);
 	}
 }

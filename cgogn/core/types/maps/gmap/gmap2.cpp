@@ -36,10 +36,10 @@ namespace cgogn
 
 GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 {
-	Dart e1 = e.dart;
+	Dart e1 = e.dart_;
 	Dart e2 = beta2(m, e1);
-	Dart ne1 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e1}, false).dart;
-	Dart ne2 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e2}, false).dart;
+	Dart ne1 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e1}, false).dart_;
+	Dart ne2 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge{e2}, false).dart_;
 	beta2_sew(m, ne1, ne2);
 	Dart ne1b = beta1(m, ne1);
 	Dart ne2b = beta1(m, ne2);
@@ -60,7 +60,7 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 
 		if (is_indexed<GMap2::Edge>(m))
 		{
-			uint32 ind1 = index_of(m, GMap2::Edge(e.dart));
+			uint32 ind1 = index_of(m, GMap2::Edge(e.dart_));
 			set_index<GMap2::Edge>(m, ne1, ind1);
 			set_index<GMap2::Edge>(m, ne2, ind1);
 			set_index(m, GMap2::Edge{ne1b}, new_index<GMap2::Edge>(m));
@@ -68,7 +68,7 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 
 		if (is_indexed<GMap2::Face>(m))
 		{
-			uint32 ind1 = index_of(m, GMap2::Face(e.dart));
+			uint32 ind1 = index_of(m, GMap2::Face(e.dart_));
 			set_index<GMap2::Edge>(m, ne1, ind1);
 			set_index<GMap2::Edge>(m, ne1b, ind1);
 			uint32 ind2 = index_of(m, GMap2::Face(e2));
@@ -82,7 +82,7 @@ GMap2::Vertex cut_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 
 GMap2::Vertex collapse_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 {
-	Dart dd = e.dart;
+	Dart dd = e.dart_;
 	Dart dd_1 = beta1(m, dd);
 	Dart dd_12 = beta2(m, dd_1);
 	Dart ee = beta2(m, dd);
@@ -153,8 +153,8 @@ bool flip_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 		return std::make_pair(beta<0, 1>(m, x.first), beta<1, 0>(m, x.second));
 	};
 
-	auto p1_darts = externals(e.dart);
-	auto p2_darts = externals(beta<0, 2>(m, e.dart));
+	auto p1_darts = externals(e.dart_);
+	auto p2_darts = externals(beta<0, 2>(m, e.dart_));
 	auto pt1 = turn(p1_darts);
 	auto pt2 = turn(p2_darts);
 
@@ -172,12 +172,12 @@ bool flip_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	beta1_unsew(m, pt2.second);
 	// TODO remove unsew in release mode ?
 
-	Dart ed = e.dart;
+	Dart ed = e.dart_;
 	// is it more efficient like that ?
-	// beta1_sew(m, pt1.first, e.dart);
-	// beta1_sew(m, pt1.second, beta2(m,e.dart));
-	// beta1_sew(m, pt2.first, beta<0,2>(m,e.dart));
-	// beta1_sew(m, pt2.second, beta0(m,e.dart));
+	// beta1_sew(m, pt1.first, e.dart_);
+	// beta1_sew(m, pt1.second, beta2(m,e.dart_));
+	// beta1_sew(m, pt2.first, beta<0,2>(m,e.dart_));
+	// beta1_sew(m, pt2.second, beta0(m,e.dart_));
 	beta1_sew(m, pt1.first, ed);
 	ed = beta2(m, ed);
 	beta1_sew(m, pt1.second, beta2(m, ed));
@@ -190,7 +190,7 @@ bool flip_edge(GMap2& m, GMap2::Edge e, bool set_indices)
 	{
 		if (is_indexed<GMap2::Vertex>(m))
 		{
-			copy_index<GMap2::Vertex>(m, e.dart, pt1.first);
+			copy_index<GMap2::Vertex>(m, e.dart_, pt1.first);
 			copy_index<GMap2::Vertex>(m, ed, pt2.first);
 		}
 
@@ -222,8 +222,8 @@ bool edge_can_collapse(const GMap2& m, GMap2::Edge e)
 	if (val_v1 + val_v2 < 8 || val_v1 + val_v2 > 14)
 		return false;
 
-	Dart e1 = e.dart;
-	Dart e2 = phi2(m, e.dart);
+	Dart e1 = e.dart_;
+	Dart e2 = phi2(m, e.dart_);
 	if (codegree(m, Face(e1)) == 3)
 	{
 		if (degree(m, Vertex(phi_1(m, e1))) < 4)
@@ -264,7 +264,7 @@ bool edge_can_flip(const GMap2& m, GMap2::Edge e)
 	if (is_incident_to_boundary(m, e))
 		return false;
 
-	Dart e1 = e.dart;
+	Dart e1 = e.dart_;
 	Dart e2 = phi2(m, e1);
 
 	auto next_edge = [&m](Dart d) { return phi<-1, 2>(m, d); };
@@ -289,19 +289,19 @@ GMap2::Face add_face(GMap2& m, uint32 size, bool set_indices)
 	GMap2::Face f = add_face(static_cast<GMap1&>(m), size, false);
 	if (set_indices)
 	{
-		GMap2::Edge ep{f.dart};
+		GMap2::Edge ep{f.dart_};
 
 		for (uint32 i = 0u; i < size; ++i)
 		{
-			GMap2::Edge e{phi1(m, ep.dart)};
+			GMap2::Edge e{phi1(m, ep.dart_)};
 			if (is_indexed<GMap2::Vertex>(m))
-				set_index(m, GMap2::Vertex{e.dart}, new_index<GMap2::Vertex>(m));
+				set_index(m, GMap2::Vertex{e.dart_}, new_index<GMap2::Vertex>(m));
 			if (is_indexed<GMap2::Edge>(m))
 				set_index(m, e, new_index<GMap2::Edge>(m));
 			ep = e;
 		}
 		if (is_indexed<GMap2::Face>(m))
-			set_index(m, GMap2::Face{ep.dart}, new_index<GMap2::Face>(m));
+			set_index(m, GMap2::Face{ep.dart_}, new_index<GMap2::Face>(m));
 	}
 	return f;
 }
@@ -314,26 +314,26 @@ void merge_incident_faces(GMap2& m, GMap2::Edge e, bool set_indices)
 
 	// DartMarker df = DartMarker(m);
 	//
-	// foreach_dart_of_BETA0_BETA1(m, e.dart, [&](Dart x)
+	// foreach_dart_of_BETA0_BETA1(m, e.dart_, [&](Dart x)
 	//{
 	//	df.mark(x);
 	//});
 
-	// Dart d0 = beta2(m, e.dart);
+	// Dart d0 = beta2(m, e.dart_);
 	// do
 	//{
 	//	d0 = beta1(m, beta0(m, d0));
 	//} while (df.is_marked(beta2(m,d0)));
 	// d0 = beta0(m, beta1(m, d0));
 
-	// Dart d1 = beta2(m, e.dart);
+	// Dart d1 = beta2(m, e.dart_);
 	// while (df.is_marked(beta2(m, d1)));
 	//{
 	//	d1 = beta0(m, beta1(m, d0));
 	//}
 	// d1 = beta1(m, beta0(m, d0));
 
-	Dart d0 = e.dart;
+	Dart d0 = e.dart_;
 	Dart d1 = beta<0, 2>(m, d0);
 
 	Dart e1 = beta1(m, d0);
@@ -365,16 +365,16 @@ GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indi
 	using Edge = GMap2::Edge;
 	using Face = GMap2::Face;
 
-	Dart d1 = v1.dart;
+	Dart d1 = v1.dart_;
 	Dart dd1 = beta1(m, d1);
-	Dart d2 = v2.dart;
+	Dart d2 = v2.dart_;
 	Dart dd2 = beta1(m, d2);
 
 	beta1_unsew(m, d1);
 	beta1_unsew(m, d2);
 
-	Dart e1 = add_edge(m, false).dart;
-	Dart e2 = add_edge(m, false).dart;
+	Dart e1 = add_edge(m, false).dart_;
+	Dart e2 = add_edge(m, false).dart_;
 
 	bool b1 = is_boundary(m, d1);
 	set_boundary(m, e1, b1);
@@ -406,7 +406,7 @@ GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indi
 
 		if (is_indexed<Face>(m))
 		{
-			uint32 ind = index_of(m, Face(v1.dart));
+			uint32 ind = index_of(m, Face(v1.dart_));
 			set_index<Face>(m, e1, ind);
 			set_index<Face>(m, beta0(m, e2), ind);
 			set_index<Face>(m, e2, ind);
@@ -419,21 +419,21 @@ GMap2::Edge cut_face(GMap2& m, GMap2::Vertex v1, GMap2::Vertex v2, bool set_indi
 GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 {
 	GMap1::Face first = add_face(static_cast<GMap1&>(m), 3u, false); // First triangle
-																	 //	dump(first.dart);
+																	 //	dump(first.dart_);
 
-	Dart current = first.dart;
+	Dart current = first.dart_;
 	for (uint32 i = 1u; i < size; ++i) // Next triangles
 	{
 		GMap1::Face next = add_face(static_cast<GMap1&>(m), 3u, false);
-		phi2_sew(m, phi_1(m, current), phi1(m, next.dart));
-		current = next.dart;
+		phi2_sew(m, phi_1(m, current), phi1(m, next.dart_));
+		current = next.dart_;
 	}
 
-	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the umbrella
+	phi2_sew(m, phi_1(m, current), phi1(m, first.dart_)); // Finish the umbrella
 
-	GMap2::Face base = close_hole(m, first.dart, false); // Add the base face
+	GMap2::Face base = close_hole(m, first.dart_, false); // Add the base face
 
-	GMap2::Volume vol(base.dart);
+	GMap2::Volume vol(base.dart_);
 
 	if (set_indices)
 	{
@@ -452,8 +452,8 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 			foreach_incident_edge(
 				m, vol,
 				[&](GMap2::Edge e) -> bool {
-					set_index(m, GMap2::HalfEdge(e.dart), new_index<GMap2::HalfEdge>(m));
-					set_index(m, GMap2::HalfEdge(phi2(m, e.dart)), new_index<GMap2::HalfEdge>(m));
+					set_index(m, GMap2::HalfEdge(e.dart_), new_index<GMap2::HalfEdge>(m));
+					set_index(m, GMap2::HalfEdge(phi2(m, e.dart_)), new_index<GMap2::HalfEdge>(m));
 					return true;
 				},
 				MapBase::TraversalPolicy::DART_MARKING);
@@ -488,18 +488,18 @@ GMap2::Volume add_pyramid(GMap2& m, uint32 size, bool set_indices)
 GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 {
 	GMap1::Face first = add_face(static_cast<GMap1&>(m), 4u, false); // first quad
-	Dart current = first.dart;
+	Dart current = first.dart_;
 	for (uint32 i = 1u; i < size; ++i) // Next quads
 	{
 		GMap1::Face next = add_face(static_cast<GMap1&>(m), 4u, false);
-		phi2_sew(m, phi_1(m, current), phi1(m, next.dart));
-		current = next.dart;
+		phi2_sew(m, phi_1(m, current), phi1(m, next.dart_));
+		current = next.dart_;
 	}
-	phi2_sew(m, phi_1(m, current), phi1(m, first.dart)); // Finish the sides
-	GMap2::Face base = close_hole(m, first.dart, false); // Add the base face
-	close_hole(m, phi<1, 1>(m, first.dart), false);		 // Add the top face
+	phi2_sew(m, phi_1(m, current), phi1(m, first.dart_)); // Finish the sides
+	GMap2::Face base = close_hole(m, first.dart_, false); // Add the base face
+	close_hole(m, phi<1, 1>(m, first.dart_), false);	  // Add the top face
 
-	GMap2::Volume vol(base.dart);
+	GMap2::Volume vol(base.dart_);
 
 	if (set_indices)
 	{
@@ -518,8 +518,8 @@ GMap2::Volume add_prism(GMap2& m, uint32 size, bool set_indices)
 			foreach_incident_edge(
 				m, vol,
 				[&](GMap2::Edge e) -> bool {
-					set_index(m, GMap2::HalfEdge(e.dart), new_index<GMap2::HalfEdge>(m));
-					set_index(m, GMap2::HalfEdge(phi2(m, e.dart)), new_index<GMap2::HalfEdge>(m));
+					set_index(m, GMap2::HalfEdge(e.dart_), new_index<GMap2::HalfEdge>(m));
+					set_index(m, GMap2::HalfEdge(phi2(m, e.dart_)), new_index<GMap2::HalfEdge>(m));
 					return true;
 				},
 				MapBase::TraversalPolicy::DART_MARKING);
@@ -583,7 +583,7 @@ GMap2::Face close_hole(GMap2& m, Dart d, bool set_indices)
 	} while (dd1 != d);
 
 	GMap1::Face f = add_face(static_cast<GMap1&>(m), vd.size(), false);
-	Dart df = f.dart;
+	Dart df = f.dart_;
 	for (Dart dh : vd)
 	{
 		phi2_sew(m, dh, df);

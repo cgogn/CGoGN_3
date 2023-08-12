@@ -86,7 +86,7 @@ auto import_surface_data_map_tmpl(MESH& m, SurfaceImportData& surface_data)
 		if (nbv > 2u)
 		{
 			typename ParentMESH::Face f = add_face(static_cast<ParentMESH&>(m), nbv, false);
-			Dart d = f.dart;
+			Dart d = f.dart_;
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
 				const uint32 vertex_index = vertices_buffer[j];

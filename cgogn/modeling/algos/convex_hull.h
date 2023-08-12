@@ -40,8 +40,8 @@ namespace cgogn
 namespace modeling
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 ///////////
 // CMap2 //
@@ -49,8 +49,8 @@ using geometry::Scalar;
 
 std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v)
 {
-	return {CMap2::Vertex(v.dart), CMap2::Vertex(phi1(m, v.dart)), CMap2::Vertex(phi_1(m, v.dart)),
-			CMap2::Vertex(phi<-1, 2, -1>(m, v.dart))};
+	return {CMap2::Vertex(v.dart_), CMap2::Vertex(phi1(m, v.dart_)), CMap2::Vertex(phi_1(m, v.dart_)),
+			CMap2::Vertex(phi<-1, 2, -1>(m, v.dart_))};
 }
 
 // return [horizon_halfedges, visible_faces]
@@ -81,7 +81,7 @@ std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
 				visible.mark(af);
 			}
 			else
-				horizon_halfedges.push_back(CMap2::HalfEdge(phi2(m, af.dart)));
+				horizon_halfedges.push_back(CMap2::HalfEdge(phi2(m, af.dart_)));
 			return true;
 		});
 	}
@@ -89,10 +89,10 @@ std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
 	// reorder horizon halfedges into a cycle
 	for (uint32 i = 0; i < uint32(horizon_halfedges.size()) - 1; ++i)
 	{
-		uint32 end_vertex_index = index_of(m, CMap2::Vertex(phi1(m, horizon_halfedges[i].dart)));
+		uint32 end_vertex_index = index_of(m, CMap2::Vertex(phi1(m, horizon_halfedges[i].dart_)));
 		for (uint32 j = i + 1; j < horizon_halfedges.size(); ++j)
 		{
-			uint32 begin_vertex_index = index_of(m, CMap2::Vertex(horizon_halfedges[i].dart));
+			uint32 begin_vertex_index = index_of(m, CMap2::Vertex(horizon_halfedges[i].dart_));
 			if (begin_vertex_index == end_vertex_index)
 			{
 				if (j > i + 1)
@@ -108,11 +108,11 @@ std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
 CMap2::Vertex remove_visible_faces_and_fill(CMap2& m, std::vector<CMap2::HalfEdge>& horizon_halfedges,
 											std::vector<CMap2::Face>& visible_faces)
 {
-	Dart d = phi2(m, horizon_halfedges[0].dart);
+	Dart d = phi2(m, horizon_halfedges[0].dart_);
 	for (CMap2::HalfEdge he : horizon_halfedges)
-		phi2_unsew(m, he.dart);
+		phi2_unsew(m, he.dart_);
 	for (CMap2::Face f : visible_faces)
-		remove_face(static_cast<CMap1&>(m), CMap1::Face(f.dart));
+		remove_face(static_cast<CMap1&>(m), CMap1::Face(f.dart_));
 
 	CMap2::Face f = close_hole(m, d);
 	if (is_indexed<CMap2::Face>(m))
@@ -121,9 +121,9 @@ CMap2::Vertex remove_visible_faces_and_fill(CMap2& m, std::vector<CMap2::HalfEdg
 			set_index(m, f, new_index<CMap2::Face>(m));
 	}
 
-	Dart d0 = phi1(m, f.dart);
+	Dart d0 = phi1(m, f.dart_);
 
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(f.dart));
+	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(f.dart_));
 	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
 
 	Dart x = phi<-1, -1>(m, d0);

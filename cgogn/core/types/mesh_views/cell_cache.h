@@ -29,6 +29,7 @@
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
+#include <array>
 #include <vector>
 
 namespace cgogn
@@ -177,6 +178,7 @@ void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 		return foreach_cell(cc, f);
 
 	// CELL type should be able to fallback to uint32
+	// TODO: may be too restrictive?
 	using VecCell = std::vector<uint32>;
 	using Future = std::future<void>;
 

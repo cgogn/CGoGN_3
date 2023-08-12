@@ -36,8 +36,8 @@
 
 namespace cgogn
 {
-struct CMapBase;
-//struct GMapBase;
+
+struct MapBase;
 
 namespace modeling
 {
@@ -46,33 +46,35 @@ using geometry::Vec3;
 using Mat3 = geometry::Mat3;
 using geometry::Scalar;
 
-///////////
-// CMap2 //
-///////////
+///////////////
+// MapBase:2 //
+///////////////
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-										   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-std::array<typename MAP2::Vertex, 4> edge_quad_vertices(MAP2& m, typename MAP2::Edge e)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+std::array<typename MESH::Vertex, 4> edge_quad_vertices(MESH& m, typename MESH::Edge e)
 {
-	using Vertex = typename MAP2::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
 	std::array<Vertex, 4> eqv;
-	eqv[0] = Vertex(phi1(m, e.dart));
-	eqv[1] = Vertex(phi_1(m, e.dart));
-	eqv[2] = Vertex(e.dart);
-	eqv[3] = Vertex(phi<2, -1>(m, e.dart));
+	eqv[0] = Vertex(phi1(m, e.dart_));
+	eqv[1] = Vertex(phi_1(m, e.dart_));
+	eqv[2] = Vertex(e.dart_);
+	eqv[3] = Vertex(phi<2, -1>(m, e.dart_));
+
 	return eqv;
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
- std::vector<typename mesh_traits<MAP2>::Edge> butterfly_neighbour_edges(MAP2& m, typename mesh_traits<MAP2>::Edge e)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+std::vector<typename mesh_traits<MESH>::Edge> butterfly_neighbour_edges(MESH& m, typename mesh_traits<MESH>::Edge e)
 {
-	using Vertex = typename mesh_traits<MAP2>::Vertex;
-	using Edge = typename mesh_traits<MAP2>::Edge;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
 	std::vector<Edge> edges;
 
-	Dart d = e.dart;
+	Dart d = e.dart_;
 	if (!is_boundary(m, d))
 	{
 		Dart d12 = phi<1, 2>(m, d);
@@ -96,7 +98,7 @@ template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, 
 				edges.push_back(Edge(d_12_12));
 		}
 	}
-	Dart d2 = phi2(m, e.dart);
+	Dart d2 = phi2(m, e.dart_);
 	if (!is_boundary(m, d2))
 	{
 		Dart d212 = phi<1, 2>(m, d2);
@@ -124,15 +126,16 @@ template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, 
 	return edges;
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-void cut_boundary_triangle(MAP2& m, typename mesh_traits<MAP2>::Edge e, typename MAP2::template Attribute<Vec3>* vertex_position)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+void cut_boundary_triangle(MESH& m, typename mesh_traits<MESH>::Edge e,
+						   typename MESH::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename mesh_traits<MAP2>::Vertex;
-	using Edge = typename mesh_traits<MAP2>::Edge;
-	using Face = typename mesh_traits<MAP2>::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
-	Dart d = e.dart;
+	Dart d = e.dart_;
 	Dart d1 = phi1(m, d);
 	Dart d_1 = phi_1(m, d);
 	Vertex opposite_v(d_1);
@@ -142,27 +145,26 @@ void cut_boundary_triangle(MAP2& m, typename mesh_traits<MAP2>::Edge e, typename
 		(value<Vec3>(m, vertex_position, Vertex(d)) + value<Vec3>(m, vertex_position, Vertex(d1))) / 2.0;
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-typename mesh_traits<MAP2>::Face next_boundary_face(MAP2& m, typename mesh_traits<MAP2>::Edge e)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+typename mesh_traits<MESH>::Face next_boundary_face(MESH& m, typename mesh_traits<MESH>::Edge e)
 {
-	return typename mesh_traits<MAP2>::Face(phi<2, 1, 2>(m, e.dart));
+	return typename mesh_traits<MESH>::Face(phi<2, 1, 2>(m, e.dart_));
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-inline typename mesh_traits<MAP2>::Face previous_boundary_face(MAP2& m, typename  mesh_traits<MAP2>::Edge e)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+inline typename mesh_traits<MESH>::Face previous_boundary_face(MESH& m, typename mesh_traits<MESH>::Edge e)
 {
-	return typename mesh_traits<MAP2>::Face(phi<2, -1, 2>(m, e.dart));
+	return typename mesh_traits<MESH>::Face(phi<2, -1, 2>(m, e.dart_));
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-inline bool common_edge(MAP2& m, typename MAP2::Face f1, typename  mesh_traits<MAP2>::Face f2, typename  mesh_traits<MAP2>::Edge& res)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+inline bool common_edge(MESH& m, typename MESH::Face f1, typename mesh_traits<MESH>::Face f2,
+						typename mesh_traits<MESH>::Edge& res)
 {
-	using Vertex = typename  mesh_traits<MAP2>::Vertex;
-	using Edge = typename  mesh_traits<MAP2>::Edge;
-	using Face = typename  mesh_traits<MAP2>::Face;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
 	std::vector<Dart> f1darts;
 	foreach_dart_of_orbit(m, f1, [&](Dart d) -> bool {
@@ -182,89 +184,51 @@ inline bool common_edge(MAP2& m, typename MAP2::Face f1, typename  mesh_traits<M
 	return found;
 }
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&> &&
-												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-inline typename  mesh_traits<MAP2>::Vertex open_boundary_vertex(MAP2& m, typename  mesh_traits<MAP2>::Vertex v)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+inline typename mesh_traits<MESH>::Vertex open_boundary_vertex(MESH& m, typename mesh_traits<MESH>::Vertex v)
 {
-	using Vertex = typename  mesh_traits<MAP2>::Vertex;
-	using HalfEdge = typename  mesh_traits<MAP2>::HalfEdge;
-	using Edge = typename  mesh_traits<MAP2>::Edge;
-	using Face = typename  mesh_traits<MAP2>::Face;
-	using Volume = typename  mesh_traits<MAP2>::Volume;
-	using ParentVertex = typename mesh_traits<typename mesh_traits<MAP2>::Parent>::Vertex;
-	using ParentEdge = typename mesh_traits<typename mesh_traits<MAP2>::Parent>::Edge;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
+	using Volume = typename mesh_traits<MESH>::Volume;
+	using ParentVertex = typename mesh_traits<typename mesh_traits<MESH>::Parent>::Vertex;
+	using ParentEdge = typename mesh_traits<typename mesh_traits<MESH>::Parent>::Edge;
 
-	Dart d = is_boundary(m, v.dart) ? phi<-1, 2>(m, v.dart) : v.dart;
-	ParentVertex v1 = cut_edge(static_cast<typename  mesh_traits<MAP2>::Parent&>(m), ParentEdge(phi_1(m, d)), false);
-	ParentVertex v2 = cut_edge(static_cast<typename  mesh_traits<MAP2>::Parent&>(m), ParentEdge(phi<2, 1, 2>(m, d)), false);
-	phi2_sew(m, v1.dart, v2.dart);
+	Dart d = is_boundary(m, v.dart_) ? phi<-1, 2>(m, v.dart_) : v.dart_;
+	ParentVertex v1 = cut_edge(static_cast<typename mesh_traits<MESH>::Parent&>(m), ParentEdge(phi_1(m, d)), false);
+	ParentVertex v2 =
+		cut_edge(static_cast<typename mesh_traits<MESH>::Parent&>(m), ParentEdge(phi<2, 1, 2>(m, d)), false);
+	phi2_sew(m, v1.dart_, v2.dart_);
 
 	if (is_indexed<Vertex>(m))
 	{
-		set_index(m, Vertex(v1.dart), new_index<Vertex>(m));
-		copy_index<Vertex>(m, v2.dart, d);
+		set_index(m, Vertex(v1.dart_), new_index<Vertex>(m));
+		copy_index<Vertex>(m, v2.dart_, d);
 	}
 	if (is_indexed<HalfEdge>(m))
 	{
-		set_index(m, HalfEdge(v1.dart), new_index<HalfEdge>(m));
-		set_index(m, HalfEdge(v2.dart), new_index<HalfEdge>(m));
+		set_index(m, HalfEdge(v1.dart_), new_index<HalfEdge>(m));
+		set_index(m, HalfEdge(v2.dart_), new_index<HalfEdge>(m));
 	}
 	if (is_indexed<Edge>(m))
 	{
-		set_index(m, Edge(v1.dart), new_index<Edge>(m));
+		set_index(m, Edge(v1.dart_), new_index<Edge>(m));
 	}
 	if (is_indexed<Face>(m))
 	{
-		copy_index<Face>(m, v1.dart, d);
-		copy_index<Face>(m, v2.dart, phi1(m, v2.dart));
+		copy_index<Face>(m, v1.dart_, d);
+		copy_index<Face>(m, v2.dart_, phi1(m, v2.dart_));
 	}
 	if (is_indexed<Volume>(m))
 	{
-		copy_index<Volume>(m, v1.dart, d);
-		copy_index<Volume>(m, v2.dart, d);
+		copy_index<Volume>(m, v1.dart_, d);
+		copy_index<Volume>(m, v2.dart_, d);
 	}
 
-	return Vertex(v1.dart);
+	return Vertex(v1.dart_);
 }
-
-
-
-// template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, GMapBase&> &&
-// 												   (mesh_traits<MAP2>::dimension == 2)>* = nullptr>
-// inline typename MAP2::Vertex open_boundary_vertex(MAP2& m, typename MAP2::Vertex v)
-// {
-// 	Dart d = is_boundary(m, v.dart) ? phi<-1, 2>(m, v.dart) : v.dart;
-// 	GMap1::Vertex v1 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge(phi_1(m, d)), false);
-// 	GMap1::Vertex v2 = cut_edge(static_cast<GMap1&>(m), GMap1::Edge(phi<2, 1, 2>(m, d)), false);
-// 	phi2_sew(m, v1.dart, v2.dart);
-
-// 	if (is_indexed<GMap2::Vertex>(m))
-// 	{
-// 		set_index(m, GMap2::Vertex(v1.dart), new_index<GMap2::Vertex>(m));
-// 		copy_index<GMap2::Vertex>(m, v2.dart, d);
-// 	}
-// 	if (is_indexed<GMap2::HalfEdge>(m))
-// 	{
-// 		set_index(m, GMap2::HalfEdge(v1.dart), new_index<GMap2::HalfEdge>(m));
-// 		set_index(m, GMap2::HalfEdge(v2.dart), new_index<GMap2::HalfEdge>(m));
-// 	}
-// 	if (is_indexed<GMap2::Edge>(m))
-// 	{
-// 		set_index(m, GMap2::Edge(v1.dart), new_index<GMap2::Edge>(m));
-// 	}
-// 	if (is_indexed<GMap2::Face>(m))
-// 	{
-// 		copy_index<GMap2::Face>(m, v1.dart, d);
-// 		copy_index<GMap2::Face>(m, v2.dart, phi1(m, v2.dart));
-// 	}
-// 	if (is_indexed<GMap2::Volume>(m))
-// 	{
-// 		copy_index<GMap2::Volume>(m, v1.dart, d);
-// 		copy_index<GMap2::Volume>(m, v2.dart, d);
-// 	}
-
-// 	return GMap2::Vertex(v1.dart);
-// }
 
 /////////////
 // GENERIC //

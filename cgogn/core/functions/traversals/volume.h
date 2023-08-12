@@ -39,7 +39,7 @@ std::vector<typename mesh_traits<MESH>::Volume> incident_volumes(const MESH& m, 
 {
 	using Volume = typename mesh_traits<MESH>::Volume;
 	if constexpr (mesh_traits<MESH>::dimension == 2)
-		return {Volume(c.dart)};
+		return {Volume(c.dart_)};
 	else
 	{
 		std::vector<Volume> volumes;

@@ -84,8 +84,8 @@ auto import_volume_data_map_tmpl(MESH& m, VolumeImportData& volume_data)
 		{
 			vol = add_pyramid(static_cast<ParentMESH&>(m), 3u, false);
 
-			const std::array<Dart, 4> vertices_of_tetra = {vol.dart, phi1(m, vol.dart), phi_1(m, vol.dart),
-														   phi<-1, 2, -1>(m, vol.dart)};
+			const std::array<Dart, 4> vertices_of_tetra = {vol.dart_, phi1(m, vol.dart_), phi_1(m, vol.dart_),
+														   phi<-1, 2, -1>(m, vol.dart_)};
 
 			for (Dart dv : vertices_of_tetra)
 			{
@@ -102,8 +102,8 @@ auto import_volume_data_map_tmpl(MESH& m, VolumeImportData& volume_data)
 		{
 			vol = add_pyramid(static_cast<ParentMESH&>(m), 4u, false);
 
-			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart, phi1(m, vol.dart), phi<1, 1>(m, vol.dart),
-															 phi_1(m, vol.dart), phi<-1, 2, -1>(m, vol.dart)};
+			const std::array<Dart, 5> vertices_of_pyramid = {vol.dart_, phi1(m, vol.dart_), phi<1, 1>(m, vol.dart_),
+															 phi_1(m, vol.dart_), phi<-1, 2, -1>(m, vol.dart_)};
 
 			for (Dart dv : vertices_of_pyramid)
 			{
@@ -120,12 +120,12 @@ auto import_volume_data_map_tmpl(MESH& m, VolumeImportData& volume_data)
 		{
 			vol = add_prism(static_cast<ParentMESH&>(m), 3u, false);
 
-			const std::array<Dart, 6> vertices_of_prism = {vol.dart,
-														   phi1(m, vol.dart),
-														   phi_1(m, vol.dart),
-														   phi<-1, 2, 1, 1, 2>(m, vol.dart),
-														   phi<2, 1, 1, 2>(m, vol.dart),
-														   phi<1, 2, 1, 1, 2>(m, vol.dart)};
+			const std::array<Dart, 6> vertices_of_prism = {vol.dart_,
+														   phi1(m, vol.dart_),
+														   phi_1(m, vol.dart_),
+														   phi<-1, 2, 1, 1, 2>(m, vol.dart_),
+														   phi<2, 1, 1, 2>(m, vol.dart_),
+														   phi<1, 2, 1, 1, 2>(m, vol.dart_)};
 
 			for (Dart dv : vertices_of_prism)
 			{
@@ -142,14 +142,14 @@ auto import_volume_data_map_tmpl(MESH& m, VolumeImportData& volume_data)
 		{
 			vol = add_prism(static_cast<ParentMESH&>(m), 4u, false);
 
-			const std::array<Dart, 8> vertices_of_hexa = {vol.dart,
-														  phi1(m, vol.dart),
-														  phi<1, 1>(m, vol.dart),
-														  phi_1(m, vol.dart),
-														  phi<-1, 2, 1, 1, 2>(m, vol.dart),
-														  phi<2, 1, 1, 2>(m, vol.dart),
-														  phi<1, 2, 1, 1, 2>(m, vol.dart),
-														  phi<1, 1, 2, 1, 1, 2>(m, vol.dart)};
+			const std::array<Dart, 8> vertices_of_hexa = {vol.dart_,
+														  phi1(m, vol.dart_),
+														  phi<1, 1>(m, vol.dart_),
+														  phi_1(m, vol.dart_),
+														  phi<-1, 2, 1, 1, 2>(m, vol.dart_),
+														  phi<2, 1, 1, 2>(m, vol.dart_),
+														  phi<1, 2, 1, 1, 2>(m, vol.dart_),
+														  phi<1, 1, 2, 1, 1, 2>(m, vol.dart_)};
 
 			for (Dart dv : vertices_of_hexa)
 			{
@@ -268,7 +268,7 @@ auto import_volume_data_map_tmpl(MESH& m, VolumeImportData& volume_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
-void import_surface_data(CMap3& m, VolumeImportData& volume_data)
+void import_volume_data(CMap3& m, VolumeImportData& volume_data)
 {
 	import_volume_data_map_tmpl<CMap3>(m, volume_data);
 }

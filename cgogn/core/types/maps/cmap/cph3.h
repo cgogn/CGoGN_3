@@ -200,11 +200,11 @@ inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convert
 	static const Orbit orbit = CELL::ORBIT;
 
 	if constexpr (orbit == CPH3::CMAP::Edge::ORBIT)
-		c.dart = m.edge_youngest_dart(c.dart);
+		c.dart_ = m.edge_youngest_dart(c.dart_);
 	if constexpr (orbit == CPH3::CMAP::Face::ORBIT)
-		c.dart = m.face_youngest_dart(c.dart);
+		c.dart_ = m.face_youngest_dart(c.dart_);
 	if constexpr (orbit == CPH3::CMAP::Volume::ORBIT)
-		c.dart = m.volume_youngest_dart(c.dart);
+		c.dart_ = m.volume_youngest_dart(c.dart_);
 
 	return index_of(static_cast<const CPH3::CMAP&>(m), c);
 }

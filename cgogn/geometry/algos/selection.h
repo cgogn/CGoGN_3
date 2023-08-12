@@ -34,19 +34,19 @@
 
 namespace cgogn
 {
-struct CMap2;
-struct GMap2;
+
+struct MapBase;
 
 namespace geometry
 {
 
-// CellCache<CMap2> within_sphere(const CMap2& m, typename CMap2::Vertex center, geometry::Scalar radius,
-//						   const typename CMap2::template Attribute<Vec3>* vertex_position);
+/////////////
+// MapBase //
+/////////////
 
 template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex center, geometry::Scalar radius,
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
-//	typename std::enable_if_t<std::is_same_v<MESH, CMap2>, CellCache<MESH>>;
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
@@ -103,14 +103,14 @@ CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex 
 			const Vec3& p = value<Vec3>(m, vertex_position, av);
 			if (in_sphere(p, center_position, radius))
 			{
-				if (!dm.is_marked(av.dart))
+				if (!dm.is_marked(av.dart_))
 				{
 					cache.add(av);
 					mark_vertex(av);
 				}
 			}
 			else
-				cache.add(HalfEdge(phi2(m, av.dart)));
+				cache.add(HalfEdge(phi2(m, av.dart_)));
 			return true;
 		});
 		++i;
@@ -118,6 +118,10 @@ CellCache<MESH> within_sphere(const MESH& m, typename mesh_traits<MESH>::Vertex 
 
 	return cache;
 }
+
+/////////////
+// GENERIC //
+/////////////
 
 template <typename CELL, typename MESH>
 std::vector<CELL> within_normal_angle_threshold(
@@ -128,7 +132,6 @@ std::vector<CELL> within_normal_angle_threshold(
 	static_assert(is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>, "CELL not supported in this MESH");
 
 	Vec3 n = normal(m, start, vertex_position);
-	//	CellMarker<MESH, CELL> marker(m);
 	CellMarker<MESH, CELL> marker(m);
 	std::vector<CELL> cells;
 	cells.push_back(start);
@@ -161,7 +164,6 @@ std::vector<CELL> within_normal_angle_threshold(
 
 } // namespace geometry
 
-void gg(CMap2& c);
 } // namespace cgogn
 
 #endif // CGOGN_GEOMETRY_ALGOS_SELECTION_H_

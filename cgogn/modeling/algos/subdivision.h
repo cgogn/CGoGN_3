@@ -24,10 +24,10 @@
 #ifndef CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_H_
 
-#include <cgogn/modeling/algos/subdivision/basic.h>
-#include <cgogn/modeling/algos/subdivision_utils.h>
 #include <cgogn/core/types/maps/cmap/cmap3.h>
 #include <cgogn/core/types/maps/cmap/cph3.h>
+#include <cgogn/modeling/algos/subdivision/basic.h>
+#include <cgogn/modeling/algos/subdivision_utils.h>
 
 #include <cgogn/geometry/algos/angle.h>
 
@@ -46,7 +46,7 @@ using geometry::Vec3;
 /// Pre cut hex, input: original dart from edge along the direction of the cut
 inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 {
-	Dart d0 = phi<1, 2, 1, 1, 1>(m, w.dart);
+	Dart d0 = phi<1, 2, 1, 1, 1>(m, w.dart_);
 	std::vector<Dart> path0;
 	Dart d1 = d0;
 	do
@@ -63,7 +63,7 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 	CMap3::Edge e = cut_face(m, CMap3::Vertex(d1), CMap3::Vertex(d2));
 
 	std::vector<Dart> path1;
-	d1 = e.dart;
+	d1 = e.dart_;
 	d2 = phi3(m, d1);
 	do
 	{
@@ -71,19 +71,19 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 		path1.push_back(d2);
 		d1 = phi<1, 2, 1>(m, d1);
 		d2 = phi<1, 2, 1>(m, d2);
-	} while (d1 != e.dart);
+	} while (d1 != e.dart_);
 	cut_volume(m, path0);
 	cut_volume(m, path1);
 
-	// Dart d0 = phi<1, 2, 1, 1>(m, w.dart);
+	// Dart d0 = phi<1, 2, 1, 1>(m, w.dart_);
 	// Dart d1 = d0;
 	// Dart d2, d3, d4;
 	// do {
 	// 	d1 = phi1(m, d1);
 	// 	d2 = phi2(m, d1);
 
-	// 	Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
-	// 	Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+	// 	Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart_;
+	// 	Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart_;
 	// 	Dart ee = f0;
 	// 	Dart ff = f1;
 	// 	do
@@ -128,7 +128,7 @@ inline void quadrisect_hex(CMap3& m, CMap3::Volume w)
 	// 	d1 = phi<2, 3, 2>(m, d2);
 	// }while(d1 != d0);
 
-	// d0 = phi<1, 2, 1, 1, 2, -1>(m, w.dart);
+	// d0 = phi<1, 2, 1, 1, 2, -1>(m, w.dart_);
 	// d1 = d0;
 	// d2 = phi2(m, d1);
 
@@ -234,9 +234,9 @@ inline CMap3::Vertex octosect_hex(CMap3& m, CMap3::Volume w)
 	Dart d1, d2, d3, d4;
 	std::vector<Dart> path0, path1, path2, path3;
 
-	d0 = phi<1, 1>(m, w.dart);
+	d0 = phi<1, 1>(m, w.dart_);
 	d10 = phi<2, 1>(m, d0);
-	d11 = phi<1, 2>(m, w.dart);
+	d11 = phi<1, 2>(m, w.dart_);
 	d20 = phi<1, 2, 1, 1>(m, d10);
 	d21 = phi<2, 1, 2, 1>(m, d20);
 	d22 = phi<1, 2, 1, 1>(m, d11);
@@ -335,7 +335,7 @@ auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_f
 		});
 
 	foreach_cell(edge_vert_cache, [&](Vertex ve) -> bool {
-		Dart d = ve.dart;
+		Dart d = ve.dart_;
 		do
 		{
 			if (!is_boundary(m, d) && cm.is_marked(Volume(d)))
@@ -345,8 +345,8 @@ auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_f
 				Dart d21 = phi<2, 1>(m, d);
 				Dart d22 = phi2(m, d21);
 
-				Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart;
-				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart;
+				Dart f0 = add_face(static_cast<CMap1&>(m), 4, false).dart_;
+				Dart f1 = add_face(static_cast<CMap1&>(m), 4, false).dart_;
 				Dart ee = f0;
 				Dart ff = f1;
 				do
@@ -366,13 +366,13 @@ auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_f
 				phi2_sew(m, d22, phi1(m, f1));
 			}
 			d = phi<2, 3>(m, d);
-		} while (d != ve.dart);
+		} while (d != ve.dart_);
 		return true;
 	});
 
 	parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
-		Dart d0 = vf.dart;
-		Dart d1 = phi<2, 3, 2, 3>(m, vf.dart);
+		Dart d0 = vf.dart_;
+		Dart d1 = phi<2, 3, 2, 3>(m, vf.dart_);
 		Dart d;
 		if (cm.is_marked(Volume(d0)))
 		{
@@ -398,7 +398,7 @@ auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_f
 
 	CellCache<MESH> vol_vert_cache(m);
 	foreach_cell(m, [&](Volume w) -> bool {
-		Dart d0 = w.dart;
+		Dart d0 = w.dart_;
 		Vertex vw = Vertex(phi<1, 2, -1>(m, d0));
 		vol_vert_cache.add(vw);
 		return true;
@@ -471,7 +471,7 @@ auto primal_cut_all_volumes(MESH& m, const FUNC1& on_edge_cut, const FUNC2& on_f
 	if (is_indexed<Edge>(m))
 	{
 		parallel_foreach_cell(face_vert_cache, [&](Vertex vf) -> bool {
-			Dart d0 = vf.dart;
+			Dart d0 = vf.dart_;
 			Dart d = d0;
 			do
 			{
@@ -553,7 +553,7 @@ auto facePointMask(const MESH& m, Dart d, std::vector<Dart>& p_point, std::vecto
 	// p-points : ajouter les sommets de Face(d)
 	Dart t = d;
 	foreach_incident_vertex(m, typename MESH::Face(d), [&](typename MESH::Vertex dd) -> bool {
-		p_point.push_back(dd.dart);
+		p_point.push_back(dd.dart_);
 		return true;
 	});
 
@@ -954,12 +954,12 @@ auto subdivideVolume(MESH& m, Dart d, Vec3& p, typename mesh_traits<MESH>::templ
 	};
 
 	typename MESH::Face F = cutVolume(first_cut_dir);
-	subdivideFace(m, F.dart, p, attribute);
+	subdivideFace(m, F.dart_, p, attribute);
 
 	F = cutVolume(left_cut_dir);
-	cut_face(m, Vertex(F.dart), Vertex(phi<1, 1, 1>(m, F.dart)));
+	cut_face(m, Vertex(F.dart_), Vertex(phi<1, 1, 1>(m, F.dart_)));
 	F = cutVolume(right_cut_dir);
-	cut_face(m, Vertex(F.dart), Vertex(phi<1, 1, 1>(m, F.dart)));
+	cut_face(m, Vertex(F.dart_), Vertex(phi<1, 1, 1>(m, F.dart_)));
 	for (int i = 0; i < 4; ++i)
 	{
 		cutVolume(cut_direction[i]);

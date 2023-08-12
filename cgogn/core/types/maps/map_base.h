@@ -257,7 +257,7 @@ uint32 index_of(const MapBase& m, CELL c)
 	static const Orbit orbit = CELL::ORBIT;
 	static_assert(orbit < NB_ORBITS, "Unknown orbit parameter");
 	cgogn_message_assert(is_indexed<CELL>(m), "Trying to access the cell index of an unindexed cell type");
-	return (*m.cells_indices_[orbit])[c.dart.index_];
+	return (*m.cells_indices_[orbit])[c.dart_.index_];
 }
 
 // get the cell of the given index
@@ -545,7 +545,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 				if (!is_boundary(m, it) && !cm.is_marked(c))
 				{
 					cm.mark(c);
-					cells.push_back(c.dart.index_);
+					cells.push_back(c.dart_.index_);
 					++k;
 				}
 				it = m.next(it);
@@ -587,7 +587,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 						dm.mark(d);
 						return true;
 					});
-					cells.push_back(c.dart.index_);
+					cells.push_back(c.dart_.index_);
 					++k;
 				}
 				it = m.next(it);

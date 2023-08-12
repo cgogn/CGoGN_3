@@ -112,20 +112,28 @@ struct Cell
 	/**
 	 * \brief the dart representing this cell
 	 */
-	Dart dart;
+	Dart dart_;
 
 	/**
 	 * \brief Creates a new empty Cell as a nil dart.
 	 */
-	inline Cell() : dart()
+	inline Cell() : dart_()
 	{
 	}
 
 	/**
-	 * \brief Creates a new Cell with a dart.
-	 * \param[in] d dart to convert to a cell of a given orbit
+	 * \brief Creates a new Cell from a dart.
+	 * \param[in] d a dart
 	 */
-	inline explicit Cell(Dart d) : dart(d)
+	inline explicit Cell(Dart d) : dart_(d)
+	{
+	}
+
+	/**
+	 * \brief Creates a new Cell from an uint32 (index of the dart of the cell).
+	 * \param[in] i index of the dart of the cell
+	 */
+	inline explicit Cell(uint32 i) : dart_(i)
 	{
 	}
 
@@ -134,7 +142,7 @@ struct Cell
 	 * Creates a new Cell from an another one.
 	 * \param[in] c a cell
 	 */
-	inline Cell(const Self& c) : dart(c.dart)
+	inline Cell(const Self& c) : dart_(c.dart_)
 	{
 	}
 
@@ -145,7 +153,7 @@ struct Cell
 	 */
 	inline bool is_valid() const
 	{
-		return !dart.is_nil();
+		return !dart_.is_nil();
 	}
 
 	/**
@@ -156,17 +164,18 @@ struct Cell
 	 */
 	inline Self& operator=(Self rhs)
 	{
-		dart = rhs.dart;
+		dart_ = rhs.dart_;
 		return *this;
 	}
 
-	// /**
-	//  * \brief Converts a cell to an uint32 (dart index, not the index of the cell in the map)
-	//  */
-	// inline operator uint32() const
-	// {
-	// 	return dart.index_;
-	// }
+	/**
+	 * \brief Converts a cell to an uint32 (dart index, not the index of the cell in the map)
+	 * (used in cell_cache parallel_foreach_cell in order to be able to use a std::vector<uint32> from managed buffers)
+	 */
+	inline operator uint32() const
+	{
+		return dart_.index_;
+	}
 
 	/**
 	 * \brief Prints a cell to a stream.
@@ -175,7 +184,7 @@ struct Cell
 	 */
 	inline friend std::ostream& operator<<(std::ostream& out, const Self& rhs)
 	{
-		return out << rhs.dart;
+		return out << rhs.dart_;
 	}
 
 	/**
@@ -185,7 +194,7 @@ struct Cell
 	 */
 	inline friend std::istream& operator>>(std::istream& in, Self& rhs)
 	{
-		in >> rhs.dart;
+		in >> rhs.dart_;
 		return in;
 	}
 };

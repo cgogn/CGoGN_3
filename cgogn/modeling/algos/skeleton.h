@@ -49,8 +49,8 @@ namespace cgogn
 namespace modeling
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 ///////////
 // CMap2 //
@@ -60,17 +60,17 @@ inline void cut_incident_faces(CMap2& m, CMap2::Vertex v)
 {
 	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
 	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart), CMap2::Vertex(phi<1, 1>(m, f.dart)));
+		cut_face(m, CMap2::Vertex(f.dart_), CMap2::Vertex(phi<1, 1>(m, f.dart_)));
 }
 
 inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
 {
-	return CMap2::Vertex(phi_1(m, he.dart));
+	return CMap2::Vertex(phi_1(m, he.dart_));
 }
 
 inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
 {
-	return {CMap2::Vertex(phi_1(m, e.dart)), CMap2::Vertex(phi<2, -1>(m, e.dart))};
+	return {CMap2::Vertex(phi_1(m, e.dart_)), CMap2::Vertex(phi<2, -1>(m, e.dart_))};
 }
 
 /////////////

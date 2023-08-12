@@ -163,13 +163,13 @@ void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
 	switch (orbit)
 	{
 	case DART:
-		f(c.dart);
+		f(c.dart_);
 		break;
 	case PHI2:
-		foreach_dart_of_ALPHA0(m, c.dart, f);
+		foreach_dart_of_ALPHA0(m, c.dart_, f);
 		break;
 	case PHI21:
-		foreach_dart_of_ALPHA1(m, c.dart, f);
+		foreach_dart_of_ALPHA1(m, c.dart_, f);
 		break;
 	default:
 		break;
@@ -188,7 +188,7 @@ void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
 
 inline bool is_vertex_isolated(Graph& g, Graph::Vertex v)
 {
-	return alpha0(g, v.dart) == alpha1(g, v.dart);
+	return alpha0(g, v.dart_) == alpha1(g, v.dart_);
 };
 
 Graph::Vertex cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);

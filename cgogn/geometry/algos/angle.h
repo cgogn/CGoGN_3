@@ -41,30 +41,31 @@ struct MapBase;
 namespace geometry
 {
 
-///////////////////
-// CMap2 / GMap2 //
-///////////////////
+///////////////
+// MapBase:2 //
+///////////////
 // TODO: should not really be here...
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
-std::vector<Scalar> opposite_angles(const MAP2& m, typename MAP2::Edge e,
-									const typename mesh_traits<MAP2>::template Attribute<Vec3>* vertex_position)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+std::vector<Scalar> opposite_angles(const MESH& m, typename mesh_traits<MESH>::Edge e,
+									const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename MAP2::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	if (!is_incident_to_boundary(m, e))
 	{
-		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart)));
-		const Vec3& p4 = value<Vec3>(m, vertex_position, Vertex(phi<2, -1>(m, e.dart)));
+		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart_));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart_)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart_)));
+		const Vec3& p4 = value<Vec3>(m, vertex_position, Vertex(phi<2, -1>(m, e.dart_)));
 		return {angle(p1 - p3, p2 - p3), angle(p2 - p4, p1 - p4)};
 	}
 	else
 	{
-		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart)));
-		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart)));
+		const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(e.dart_));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, Vertex(phi1(m, e.dart_)));
+		const Vec3& p3 = value<Vec3>(m, vertex_position, Vertex(phi_1(m, e.dart_)));
 		return {angle(p1 - p3, p2 - p3)};
 	}
 }

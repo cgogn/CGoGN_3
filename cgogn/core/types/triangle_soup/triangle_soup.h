@@ -187,12 +187,6 @@ uint32 index_of(const TriangleSoup& /*ts*/, CELL c)
 }
 
 template <typename CELL>
-CELL of_index(const TriangleSoup& /*ts*/, uint32 index)
-{
-	return index;
-}
-
-template <typename CELL>
 bool is_indexed(const TriangleSoup& /*ts*/)
 {
 	static_assert(is_in_tuple<CELL, TriangleSoup::Cells>::value, "CELL not supported in this MESH");

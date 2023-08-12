@@ -89,8 +89,8 @@ struct Joint
 		CMap2& m = intr.getMesh();
 		edge_ref_a = edge_iterator_a; // keep a ref to edge A
 		edge_ref_b = edge_iterator_b; // keep a ref to edge B
-		a = (*edge_iterator_a).dart;
-		b = (*edge_iterator_b).dart;
+		a = (*edge_iterator_a).dart_;
+		b = (*edge_iterator_b).dart_;
 
 		// reorder as a -> b
 		if (isSameVertex(m, a, b))
@@ -147,7 +147,7 @@ inline bool isInPath(const CMap2& mesh, std::list<Edge>& path, const Dart& d)
 {
 	for (auto e : path)
 	{
-		if (d == e.dart || d == phi2(mesh, e.dart))
+		if (d == e.dart_ || d == phi2(mesh, e.dart_))
 			return true;
 	}
 	return false;
@@ -310,7 +310,7 @@ void geodesic_path(IntrinsicTriangulation& intr, std::list<Edge>& path, int iter
 		// this last case will issue in the non convergence of the algorithm as it will loop over over two segments
 		Scalar new_length = 0;
 		for (Edge e : shorter_path)
-			new_length += intr.getLength(e.dart);
+			new_length += intr.getLength(e.dart_);
 		if (new_length >= intr.getLength(j.a) + intr.getLength(j.b))
 		{
 			joints_priority_queue.pop();
@@ -323,7 +323,7 @@ void geodesic_path(IntrinsicTriangulation& intr, std::list<Edge>& path, int iter
 		{
 			shorter_path.reverse();
 			for (auto e : shorter_path)
-				e = Edge(phi2(mesh, e.dart));
+				e = Edge(phi2(mesh, e.dart_));
 		}
 
 		// update
@@ -384,7 +384,7 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 					stack.emplace(v);
 					value<Scalar>(mesh, attr_dist, v) = current_dist + 1;
 				}
-				if (isSameVertex(mesh, v.dart, a.dart))
+				if (isSameVertex(mesh, v.dart_, a.dart_))
 				{
 					shoortest_path = current_dist + 1;
 					return false;
@@ -405,7 +405,7 @@ std::list<Edge> find_path(CMap2& mesh, Vertex a, Vertex b)
 		foreach_incident_edge(mesh, v_current, [&](Edge e) -> bool {
 			auto v_incidents = incident_vertices(mesh, e);
 			next_vertex = v_incidents[0];
-			if (isSameVertex(mesh, v_current.dart, next_vertex.dart))
+			if (isSameVertex(mesh, v_current.dart_, next_vertex.dart_))
 				next_vertex = v_incidents[1];
 			Scalar v_dist = value<Scalar>(mesh, attr_dist, next_vertex);
 			if (min_value > v_dist)
