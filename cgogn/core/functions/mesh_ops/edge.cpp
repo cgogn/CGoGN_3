@@ -25,7 +25,7 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/functions/mesh_ops/edge.h>
 #include <cgogn/core/functions/mesh_ops/face.h>
-
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/types/cmap/cmap_ops.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
@@ -430,6 +430,25 @@ void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e)
 
  }
 
+bool has_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex& v, IncidenceGraph::Edge& e)
+ {
+	 auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+	 return (v1 == v || v2 == v);
+}
+
+bool has_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex& v, IncidenceGraph::Face& f)
+{
+	for (IncidenceGraph::Edge e : (*ig.face_incident_edges_)[f.index_])
+	{
+		if (has_vertex(ig, v, e))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+ 
 
 
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,

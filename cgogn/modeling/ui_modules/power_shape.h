@@ -31,6 +31,7 @@
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn\modeling\algos\decimation\SQEM_helper.h>
 #include <cgogn/io/point/point_import.h>
+#include <cgogn/geometry/types/slab_quadric.h>
 // import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
@@ -518,7 +519,6 @@ public:
 				//Add edge
 				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
 				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
-				std::cout << v1 << ", " << v2 << ", count: " << edge_count << std::endl;
 				edge_indices.insert({{v1, v2}, edge_count}); 
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
@@ -651,6 +651,7 @@ public:
 		return (point - center).norm() <= radius;
 	}
 
+
  	void compute_stability_ratio(NONMANIFOLD& mv)
 	{
 		//TO do : better way to get attributes?
@@ -688,15 +689,21 @@ public:
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
 		using EdgeQueueIt = typename EdgeQueue::const_iterator;
+		
 		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
-
+		using Slab_Quadric = geometry::Slab_Quadric;
 		uint32 count = 0;
 		EdgeQueue queue;
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
+		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
+		auto collpase_cost = add_attribute<double, NonManifoldEdge>(nm, "collpase_cost");
+		
+		//build sphere info
 		foreach_cell(nm,
 					 [&](NonManifoldVertex v) {
 						 Vec3 p = value<Vec3>(nm, position, v);
@@ -704,12 +711,18 @@ public:
 			return true;
 		});
 		QMatHelper helper(nm, sphere_info.get()); 
-
-		 foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
-			Vec4 sphere_opt = helper.edge_optimal(e);
+		auto slab_quadric = get_attribute<Slab_Quadric, NonManifoldVertex>(nm, "__sphere_quadric");
+		
+		//Initialize the queue with all the edges and their cost
+		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+			Vec4 opt = helper.edge_optimal(e);
+			value<Vec4>(nm, sphere_opt, e) = opt;
+			double cost = helper.edge_cost(e, opt);
+			value<double>(nm, collpase_cost, e) = cost;
+			double cost_opt = (cost + 1e-5) * value<double>(nm, stability_ratio, e)*value<double>(nm, stability_ratio,e);
 			value<EdgeInfo>(nm, edge_queue_it, e) = {
 				true, 
-				queue.emplace(helper.edge_cost(e,sphere_opt),e)};
+				queue.emplace(cost_opt,e)};
 			return true;
 		});
 
@@ -721,13 +734,17 @@ public:
 			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
 
 			std::vector<NonManifoldFace> ifaces = incident_faces(nm, e);
-			//TO do : add cone error to collapse edge
+			auto iv = incident_vertices(nm, e);
+			NonManifoldVertex v1 = iv[0];
+			NonManifoldVertex v2 = iv[1];
+			Slab_Quadric quad = value<Slab_Quadric>(nm, slab_quadric, v1) + value<Slab_Quadric>(nm, slab_quadric, v2);
+			
 			if (ifaces.size() == 0)
 				continue;
 
 			auto [v, removed_edges] = collapse_edge(nm, e);
-			Vec4 opt = helper.edge_optimal(e);
-			value<Vec4>(nm, sphere_info, v) = opt;
+			value<Vec4>(nm, sphere_info, v) = value<Vec4>(nm, sphere_opt, e) ;
+			value<Slab_Quadric>(nm, slab_quadric, v) = quad;
 			for (NonManifoldEdge re : removed_edges)
 			{
 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, re);
@@ -735,10 +752,29 @@ public:
 					queue.erase(einfo.second);
 			}
 
+			//recompute the cost of the edges incident to v and update the queue
 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
 				if (einfo.first)
 					queue.erase(einfo.second);
+
+				//recompute the stablity ratio of new edges
+				auto [v1, v2] = (*nm.edge_incident_vertices_)[e.index_];
+				const Vec3& v1_p = value<Vec4>(nm, sphere_info, v1).head<3>();
+				const Vec3& v2_p = value<Vec4>(nm, sphere_info, v2).head<3>();
+				const double& r1 = value<Vec4>(nm, sphere_info, v1).w();
+				const double& r2 = value<Vec4>(nm, sphere_info, v2).w();
+				const double center_dist = (v1_p - v2_p).norm();
+				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+				double stability = dis / center_dist;
+				value<double>(nm, stability_ratio, ie) = stability;
+
+				//recompute the cost of the edge
+				Vec4 opt = helper.edge_optimal(ie);
+				value<Vec4>(nm, sphere_opt, ie) = opt;
+				double cost = helper.edge_cost(ie, opt);
+				value<double>(nm, collpase_cost, ie) = cost;
+				double cost_opt = (cost + 1e-5) * value<double>(nm, stability_ratio, ie)*value<double>(nm, stability_ratio, ie);
 				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(helper.edge_cost(ie, opt), e)};
 				return true;
 			});
@@ -752,6 +788,9 @@ public:
 
 		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
 		remove_attribute<NonManifoldVertex>(nm, sphere_info);
+		remove_attribute<NonManifoldVertex>(nm, sphere_opt);
+		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
+		remove_attribute<NonManifoldEdge>(nm, collpase_cost);
 
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
@@ -1038,13 +1077,13 @@ protected:
 				{
 					compute_stability_ratio(*selected_medial_axis);
 				}
-				static int32 percent_vertices_to_remove = 10;
-				ImGui::SliderInt("% vertices to keep", &percent_vertices_to_remove, 1, 99);
+				static int32 vertices_to_remove = 1;
+				ImGui::SliderInt("Vertices to delete", &vertices_to_remove, 1,
+								 nb_cells<NonManifoldVertex>(*selected_medial_axis));
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_stability_ratio(*selected_medial_axis,
-																0.01*percent_vertices_to_remove *
-																	nb_cells<NonManifoldVertex>(*selected_medial_axis));
+					collapse_non_manifold_using_QMat(*selected_medial_axis,
+																vertices_to_remove );
 					
 				}
 				static float dilation_factor = 0.1f;
