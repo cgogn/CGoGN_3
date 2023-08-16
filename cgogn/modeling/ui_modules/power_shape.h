@@ -695,14 +695,15 @@ public:
 		using Slab_Quadric = geometry::Slab_Quadric;
 		uint32 count = 0;
 		EdgeQueue queue;
-		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
+		
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
-		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
+
+		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
 		auto collpase_cost = add_attribute<double, NonManifoldEdge>(nm, "collpase_cost");
-		
+		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
+		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
 		//build sphere info
 		foreach_cell(nm,
 					 [&](NonManifoldVertex v) {
@@ -788,8 +789,7 @@ public:
 
 		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
 		remove_attribute<NonManifoldVertex>(nm, sphere_info);
-		remove_attribute<NonManifoldVertex>(nm, sphere_opt);
-		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
+		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
 		remove_attribute<NonManifoldEdge>(nm, collpase_cost);
 
 		nonmanifold_provider_->emit_connectivity_changed(nm);

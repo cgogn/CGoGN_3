@@ -488,6 +488,7 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 			if (same_edge(ig, iev1, iev2))
 				similar_edge_in_v2 = iev2;
 		}
+		//Didn't find a duplicate edge in v2
 		if (!similar_edge_in_v2.is_valid())
 			(*ig.vertex_incident_edges_)[v2.index_].push_back(iev1);
 		else

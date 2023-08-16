@@ -157,7 +157,7 @@ public:
 	inline Scalar eval(const Vec4& center) const
 	{
 		Scalar cost = center.transpose() * _A * center;
-		cost += _b.transpose() * center;
+		cost -= _b.transpose() * center;
 		cost += _c;
 		return cost;
 		// return center.transpose() * _A * center + _b.transpose() * center + _c;

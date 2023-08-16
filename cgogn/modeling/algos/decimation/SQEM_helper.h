@@ -91,7 +91,10 @@ struct DecimationSQEM_Helper
 		q += value<Slab_Quadric>(m_, sphere_quadric_, iv[1]);
 		Vec4 p;
 		if (q.optimized(p))
-			return p;
+			if (p[3] < 0)
+				return Scalar(0.5) * (value<Vec4>(m_, sphere_info_, iv[0]) + value<Vec4>(m_, sphere_info_, iv[1]));
+			else
+				return p;
 		else
 			return Scalar(0.5) * (value<Vec4>(m_, sphere_info_, iv[0]) + value<Vec4>(m_, sphere_info_, iv[1]));
 	}
