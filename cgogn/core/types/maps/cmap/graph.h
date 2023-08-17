@@ -76,50 +76,50 @@ struct mesh_traits<Graph>
 
 inline Dart alpha0(const Graph& m, Dart d)
 {
-	return (*m.alpha0_)[d.index];
+	return (*m.alpha0_)[d.index_];
 }
 
 inline Dart alpha1(const Graph& m, Dart d)
 {
-	return (*m.alpha1_)[d.index];
+	return (*m.alpha1_)[d.index_];
 }
 
 inline Dart alpha_1(const Graph& m, Dart d)
 {
-	return (*m.alpha_1_)[d.index];
+	return (*m.alpha_1_)[d.index_];
 }
 
 inline void alpha0_sew(Graph& m, Dart d, Dart e)
 {
-	(*m.alpha0_)[d.index] = e;
-	(*m.alpha0_)[e.index] = d;
+	(*m.alpha0_)[d.index_] = e;
+	(*m.alpha0_)[e.index_] = d;
 }
 
 inline void alpha0_unsew(Graph& m, Dart d)
 {
 	Dart e = alpha0(m, d);
-	(*m.alpha0_)[d.index] = d;
-	(*m.alpha0_)[e.index] = e;
+	(*m.alpha0_)[d.index_] = d;
+	(*m.alpha0_)[e.index_] = e;
 }
 
 inline void alpha1_sew(Graph& m, Dart d, Dart e)
 {
 	Dart f = alpha1(m, d);
 	Dart g = alpha1(m, e);
-	(*m.alpha1_)[d.index] = g;
-	(*m.alpha1_)[e.index] = f;
-	(*m.alpha_1_)[g.index] = d;
-	(*m.alpha_1_)[f.index] = e;
+	(*m.alpha1_)[d.index_] = g;
+	(*m.alpha1_)[e.index_] = f;
+	(*m.alpha_1_)[g.index_] = d;
+	(*m.alpha_1_)[f.index_] = e;
 }
 
 inline void alpha1_unsew(Graph& m, Dart d)
 {
 	Dart e = alpha1(m, d);
 	Dart f = alpha_1(m, d);
-	(*m.alpha1_)[f.index] = e;
-	(*m.alpha1_)[d.index] = d;
-	(*m.alpha_1_)[e.index] = f;
-	(*m.alpha_1_)[d.index] = d;
+	(*m.alpha1_)[f.index_] = e;
+	(*m.alpha1_)[d.index_] = d;
+	(*m.alpha_1_)[e.index_] = f;
+	(*m.alpha_1_)[d.index_] = d;
 }
 
 /*************************************************************************/
@@ -163,13 +163,13 @@ void foreach_dart_of_orbit(const Graph& m, CELL c, const FUNC& f)
 	switch (orbit)
 	{
 	case DART:
-		f(c.dart);
+		f(c.dart_);
 		break;
 	case PHI2:
-		foreach_dart_of_ALPHA0(m, c.dart, f);
+		foreach_dart_of_ALPHA0(m, c.dart_, f);
 		break;
 	case PHI21:
-		foreach_dart_of_ALPHA1(m, c.dart, f);
+		foreach_dart_of_ALPHA1(m, c.dart_, f);
 		break;
 	default:
 		break;
@@ -188,7 +188,7 @@ void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices = true);
 
 inline bool is_vertex_isolated(Graph& g, Graph::Vertex v)
 {
-	return alpha0(g, v.dart) == alpha1(g, v.dart);
+	return alpha0(g, v.dart_) == alpha1(g, v.dart_);
 };
 
 Graph::Vertex cut_edge(Graph& m, Graph::Edge e, bool set_indices = true);

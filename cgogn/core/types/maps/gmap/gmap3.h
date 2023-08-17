@@ -88,22 +88,22 @@ struct mesh_traits<GMap3>
 
 inline Dart beta3(const GMap3& m, Dart d)
 {
-	return (*(m.beta3_))[d.index];
+	return (*(m.beta3_))[d.index_];
 }
 
 inline void beta3_sew(GMap3& m, Dart d, Dart e)
 {
 	cgogn_assert(beta3(m, d) == d);
 	cgogn_assert(beta3(m, e) == e);
-	(*(m.beta3_))[d.index] = e;
-	(*(m.beta3_))[e.index] = d;
+	(*(m.beta3_))[d.index_] = e;
+	(*(m.beta3_))[e.index_] = d;
 }
 
 inline void beta3_unsew(GMap3& m, Dart d)
 {
 	Dart e = beta3(m, d);
-	(*(m.beta3_))[d.index] = d;
-	(*(m.beta3_))[e.index] = e;
+	(*(m.beta3_))[d.index_] = d;
+	(*(m.beta3_))[e.index_] = e;
 }
 
 inline Dart phi3(const GMap3& m, Dart d)
@@ -139,6 +139,12 @@ GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices
 
 GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices);
 uint32 close(GMap3& m, bool set_indices);
+
+/*************************************************************************/
+// Cells information
+/*************************************************************************/
+
+std::vector<uint32> hexahedra_vertex_indices(const GMap3& m, GMap3::Attribute<uint32>* vertex_id, GMap3::Volume v);
 
 } // namespace cgogn
 

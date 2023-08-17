@@ -24,6 +24,7 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/gmap/gmap3.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
@@ -35,12 +36,12 @@ namespace cgogn
 
 GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 {
-	Dart d0 = e.dart;
+	Dart d0 = e.dart_;
 	Dart d23 = beta<2, 3>(m, d0);
 
-	GMap3::Vertex v(cut_edge(static_cast<GMap2&>(m), GMap2::Edge(d0), false).dart);
+	GMap3::Vertex v(cut_edge(static_cast<GMap2&>(m), GMap2::Edge(d0), false).dart_);
 
-	while (d23 != e.dart)
+	while (d23 != e.dart_)
 	{
 		d0 = d23;
 		d23 = beta<2, 3>(m, d23);
@@ -50,8 +51,8 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 		beta3_sew(m, beta0(m, d1), beta0(m, beta3(m, d1)));
 	}
 
-	Dart e1 = beta0(m, e.dart);
-	Dart e2 = beta0(m, beta3(m, e.dart));
+	Dart e1 = beta0(m, e.dart_);
+	Dart e2 = beta0(m, beta3(m, e.dart_));
 	beta3_sew(m, e1, e2);
 	beta3_sew(m, beta1(m, e1), beta1(m, e2));
 
@@ -62,21 +63,21 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 
 		if (is_indexed<GMap3::Vertex2>(m))
 		{
-			Dart di = v.dart;
+			Dart di = v.dart_;
 			do
 			{
 				if (!is_boundary(m, di))
 					set_index(m, GMap3::Vertex2(di), new_index<GMap3::Vertex2>(m));
 				di = beta<2, 3>(m, di);
-			} while (di != v.dart);
+			} while (di != v.dart_);
 		}
 
 		if (is_indexed<GMap3::Edge>(m))
 		{
 			uint32 emb1 = index_of(m, v);
 			uint32 emb2 = new_index<GMap3::Edge>(m);
-			set_index(m, GMap3::Edge(v.dart), emb1);
-			set_index(m, GMap3::Edge(beta1(m, v.dart)), emb2);
+			set_index(m, GMap3::Edge(v.dart_), emb1);
+			set_index(m, GMap3::Edge(beta1(m, v.dart_)), emb2);
 		}
 
 		if (is_indexed<GMap3::Face2>(m))
@@ -117,8 +118,8 @@ GMap3::Vertex cut_edge(GMap3& m, GMap3::Edge e, bool set_indices)
 
 GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indices)
 {
-	Dart d = v1.dart;
-	Dart e = v2.dart;
+	Dart d = v1.dart_;
+	Dart e = v2.dart_;
 
 	Dart dd = beta3(m, d);
 	Dart ee = beta3(m, e);
@@ -126,16 +127,16 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 	GMap2::Edge e1 = cut_face(static_cast<GMap2&>(m), GMap2::Vertex(d), GMap2::Vertex(e), false);
 	GMap2::Edge e2 = cut_face(static_cast<GMap2&>(m), GMap2::Vertex(dd), GMap2::Vertex(ee), false);
 
-	Dart e10 = beta0(m, e1.dart);
-	Dart e20 = beta0(m, e2.dart);
+	Dart e10 = beta0(m, e1.dart_);
+	Dart e20 = beta0(m, e2.dart_);
 
-	// beta3_sew(m, e1.dart, e20);
-	// beta3_sew(m, e2.dart, e10);
-	// beta3_sew(m, beta2(m, e1.dart), beta2(m, e20));
-	// beta3_sew(m, beta2(m, e2.dart), beta2(m, e10));
-	beta3_sew(m, e1.dart, e2.dart);
+	// beta3_sew(m, e1.dart_, e20);
+	// beta3_sew(m, e2.dart_, e10);
+	// beta3_sew(m, beta2(m, e1.dart_), beta2(m, e20));
+	// beta3_sew(m, beta2(m, e2.dart_), beta2(m, e10));
+	beta3_sew(m, e1.dart_, e2.dart_);
 	beta3_sew(m, e10, e20);
-	beta3_sew(m, beta2(m, e1.dart), beta2(m, e2.dart));
+	beta3_sew(m, beta2(m, e1.dart_), beta2(m, e2.dart_));
 	beta3_sew(m, beta2(m, e10), beta2(m, e20));
 
 	if (set_indices)
@@ -143,7 +144,7 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 		if (is_indexed<GMap3::Vertex>(m))
 		{
 			uint32 emb1 = index_of(m, v1);
-			Dart ei = e1.dart;
+			Dart ei = e1.dart_;
 			if (!is_boundary(m, ei))
 			{
 				set_index<GMap3::Vertex>(m, ei, emb1);
@@ -161,7 +162,7 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 			}
 
 			uint32 emb2 = index_of(m, v2);
-			Dart ej = beta0(m, e1.dart);
+			Dart ej = beta0(m, e1.dart_);
 			if (!is_boundary(m, ej))
 			{
 				set_index<GMap3::Vertex>(m, ej, emb2);
@@ -197,15 +198,15 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 
 		if (is_indexed<GMap3::Face2>(m))
 		{
-			if (!is_boundary(m, e1.dart))
+			if (!is_boundary(m, e1.dart_))
 			{
-				copy_index<GMap3::Face2>(m, e1.dart, beta1(m, e1.dart));
+				copy_index<GMap3::Face2>(m, e1.dart_, beta1(m, e1.dart_));
 				copy_index<GMap3::Face2>(m, e10, beta1(m, e10));
 				set_index(m, GMap3::Face2(beta2(m, e10)), new_index<GMap3::Face2>(m));
 			}
-			if (!is_boundary(m, e2.dart))
+			if (!is_boundary(m, e2.dart_))
 			{
-				copy_index<GMap3::Face2>(m, e2.dart, beta1(m, e2.dart));
+				copy_index<GMap3::Face2>(m, e2.dart_, beta1(m, e2.dart_));
 				copy_index<GMap3::Face2>(m, e20, beta1(m, e20));
 				set_index(m, GMap3::Face2(beta2(m, e20)), new_index<GMap3::Face2>(m));
 			}
@@ -213,10 +214,10 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 
 		if (is_indexed<GMap3::Face>(m))
 		{
-			uint32 emb = index_of(m, GMap3::Face(v1.dart));
-			set_index<GMap3::Face>(m, e1.dart, emb);
+			uint32 emb = index_of(m, GMap3::Face(v1.dart_));
+			set_index<GMap3::Face>(m, e1.dart_, emb);
 			set_index<GMap3::Face>(m, e10, emb);
-			set_index<GMap3::Face>(m, e2.dart, emb);
+			set_index<GMap3::Face>(m, e2.dart_, emb);
 			set_index<GMap3::Face>(m, e20, emb);
 			set_index(m, GMap3::Face(beta2(m, e10)), new_index<GMap3::Face>(m));
 		}
@@ -226,7 +227,7 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 			if (!is_boundary(m, d))
 			{
 				uint32 emb = index_of(m, GMap3::Volume(d));
-				foreach_dart_of_orbit(m, GMap3::Edge2(e1.dart), [&](Dart di) {
+				foreach_dart_of_orbit(m, GMap3::Edge2(e1.dart_), [&](Dart di) {
 					set_index<GMap3::Volume>(m, di, emb);
 					return true;
 				});
@@ -234,7 +235,7 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 			if (!is_boundary(m, dd))
 			{
 				uint32 emb = index_of(m, GMap3::Volume(dd));
-				foreach_dart_of_orbit(m, GMap3::Edge2(e2.dart), [&](Dart di) {
+				foreach_dart_of_orbit(m, GMap3::Edge2(e2.dart_), [&](Dart di) {
 					set_index<GMap3::Volume>(m, di, emb);
 					return true;
 				});
@@ -242,13 +243,13 @@ GMap3::Edge cut_face(GMap3& m, GMap3::Vertex v1, GMap3::Vertex v2, bool set_indi
 		}
 	}
 
-	return GMap3::Edge(e1.dart);
+	return GMap3::Edge(e1.dart_);
 }
 
 GMap3::Face cut_volume(GMap3& m, const std::vector<Dart>& path, bool set_indices)
 {
-	Dart f0 = add_face(static_cast<GMap1&>(m), uint32(path.size()), false).dart;
-	Dart f1 = add_face(static_cast<GMap1&>(m), uint32(path.size()), false).dart;
+	Dart f0 = add_face(static_cast<GMap1&>(m), uint32(path.size()), false).dart_;
+	Dart f1 = add_face(static_cast<GMap1&>(m), uint32(path.size()), false).dart_;
 
 	for (Dart d0 : path)
 	{
@@ -344,7 +345,7 @@ GMap3::Volume close_hole(GMap3& m, Dart d, bool set_indices)
 
 		++count;
 
-		Dart bit = hf.dart;
+		Dart bit = hf.dart_;
 		do
 		{
 			Dart e = phi3(m, phi2(m, f));
@@ -423,6 +424,29 @@ uint32 close(GMap3& m, bool set_indices)
 	}
 
 	return nb_holes;
+}
+
+/*************************************************************************/
+// Cells information
+/*************************************************************************/
+
+std::vector<uint32> hexahedra_vertex_indices(const GMap3& m, GMap3::Attribute<uint32>* vertex_id, GMap3::Volume v)
+{
+	using Vertex = GMap3::Vertex;
+
+	Dart d1 = v.dart_;
+	Dart d2 = phi<2, 1, 1, 2>(m, d1);
+
+	return {value<uint32>(m, vertex_id, Vertex(d1)),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(d2)),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d1)))
+
+	};
 }
 
 } // namespace cgogn

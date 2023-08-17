@@ -24,6 +24,8 @@
 #ifndef CGOGN_CORE_TYPES_MAPS_DART_MARKER_H_
 #define CGOGN_CORE_TYPES_MAPS_DART_MARKER_H_
 
+#include <cgogn/core/types/maps/dart.h>
+
 namespace cgogn
 {
 
@@ -55,16 +57,16 @@ public:
 
 	inline void mark(Dart d)
 	{
-		(*mark_attribute_)[d.index] = 1u;
+		(*mark_attribute_)[d.index_] = 1u;
 	}
 	inline void unmark(Dart d)
 	{
-		(*mark_attribute_)[d.index] = 0u;
+		(*mark_attribute_)[d.index_] = 0u;
 	}
 
 	inline bool is_marked(Dart d) const
 	{
-		return (*mark_attribute_)[d.index] != 0u;
+		return (*mark_attribute_)[d.index_] != 0u;
 	}
 
 	inline void unmark_all()
@@ -100,7 +102,7 @@ public:
 	{
 		if (!is_marked(d))
 		{
-			(*mark_attribute_)[d.index] = 1u;
+			(*mark_attribute_)[d.index_] = 1u;
 			marked_darts_.push_back(d);
 		}
 	}
@@ -110,7 +112,7 @@ public:
 		auto it = std::find(marked_darts_.begin(), marked_darts_.end(), d);
 		if (it != marked_darts_.end())
 		{
-			(*mark_attribute_)[d.index] = 0u;
+			(*mark_attribute_)[d.index_] = 0u;
 			std::swap(*it, marked_darts_.back());
 			marked_darts_.pop_back();
 		}
@@ -118,13 +120,13 @@ public:
 
 	inline bool is_marked(Dart d) const
 	{
-		return (*mark_attribute_)[d.index] != 0u;
+		return (*mark_attribute_)[d.index_] != 0u;
 	}
 
 	inline void unmark_all()
 	{
 		for (Dart d : marked_darts_)
-			(*mark_attribute_)[d.index] = 0u;
+			(*mark_attribute_)[d.index_] = 0u;
 		marked_darts_.clear();
 	}
 

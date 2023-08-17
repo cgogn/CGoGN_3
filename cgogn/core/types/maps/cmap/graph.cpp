@@ -52,7 +52,7 @@ Graph::Vertex add_vertex(Graph& g, bool set_indices)
 			set_index(g, Graph::HalfEdge(dd), new_index<Graph::HalfEdge>(g));
 		}
 		if (is_indexed<Graph::Edge>(g))
-			set_index(g, Graph::Edge(v.dart), new_index<Graph::Edge>(g));
+			set_index(g, Graph::Edge(v.dart_), new_index<Graph::Edge>(g));
 	}
 
 	return v;
@@ -60,9 +60,9 @@ Graph::Vertex add_vertex(Graph& g, bool set_indices)
 
 void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 {
-	Dart dd = alpha0(g, v.dart);
+	Dart dd = alpha0(g, v.dart_);
 	cgogn_message_assert(is_boundary(g, dd), "Vertex is still connected to another vertex");
-	remove_dart(g, v.dart);
+	remove_dart(g, v.dart_);
 	remove_dart(g, dd);
 
 	if (set_indices)
@@ -72,7 +72,7 @@ void remove_vertex(Graph& g, Graph::Vertex v, bool set_indices)
 
 void merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 {
-	alpha1_sew(g, v1.dart, v2.dart);
+	alpha1_sew(g, v1.dart_, v2.dart_);
 
 	if (set_indices)
 	{
@@ -83,10 +83,12 @@ void merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indic
 
 Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices)
 {
-	static auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool { return alpha0(g, v.dart) == alpha1(g, v.dart); };
+	static auto is_isolated = [](Graph& g, Graph::Vertex v) -> bool {
+		return alpha0(g, v.dart_) == alpha1(g, v.dart_);
+	};
 
-	Dart d = v1.dart;
-	Dart e = v2.dart;
+	Dart d = v1.dart_;
+	Dart e = v2.dart_;
 	Dart dd = alpha0(g, d);
 	Dart ee = alpha0(g, e);
 	if (is_isolated(g, v1))
@@ -159,7 +161,7 @@ Graph::Edge connect_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool 
 
 void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 {
-	Dart x = e.dart;
+	Dart x = e.dart_;
 	Dart y = alpha0(g, x);
 	cgogn_message_assert(!(is_vertex_isolated(g, Graph::Vertex(x)) || is_vertex_isolated(g, Graph::Vertex(y))),
 						 "Given edge does not connect 2 vertices");
@@ -232,7 +234,7 @@ void disconnect_vertices(Graph& g, Graph::Edge e, bool set_indices)
 
 Graph::Vertex cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 {
-	Dart e0 = e.dart;
+	Dart e0 = e.dart_;
 	Dart e1 = alpha0(g, e0);
 
 	Dart v0 = add_dart(g);
@@ -264,7 +266,7 @@ Graph::Vertex cut_edge(Graph& g, Graph::Edge e, bool set_indices)
 
 Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices)
 {
-	Dart d = e.dart;
+	Dart d = e.dart_;
 	Dart d1 = alpha_1(g, d);
 	Dart dd = alpha0(g, d);
 	Dart dd1 = alpha_1(g, dd);
@@ -273,12 +275,12 @@ Graph::Vertex collapse_edge(Graph& g, Graph::Edge e, bool set_indices)
 
 	if (dd1 != dd)
 	{
-		v.dart = dd1;
+		v.dart_ = dd1;
 		alpha1_unsew(g, dd);
 	}
 	if (d1 != d)
 	{
-		v.dart = d1;
+		v.dart_ = d1;
 		alpha1_unsew(g, d);
 	}
 	if (d1 != d && dd1 != dd)

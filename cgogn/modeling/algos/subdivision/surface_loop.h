@@ -29,33 +29,33 @@
 
 namespace cgogn
 {
+
 struct MapBase;
 
 namespace modeling
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
-///////////
-// CMap2 //
-///////////
+///////////////
+// MapBase:2 //
+///////////////
 
-//void subdivide_loop(CMap2& m, CMap2::Attribute<Vec3>* vertex_position);
-
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
-void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_position)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+void subdivide_loop(MESH& m, typename MESH::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename MAP2::Vertex;
-	using Edge = typename MAP2::Edge;
-	using Face = typename MAP2::Face;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
+	using Face = typename mesh_traits<MESH>::Face;
 
-	CellCache<MAP2> cache_old(m);
+	CellCache<MESH> cache_old(m);
 	cache_old.template build<Vertex>();
 	cache_old.template build<Edge>();
 	cache_old.template build<Face>();
 
-	CellCache<MAP2> cache_new(m);
+	CellCache<MESH> cache_new(m);
 
 	auto vertex_position_new = add_attribute<Vec3, Vertex>(m, "__vertex_position_loop");
 
@@ -65,8 +65,8 @@ void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_pos
 	});
 
 	parallel_foreach_cell(cache_new, [&](Vertex v) -> bool {
-		Vertex v1 = Vertex(phi_1(m, v.dart));
-		Vertex v2 = Vertex(phi1(m, v.dart));
+		Vertex v1 = Vertex(phi_1(m, v.dart_));
+		Vertex v2 = Vertex(phi1(m, v.dart_));
 		if (is_incident_to_boundary(m, v))
 		{
 			value<Vec3>(m, vertex_position_new, v) =
@@ -74,8 +74,8 @@ void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_pos
 		}
 		else
 		{
-			Vertex op1 = Vertex(phi<1, 1, 1>(m, v.dart));
-			Vertex op2 = Vertex(phi<2, -1, -1>(m, v.dart));
+			Vertex op1 = Vertex(phi<1, 1, 1>(m, v.dart_));
+			Vertex op2 = Vertex(phi<2, -1, -1>(m, v.dart_));
 			value<Vec3>(m, vertex_position_new, v) =
 				3.0 / 8.0 * (value<Vec3>(m, vertex_position, v1) + value<Vec3>(m, vertex_position, v2)) +
 				1.0 / 8.0 * (value<Vec3>(m, vertex_position, op1) + value<Vec3>(m, vertex_position, op2));
@@ -90,9 +90,9 @@ void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_pos
 		uint32 nb_e = 0;
 		foreach_incident_edge(m, v, [&](Edge e) -> bool {
 			nb_e++;
-			sum += value<Vec3>(m, vertex_position, Vertex(phi<1, 1>(m, e.dart)));
-			if (is_boundary(m, e.dart))
-				boundary = e.dart;
+			sum += value<Vec3>(m, vertex_position, Vertex(phi<1, 1>(m, e.dart_)));
+			if (is_boundary(m, e.dart_))
+				boundary = e.dart_;
 			return true;
 		});
 
@@ -118,7 +118,7 @@ void subdivide_loop(MAP2& m, typename MAP2::template Attribute<Vec3>* vertex_pos
 
 	// add edges inside faces
 	foreach_cell(cache_old, [&](Face f) -> bool {
-		Dart d0 = phi1(m, f.dart);
+		Dart d0 = phi1(m, f.dart_);
 		Dart d1 = phi<1, 1>(m, d0);
 		cut_face(m, Vertex(d0), Vertex(d1));
 		Dart d2 = phi<1, 1>(m, d1);

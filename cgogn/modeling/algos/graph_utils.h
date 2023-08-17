@@ -49,7 +49,7 @@ struct GraphData
 
 inline Graph::HalfEdge branch_extremity(const Graph& g, Graph::HalfEdge h, CellMarker<Graph, Graph::Edge>& cm)
 {
-	Dart d = h.dart;
+	Dart d = h.dart_;
 	while (degree(g, Graph::Vertex(d)) == 2)
 	{
 		d = alpha0(g, alpha1(g, d));

@@ -54,6 +54,10 @@ namespace ui
 using Vec3 = geometry::Vec3;
 using Scalar = geometry::Scalar;
 
+///////////
+// CMap2 //
+///////////
+
 Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v, const CMap2::Attribute<Vec3>* face_gradient,
 								  const CMap2::Attribute<Vec3>* vertex_position)
 {
@@ -64,13 +68,13 @@ Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v, const CMap2::
 		CMap2::Edge e1 = edges[i];
 		CMap2::Edge e2 = edges[(i + 1) % edges.size()];
 
-		CMap2::Face f(e1.dart);
+		CMap2::Face f(e1.dart_);
 
 		const Vec3& X = value<Vec3>(m, face_gradient, f);
 
 		const Vec3& p0 = value<Vec3>(m, vertex_position, v);
-		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart)));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e2.dart)));
+		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart_)));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e2.dart_)));
 
 		Vec3 vecR = p0 - p2;
 		Vec3 vecL = p1 - p2;

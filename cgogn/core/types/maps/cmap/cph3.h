@@ -103,8 +103,8 @@ struct CPH3
 	{
 		Dart d(m_.darts_.first_index());
 		uint32 lastidx = m_.darts_.last_index();
-		while (dart_level(d) > current_level_ && d.index < lastidx)
-			d = Dart(m_.darts_.next_index(d.index));
+		while (dart_level(d) > current_level_ && d.index_ < lastidx)
+			d = Dart(m_.darts_.next_index(d.index_));
 		return d;
 	}
 
@@ -118,8 +118,8 @@ struct CPH3
 		uint32 lastidx = m_.darts_.last_index();
 		do
 		{
-			d = Dart(m_.darts_.next_index(d.index));
-		} while (dart_level(d) > current_level_ && d.index < lastidx);
+			d = Dart(m_.darts_.next_index(d.index_));
+		} while (dart_level(d) > current_level_ && d.index_ < lastidx);
 		return d;
 	}
 
@@ -200,11 +200,11 @@ inline auto index_of(const MRMAP& m, CELL c) -> std::enable_if_t<std::is_convert
 	static const Orbit orbit = CELL::ORBIT;
 
 	if constexpr (orbit == CPH3::CMAP::Edge::ORBIT)
-		c.dart = m.edge_youngest_dart(c.dart);
+		c.dart_ = m.edge_youngest_dart(c.dart_);
 	if constexpr (orbit == CPH3::CMAP::Face::ORBIT)
-		c.dart = m.face_youngest_dart(c.dart);
+		c.dart_ = m.face_youngest_dart(c.dart_);
 	if constexpr (orbit == CPH3::CMAP::Volume::ORBIT)
-		c.dart = m.volume_youngest_dart(c.dart);
+		c.dart_ = m.volume_youngest_dart(c.dart_);
 
 	return index_of(static_cast<const CPH3::CMAP&>(m), c);
 }

@@ -24,11 +24,13 @@
 #ifndef CGOGN_MODELING_DECIMATION_EDGE_QUEUE_UPDATE_H_
 #define CGOGN_MODELING_DECIMATION_EDGE_QUEUE_UPDATE_H_
 
-#include <cgogn/modeling/algos/decimation/cell_queue.h>
 #include <cgogn/core/types/mesh_views/cell_filter.h>
+#include <cgogn/modeling/algos/decimation/cell_queue.h>
 
 namespace cgogn
 {
+
+struct MapBase;
 
 namespace modeling
 {
@@ -75,17 +77,16 @@ void update_edge_queue(
 	}
 }
 
-//////////////
-// CMapBase //
-//////////////
+/////////////
+// MapBase //
+/////////////
 
-
-template <typename MESH, typename std::enable_if_t<std::is_base_of<MapBase, MESH>::value>* = nullptr>
-void pre_collapse(
+template <typename MESH>
+auto pre_collapse(
 	const MESH& m, typename mesh_traits<MESH>::Edge e, typename mesh_traits<MESH>::Edge& e1,
 	typename mesh_traits<MESH>::Edge& e2, CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
-		edge_queue_info)
+		edge_queue_info) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
@@ -97,10 +98,10 @@ void pre_collapse(
 		ei.valid_ = false;
 	}
 
-	e1 = Edge(phi<-1, 2>(m, e.dart));
-	e2 = Edge(phi<2, -1, 2>(m, e.dart));
+	e1 = Edge(phi<-1, 2>(m, e.dart_));
+	e2 = Edge(phi<2, -1, 2>(m, e.dart_));
 
-	Dart ed1 = e.dart;
+	Dart ed1 = e.dart_;
 	Dart ed2 = phi2(m, ed1);
 
 	EdgeQueueInfo& ei1 = value<EdgeQueueInfo>(m, edge_queue_info, Edge(phi1(m, ed1)));
@@ -132,22 +133,22 @@ void pre_collapse(
 	}
 }
 
-template <typename MESH, typename FUNC, typename std::enable_if_t<std::is_base_of<MapBase, MESH>::value>* = nullptr>
-void post_collapse(
+template <typename MESH, typename FUNC>
+auto post_collapse(
 	const MESH& m, typename mesh_traits<MESH>::Edge& e1, typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
 		edge_queue_info,
-	const FUNC& edge_cost)
+	const FUNC& edge_cost) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 
-	Dart vit = e1.dart;
+	Dart vit = e1.dart_;
 	do
 	{
 		update_edge_queue(m, Edge(phi1(m, vit)), edge_queue, edge_queue_info, edge_cost);
-		if (vit == e1.dart || vit == e2.dart)
+		if (vit == e1.dart_ || vit == e2.dart_)
 		{
 			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
 
@@ -164,34 +165,33 @@ void post_collapse(
 			update_edge_queue(m, Edge(vit), edge_queue, edge_queue_info, edge_cost);
 
 		vit = phi<-1, 2>(m, vit);
-	} while (vit != e1.dart);
+	} while (vit != e1.dart_);
 }
 
-////////////////
-// CellFilter //
-////////////////
+/////////////////////////
+// CellFilter<MapBase> //
+/////////////////////////
 
-template <typename MESH, typename FUNC,
-		  typename std::enable_if<std::is_base_of<CMapBase, MESH>::value>::type* = nullptr>
-void post_collapse(
+template <typename MESH, typename FUNC>
+auto post_collapse(
 	const CellFilter<MESH>& cf, typename mesh_traits<MESH>::Edge& e1, typename mesh_traits<MESH>::Edge& e2,
 	CellQueue<typename mesh_traits<MESH>::Edge>& edge_queue,
 	typename mesh_traits<MESH>::template Attribute<typename CellQueue<typename mesh_traits<MESH>::Edge>::CellQueueInfo>*
 		edge_queue_info,
-	const FUNC& edge_cost)
+	const FUNC& edge_cost) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using EdgeQueueInfo = typename CellQueue<Edge>::CellQueueInfo;
 
 	const MESH& m = cf.mesh();
 
-	Dart vit = e1.dart;
+	Dart vit = e1.dart_;
 	do
 	{
 		Edge e(phi1(m, vit));
 		if (cf.filter(e))
 			update_edge_queue(m, e, edge_queue, edge_queue_info, edge_cost);
-		if (vit == e1.dart || vit == e2.dart)
+		if (vit == e1.dart_ || vit == e2.dart_)
 		{
 			e = Edge(vit);
 			if (cf.filter(e))
@@ -218,7 +218,7 @@ void post_collapse(
 		}
 
 		vit = phi<-1, 2>(m, vit);
-	} while (vit != e1.dart);
+	} while (vit != e1.dart_);
 }
 
 } // namespace modeling

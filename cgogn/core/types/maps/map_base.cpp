@@ -42,10 +42,10 @@ Dart add_dart(MapBase& m)
 	uint32 index = m.darts_.new_index();
 	Dart d(index);
 	for (auto& rel : m.relations_)
-		(*rel)[d.index] = d;
+		(*rel)[d.index_] = d;
 	for (auto& emb : m.cells_indices_)
 		if (emb)
-			(*emb)[d.index] = INVALID_INDEX;
+			(*emb)[d.index_] = INVALID_INDEX;
 	return d;
 }
 
@@ -55,12 +55,12 @@ void remove_dart(MapBase& m, Dart d)
 	{
 		if (m.cells_indices_[orbit])
 		{
-			uint32 index = (*m.cells_indices_[orbit])[d.index];
+			uint32 index = (*m.cells_indices_[orbit])[d.index_];
 			if (index != INVALID_INDEX)
 				m.attribute_containers_[orbit].unref_index(index);
 		}
 	}
-	m.darts_.release_index(d.index);
+	m.darts_.release_index(d.index_);
 }
 
 void clear(MapBase& m, bool keep_attributes)
@@ -83,11 +83,9 @@ void clear(MapBase& m, bool keep_attributes)
 	// clear all cell attributes
 	for (MapBase::AttributeContainer& container : m.attribute_containers_)
 	{
-		if (keep_attributes)
-			container.clear_attributes();
-		else
+		container.clear_attributes();
+		if (!keep_attributes)
 		{
-			container.clear_attributes();
 			// if there are still shared_ptr somewhere, some attributes may not be removed
 			container.remove_attributes();
 		}
@@ -98,12 +96,12 @@ void dump_map_darts(const MapBase& m)
 {
 	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
 	{
-		std::cout << "index: " << std::setw(5) << d.index << " / ";
+		std::cout << "index: " << std::setw(5) << d.index_ << " / ";
 		for (auto& r : m.relations_)
-			std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index] << " / ";
+			std::cout << r->name() << ": " << std::setw(5) << (*r)[d.index_] << " / ";
 		for (auto& ind : m.cells_indices_)
 			if (ind)
-				std::cout << ind->name() << ": " << std::setw(5) << (*ind)[d.index] << " / ";
+				std::cout << ind->name() << ": " << std::setw(5) << (*ind)[d.index_] << " / ";
 		std::cout << " boundary: " << std::boolalpha << is_boundary(m, d) << std::endl;
 	}
 }

@@ -70,6 +70,9 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/incidence_graph/incidence_graph.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/types/triangle_soup/triangle_soup.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/triangle_soup/triangle_soup.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/attribute_container.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/container/chunk_array.h"

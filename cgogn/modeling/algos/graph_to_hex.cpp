@@ -73,15 +73,15 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 	// for (auto b : gData.branches)
 	// {
 	// 	uint32 nb_edges = 0;
-	// 	Dart cur = b.first.dart;
+	// 	Dart cur = b.first.dart_;
 	// 	Dart next = alpha0(g, cur);
 	// 	do
 	// 	{
 	// 		++nb_edges;
 	// 		cur = alpha1(g, next);
 	// 		next = alpha0(g, cur);
-	// 	} while (alpha_1(g, cur) != b.second.dart);
-	// 	std::cout << index_of(g, Graph::Vertex(b.first.dart)) << " - " << index_of(g, Graph::Vertex(b.second.dart))
+	// 	} while (alpha_1(g, cur) != b.second.dart_);
+	// 	std::cout << index_of(g, Graph::Vertex(b.first.dart_)) << " - " << index_of(g, Graph::Vertex(b.second.dart_))
 	// 			  << " / nb_edges: " << nb_edges << std::endl;
 	// }
 	if (!okay)
@@ -185,7 +185,8 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 	// 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
 	// 	// if (degree(g, v) == 1)
 	// 	// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
-	// 	// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
+	// 	// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g,
+	// v.dart_)))));
 	// 	// else
 	// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
 
@@ -193,7 +194,7 @@ std::tuple<GAttributes, M2Attributes, M3Attributes> graph_to_hex(Graph& g, CMap2
 
 	// 	if (degree(g, v) < 3)
 	// 	{
-	// 		Graph::HalfEdge h(v.dart);
+	// 		Graph::HalfEdge h(v.dart_);
 	// 		Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
 	// 		Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
 
@@ -291,8 +292,8 @@ void unsew_volumes(CMap3& m, Dart d)
 
 Dart add_branch_section(CMap3& m3)
 {
-	std::vector<Dart> D = {add_prism(static_cast<CMap2&>(m3), 4).dart, add_prism(static_cast<CMap2&>(m3), 4).dart,
-						   add_prism(static_cast<CMap2&>(m3), 4).dart, add_prism(static_cast<CMap2&>(m3), 4).dart};
+	std::vector<Dart> D = {add_prism(static_cast<CMap2&>(m3), 4).dart_, add_prism(static_cast<CMap2&>(m3), 4).dart_,
+						   add_prism(static_cast<CMap2&>(m3), 4).dart_, add_prism(static_cast<CMap2&>(m3), 4).dart_};
 
 	sew_volumes(m3, phi2(m3, D[0]), phi2(m3, phi_1(m3, (D[1]))));
 	sew_volumes(m3, phi2(m3, D[1]), phi2(m3, phi_1(m3, (D[2]))));
@@ -318,14 +319,14 @@ void dualize_volume(CMap2& m, CMap2::Volume vol, M2Attributes& m2Attribs, const 
 	// set the new phi1
 	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
 		Dart dd = phi2(m, phi_1(m, d));
-		(*(m.phi1_))[d.index] = dd;
+		(*(m.phi1_))[d.index_] = dd;
 		return true;
 	});
 
 	// set the new phi_1
 	foreach_dart_of_orbit(m, vol, [&](Dart d) -> bool {
 		Dart next = phi1(m, d);
-		(*(m.phi_1_))[next.index] = d;
+		(*(m.phi_1_))[next.index_] = d;
 		return true;
 	});
 
@@ -391,7 +392,7 @@ void bloat(CMap3& m3, const Graph& g, const GAttributes& gAttribs)
 			Vec3 p1 = value<Vec3>(g, gAttribs.vertex_position, neigh[0]);
 			Vec3 offset = (p0 - p1).normalized() * value<Scalar>(g, gAttribs.vertex_radius, gv);
 			CMap3::Vertex v3 =
-				CMap3::Vertex(value<Dart>(g, gAttribs.halfedge_volume_connection, Graph::HalfEdge(gv.dart)));
+				CMap3::Vertex(value<Dart>(g, gAttribs.halfedge_volume_connection, Graph::HalfEdge(gv.dart_)));
 			value<Vec3>(m3, vertex_position3, v3) += offset;
 		}
 		return true;
@@ -600,8 +601,8 @@ void padding(CMap3& m3, DartMarker<CMap3>* face_marker)
 			if (!face_marker || !face_marker->is_marked(db3))
 			{
 				CMap3::Volume p = add_prism(static_cast<CMap2&>(m3), n);
-				sew_volumes(m3, db, p.dart);
-				sew_volumes(m3, db3, phi<2, 1, 1, 2>(m3, p.dart));
+				sew_volumes(m3, db, p.dart_);
+				sew_volumes(m3, db3, phi<2, 1, 1, 2>(m3, p.dart_));
 				prisms.push_back(p);
 			}
 		}
@@ -678,13 +679,13 @@ void padding(CMap3& m3, DartMarker<CMap3>* face_marker)
 
 	for (CMap3::Volume vol : prisms)
 	{
-		Dart it = vol.dart;
+		Dart it = vol.dart_;
 		do
 		{
 			value<Vec3>(m3, vertex_position, CMap3::Vertex(it)) =
 				value<Vec3>(m3, vertex_position, CMap3::Vertex(phi<2, 1, 1>(m3, it)));
 			it = phi1(m3, it);
-		} while (it != vol.dart);
+		} while (it != vol.dart_);
 	}
 }
 
@@ -694,7 +695,7 @@ void padding(CMap3& m3, DartMarker<CMap3>* face_marker)
 
 CMap3::Edge find_fiber_dir(CMap3& m3, CMap3::Face f)
 {
-	Dart dir0 = f.dart;
+	Dart dir0 = f.dart_;
 	Dart dir1 = phi1(m3, dir0);
 
 	uint32 counter = 0;
@@ -711,7 +712,7 @@ CMap3::Edge find_fiber_dir(CMap3& m3, CMap3::Face f)
 
 uint32 get_ring_size(CMap3& m3, CMap3::Edge e)
 {
-	Dart d0 = e.dart;
+	Dart d0 = e.dart_;
 	uint32 n = 0;
 	Dart d = d0;
 	do
@@ -727,7 +728,7 @@ bool unchecked_ring(CMap3& m3, CMap3::Edge e, uint32 ring_size, CellMarker<CMap3
 	if (visited_edge.is_marked(e) /* || check_ring(m, e, ring_size)*/)
 		return false; // already explored || not a ring
 
-	Dart d0 = e.dart;
+	Dart d0 = e.dart_;
 	uint32 n = 0;
 	Dart d = d0;
 	do
@@ -748,14 +749,14 @@ void cut_slice(CMap3& m3, CMap3::Attribute<Vec3>* vertex_position, CellCache<CMa
 	});
 
 	foreach_cell(slice, [&](CMap3::Face f) -> bool {
-		Dart d0 = phi1(m3, f.dart);
-		Dart d1 = phi_1(m3, phi_1(m3, f.dart));
+		Dart d0 = phi1(m3, f.dart_);
+		Dart d1 = phi_1(m3, phi_1(m3, f.dart_));
 		cgogn::cut_face(m3, CMap3::Vertex(d0), CMap3::Vertex(d1));
 		return true;
 	});
 
 	foreach_cell(slice, [&](CMap3::Volume w) -> bool {
-		Dart d0 = phi1(m3, w.dart);
+		Dart d0 = phi1(m3, w.dart_);
 		std::vector<Dart> path;
 		Dart d1 = d0;
 		do
@@ -778,7 +779,7 @@ CellCache<CMap3> get_slice(CMap3& m3, CMap3::Edge e)
 	cgogn::ui::CellsSet<CMap3, CMap3::Edge> slice_edges(m3, "slice_e");
 
 	std::vector<Dart> pending;
-	pending.push_back(e.dart);
+	pending.push_back(e.dart_);
 
 	for (uint32 i = 0; i < pending.size(); ++i)
 	{
@@ -792,8 +793,8 @@ CellCache<CMap3> get_slice(CMap3& m3, CMap3::Edge e)
 				slice_edges.select(CMap3::Edge(d1));
 				slice_faces.select(CMap3::Face(d1));
 				foreach_incident_volume(m3, CMap3::Edge(d1), [&](CMap3::Volume w) -> bool {
-					if (!is_boundary(m3, w.dart) && !slice_volumes.contains(w))
-						pending.push_back(w.dart);
+					if (!is_boundary(m3, w.dart_) && !slice_volumes.contains(w))
+						pending.push_back(w.dart_);
 					return true;
 				});
 				d1 = phi<1, 1, 2>(m3, d1);
@@ -831,7 +832,7 @@ CellCache<CMap3> surface_fiber_spread(CMap3& m, CMap3::Edge e0)
 	fibers.push_back(e0);
 	for (uint32 i = 0; i < fibers.size(); ++i)
 	{
-		Dart d0 = fibers[i].dart;
+		Dart d0 = fibers[i].dart_;
 		fibers_cache.add(fibers[i]);
 
 		Dart d = d0;
@@ -880,7 +881,7 @@ void fiber_aligned_subdivision(CMap3& m, CellMarker<CMap3, CMap3::Edge>& fibers)
 		foreach_incident_edge(m, f, [&](CMap3::Edge e) -> bool {
 			fiber = fibers.is_marked(e);
 			if (fiber)
-				faces_to_bi.add(CMap3::Face(e.dart));
+				faces_to_bi.add(CMap3::Face(e.dart_));
 			return !(fiber);
 		});
 		return !(fiber);
@@ -894,7 +895,7 @@ void fiber_aligned_subdivision(CMap3& m, CellMarker<CMap3, CMap3::Edge>& fibers)
 		foreach_incident_edge(m, w, [&](CMap3::Edge we) -> bool {
 			fiber = fibers.is_marked(we);
 			if (fiber)
-				volumes_to_quad.add(CMap3::Volume(we.dart));
+				volumes_to_quad.add(CMap3::Volume(we.dart_));
 			// volumes are grabbed by the fiber for orientation
 			return !fiber;
 		});
@@ -926,8 +927,8 @@ void fiber_aligned_subdivision(CMap3& m, CellMarker<CMap3, CMap3::Edge>& fibers)
 		});
 
 	foreach_cell(faces_to_bi, [&](CMap3::Face f) -> bool {
-		CMap3::Vertex v0(phi<1, 1>(m, f.dart));
-		CMap3::Vertex v1(phi_1(m, f.dart));
+		CMap3::Vertex v0(phi<1, 1>(m, f.dart_));
+		CMap3::Vertex v1(phi_1(m, f.dart_));
 		cut_face(m, v0, v1);
 		return true;
 	});
@@ -978,10 +979,10 @@ bool subdivide_graph(Graph& g)
 	cache.template build<Graph::Edge>();
 
 	foreach_cell(cache, [&](Graph::Edge eg) -> bool {
-		const Vec3& P0 = value<Vec3>(g, vertex_position, Graph::Vertex(eg.dart));
-		const Vec3& Pn = value<Vec3>(g, vertex_position, Graph::Vertex(alpha0(g, eg.dart)));
-		const Scalar R0 = value<Scalar>(g, vertex_radius, Graph::Vertex(eg.dart));
-		const Scalar Rn = value<Scalar>(g, vertex_radius, Graph::Vertex(alpha0(g, eg.dart)));
+		const Vec3& P0 = value<Vec3>(g, vertex_position, Graph::Vertex(eg.dart_));
+		const Vec3& Pn = value<Vec3>(g, vertex_position, Graph::Vertex(alpha0(g, eg.dart_)));
+		const Scalar R0 = value<Scalar>(g, vertex_radius, Graph::Vertex(eg.dart_));
+		const Scalar Rn = value<Scalar>(g, vertex_radius, Graph::Vertex(alpha0(g, eg.dart_)));
 
 		Scalar avg_radius = (R0 + Rn) / 2;
 		Vec3 edge = Pn - P0;
@@ -1015,11 +1016,11 @@ bool subdivide_graph(Graph& g)
 				Pi.push_back(P0 + r * D0);
 			}
 
-			Dart d = eg.dart;
+			Dart d = eg.dart_;
 			alpha = ratio * R0;
 			for (Vec3 P : Pi)
 			{
-				d = cut_edge(g, Graph::Edge(d), true).dart;
+				d = cut_edge(g, Graph::Edge(d), true).dart_;
 				value<Vec3>(g, vertex_position, Graph::Vertex(d)) = P;
 				value<Scalar>(g, vertex_radius, Graph::Vertex(d)) = alpha;
 				alpha *= ratio;
@@ -1113,18 +1114,18 @@ bool build_contact_surfaces(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2
 
 void build_contact_surface_1(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v)
 {
-	Dart d = add_face(m2, 4, true).dart;
+	Dart d = add_face(m2, 4, true).dart_;
 
 	value<Dart>(g, gAttribs.vertex_contact_surface, v) = d;
 	value<Graph::Vertex>(m2, m2Attribs.volume_gvertex, CMap2::Volume(d)) = v;
 
-	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart)) = d;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart_)) = d;
 }
 
 void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs, Graph::Vertex v)
 {
-	Dart d0 = add_face(static_cast<CMap1&>(m2), 4, false).dart;
-	Dart d1 = add_face(static_cast<CMap1&>(m2), 4, false).dart;
+	Dart d0 = add_face(static_cast<CMap1&>(m2), 4, false).dart_;
+	Dart d1 = add_face(static_cast<CMap1&>(m2), 4, false).dart_;
 	phi2_sew(m2, d0, d1);
 	phi2_sew(m2, phi1(m2, d0), phi_1(m2, d1));
 	phi2_sew(m2, phi<1, 1>(m2, d0), phi<1, 1>(m2, d1));
@@ -1135,8 +1136,8 @@ void build_contact_surface_2(const Graph& g, GAttributes& gAttribs, CMap2& m2, M
 	value<Dart>(g, gAttribs.vertex_contact_surface, v) = d0;
 	value<Graph::Vertex>(m2, m2Attribs.volume_gvertex, CMap2::Volume(d0)) = v;
 
-	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart)) = d0;
-	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(alpha1(g, v.dart))) = phi<1, 2>(m2, d0);
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(v.dart_)) = d0;
+	value<Dart>(g, gAttribs.halfedge_contact_surface_face, Graph::HalfEdge(alpha1(g, v.dart_))) = phi<1, 2>(m2, d0);
 }
 
 void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attributes& m2Attribs,
@@ -1148,7 +1149,7 @@ void build_contact_surface_orange(const Graph& g, GAttributes& gAttribs, CMap2& 
 	std::vector<Dart> faces;
 	faces.reserve(nbf);
 	for (uint32 i = 0; i < nbf; ++i)
-		faces.push_back(add_face(static_cast<CMap1&>(m2), 4, false).dart);
+		faces.push_back(add_face(static_cast<CMap1&>(m2), 4, false).dart_);
 	for (uint32 i = 0; i < nbf; ++i)
 	{
 		Dart d = faces[i];
@@ -1315,7 +1316,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	CMap2::Volume w = add_prism(*scaffold, 4);
 	auto scaffold_position = add_attribute<Vec3, CMap2::Vertex>(*scaffold, "position");
 
-	Dart d0 = w.dart;
+	Dart d0 = w.dart_;
 	std::vector<Dart> vertices = {
 		d0,									  // 0
 		phi1(*scaffold, d0),				  // 1
@@ -1433,15 +1434,15 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 
 	CellMarker<CMap2, CMap2::Vertex> active_vertices(*scaffold);
 	foreach_cell(cache_active_faces, [&](CMap2::Face f) -> bool {
-		Dart dcs = add_face(static_cast<CMap1&>(m2), 4, false).dart;
-		Dart df = f.dart;
+		Dart dcs = add_face(static_cast<CMap1&>(m2), 4, false).dart_;
+		Dart df = f.dart_;
 		do
 		{
 			value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(df)) = dcs;
 			active_vertices.mark(CMap2::Vertex(df));
 			dcs = phi1(m2, dcs);
 			df = phi1(*scaffold, df);
-		} while (df != f.dart);
+		} while (df != f.dart_);
 
 		return true;
 	});
@@ -1472,7 +1473,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 					d = phi<2, 1>(*scaffold, d);
 			} while (d != d0);
 
-			Dart d_new = add_face(static_cast<CMap1&>(m2), uint32(path.size()), false).dart;
+			Dart d_new = add_face(static_cast<CMap1&>(m2), uint32(path.size()), false).dart_;
 			for (uint32 i = 0; i < path.size(); ++i)
 			{
 				phi2_sew(m2, path[i], d_new);
@@ -1508,7 +1509,7 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 		if (g_he.is_valid())
 		{
 			value<Dart>(g, gAttribs.halfedge_contact_surface_face, g_he) =
-				value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(fs.dart));
+				value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(fs.dart_));
 		}
 		return true;
 	});
@@ -1516,8 +1517,8 @@ bool build_contact_surface_ortho(const Graph& g, GAttributes& gAttribs, CMap2& m
 	// // debug
 	// auto cs_position = add_attribute<Vec3, CMap2::Vertex>(m2, "position");
 	foreach_cell(*scaffold, [&](CMap2::Edge e) -> bool {
-		Dart d0 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(e.dart));
-		Dart d1 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(phi2(*scaffold, e.dart)));
+		Dart d0 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(e.dart_));
+		Dart d1 = value<Dart>(*scaffold, scaffold_cs_connection, CMap2::HalfEdge(phi2(*scaffold, e.dart_)));
 		if (!d0.is_nil())
 		{
 			value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, d0))) =
@@ -1580,13 +1581,13 @@ bool create_extremity_frame(const Graph& g, GAttributes& gAttribs, Graph::Vertex
 {
 	const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
 	Vec3 R, S, T, temp;
-	T = (value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart))) - center).normalized();
+	T = (value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart_))) - center).normalized();
 	temp = Vec3(T[1], -T[0], T[2]);
 
 	R = temp.cross(T).normalized();
 	S = T.cross(R).normalized();
 
-	Mat3& f = value<Mat3>(g, gAttribs.halfedge_frame, Graph::HalfEdge(v.dart));
+	Mat3& f = value<Mat3>(g, gAttribs.halfedge_frame, Graph::HalfEdge(v.dart_));
 	f.col(0) = R;
 	f.col(1) = S;
 	f.col(2) = T;
@@ -1598,17 +1599,17 @@ bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gD
 {
 	for (auto& branch : gData.branches)
 	{
-		if (degree(g, Graph::Vertex(branch.first.dart)) > 1)
+		if (degree(g, Graph::Vertex(branch.first.dart_)) > 1)
 		{
-			if (degree(g, Graph::Vertex(branch.second.dart)) == 1)
+			if (degree(g, Graph::Vertex(branch.second.dart_)) == 1)
 				propagate_frame_n_1(g, gAttribs, branch.first);
 			else
 				propagate_frame_n_n(g, gAttribs, m2, branch.first);
 		}
 		else
 		{
-			if (degree(g, Graph::Vertex(branch.second.dart)) == 1)
-				create_extremity_frame(g, gAttribs, Graph::Vertex(branch.second.dart));
+			if (degree(g, Graph::Vertex(branch.second.dart_)) == 1)
+				create_extremity_frame(g, gAttribs, Graph::Vertex(branch.second.dart_));
 
 			propagate_frame_n_1(g, gAttribs, branch.second);
 		}
@@ -1618,7 +1619,7 @@ bool propagate_frames(const Graph& g, GAttributes& gAttribs, const GraphData& gD
 
 void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge h_from_start)
 {
-	Dart d_from = h_from_start.dart;
+	Dart d_from = h_from_start.dart_;
 	Dart d_to = alpha0(g, d_from);
 	Graph::HalfEdge h_from(d_from);
 	Graph::HalfEdge h_to(d_to);
@@ -1708,7 +1709,7 @@ void propagate_frame_n_1(const Graph& g, GAttributes& gAttribs, Graph::HalfEdge 
 
 bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph::HalfEdge h_from_start)
 {
-	Dart d_from = h_from_start.dart;
+	Dart d_from = h_from_start.dart_;
 	Dart d_to = alpha0(g, d_from);
 	Graph::HalfEdge h_from(d_from);
 	Graph::HalfEdge h_to(d_to);
@@ -1815,12 +1816,12 @@ bool propagate_frame_n_n(const Graph& g, GAttributes& gAttribs, CMap2& m2, Graph
 		Scalar angle = std::acos(cos0) * (cos1 > 0 ? 1 : -1);
 		Scalar angle_step = -angle / Scalar(nb_e);
 
-		d_from = h_from_start.dart;
+		d_from = h_from_start.dart_;
 		d_to = alpha0(g, d_from);
-		h_from.dart = d_from;
-		h_to.dart = d_to;
-		v_from.dart = d_from;
-		v_to.dart = d_to;
+		h_from.dart_ = d_from;
+		h_to.dart_ = d_to;
+		v_from.dart_ = d_from;
+		v_to.dart_ = d_to;
 
 		valence = degree(g, v_to);
 		uint32 step = 0;
@@ -1873,15 +1874,15 @@ bool set_contact_surfaces_geometry(const Graph& g, const GAttributes& gAttribs, 
 		const Vec3& center = value<Vec3>(g, gAttribs.vertex_position, v);
 		// if (degree(g, v) == 1)
 		// 	value<Vec3>(m2, m2Attribs.volume_center, contact_surface) =
-		// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g, v.dart)))));
-		// else
+		// 		center + (0.25 * (center - value<Vec3>(g, gAttribs.vertex_position, Graph::Vertex(alpha0(g,
+		// v.dart_))))); else
 		value<Vec3>(m2, m2Attribs.volume_center, contact_surface) = center;
 
 		Scalar radius = value<Scalar>(g, gAttribs.vertex_radius, v);
 
 		if (degree(g, v) < 3)
 		{
-			Graph::HalfEdge h(v.dart);
+			Graph::HalfEdge h(v.dart_);
 			Dart csf = value<Dart>(g, gAttribs.halfedge_contact_surface_face, h);
 			Mat3 frame = value<Mat3>(g, gAttribs.halfedge_frame, h);
 
@@ -1929,8 +1930,8 @@ void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribute
 			auto scaffold_cs_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "scaffold_connection");
 			auto scaffold_hex_connection = add_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
 			foreach_cell(*scaffold, [&](CMap2::Vertex v) -> bool {
-				Dart dv = v.dart;
-				Dart d3 = add_prism(static_cast<CMap2&>(m3), 4).dart;
+				Dart dv = v.dart_;
+				Dart d3 = add_prism(static_cast<CMap2&>(m3), 4).dart_;
 				do
 				{
 					value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(dv)) = d3;
@@ -1942,14 +1943,14 @@ void insert_ortho_chunks(Graph& g, GAttributes& gAttribs, CMap2& m2, M2Attribute
 
 					dv = phi<2, 1>(*scaffold, dv);
 					d3 = phi<2, 1>(m3, d3);
-				} while (dv != v.dart);
+				} while (dv != v.dart_);
 
 				return true;
 			});
 
 			foreach_cell(*scaffold, [&](CMap2::Edge e) -> bool {
-				Dart dc0 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e.dart));
-				Dart dc1 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(phi2(*scaffold, e.dart)));
+				Dart dc0 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e.dart_));
+				Dart dc1 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(phi2(*scaffold, e.dart_)));
 				sew_volumes(m3, phi<1, 2>(m3, dc0), phi<1, 2, 1>(m3, dc1));
 				return true;
 			});
@@ -2015,13 +2016,13 @@ bool sew_branch_sections(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3)
 bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attributes& m3Attribs)
 {
 	parallel_foreach_cell(m2, [&](CMap2::Volume w) -> bool {
-		Dart m3d = phi_1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(w.dart)));
+		Dart m3d = phi_1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(w.dart_)));
 		value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.volume_center, w);
 		return true;
 	});
 
 	parallel_foreach_cell(m2, [&](CMap2::Edge e) -> bool {
-		Dart m3d = phi1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e.dart)));
+		Dart m3d = phi1(m3, value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e.dart_)));
 		value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(m3d)) = value<Vec3>(m2, m2Attribs.edge_mid, e);
 		return true;
 	});
@@ -2054,13 +2055,13 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 			auto scaffold_hex_connection = get_attribute<Dart, CMap2::HalfEdge>(*scaffold, "hex_connection");
 			// uint32 i = 0;
 			foreach_cell(*scaffold, [&](CMap2::Vertex v2) -> bool {
-				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart));
+				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(v2.dart_));
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
 					value<Vec3>(*scaffold, scaffold_position, v2);
 				return true;
 			});
 			foreach_cell(*scaffold, [&](CMap2::Edge e2) -> bool {
-				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e2.dart));
+				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(e2.dart_));
 				d3 = phi1(m3, d3);
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
 					value<Vec3>(*scaffold, scaffold_position_edge, e2);
@@ -2068,14 +2069,14 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 				return true;
 			});
 			foreach_cell(*scaffold, [&](CMap2::Face f2) -> bool {
-				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(f2.dart));
+				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(f2.dart_));
 				d3 = phi<1, 1>(m3, d3);
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
 					value<Vec3>(*scaffold, scaffold_position_face, f2);
 				return true;
 			});
 			foreach_cell(*scaffold, [&](CMap2::Volume w2) -> bool {
-				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(w2.dart));
+				Dart d3 = value<Dart>(*scaffold, scaffold_hex_connection, CMap2::HalfEdge(w2.dart_));
 				d3 = phi<1, 1, 2, 1, 1>(m3, d3);
 				value<Vec3>(m3, m3Attribs.vertex_position, CMap3::Vertex(d3)) =
 					value<Vec3>(*scaffold, scaffold_position_volume, w2);
@@ -2095,7 +2096,7 @@ bool set_volumes_geometry(CMap2& m2, M2Attributes& m2Attribs, CMap3& m3, M3Attri
 bool dijkstra_topo(CMap2& m2, CMap2::Vertex v0, std::shared_ptr<CMap2::Attribute<Dart>> previous,
 				   std::shared_ptr<CMap2::Attribute<uint32>> dist)
 {
-	foreach_incident_vertex(m2, CMap2::Volume(v0.dart), [&](CMap2::Vertex v) -> bool {
+	foreach_incident_vertex(m2, CMap2::Volume(v0.dart_), [&](CMap2::Vertex v) -> bool {
 		value<Dart>(m2, previous, v) = Dart();
 		value<uint32>(m2, dist, v) = UINT_MAX;
 		return true;
@@ -2235,7 +2236,7 @@ Dart convex_hull_around_vertex(const Graph& g, Graph::Vertex v, CMap2& m2, M2Att
 		if (nbv > 2u)
 		{
 			CMap1::Face f = add_face(static_cast<CMap1&>(m2), nbv, false);
-			Dart d = f.dart;
+			Dart d = f.dart_;
 			for (uint32 j = 0u; j < nbv; ++j)
 			{
 				all_darts.push_back(d);
@@ -2297,7 +2298,7 @@ Scalar angle_on_sphere(Vec3 A, Vec3 B, Vec3 C)
 
 Scalar edge_max_angle(CMap2& m2, CMap2::Edge e, M2Attributes& m2Attribs)
 {
-	Dart ed0 = e.dart;
+	Dart ed0 = e.dart_;
 	Dart ed1 = phi2(m2, ed0);
 
 	Vec3 A = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(ed0));
@@ -2325,20 +2326,20 @@ Scalar min_cut_angle(CMap2& m2, CMap2::Vertex v0, CMap2::Vertex v1, M2Attributes
 {
 	Vec3 A = value<Vec3>(m2, m2Attribs.vertex_position, v0);
 	Vec3 B = value<Vec3>(m2, m2Attribs.vertex_position, v1);
-	Vec3 C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v0.dart)));
+	Vec3 C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v0.dart_)));
 	Scalar a0 = angle_on_sphere(A, B, C);
 
 	C = B;
-	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v1.dart)));
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v1.dart_)));
 	Scalar a1 = angle_on_sphere(A, B, C);
 
 	A = value<Vec3>(m2, m2Attribs.vertex_position, v1);
 	B = value<Vec3>(m2, m2Attribs.vertex_position, v0);
-	C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v1.dart)));
+	C = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi_1(m2, v1.dart_)));
 
 	Scalar a2 = angle_on_sphere(A, B, C);
 	C = B;
-	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v0.dart)));
+	B = value<Vec3>(m2, m2Attribs.vertex_position, CMap2::Vertex(phi1(m2, v0.dart_)));
 	Scalar a3 = angle_on_sphere(A, B, C);
 
 	return std::min({a0, a1, a2, a3});
@@ -2391,7 +2392,7 @@ Vec3 spherical_barycenter(std::vector<Vec3>& points, uint32 iterations)
 
 Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 {
-	Dart vol_dart = vol.dart;
+	Dart vol_dart = vol.dart_;
 
 	std::vector<CMap2::Vertex> valence_sup4;
 	std::vector<CMap2::Vertex> valence_3;
@@ -2452,7 +2453,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 			CMap2::Edge prime_edge = candidate_edges[0];
 			auto neigh_vertices = incident_vertices(m2, prime_edge);
 
-			vol_dart = phi_1(m2, prime_edge.dart);
+			vol_dart = phi_1(m2, prime_edge.dart_);
 			merge_incident_faces(m2, prime_edge, true);
 
 		} while (candidate_edges.size() > 1);
@@ -2512,9 +2513,9 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 			{
 				CMap2::Vertex v = valence_3[i];
 				std::shared_ptr<CMap2::Attribute<Dart>> previous =
-					add_attribute<Dart, CMap2::Vertex>(m2, "previous" + std::to_string(v.dart.index));
+					add_attribute<Dart, CMap2::Vertex>(m2, "previous" + std::to_string(v.dart_.index_));
 				std::shared_ptr<CMap2::Attribute<uint32>> dist =
-					add_attribute<uint32, CMap2::Vertex>(m2, "dist" + std::to_string(v.dart.index));
+					add_attribute<uint32, CMap2::Vertex>(m2, "dist" + std::to_string(v.dart_.index_));
 
 				dijkstra_topo(m2, v, previous, dist);
 
@@ -2556,7 +2557,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 			{
 				path.push_back(dp);
 				dp = value<Dart>(m2, max_previous, CMap2::Vertex(dp));
-			} while (dp.index != INVALID_INDEX);
+			} while (dp.index_ != INVALID_INDEX);
 
 			if (!(path.size() % 2))
 			{
@@ -2584,7 +2585,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 				case 0:
 					v0 = CMap2::Vertex(phi1(m2, path.front()));
 					v1 = CMap2::Vertex(phi_1(m2, path.front()));
-					e0 = CMap2::Edge(v1.dart);
+					e0 = CMap2::Edge(v1.dart_);
 					path.erase(path.begin());
 					break;
 				case 1:
@@ -2605,14 +2606,14 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 					// v0 = CMap2::Vertex(phi_1(m2, phi2(m2, path.back())));
 					v0 = CMap2::Vertex(phi<2, -1>(m2, path.back()));
 					v1 = CMap2::Vertex(phi<2, 1>(m2, path.back()));
-					e0 = CMap2::Edge(v0.dart);
+					e0 = CMap2::Edge(v0.dart_);
 					path.pop_back();
 					break;
 				default:
 					break;
 				}
 
-				vol_dart = cut_face(m2, v0, v1, true).dart;
+				vol_dart = cut_face(m2, v0, v1, true).dart_;
 				merge_incident_faces(m2, e0, true);
 			}
 
@@ -2642,7 +2643,7 @@ Dart remesh(CMap2& m2, CMap2::Volume vol, M2Attributes& m2Attribs)
 void mark_tranversal_faces(CMap3& m3, CMap2& m2, M2Attributes& m2Attribs, CellMarker<CMap3, CMap3::Face>& cm)
 {
 	foreach_cell(m2, [&](CMap2::Edge e2) -> bool {
-		Dart m3d = value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e2.dart));
+		Dart m3d = value<Dart>(m2, m2Attribs.halfedge_volume_connection, CMap2::HalfEdge(e2.dart_));
 		cm.mark(CMap3::Face(m3d));
 		return true;
 	});
@@ -2738,7 +2739,7 @@ void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3,
 	});
 
 	foreach_cell(cache_volume2cut, [&](Volume w) -> bool {
-		Dart d0 = w.dart;
+		Dart d0 = w.dart_;
 		// Dart d1 = phi<2, 1>(m3, d0);
 		// Dart d2 = phi2(m3, phi_1(m3, d0));
 		std::vector<Dart> path0;
@@ -2747,8 +2748,8 @@ void subdivide_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3,
 		get_loop_path(m3, d0, path0);
 		cut_volume(m3, path0);
 		Edge e = cut_face(m3, Vertex(phi2(m3, path0[2])), Vertex(phi2(m3, path0[5])));
-		Dart d1 = e.dart;
-		Dart d2 = phi3(m3, e.dart);
+		Dart d1 = e.dart_;
+		Dart d2 = phi3(m3, e.dart_);
 		get_loop_path(m3, d1, path1);
 		get_loop_path(m3, d2, path2);
 		cut_volume(m3, path1);
@@ -2803,7 +2804,7 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	CellCache<MESH> cache_face2cut(m3);
 	CellCache<MESH> cache_vol2cut(m3);
 
-	Dart dg0 = eg.dart;
+	Dart dg0 = eg.dart_;
 	Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, GHEdge(dg0));
 
 	std::vector<Dart> face2_stack;
@@ -2855,13 +2856,13 @@ void cut_chunk(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, CMap3::Face
 	});
 
 	foreach_cell(cache_face2cut, [&](Face f) -> bool {
-		cut_face(m3, Vertex(phi_1(m3, f.dart)), Vertex(phi<1, 1>(m3, f.dart)));
+		cut_face(m3, Vertex(phi_1(m3, f.dart_)), Vertex(phi<1, 1>(m3, f.dart_)));
 		return true;
 	});
 
 	foreach_cell(cache_vol2cut, [&](Volume vol) -> bool {
 		std::vector<Dart> path;
-		get_loop_path(m3, phi1(m3, vol.dart), path);
+		get_loop_path(m3, phi1(m3, vol.dart_), path);
 		Face new_face = cut_volume(m3, path);
 		trans_faces.mark(new_face);
 		return true;
@@ -2903,7 +2904,7 @@ void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, C
 	auto centroids = cgogn::add_attribute<Vec3, Face>(m3, "centroids");
 
 	foreach_cell(g, [&](Graph::Vertex gv) -> bool {
-		Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, Graph::HalfEdge(gv.dart));
+		Dart d0 = value<Dart>(g, gAttribs.halfedge_volume_connection, Graph::HalfEdge(gv.dart_));
 		Vertex v0 = Vertex(d0);
 		foreach_incident_face(m3, v0, [&](Face f) -> bool {
 			if (trans_faces.is_marked(f))
@@ -2950,7 +2951,7 @@ void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, C
 	});
 
 	foreach_cell(cache_face2cut, [&](Face f) -> bool {
-		Dart d0 = f.dart;
+		Dart d0 = f.dart_;
 		bool isboundary = is_boundary(m3, d0);
 		if (!is_boundary(m3, d0) && !vol2cut.is_marked(Volume(d0)))
 		{
@@ -2965,8 +2966,8 @@ void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, C
 		}
 
 		Vec3 center = value<Vec3>(m3, centroids, f);
-		Dart d1 = phi1(m3, f.dart);
-		Edge e = cut_face(m3, Vertex(phi1(m3, f.dart)), Vertex(phi_1(m3, f.dart)));
+		Dart d1 = phi1(m3, f.dart_);
+		Edge e = cut_face(m3, Vertex(phi1(m3, f.dart_)), Vertex(phi_1(m3, f.dart_)));
 		std::vector<Vertex> vertices = incident_vertices(m3, e);
 		Vertex center_vertex = cut_edge(m3, e);
 		value<Vec3>(m3, m3Attribs.vertex_position, center_vertex) = center;
@@ -3004,7 +3005,7 @@ void trisect_length_wise(CMap3& m3, M3Attributes& m3Attribs, CellMarker<CMap3, C
 	path0.reserve(6);
 	path1.reserve(4);
 	foreach_cell(cache_vol2cut, [&](Volume w) -> bool {
-		Dart d = phi1(m3, w.dart);
+		Dart d = phi1(m3, w.dart_);
 		path0.push_back(d);
 		d = phi1(m3, d);
 		path0.push_back(d);

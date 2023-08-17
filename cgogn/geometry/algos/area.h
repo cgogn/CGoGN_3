@@ -205,6 +205,36 @@ Scalar area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<
 	return result;
 }
 
+/**
+ * compute the mean of the mesh cells area
+ */
+template <typename CELL, typename MESH>
+Scalar mean_cell_area(const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
+{
+	thread_pool()->execute_all([]() {
+		float64_value() = 0.0;
+		uint32_value() = 0;
+	});
+
+	parallel_foreach_cell(m, [&](CELL c) -> bool {
+		float64_value() += area(m, c, vertex_position);
+		++uint32_value();
+		return true;
+	});
+
+	Scalar area_sum = 0.0;
+	uint32 nbc = 0;
+
+	std::mutex mutex;
+	thread_pool()->execute_all([&]() {
+		std::lock_guard<std::mutex> lock(mutex);
+		area_sum += float64_value();
+		nbc += uint32_value();
+	});
+
+	return area_sum / Scalar(nbc);
+}
+
 } // namespace geometry
 
 } // namespace cgogn

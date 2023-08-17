@@ -35,20 +35,25 @@
 namespace cgogn
 {
 
+struct MapBase;
+
 namespace geometry
 {
 
-///////////
-// CMap2 //
-///////////
+///////////////
+// MapBase:2 //
+///////////////
 
-template <typename MAP2, typename std::enable_if_t<std::is_convertible_v<MAP2&, MapBase&>>* = nullptr>
-Scalar edge_cotan_weight(const MAP2& m, typename MAP2::Edge e, const typename MAP2::template Attribute<Vec3>* vertex_position)
+template <typename MESH, typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> &&
+												   (mesh_traits<MESH>::dimension == 2)>* = nullptr>
+Scalar edge_cotan_weight(const MESH& m, typename MESH::Edge e,
+						 const typename MESH::template Attribute<Vec3>* vertex_position)
 {
-	using Vertex = typename mesh_traits<MAP2>::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
 	Scalar result = 0.0;
 
-	Dart d1 = e.dart;
+	Dart d1 = e.dart_;
 	Dart d2 = phi2(m, d1);
 
 	const Vec3& p1 = value<Vec3>(m, vertex_position, Vertex(d1));
