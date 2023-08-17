@@ -33,6 +33,50 @@ namespace cgogn
 template <typename MESH>
 struct mesh_traits;
 
+// compile time check if a mesh has a given cell type
+
+template <typename T>
+struct void_
+{
+	typedef void type;
+};
+
+template <typename MESH, typename = void>
+struct has_vertex : std::false_type
+{
+};
+template <typename MESH>
+struct has_vertex<MESH, typename void_<typename MESH::Vertex>::type> : std::true_type
+{
+};
+
+template <typename MESH, typename = void>
+struct has_edge : std::false_type
+{
+};
+template <typename MESH>
+struct has_edge<MESH, typename void_<typename MESH::Edge>::type> : std::true_type
+{
+};
+
+template <typename MESH, typename = void>
+struct has_face : std::false_type
+{
+};
+template <typename MESH>
+struct has_face<MESH, typename void_<typename MESH::Face>::type> : std::true_type
+{
+};
+
+template <typename MESH, typename = void>
+struct has_volume : std::false_type
+{
+};
+template <typename MESH>
+struct has_volume<MESH, typename void_<typename MESH::Volume>::type> : std::true_type
+{
+};
+
 // some generic functions to get info about a mesh and its cells
 
 template <typename CELL, typename MESH>

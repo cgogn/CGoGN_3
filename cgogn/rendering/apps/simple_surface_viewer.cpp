@@ -23,11 +23,13 @@
 
 // #define USE_GMAP
 
-#ifdef USE_GMAP
-#include <cgogn/core/types/maps/gmap/gmap2.h>
-#else
+// #ifdef USE_GMAP
+// #include <cgogn/core/types/maps/gmap/gmap2.h>
+// #else
 #include <cgogn/core/types/maps/cmap/cmap2.h>
-#endif
+// #endif
+
+// #include <cgogn/core/types/triangle_soup/triangle_soup.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -40,12 +42,14 @@
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
-#ifdef USE_GMAP
-using Mesh = cgogn::GMap2;
-#else
+// #ifdef USE_GMAP
+// using Mesh = cgogn::GMap2;
+// #else
 using Mesh = cgogn::CMap2;
-#endif
+// #endif
 // using Mesh = cgogn::IncidenceGraph;
+
+// using Mesh = cgogn::TriangleSoup;
 
 template <typename T>
 using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
@@ -78,6 +82,10 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
+
+	// cgogn::ui::View* v2 = app.add_view();
+	// v2->link_module(&mp);
+	// v2->link_module(&sr);
 
 	if (filename.length() > 0)
 	{

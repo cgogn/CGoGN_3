@@ -36,7 +36,7 @@ namespace cgogn
 CMap1::Vertex cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
 	Dart d = add_dart(m);
-	phi1_sew(m, e.dart, d);
+	phi1_sew(m, e.dart_, d);
 	CMap1::Vertex v(d);
 
 	if (set_indices)
@@ -45,7 +45,7 @@ CMap1::Vertex cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 			set_index(m, v, new_index<CMap1::Vertex>(m));
 		// CMap1::Edge is the same orbit as CMap1::Vertex
 		if (is_indexed<CMap1::Face>(m))
-			copy_index<CMap1::Face>(m, d, e.dart);
+			copy_index<CMap1::Face>(m, d, e.dart_);
 	}
 
 	return v;
@@ -53,9 +53,9 @@ CMap1::Vertex cut_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 
 CMap1::Vertex collapse_edge(CMap1& m, CMap1::Edge e, bool set_indices)
 {
-	Dart d = phi_1(m, e.dart);
+	Dart d = phi_1(m, e.dart_);
 	phi1_unsew(m, d);
-	remove_dart(m, e.dart);
+	remove_dart(m, e.dart_);
 	CMap1::Vertex v(phi1(m, d));
 
 	if (set_indices)
@@ -97,14 +97,14 @@ CMap1::Face add_face(CMap1& m, uint32 size, bool set_indices)
 
 void remove_face(CMap1& m, CMap1::Face f)
 {
-	Dart it = phi1(m, f.dart);
-	while (it != f.dart)
+	Dart it = phi1(m, f.dart_);
+	while (it != f.dart_)
 	{
 		Dart next = phi1(m, it);
 		remove_dart(m, it);
 		it = next;
 	}
-	remove_dart(m, f.dart);
+	remove_dart(m, f.dart_);
 }
 
 /*************************************************************************/

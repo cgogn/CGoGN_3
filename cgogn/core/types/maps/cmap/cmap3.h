@@ -89,22 +89,22 @@ struct mesh_traits<CMap3>
 
 inline Dart phi3(const CMap3& m, Dart d)
 {
-	return (*(m.phi3_))[d.index];
+	return (*(m.phi3_))[d.index_];
 }
 
 inline void phi3_sew(CMap3& m, Dart d, Dart e)
 {
 	cgogn_assert(phi3(m, d) == d);
 	cgogn_assert(phi3(m, e) == e);
-	(*(m.phi3_))[d.index] = e;
-	(*(m.phi3_))[e.index] = d;
+	(*(m.phi3_))[d.index_] = e;
+	(*(m.phi3_))[e.index_] = d;
 }
 
 inline void phi3_unsew(CMap3& m, Dart d)
 {
 	Dart e = phi3(m, d);
-	(*(m.phi3_))[d.index] = d;
-	(*(m.phi3_))[e.index] = e;
+	(*(m.phi3_))[d.index_] = d;
+	(*(m.phi3_))[e.index_] = e;
 }
 
 /*************************************************************************/
@@ -119,6 +119,12 @@ CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices
 
 CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices = true);
 uint32 close(CMap3& m, bool set_indices = true);
+
+/*************************************************************************/
+// Cells information
+/*************************************************************************/
+
+std::vector<uint32> hexahedra_vertex_indices(const CMap3& m, CMap3::Attribute<uint32>* vertex_id, CMap3::Volume v);
 
 /*************************************************************************/
 // Debugging helper functions

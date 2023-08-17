@@ -38,7 +38,7 @@ void compute_hex_frame(const CMap3& m, const CMap3::Attribute<Vec3>* vertex_posi
 					   CMap3::Attribute<Mat3>* vertex2_frame, CMap3::Attribute<Mat3>* hex_frame)
 {
 	parallel_foreach_cell(m, [&](CMap3::Volume v) -> bool {
-		Dart d0 = v.dart;
+		Dart d0 = v.dart_;
 
 		Dart D[8];
 		D[0] = d0;
@@ -88,7 +88,7 @@ void compute_scaled_jacobian(const CMap3& m, const CMap3::Attribute<Mat3>* verte
 		Scalar jacobian = frame_h.determinant();
 
 		foreach_incident_vertex(m, v, [&](CMap3::Vertex iv) -> bool {
-			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart));
+			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart_));
 			frame.col(0).normalize();
 			frame.col(1).normalize();
 			frame.col(2).normalize();
@@ -113,7 +113,7 @@ void compute_jacobian(const CMap3& m, const CMap3::Attribute<Mat3>* vertex2_fram
 		Scalar jacobian = frame_h.determinant();
 
 		foreach_incident_vertex(m, v, [&](CMap3::Vertex iv) -> bool {
-			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart));
+			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart_));
 			frame.col(0).normalize();
 			frame.col(1).normalize();
 			frame.col(2).normalize();
@@ -154,7 +154,7 @@ void compute_maximum_aspect_frobenius(const CMap3& m, const CMap3::Attribute<Mat
 		Scalar frobenius = std::numeric_limits<Scalar>::min(); // TODO: check?
 
 		foreach_incident_vertex(m, v, [&](CMap3::Vertex iv) -> bool {
-			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart));
+			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart_));
 			frame.col(0).normalize();
 			frame.col(1).normalize();
 			frame.col(2).normalize();
@@ -178,7 +178,7 @@ void compute_mean_aspect_frobenius(const CMap3& m, const CMap3::Attribute<Mat3>*
 		Scalar frobenius = 0;
 
 		foreach_incident_vertex(m, v, [&](CMap3::Vertex iv) -> bool {
-			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart));
+			Mat3 frame = value<Mat3>(m, vertex2_frame, CMap3::Vertex2(iv.dart_));
 			frame.col(0).normalize();
 			frame.col(1).normalize();
 			frame.col(2).normalize();

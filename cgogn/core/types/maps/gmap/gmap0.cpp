@@ -59,8 +59,8 @@ GMap0::Edge add_edge(GMap0& m, bool set_indices)
 
 void remove_edge(GMap0& m, GMap0::Edge e, bool set_indice)
 {
-	Dart ee = beta0(m, e.dart);
-	remove_dart(m, e.dart);
+	Dart ee = beta0(m, e.dart_);
+	remove_dart(m, e.dart_);
 	remove_dart(m, ee);
 }
 

@@ -42,7 +42,7 @@ void import_graph_data(Graph& g, const GraphImportData& graph_data)
 	{
 		Vertex v = add_vertex(g, false);
 		set_index(g, v, vertex_id);
-		(*vertex_dart)[vertex_id] = v.dart;
+		(*vertex_dart)[vertex_id] = v.dart_;
 	}
 
 	for (uint32 i = 0; i < uint32(graph_data.edges_vertex_indices_.size()); i += 2)

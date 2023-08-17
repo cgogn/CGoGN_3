@@ -21,16 +21,13 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_CORE_TYPES_INCIDENCE_GRAPH_BASE_H_
-#define CGOGN_CORE_TYPES_INCIDENCE_GRAPH_BASE_H_
-
-#include <cgogn/core/cgogn_core_export.h>
+#ifndef CGOGN_CORE_TYPES_TRIANGLE_SOUP_H_
+#define CGOGN_CORE_TYPES_TRIANGLE_SOUP_H_
 
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
-#include <cgogn/core/types/container/vector.h>
 
-#include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/thread.h>
@@ -38,19 +35,15 @@
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
-#include <any>
+#include <cgogn/core/utils/numerics.h>
+
 #include <array>
-#include <unordered_map>
 
 namespace cgogn
 {
 
-template <typename MESH>
-struct mesh_traits;
-
-struct IncidenceGraphBase
+struct TriangleSoup
 {
-	// using AttributeContainer = AttributeContainerT<Vector>;
 	using AttributeContainer = AttributeContainerT<ChunkArray>;
 
 	template <typename T>
@@ -64,7 +57,6 @@ struct IncidenceGraphBase
 
 	struct Vertex
 	{
-		static const uint32 CELL_INDEX = 0;
 		uint32 index_;
 		inline Vertex() : index_(INVALID_INDEX)
 		{
@@ -94,41 +86,8 @@ struct IncidenceGraphBase
 		}
 	};
 
-	struct Edge
-	{
-		static const uint32 CELL_INDEX = 1;
-		uint32 index_;
-		inline Edge() : index_(INVALID_INDEX)
-		{
-		}
-		inline Edge(uint32 id) : index_(id)
-		{
-		}
-		operator uint32() const
-		{
-			return index_;
-		}
-		bool operator<(Edge e) const
-		{
-			return index_ < e.index_;
-		}
-		bool operator==(Edge e) const
-		{
-			return index_ == e.index_;
-		}
-		bool operator!=(Edge e) const
-		{
-			return index_ != e.index_;
-		}
-		inline bool is_valid() const
-		{
-			return index_ != INVALID_INDEX;
-		}
-	};
-
 	struct Face
 	{
-		static const uint32 CELL_INDEX = 2;
 		uint32 index_;
 		inline Face() : index_(INVALID_INDEX)
 		{
@@ -158,96 +117,79 @@ struct IncidenceGraphBase
 		}
 	};
 
+	using Cells = std::tuple<Vertex, Face>;
+
 	/*************************************************************************/
 	// Cells attributes containers
 	/*************************************************************************/
-	mutable std::array<AttributeContainer, 3> attribute_containers_;
+	// 0 is for vertices
+	// 1 is for faces
+	mutable std::array<AttributeContainer, 2> attribute_containers_;
 
 	// shortcuts to topological relations attributes
-	std::shared_ptr<Attribute<std::vector<Edge>>> vertex_incident_edges_;
-	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
-	std::shared_ptr<Attribute<std::vector<Face>>> edge_incident_faces_;
-	std::shared_ptr<Attribute<std::vector<Edge>>> face_incident_edges_;
-	std::shared_ptr<Attribute<std::vector<uint8>>> face_incident_edges_dir_;
+	std::shared_ptr<Attribute<std::array<Vertex, 3>>> face_incident_vertices_;
 
-	/*************************************************************************/
-	// Graph-wise attributes container
-	/*************************************************************************/
-	std::unordered_map<std::string, std::any> attributes_;
-
-	template <typename T>
-	T& get_attribute(const std::string& name)
+	template <typename CELL>
+	static uint32 constexpr cell_container_index()
 	{
-		auto [it, inserted] = attributes_.try_emplace(name, T());
-		return std::any_cast<T&>(it->second);
+		static_assert(is_in_tuple<CELL, Cells>::value, "CELL not supported in this MESH");
+		if constexpr (std::is_same_v<CELL, Vertex>)
+			return 0;
+		else if constexpr (std::is_same_v<CELL, Face>)
+			return 1;
 	}
 
-	IncidenceGraphBase()
+	TriangleSoup()
 	{
-		vertex_incident_edges_ =
-			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
-		edge_incident_vertices_ =
-			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::pair<Vertex, Vertex>>("incident_vertices");
-		edge_incident_faces_ =
-			attribute_containers_[Edge::CELL_INDEX].add_attribute<std::vector<Face>>("incident_faces");
-		face_incident_edges_ =
-			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
-		face_incident_edges_dir_ =
-			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
-	};
+		face_incident_vertices_ = attribute_containers_[1].add_attribute<std::array<Vertex, 3>>("incident_vertices");
+	}
 
-	~IncidenceGraphBase()
+	~TriangleSoup()
 	{
 	}
 };
 
-template <typename MESH, typename CELL>
-struct CellMarker;
-
-template <typename MESH, typename CELL>
-struct CellMarkerStore;
-
-/*************************************************************************/
-// Cells basic functions
-/*************************************************************************/
-
-template <typename CELL>
-CELL add_cell(IncidenceGraphBase& ig)
+template <>
+struct mesh_traits<TriangleSoup>
 {
-	return CELL(ig.attribute_containers_[CELL::CELL_INDEX].new_index());
-}
+	static constexpr const char* name = "TriangleSoup";
+	static constexpr const uint8 dimension = 2;
 
-template <typename CELL>
-void remove_cell(IncidenceGraphBase& ig, CELL c)
-{
-	ig.attribute_containers_[CELL::CELL_INDEX].release_index(c.index_);
-}
+	using Vertex = TriangleSoup::Vertex;
+	using Face = TriangleSoup::Face;
+
+	using Cells = std::tuple<Vertex, Face>;
+	static constexpr const char* cell_names[] = {"Vertex", "Face"};
+
+	template <typename T>
+	using Attribute = TriangleSoup::Attribute<T>;
+	using AttributeGen = TriangleSoup::AttributeGen;
+	using MarkAttribute = TriangleSoup::MarkAttribute;
+};
 
 /*************************************************************************/
 // Cells indexing management
 /*************************************************************************/
 
 template <typename CELL>
-uint32 new_index(const IncidenceGraphBase& ig)
+uint32 new_index(const TriangleSoup& ts)
 {
-	return ig.attribute_containers_[CELL::CELL_INDEX].new_index();
+	static_assert(is_in_tuple<CELL, TriangleSoup::Cells>::value, "CELL not supported in this MESH");
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	return ts.attribute_containers_[container_index].new_index();
 }
 
 template <typename CELL>
-uint32 index_of(const IncidenceGraphBase& /*ig*/, CELL c)
+uint32 index_of(const TriangleSoup& /*ts*/, CELL c)
 {
-	return c.index_;
+	static_assert(is_in_tuple<CELL, TriangleSoup::Cells>::value, "CELL not supported in this MESH");
+	return c;
 }
 
 template <typename CELL>
-CELL of_index(const IncidenceGraphBase& /*ig*/, uint32 index)
+bool is_indexed(const TriangleSoup& /*ts*/)
 {
-	return CELL(index);
-}
-
-template <typename CELL>
-bool is_indexed(const IncidenceGraphBase& /*ig*/)
-{
+	static_assert(is_in_tuple<CELL, TriangleSoup::Cells>::value, "CELL not supported in this MESH");
 	return true;
 }
 
@@ -255,53 +197,54 @@ bool is_indexed(const IncidenceGraphBase& /*ig*/)
 // Attributes management
 /*************************************************************************/
 
-template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>* = nullptr>
-std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
+template <typename T, typename CELL>
+std::shared_ptr<TriangleSoup::Attribute<T>> add_attribute(TriangleSoup& ts, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	IncidenceGraphBase& mb = static_cast<IncidenceGraphBase&>(m);
-	return mb.attribute_containers_[CELL::CELL_INDEX].template add_attribute<T>(name);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	return ts.attribute_containers_[container_index].template add_attribute<T>(name);
 }
 
-template <typename T, typename CELL, typename MESH,
-		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>* = nullptr>
-std::shared_ptr<IncidenceGraphBase::Attribute<T>> get_attribute(const MESH& m, const std::string& name)
+template <typename T, typename CELL>
+std::shared_ptr<TriangleSoup::Attribute<T>> get_attribute(const TriangleSoup& ts, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::CELL_INDEX].template get_attribute<T>(name);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	return ts.attribute_containers_[container_index].template get_attribute<T>(name);
 }
 
 template <typename CELL>
-void remove_attribute(IncidenceGraphBase& m, const std::shared_ptr<IncidenceGraphBase::AttributeGen>& attribute)
+void remove_attribute(TriangleSoup& ts, const std::shared_ptr<TriangleSoup::AttributeGen>& attribute)
 {
-	m.attribute_containers_[CELL::CELL_INDEX].remove_attribute(attribute);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	ts.attribute_containers_[container_index].remove_attribute(attribute);
 }
 
 template <typename CELL>
-void remove_attribute(IncidenceGraphBase& m, IncidenceGraphBase::AttributeGen* attribute)
+void remove_attribute(TriangleSoup& ts, TriangleSoup::AttributeGen* attribute)
 {
-	m.attribute_containers_[CELL::CELL_INDEX].remove_attribute(attribute);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	ts.attribute_containers_[container_index].remove_attribute(attribute);
 }
 
 template <typename CELL, typename FUNC>
-void foreach_attribute(const IncidenceGraphBase& m, const FUNC& f)
+void foreach_attribute(const TriangleSoup& m, const FUNC& f)
 {
-	using AttributeGen = IncidenceGraphBase::AttributeGen;
+	using AttributeGen = TriangleSoup::AttributeGen;
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeGen>&>::value,
 				  "Wrong function attribute parameter type");
-	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::CELL_INDEX])
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[container_index])
 		f(a);
 }
 
 template <typename T, typename CELL, typename FUNC>
-void foreach_attribute(const IncidenceGraphBase& m, const FUNC& f)
+void foreach_attribute(const TriangleSoup& m, const FUNC& f)
 {
-	using AttributeT = IncidenceGraphBase::Attribute<T>;
-	using AttributeGen = IncidenceGraphBase::AttributeGen;
+	using AttributeT = TriangleSoup::Attribute<T>;
+	using AttributeGen = TriangleSoup::AttributeGen;
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeT>&>::value,
 				  "Wrong function attribute parameter type");
-	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[CELL::CELL_INDEX])
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	for (const std::shared_ptr<AttributeGen>& a : m.attribute_containers_[container_index])
 	{
 		std::shared_ptr<AttributeT> at = std::dynamic_pointer_cast<AttributeT>(a);
 		if (at)
@@ -309,26 +252,18 @@ void foreach_attribute(const IncidenceGraphBase& m, const FUNC& f)
 	}
 }
 
-template <typename T>
-T& get_attribute(IncidenceGraphBase& ig, const std::string& name)
+template <typename CELL>
+TriangleSoup::MarkAttribute* get_mark_attribute(const TriangleSoup& m)
 {
-	return ig.get_attribute<T>(name);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	return m.attribute_containers_[container_index].get_mark_attribute();
 }
 
-template <typename CELL, typename MESH>
-auto get_mark_attribute(const MESH& m)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>, typename mesh_traits<MESH>::MarkAttribute*>
+template <typename CELL>
+void release_mark_attribute(const TriangleSoup& m, TriangleSoup::MarkAttribute* attribute)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::CELL_INDEX].get_mark_attribute();
-}
-
-template <typename CELL, typename MESH>
-auto release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
-{
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
-	return m.attribute_containers_[CELL::CELL_INDEX].release_mark_attribute(attribute);
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	return m.attribute_containers_[container_index].release_mark_attribute(attribute);
 }
 
 /*************************************************************************/
@@ -336,25 +271,26 @@ auto release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttri
 /*************************************************************************/
 
 template <typename MESH, typename FUNC>
-auto foreach_cell(const MESH& ig, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
+auto foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, TriangleSoup&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
-	for (uint32 i = ig.attribute_containers_[CELL::CELL_INDEX].first_index(),
-				end = ig.attribute_containers_[CELL::CELL_INDEX].last_index();
-		 i != end; i = ig.attribute_containers_[CELL::CELL_INDEX].next_index(i))
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+	for (uint32 i = m.attribute_containers_[container_index].first_index(),
+				end = m.attribute_containers_[container_index].last_index();
+		 i != end; i = m.attribute_containers_[container_index].next_index(i))
 	{
 		CELL c(i);
-		if (/*c.is_valid() && */ !f(c))
+		if (!f(c))
 			break;
 	}
 }
 
 template <typename MESH, typename FUNC>
 auto parallel_foreach_cell(const MESH& m, const FUNC& f)
-	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
+	-> std::enable_if_t<std::is_convertible_v<MESH&, TriangleSoup&>>
 {
 	using CELL = func_parameter_type<FUNC>;
 	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
@@ -377,8 +313,10 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 
 	Buffers<uint32>* buffers = uint32_buffers();
 
-	uint32 it = m.attribute_containers_[CELL::CELL_INDEX].first_index();
-	uint32 last = m.attribute_containers_[CELL::CELL_INDEX].last_index();
+	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
+
+	uint32 it = m.attribute_containers_[container_index].first_index();
+	uint32 last = m.attribute_containers_[container_index].last_index();
 
 	uint32 i = 0u; // buffer id (0/1)
 	uint32 j = 0u; // thread id (0..nb_workers)
@@ -392,7 +330,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 		for (uint32 k = 0u; k < PARALLEL_BUFFER_SIZE && it < last; ++k)
 		{
 			cells.push_back(it);
-			it = m.attribute_containers_[CELL::CELL_INDEX].next_index(it);
+			it = m.attribute_containers_[container_index].next_index(it);
 		}
 		// launch thread
 		futures[i].push_back(pool->enqueue([&cells, &f]() {
@@ -425,15 +363,57 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 }
 
 /*************************************************************************/
-// Copy incidence graph
+// Clear mesh
 /*************************************************************************/
 
-template <typename MESH>
-auto copy(MESH& /*dst*/, const MESH& /*src*/) -> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
+void clear(TriangleSoup& ts, bool keep_attributes = true);
+
+/*************************************************************************/
+// Copy mesh
+/*************************************************************************/
+
+void copy(TriangleSoup& dst, const TriangleSoup& src);
+
+/*************************************************************************/
+// Specific mesh info
+/*************************************************************************/
+
+inline uint32 codegree(const TriangleSoup& ts, TriangleSoup::Face f)
 {
-	// TODO
+	return 3;
 }
+
+/*************************************************************************/
+// Local vertex traversals
+/*************************************************************************/
+
+template <typename MESH, typename CELL, typename FUNC>
+auto foreach_incident_vertex(const MESH& ts, CELL c, const FUNC& func)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, TriangleSoup&>>
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
+	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+
+	if constexpr (std::is_same_v<CELL, Face>)
+	{
+		const std::array<Vertex, 3>& vertices = (*ts.face_incident_vertices_)[c];
+		for (Vertex v : vertices)
+			if (!func(v))
+				break;
+	}
+}
+
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+TriangleSoup::Face add_face(TriangleSoup& ts, TriangleSoup::Vertex v1, TriangleSoup::Vertex v2,
+							TriangleSoup::Vertex v3);
 
 } // namespace cgogn
 
-#endif // CGOGN_CORE_TYPES_INCIDENCE_GRAPH_BASE_H_
+#endif // CGOGN_CORE_TYPES_TRIANGLE_SOUP_H_

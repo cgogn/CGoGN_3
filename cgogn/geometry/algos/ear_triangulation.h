@@ -24,16 +24,22 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 #define CGOGN_GEOMETRY_ALGOS_EAR_TRIANGULATION_H_
 
-//#include <cgogn/geometry/types/geometry_traits.h>
 #include <cgogn/geometry/algos/normal.h>
 #include <cgogn/geometry/functions/inclusion.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <set>
+#include <cgogn/core/utils/numerics.h>
+
+#include <cgogn/core/types/maps/dart.h>
+
 #include <cmath>
+#include <set>
 
 namespace cgogn
 {
+
+// TODO: make ear triangulation generic
+struct MapBase;
 
 namespace geometry
 {
@@ -85,7 +91,7 @@ class EarTriangulation
 	// normal to polygon (for orientation of angles)
 	Vec3 normalPoly_;
 
-	// ref on map
+	// ref on mesh
 	MESH& m_;
 
 	// pointer to position attribute
@@ -153,11 +159,11 @@ class EarTriangulation
 				Vertex id = (*it)->vert_;
 				const Vec3& P = POSITION(id);
 
-				if ((dotpr1 < Scalar(5)) && (id.dart != vprev->vert_.dart))
+				if ((dotpr1 < Scalar(5)) && (id.dart_ != vprev->vert_.dart_)) // TODO: Dart dependent
 					if (in_triangle(P, normalPoly_, Tb, Tc, Ta))
 						dotpr1 = Scalar(5); // not an ear !
 
-				if ((dotpr2 < Scalar(5)) && (id.dart != vnext->vert_.dart))
+				if ((dotpr2 < Scalar(5)) && (id.dart_ != vnext->vert_.dart_)) // TODO: Dart dependent
 					if (in_triangle(P, normalPoly_, Td, Ta, Tb))
 						dotpr2 = Scalar(5); // not an ear !
 
@@ -172,7 +178,7 @@ class EarTriangulation
 		vp->length_ = Scalar((Td - Ta).squaredNorm());
 		vp2->ear_ = ears_.insert(vp2);
 
-		// polygon if convex only if all vertices have convex angle (last have ...)
+		// polygon is convex only if all vertices have convex angle (last have ...)
 		convex_ = (*(ears_.rbegin()))->value_ < Scalar(5);
 	}
 
@@ -213,9 +219,9 @@ class EarTriangulation
 		return true;
 	}
 
-	////////////////////////////////
-	// CMapBase (and convertible) //
-	////////////////////////////////
+	///////////////////////////////
+	// MapBase (and convertible) //
+	///////////////////////////////
 
 	template <typename MESHTYPE, typename std::enable_if_t<std::is_convertible_v<MESHTYPE&, MapBase&>>* = nullptr>
 	std::tuple<VertexPoly*, VertexPoly*, uint32, bool> init_chained_vertexpoly_list(
@@ -226,7 +232,7 @@ class EarTriangulation
 		uint32 nb_verts = 0;
 		bool convex = true;
 
-		Dart a = f.dart;
+		Dart a = f.dart_;
 		Dart b = phi1(m_, a);
 		Dart c = phi1(m_, b);
 		do
@@ -248,7 +254,7 @@ class EarTriangulation
 			b = c;
 			c = phi1(m_, c);
 			nb_verts++;
-		} while (a != f.dart);
+		} while (a != f.dart_);
 
 		return {vpp, prem, nb_verts, convex};
 	}
@@ -265,7 +271,7 @@ class EarTriangulation
 	// 	uint32 nb_verts = 0;
 	// 	bool convex = true;
 
-	// 	Dart a = f.dart;
+	// 	Dart a = f.dart_;
 	// 	Dart b = phi1(m_, a);
 	// 	Dart c = phi1(m_, b);
 	// 	do
@@ -287,7 +293,7 @@ class EarTriangulation
 	// 		b = c;
 	// 		c = phi1(m_, c);
 	// 		nb_verts++;
-	// 	} while (a != f.dart);
+	// 	} while (a != f.dart_);
 
 	// 	return {vpp, prem, nb_verts, convex};
 	// }
@@ -409,8 +415,9 @@ public:
 	}
 
 	/**
-	 * @brief apply the ear triangulation the face
+	 * @brief apply ear triangulation to the face
 	 */
+	// TODO: not generic (call to phi function)
 	void apply()
 	{
 		while (nb_verts_ > 3)
@@ -430,7 +437,7 @@ public:
 				ears_.erase(be->next_->ear_);
 				ears_.erase(be->prev_->ear_);
 				// replace dart to be in remaining poly
-				be->prev_->vert_ = Vertex(phi<-1, 2>(m_, be->prev_->vert_.dart));
+				be->prev_->vert_ = Vertex(phi<-1, 2>(m_, be->prev_->vert_.dart_));
 				be = VertexPoly::erase(be); // and remove ear vertex from polygon
 				recompute_2_ears(be);
 			}
@@ -446,18 +453,18 @@ public:
 };
 
 /**
- * @brief compute ear triangulation
+ * @brief append face ear triangulation to a table of indices
  * @param map
  * @param f face
  * @param position
- * @param table_indices table of indices (vertex embedding) to append
+ * @param table_indices table of vertex indices to append into
  */
 template <typename MESH, typename FUNC>
 void append_ear_triangulation(const MESH& mesh, const typename mesh_traits<MESH>::Face f,
 							  const typename mesh_traits<MESH>::template Attribute<Vec3>* position,
 							  std::vector<uint32>& table_indices, const FUNC& post_func)
 {
-	EarTriangulation tri(const_cast<MESH&>(mesh), f, position);
+	EarTriangulation<MESH> tri(const_cast<MESH&>(mesh), f, position);
 	tri.append_indices(table_indices, post_func);
 }
 
@@ -471,13 +478,13 @@ template <typename MESH>
 void apply_ear_triangulation(MESH& mesh, const typename mesh_traits<MESH>::Face f,
 							 const typename mesh_traits<MESH>::template Attribute<Vec3>* position)
 {
-	EarTriangulation tri(mesh, f, position);
+	EarTriangulation<MESH> tri(mesh, f, position);
 	tri.apply();
 }
 
 /**
- * @brief apply ear triangulation to a map
- * @param map
+ * @brief apply ear triangulation to all faces of a mesh
+ * @param mesh
  * @param f
  * @param position
  */
@@ -487,7 +494,7 @@ void apply_ear_triangulation(MESH& mesh, const typename mesh_traits<MESH>::templ
 	foreach_cell(mesh, [&](typename mesh_traits<MESH>::Face f) -> bool {
 		if (codegree(mesh, f) > 3)
 		{
-			EarTriangulation tri(mesh, f, position);
+			EarTriangulation<MESH> tri(mesh, f, position);
 			tri.apply();
 		}
 		return true;

@@ -26,15 +26,15 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/types/mesh_traits.h>
+#include <cgogn/core/utils/numerics.h>
 #include <cgogn/geometry/types/vector_traits.h>
 #include <cgogn/rendering/ebo.h>
 #include <cgogn/rendering/vbo.h>
 
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace cgogn
 {
@@ -131,21 +131,20 @@ protected:
 
 	template <bool EMB, typename MESH>
 	void init_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face);
-    
+
 	template <bool EMB, typename MESH>
 	void init_ear_triangles(const MESH& m, TablesIndices& table_indices, TablesIndices& table_emb_face,
-								   const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
+							const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
 
 	template <bool EMB, typename MESH>
 	void init_volumes(const MESH& m, TablesIndices& table_indices_f, TablesIndices& table_indices_e,
-							 TablesIndices& table_indices_v, TablesIndices& table_emb_vol,
-							 const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
+					  TablesIndices& table_indices_v, TablesIndices& table_emb_vol,
+					  const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position);
 
 public:
 	template <typename MESH>
-	void init_primitives(
-		const MESH& m, DrawingType prim,
-		const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr);
+	void init_primitives(const MESH& m, DrawingType prim,
+						 const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* position = nullptr);
 
 	void draw(DrawingType prim);
 };
@@ -154,4 +153,4 @@ public:
 
 } // namespace cgogn
 
-#endif 
+#endif

@@ -24,6 +24,7 @@
 #include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cmap3.h>
 
+#include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/types/cell_marker.h>
 
 namespace cgogn
@@ -35,12 +36,12 @@ namespace cgogn
 
 CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 {
-	Dart d0 = e.dart;
+	Dart d0 = e.dart_;
 	Dart d23 = phi<2, 3>(m, d0);
 
-	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart);
+	CMap3::Vertex v(cut_edge(static_cast<CMap2&>(m), CMap2::Edge(d0), false).dart_);
 
-	while (d23 != e.dart)
+	while (d23 != e.dart_)
 	{
 		d0 = d23;
 		d23 = phi<2, 3>(m, d23);
@@ -54,11 +55,11 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 		phi3_sew(m, d3, phi1(m, d0));
 	}
 
-	const Dart d3 = phi3(m, e.dart);
-	phi3_unsew(m, e.dart);
+	const Dart d3 = phi3(m, e.dart_);
+	phi3_unsew(m, e.dart_);
 
-	phi3_sew(m, e.dart, phi1(m, d3));
-	phi3_sew(m, d3, phi1(m, e.dart));
+	phi3_sew(m, e.dart_, phi1(m, d3));
+	phi3_sew(m, d3, phi1(m, e.dart_));
 
 	if (set_indices)
 	{
@@ -66,22 +67,22 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 			set_index(m, v, new_index<CMap3::Vertex>(m));
 		if (is_indexed<CMap3::Vertex2>(m))
 		{
-			Dart d = v.dart;
+			Dart d = v.dart_;
 			do
 			{
 				if (!is_boundary(m, d))
 					set_index(m, CMap3::Vertex2(d), new_index<CMap3::Vertex2>(m));
 				d = phi<2, 3>(m, d);
-			} while (d != v.dart);
+			} while (d != v.dart_);
 		}
 		if (is_indexed<CMap3::Edge>(m))
 		{
-			set_index(m, CMap3::Edge(v.dart), new_index<CMap3::Edge>(m));
+			set_index(m, CMap3::Edge(v.dart_), new_index<CMap3::Edge>(m));
 			set_index(m, e, index_of(m, e));
 		}
 		if (is_indexed<CMap3::Face2>(m))
 		{
-			Dart d = e.dart;
+			Dart d = e.dart_;
 			do
 			{
 				// if (!is_boundary(m, d))
@@ -89,18 +90,18 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 				// if (!is_boundary(m, phi3(m, d)))
 				copy_index<CMap3::Face2>(m, phi3(m, d), phi<1, 3>(m, d));
 				d = phi<2, 3>(m, d);
-			} while (d != e.dart);
+			} while (d != e.dart_);
 		}
 		if (is_indexed<CMap3::Face>(m))
 		{
-			Dart d = e.dart;
+			Dart d = e.dart_;
 			do
 			{
 				copy_index<CMap3::Face>(m, phi1(m, d), d);
 				copy_index<CMap3::Face>(m, phi3(m, d), d);
 				// copy_index<CMap3::Face>(m, phi2(m, d), phi<1, 2>(m, d));
 				d = phi<2, 3>(m, d);
-			} while (d != e.dart);
+			} while (d != e.dart_);
 		}
 		if (is_indexed<CMap3::Volume>(m))
 		{
@@ -119,16 +120,16 @@ CMap3::Vertex cut_edge(CMap3& m, CMap3::Edge e, bool set_indices)
 
 CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indices)
 {
-	Dart d = v1.dart;
-	Dart e = v2.dart;
+	Dart d = v1.dart_;
+	Dart e = v2.dart_;
 
 	Dart dd = phi<3, 1>(m, d);
 	Dart ee = phi<3, 1>(m, e);
 
-	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart), CMap2::Vertex(e), false);
+	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(v1.dart_), CMap2::Vertex(e), false);
 	cut_face(static_cast<CMap2&>(m), CMap2::Vertex(dd), CMap2::Vertex(ee), false);
 
-	phi3_sew(m, phi_1(m, v1.dart), phi_1(m, ee));
+	phi3_sew(m, phi_1(m, v1.dart_), phi_1(m, ee));
 	phi3_sew(m, phi_1(m, dd), phi_1(m, e));
 
 	CMap3::Edge edge(phi_1(m, e));
@@ -137,8 +138,8 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 	{
 		if (is_indexed<CMap3::Vertex>(m))
 		{
-			copy_index<CMap3::Vertex>(m, phi_1(m, e), v1.dart);
-			copy_index<CMap3::Vertex>(m, phi_1(m, ee), v1.dart);
+			copy_index<CMap3::Vertex>(m, phi_1(m, e), v1.dart_);
+			copy_index<CMap3::Vertex>(m, phi_1(m, ee), v1.dart_);
 			copy_index<CMap3::Vertex>(m, phi_1(m, d), e);
 			copy_index<CMap3::Vertex>(m, phi_1(m, dd), e);
 		}
@@ -156,7 +157,7 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 			}
 		}
 		if (is_indexed<CMap3::Edge>(m))
-			set_index(m, CMap3::Edge(phi_1(m, v1.dart)), new_index<CMap3::Edge>(m));
+			set_index(m, CMap3::Edge(phi_1(m, v1.dart_)), new_index<CMap3::Edge>(m));
 		if (is_indexed<CMap3::Face2>(m))
 		{
 			if (!is_boundary(m, d))
@@ -196,8 +197,8 @@ CMap3::Edge cut_face(CMap3& m, CMap3::Vertex v1, CMap3::Vertex v2, bool set_indi
 
 CMap3::Face cut_volume(CMap3& m, const std::vector<Dart>& path, bool set_indices)
 {
-	Dart f0 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart;
-	Dart f1 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart;
+	Dart f0 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart_;
+	Dart f1 = add_face(static_cast<CMap1&>(m), uint32(path.size()), false).dart_;
 
 	for (Dart d0 : path)
 	{
@@ -291,7 +292,7 @@ CMap3::Volume close_hole(CMap3& m, Dart d, bool set_indices)
 
 		++count;
 
-		Dart bit = hf.dart;
+		Dart bit = hf.dart_;
 		do
 		{
 			Dart e = phi3(m, phi2(m, f));
@@ -370,6 +371,29 @@ uint32 close(CMap3& m, bool set_indices)
 	}
 
 	return nb_holes;
+}
+
+/*************************************************************************/
+// Cells information
+/*************************************************************************/
+
+std::vector<uint32> hexahedra_vertex_indices(const CMap3& m, CMap3::Attribute<uint32>* vertex_id, CMap3::Volume v)
+{
+	using Vertex = CMap3::Vertex;
+
+	Dart d1 = v.dart_;
+	Dart d2 = phi<2, 1, 1, 2>(m, d1);
+
+	return {value<uint32>(m, vertex_id, Vertex(d1)),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(phi1(m, d1))),
+			value<uint32>(m, vertex_id, Vertex(d2)),
+			value<uint32>(m, vertex_id, Vertex(phi_1(m, d2))),
+			value<uint32>(m, vertex_id, Vertex(phi<1, 1>(m, d1)))
+
+	};
 }
 
 /*************************************************************************/

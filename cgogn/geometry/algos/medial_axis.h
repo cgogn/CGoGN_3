@@ -41,8 +41,8 @@ namespace cgogn
 namespace geometry
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 inline Scalar compute_radius(const Vec3& p, const Vec3& n, const Vec3& q)
 {

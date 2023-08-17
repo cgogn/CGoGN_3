@@ -39,7 +39,7 @@ GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 	using Edge = GMap1::Edge;
 	using Face = GMap1::Face;
 
-	Dart e0 = e.dart;
+	Dart e0 = e.dart_;
 	Dart e1 = beta0(m, e0);
 	beta0_unsew(m, e0);
 
@@ -58,14 +58,14 @@ GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 			set_index(m, v, new_index<Vertex>(m));
 		if (is_indexed<Edge>(m))
 		{
-			copy_index<Edge>(m, vd0, e.dart);
-			copy_index<Edge>(m, vd1, e.dart);
+			copy_index<Edge>(m, vd0, e.dart_);
+			copy_index<Edge>(m, vd1, e.dart_);
 		}
 
 		if (is_indexed<Face>(m))
 		{
-			copy_index<Face>(m, vd0, e.dart);
-			copy_index<Face>(m, vd1, e.dart);
+			copy_index<Face>(m, vd0, e.dart_);
+			copy_index<Face>(m, vd1, e.dart_);
 		}
 	}
 
@@ -75,8 +75,8 @@ GMap1::Vertex cut_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 GMap1::Vertex collapse_edge(GMap1& m, GMap1::Edge e, bool set_indices)
 {
 	using Vertex = GMap1::Vertex;
-	Dart d1 = beta1(m, e.dart);
-	Dart ee = beta0(m, e.dart);
+	Dart d1 = beta1(m, e.dart_);
+	Dart ee = beta0(m, e.dart_);
 	Dart d2 = beta1(m, ee);
 
 	beta1_unsew(m, d1);
@@ -105,39 +105,39 @@ GMap1::Face add_face(GMap1& m, uint32 size, bool set_indices)
 	for (uint32 i = 1u; i < size; ++i)
 	{
 		Edge e = add_edge(m, false);
-		beta1_sew(m, e.dart, beta0(m, ep.dart));
+		beta1_sew(m, e.dart_, beta0(m, ep.dart_));
 		ep = e;
 	}
-	beta1_sew(m, e0.dart, beta0(m, ep.dart));
+	beta1_sew(m, e0.dart_, beta0(m, ep.dart_));
 
 	if (set_indices)
 	{
 		for (uint32 i = 0u; i < size; ++i)
 		{
-			Edge e{phi1(m, ep.dart)};
+			Edge e{phi1(m, ep.dart_)};
 			if (is_indexed<Vertex>(m))
-				set_index(m, Vertex{e.dart}, new_index<Vertex>(m));
+				set_index(m, Vertex{e.dart_}, new_index<Vertex>(m));
 			if (is_indexed<Edge>(m))
 				set_index(m, e, new_index<Edge>(m));
 
 			ep = e;
 		}
 		if (is_indexed<Face>(m))
-			set_index(m, Face{ep.dart}, new_index<Face>(m));
+			set_index(m, Face{ep.dart_}, new_index<Face>(m));
 	}
-	return Face{e0.dart};
+	return Face{e0.dart_};
 }
 
 void remove_face(GMap1& m, GMap1::Face f)
 {
-	Dart it = phi1(m, f.dart);
-	while (it != f.dart)
+	Dart it = phi1(m, f.dart_);
+	while (it != f.dart_)
 	{
 		Dart next = phi1(m, it);
 		remove_edge(m, GMap1::Edge{it});
 		it = next;
 	}
-	remove_edge(m, GMap1::Edge{f.dart});
+	remove_edge(m, GMap1::Edge{f.dart_});
 }
 
 } // namespace cgogn

@@ -25,9 +25,11 @@
 #define CGOGN_MODELING_ALGOS_SUBDIVISION_UTILS_H_
 
 #include <cgogn/core/functions/mesh_info.h>
+#include <cgogn/core/types/cell_marker.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/dart.h>
 #include <cgogn/core/types/mesh_traits.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <set>
@@ -36,7 +38,6 @@
 namespace cgogn
 {
 
-// forward for SFINAE
 struct MapBase;
 
 namespace modeling
@@ -52,7 +53,7 @@ void hexagon_to_triangles(MESH& m, typename mesh_traits<MESH>::Face f)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	cgogn_message_assert(codegree(m, f) == 6, "hexagon_to_triangles: given face should have 6 edges");
-	Dart d0 = phi1(m, f.dart);
+	Dart d0 = phi1(m, f.dart_);
 	Dart d1 = phi<1, 1>(m, d0);
 	cut_face(m, Vertex(d0), Vertex(d1));
 	Dart d2 = phi<1, 1>(m, d1);
@@ -73,7 +74,7 @@ typename mesh_traits<MESH>::Vertex quadrangulate_face(MESH& m, typename mesh_tra
 
 	cgogn_message_assert(codegree(m, f) % 2 == 0, "quadrangulate_face: given face should have a pair codegree");
 
-	Dart d0 = phi1(m, f.dart);
+	Dart d0 = phi1(m, f.dart_);
 	Dart d1 = phi<1, 1>(m, d0);
 
 	cut_face(m, Vertex(d0), Vertex(d1));

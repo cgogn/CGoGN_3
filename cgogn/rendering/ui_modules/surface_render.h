@@ -46,6 +46,7 @@
 #include <cgogn/rendering/shaders/shader_phong_scalar_per_vertex.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/length.h>
 
 #include <boost/synapse/connect.hpp>
@@ -58,8 +59,8 @@ namespace cgogn
 namespace ui
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 class SurfaceRender : public ViewModule
@@ -83,9 +84,8 @@ class SurfaceRender : public ViewModule
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
 	using Vertex = typename mesh_traits<MESH>::Vertex;
-	using Edge = typename mesh_traits<MESH>::Edge;
+	// using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
-	// using Volume = typename mesh_traits<MESH>::Volume;
 
 	struct Parameters
 	{
@@ -225,28 +225,38 @@ private:
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::connectivity_changed>(m, [this, v, m]() {
 					Parameters& p = parameters_[v][m];
+					MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 					if (p.vertex_position_)
-						p.vertex_base_size_ = float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
-					if (p.vertex_base_size_ == 0.0)
 					{
-						MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
-						p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
+						if constexpr (has_edge<MESH>::value)
+							p.vertex_base_size_ =
+								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+						else
+						{
+							p.vertex_base_size_ = float32(geometry::mean_cell_area<Face>(*m, p.vertex_position_.get()) *
+														  10.0 * (md.bb_max_ - md.bb_min_).norm());
+						}
 					}
+					if (p.vertex_base_size_ == 0.0)
+						p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 					v->request_update();
 				}));
 			mesh_connections_[m].push_back(
 				boost::synapse::connect<typename MeshProvider<MESH>::template attribute_changed_t<Vec3>>(
 					m, [this, v, m](Attribute<Vec3>* attribute) {
 						Parameters& p = parameters_[v][m];
+						MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 						if (p.vertex_position_.get() == attribute)
 						{
-							p.vertex_base_size_ =
-								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							if constexpr (has_edge<MESH>::value)
+								p.vertex_base_size_ =
+									float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
+							else
+								p.vertex_base_size_ =
+									float32(geometry::mean_cell_area<Face>(*m, p.vertex_position_.get()) * 10.0 *
+											(md.bb_max_ - md.bb_min_).norm());
 							if (p.vertex_base_size_ == 0.0)
-							{
-								MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 								p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
-							}
 						}
 						v->request_update();
 					}));
@@ -275,7 +285,11 @@ public:
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
-			p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
+			if constexpr (has_edge<MESH>::value)
+				p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
+			else
+				p.vertex_base_size_ = float32(geometry::mean_cell_area<Face>(m, p.vertex_position_.get()) * 10.0 *
+											  (md.bb_max_ - md.bb_min_).norm());
 			if (p.vertex_base_size_ == 0.0)
 				p.vertex_base_size_ = float32((md.bb_max_ - md.bb_min_).norm() / 20.0);
 		}
@@ -852,7 +866,7 @@ protected:
 													  });
 
 				if (!p.vertex_radius_)
-					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 2.0f);
+					need_update |= ImGui::SliderFloat("Size##vertices", &(p.vertex_scale_factor_), 0.1f, 4.0f);
 
 				ImGui::TextUnformatted("Colors");
 				ImGui::BeginGroup();
@@ -888,42 +902,48 @@ protected:
 				}
 			}
 
-			ImGui::Separator();
-			need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
-			if (p.render_edges_)
+			if constexpr (has_edge<MESH>::value)
 			{
-				ImGui::TextUnformatted("Colors");
-				ImGui::BeginGroup();
-				if (ImGui::RadioButton("Global##edgecolor", p.edge_color_per_cell_ == GLOBAL))
-				{
-					p.edge_color_per_cell_ = GLOBAL;
-					need_update = true;
-				}
-				ImGui::SameLine();
-				if (ImGui::RadioButton("Per edge##edgecolor", p.edge_color_per_cell_ == PER_EDGE))
-				{
-					p.edge_color_per_cell_ = PER_EDGE;
-					need_update = true;
-				}
-				ImGui::EndGroup();
+				using Edge = typename mesh_traits<MESH>::Edge;
 
-				if (p.edge_color_per_cell_ == GLOBAL)
+				ImGui::Separator();
+				need_update |= ImGui::Checkbox("Edges", &p.render_edges_);
+				if (p.render_edges_)
 				{
-					need_update |= ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(),
-													 ImGuiColorEditFlags_NoInputs);
-				}
-				else if (p.edge_color_per_cell_ == PER_EDGE)
-				{
-					imgui_combo_attribute<Edge, Vec3>(*selected_mesh_, p.edge_color_, "Attribute##vectoredgecolor",
-													  [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-														  set_edge_color(*selected_view_, *selected_mesh_, attribute);
-													  });
-				}
+					ImGui::TextUnformatted("Colors");
+					ImGui::BeginGroup();
+					if (ImGui::RadioButton("Global##edgecolor", p.edge_color_per_cell_ == GLOBAL))
+					{
+						p.edge_color_per_cell_ = GLOBAL;
+						need_update = true;
+					}
+					ImGui::SameLine();
+					if (ImGui::RadioButton("Per edge##edgecolor", p.edge_color_per_cell_ == PER_EDGE))
+					{
+						p.edge_color_per_cell_ = PER_EDGE;
+						need_update = true;
+					}
+					ImGui::EndGroup();
 
-				if (ImGui::SliderFloat("Width##edges", &p.param_bold_line_->width_, 1.0f, 10.0f))
-				{
-					p.param_bold_line_color_->width_ = p.param_bold_line_->width_;
-					need_update = true;
+					if (p.edge_color_per_cell_ == GLOBAL)
+					{
+						need_update |= ImGui::ColorEdit3("Color##edges", p.param_bold_line_->color_.data(),
+														 ImGuiColorEditFlags_NoInputs);
+					}
+					else if (p.edge_color_per_cell_ == PER_EDGE)
+					{
+						imgui_combo_attribute<Edge, Vec3>(*selected_mesh_, p.edge_color_, "Attribute##vectoredgecolor",
+														  [&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+															  set_edge_color(*selected_view_, *selected_mesh_,
+																			 attribute);
+														  });
+					}
+
+					if (ImGui::SliderFloat("Width##edges", &p.param_bold_line_->width_, 1.0f, 10.0f))
+					{
+						p.param_bold_line_color_->width_ = p.param_bold_line_->width_;
+						need_update = true;
+					}
 				}
 			}
 

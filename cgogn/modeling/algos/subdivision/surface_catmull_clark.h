@@ -33,8 +33,6 @@ namespace cgogn
 {
 
 struct MapBase;
-struct CMapBase;
-struct GMapBase;
 
 namespace modeling
 {
@@ -80,8 +78,8 @@ void subdivide_catmull_clark(MESH& m, typename mesh_traits<MESH>::template Attri
 	parallel_foreach_cell(cache_new, [&](Vertex v) -> bool {
 		if (!is_incident_to_boundary(m, v))
 		{
-			Vertex f1(phi_1(m, v.dart));
-			Vertex f2(phi<2, 1, 1>(m, v.dart));
+			Vertex f1(phi_1(m, v.dart_));
+			Vertex f2(phi<2, 1, 1>(m, v.dart_));
 			value<Vec3>(m, vertex_position, v) =
 				0.25 * (2.0 * value<Vec3>(m, vertex_position, v) + value<Vec3>(m, vertex_position, f1) +
 						value<Vec3>(m, vertex_position, f2));
@@ -100,14 +98,14 @@ void subdivide_catmull_clark(MESH& m, typename mesh_traits<MESH>::template Attri
 		foreach_incident_edge(m, v, [&](Edge e) -> bool {
 			++nb_e;
 			sum_E += 0.5 * (value<Vec3>(m, vertex_position, v) +
-							value<Vec3>(m, vertex_position, Vertex(phi<1, 2, 1, 1>(m, e.dart))));
-			if (!is_boundary(m, e.dart))
+							value<Vec3>(m, vertex_position, Vertex(phi<1, 2, 1, 1>(m, e.dart_))));
+			if (!is_boundary(m, e.dart_))
 			{
 				++nb_f;
-				sum_F += value<Vec3>(m, vertex_position, Vertex(phi<1, 1>(m, e.dart)));
+				sum_F += value<Vec3>(m, vertex_position, Vertex(phi<1, 1>(m, e.dart_)));
 			}
 			else
-				boundary = e.dart;
+				boundary = e.dart_;
 			return true;
 		});
 

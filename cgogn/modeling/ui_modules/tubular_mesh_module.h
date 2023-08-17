@@ -609,7 +609,7 @@ public:
 			// std::vector<VolumeEdge> perpendicular_edges;
 			// perpendicular_edges.reserve(16);
 
-			Dart ed = e.dart;
+			Dart ed = e.dart_;
 			parallel_edges.push_back(VolumeEdge(ed)); // the edge itself
 			// Dart c = phi<1, 2, 3>(*volume_, ed);
 			// if (!is_boundary(*volume_, c))
@@ -634,9 +634,9 @@ public:
 				// perpendicular_edges.push_back(VolumeEdge(phi1(*volume_, ed)));
 				// perpendicular_edges.push_back(VolumeEdge(phi_1(*volume_, ed)));
 				ed = phi<3, 2>(*volume_, ed);
-			} while (ed != e.dart);
+			} while (ed != e.dart_);
 
-			// Dart ed2 = phi2(*volume_, e.dart);
+			// Dart ed2 = phi2(*volume_, e.dart_);
 			// c = phi<1, 2, 3>(*volume_, ed2);
 			// if (!is_boundary(*volume_, c))
 			// 	parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
@@ -654,7 +654,7 @@ public:
 			// 			parallel_edges.push_back(VolumeEdge(phi<2, 1>(*volume_, c)));
 			// 	}
 			// 	ed2 = phi<3, 2>(*volume_, ed2);
-			// } while (ed2 != phi2(*volume_, e.dart));
+			// } while (ed2 != phi2(*volume_, e.dart_));
 
 			Scalar parallel_edges_mean_length = 0.0;
 			for (VolumeEdge pe : parallel_edges)
@@ -986,7 +986,7 @@ public:
 				Vec3 target_n1 = edge1; // (0, 0, 0);
 				Vec3 target_n2 = edge2; // (0, 0, 0);
 
-				Dart d = e.dart;
+				Dart d = e.dart_;
 				do
 				{
 					if (!is_boundary(*volume_, d))
@@ -1000,10 +1000,10 @@ public:
 							target_n1 += n;
 					}
 					d = phi<3, 2>(*volume_, d);
-				} while (d != e.dart);
+				} while (d != e.dart_);
 				target_n1.normalize();
 
-				d = phi2(*volume_, e.dart);
+				d = phi2(*volume_, e.dart_);
 				do
 				{
 					if (!is_boundary(*volume_, d))
@@ -1017,7 +1017,7 @@ public:
 							target_n2 += n;
 					}
 					d = phi<3, 2>(*volume_, d);
-				} while (d != phi2(*volume_, e.dart));
+				} while (d != phi2(*volume_, e.dart_));
 				target_n2.normalize();
 
 				target_n1 *= length_mean_;

@@ -37,7 +37,7 @@ namespace cgogn
 
 uint32 CPH3::dart_level(Dart d) const
 {
-	return (*dart_level_)[d.index];
+	return (*dart_level_)[d.index_];
 }
 
 void CPH3::set_dart_level(Dart d, uint32 l)
@@ -57,7 +57,7 @@ void CPH3::set_dart_level(Dart d, uint32 l)
 			nb_darts_per_level_.pop_back();
 		}
 	}
-	(*dart_level_)[d.index] = l;
+	(*dart_level_)[d.index_] = l;
 }
 
 /***************************************************
@@ -66,12 +66,12 @@ void CPH3::set_dart_level(Dart d, uint32 l)
 
 uint32 CPH3::edge_id(Dart d) const
 {
-	return (*edge_id_)[d.index];
+	return (*edge_id_)[d.index_];
 }
 
 void CPH3::set_edge_id(Dart d, uint32 i)
 {
-	(*edge_id_)[d.index] = i;
+	(*edge_id_)[d.index_] = i;
 }
 
 uint32 CPH3::refinement_edge_id(Dart d, Dart e) const
@@ -102,12 +102,12 @@ uint32 CPH3::refinement_edge_id(Dart d, Dart e) const
 
 uint32 CPH3::face_id(Dart d) const
 {
-	return (*face_id_)[d.index];
+	return (*face_id_)[d.index_];
 }
 
 void CPH3::set_face_id(Dart d, uint32 i)
 {
-	(*face_id_)[d.index] = i;
+	(*face_id_)[d.index_] = i;
 }
 
 uint32 CPH3::refinement_face_id(const std::vector<Dart>& cut_path) const
@@ -338,9 +338,9 @@ uint32 CPH3::volume_level(Dart d) const
 	uint32 vLevel = std::numeric_limits<uint32>::max();
 
 	foreach_incident_face(*this, CPH3::CMAP::Volume(d), [&](CPH3::CMAP::Face f) -> bool {
-		uint32 fLevel = face_level(f.dart);
+		uint32 fLevel = face_level(f.dart_);
 		vLevel = fLevel < vLevel ? fLevel : vLevel;
-		Dart old = face_oldest_dart(f.dart);
+		Dart old = face_oldest_dart(f.dart_);
 		if (dart_level(old) < lold)
 		{
 			oldest = old;
@@ -377,7 +377,7 @@ Dart CPH3::volume_oldest_dart(Dart d) const
 	Dart oldest = d;
 	uint32 l_old = dart_level(oldest);
 	foreach_incident_face(*this, CPH3::CMAP::Volume(oldest), [&](CPH3::CMAP::Face f) -> bool {
-		Dart old = face_oldest_dart(f.dart);
+		Dart old = face_oldest_dart(f.dart_);
 		uint32 l = dart_level(old);
 		if (l < l_old)
 		{
@@ -397,7 +397,7 @@ Dart CPH3::volume_youngest_dart(Dart d) const
 	Dart youngest = d;
 	uint32 l_young = dart_level(youngest);
 	foreach_incident_face(*this, CPH3::CMAP::Volume(youngest), [&](CPH3::CMAP::Face f) -> bool {
-		Dart young = face_youngest_dart(f.dart);
+		Dart young = face_youngest_dart(f.dart_);
 		uint32 l = dart_level(young);
 		if (l > l_young)
 		{
@@ -421,7 +421,7 @@ bool CPH3::volume_is_subdivided(Dart d) const
 	bool faceAreSubdivided = face_is_subdivided(d);
 
 	foreach_incident_face(*this, CPH3::CMAP::Volume(d), [&](CPH3::CMAP::Face f) -> bool {
-		faceAreSubdivided &= face_is_subdivided(f.dart);
+		faceAreSubdivided &= face_is_subdivided(f.dart_);
 		return true;
 	});
 
@@ -558,7 +558,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 
 	CPH3::CMAP::Vertex v = cut_edge(map, e, false);
 
-	Dart d = e.dart;
+	Dart d = e.dart_;
 	do
 	{
 		m.set_edge_id(phi1(map, d), m.edge_id(d));
@@ -570,7 +570,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 		m.set_dart_level(phi1(map, d), m.current_level_);
 		m.set_dart_level(phi2(map, d), m.current_level_);
 		d = phi<2, 3>(map, d);
-	} while (d != e.dart);
+	} while (d != e.dart_);
 	if (set_indices)
 	{
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
@@ -584,7 +584,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				return true;
 			});
 			ne = new_index<CPH3::CMAP::Edge>(m);
-			foreach_dart_of_orbit(map, CPH3::CMAP::Edge(phi1(map, e.dart)), [&](Dart d) -> bool {
+			foreach_dart_of_orbit(map, CPH3::CMAP::Edge(phi1(map, e.dart_)), [&](Dart d) -> bool {
 				if (m.dart_level(d) == m.current_level_)
 					set_index<CPH3::CMAP::Edge>(m, d, ne);
 				return true;
@@ -592,7 +592,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 		}
 		if (is_indexed<CPH3::CMAP::Face>(m))
 		{
-			d = e.dart;
+			d = e.dart_;
 			do
 			{
 				Dart it = phi1(map, d);
@@ -609,11 +609,11 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				} while (m.dart_level(it) < m.current_level_ - 1 && it != phi2(map, phi1(map, d)));
 				copy_index<CPH3::CMAP::Face>(map, phi2(map, d), it);
 				d = phi<2, 3>(map, d);
-			} while (d != e.dart);
+			} while (d != e.dart_);
 		}
 		if (is_indexed<CPH3::CMAP::Volume>(m))
 		{
-			d = e.dart;
+			d = e.dart_;
 			do
 			{
 				if (!is_boundary(m, d))
@@ -632,7 +632,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 					copy_index<CPH3::CMAP::Volume>(map, phi2(map, d), it);
 				}
 				d = phi<2, 3>(map, d);
-			} while (d != e.dart);
+			} while (d != e.dart_);
 		}
 	}
 
@@ -643,19 +643,19 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 {
 	CPH3::CMAP& map = static_cast<CPH3::CMAP&>(m);
 
-	Dart d = v1.dart;
-	Dart e = v2.dart;
+	Dart d = v1.dart_;
+	Dart e = v2.dart_;
 
-	Dart dd = phi<3, 1>(m, v1.dart);
+	Dart dd = phi<3, 1>(m, v1.dart_);
 	Dart ee = phi<3, 1>(m, e);
 
 	CPH3::CMAP::Edge result = cut_face(map, v1, v2, false);
 
-	uint32 eid = m.refinement_edge_id(v1.dart, v2.dart);
+	uint32 eid = m.refinement_edge_id(v1.dart_, v2.dart_);
 
 	foreach_dart_of_orbit(m, result, [&](Dart d) -> bool {
 		m.set_edge_id(d, eid);
-		m.set_face_id(d, m.face_id(v1.dart));
+		m.set_face_id(d, m.face_id(v1.dart_));
 		m.set_dart_level(d, m.current_level_);
 		return true;
 	});
@@ -664,13 +664,13 @@ CPH3::CMAP::Edge cut_face(CPH3& m, CPH3::CMAP::Vertex v1, CPH3::CMAP::Vertex v2,
 	{
 		if (is_indexed<CPH3::CMAP::Vertex>(m))
 		{
-			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, e), v1.dart);
-			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, ee), v1.dart);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, e), v1.dart_);
+			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, ee), v1.dart_);
 			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, d), e);
 			copy_index<CPH3::CMAP::Vertex>(m, phi_1(m, dd), e);
 		}
 		if (is_indexed<CPH3::CMAP::Edge>(m))
-			set_index(m, CPH3::CMAP::Edge(phi_1(m, v1.dart)), new_index<CPH3::CMAP::Edge>(m));
+			set_index(m, CPH3::CMAP::Edge(phi_1(m, v1.dart_)), new_index<CPH3::CMAP::Edge>(m));
 		if (is_indexed<CPH3::CMAP::Face>(m))
 		{
 			uint32 nf1 = new_index<CPH3::CMAP::Face>(m);
@@ -713,7 +713,7 @@ CPH3::CMAP::Face cut_volume(CPH3& m, const std::vector<Dart>& path, bool set_ind
 
 	CPH3::CMAP::Face result = cut_volume(map, path, false);
 
-	Dart f0 = result.dart;
+	Dart f0 = result.dart_;
 	Dart f1 = phi3(m, f0);
 
 	foreach_dart_of_orbit(m, result, [&](Dart d) -> bool {
