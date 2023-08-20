@@ -122,6 +122,10 @@ CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool 
 //just remove the edge
 void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e);
 
+
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat(IncidenceGraph& ig,
+																						IncidenceGraph::Edge e);
+
 // returns a vector of removed edges (except e) in addition to the resulting vertex
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,

@@ -430,26 +430,71 @@ void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e)
 
  }
 
-bool has_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex& v, IncidenceGraph::Edge& e)
- {
-	 auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
-	 return (v1 == v || v2 == v);
-}
-
-bool has_vertex(IncidenceGraph& ig, IncidenceGraph::Vertex& v, IncidenceGraph::Face& f)
-{
-	for (IncidenceGraph::Edge e : (*ig.face_incident_edges_)[f.index_])
-	{
-		if (has_vertex(ig, v, e))
-		{
-			return true;
-		}
-	}
-	return false;
-}
 
  
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat(IncidenceGraph& ig,
+	IncidenceGraph::Edge e)
+{
+	using Vertex = IncidenceGraph::Vertex;
+	using Edge = IncidenceGraph::Edge;
+	using Face = IncidenceGraph::Face;
+	
+	Vertex new_vertex = add_vertex(ig);
 
+	std::vector<Edge> removed_edges;
+	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
+
+	remove_edge(ig, e);
+
+	// replace v1 by new vertex in incident edges of v1
+	for (Edge iev1 : (*ig.vertex_incident_edges_)[v1.index_])
+	{
+		// add old edge to removed edges
+		removed_edges.push_back(iev1);
+		// replace v1 by new vertex in incident edges of v1
+		replace_vertex_in_edge(ig, iev1, v1, new_vertex);
+		(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(iev1);
+	}
+
+	// replace v2 by new vertex in incident edges of v2
+	for (Edge iev2 : (*ig.vertex_incident_edges_)[v2.index_])
+	{
+		// add old edge to removed edges
+		removed_edges.push_back(iev2);
+		// replace v2 by new vertex in incident edges of v2
+		replace_vertex_in_edge(ig, iev2, v2, new_vertex);
+		(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(iev2);
+	}
+
+	// Check duplicate edges incident to new vertex
+	std::unordered_map<uint32, Edge> adjacent_vertex_new_vertex;//adjacent vertex, incident edge
+	foreach_incident_edge(ig, new_vertex, [&](Edge ie) {
+		auto [va, vb] = (*ig.edge_incident_vertices_)[ie.index_];
+		Vertex other_vertex = (va == new_vertex) ? vb : va;
+		auto it = adjacent_vertex_new_vertex.find(other_vertex.index_);
+		if (it == adjacent_vertex_new_vertex.end())
+		{
+			adjacent_vertex_new_vertex.insert({other_vertex.index_, ie});
+		}
+		else
+		{
+			// replace current edge by old edge
+			foreach_incident_face(ig, ie, [&](Face f) {
+				replace_edge_in_face(ig, f, ie, it->second);
+				(*ig.edge_incident_faces_)[it->second.index_].push_back(f);
+				return true;
+			});
+			// remove duplicate edge
+			remove_edge_in_vertex(ig, va, ie);
+			remove_edge_in_vertex(ig, vb, ie);
+			remove_cell<Edge>(ig, ie);
+		}
+		return true;
+	});
+	remove_cell<Vertex>(ig, v1);
+	remove_cell<Vertex>(ig, v2);
+	return {new_vertex, removed_edges};
+}
 
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,
@@ -460,7 +505,6 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 	using Face = IncidenceGraph::Face;
 
 	std::vector<Edge> removed_edges;
-
 	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
 
 	// remove e from its incident vertices
