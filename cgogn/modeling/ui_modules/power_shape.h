@@ -701,7 +701,6 @@ public:
 		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
-		auto collpase_cost = add_attribute<double, NonManifoldEdge>(nm, "collpase_cost");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
 		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "__slab_quadric");
@@ -720,7 +719,6 @@ public:
 			Vec4 opt = helper.edge_optimal(e);
 			value<Vec4>(nm, sphere_opt, e) = opt;
 			double cost = helper.edge_cost(e, opt);
-			value<double>(nm, collpase_cost, e) = cost;
 			double cost_opt =
 				(cost + k) * value<double>(nm, stability_ratio, e) * value<double>(nm, stability_ratio, e);
 			value<EdgeInfo>(nm, edge_queue_it, e) = {
@@ -771,10 +769,9 @@ public:
 				Vec4 opt = helper.edge_optimal(ie);
 				value<Vec4>(nm, sphere_opt, ie) = opt;
 				double cost = helper.edge_cost(ie, opt);
-				value<double>(nm, collpase_cost, ie) = cost;
 				double cost_opt =
 					(cost + k) * value<double>(nm, stability_ratio, ie) * value<double>(nm, stability_ratio, ie);
-				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(helper.edge_cost(ie, opt), e)};
+				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(cost, ie)};
 				return true;
 			});
 			++count;
@@ -788,7 +785,6 @@ public:
 		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
 		remove_attribute<NonManifoldVertex>(nm, sphere_info);
 		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
-		remove_attribute<NonManifoldEdge>(nm, collpase_cost);
 		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
 
 

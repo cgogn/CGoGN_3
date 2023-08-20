@@ -443,14 +443,29 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 
 	std::vector<Edge> removed_edges;
 	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
-
+	std::cout << "delete edge: " << e.index_ << std::endl;
 	remove_edge(ig, e);
 
+	foreach_incident_edge(ig, v1, [&](Edge iedge1) {
+		std::cout << "v1: incident edge: " << iedge1.index_ << std::endl;
+		return true;
+		});
+	foreach_incident_edge(ig, v2, [&](Edge iedge2) {
+		std::cout << "v2: incident edge: " << iedge2.index_ << std::endl;
+		return true;		
+		});
+
+	std::cout << "-----------------------------------------------" << std::endl;
 	// replace v1 by new vertex in incident edges of v1
 	for (Edge iev1 : (*ig.vertex_incident_edges_)[v1.index_])
 	{
 		// add old edge to removed edges
 		removed_edges.push_back(iev1);
+		foreach_incident_face(ig, iev1, [&](Face f) {
+			std::cout << "edge " << iev1.index_ << ": incident face: " << f.index_ << ", ";
+			std::cout << ::std::endl;
+			return true;
+		});
 		// replace v1 by new vertex in incident edges of v1
 		replace_vertex_in_edge(ig, iev1, v1, new_vertex);
 		(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(iev1);
@@ -461,36 +476,63 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 	{
 		// add old edge to removed edges
 		removed_edges.push_back(iev2);
+		foreach_incident_face(ig, iev2, [&](Face f) {
+			std::cout << "edge " << iev2.index_ << ": incident face: " << f.index_ << ", ";
+			std::cout << ::std::endl;
+			return true;
+		});
 		// replace v2 by new vertex in incident edges of v2
 		replace_vertex_in_edge(ig, iev2, v2, new_vertex);
 		(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(iev2);
+		
 	}
 
+	foreach_incident_edge(ig, new_vertex, [&](Edge iie) {
+		std::cout << "new vertex:" << new_vertex.index_ << " incident edge: " << iie.index_
+				  << "vertex1: " << (*ig.edge_incident_vertices_)[iie.index_].first.index_<< ", vertex 2: " <<(*ig.edge_incident_vertices_)[iie.index_].second.index_ << std::endl;
+		return true;
+	});
+
 	// Check duplicate edges incident to new vertex
-	std::unordered_map<uint32, Edge> adjacent_vertex_new_vertex;//adjacent vertex, incident edge
+	std::unordered_map<uint32, Edge> adjacent_vertex_new_vertex;//adjacent vertex index, incident edge
+	std::vector<Edge> duplicate_edges_after_delete;
+	std::cout << "start duplicate edge check" << std::endl;
+	std::cout << "-------------------------------------------------" << std::endl;
 	foreach_incident_edge(ig, new_vertex, [&](Edge ie) {
-		auto [va, vb] = (*ig.edge_incident_vertices_)[ie.index_];
-		Vertex other_vertex = (va == new_vertex) ? vb : va;
-		auto it = adjacent_vertex_new_vertex.find(other_vertex.index_);
-		if (it == adjacent_vertex_new_vertex.end())
-		{
-			adjacent_vertex_new_vertex.insert({other_vertex.index_, ie});
-		}
+		std::cout << "loop incident edge: " << ie.index_ << std::endl;
+ 		auto [va, vb] = (*ig.edge_incident_vertices_)[ie.index_];
+ 		Vertex other_vertex = (va == new_vertex) ? vb : va;
+ 
+ 		auto it = adjacent_vertex_new_vertex.find(other_vertex.index_);
+ 		if (it == adjacent_vertex_new_vertex.end())
+ 		{	
+ 			adjacent_vertex_new_vertex.insert({other_vertex.index_, ie});
+ 			std::cout << "insert tuple: {" << ie.index_ << ", " << other_vertex.index_ << "}" << std::endl;
+ 		}
 		else
 		{
 			// replace current edge by old edge
 			foreach_incident_face(ig, ie, [&](Face f) {
+				std::cout << "face: " << f.index_ << ", replace edge " << ie.index_ << " by edge " << it->second.index_
+						  << std::endl;
 				replace_edge_in_face(ig, f, ie, it->second);
 				(*ig.edge_incident_faces_)[it->second.index_].push_back(f);
 				return true;
 			});
-			// remove duplicate edge
-			remove_edge_in_vertex(ig, va, ie);
-			remove_edge_in_vertex(ig, vb, ie);
-			remove_cell<Edge>(ig, ie);
-		}
+ 			// remove duplicate edge
+			remove_edge_in_vertex(ig, other_vertex, ie);
+			duplicate_edges_after_delete.push_back(ie);
+ 			std::cout << "remove edge: " << ie.index_ << " in vertex " << other_vertex.index_ << std::endl;	
+ 			remove_cell<Edge>(ig, ie);
+ 		}
+		std::cout << "-------------------------------------------------" << std::endl;
 		return true;
 	});
+	for (Edge ie : duplicate_edges_after_delete)
+	{
+		remove_edge_in_vertex(ig, new_vertex, ie);
+	}
+	std::cout << "\n" << std::endl;
 	remove_cell<Vertex>(ig, v1);
 	remove_cell<Vertex>(ig, v2);
 	return {new_vertex, removed_edges};
