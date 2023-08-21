@@ -60,7 +60,7 @@ struct DecimationSQEM_Helper
 			value<Slab_Quadric>(m_, sphere_quadric_, v).clear();
 			return true;
 		});
-		parallel_foreach_cell(m_, [&](Face f) -> bool {
+		foreach_cell(m_, [&](Face f) -> bool {
 			Vec4 n1, n2;
 			if (slab_normal(f, n1, n2))
 			{

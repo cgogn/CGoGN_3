@@ -183,10 +183,8 @@ void remove_face(IncidenceGraph& ig, IncidenceGraph::Face f)
 {
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
-	std::cout << "remove face " << f.index_ << std::endl;
 	for (Edge e : (*ig.face_incident_edges_)[f.index_])
 	{
-		std::cout << "remove face " << f.index_ << " in edge " << e.index_ << std::endl;
 		remove_face_in_edge(ig, e, f);
 	}
 	remove_cell<Face>(ig, f);

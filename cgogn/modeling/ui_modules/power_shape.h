@@ -651,36 +651,43 @@ public:
 		return (point - center).norm() <= radius;
 	}
 
-
- 	void compute_stability_ratio(NONMANIFOLD& mv)
+	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e, 
+		std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
+									  std::shared_ptr<NonManifoldAttribute<Vec3>>& stability_color,
+									  std::shared_ptr<NonManifoldAttribute<double>>& sphere_radius,
+									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position,
+		)
 	{
-		//TO do : better way to get attributes?
-		IncidenceGraph& ig = static_cast<IncidenceGraph&>(mv);
-		stability_ratio_ = add_attribute<double, NonManifoldEdge>(ig, "stability_ratio");
-		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(ig, "stability_color");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(ig, "sphere_radius");
-		auto position = get_attribute<Vec3, NonManifoldVertex>(ig, "position");
-		
-		parallel_foreach_cell(mv, [&](NonManifoldEdge e) -> bool {
-			// TO do : better way to get attributes?
-			auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
-			const Vec3& v1_p = value<Vec3>(ig, position, v1);
-			const Vec3& v2_p = value<Vec3>(ig, position, v2);
-			const double& r1 = value<double>(ig, sphere_radius, v1);
-			const double& r2 = value<double>(ig, sphere_radius, v2);
-			const double center_dist = (v1_p - v2_p).norm();
-			double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
-			double stability = dis / center_dist;
-			//std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
-			(*stability_ratio_)[e.index_] = stability;
-			if (stability <= 0.5)
-			{
-				(*stability_color)[e.index_] = Vec3(0, stability, (0.5 - stability));
-			}
-			else
-			{
-				(*stability_color)[e.index_] = Vec3(stability-0.5, (1-stability),0);
-			}
+		auto iv = incident_vertices(nm, e);
+		NonManifoldVertex v1 = iv[0];
+		NonManifoldVertex v2 = iv[1];
+		const Vec3& v1_p = value<Vec3>(nm, position, v1);
+		const Vec3& v2_p = value<Vec3>(nm, position, v2);
+		const double& r1 = value<double>(nm, sphere_radius, v1);
+		const double& r2 = value<double>(nm, sphere_radius, v2);
+		const double center_dist = (v1_p - v2_p).norm();
+		double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+		double stability = dis / center_dist;
+		// std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
+		(*stability_ratio)[e.index_] = stability;
+		if (stability <= 0.5)
+		{
+			(*stability_color)[e.index_] = Vec3(0, stability, (0.5 - stability));
+		}
+		else
+		{
+			(*stability_color)[e.index_] = Vec3(stability - 0.5, (1 - stability), 0);
+		}
+	}
+
+ 	void compute_stability_ratio(NONMANIFOLD& nm)
+	{
+		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
+		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
+		parallel_foreach_cell(nm, [&](NonManifoldEdge e) -> bool { 
+			compute_stability_ratio_edge(nm, e,stability_ratio, stability_color, sphere_radius, position);
 			return true;
 		});
 	}
@@ -695,16 +702,19 @@ public:
 		using Slab_Quadric = geometry::Slab_Quadric;
 		uint32 count = 0;
 		EdgeQueue queue;
-		
-		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 
+		auto stability_ratio = add_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
 		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "__slab_quadric");
 
+		compute_stability_ratio(nm);
+
+		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
+		
 		//build sphere info
 		foreach_cell(nm,
 					 [&](NonManifoldVertex v) {
@@ -724,7 +734,6 @@ public:
 			value<EdgeInfo>(nm, edge_queue_it, e) = {
 				true, 
 				queue.emplace(cost_opt,e)};
-			auto it = value<EdgeInfo>(nm, edge_queue_it, e);
 		
 			return true;
 		});
@@ -753,17 +762,8 @@ public:
 
 			//recompute the cost of the edges incident to v and update the queue
 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
-				
-				//recompute the stability ratio of new edges
-				auto [v1, v2] = (*nm.edge_incident_vertices_)[ie.index_];
-				const Vec3& v1_p = value<Vec4>(nm, sphere_info, v1).head<3>();
-				const Vec3& v2_p = value<Vec4>(nm, sphere_info, v2).head<3>();
-				const double& r1 = value<Vec4>(nm, sphere_info, v1).w();
-				const double& r2 = value<Vec4>(nm, sphere_info, v2).w();
-				const double center_dist = (v1_p - v2_p).norm();
-				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
-				double stability = dis / center_dist;
-				value<double>(nm, stability_ratio, ie) = stability;
+
+				compute_stability_ratio_edge(nm, e, stability_ratio, stability_color, sphere_radius, position);
 
 				//recompute the cost of the edge
 				Vec4 opt = helper.edge_optimal(ie);
@@ -786,84 +786,16 @@ public:
 		remove_attribute<NonManifoldVertex>(nm, sphere_info);
 		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
 		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
-
+		remove_attribute<NonManifoldEdge>(nm, stability_ratio);
+		remove_attribute<NonManifoldEdge>(nm, stability_color);
 
 	
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
+		
 	}
 
-	
-	 void collapse_non_manifold_using_stability_ratio(NONMANIFOLD& nm, uint32 number_vertices_erase)
-	{
-		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
-		using EdgeQueueIt = typename EdgeQueue::const_iterator;
-		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
-
-		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
-		uint32 count = 0;
-		EdgeQueue queue;
-		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
-
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool{
-			value<EdgeInfo>(nm, edge_queue_it, e) = {true, queue.emplace(value<double>(nm, stability_ratio_, e), e)};
-			return true;
-		});
-
-		while (!queue.empty() && count < number_vertices_erase)
-		{
-			auto it = queue.begin();
-			NonManifoldEdge e = (*it).second;
-			queue.erase(it);
-			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
-			if (value<double>(nm, stability_ratio_, e) > 0.90)
-				break;
-			auto [v, removed_edges] = collapse_edge(nm, e);
-			//remove_edge_stability(nm, e);
-			for (NonManifoldEdge re : removed_edges)
-			{
-				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, re);
-				if (einfo.first)
-					queue.erase(einfo.second);
-			}
-// 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
-// 				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, ie);
-// 				if (einfo.first)
-// 					queue.erase(einfo.second);
-// 				std::vector<NonManifoldVertex> iv = incident_vertices(nm, ie);
-// 				const Vec3& v1_p = value<Vec3>(nm, position, iv[0]);
-// 				const Vec3& v2_p = value<Vec3>(nm, position, iv[1]);
-// 				const double& r1 = value<double>(nm, sphere_radius, iv[0]);
-// 				const double& r2 = value<double>(nm, sphere_radius, iv[1]);
-// 				const double center_dist = (v1_p - v2_p).norm();
-// 				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
-// 				double stability = dis / center_dist;
-// 				// std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
-// 				value<double>(nm, stability_ratio,ie) = stability;
-// 				if (stability <= 0.5)
-// 				{
-// 					value<Vec3>(nm, stability_color, ie) = Vec3(0, stability, (0.5 - stability));
-// 				}
-// 				else
-// 				{
-// 					value<Vec3>(nm, stability_color, ie) = Vec3(stability - 0.5, (1 - stability), 0);
-// 				}
-// 				value<EdgeInfo>(nm, edge_queue_it, ie) = {
-// 					true, queue.emplace(stability, ie)};
-// 				return true;
-// 			});
-			++count;
-		}
-
-		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
-
-		nonmanifold_provider_->emit_connectivity_changed(nm);
-		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
-// 		nonmanifold_provider_->emit_attribute_changed(nm, stability_ratio.get());
-// 		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
-	}
 
 	void coverage_axis_PD(SURFACE& surface, NONMANIFOLD& mv, HighsSolution& solution, double dilation_factor)
 	{
@@ -1070,10 +1002,6 @@ protected:
 				compute_original_power_diagram(*selected_surface_mesh_);
 			if (selected_medial_axis)
 			{
-				if (ImGui::Button("Compute stablility ratio"))
-				{
-					compute_stability_ratio(*selected_medial_axis);
-				}
 				static int32 vertices_to_remove = 1; 
 				static float k = 0.00001f;
 				ImGui::SliderInt("Vertices to delete", &vertices_to_remove, 1,

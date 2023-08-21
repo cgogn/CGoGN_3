@@ -125,8 +125,9 @@ void remove_edge_stability(IncidenceGraph& ig, IncidenceGraph::Edge e);
 
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat(IncidenceGraph& ig,
 																						IncidenceGraph::Edge e);
-
-// returns a vector of removed edges (except e) in addition to the resulting vertex
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat_with_debug_info(
+	IncidenceGraph& ig, IncidenceGraph::Edge e);
+	// returns a vector of removed edges (except e) in addition to the resulting vertex
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,
 																				   bool set_indices = true);
