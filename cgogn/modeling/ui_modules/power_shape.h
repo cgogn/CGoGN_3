@@ -655,7 +655,7 @@ public:
 		std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
 									  std::shared_ptr<NonManifoldAttribute<Vec3>>& stability_color,
 									  std::shared_ptr<NonManifoldAttribute<double>>& sphere_radius,
-									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position,
+									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position
 		)
 	{
 		auto iv = incident_vertices(nm, e);
@@ -682,8 +682,8 @@ public:
 
  	void compute_stability_ratio(NONMANIFOLD& nm)
 	{
-		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
-		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
+		auto stability_ratio = add_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		parallel_foreach_cell(nm, [&](NonManifoldEdge e) -> bool { 
@@ -692,7 +692,7 @@ public:
 		});
 	}
 
-	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase, double k)
+	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase, float k)
 	{
 		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
 		using EdgeQueueIt = typename EdgeQueue::const_iterator;
@@ -703,15 +703,14 @@ public:
 		uint32 count = 0;
 		EdgeQueue queue;
 
-		auto stability_ratio = add_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
-		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
+		
 		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
 		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "__slab_quadric");
-
-		compute_stability_ratio(nm);
-
+		auto slab_normals = add_attribute<std::pair<Vec4, Vec4>, NonManifoldFace>(nm, "slab_normals");
+		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		
@@ -722,15 +721,40 @@ public:
 			value<Vec4>(nm, sphere_info, v) = Vec4(p[0], p[1], p[2], value<double>(nm,sphere_radius,v));
 			return true;
 		});
-		QMatHelper helper(nm, sphere_info, slab_quadric); 
+		QMatHelper helper(nm, sphere_info, slab_quadric,slab_normals); 
 		
 		//Initialize the queue with all the edges and their cost
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+		foreach_cell(nm, [&](NonManifoldEdge e) -> bool{ 
+			auto iv = incident_vertices(nm, e);
+			
 			Vec4 opt = helper.edge_optimal(e);
 			value<Vec4>(nm, sphere_opt, e) = opt;
+			
+			double dist1 = (value<Vec4>(nm, sphere_info, iv[0]) - opt).norm();
+			double dist2 = (value<Vec4>(nm, sphere_info, iv[1]) - opt).norm();
 			double cost = helper.edge_cost(e, opt);
 			double cost_opt =
 				(cost + k) * value<double>(nm, stability_ratio, e) * value<double>(nm, stability_ratio, e);
+			//double cost_opt = 1 / value<double>(nm, stability_ratio, e);
+// 			if (cost>1)
+// 			{
+// 				foreach_incident_face(nm, e, [&](NonManifoldFace iface) {
+// 					std::cout << "n1: " << value<std::pair<Vec4, Vec4>>(nm, slab_normals, iface).first
+// 							  << ", n2: " << value<std::pair<Vec4, Vec4>>(nm, slab_normals, iface).second << std::endl;
+// 					return true;
+// 				});
+// 				std::cout << cost << std::endl;
+// 				std::cout << "v1:" << iv[0].index_ << ", position: " << value<Vec4>(nm, sphere_info, iv[0]) <<"\n"<<
+// 					", v2: " << iv[1].index_ << ", position " << value<Vec4>(nm, sphere_info, iv[1]) << "\n"
+// 						  << ", sphere_optimal: " << opt << "\n"
+// 						  << " dist1 : " << dist1
+// 						  << ", dist 2: "
+// 						  << dist2
+// 						  << std::endl;
+// 				
+// 			}
+			
+			
 			value<EdgeInfo>(nm, edge_queue_it, e) = {
 				true, 
 				queue.emplace(cost_opt,e)};
@@ -768,15 +792,19 @@ public:
 				//recompute the cost of the edge
 				Vec4 opt = helper.edge_optimal(ie);
 				value<Vec4>(nm, sphere_opt, ie) = opt;
+				double dist1 = (value<Vec4>(nm, sphere_info, v1) - opt).norm();
+				double dist2 = (value<Vec4>(nm, sphere_info, v2) - opt).norm();
 				double cost = helper.edge_cost(ie, opt);
 				double cost_opt =
 					(cost + k) * value<double>(nm, stability_ratio, ie) * value<double>(nm, stability_ratio, ie);
-				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(cost, ie)};
+				//double cost_opt = 1 / value<double>(nm, stability_ratio, ie);
+				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(cost_opt, ie)};
+				
 				return true;
 			});
 			++count;
 		}
-
+		std::cout << "-----------------------------" << std::endl;
 		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
 			value<Vec3>(nm, position, v) = value<Vec4>(nm, sphere_info, v).head<3>();
 			return true;
@@ -786,9 +814,9 @@ public:
 		remove_attribute<NonManifoldVertex>(nm, sphere_info);
 		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
 		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
-		remove_attribute<NonManifoldEdge>(nm, stability_ratio);
-		remove_attribute<NonManifoldEdge>(nm, stability_color);
-
+		//remove_attribute<NonManifoldEdge>(nm, stability_ratio);
+		//remove_attribute<NonManifoldEdge>(nm, stability_color);
+		remove_attribute<NonManifoldFace>(nm, slab_normals);
 	
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
@@ -1002,11 +1030,13 @@ protected:
 				compute_original_power_diagram(*selected_surface_mesh_);
 			if (selected_medial_axis)
 			{
+				if (ImGui::Button("Compute stability ratio"))
+					compute_stability_ratio(*selected_medial_axis);
 				static int32 vertices_to_remove = 1; 
-				static float k = 0.00001f;
+				static float k = 1e-5;
 				ImGui::SliderInt("Vertices to delete", &vertices_to_remove, 1,
 								 nb_cells<NonManifoldVertex>(*selected_medial_axis));
-				ImGui::DragFloat("K", &k, 0.00001f, 0.0f, 1.0f, "%.5f"); 
+				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
 				 if (ImGui::Button("QMAT"))
 				{
 					collapse_non_manifold_using_QMat(*selected_medial_axis,

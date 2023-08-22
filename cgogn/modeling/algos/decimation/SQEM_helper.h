@@ -52,18 +52,19 @@ struct DecimationSQEM_Helper
 	using Slab_Quadric = typename geometry::Slab_Quadric;
 
 	DecimationSQEM_Helper(NONMANIFOLD& m, std::shared_ptr<Attribute<Vec4>>& sphere_info,
-						  std::shared_ptr<Attribute<Slab_Quadric>> sphere_quadric
-						  )
-		: m_(m), sphere_info_(sphere_info), sphere_quadric_(sphere_quadric)
+						  std::shared_ptr<Attribute<Slab_Quadric>>& sphere_quadric,
+		std::shared_ptr<Attribute<std::pair<Vec4,Vec4>>>& slab_normals)
+		: m_(m), sphere_info_(sphere_info), sphere_quadric_(sphere_quadric), slab_normals_(slab_normals)
 	{
 		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
 			value<Slab_Quadric>(m_, sphere_quadric_, v).clear();
 			return true;
 		});
 		foreach_cell(m_, [&](Face f) -> bool {
-			Vec4 n1, n2;
-			if (slab_normal(f, n1, n2))
+			Vec4 n1 = Vec4(0,0,0,1), n2 = Vec4(0,0,0,1);
+			if (slab_normal(f, n1, n2) && n1!= Vec4(0,0,0,1) && n2!= Vec4(0,0,0,1))
 			{
+				value<std::pair<Vec4, Vec4>>(m_, slab_normals_, f) = {n1, n2};
 				std::vector<Vertex> iv = incident_vertices(m_, f);
 				Slab_Quadric q1(value<Vec4>(m_, sphere_info_, iv[0]), value<Vec4>(m_, sphere_info_, iv[1]),
 								value<Vec4>(m_, sphere_info_, iv[2]), n1, n2);
@@ -159,8 +160,20 @@ struct DecimationSQEM_Helper
 			Vec3 n2_vec3 = -n * cangle - c1inter * sangle;
 			n1_vec3.normalize();
 			n2_vec3.normalize();
-			n1 = Vec4(n1_vec3[0], n1_vec3[1], n1_vec3[2], 1);
-			n2 = Vec4(n2_vec3[0], n2_vec3[1], n2_vec3[2], 1);
+			Vec3 v11 = c1 + r1 * n1_vec3;
+			Vec3 v12 = c2 + r2 * n1_vec3;
+			Vec3 v13 = c3 + r3 * n1_vec3;
+
+			Vec3 nv1 = (v12- v11).cross(v13-v11).normalized();
+
+			Vec3 v21 = c1 + r1 * n2_vec3;
+			Vec3 v22 = c2 + r2 * n2_vec3;
+			Vec3 v23 = c3 + r3 * n2_vec3;
+
+			Vec3 nv2 = (v22 - v21).cross(v23 - v21).normalized() * -1;
+
+			n1 = Vec4(nv1[0], nv1[1], nv1[2], 1);
+			n2 = Vec4(nv2[0], nv2[1], nv2[2], 1);
 		}
 		return true;
 	}
@@ -211,7 +224,7 @@ struct DecimationSQEM_Helper
 	NONMANIFOLD& m_;
 	std::shared_ptr<Attribute<Vec4>> sphere_info_;
 	std::shared_ptr<Attribute<Slab_Quadric>> sphere_quadric_;
-
+	std::shared_ptr <Attribute<std::pair<Vec4, Vec4>>> slab_normals_;
 
 };
 
