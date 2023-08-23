@@ -107,10 +107,10 @@ inline void replace_vertex_in_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, I
 		(*ig.edge_incident_vertices_)[e.index_].first = new_vertex;
 	if ((*ig.edge_incident_vertices_)[e.index_].second == old_vertex)
 		(*ig.edge_incident_vertices_)[e.index_].second = new_vertex;
-// 	(*ig.vertex_incident_edges_)[old_vertex.index_].erase(std::find((*ig.vertex_incident_edges_)[old_vertex.index_].begin(),
-// 																			 (*ig.vertex_incident_edges_)[old_vertex.index_].end(),
-// 																			 e));
-// 	(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(e);
+	// 	(*ig.vertex_incident_edges_)[old_vertex.index_].erase(std::find((*ig.vertex_incident_edges_)[old_vertex.index_].begin(),
+	// 																			 (*ig.vertex_incident_edges_)[old_vertex.index_].end(),
+	// 																			 e));
+	// 	(*ig.vertex_incident_edges_)[new_vertex.index_].push_back(e);
 }
 
 inline void replace_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, IncidenceGraph::Edge old_edge,
@@ -122,10 +122,10 @@ inline void replace_edge_in_face(IncidenceGraph& ig, IncidenceGraph::Face f, Inc
 	auto eit = std::find(edges.begin(), edges.end(), old_edge);
 	if (eit != edges.end())
 		*eit = new_edge;
-// 	(*ig.edge_incident_faces_)[old_edge.index_].erase(std::find((*ig.edge_incident_faces_)[old_edge.index_].begin(),
-// 																					 (*ig.edge_incident_faces_)[old_edge.index_].end(),
-// 																					 f));
-// 	(*ig.edge_incident_faces_)[new_edge.index_].push_back(f);
+	// 	(*ig.edge_incident_faces_)[old_edge.index_].erase(std::find((*ig.edge_incident_faces_)[old_edge.index_].begin(),
+	// 																					 (*ig.edge_incident_faces_)[old_edge.index_].end(),
+	// 																					 f));
+	// 	(*ig.edge_incident_faces_)[new_edge.index_].push_back(f);
 }
 
 inline IncidenceGraph::Vertex common_vertex(IncidenceGraph& ig, IncidenceGraph::Edge e0, IncidenceGraph::Edge e1)
@@ -160,6 +160,40 @@ inline std::vector<IncidenceGraph::Vertex> sorted_face_vertices(IncidenceGraph& 
 	return sorted_vertices;
 }
 
-} // namespace cgogn
+template <typename CELL>
+inline bool is_boundary(const IncidenceGraph& ig, CELL c)
+{
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this IncidenceGraph");
+	static_assert(!std::is_same_v<CELL, IncidenceGraph::Face>, "IncidenceGraph face doesn't have boundary information");
+
+	if constexpr (std::is_same_v<CELL, IncidenceGraph::Vertex>)
+	{
+		return (*ig.vertex_boundary_marker_)[c.CELL_INDEX] != 0u;
+	}
+	else if constexpr (std::is_same_v<CELL, IncidenceGraph::Edge>)
+	{
+		return (*ig.edge_boundary_marker_)[c.CELL_INDEX] != 0u;
+	}
+}
+
+template <typename CELL>
+inline void set_boundary(const IncidenceGraph& ig, CELL c, bool b)
+{
+	static_assert(is_in_tuple<CELL, mesh_traits<IncidenceGraph>::Cells>::value,
+				  "CELL not supported in this IncidenceGraph");
+	static_assert(!std::is_same_v<CELL, IncidenceGraph::Face>, "IncidenceGraph face doesn't have boundary information");
+
+	if constexpr (std::is_same_v<CELL, IncidenceGraph::Vertex>)
+	{
+		(*ig.vertex_boundary_marker_)[c.CELL_INDEX] = b ? 1u : 0u;
+	}
+	else if constexpr (std::is_same_v<CELL, IncidenceGraph::Edge>)
+	{
+		(*ig.edge_boundary_marker_)[c.CELL_INDEX] = b ? 1u : 0u;
+	}
+}
+}
+ // namespace cgogn
 
 #endif // CGOGN_CORE_INCIDENCE_GRAPH_OPS_H_

@@ -89,7 +89,7 @@ class PowerShape : public Module
 	using NonManifoldAttribute = typename mesh_traits<NONMANIFOLD>::template Attribute<T>;
 	template <typename T>
 	using SurfaceAttribute = typename mesh_traits<SURFACE>::template Attribute<T>;
-	using PointVertex = typename mesh_traits<POINT>::Vertex; 
+	using PointVertex = typename mesh_traits<POINT>::Vertex;
 	using NonManifoldVertex = typename mesh_traits<NONMANIFOLD>::Vertex;
 	using NonManifoldEdge = typename mesh_traits<NONMANIFOLD>::Edge;
 	using NonManifoldFace = typename mesh_traits<NONMANIFOLD>::Face;
@@ -103,8 +103,7 @@ class PowerShape : public Module
 	using Scalar = geometry::Scalar;
 
 public:
-	PowerShape(const App& app)
-		: Module(app, "PowerShape"), selected_surface_mesh_(nullptr)
+	PowerShape(const App& app) : Module(app, "PowerShape"), selected_surface_mesh_(nullptr)
 	{
 	}
 	~PowerShape()
@@ -112,7 +111,6 @@ public:
 	}
 
 private:
-	
 	struct point_hash
 	{
 		std::size_t operator()(const Point& p) const
@@ -147,7 +145,6 @@ private:
 	}
 
 public:
-
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
 		cgogn::io::PointImportData samples;
@@ -162,7 +159,7 @@ public:
 		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
-		double offset = (md.bb_max_ - md.bb_min_).norm() *20.0;
+		double offset = (md.bb_max_ - md.bb_min_).norm() * 20.0;
 		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
@@ -215,7 +212,7 @@ public:
 					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
 		return tri;
 	}
-	
+
 	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, NONMANIFOLD* mv)
 	{
 		std::vector<double> vector_sphere_radius;
@@ -239,11 +236,11 @@ public:
 				vertex_count++;
 			}
 		}
-		//Add edges
+		// Add edges
 		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++fit)
 		{
 			Delaunay::Object o = tri.dual(*fit);
-			
+
 			if (const Delaunay::Segment* s = CGAL::object_cast<Delaunay::Segment>(&o))
 			{
 				Point p1 = s->point(0);
@@ -259,11 +256,13 @@ public:
 		}
 		bool all_finite_inside;
 		std::vector<Delaunay::Cell_handle> incells;
-		for (auto eit = tri.finite_edges_begin(); eit != tri.finite_edges_end(); ++eit) {
+		for (auto eit = tri.finite_edges_begin(); eit != tri.finite_edges_end(); ++eit)
+		{
 			all_finite_inside = true;
 			incells.clear();
 			Delaunay::Cell_circulator cc = tri.incident_cells(*eit);
-			do {
+			do
+			{
 				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
 				{
 					all_finite_inside = false;
@@ -285,22 +284,21 @@ public:
 				uint32 ev1 = vertex_indices[cell_vertex_correspondence[c1]];
 				uint32 ev2 = vertex_indices[cell_vertex_correspondence[c2]];
 				// Check if the edge is already added
-				if (edge_indices.find({ev1,ev2})!=edge_indices.end())
+				if (edge_indices.find({ev1, ev2}) != edge_indices.end())
 					continue;
 				Initial_non_manifold.edges_vertex_indices_.push_back(ev1);
 				Initial_non_manifold.edges_vertex_indices_.push_back(ev2);
-				edge_indices.insert({{ev1,ev2}, edge_count});
+				edge_indices.insert({{ev1, ev2}, edge_count});
 				edge_count++;
-
 			}
 			for (size_t k = 1; k < incells.size() - 1; ++k)
 			{
 				uint32 v1 = vertex_indices[cell_vertex_correspondence[incells[0]]];
 				uint32 v2 = vertex_indices[cell_vertex_correspondence[incells[k]]];
 				uint32 v3 = vertex_indices[cell_vertex_correspondence[incells[k + 1]]];
-				uint32 e1 = edge_indices[{v1,v2}];
-				uint32 e2 = edge_indices[{v2,v3}];
-				uint32 e3 = edge_indices[{v3,v1}];
+				uint32 e1 = edge_indices[{v1, v2}];
+				uint32 e2 = edge_indices[{v2, v3}];
+				uint32 e3 = edge_indices[{v3, v1}];
 				Initial_non_manifold.faces_nb_edges_.push_back(3);
 				Initial_non_manifold.faces_edge_indices_.push_back(e1);
 				Initial_non_manifold.faces_edge_indices_.push_back(e2);
@@ -311,7 +309,7 @@ public:
 		uint32 Initial_non_manifold_nb_edges = Initial_non_manifold.edges_vertex_indices_.size() / 2;
 		uint32 Initial_non_manifold_nb_faces = Initial_non_manifold.faces_nb_edges_.size();
 		Initial_non_manifold.set_parameter(Initial_non_manifold_nb_vertices, Initial_non_manifold_nb_edges,
-											 Initial_non_manifold_nb_faces);
+										   Initial_non_manifold_nb_faces);
 
 		import_incidence_graph_data(*mv, Initial_non_manifold);
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
@@ -319,7 +317,7 @@ public:
 		{
 			(*sphere_raidus)[it->second] = vector_sphere_radius[it->second];
 		}
-	
+
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
 			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
 		if (mv_vertex_position)
@@ -365,7 +363,7 @@ public:
 		Point farthest_inside_point, farthest_outside_point;
 		double farthest_inside_distance, farthest_outside_distance;
 		std::unordered_set<Point, point_hash> poles;
-		 // Use for the construction of medial axis
+		// Use for the construction of medial axis
 		std::vector<Delaunay::Cell_handle> cells;
 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
 		{
@@ -413,7 +411,6 @@ public:
 					}
 				}
 			}
-			
 		}
 	}
 	/* void construct_complete_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
@@ -461,7 +458,7 @@ public:
 					}
 				}
 			}
-			
+
 		}
 		uint32 complete_power_nb_vertices = Complete_Power_shape_data.vertex_position_.size();
 		uint32 complete_power_nb_edges = Complete_Power_shape_data.edges_vertex_indices_.size() / 2;
@@ -477,7 +474,7 @@ public:
 			uint32 vertex_id = point_info[i].first;
 			// The radius is sqrt of the weight!
 			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
-			
+
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -516,17 +513,16 @@ public:
 			inside = eit->first->vertex(v_ind1)->info().second && eit->first->vertex(v_ind2)->info().second;
 			if (inside)
 			{
-				//Add edge
+				// Add edge
 				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
 				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
-				edge_indices.insert({{v1, v2}, edge_count}); 
+				edge_indices.insert({{v1, v2}, edge_count});
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
 				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
 				edge_count++;
-				
 			}
 		}
-	
+
 		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
 		{
 			inside = true;
@@ -574,7 +570,7 @@ public:
 				uint32 vertex_id = inside_indices[point_info[i].first];
 				// The radius is sqrt of the weight!
 				(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
-				//std::cout<< "vertex id: " << vertex_id << " radius: " << (*sphere_raidus)[vertex_id] << std::endl;
+				// std::cout<< "vertex id: " << vertex_id << " radius: " << (*sphere_raidus)[vertex_id] << std::endl;
 			}
 		}
 
@@ -585,12 +581,13 @@ public:
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
-	
+
 	void compute_power_shape(SURFACE& surface)
 	{
 		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_power_shape");
-		//NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_complete_power_shape");
+		// NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) +
+		// "_complete_power_shape");
 		Cgal_Surface_mesh csm;
 
 		std::string filename = surface_provider_->mesh_filename(surface);
@@ -603,24 +600,25 @@ public:
 				return;
 			}
 		}
-		//mesh_normalisation(csm);
+		// mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-// 		std::vector<Weight_Point> Power_point;
-// 		std::vector<std::pair<uint32, bool>> Point_info;
-// 		std::unordered_map<uint32, uint32> Inside_indices;
-// 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
-		//constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
+		// 		std::vector<Weight_Point> Power_point;
+		// 		std::vector<std::pair<uint32, bool>> Point_info;
+		// 		std::unordered_map<uint32, uint32> Inside_indices;
+		// 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
+		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
-		//construct_complete_power_diagram(mp, Power_point, Point_info);
+		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	void compute_original_power_diagram(SURFACE& surface)
 	{
 		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_medial_axis");
-		//NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_complete_medial_axis");
+		// NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) +
+		// "_complete_medial_axis");
 		Cgal_Surface_mesh csm;
 
 		std::string filename = surface_provider_->mesh_filename(surface);
@@ -633,17 +631,17 @@ public:
 				return;
 			}
 		}
-		//mesh_normalisation(csm);
+		// mesh_normalisation(csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
-		Delaunay tri = compute_delaunay_tredrahedron(surface,csm, tree);
-// 		std::vector<Weight_Point> Power_point;
-// 		std::vector<std::pair<uint32, bool>> Point_info;
-// 		std::unordered_map<uint32, uint32> Inside_indices;
-// 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
+		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
+		// 		std::vector<Weight_Point> Power_point;
+		// 		std::vector<std::pair<uint32, bool>> Point_info;
+		// 		std::unordered_map<uint32, uint32> Inside_indices;
+		// 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
- 		//constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
-		//construct_complete_power_diagram(mp, Power_point, Point_info);
+		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
+		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
 	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
@@ -651,12 +649,11 @@ public:
 		return (point - center).norm() <= radius;
 	}
 
-	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e, 
-		std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
+	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e,
+									  std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
 									  std::shared_ptr<NonManifoldAttribute<Vec3>>& stability_color,
 									  std::shared_ptr<NonManifoldAttribute<double>>& sphere_radius,
-									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position
-		)
+									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position)
 	{
 		auto iv = incident_vertices(nm, e);
 		NonManifoldVertex v1 = iv[0];
@@ -680,14 +677,14 @@ public:
 		}
 	}
 
- 	void compute_stability_ratio(NONMANIFOLD& nm)
+	void compute_stability_ratio(NONMANIFOLD& nm)
 	{
 		auto stability_ratio = add_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
-		parallel_foreach_cell(nm, [&](NonManifoldEdge e) -> bool { 
-			compute_stability_ratio_edge(nm, e,stability_ratio, stability_color, sphere_radius, position);
+		parallel_foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
+			compute_stability_ratio_edge(nm, e, stability_ratio, stability_color, sphere_radius, position);
 			return true;
 		});
 	}

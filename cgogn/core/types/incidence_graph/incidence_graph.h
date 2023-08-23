@@ -139,6 +139,8 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 
 	mutable std::array<AttributeContainer, 3> attribute_containers_;
 
+	MarkAttribute* vertex_boundary_marker_;
+	MarkAttribute* edge_boundary_marker_;
 	std::shared_ptr<Attribute<std::vector<Edge>>> vertex_incident_edges_;
 	std::shared_ptr<Attribute<std::pair<Vertex, Vertex>>> edge_incident_vertices_;
 	std::shared_ptr<Attribute<std::vector<Face>>> edge_incident_faces_;
@@ -157,8 +159,12 @@ struct CGOGN_CORE_EXPORT IncidenceGraph
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 		face_incident_edges_dir_ =
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
+		vertex_boundary_marker_ = attribute_containers_[Vertex::CELL_INDEX].get_mark_attribute();
+		edge_boundary_marker_ = attribute_containers_[Edge::CELL_INDEX].get_mark_attribute();
 	};
 	// ~IncidenceGraph();
+
+	
 };
 
 template <>
