@@ -27,13 +27,9 @@ public:
 		double r3 = p3[3];
 		double d1 = (c2 - c1).norm();
 		double d2 = (c3 - c1).norm();
-		_A = 2*(n1 * n1.transpose()) +2* (n2 * n2.transpose());
-		/*	_b = -2 * _A * p1;
-			_c = p1.transpose() * _A * p1;*/
-		double n1mp = n1.dot(p1);
-		double n2mp = n2.dot(p1);
-		_b = -2 * n1 * n1mp - 2 * n2 * n2mp;
-		_c = n1mp * n1mp + n2mp * n2mp;
+		_A = (n1 * n1.transpose()) +(n2 * n2.transpose());
+		_b = -2 * _A * p1;
+		_c = p1.transpose() * _A * p1;
 	}
 
 	Slab_Quadric& operator=(const Slab_Quadric& q)
@@ -52,22 +48,19 @@ public:
 		return *this;
 	}
 	
-	Slab_Quadric& operator+(const Slab_Quadric& q) const
+	friend Slab_Quadric operator+(Slab_Quadric lhs, Slab_Quadric& rhs)
 	{
-		Slab_Quadric sq;
-		sq._A = _A + q._A;
-		sq._b = _b + q._b;
-		sq._c = _c + q._c;
-		return sq;
+		lhs += rhs;
+		return lhs;
 	}
 
 	inline Scalar eval(const Vec4& center) const
 	{
-		Scalar cost = 0.5*center.transpose() * _A * center;
+		Scalar cost = center.transpose() * _A * center;
 		cost += _b.transpose() * center;
 		cost += _c;
 		return cost;
-		// return center.transpose() * _A * center + _b.transpose() * center + _c;
+		/*return center.transpose() * _A * center + _b.transpose() * center + _c;*/
 	}
 
 	bool optimized(Vec4& v)
@@ -78,7 +71,7 @@ public:
 		bool invertible;
 		m.computeInverseAndDetWithCheck(inverse, determinant, invertible, 0.01);
 		if (invertible)
-			v = inverse * _b ;
+			v = inverse * _b *0.5;
 		return invertible;
 	}
 

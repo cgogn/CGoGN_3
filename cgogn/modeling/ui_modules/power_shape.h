@@ -32,6 +32,7 @@
 #include <cgogn\modeling\algos\decimation\SQEM_helper.h>
 #include <cgogn/io/point/point_import.h>
 #include <cgogn/geometry/types/slab_quadric.h>
+#include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 // import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Delaunay_triangulation_cell_base_3.h>
@@ -49,7 +50,7 @@
 #include <CGAL/optimal_bounding_box.h>
 #include <CGAL/Bbox_3.h>
 #include <Highs.h>
-
+#include <iomanip>
 namespace cgogn
 {
 
@@ -145,6 +146,21 @@ private:
 	}
 
 public:
+	void detect_boundary_cells(NONMANIFOLD& nm)
+	{
+		parallel_foreach_cell(nm, [&](NonManifoldVertex v) {
+			auto ie = incident_edges(nm, v);
+			auto iface = incident_faces(nm, v);
+			set_boundary(nm, v, ie.size() == 1 && iface.size() == 0);
+			return true;
+		});
+		parallel_foreach_cell(nm, [&](NonManifoldEdge e) {
+			auto iface = incident_faces(nm, e);
+			set_boundary(nm, e, iface.size() == 1);
+			return true;
+		});
+	}
+
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
 	{
 		cgogn::io::PointImportData samples;
@@ -179,11 +195,11 @@ public:
 			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
 		// 	Add bounding box vertices in the sample points set
-		for (auto& p : cube_corners)
-		{
-			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
-			//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
-		}
+		//for (auto& p : cube_corners)
+		//{
+		//	Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+		//	//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
+		//}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
 		for (auto& s : mesh_samples)
@@ -247,10 +263,13 @@ public:
 				Point p2 = s->point(1);
 				if (pointInside(tree, p1) && pointInside(tree, p2))
 				{
-					Initial_non_manifold.edges_vertex_indices_.push_back(vertex_indices[p1]);
-					Initial_non_manifold.edges_vertex_indices_.push_back(vertex_indices[p2]);
-					edge_indices.insert({{vertex_indices[p1], vertex_indices[p2]}, edge_count});
+					uint32 p1_index = vertex_indices[p1];
+					uint32 p2_index = vertex_indices[p2];
+					Initial_non_manifold.edges_vertex_indices_.push_back(p1_index);
+					Initial_non_manifold.edges_vertex_indices_.push_back(p2_index);
+					edge_indices.insert({{p1_index, p2_index}, edge_count});
 					edge_count++;
+					
 				}
 			}
 		}
@@ -263,12 +282,12 @@ public:
 			Delaunay::Cell_circulator cc = tri.incident_cells(*eit);
 			do
 			{
-				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
+				if (tri.is_infinite(cc) )
 				{
 					all_finite_inside = false;
 					break;
 				}
-				if (!pointInside(tree, cell_vertex_correspondence[cc]))
+				else if (!pointInside(tree, cell_vertex_correspondence[cc]))
 				{
 					all_finite_inside = false;
 					break;
@@ -284,12 +303,14 @@ public:
 				uint32 ev1 = vertex_indices[cell_vertex_correspondence[c1]];
 				uint32 ev2 = vertex_indices[cell_vertex_correspondence[c2]];
 				// Check if the edge is already added
-				if (edge_indices.find({ev1, ev2}) != edge_indices.end())
-					continue;
-				Initial_non_manifold.edges_vertex_indices_.push_back(ev1);
-				Initial_non_manifold.edges_vertex_indices_.push_back(ev2);
-				edge_indices.insert({{ev1, ev2}, edge_count});
-				edge_count++;
+				if (edge_indices.find({ev1, ev2}) == edge_indices.end() &&
+					edge_indices.find({ev2, ev1}) == edge_indices.end())
+				{
+					Initial_non_manifold.edges_vertex_indices_.push_back(ev1);
+					Initial_non_manifold.edges_vertex_indices_.push_back(ev2);
+					edge_indices.insert({{ev1, ev2}, edge_count});
+					edge_count++;
+				}
 			}
 			for (size_t k = 1; k < incells.size() - 1; ++k)
 			{
@@ -313,9 +334,11 @@ public:
 
 		import_incidence_graph_data(*mv, Initial_non_manifold);
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
+		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(*mv, "sphere_info");
 		for (auto it = vertex_indices.begin(); it != vertex_indices.end(); ++it)
 		{
 			(*sphere_raidus)[it->second] = vector_sphere_radius[it->second];
+			(*sphere_info)[it->second] = Vec4(it->first.x(), it->first.y(), it->first.z(), vector_sphere_radius[it->second]);
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -563,6 +586,7 @@ public:
 
 		import_incidence_graph_data(*mv, Inner_Power_shape_data);
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
+		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(*mv, "sphere_info");
 		for (uint32 i = 0u; i < power_point.size(); ++i)
 		{
 			if (point_info[i].second)
@@ -570,6 +594,8 @@ public:
 				uint32 vertex_id = inside_indices[point_info[i].first];
 				// The radius is sqrt of the weight!
 				(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
+				(*sphere_info)[vertex_id] = Vec4(power_point[i].x(), power_point[i].y(), power_point[i].z(),
+																	  power_point[i].weight());
 				// std::cout<< "vertex id: " << vertex_id << " radius: " << (*sphere_raidus)[vertex_id] << std::endl;
 			}
 		}
@@ -601,6 +627,7 @@ public:
 			}
 		}
 		// mesh_normalisation(csm);
+		
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
@@ -610,6 +637,7 @@ public:
 		// 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
 		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
+		detect_boundary_cells(*mv);
 		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
@@ -632,6 +660,7 @@ public:
 			}
 		}
 		// mesh_normalisation(csm);
+
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
@@ -640,6 +669,7 @@ public:
 		// 		std::unordered_map<uint32, uint32> Inside_indices;
 		// 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
+		detect_boundary_cells(*mv);
 		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
 		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
@@ -652,20 +682,24 @@ public:
 	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e,
 									  std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
 									  std::shared_ptr<NonManifoldAttribute<Vec3>>& stability_color,
-									  std::shared_ptr<NonManifoldAttribute<double>>& sphere_radius,
-									  std::shared_ptr<NonManifoldAttribute<Vec3>>& position)
+									  std::shared_ptr<NonManifoldAttribute<Vec4>>& sphere_info)
 	{
 		auto iv = incident_vertices(nm, e);
 		NonManifoldVertex v1 = iv[0];
 		NonManifoldVertex v2 = iv[1];
-		const Vec3& v1_p = value<Vec3>(nm, position, v1);
-		const Vec3& v2_p = value<Vec3>(nm, position, v2);
-		const double& r1 = value<double>(nm, sphere_radius, v1);
-		const double& r2 = value<double>(nm, sphere_radius, v2);
+		const Vec3& v1_p = value<Vec4>(nm, sphere_info, v1).head<3>();
+		const Vec3& v2_p = value<Vec4>(nm, sphere_info, v2).head<3>();
+		const double& r1 = value<Vec4>(nm, sphere_info, v1).w();
+		const double& r2 = value<Vec4>(nm, sphere_info, v2).w();
 		const double center_dist = (v1_p - v2_p).norm();
 		double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+		if (center_dist == 0.0)
+		{
+			(*stability_ratio)[e.index_] = 0.0;
+			(*stability_color)[e.index_] = Vec3(0, 0, 0.5);
+			return;
+		}
 		double stability = dis / center_dist;
-		// std::cout << "Edge: " << e.index_ << ", Stability ratio: " << stability << std::flush;
 		(*stability_ratio)[e.index_] = stability;
 		if (stability <= 0.5)
 		{
@@ -681,10 +715,10 @@ public:
 	{
 		auto stability_ratio = add_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto stability_color = add_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
+		auto sphere_info =
+			get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info"); // {center, radius} = {x, y, z, r}
 		parallel_foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
-			compute_stability_ratio_edge(nm, e, stability_ratio, stability_color, sphere_radius, position);
+			compute_stability_ratio_edge(nm, e, stability_ratio, stability_color, sphere_info);
 			return true;
 		});
 	}
@@ -700,24 +734,16 @@ public:
 		uint32 count = 0;
 		EdgeQueue queue;
 
-		
-		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
-		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
+		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "non_manifold_edge_queue_it");
 		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
-		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "__slab_quadric");
+		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "slab_quadric");
 		auto slab_normals = add_attribute<std::pair<Vec4, Vec4>, NonManifoldFace>(nm, "slab_normals");
+
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
-		
-		//build sphere info
-		foreach_cell(nm,
-					 [&](NonManifoldVertex v) {
-						 Vec3 p = value<Vec3>(nm, position, v);
-			value<Vec4>(nm, sphere_info, v) = Vec4(p[0], p[1], p[2], value<double>(nm,sphere_radius,v));
-			return true;
-		});
+		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		QMatHelper helper(nm, sphere_info, slab_quadric,slab_normals); 
 		
 		//Initialize the queue with all the edges and their cost
@@ -732,30 +758,16 @@ public:
 			double cost = helper.edge_cost(e, opt);
 			double cost_opt =
 				(cost + k) * value<double>(nm, stability_ratio, e) * value<double>(nm, stability_ratio, e);
-			//double cost_opt = 1 / value<double>(nm, stability_ratio, e);
-// 			if (cost>1)
-// 			{
-// 				foreach_incident_face(nm, e, [&](NonManifoldFace iface) {
-// 					std::cout << "n1: " << value<std::pair<Vec4, Vec4>>(nm, slab_normals, iface).first
-// 							  << ", n2: " << value<std::pair<Vec4, Vec4>>(nm, slab_normals, iface).second << std::endl;
-// 					return true;
-// 				});
-// 				std::cout << cost << std::endl;
-// 				std::cout << "v1:" << iv[0].index_ << ", position: " << value<Vec4>(nm, sphere_info, iv[0]) <<"\n"<<
-// 					", v2: " << iv[1].index_ << ", position " << value<Vec4>(nm, sphere_info, iv[1]) << "\n"
-// 						  << ", sphere_optimal: " << opt << "\n"
-// 						  << " dist1 : " << dist1
-// 						  << ", dist 2: "
-// 						  << dist2
-// 						  << std::endl;
-// 				
-// 			}
-			
+			//double cost_opt = value<double>(nm, stability_ratio, e);
+			/*std::cout << std::fixed;
+			std::cout  << "cost: " << std::setprecision(9)<< cost;
+			std::cout << ", cost optimal: " << std::setprecision(9) <<cost_opt;
+			std::cout << ", stability ratio: " << std::setprecision(9)<< value<double>(nm, stability_ratio, e) <<
+			std::endl;*/
 			
 			value<EdgeInfo>(nm, edge_queue_it, e) = {
 				true, 
 				queue.emplace(cost_opt,e)};
-		
 			return true;
 		});
 
@@ -784,7 +796,7 @@ public:
 			//recompute the cost of the edges incident to v and update the queue
 			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
 
-				compute_stability_ratio_edge(nm, e, stability_ratio, stability_color, sphere_radius, position);
+				compute_stability_ratio_edge(nm, ie, stability_ratio, stability_color,sphere_info);
 
 				//recompute the cost of the edge
 				Vec4 opt = helper.edge_optimal(ie);
@@ -794,7 +806,7 @@ public:
 				double cost = helper.edge_cost(ie, opt);
 				double cost_opt =
 					(cost + k) * value<double>(nm, stability_ratio, ie) * value<double>(nm, stability_ratio, ie);
-				//double cost_opt = 1 / value<double>(nm, stability_ratio, ie);
+				//double cost_opt =  value<double>(nm, stability_ratio, ie);
 				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(cost_opt, ie)};
 				
 				return true;
@@ -804,15 +816,13 @@ public:
 		std::cout << "-----------------------------" << std::endl;
 		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
 			value<Vec3>(nm, position, v) = value<Vec4>(nm, sphere_info, v).head<3>();
+			value<double>(nm, sphere_radius, v) = value<Vec4>(nm, sphere_info, v).w();
 			return true;
 		});
 
 		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
-		remove_attribute<NonManifoldVertex>(nm, sphere_info);
 		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
 		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
-		//remove_attribute<NonManifoldEdge>(nm, stability_ratio);
-		//remove_attribute<NonManifoldEdge>(nm, stability_color);
 		remove_attribute<NonManifoldFace>(nm, slab_normals);
 	
 		nonmanifold_provider_->emit_connectivity_changed(nm);
