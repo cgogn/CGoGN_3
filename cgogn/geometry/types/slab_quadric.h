@@ -15,28 +15,52 @@ public:
 		_A.setZero();
 		_b.setZero();
 		_c = 0;
+		_add_A.setZero();
+		_add_b.setZero();
+		_add_c = 0;
 	}
 
- 	inline Slab_Quadric(const Vec4& p1, const Vec4& p2, const Vec4& p3, const Vec4& n1, const Vec4&n2 )
+ 	inline Slab_Quadric(const Vec4& p1, const Vec4& p2, const Vec4& p3, const Vec4& n1, const Vec4& n2,
+						bool boundary = false)
 	{
-		Vec3 c1 = p1.head<3>();
-		Vec3 c2 = p2.head<3>();
-		Vec3 c3 = p3.head<3>();
-		double r1 = p1[3];
-		double r2 = p2[3];
-		double r3 = p3[3];
-		double d1 = (c2 - c1).norm();
-		double d2 = (c3 - c1).norm();
-		_A = (n1 * n1.transpose()) +(n2 * n2.transpose());
-		_b = -2 * _A * p1;
-		_c = p1.transpose() * _A * p1;
+		if (!boundary)
+		{
+			_A = (n1 * n1.transpose()) + (n2 * n2.transpose());
+			_b = -2 * _A * p1;
+			_c = p1.transpose() * _A * p1;
+			_add_A.setZero();
+			_add_b.setZero();
+			_add_c = 0;
+		}
+		else
+		{
+			_A.setZero();
+			_b.setZero();
+			_c = 0;
+			_add_A = (n1 * n1.transpose()) + (n2 * n2.transpose());
+			_add_b = -2 * _A * p1;
+			_add_c = p1.transpose() * _A * p1;
+		}
 	}
 
+	inline Slab_Quadric(const Vec4& p1, const Vec4& n1, double stability_ratio)
+	{
+		_A.setZero();
+		_b.setZero();
+		_c = 0;
+		_add_A = n1 * n1.transpose() * 0.1 * stability_ratio*stability_ratio;
+		_add_b = -2 * _A * p1;
+		_add_c = p1.transpose() * _A * p1;
+		
+	}
 	Slab_Quadric& operator=(const Slab_Quadric& q)
 	{
 		_A = q._A;
 		_b = q._b;
 		_c = q._c;
+		_add_A = q._add_A;
+		_add_b = q._add_b;
+		_add_c = q._add_c;
 		return *this;
 	}
 
@@ -45,6 +69,9 @@ public:
 		_A += q._A;
 		_b += q._b;
 		_c += q._c;
+		_add_A += q._add_A;
+		_add_b += q._add_b;
+		_add_c += q._add_c;
 		return *this;
 	}
 	
@@ -56,9 +83,9 @@ public:
 
 	inline Scalar eval(const Vec4& center) const
 	{
-		Scalar cost = center.transpose() * _A * center;
-		cost += _b.transpose() * center;
-		cost += _c;
+		Scalar cost = center.transpose() * (_A + _add_A) * center;
+		cost += (_b + _add_b).transpose() * center;
+		cost += _c + _add_c;
 		return cost;
 		/*return center.transpose() * _A * center + _b.transpose() * center + _c;*/
 	}
@@ -79,12 +106,18 @@ public:
 		_A.setZero();
 		_b.setZero();
 		_c = 0;
-	}
+		_add_A.setZero();
+		_add_b.setZero();
+		_add_c = 0;
+ 	}
 
 private:
 	Mat4 _A;
 	Vec4 _b;
-	Scalar _c=0;
+	Scalar _c;
+	Mat4 _add_A;
+	Vec4 _add_b;
+	Scalar _add_c;
 };
 } // namespace geometry
 } // namespace cgogn

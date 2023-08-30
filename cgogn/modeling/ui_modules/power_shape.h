@@ -744,8 +744,9 @@ public:
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
-		QMatHelper helper(nm, sphere_info, slab_quadric,slab_normals); 
-		
+		QMatHelper helper(nm, sphere_info, slab_quadric, slab_normals, stability_ratio); 
+		helper.initial_slab_mesh();
+		helper.initial_boundary_mesh();
 		//Initialize the queue with all the edges and their cost
 		foreach_cell(nm, [&](NonManifoldEdge e) -> bool{ 
 			auto iv = incident_vertices(nm, e);
