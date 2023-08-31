@@ -1,7 +1,7 @@
 #ifndef CGOGN_GEOMETRY_TYPES_SLAB_QUADRIC_H_
 #define CGOGN_GEOMETRY_TYPES_SLAB_QUADRIC_H_
 #include <cgogn/geometry/types/vector_traits.h>
-
+#include <cgogn/modeling/algos/decimation/SQEM_helper.h>
 namespace cgogn
 {
 
@@ -9,6 +9,7 @@ namespace geometry
 {
 class Slab_Quadric
 {
+
 public:
 	inline Slab_Quadric()
 	{
@@ -83,11 +84,10 @@ public:
 
 	inline Scalar eval(const Vec4& center) const
 	{
-		Scalar cost = center.transpose() * (_A + _add_A) * center;
-		cost += (_b + _add_b).transpose() * center;
-		cost += _c + _add_c;
+		Scalar cost = center.transpose() * _A* center;
+		cost += _b .transpose() * center;
+		cost += _c ;
 		return cost;
-		/*return center.transpose() * _A * center + _b.transpose() * center + _c;*/
 	}
 
 	bool optimized(Vec4& v)
@@ -109,12 +109,12 @@ public:
 		_add_A.setZero();
 		_add_b.setZero();
 		_add_c = 0;
- 	}
+	}
 
-private:
+
 	Mat4 _A;
 	Vec4 _b;
-	Scalar _c;
+	Scalar _c = 0;
 	Mat4 _add_A;
 	Vec4 _add_b;
 	Scalar _add_c;

@@ -700,15 +700,9 @@ public:
 			return;
 		}
 		double stability = dis / center_dist;
-		(*stability_ratio)[e.index_] = stability;
-		if (stability <= 0.5)
-		{
-			(*stability_color)[e.index_] = Vec3(0, stability, (0.5 - stability));
-		}
-		else
-		{
-			(*stability_color)[e.index_] = Vec3(stability - 0.5, (1 - stability), 0);
-		}
+		value<double>(nm, stability_ratio,e) = stability;
+		value<Vec3>(nm, stability_color, e) =
+			(stability <= 0.5) ? Vec3(0, stability, (0.5 - stability)) : Vec3(stability - 0.5, (1 - stability), 0);
 	}
 
 	void compute_stability_ratio(NONMANIFOLD& nm)
@@ -725,107 +719,26 @@ public:
 
 	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase, float k)
 	{
-		using EdgeQueue = std::multimap<Scalar, NonManifoldEdge>;
-		using EdgeQueueIt = typename EdgeQueue::const_iterator;
 		
-		using EdgeInfo = std::pair<bool, EdgeQueueIt>; // {valid, iterator}
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 		using Slab_Quadric = geometry::Slab_Quadric;
-		uint32 count = 0;
-		EdgeQueue queue;
-
-		auto edge_queue_it = add_attribute<EdgeInfo, NonManifoldEdge>(nm, "non_manifold_edge_queue_it");
-		auto sphere_opt = add_attribute<Vec4, NonManifoldEdge>(nm, "sphere_opt");
-		auto slab_quadric = add_attribute<Slab_Quadric, NonManifoldVertex>(nm, "slab_quadric");
-		auto slab_normals = add_attribute<std::pair<Vec4, Vec4>, NonManifoldFace>(nm, "slab_normals");
-
+		
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
 		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
-		QMatHelper helper(nm, sphere_info, slab_quadric, slab_normals, stability_ratio); 
+		QMatHelper helper(k,nm, position, sphere_info, stability_color, stability_ratio); 
 		helper.initial_slab_mesh();
 		helper.initial_boundary_mesh();
-		//Initialize the queue with all the edges and their cost
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool{ 
-			auto iv = incident_vertices(nm, e);
-			
-			Vec4 opt = helper.edge_optimal(e);
-			value<Vec4>(nm, sphere_opt, e) = opt;
-			
-			double dist1 = (value<Vec4>(nm, sphere_info, iv[0]) - opt).norm();
-			double dist2 = (value<Vec4>(nm, sphere_info, iv[1]) - opt).norm();
-			double cost = helper.edge_cost(e, opt);
-			double cost_opt =
-				(cost + k) * value<double>(nm, stability_ratio, e) * value<double>(nm, stability_ratio, e);
-			//double cost_opt = value<double>(nm, stability_ratio, e);
-			/*std::cout << std::fixed;
-			std::cout  << "cost: " << std::setprecision(9)<< cost;
-			std::cout << ", cost optimal: " << std::setprecision(9) <<cost_opt;
-			std::cout << ", stability ratio: " << std::setprecision(9)<< value<double>(nm, stability_ratio, e) <<
-			std::endl;*/
-			
-			value<EdgeInfo>(nm, edge_queue_it, e) = {
-				true, 
-				queue.emplace(cost_opt,e)};
-			return true;
-		});
-
-		 while (!queue.empty() && count < number_vertices_erase)
-		{
-			auto it = queue.begin();
-			NonManifoldEdge e = (*it).second;
-			queue.erase(it);
-			value<EdgeInfo>(nm, edge_queue_it, e).first = false;
-
-			auto iv = incident_vertices(nm, e);
-			NonManifoldVertex v1 = iv[0];
-			NonManifoldVertex v2 = iv[1];
-			Slab_Quadric quad = value<Slab_Quadric>(nm, slab_quadric, v1) + value<Slab_Quadric>(nm, slab_quadric, v2);
-			
-			auto [v, removed_edges] = collapse_edge_qmat(nm, e);
-			value<Vec4>(nm, sphere_info, v) = value<Vec4>(nm, sphere_opt, e);
-			value<Slab_Quadric>(nm, slab_quadric, v) = quad;
-			for (NonManifoldEdge re : removed_edges)
-			{
-				EdgeInfo einfo = value<EdgeInfo>(nm, edge_queue_it, re);
-				if (einfo.first)
-					queue.erase(einfo.second);
-			}
-
-			//recompute the cost of the edges incident to v and update the queue
-			foreach_incident_edge(nm, v, [&](NonManifoldEdge ie) -> bool {
-
-				compute_stability_ratio_edge(nm, ie, stability_ratio, stability_color,sphere_info);
-
-				//recompute the cost of the edge
-				Vec4 opt = helper.edge_optimal(ie);
-				value<Vec4>(nm, sphere_opt, ie) = opt;
-				double dist1 = (value<Vec4>(nm, sphere_info, v1) - opt).norm();
-				double dist2 = (value<Vec4>(nm, sphere_info, v2) - opt).norm();
-				double cost = helper.edge_cost(ie, opt);
-				double cost_opt =
-					(cost + k) * value<double>(nm, stability_ratio, ie) * value<double>(nm, stability_ratio, ie);
-				//double cost_opt =  value<double>(nm, stability_ratio, ie);
-				value<EdgeInfo>(nm, edge_queue_it, ie) = {true, queue.emplace(cost_opt, ie)};
-				
-				return true;
-			});
-			++count;
-		}
-		std::cout << "-----------------------------" << std::endl;
+		helper.initial_collapse_queue();
+		helper.simplify(number_vertices_erase);
 		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
 			value<Vec3>(nm, position, v) = value<Vec4>(nm, sphere_info, v).head<3>();
 			value<double>(nm, sphere_radius, v) = value<Vec4>(nm, sphere_info, v).w();
 			return true;
 		});
-
-		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
-		remove_attribute<NonManifoldEdge>(nm, sphere_opt);
-		remove_attribute<NonManifoldVertex>(nm, slab_quadric);
-		remove_attribute<NonManifoldFace>(nm, slab_normals);
-	
+		
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
@@ -956,7 +869,6 @@ public:
 			
 			assert(status == HighsStatus::kOk);
 			solution = highs.getSolution();
-			
 
  			/*Eigen::VectorXd x = Eigen::VectorXd::Zero(A.cols());
 			
@@ -972,35 +884,35 @@ public:
 			}
 			std::cout << std::endl;
 			std::cout << "compare " << std::endl;
-			std::cout << A * x << std::endl;*/
-			// Get the primal solution values
+			std::cout << A * x << std::endl;
+			 Get the primal solution values
 			
-// 			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
-// 			foreach_cell(*ca, [&](NonManifoldVertex v) { 
-// 				value<double>(*ca, sphere_radius, v) += dilation_factor;
-// 				return true;
-// 			});
+ 			auto ca_sphere_radius = get_attribute<double, NonManifoldVertex>(*ca, "sphere_radius");
+ 			foreach_cell(*ca, [&](NonManifoldVertex v) { 
+ 				value<double>(*ca, sphere_radius, v) += dilation_factor;
+ 				return true;
+ 			});
 
-// 			auto ca_sphere_center = get_attribute<Vec3, NonManifoldVertex>(*ca, "position");
-// 			uint32 outside_count = 0;
-// 			foreach_cell(surface, [&](Vertex v) { 
-// 				Vec3 pos = value<Vec3>(surface, sample_position, v);
-// 				bool inside = false;
-// 				foreach_cell(*ca, [&](NonManifoldVertex nv) {
-// 					Vec3 capos = value<Vec3>(*ca, ca_sphere_center, nv);
-// 					double radius = value<double>(*ca, ca_sphere_radius, nv);
-// 					inside |= inside_sphere(pos, capos, radius);
-// 					return true;
-// 				});
-// 				if (!inside)
-// 				{
-// 					outside_count++;
-// 					std::cout << "Fault! " << outside_count << std::endl;
-// 				}
-// 					return true;
-// 			});
+ 			auto ca_sphere_center = get_attribute<Vec3, NonManifoldVertex>(*ca, "position");
+ 			uint32 outside_count = 0;
+ 			foreach_cell(surface, [&](Vertex v) { 
+ 				Vec3 pos = value<Vec3>(surface, sample_position, v);
+ 				bool inside = false;
+ 				foreach_cell(*ca, [&](NonManifoldVertex nv) {
+ 					Vec3 capos = value<Vec3>(*ca, ca_sphere_center, nv);
+ 					double radius = value<double>(*ca, ca_sphere_radius, nv);
+ 					inside |= inside_sphere(pos, capos, radius);
+ 					return true;
+ 				});
+ 				if (!inside)
+ 				{
+ 					outside_count++;
+ 					std::cout << "Fault! " << outside_count << std::endl;
+ 				}
+ 					return true;
+ 			});
 
-			//construct_complete_power_diagram(ca_complet, power_point, point_info);
+			construct_complete_power_diagram(ca_complet, power_point, point_info);*/
 		}
 		return solution;
 	}
