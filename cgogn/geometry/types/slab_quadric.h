@@ -26,9 +26,11 @@ public:
 	{
 		if (!boundary)
 		{
-			_A = (n1 * n1.transpose()) + (n2 * n2.transpose());
-			_b = -2 * _A * p1;
-			_c = p1.transpose() * _A * p1;
+			_A = 2*((n1 * n1.transpose()) + (n2 * n2.transpose()));
+			double nmp1 = n1.dot(p1);
+			double nmp2 = n2.dot(p2);
+			_b = n1 * 2 * nmp1 + n2 * 2 * nmp2;
+			_c = nmp1 * nmp1 + nmp2 * nmp2;
 			_add_A.setZero();
 			_add_b.setZero();
 			_add_c = 0;
@@ -38,9 +40,11 @@ public:
 			_A.setZero();
 			_b.setZero();
 			_c = 0;
-			_add_A = (n1 * n1.transpose()) + (n2 * n2.transpose());
-			_add_b = -2 * _A * p1;
-			_add_c = p1.transpose() * _A * p1;
+			_add_A = 2 * ((n1 * n1.transpose()) + (n2 * n2.transpose()));
+			double nmp1 = n1.dot(p1);
+			double nmp2 = n2.dot(p2);
+			_add_b = n1 * 2 * nmp1 + n2 * 2 * nmp2;
+			_add_c = nmp1 * nmp1 + nmp2 * nmp2;
 		}
 	}
 
@@ -49,10 +53,10 @@ public:
 		_A.setZero();
 		_b.setZero();
 		_c = 0;
-		_add_A = n1 * n1.transpose() * 0.1 * stability_ratio*stability_ratio;
-		_add_b = -2 * _A * p1;
-		_add_c = p1.transpose() * _A * p1;
-		
+		_add_A = 2* n1 * n1.transpose() * 0.1 * stability_ratio*stability_ratio;
+		double nmp1 = n1.dot(p1);
+		_add_b = n1 * 2 * nmp1 * 0.1 * stability_ratio*stability_ratio;
+		_add_c = nmp1*nmp1*0.1 * stability_ratio*stability_ratio;
 	}
 	Slab_Quadric& operator=(const Slab_Quadric& q)
 	{
@@ -84,10 +88,11 @@ public:
 
 	inline Scalar eval(const Vec4& center) const
 	{
-		Scalar cost = center.transpose() * _A* center;
+		/*Scalar cost = center.transpose() * _A* center;
 		cost += _b .transpose() * center;
-		cost += _c ;
-		return cost;
+		cost += _c ;*/
+
+		return 0.5*(center.transpose()*_A).dot(center) - _b.dot(center) +_c;
 	}
 
 	bool optimized(Vec4& v)
@@ -98,7 +103,7 @@ public:
 		bool invertible;
 		m.computeInverseAndDetWithCheck(inverse, determinant, invertible, 0.01);
 		if (invertible)
-			v = inverse * _b *0.5;
+			v = inverse * _b;
 		return invertible;
 	}
 

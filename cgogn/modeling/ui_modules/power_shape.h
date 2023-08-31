@@ -157,6 +157,7 @@ public:
 		parallel_foreach_cell(nm, [&](NonManifoldEdge e) {
 			auto iface = incident_faces(nm, e);
 			set_boundary(nm, e, iface.size() == 1);
+				
 			return true;
 		});
 	}
@@ -195,11 +196,11 @@ public:
 			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
 		// 	Add bounding box vertices in the sample points set
-		//for (auto& p : cube_corners)
-		//{
-		//	Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
-		//	//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
-		//}
+		for (auto& p : cube_corners)
+		{
+			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+			//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
+		}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
 		for (auto& s : mesh_samples)
@@ -269,7 +270,6 @@ public:
 					Initial_non_manifold.edges_vertex_indices_.push_back(p2_index);
 					edge_indices.insert({{p1_index, p2_index}, edge_count});
 					edge_count++;
-					
 				}
 			}
 		}
@@ -282,7 +282,7 @@ public:
 			Delaunay::Cell_circulator cc = tri.incident_cells(*eit);
 			do
 			{
-				if (tri.is_infinite(cc) )
+				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
 				{
 					all_finite_inside = false;
 					break;
@@ -338,7 +338,8 @@ public:
 		for (auto it = vertex_indices.begin(); it != vertex_indices.end(); ++it)
 		{
 			(*sphere_raidus)[it->second] = vector_sphere_radius[it->second];
-			(*sphere_info)[it->second] = Vec4(it->first.x(), it->first.y(), it->first.z(), vector_sphere_radius[it->second]);
+			(*sphere_info)[it->second] =
+				Vec4(it->first.x(), it->first.y(), it->first.z(), vector_sphere_radius[it->second]);
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -637,7 +638,6 @@ public:
 		// 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
 		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
-		detect_boundary_cells(*mv);
 		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
@@ -669,7 +669,7 @@ public:
 		// 		std::unordered_map<uint32, uint32> Inside_indices;
 		// 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
-		detect_boundary_cells(*mv);
+		
 		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
 		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
@@ -719,7 +719,6 @@ public:
 
 	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase, float k)
 	{
-		
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 		using Slab_Quadric = geometry::Slab_Quadric;
 		
@@ -728,16 +727,11 @@ public:
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
-		QMatHelper helper(k,nm, position, sphere_info, stability_color, stability_ratio); 
+		QMatHelper helper(k, nm, position, sphere_info, stability_color, stability_ratio, sphere_radius); 
 		helper.initial_slab_mesh();
 		helper.initial_boundary_mesh();
 		helper.initial_collapse_queue();
 		helper.simplify(number_vertices_erase);
-		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
-			value<Vec3>(nm, position, v) = value<Vec4>(nm, sphere_info, v).head<3>();
-			value<double>(nm, sphere_radius, v) = value<Vec4>(nm, sphere_info, v).w();
-			return true;
-		});
 		
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());

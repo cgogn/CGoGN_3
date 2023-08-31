@@ -131,14 +131,6 @@ void CGOGN_CORE_EXPORT disconnect_vertices(Graph& g, Graph::Edge e, bool set_ind
 
 void CGOGN_CORE_EXPORT merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indices = true);
 
-//////////////
-// Gerneric //
-//////////////
-template <typename MESH>
-bool edge_has_vertex(MESH& m, typename mesh_traits<MESH>::Edge e, typename mesh_traits<MESH>::Vertex v);
-
-template <typename MESH>
-bool face_has_vertex(MESH& ig, typename mesh_traits<MESH>::Face f, typename mesh_traits<MESH>::Vertex v);
 
 } // namespace cgogn
 

@@ -354,25 +354,6 @@ void merge_vertices(Graph& g, Graph::Vertex v1, Graph::Vertex v2, bool set_indic
 	}
 }
 
-//////////////
-// Gerneric //
-//////////////
-template <typename MESH>
-bool edge_has_vertex(MESH& m, typename mesh_traits<MESH>::Edge e, typename mesh_traits<MESH>::Vertex v)
-{
-	auto [v1, v2] = incident_vertices(m, e);
-	return index_of(m, v1) == index_of(m, v) || index_of(m, v2) == index_of(m, v);
-}
 
-template <typename MESH>
-bool face_has_vertex(MESH& ig, typename mesh_traits<MESH>::Face f, typename mesh_traits<MESH>::Vertex v)
-{
-	bool find = false;
-	foreach_incident_edge(ig, f, [&](IncidenceGraph::Edge e) {
-		find |= edge_has_vertex(ig, e, v);
-		return true;
-	});
-	return find;
-}
 
 } // namespace cgogn
