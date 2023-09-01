@@ -133,7 +133,7 @@ private:
 		bool operator()(const std::pair<uint32, uint32>& edge1, const std::pair<uint32, uint32>& edge2) const
 		{
 			return ((edge1.first == edge2.first && edge1.second == edge2.second) ||
-					(edge1.first == edge2.second && edge1.second == edge2.first));
+				(edge1.first == edge2.second && edge1.second == edge2.first));
 		}
 	};
 	bool pointInside(Tree& tree, Point& query)
@@ -153,13 +153,13 @@ public:
 			auto iface = incident_faces(nm, v);
 			set_boundary(nm, v, ie.size() == 1 && iface.size() == 0);
 			return true;
-		});
+			});
 		parallel_foreach_cell(nm, [&](NonManifoldEdge e) {
 			auto iface = incident_faces(nm, e);
 			set_boundary(nm, e, iface.size() == 1);
-				
+
 			return true;
-		});
+			});
 	}
 
 	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
@@ -173,11 +173,11 @@ public:
 		{
 			acc += K::Vector_3(obb_points[i].x(), obb_points[i].y(), obb_points[i].z());
 		}
-		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
+		std::array<double, 3> center{ acc.x() / 8, acc.y() / 8, acc.z() / 8 };
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
 		double offset = (md.bb_max_ - md.bb_min_).norm() * 20.0;
-		std::array<double, 3> offset_array = {offset, offset, offset};
+		std::array<double, 3> offset_array = { offset, offset, offset };
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
 			 {center[0] - offset_array[0], center[1] - offset_array[1], center[2] + offset_array[2]},
@@ -186,13 +186,13 @@ public:
 			 {center[0] + offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
 			 {center[0] + offset_array[0], center[1] - offset_array[1], center[2] + offset_array[2]},
 			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] - offset_array[2]},
-			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] + offset_array[2]}}};
+			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] + offset_array[2]}} };
 
 		// Sampling the mesh surface
 		std::vector<Point> mesh_samples;
 		CGAL::Polygon_mesh_processing::sample_triangle_mesh(
 			csm, std::back_inserter(mesh_samples),
-		    //CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(50));
+			//CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(50));
 			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
 		// 	Add bounding box vertices in the sample points set
@@ -225,6 +225,11 @@ public:
 		if (position)
 			point_provider_->set_mesh_bb_vertex_position(*surface_sample, position);
 		// Construct delauney tredrahedron using CGAL
+		std::set<Point> set_points(Delaunay_tri_point.begin(), Delaunay_tri_point.end());
+		if (set_points.size() != Delaunay_tri_point.size())
+		{
+			std::cout << "Delaunay_tri_point has duplicate points" << std::endl;
+		}
 		Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
 					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
 		return tri;
@@ -236,23 +241,23 @@ public:
 		cgogn::io::IncidenceGraphImportData Initial_non_manifold;
 		std::unordered_map<Point, uint32, point_hash> vertex_indices;
 		std::unordered_map<Delaunay::Cell_handle, Point> cell_vertex_correspondence;
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-
+		std::unordered_map<std::pair<uint32, uint32>, size_t, edge_hash, edge_equal> edge_indices;
+		
 		uint32 vertex_count = 0, edge_count = 0;
 		// Add vertices
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
-			Point centroid = CGAL::circumcenter(tri.tetrahedron(cit));
+			Point centroid = tri.dual(cit);
 			double radius = CGAL::squared_distance(centroid, cit->vertex(0)->point());
 			if (pointInside(tree, centroid))
 			{
 				Initial_non_manifold.vertex_position_.emplace_back(centroid[0], centroid[1], centroid[2]);
-				vertex_indices.insert({centroid, vertex_count});
+				vertex_indices.insert({centroid, vertex_indices.size()});
 				cell_vertex_correspondence.insert({cit, centroid});
 				vector_sphere_radius.push_back(std::sqrt(radius));
-				vertex_count++;
 			}
 		}
+		
 		// Add edges
 		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++fit)
 		{
@@ -260,6 +265,7 @@ public:
 
 			if (const Delaunay::Segment* s = CGAL::object_cast<Delaunay::Segment>(&o))
 			{
+				
 				Point p1 = s->point(0);
 				Point p2 = s->point(1);
 				if (pointInside(tree, p1) && pointInside(tree, p2))
@@ -268,64 +274,84 @@ public:
 					uint32 p2_index = vertex_indices[p2];
 					Initial_non_manifold.edges_vertex_indices_.push_back(p1_index);
 					Initial_non_manifold.edges_vertex_indices_.push_back(p2_index);
-					edge_indices.insert({{p1_index, p2_index}, edge_count});
-					edge_count++;
+					edge_indices.insert({{p1_index, p2_index}, edge_indices.size()});
 				}
 			}
 		}
 		bool all_finite_inside;
-		std::vector<Delaunay::Cell_handle> incells;
+		
+		std::unordered_set<Point,point_hash> sp;
 		for (auto eit = tri.finite_edges_begin(); eit != tri.finite_edges_end(); ++eit)
 		{
 			all_finite_inside = true;
-			incells.clear();
-			Delaunay::Cell_circulator cc = tri.incident_cells(*eit);
-			do
-			{
-				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
+			sp.clear();
+ 			Delaunay::Cell_circulator& cc = tri.incident_cells(*eit);
+ 			do
+ 			{
+ 				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
+ 				{
+ 					all_finite_inside = false;
+ 					break;
+ 				}
+ 				else if (!pointInside(tree, cell_vertex_correspondence[cc]))
+ 				{
+ 					all_finite_inside = false;
+ 					break;
+ 				}
+				if (sp.find(tri.dual(cc)) == sp.end())
 				{
-					all_finite_inside = false;
-					break;
+					std::cout << "find redundant cell" << std::endl;
 				}
-				else if (!pointInside(tree, cell_vertex_correspondence[cc]))
-				{
-					all_finite_inside = false;
-					break;
-				}
-				incells.push_back(cc);
-			} while (++cc != tri.incident_cells(*eit));
+				sp.insert(cell_vertex_correspondence[cc]);
+				cc++;
+			} while (cc != tri.incident_cells(*eit));
 			if (!all_finite_inside)
 				continue;
-			for (size_t k = 2; k < incells.size() - 1; ++k)
+			std::vector<Point> incells(sp.begin(), sp.end());
+			for (size_t k = 2; k < incells.size() - 1; k++)
 			{
-				auto c1 = incells[0];
-				auto c2 = incells[k];
-				uint32 ev1 = vertex_indices[cell_vertex_correspondence[c1]];
-				uint32 ev2 = vertex_indices[cell_vertex_correspondence[c2]];
+				uint32 ev1 = vertex_indices[incells[0]];
+				uint32 ev2 = vertex_indices[incells[k]];
 				// Check if the edge is already added
-				if (edge_indices.find({ev1, ev2}) == edge_indices.end() &&
-					edge_indices.find({ev2, ev1}) == edge_indices.end())
+				if (edge_indices.find({ev1, ev2}) == edge_indices.end()&&edge_indices.find({
+					ev2,ev1})==edge_indices.end())
 				{
 					Initial_non_manifold.edges_vertex_indices_.push_back(ev1);
 					Initial_non_manifold.edges_vertex_indices_.push_back(ev2);
-					edge_indices.insert({{ev1, ev2}, edge_count});
-					edge_count++;
+					edge_indices.insert({{ev1, ev2}, edge_indices.size()});
 				}
 			}
-			for (size_t k = 1; k < incells.size() - 1; ++k)
+			for (size_t k = 1; k < incells.size() - 1; k++)
 			{
-				uint32 v1 = vertex_indices[cell_vertex_correspondence[incells[0]]];
-				uint32 v2 = vertex_indices[cell_vertex_correspondence[incells[k]]];
-				uint32 v3 = vertex_indices[cell_vertex_correspondence[incells[k + 1]]];
-				uint32 e1 = edge_indices[{v1, v2}];
-				uint32 e2 = edge_indices[{v2, v3}];
-				uint32 e3 = edge_indices[{v3, v1}];
+				uint32 v1 = vertex_indices[incells[0]];
+				uint32 v2 = vertex_indices[incells[k]];
+				uint32 v3 = vertex_indices[incells[k+1]];
+				uint32 e1, e2, e3;
+				
+
+				e1 = edge_indices[{v1, v2}];
+				e2 = edge_indices[{v2, v3}];
+				e3 = edge_indices[{v3, v1}];
+				
+				if (e1 == e2 || e2 == e3 || e1 == e3)
+				{
+					std::cout << "incell size: " << incells.size() << ", k+1: " << k + 1 << std::endl;
+					for (auto& c : incells)
+					{
+						std::cout << "c: " << c.x() << " " << c.y() << " " << c.z()
+								  << std::endl;
+					}
+					
+					std::cout << "e1: " << e1 << ", e2: " << e2 << ", e3: " << e3 << std::endl;
+					std::cout << "v1: " << v1 << ", v2: " << v2 << ", v3: " << v3 << std::endl;
+				}
 				Initial_non_manifold.faces_nb_edges_.push_back(3);
 				Initial_non_manifold.faces_edge_indices_.push_back(e1);
 				Initial_non_manifold.faces_edge_indices_.push_back(e2);
 				Initial_non_manifold.faces_edge_indices_.push_back(e3);
 			}
 		}
+		
 		uint32 Initial_non_manifold_nb_vertices = Initial_non_manifold.vertex_position_.size();
 		uint32 Initial_non_manifold_nb_edges = Initial_non_manifold.edges_vertex_indices_.size() / 2;
 		uint32 Initial_non_manifold_nb_faces = Initial_non_manifold.faces_nb_edges_.size();
@@ -333,6 +359,24 @@ public:
 										   Initial_non_manifold_nb_faces);
 
 		import_incidence_graph_data(*mv, Initial_non_manifold);
+
+		/*foreach_cell(*mv, [&](NonManifoldFace f) {
+			
+			auto ifv = incident_vertices(*mv, f);
+			std::set<NonManifoldVertex> sv(ifv.begin(), ifv.end());
+			if (sv.size() != 3)
+			{
+				std::cout << "face: " << index_of(*mv, f) << " is not a triangle" << std::endl;
+				for (NonManifoldVertex ifaceiiv : ifv)
+				{
+					std::cout << " vertex: " << index_of(*mv, ifaceiiv) << ", ";
+				}
+				std::cout << std::endl;
+			}
+			std::cout << "-------------------------" << std::endl;
+			return true;
+			});*/
+
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(*mv, "sphere_info");
 		for (auto it = vertex_indices.begin(); it != vertex_indices.end(); ++it)
