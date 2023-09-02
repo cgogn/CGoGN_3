@@ -35,7 +35,7 @@
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 // import CGAL
 #include <CGAL/Delaunay_triangulation_3.h>
-#include <CGAL/Delaunay_triangulation_cell_base_3.h>
+#include <CGAL/Triangulation_cell_base_with_info_3.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/IO/read_off_points.h>
 #include <CGAL/Object.h>
@@ -61,24 +61,48 @@ template <typename POINT, typename SURFACE, typename NONMANIFOLD>
 class PowerShape : public Module
 {
 	static_assert(mesh_traits<SURFACE>::dimension >= 2, "PowerShape can only be used with meshes of dimension >= 2");
-
 	// Kernel for construct Delaunay
 	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-	using Vb = CGAL::Triangulation_vertex_base_with_info_3<uint32_t, K>;
+	using Point = K::Point_3;
+	using Weight_Point = K::Weighted_point_3;
+
+	class VertexInfo
+	{
+	public:
+		Point inside_pole;
+		Point outside_pole;
+		double inside_pole_distance = 0.0;
+		double outside_pole_distance = 0.0;
+	};
+
+	class DelaunayCellInfo
+	{
+	public:
+		uint32 id = -1;
+		bool inside = false;
+		Point centroid;
+		double radius2;//radius square
+	};
+	class RegularVertexInfo
+	{
+	public:
+		bool inside = false;
+		uint32 id = -1;
+	};
+
+	using Vb = CGAL::Triangulation_vertex_base_with_info_3<VertexInfo, K>;
 	// Delaunay
-	using Cb = CGAL::Delaunay_triangulation_cell_base_3<K>;
+	using Cb = CGAL::Triangulation_cell_base_with_info_3<DelaunayCellInfo,K>;
 	using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 	using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
 	// Regular
 	using Vb0 = CGAL::Regular_triangulation_vertex_base_3<K>;
-	using RVb = CGAL::Triangulation_vertex_base_with_info_3<std::pair<uint32_t, bool>, K, Vb0>;
+	using RVb = CGAL::Triangulation_vertex_base_with_info_3<RegularVertexInfo, K, Vb0>;
 	using RCb = CGAL::Regular_triangulation_cell_base_3<K>;
 	using RTds = CGAL::Triangulation_data_structure_3<RVb, RCb>;
 	using Regular = CGAL::Regular_triangulation_3<K, RTds, CGAL::Fast_location>;
-
-	using Point = K::Point_3;
-	using Weight = K::FT;
-	using Weight_Point = K::Weighted_point_3;
+	
+	
 
 	using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
 	using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
@@ -136,6 +160,10 @@ private:
 				(edge1.first == edge2.second && edge1.second == edge2.first));
 		}
 	};
+	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
+	{
+		return (point - center).norm() <= radius;
+	}
 	bool pointInside(Tree& tree, Point& query)
 	{
 		// Initialize the point-in-polyhedron tester
@@ -145,27 +173,41 @@ private:
 		return inside_tester(query) == CGAL::ON_BOUNDED_SIDE;
 	}
 
-public:
-	void detect_boundary_cells(NONMANIFOLD& nm)
+	void load_model_in_cgal(SURFACE& surface, Cgal_Surface_mesh& csm)
 	{
-		parallel_foreach_cell(nm, [&](NonManifoldVertex v) {
-			auto ie = incident_edges(nm, v);
-			auto iface = incident_faces(nm, v);
-			set_boundary(nm, v, ie.size() == 1 && iface.size() == 0);
-			return true;
-			});
-		parallel_foreach_cell(nm, [&](NonManifoldEdge e) {
-			auto iface = incident_faces(nm, e);
-			set_boundary(nm, e, iface.size() == 1);
-
-			return true;
-			});
+		std::string filename = surface_provider_->mesh_filename(surface);
+		if (!filename.empty())
+		{
+			std::ifstream input(filename);
+			if (!input || !(input >> csm))
+			{
+				std::cerr << "Error: input file could not be read" << std::endl;
+				return;
+			}
+		}
 	}
 
-	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
+public:
+/*
+ 	void detect_boundary_cells(NONMANIFOLD& nm)
+ 	{
+ 		parallel_foreach_cell(nm, [&](NonManifoldVertex v) {
+ 			auto ie = incident_edges(nm, v);
+ 			auto iface = incident_faces(nm, v);
+ 			set_boundary(nm, v, ie.size() == 1 && iface.size() == 0);
+ 			return true;
+ 			});
+ 		parallel_foreach_cell(nm, [&](NonManifoldEdge e) {
+ 			auto iface = incident_faces(nm, e);
+ 			set_boundary(nm, e, iface.size() == 1);
+ 
+ 			return true;
+ 			});
+ 	}
+*/
+
+	std::array<std::array<double, 3>, 8> compute_big_box(SURFACE &surface, Cgal_Surface_mesh& csm)
 	{
-		cgogn::io::PointImportData samples;
-		std::vector<Point> Delaunay_tri_point;
 		std::array<Point, 8> obb_points;
 		Point acc(0, 0, 0);
 		CGAL::oriented_bounding_box(csm, obb_points, CGAL::parameters::use_convex_hull(true));
@@ -173,11 +215,11 @@ public:
 		{
 			acc += K::Vector_3(obb_points[i].x(), obb_points[i].y(), obb_points[i].z());
 		}
-		std::array<double, 3> center{ acc.x() / 8, acc.y() / 8, acc.z() / 8 };
+		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
 		double offset = (md.bb_max_ - md.bb_min_).norm() * 20.0;
-		std::array<double, 3> offset_array = { offset, offset, offset };
+		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
 			 {center[0] - offset_array[0], center[1] - offset_array[1], center[2] + offset_array[2]},
@@ -186,8 +228,30 @@ public:
 			 {center[0] + offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
 			 {center[0] + offset_array[0], center[1] - offset_array[1], center[2] + offset_array[2]},
 			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] - offset_array[2]},
-			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] + offset_array[2]}} };
+			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] + offset_array[2]}}};
+		return cube_corners;
+	}
 
+	void plot_surface_samples(std::vector<Point>& mesh_samples)
+	{
+		cgogn::io::PointImportData samples;
+		uint32 nb_vertices = mesh_samples.size();
+		samples.reserve(nb_vertices);
+		for (auto& s : mesh_samples)
+		{
+			samples.vertex_position_.emplace_back(s[0], s[1], s[2]);
+		}
+		cgogn::io::import_point_data(*surface_sample_, samples);
+		auto position = get_attribute<Vec3, PointVertex>(*surface_sample_, "position");
+		if (position)
+			point_provider_->set_mesh_bb_vertex_position(*surface_sample_, position);
+	}
+
+	Delaunay compute_delaunay_tredrahedron(SURFACE& surface, Cgal_Surface_mesh& csm, Tree& tree)
+	{
+	
+		std::vector<Point> Delaunay_tri_point;
+		
 		// Sampling the mesh surface
 		std::vector<Point> mesh_samples;
 		CGAL::Polygon_mesh_processing::sample_triangle_mesh(
@@ -195,126 +259,116 @@ public:
 			//CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(50));
 			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
-		// 	Add bounding box vertices in the sample points set
-		for (auto& p : cube_corners)
-		{
-			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
-			//samples.vertex_position_.emplace_back(p[0], p[1], p[2]); //Only for debugging
-		}
+ 		/*std::array<std::array<double, 3>, 8> cube_corners = compute_big_box(surface, csm);
+ 		// 	Add bounding box vertices in the sample points set
+ 		for (auto& p : cube_corners)
+ 		{
+ 			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+ 		}*/
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
 		for (auto& s : mesh_samples)
 		{
 			Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
-			samples.vertex_position_.emplace_back(s[0], s[1], s[2]);
 		}
-		//uint32 nb_vertices = Delaunay_tri_point.size(); //Only for debugging
-		uint32 nb_vertices = mesh_samples.size();
+		
+		plot_surface_samples(mesh_samples);		
 
-		//		auto start_timer = std::chrono::high_resolution_clock::now();
-
-		// Indices info for constructing volume data in CGogn
-		std::vector<unsigned> indices;
-		indices.reserve(Delaunay_tri_point.size());
-		for (unsigned int i = 0; i < Delaunay_tri_point.size(); ++i)
-			indices.push_back(i);
-		//Collect point data
-		samples.reserve(nb_vertices);
-		cgogn::io::import_point_data(*surface_sample, samples);
-		auto position = get_attribute<Vec3, PointVertex>(*surface_sample, "position");
-		if (position)
-			point_provider_->set_mesh_bb_vertex_position(*surface_sample, position);
+		//auto start_timer = std::chrono::high_resolution_clock::now();
+		
 		// Construct delauney tredrahedron using CGAL
-		std::set<Point> set_points(Delaunay_tri_point.begin(), Delaunay_tri_point.end());
-		if (set_points.size() != Delaunay_tri_point.size())
+		int vertex_index = 0;
+		int inside_cell_index = 0;
+		int general_cell_index = 0;
+		Delaunay tri;
+		for (Point p : Delaunay_tri_point)
 		{
-			std::cout << "Delaunay_tri_point has duplicate points" << std::endl;
+			Delaunay::Vertex_handle cell= tri.insert(p);
+			
 		}
-		Delaunay tri(boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.begin(), indices.begin())),
-					 boost::make_zip_iterator(boost::make_tuple(Delaunay_tri_point.end(), indices.end())));
+		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
+		{
+			cit->info().id = -1;
+			cit->info().centroid = CGAL::circumcenter(tri.tetrahedron(cit));
+			cit->info().radius2 = CGAL::squared_distance(cit->info().centroid, cit->vertex(0)->point());
+			
+			if (pointInside(tree, cit->info().centroid))
+			{
+				cit->info().inside = true;
+				cit->info().id = inside_cell_index;
+				inside_cell_index++;
+			}
+			else
+			{
+				cit->info().inside = false;
+			}
+		}
 		return tri;
 	}
 
 	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, NONMANIFOLD* mv)
 	{
-		std::vector<double> vector_sphere_radius;
+		std::vector<double> sphere_radius;
+		std::vector<Point> sphere_center;
 		cgogn::io::IncidenceGraphImportData Initial_non_manifold;
-		std::unordered_map<Point, uint32, point_hash> vertex_indices;
-		std::unordered_map<Delaunay::Cell_handle, Point> cell_vertex_correspondence;
 		std::unordered_map<std::pair<uint32, uint32>, size_t, edge_hash, edge_equal> edge_indices;
 		
 		uint32 vertex_count = 0, edge_count = 0;
 		// Add vertices
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
-			Point centroid = tri.dual(cit);
-			double radius = CGAL::squared_distance(centroid, cit->vertex(0)->point());
-			if (pointInside(tree, centroid))
+			if (cit->info().inside)
 			{
+				Point centroid = cit->info().centroid;
+				double radius = std::sqrt(cit->info().radius2);
 				Initial_non_manifold.vertex_position_.emplace_back(centroid[0], centroid[1], centroid[2]);
-				vertex_indices.insert({centroid, vertex_indices.size()});
-				cell_vertex_correspondence.insert({cit, centroid});
-				vector_sphere_radius.push_back(std::sqrt(radius));
+				sphere_radius.push_back(radius);
+				sphere_center.push_back(centroid);
+			
 			}
 		}
-		
 		// Add edges
 		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++fit)
 		{
-			Delaunay::Object o = tri.dual(*fit);
-
-			if (const Delaunay::Segment* s = CGAL::object_cast<Delaunay::Segment>(&o))
-			{
-				
-				Point p1 = s->point(0);
-				Point p2 = s->point(1);
-				if (pointInside(tree, p1) && pointInside(tree, p2))
-				{
-					uint32 p1_index = vertex_indices[p1];
-					uint32 p2_index = vertex_indices[p2];
-					Initial_non_manifold.edges_vertex_indices_.push_back(p1_index);
-					Initial_non_manifold.edges_vertex_indices_.push_back(p2_index);
-					edge_indices.insert({{p1_index, p2_index}, edge_indices.size()});
-				}
+			if (fit->first->info().inside && tri.mirror_facet(*fit).first->info().inside){
+				uint32 v1_ind = fit->first->info().id;
+				uint32 v2_ind = tri.mirror_facet(*fit).first->info().id;
+				Initial_non_manifold.edges_vertex_indices_.push_back(v1_ind);
+				Initial_non_manifold.edges_vertex_indices_.push_back(v2_ind);
+				edge_indices.insert({{v1_ind, v2_ind}, edge_indices.size()});
 			}
 		}
 		bool all_finite_inside;
 		
-		std::unordered_set<Point,point_hash> sp;
+		std::vector<Delaunay::Cell_handle> incells;
 		for (auto eit = tri.finite_edges_begin(); eit != tri.finite_edges_end(); ++eit)
 		{
 			all_finite_inside = true;
-			sp.clear();
+			incells.clear();
  			Delaunay::Cell_circulator& cc = tri.incident_cells(*eit);
  			do
  			{
- 				if (tri.is_infinite(cc) || cell_vertex_correspondence.find(cc) == cell_vertex_correspondence.end())
+ 				if (tri.is_infinite(cc))
  				{
  					all_finite_inside = false;
  					break;
  				}
- 				else if (!pointInside(tree, cell_vertex_correspondence[cc]))
+ 				else if (cc->info().inside == false)
  				{
  					all_finite_inside = false;
  					break;
  				}
-				if (sp.find(tri.dual(cc)) == sp.end())
-				{
-					std::cout << "find redundant cell" << std::endl;
-				}
-				sp.insert(cell_vertex_correspondence[cc]);
+				incells.push_back(cc);
 				cc++;
 			} while (cc != tri.incident_cells(*eit));
 			if (!all_finite_inside)
 				continue;
-			std::vector<Point> incells(sp.begin(), sp.end());
 			for (size_t k = 2; k < incells.size() - 1; k++)
 			{
-				uint32 ev1 = vertex_indices[incells[0]];
-				uint32 ev2 = vertex_indices[incells[k]];
+				uint32 ev1 = incells[0]->info().id;
+				uint32 ev2 = incells[k]->info().id;
 				// Check if the edge is already added
-				if (edge_indices.find({ev1, ev2}) == edge_indices.end()&&edge_indices.find({
-					ev2,ev1})==edge_indices.end())
+				if (edge_indices.find({ev1, ev2}) == edge_indices.end())
 				{
 					Initial_non_manifold.edges_vertex_indices_.push_back(ev1);
 					Initial_non_manifold.edges_vertex_indices_.push_back(ev2);
@@ -323,25 +377,16 @@ public:
 			}
 			for (size_t k = 1; k < incells.size() - 1; k++)
 			{
-				uint32 v1 = vertex_indices[incells[0]];
-				uint32 v2 = vertex_indices[incells[k]];
-				uint32 v3 = vertex_indices[incells[k+1]];
+				uint32 v1 = incells[0]->info().id;
+				uint32 v2 = incells[k]->info().id;
+				uint32 v3 = incells[k+1]->info().id;
 				uint32 e1, e2, e3;
-				
-
 				e1 = edge_indices[{v1, v2}];
 				e2 = edge_indices[{v2, v3}];
 				e3 = edge_indices[{v3, v1}];
 				
 				if (e1 == e2 || e2 == e3 || e1 == e3)
 				{
-					std::cout << "incell size: " << incells.size() << ", k+1: " << k + 1 << std::endl;
-					for (auto& c : incells)
-					{
-						std::cout << "c: " << c.x() << " " << c.y() << " " << c.z()
-								  << std::endl;
-					}
-					
 					std::cout << "e1: " << e1 << ", e2: " << e2 << ", e3: " << e3 << std::endl;
 					std::cout << "v1: " << v1 << ", v2: " << v2 << ", v3: " << v3 << std::endl;
 				}
@@ -379,13 +424,12 @@ public:
 
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(*mv, "sphere_info");
-		for (auto it = vertex_indices.begin(); it != vertex_indices.end(); ++it)
+		for (size_t idx = 0; idx < sphere_center.size(); idx++)
 		{
-			(*sphere_raidus)[it->second] = vector_sphere_radius[it->second];
-			(*sphere_info)[it->second] =
-				Vec4(it->first.x(), it->first.y(), it->first.z(), vector_sphere_radius[it->second]);
+			(*sphere_raidus)[idx] = sphere_radius[idx];
+			(*sphere_info)[idx] =
+				Vec4(sphere_center[idx].x(), sphere_center[idx].y(), sphere_center[idx].z(), sphere_radius[idx]);
 		}
-
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
 			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
 		if (mv_vertex_position)
@@ -394,233 +438,117 @@ public:
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
 
-	void compute_inner_voronoi(Delaunay& tri, Tree& tree, std::vector<Weight_Point>& power_point,
-							   std::vector<std::pair<uint32, bool>>& point_info,
-							   std::unordered_map<uint32, uint32>& inside_indices)
+	Regular compute_regular_tredrahedron(Tree& tree, Delaunay& tri)
 	{
-		uint32 count = 0, inside_vertices_count = 0;
-		double dis;
-		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
-		{
-			Point centroid = CGAL::circumcenter(tri.tetrahedron(cit));
-			dis = CGAL::squared_distance(centroid, cit->vertex(0)->point());
-			power_point.push_back(Weight_Point(centroid, dis));
-			if (pointInside(tree, centroid))
-			{
-				point_info.push_back({count, true});
-				inside_indices.insert({count, inside_vertices_count});
-				count++;
-				inside_vertices_count++;
-			}
-			else if (!pointInside(tree, centroid))
-			{
-				point_info.push_back({count, false});
-				count++;
-			}
-		}
-	}
-
-	void compute_inner_poles(Delaunay& tri, Tree& tree, std::vector<Weight_Point>& power_point,
-							 std::vector<std::pair<uint32, bool>>& point_info,
-							 std::unordered_map<uint32, uint32>& inside_indices)
-	{
-		std::vector<std::pair<uint32, bool>> power_indices;
-		// Find inside and outside poles
-		uint32 count = 0, inside_poles_count = 0;
-		double dis;
-		Point farthest_inside_point, farthest_outside_point;
-		double farthest_inside_distance, farthest_outside_distance;
-		std::unordered_set<Point, point_hash> poles;
-		// Use for the construction of medial axis
-		std::vector<Delaunay::Cell_handle> cells;
+		Regular power_shape;
+		uint32 inside_pole_index = 0;
+		uint32 count_p = 0;
+		bool outside = false;
+		std::vector<Delaunay::Cell_handle> vertex_incident_cells;
 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
 		{
-			farthest_inside_distance = 0;
-			farthest_outside_distance = 0;
-			cells.clear();
-			tri.finite_incident_cells(vit, std::back_inserter(cells));
-			if (cells.size())
+			outside = false;
+			vertex_incident_cells.clear();
+			tri.finite_incident_cells(vit, std::back_inserter(vertex_incident_cells));
+			for (auto cell : vertex_incident_cells)
 			{
-				for (auto c = cells.begin(); c != cells.end(); ++c)
+				
+				if (cell->info().inside)
 				{
-					Point centroid = tri.dual(*c);
-					dis = CGAL::squared_distance(centroid, vit->point());
-					if (pointInside(tree, centroid) && dis > farthest_inside_distance)
+					if (cell->info().radius2 > vit->info().inside_pole_distance)
 					{
-						farthest_inside_point = centroid;
-						farthest_inside_distance = dis;
-					}
-					else if (!pointInside(tree, centroid) && dis > farthest_outside_distance)
-					{
-						farthest_outside_point = centroid;
-						farthest_outside_distance = dis;
+						vit->info().inside_pole_distance = cell->info().radius2;
+						vit->info().inside_pole = cell->info().centroid;
 					}
 				}
-				if (farthest_inside_distance != 0)
+				else
 				{
-					if (poles.find(farthest_inside_point) == poles.end())
+					
+					if (cell->info().radius2 > vit->info().outside_pole_distance)
 					{
-						poles.insert(farthest_inside_point);
-						power_point.push_back(Weight_Point(farthest_inside_point, farthest_inside_distance));
-						point_info.push_back({count, true});
-						inside_indices.insert({count, inside_poles_count});
-						count++;
-						inside_poles_count++;
-					}
-				}
-				if (farthest_outside_distance != 0)
-				{
-					if (poles.find(farthest_outside_point) == poles.end())
-					{
-						poles.insert(farthest_outside_point);
-						power_point.push_back(Weight_Point(farthest_outside_point, farthest_outside_distance));
-						point_info.push_back({count, false});
-						count++;
+						vit->info().outside_pole_distance = cell->info().radius2;
+						vit->info().outside_pole = cell->info().centroid;
+						outside = true;
 					}
 				}
 			}
+			Weight_Point wp1(vit->info().inside_pole, vit->info().inside_pole_distance);
+		    power_shape.insert(wp1);
+			Weight_Point wp2(vit->info().outside_pole, vit->info().outside_pole_distance);
+			power_shape.insert(wp2);
+			
 		}
-	}
-	/* void construct_complete_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
-										  std::vector<std::pair<uint32, bool>>& point_info)
-	{
-		cgogn::io::IncidenceGraphImportData Complete_Power_shape_data;
-
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-		uint32 edge_count = 0;
-
-		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
-							  boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
-
-		for (size_t idx = 0; idx < power_point.size(); ++idx)
-		{
-			Complete_Power_shape_data.vertex_position_.push_back(
-				{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
-		}
-		uint32 v, v1, v2;
-		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
-		{
-			v = fit->second;
-			Complete_Power_shape_data.faces_nb_edges_.push_back(3);
-			for (size_t i = 0; i < 4; i++)
-			{
-				if (i != v)
-				{
-					for (size_t j = i + 1; j < 4; j++)
-					{
-						if (j != v)
-						{
-							// Add edge
-							v1 = fit->first->vertex(i)->info().first;
-							v2 = fit->first->vertex(j)->info().first;
-							if (edge_indices.find({v1, v2}) == edge_indices.end())
-							{
-								edge_indices.insert({{v1, v2}, edge_count});
-								Complete_Power_shape_data.edges_vertex_indices_.push_back(v1);
-								Complete_Power_shape_data.edges_vertex_indices_.push_back(v2);
-								edge_count++;
-							}
-							// Add face
-							Complete_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
-						}
-					}
-				}
-			}
-
-		}
-		uint32 complete_power_nb_vertices = Complete_Power_shape_data.vertex_position_.size();
-		uint32 complete_power_nb_edges = Complete_Power_shape_data.edges_vertex_indices_.size() / 2;
-		uint32 complete_power_nb_faces = Complete_Power_shape_data.faces_nb_edges_.size()/3;
-
-		Complete_Power_shape_data.set_parameter(complete_power_nb_vertices, complete_power_nb_edges,
-												complete_power_nb_faces);
-
-		import_incidence_graph_data(*mv, Complete_Power_shape_data);
-		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
-		for (uint32 i = 0u; i < power_point.size(); ++i)
-		{
-			uint32 vertex_id = point_info[i].first;
-			// The radius is sqrt of the weight!
-			(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
-
-		}
-
-		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
-			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
-		if (mv_vertex_position)
-			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
-
-		nonmanifold_provider_->emit_connectivity_changed(*mv);
-	}*/
-	void constrcut_inner_power_diagram(NONMANIFOLD* mv, std::vector<Weight_Point>& power_point,
-									   std::vector<std::pair<uint32, bool>>& point_info,
-									   std::unordered_map<uint32, uint32>& inside_indices)
-	{
-		cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
-
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-		uint32 edge_count = 0;
-		medial_axis = Regular(boost::make_zip_iterator(boost::make_tuple(power_point.begin(), point_info.begin())),
-							  boost::make_zip_iterator(boost::make_tuple(power_point.end(), point_info.end())));
-
-		for (size_t idx = 0; idx < power_point.size(); ++idx)
+		int count = 0;
+		for (auto vit = power_shape.finite_vertices_begin(); vit != power_shape.finite_vertices_end(); ++vit)
 		{
 			// if the point is inside
-			if (point_info[idx].second)
+			Point p = vit->point().point();
+			if (pointInside(tree, p))
 			{
+				vit->info().id = count;
+				vit->info().inside = true;
+				count++;
+			}
+
+		}
+		return power_shape;
+	}
+
+	void constrcut_power_shape_non_manifold( NONMANIFOLD* mv, Regular& power_shape)
+	{
+		cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
+		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
+		uint32 edge_count = 0;
+		std::vector<Weight_Point> power_point;
+		for (auto vit = power_shape.finite_vertices_begin(); vit != power_shape.finite_vertices_end(); ++vit)
+		{
+			// if the point is inside
+			if (vit->info().inside)
+			{
+				power_point.push_back(vit->point());
 				Inner_Power_shape_data.vertex_position_.push_back(
-					{power_point[idx].x(), power_point[idx].y(), power_point[idx].z()});
+					{vit->point().x(), vit->point().y(), vit->point().z()});
 			}
 		}
-		bool inside;
-		uint32 v, v_ind1, v_ind2, v1, v2;
-		for (auto eit = medial_axis.finite_edges_begin(); eit != medial_axis.finite_edges_end(); ++eit)
+	
+		for (auto eit = power_shape.finite_edges_begin(); eit != power_shape.finite_edges_end(); ++eit)
 		{
-			v_ind1 = eit->second;
-			v_ind2 = eit->third;
-			inside = eit->first->vertex(v_ind1)->info().second && eit->first->vertex(v_ind2)->info().second;
-			if (inside)
+			Regular::Vertex_handle v1 = eit->first->vertex(eit->second);
+			Regular::Vertex_handle v2 = eit->first->vertex(eit->third);
+			if (v1->info().inside && v2->info().inside)
 			{
 				// Add edge
-				v1 = inside_indices[eit->first->vertex(v_ind1)->info().first];
-				v2 = inside_indices[eit->first->vertex(v_ind2)->info().first];
-				edge_indices.insert({{v1, v2}, edge_count});
-				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1);
-				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2);
+				uint32 v1_ind = v1->info().id;
+				uint32 v2_ind = v2->info().id;
+				edge_indices.insert({{v1_ind, v2_ind}, edge_count});
+				Inner_Power_shape_data.edges_vertex_indices_.push_back(v1_ind);
+				Inner_Power_shape_data.edges_vertex_indices_.push_back(v2_ind);
 				edge_count++;
 			}
 		}
 
-		for (auto fit = medial_axis.finite_facets_begin(); fit != medial_axis.finite_facets_end(); ++fit)
+		for (auto fit = power_shape.finite_facets_begin(); fit != power_shape.finite_facets_end(); ++fit)
 		{
-			inside = true;
-			v = fit->second;
+			Regular::Vertex_handle v[3];
+			int count = 0;
+			bool inside = true;
 			// If face is inside
 			for (size_t idx = 0; idx < 4; ++idx)
 			{
-				if (idx != v)
+				if (idx != fit->second)
 				{
-					inside &= fit->first->vertex(idx)->info().second;
+					v[count]= fit->first->vertex(idx);
+					inside &= v[count]->info().inside;
+					count++;
 				}
 			}
 			if (inside)
 			{
 				Inner_Power_shape_data.faces_nb_edges_.push_back(3);
-				for (size_t i = 0; i < 4; i++)
-				{
-					if (i != v)
-					{
-						for (size_t j = i + 1; j < 4; j++)
-						{
-							if (j != v)
-							{
-								v1 = inside_indices[fit->first->vertex(i)->info().first];
-								v2 = inside_indices[fit->first->vertex(j)->info().first];
-								Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v1, v2}]);
-							}
-						}
-					}
-				}
+				Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v[0]->info().id, v[1]->info().id}]);
+				Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v[1]->info().id, v[2]->info().id}]);
+				Inner_Power_shape_data.faces_edge_indices_.push_back(edge_indices[{v[2]->info().id, v[0]->info().id}]);
+				
 			}
 		}
 		uint32 inner_power_nb_vertices = Inner_Power_shape_data.vertex_position_.size();
@@ -632,17 +560,12 @@ public:
 		import_incidence_graph_data(*mv, Inner_Power_shape_data);
 		auto sphere_raidus = add_attribute<double, NonManifoldVertex>(*mv, "sphere_radius");
 		auto sphere_info = add_attribute<Vec4, NonManifoldVertex>(*mv, "sphere_info");
-		for (uint32 i = 0u; i < power_point.size(); ++i)
+		for (uint32 idx = 0u; idx < power_point.size(); ++idx)
 		{
-			if (point_info[i].second)
-			{
-				uint32 vertex_id = inside_indices[point_info[i].first];
-				// The radius is sqrt of the weight!
-				(*sphere_raidus)[vertex_id] = std::sqrt(power_point[i].weight());
-				(*sphere_info)[vertex_id] = Vec4(power_point[i].x(), power_point[i].y(), power_point[i].z(),
-																	  power_point[i].weight());
-				// std::cout<< "vertex id: " << vertex_id << " radius: " << (*sphere_raidus)[vertex_id] << std::endl;
-			}
+			(*sphere_raidus)[idx] = std::sqrt(power_point[idx].weight());
+			(*sphere_info)[idx] =
+				Vec4(power_point[idx].x(), power_point[idx].y(), power_point[idx].z(), power_point[idx].weight());
+			
 		}
 
 		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
@@ -655,73 +578,30 @@ public:
 
 	void compute_power_shape(SURFACE& surface)
 	{
-		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_power_shape");
-		// NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) +
-		// "_complete_power_shape");
 		Cgal_Surface_mesh csm;
-
-		std::string filename = surface_provider_->mesh_filename(surface);
-		if (!filename.empty())
-		{
-			std::ifstream input(filename);
-			if (!input || !(input >> csm))
-			{
-				std::cerr << "Error: input file could not be read" << std::endl;
-				return;
-			}
-		}
-		// mesh_normalisation(csm);
-		
+		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		// 		std::vector<Weight_Point> Power_point;
-		// 		std::vector<std::pair<uint32, bool>> Point_info;
-		// 		std::unordered_map<uint32, uint32> Inside_indices;
-		// 		compute_inner_poles(tri, tree, Power_point, Point_info, Inside_indices);
-		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
-		compute_initial_non_manifold(tri, tree, mv);
-		// construct_complete_power_diagram(mp, Power_point, Point_info);
+		Regular reg = compute_regular_tredrahedron(tree, tri);
+		constrcut_power_shape_non_manifold(mv, reg);
 	}
 
 	void compute_original_power_diagram(SURFACE& surface)
 	{
-		surface_sample = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_medial_axis");
-		// NONMANIFOLD* mp = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) +
-		// "_complete_medial_axis");
 		Cgal_Surface_mesh csm;
-
-		std::string filename = surface_provider_->mesh_filename(surface);
-		if (!filename.empty())
-		{
-			std::ifstream input(filename);
-			if (!input || !(input >> csm))
-			{
-				std::cerr << "Error: input file could not be read" << std::endl;
-				return;
-			}
-		}
-		// mesh_normalisation(csm);
-
+		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		// 		std::vector<Weight_Point> Power_point;
-		// 		std::vector<std::pair<uint32, bool>> Point_info;
-		// 		std::unordered_map<uint32, uint32> Inside_indices;
-		// 		compute_inner_voronoi(tri, tree, Power_point, Point_info, Inside_indices);
 		compute_initial_non_manifold(tri, tree, mv);
-		
-		// constrcut_inner_power_diagram(mv, Power_point, Point_info, Inside_indices);
-		// construct_complete_power_diagram(mp, Power_point, Point_info);
 	}
 
-	bool inside_sphere(const Vec3& point, const Vec3& center, double radius)
-	{
-		return (point - center).norm() <= radius;
-	}
+
 
 	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e,
 									  std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
@@ -786,37 +666,48 @@ public:
 
 	void coverage_axis_PD(SURFACE& surface, NONMANIFOLD& mv, HighsSolution& solution, double dilation_factor)
 	{
+		Cgal_Surface_mesh csm;
+		load_model_in_cgal(surface, csm);
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
 		std::vector<Weight_Point> power_point;
-		std::vector<std::pair<uint32, bool>> point_info;
-		std::unordered_map<uint32, uint32> inside_indices;
-		uint32 count = 0;
+		Regular power_shape;
 		foreach_cell(mv, [&](NonManifoldVertex nv) {
 			if (solution.col_value[index_of(mv, nv)] > 1e-5)
 			{
 				Vec3 pos = value<Vec3>(mv, inner_position, nv);
-				power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]),
-												   (value<double>(mv, sphere_radius, nv) + dilation_factor) *
-													   (value<double>(mv, sphere_radius, nv) + dilation_factor)));
-				point_info.push_back({count, true});
-				inside_indices[count] = count;
-				count++;
+				power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]),
+												(value<double>(mv, sphere_radius, nv) + dilation_factor) *
+													(value<double>(mv, sphere_radius, nv) + dilation_factor)));
+				
 			}
 			return true;
 		});
 
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
-			power_point.push_back(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
-			point_info.push_back({count, false});
-			count++;
+		
+			power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
+			
 			return true;
 		});
-
+		int count = 0;
+		for (auto vit = power_shape.finite_vertices_begin(); vit != power_shape.finite_vertices_end(); ++vit)
+		{
+			// if the point is inside
+			Point p = vit->point().point();
+			if (pointInside(tree, p))
+			{
+				vit->info().id = count;
+				vit->info().inside = true;
+				count++;
+			}
+		}
 		NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis");
-		constrcut_inner_power_diagram(ca, power_point, point_info, inside_indices);
+		constrcut_power_shape_non_manifold(ca, power_shape);
 	}
 
 	void coverage_axis_collapse(NONMANIFOLD& nm, std::vector<double> selection_points)
@@ -972,8 +863,8 @@ protected:
 			selected_surface_mesh_ = &m;
 			surface_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
-		imgui_mesh_selector(nonmanifold_provider_, selected_medial_axis, "Medial_axis", [&](NONMANIFOLD& nm) {
-			selected_medial_axis = &nm;
+		imgui_mesh_selector(nonmanifold_provider_, selected_medial_axis_, "Medial_axis", [&](NONMANIFOLD& nm) {
+			selected_medial_axis_ = &nm;
 			nonmanifold_provider_->mesh_data(nm).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
@@ -986,35 +877,35 @@ protected:
 			}
 			if (ImGui::Button("Original Medial Axis"))
 				compute_original_power_diagram(*selected_surface_mesh_);
-			if (selected_medial_axis)
+			if (selected_medial_axis_)
 			{
 				if (ImGui::Button("Compute stability ratio"))
-					compute_stability_ratio(*selected_medial_axis);
+					compute_stability_ratio(*selected_medial_axis_);
 				static int32 vertices_to_remove = 1; 
 				static float k = 1e-5;
 				ImGui::SliderInt("Vertices to delete", &vertices_to_remove, 1,
-								 nb_cells<NonManifoldVertex>(*selected_medial_axis));
+								 nb_cells<NonManifoldVertex>(*selected_medial_axis_));
 				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_QMat(*selected_medial_axis,
+					collapse_non_manifold_using_QMat(*selected_medial_axis_,
 																vertices_to_remove, k );
 					
 				}
-				static float dilation_factor = 0.1f;
+				static float dilation_factor = 0.02f;
 				ImGui::DragFloat("Dilation factor", &dilation_factor, 0.001f, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
-					solution = point_selection_by_coverage_axis(*selected_surface_mesh_, *selected_medial_axis, dilation_factor);
+					solution = point_selection_by_coverage_axis(*selected_surface_mesh_, *selected_medial_axis_, dilation_factor);
 					
 				}
 				if (solution.col_value.size() > 0)
 				{
 
 					if (ImGui::Button("Collpase"))
-						coverage_axis_collapse(*selected_medial_axis, solution.col_value);
+						coverage_axis_collapse(*selected_medial_axis_, solution.col_value);
 					if (ImGui::Button("PD"))
-						coverage_axis_PD(*selected_surface_mesh_, *selected_medial_axis, solution, dilation_factor);
+						coverage_axis_PD(*selected_surface_mesh_, *selected_medial_axis_, solution, dilation_factor);
 				}
 			}
 				
@@ -1024,9 +915,9 @@ protected:
 	}
 
 private:
-	POINT* surface_sample = nullptr;
+	POINT* surface_sample_ = nullptr;
 	SURFACE* selected_surface_mesh_ = nullptr;
-	NONMANIFOLD* selected_medial_axis = nullptr;
+	NONMANIFOLD* selected_medial_axis_ = nullptr;
 	std::shared_ptr<NonManifoldAttribute<double>> stability_ratio_ = nullptr;
 	MeshProvider<POINT>* point_provider_;
 	MeshProvider<SURFACE>* surface_provider_;
