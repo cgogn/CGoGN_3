@@ -102,8 +102,6 @@ class PowerShape : public Module
 	using RTds = CGAL::Triangulation_data_structure_3<RVb, RCb>;
 	using Regular = CGAL::Regular_triangulation_3<K, RTds, CGAL::Fast_location>;
 	
-	
-
 	using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
 	using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
 	using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
@@ -881,15 +879,14 @@ protected:
 			{
 				if (ImGui::Button("Compute stability ratio"))
 					compute_stability_ratio(*selected_medial_axis_);
-				static int32 vertices_to_remove = 1; 
+				static int32 target_number_vertices = 1; 
 				static float k = 1e-5;
-				ImGui::SliderInt("Vertices to delete", &vertices_to_remove, 1,
-								 nb_cells<NonManifoldVertex>(*selected_medial_axis_));
+				ImGui::DragInt("Vertices to delete", &target_number_vertices, 1, 0,
+								  nb_cells<NonManifoldVertex>(*selected_medial_axis_));
 				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_QMat(*selected_medial_axis_,
-																vertices_to_remove, k );
+					collapse_non_manifold_using_QMat(*selected_medial_axis_, target_number_vertices, k);
 					
 				}
 				static float dilation_factor = 0.02f;

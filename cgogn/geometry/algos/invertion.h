@@ -75,17 +75,17 @@ bool contractible(MESH& m, typename mesh_traits<MESH>::Edge e,
 		std::vector<Vec3> old_face;
 		std::vector<Vec3> new_face;
 		foreach_incident_vertex(m, iface, [&](Vertex ifacev) {
-// 			auto ifaceiv = incident_vertices(m, iface);
-// 			std::set<Vertex> sv(ifaceiv.begin(), ifaceiv.end());
-// 			if (sv.size() != 3)
-// 			{
-// 				std::cout << "face: " << index_of(m, iface) << " is not a triangle" << std::endl;
-// 				for (Vertex ifaceiiv : ifaceiv)
-// 				{
-// 					std::cout << " vertex: " << index_of(m, ifaceiiv) << ", ";
-// 				}
-// 				std::cout << std::endl;
-// 			}
+ 			/*auto ifaceiv = incident_vertices(m, iface);
+ 			std::set<Vertex> sv(ifaceiv.begin(), ifaceiv.end());
+ 			if (sv.size() != 3)
+ 			{
+ 				std::cout << "face: " << index_of(m, iface) << " is not a triangle" << std::endl;
+ 				for (Vertex ifaceiiv : ifaceiv)
+ 				{
+ 					std::cout << " vertex: " << index_of(m, ifaceiiv) << ", ";
+ 				}
+ 				std::cout << std::endl;
+ 			}*/
 			if (index_of(m, ifacev) != v1_index)
 			{
 				old_face.push_back(value<Vec3>(m, vertex_position, ifacev));
@@ -107,17 +107,17 @@ bool contractible(MESH& m, typename mesh_traits<MESH>::Edge e,
 		std::vector<Vec3> old_face;
 		std::vector<Vec3> new_face;
 		foreach_incident_vertex(m, iface, [&](Vertex ifacev) {
-// 			auto ifaceiv= incident_vertices(m, iface);
-// 			std::set<Vertex> sv(ifaceiv.begin(), ifaceiv.end());
-// 			if (sv.size() != 3)
-// 			{	
-// 				std::cout << "face: "<<index_of(m, iface)<<" is not a triangle"<<std::endl;
-// 				for (Vertex ifaceiiv : ifaceiv)
-// 				{
-// 					std::cout << " vertex: " << index_of(m, ifaceiiv) << ", ";
-// 				}
-// 				std::cout<< std::endl;
-// 			}
+ 			/*auto ifaceiv= incident_vertices(m, iface);
+ 			std::set<Vertex> sv(ifaceiv.begin(), ifaceiv.end());
+ 			if (sv.size() != 3)
+ 			{	
+ 				std::cout << "face: "<<index_of(m, iface)<<" is not a triangle"<<std::endl;
+ 				for (Vertex ifaceiiv : ifaceiv)
+ 				{
+ 					std::cout << " vertex: " << index_of(m, ifaceiiv) << ", ";
+ 				}
+ 				std::cout<< std::endl;
+ 			}*/
 			if (index_of(m, ifacev) != v2_index)
 			{
 				old_face.push_back(value<Vec3>(m, vertex_position, ifacev));

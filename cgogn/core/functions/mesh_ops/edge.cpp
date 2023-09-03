@@ -437,7 +437,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	// replace v1 by new vertex in incident edges of v1
 	for (Edge iev1 : (*ig.vertex_incident_edges_)[v1.index_])
 	{
-		// add old edge to removed edges
+		// add old edge into sturcture to perform delay deletion
 		removed_edges.push_back(iev1);
 		foreach_incident_face(ig, iev1, [&](Face f) {
 			std::cout << "edge " << iev1.index_ << ": incident face: " << f.index_ << ", "
@@ -454,7 +454,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	// replace v2 by new vertex in incident edges of v2
 	for (Edge iev2 : (*ig.vertex_incident_edges_)[v2.index_])
 	{
-		// add old edge to removed edges
+		// add old edge into sturcture to perform delay deletion
 		removed_edges.push_back(iev2);
 		foreach_incident_face(ig, iev2, [&](Face f) {
 			std::cout << "edge " << iev2.index_ << ": incident face: " << f.index_ << ", "
@@ -498,6 +498,7 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 				std::cout << "face: " << f.index_ << ", replace edge " << ie.index_ << " by edge " << it->second.index_
 						  << std::endl;
 				replace_edge_in_face(ig, f, ie, it->second);
+				sort_face_edges(ig, f);
 				(*ig.edge_incident_faces_)[it->second.index_].push_back(f);
 				return true;
 			});
@@ -518,16 +519,28 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	{
 		auto [iev1, iev2] = (*ig.edge_incident_vertices_)[ie.index_];
 		std::cout << "edge " << ie.index_ << " vertex1 : " << iev1.index_ << ", vertex2 : "<<iev2.index_
-				  << " is incident to face: ";
+				  << " is incident to: \n";
 		for (Face iface : (*ig.edge_incident_faces_)[ie.index_])
 		{
-			std::cout << iface.index_ << ".\n Face " << iface.index_ << " is incident to edge :";
+			std::cout << "Face : " << iface.index_ << std::endl;
+			std::cout << "Face: " << iface.index_ << " is incident to: \n";
 			for (Edge iie : (*ig.face_incident_edges_)[iface.index_])
 			{
-				std::cout << iie.index_ << ", ";
+				std::cout << "edge : " << iie.index_ << std::endl;
+				std::cout << "edge : " << iie.index_<< " is incident to:\n ";
+				auto iiv = (*ig.edge_incident_vertices_)[iie.index_];
+				{
+					std::cout << iiv.first.index_ << ", "<<iiv.second.index_ <<std::endl;
+				}
 			}
+			std::cout << "Face: " << iface.index_ << " is incident to vertex: ";
+			foreach_incident_vertex(ig, iface, [&](Vertex iiiv) {
+				std::cout << iiiv.index_ << ", ";
+				return true;
+			});
+			std::cout << std::endl;
 		}
-		std::cout << std::endl;
+		std::cout << "--------------------------------------------------" << std::endl;
 	}
 	std::cout << "\n" << std::endl;
 	remove_cell<Vertex>(ig, v1);
@@ -585,6 +598,7 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 			// replace current edge by old edge
 			foreach_incident_face(ig, ie, [&](Face f) {
 				replace_edge_in_face(ig, f, ie, it->second);
+				sort_face_edges(ig, f);
 				(*ig.edge_incident_faces_)[it->second.index_].push_back(f);
 				return true;
 			});
