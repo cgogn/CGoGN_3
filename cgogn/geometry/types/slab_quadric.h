@@ -14,7 +14,7 @@ public:
 	Slab_Quadric()
 	{
 	}
- 	inline Slab_Quadric(const Vec4& p1, const Vec4& p2, const Vec4& p3, const Vec4& n1, const Vec4& n2,
+ 	inline Slab_Quadric(const Vec4& p1, const Vec4& n1, const Vec4& n2,
 						bool boundary = false)
 	{
 		

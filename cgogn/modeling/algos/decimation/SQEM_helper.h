@@ -101,9 +101,9 @@ struct DecimationSQEM_Helper
 			if (slab_normal(p1, p2, p3, n1, n2) && n1 != Vec4(0, 0, 0, 1) && n2 != Vec4(0, 0, 0, 1))
 			{
 				value<std::pair<Vec4, Vec4>>(m_, slab_normals_, f) = {n1, n2};
-				Slab_Quadric q1(p1, p2, p3, n1, n2);
-				Slab_Quadric q2(p2, p1, p3, n1, n2);
-				Slab_Quadric q3(p3, p1, p2, n1, n2);
+				Slab_Quadric q1(p1, n1, n2);
+				Slab_Quadric q2(p2, n1, n2);
+				Slab_Quadric q3(p3, n1, n2);
 				value<Slab_Quadric>(m_, vertex_slab_quadric_, ifv[0]) += q1;
 				value<Slab_Quadric>(m_, vertex_slab_quadric_, ifv[1]) += q2;
 				value<Slab_Quadric>(m_, vertex_slab_quadric_, ifv[2]) += q3;
@@ -169,8 +169,8 @@ struct DecimationSQEM_Helper
 						if (n1 != Vec4(0, 0, 0, 1) && n2 != Vec4(0, 0, 0, 1))
 						{
 							// Add slab quadric of current slab
-							Slab_Quadric q1(p1, p2, p3, n1, n2, true);
-							Slab_Quadric q2(p2, p1, p3, n1, n2, true);
+							Slab_Quadric q1(p1,  n1, n2, true);
+							Slab_Quadric q2(p2,  n1, n2, true);
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[0]) += q1;
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[1]) += q2;
 							Vec3 t1 = v1v2.cross(n1.head<3>());
@@ -178,13 +178,13 @@ struct DecimationSQEM_Helper
 							// Add slab quadric of two orthogonal plane of the slab
 							Vec4 tnormal1 = Vec4(t1.x(), t1.y(), t1.z(), 1.0);
 							Vec4 tnormal2 = Vec4(t2.x(), t2.y(), t2.z(), 1.0);
-							Slab_Quadric q3(p1, p2, p3, tnormal1, tnormal2, true);
-							Slab_Quadric q4(p2, p1, p3, tnormal1, tnormal2, true);
+							Slab_Quadric q3(p1, tnormal1, tnormal2, true);
+							Slab_Quadric q4(p2, tnormal1, tnormal2, true);
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[0]) += q3;
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[1]) += q4;
 						}
 					}
-					
+					v1v2.normalize();
 					if (iv1_e.size() == 1)
 					{
 						Vec4 boundary_vertex_norm = Vec4(v1v2.x(), v1v2.y(), v1v2.z(), 1.0);
@@ -224,9 +224,9 @@ struct DecimationSQEM_Helper
 	void simplify(int threshold)
 	{
 		int count = 0;
-		int delete_vertices = nb_cells<Vertex>(m_) - threshold;
-		while (!queue_.empty() && count < delete_vertices)
+		while (!queue_.empty() && count < threshold)
 		{
+			
 			auto it = queue_.begin();
 			Edge e = (*it).second;
 			queue_.erase(it);
@@ -410,11 +410,13 @@ struct DecimationSQEM_Helper
 		if (count == 1)
 		{
 			opt = spheres[0];
+			cost = cost_collapse[0];
 		}
 		else if (count == 2)
 		{
 			min_index = cost_collapse[0] > cost_collapse[1] ? 1 : 0;
 			opt = spheres[min_index];
+			cost = cost_collapse[min_index];
 		}
 		else if (count == 3)
 		{
@@ -422,6 +424,7 @@ struct DecimationSQEM_Helper
 				min_index = 1;
 			min_index = cost_collapse[min_index] > cost_collapse[2] ? 2 : min_index;
 			opt = spheres[min_index];
+			cost = cost_collapse[min_index];
 		}
 		else
 			cost += 1e10;
@@ -437,7 +440,7 @@ struct DecimationSQEM_Helper
 		std::vector<Vertex> iv = incident_vertices(m_, e);
 		auto p1 = value<Vec4>(m_, sphere_info_, iv[0]);
 		auto p2 = value<Vec4>(m_, sphere_info_, iv[1]);
-		auto eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
+		auto& eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
 		auto q1 = value<Slab_Quadric>(m_, vertex_slab_quadric_, iv[0]);
 		auto q2 = value<Slab_Quadric>(m_, vertex_slab_quadric_, iv[1]);
 		double st = value<double>(m_, stability_ratio_, e);
@@ -485,7 +488,9 @@ struct DecimationSQEM_Helper
 			cost = triangle_inverted(e, opt);
 		}
 		else cost = eq.eval(opt);
-	
+		double cost_opt = st * st;
+		double i = cost + k_;
+		double c = cost_opt * i;
 		return (cost + k_) * st * st;
 	}
 

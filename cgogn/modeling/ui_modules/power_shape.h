@@ -879,14 +879,14 @@ protected:
 			{
 				if (ImGui::Button("Compute stability ratio"))
 					compute_stability_ratio(*selected_medial_axis_);
-				static int32 target_number_vertices = 1; 
+				static int32 number_vertices_remove = 1; 
 				static float k = 1e-5;
-				ImGui::DragInt("Vertices to delete", &target_number_vertices, 1, 0,
+				ImGui::DragInt("Vertices to delete", &number_vertices_remove, 1, 0,
 								  nb_cells<NonManifoldVertex>(*selected_medial_axis_));
 				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_QMat(*selected_medial_axis_, target_number_vertices, k);
+					collapse_non_manifold_using_QMat(*selected_medial_axis_, number_vertices_remove, k);
 					
 				}
 				static float dilation_factor = 0.02f;
