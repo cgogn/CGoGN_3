@@ -64,9 +64,10 @@ struct DecimationSQEM_Helper
 						  std::shared_ptr<Attribute<Vec4>>& sphere_info,
 						  std::shared_ptr<Attribute<Vec3>>& stability_color,
 						  std::shared_ptr<Attribute<double>>& stability_ratio,
-						  std::shared_ptr<Attribute<double>>& sphere_radius )
+						  std::shared_ptr<Attribute<double>>& sphere_radius,
+		std::shared_ptr<Attribute<bool>>& fixed_vertex)
 		: k_(k), m_(m), position_(position), sphere_info_(sphere_info), stability_color_(stability_color),
-		  stability_ratio_(stability_ratio), sphere_radius_(sphere_radius)
+		  stability_ratio_(stability_ratio), sphere_radius_(sphere_radius), fixed_vertex_(fixed_vertex)
 	{
 		edge_queue_it_ = add_attribute<EdgeInfo, Edge>(m_, "non_manifold_edge_queue_it");
 		sphere_opt_ = add_attribute<Vec4, Edge>(m_, "sphere_opt");
@@ -74,6 +75,7 @@ struct DecimationSQEM_Helper
 		edge_slab_quadric_ = add_attribute<Slab_Quadric, Edge>(m_, "edge_slab_quadric");
 		slab_normals_ = add_attribute<std::pair<Vec4, Vec4>, Face>(m_, "slab_normals");
 		queue_.clear();
+		nb_vertices = nb_cells<Vertex>(m_);
 	}
 
 	~DecimationSQEM_Helper()
@@ -83,10 +85,12 @@ struct DecimationSQEM_Helper
 		remove_attribute<Vertex>(m_, vertex_slab_quadric_);
 		remove_attribute<Edge>(m_, edge_slab_quadric_);
 		remove_attribute<Face>(m_, slab_normals_);
+		
 	}
 
 	void initial_slab_mesh()
 	{
+		std::cout<< "initial slab mesh" << std::endl;
 		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
 			value<Slab_Quadric>(m_, vertex_slab_quadric_, v).clear();
 			value<Slab_Quadric>(m_, edge_slab_quadric_, v).clear();
@@ -114,6 +118,7 @@ struct DecimationSQEM_Helper
 
 	void initial_boundary_mesh()
 	{
+		std::cout << "start initial boundary mesh" << std::endl;
 		foreach_cell(m_, [&](Edge e) {
 			auto ief = incident_faces(m_, e);
 			if (ief.size()==1||ief.size()==0)
@@ -130,7 +135,7 @@ struct DecimationSQEM_Helper
 				double r1 = p1.w();
 				double r2 = p2.w();
 				Vec3 v3;
-
+				//Add one additional plan to boundary edge
 				if (ief.size() == 1)
 				{
 					auto iefv = incident_vertices(m_, ief[0]);
@@ -159,7 +164,7 @@ struct DecimationSQEM_Helper
 					value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[1]) += boundary_v2;
 
 				}
-
+				//Add two additional plan to boundary edge
 				else if (ief.size() == 0)
 				{
 					Vec4 p3 = Vec4(v1.x() + v2.x(), v1.y() + v2.y(), v1.z() + v2.z(), (r1 + r2) * 0.5);
@@ -175,6 +180,7 @@ struct DecimationSQEM_Helper
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[1]) += q2;
 							Vec3 t1 = v1v2.cross(n1.head<3>());
 							Vec3 t2 = v1v2.cross(n2.head<3>());
+
 							// Add slab quadric of two orthogonal plane of the slab
 							Vec4 tnormal1 = Vec4(t1.x(), t1.y(), t1.z(), 1.0);
 							Vec4 tnormal2 = Vec4(t2.x(), t2.y(), t2.z(), 1.0);
@@ -184,6 +190,7 @@ struct DecimationSQEM_Helper
 							value<Slab_Quadric>(m_, vertex_slab_quadric_, iev[1]) += q4;
 						}
 					}
+					//Add additional plan for the boudary vertex
 					v1v2.normalize();
 					if (iv1_e.size() == 1)
 					{
@@ -205,12 +212,18 @@ struct DecimationSQEM_Helper
 
 	void initial_collapse_queue()
 	{
+		std::cout << "initial_collapse_queue" << std::endl;
 		// Initialize the queue with all the edges and their cost
 		foreach_cell(m_, [&](Edge e) -> bool {
 			Vec4 opt;
+			value<EdgeInfo>(m_, edge_queue_it_, e).first = true;
 			Scalar cost_opt = edge_optimal(e,opt);
-			value<Vec4>(m_, sphere_opt_, e) = opt;
-			value<EdgeInfo>(m_, edge_queue_it_, e) = {true, queue_.emplace(cost_opt, e)};
+			if (value<EdgeInfo>(m_, edge_queue_it_, e).first)
+			{
+				value<Vec4>(m_, sphere_opt_, e) = opt;
+				value<EdgeInfo>(m_, edge_queue_it_, e).second = queue_.emplace(cost_opt, e);
+			}
+			
 			return true;
 			/* double cost_opt = value<double>(nm, stability_ratio, e);
 			std::cout << std::fixed;
@@ -221,68 +234,94 @@ struct DecimationSQEM_Helper
 		});
 	}
 
-	void simplify(int threshold)
+	void simplify(int vertex_to_remain)
 	{
-		int count = 0;
-		while (!queue_.empty() && count < threshold)
+		std::cout << "start simplification process" << std::endl;
+		if (nb_vertices < 100)
 		{
 			
+			foreach_cell(m_, [&](Edge e) {
+				auto iv = incident_vertices(m_, e);
+				if (incident_faces(m_, e).size() == 0 &&
+					(incident_edges(m_, iv[0]).size()==1 || incident_edges(m_, iv[1]).size()==1))
+				{
+					value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
+				}
+				return true;
+				});
+		}
+		while (!queue_.empty() && nb_vertices> vertex_to_remain)
+		{
+			std::cout<< "nb_vertices: " << nb_vertices << std::endl;
 			auto it = queue_.begin();
 			Edge e = (*it).second;
 			queue_.erase(it);
-			value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
-			Vec4 opt = value<Vec4>(m_, sphere_opt_, e);
-			Slab_Quadric& eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
-
-			auto [v, removed_edges] = collapse_edge_qmat(m_, e);
-
-			// update the position of v and the radius of the sphere
-			value<Vec4>(m_, sphere_info_, v) = opt;
-			value<Vec3>(m_, position_, v) = opt.head<3>();
-			value<double>(m_, sphere_radius_, v) = opt.w();
-			value<Slab_Quadric>(m_, vertex_slab_quadric_, v) = eq;
-
-			for (Edge re : removed_edges)
+			EdgeInfo einfo = value<EdgeInfo>(m_, edge_queue_it_, e);
+			if (einfo.first)
 			{
-				EdgeInfo einfo = value<EdgeInfo>(m_, edge_queue_it_, re);
-				if (einfo.first)
-					queue_.erase(einfo.second);
+				value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
+				
+				Vec4 opt = value<Vec4>(m_, sphere_opt_, e);
+				Slab_Quadric& eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
+
+				auto [v, removed_edges] = collapse_edge_qmat(m_, e);
+
+				// update the position of v and the radius of the sphere
+				value<Vec4>(m_, sphere_info_, v) = opt;
+				value<Vec3>(m_, position_, v) = opt.head<3>();
+				value<double>(m_, sphere_radius_, v) = opt.w();
+				value<Slab_Quadric>(m_, vertex_slab_quadric_, v) = eq;
+
+				for (Edge re : removed_edges)
+				{
+					EdgeInfo& einfo = value<EdgeInfo>(m_, edge_queue_it_, re);
+					if (einfo.first)
+					{
+						value<EdgeInfo>(m_, edge_queue_it_, re).first = false;
+						queue_.erase(einfo.second);
+						
+					}	
+				}
+
+				foreach_incident_edge(m_, v, [&](Edge ie) -> bool {
+					auto iv = incident_vertices(m_, ie);
+					Vertex v1 = iv[0];
+					Vertex v2 = iv[1];
+					const Vec3 v1_p = value<Vec4>(m_, sphere_info_, v1).head<3>();
+					const Vec3 v2_p = value<Vec4>(m_, sphere_info_, v2).head<3>();
+					const double r1 = value<Vec4>(m_, sphere_info_, v1).w();
+					const double r2 = value<Vec4>(m_, sphere_info_, v2).w();
+
+					// recompute stability ratio of the incident edges of v
+					const double center_dist = (v1_p - v2_p).norm();
+					double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
+					if (center_dist == 0.0)
+					{
+						value<double>(m_, stability_ratio_, ie) = 0.0;
+						value<Vec3>(m_, stability_color_, ie) = Vec3(0, 0, 0.5);
+					}
+					else
+					{
+						double stability = dis / center_dist;
+						value<double>(m_, stability_ratio_, ie) = stability;
+						value<Vec3>(m_, stability_color_, ie) = (stability <= 0.5)
+																	? Vec3(0, stability, (0.5 - stability))
+																	: Vec3(stability - 0.5, (1 - stability), 0);
+					}
+					// recompute the cost of the the incident edges of v
+					Vec4 opt;
+					value<EdgeInfo>(m_, edge_queue_it_, ie).first = true;
+					Scalar cost_opt = edge_optimal(ie, opt);
+					if (value<EdgeInfo>(m_, edge_queue_it_, ie).first)
+					{
+						value<Vec4>(m_, sphere_opt_, ie) = opt;
+						value<EdgeInfo>(m_, edge_queue_it_, ie).second = queue_.emplace(cost_opt, ie);
+					}
+					
+					return true;
+				});
+				nb_vertices--;
 			}
-
-			foreach_incident_edge(m_, v, [&](Edge ie) -> bool {
-				auto iv = incident_vertices(m_, ie);
-				Vertex v1 = iv[0];
-				Vertex v2 = iv[1];
-				const Vec3 v1_p = value<Vec4>(m_, sphere_info_, v1).head<3>();
-				const Vec3 v2_p = value<Vec4>(m_, sphere_info_, v2).head<3>();
-				const double r1 = value<Vec4>(m_, sphere_info_, v1).w();
-				const double r2 = value<Vec4>(m_, sphere_info_, v2).w();
-
-				// recompute stability ratio of the incident edges of v
-				const double center_dist = (v1_p - v2_p).norm();
-				double dis = std::max(0.0, (center_dist - std::abs(r1 - r2)));
-				if (center_dist == 0.0)
-				{
-					value<double>(m_, stability_ratio_, ie) = 0.0;
-					value<Vec3>(m_, stability_color_, ie) = Vec3(0, 0, 0.5);
-				}
-				else
-				{
-					double stability = dis / center_dist;
-					value<double>(m_, stability_ratio_, ie) = stability;
-					value<Vec3>(m_, stability_color_, ie) = (stability <= 0.5)
-																? Vec3(0, stability, (0.5 - stability))
-																: Vec3(stability - 0.5, (1 - stability), 0);
-				}
-				// recompute the cost of the the incident edges of v
-				Vec4 opt;
-				Scalar cost_opt = edge_optimal(ie, opt);
-				value<Vec4>(m_, sphere_opt_, ie) = opt;
-				value<EdgeInfo>(m_, edge_queue_it_, ie) = {true, queue_.emplace(cost_opt, ie)};
-
-				return true;
-			});
-			++count;
 		}
 	}
 
@@ -428,8 +467,6 @@ struct DecimationSQEM_Helper
 		}
 		else
 			cost += 1e10;
-			
-		
 		return cost;
 	}
 
@@ -438,6 +475,11 @@ struct DecimationSQEM_Helper
 	{
 		Scalar cost = 0;
 		std::vector<Vertex> iv = incident_vertices(m_, e);
+		if (value<bool>(m_, fixed_vertex_, iv[0]) && value<bool>(m_, fixed_vertex_, iv[1]))
+		{
+			value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
+			return cost;
+		}			
 		auto p1 = value<Vec4>(m_, sphere_info_, iv[0]);
 		auto p2 = value<Vec4>(m_, sphere_info_, iv[1]);
 		auto& eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
@@ -447,55 +489,88 @@ struct DecimationSQEM_Helper
 		eq._A = q1._A + q2._A;
 		eq._b = q1._b + q2._b;
 		eq._c = q1._c + q2._c;
-		if (eq.optimized(opt) || incident_faces(m_,e).size()==0)
+		if (value<bool>(m_, fixed_vertex_, iv[0]) || value<bool>(m_, fixed_vertex_, iv[1]))
 		{
-			eq._A = q1._A + q2._A + q1._add_A + q2._add_A;
-			eq._b = q1._b + q2._b + q1._add_b + q2._add_b;
-			eq._c = q1._c + q2._c + q1._add_c + q2._add_c;
-
-			if (eq.optimized(opt))
+			if (value<bool>(m_, fixed_vertex_, iv[0]))
 			{
-				if (opt[3] < 0)
-					opt = Scalar(0.5) * (p1 + p2);
+				if (geometry::contractible(m_, e, position_.get(), p1.head<3>()))
+				{
+					opt = p1;
+					cost = eq.eval(p1);
+				}
+				else
+				{
+					value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
+					return cost;
+				}
 			}
 			else
 			{
-				opt = Scalar(0.5) * (p1 + p2);
-			}
+				if (geometry::contractible(m_, e, position_.get(), p2.head<3>()))
+				{
+					opt = p2;
+					cost = eq.eval(p2);
+				}
+				else
+				{
+					value <EdgeInfo>(m_, edge_queue_it_, e).first = false;
+					return cost;
+				}
+			}	
 		}
 		else
 		{
-			Vec4 spheres[3];
-			Scalar cost_collapse[3];
-			Vec4 p3 = (p1 + p2) * Scalar(0.5);
-			int min_index = 0;
-			spheres[0] = p1;
-			spheres[1] = p2;
-			spheres[2] = p3;
+			if (eq.optimized(opt) || incident_faces(m_, e).size() == 0)
+			{
+				eq._A = q1._A + q2._A + q1._add_A + q2._add_A;
+				eq._b = q1._b + q2._b + q1._add_b + q2._add_b;
+				eq._c = q1._c + q2._c + q1._add_c + q2._add_c;
 
-			cost_collapse[0] = eq.eval(p1);
-			cost_collapse[1] = eq.eval(p2);
-			cost_collapse[2] = eq.eval(p3);
-			if (cost_collapse[0] >= cost_collapse[1])
-				min_index = 1;
-			min_index = cost_collapse[min_index] > cost_collapse[2] ? 2 : min_index;
-			cost = cost_collapse[min_index];
-			opt = spheres[min_index];
-			return (cost + k_) * st * st;
+				if (eq.optimized(opt))
+				{
+					if (opt[3] < 0)
+						opt = Scalar(0.5) * (p1 + p2);
+				}
+				else
+				{
+					opt = Scalar(0.5) * (p1 + p2);
+				}
+			}
+			else
+			{
+				Vec4 spheres[3];
+				Scalar cost_collapse[3];
+				Vec4 p3 = (p1 + p2) * Scalar(0.5);
+				int min_index = 0;
+
+				spheres[0] = p1;
+				spheres[1] = p2;
+				spheres[2] = p3;
+
+				cost_collapse[0] = eq.eval(p1);
+				cost_collapse[1] = eq.eval(p2);
+				cost_collapse[2] = eq.eval(p3);
+
+				if (cost_collapse[0] >= cost_collapse[1])
+					min_index = 1;
+				min_index = cost_collapse[min_index] > cost_collapse[2] ? 2 : min_index;
+				cost = cost_collapse[min_index];
+				opt = spheres[min_index];
+				return (cost + k_) * st * st;
+			}
+			if (!geometry::contractible(m_, e, position_.get(), opt.head<3>()))
+			{
+				cost = triangle_inverted(e, opt);
+			}
+			else
+				cost = eq.eval(opt);
 		}
-		if (!geometry::contractible(m_, e, position_.get(), opt.head<3>()))
-		{
-			cost = triangle_inverted(e, opt);
-		}
-		else cost = eq.eval(opt);
-		double cost_opt = st * st;
-		double i = cost + k_;
-		double c = cost_opt * i;
 		return (cost + k_) * st * st;
 	}
 
 	EdgeQueue queue_;
 	float k_;
+	int nb_vertices;
 	NONMANIFOLD& m_;
 	std::shared_ptr<Attribute<Vec4>> sphere_info_;
 	std::shared_ptr<Attribute<Vec3>> stability_color_;
@@ -508,7 +583,7 @@ struct DecimationSQEM_Helper
 	std::shared_ptr<Attribute<Slab_Quadric>> vertex_slab_quadric_;
 	std::shared_ptr<Attribute<double>> sphere_radius_;
 	std::shared_ptr<Attribute<std::pair<Vec4, Vec4>>> slab_normals_;
-
+	std::shared_ptr<Attribute<bool>> fixed_vertex_;
 };
 
 } // namespace modeling

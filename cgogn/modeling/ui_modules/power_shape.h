@@ -639,7 +639,7 @@ public:
 		});
 	}
 
-	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_erase, float k)
+	 void collapse_non_manifold_using_QMat(NONMANIFOLD& nm, uint32 number_vertices_remain, float k)
 	{
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 		using Slab_Quadric = geometry::Slab_Quadric;
@@ -649,12 +649,20 @@ public:
 		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
 		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
 		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
-		QMatHelper helper(k, nm, position, sphere_info, stability_color, stability_ratio, sphere_radius); 
+		auto fixed_vertex = add_attribute<bool, NonManifoldVertex>(nm, "fixed_vertex");
+		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
+			value<bool>(nm, fixed_vertex, v) = false;
+			return true;
+		});
+
+		QMatHelper helper(k, nm, position, sphere_info, stability_color, stability_ratio, sphere_radius,fixed_vertex); 
+
 		helper.initial_slab_mesh();
 		helper.initial_boundary_mesh();
 		helper.initial_collapse_queue();
-		helper.simplify(number_vertices_erase);
+		helper.simplify(number_vertices_remain);
 		
+		remove_attribute<NonManifoldVertex>(nm, fixed_vertex);
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
@@ -710,28 +718,39 @@ public:
 
 	void coverage_axis_collapse(NONMANIFOLD& nm, std::vector<double> selection_points)
 	{
-		using EdgeQueue = std::set<NonManifoldEdge>;
-		using EdgeQueueIt = typename EdgeQueue::const_iterator;
-		EdgeQueue queue;
-		auto edge_queue_it = add_attribute<EdgeQueueIt, NonManifoldEdge>(nm, "__non_manifold_edge_queue_it");
-		foreach_cell(nm, [&](NonManifoldEdge e) -> bool {
-			value<EdgeQueueIt>(nm, edge_queue_it, e) = queue.emplace(e).first;
+		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
+		using Slab_Quadric = geometry::Slab_Quadric;
+
+		compute_stability_ratio(nm);
+		auto sphere_radius = get_attribute<double, NonManifoldVertex>(nm, "sphere_radius");
+		auto stability_ratio = get_attribute<double, NonManifoldEdge>(nm, "stability_ratio");
+		auto stability_color = get_attribute<Vec3, NonManifoldEdge>(nm, "stability_color");
+		auto position = get_attribute<Vec3, NonManifoldVertex>(nm, "position");
+		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
+		auto fixed_vertex = add_attribute<bool, NonManifoldVertex>(nm, "fixed_vertex");
+		int number_vertex_remain = 0;
+		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
+			if (selection_points[v.index_] > 0.5)
+			{
+				value<bool>(nm, fixed_vertex, v) = true;
+				number_vertex_remain++;
+			}
+			else
+				value<bool>(nm, fixed_vertex, v) = false;
+			
 			return true;
 		});
-		while (!queue.empty())
-		{
-			auto it = queue.begin();
-			NonManifoldEdge e = (*it);
-			queue.erase(it);
-			auto removed_edges = collapse_edge_with_fixed_vertices(nm, e, selection_points);
-			for (NonManifoldEdge re : removed_edges)
-			{
-				EdgeQueueIt einfo = value<EdgeQueueIt>(nm, edge_queue_it, re);
-				queue.erase(einfo);
-			}
-		}
-		remove_attribute<NonManifoldEdge>(nm, edge_queue_it);
+		QMatHelper helper(0.00001, nm, position, sphere_info, stability_color, stability_ratio, sphere_radius, fixed_vertex);
+
+		helper.initial_slab_mesh();
+		helper.initial_boundary_mesh();
+		helper.initial_collapse_queue();
+		helper.simplify(number_vertex_remain);
+
+		remove_attribute<NonManifoldVertex>(nm, fixed_vertex);
 		nonmanifold_provider_->emit_connectivity_changed(nm);
+		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
 	}
 	
  	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
@@ -789,7 +808,7 @@ public:
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
 		HighsSolution solution; 
-		highs.setOptionValue("time_limit", 1000);
+		highs.setOptionValue("time_limit", 60);
 		if (status == HighsStatus::kOk)
 		{
 			highs.run();
@@ -879,14 +898,14 @@ protected:
 			{
 				if (ImGui::Button("Compute stability ratio"))
 					compute_stability_ratio(*selected_medial_axis_);
-				static int32 number_vertices_remove = 1; 
+				static int32 number_vertex_remain = 1; 
 				static float k = 1e-5;
-				ImGui::DragInt("Vertices to delete", &number_vertices_remove, 1, 0,
+				ImGui::DragInt("Vertices to delete", &number_vertex_remain, 1, 0,
 								  nb_cells<NonManifoldVertex>(*selected_medial_axis_));
 				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
 				 if (ImGui::Button("QMAT"))
 				{
-					collapse_non_manifold_using_QMat(*selected_medial_axis_, number_vertices_remove, k);
+					collapse_non_manifold_using_QMat(*selected_medial_axis_, number_vertex_remain, k);
 					
 				}
 				static float dilation_factor = 0.02f;
