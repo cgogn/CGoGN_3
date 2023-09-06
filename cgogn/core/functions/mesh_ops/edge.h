@@ -119,9 +119,9 @@ CPH3::CMAP::Vertex CGOGN_CORE_EXPORT cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool 
 // IncidenceGraph //
 ////////////////////
 
-//just remove the edge
-	std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat(IncidenceGraph& ig,
-																						IncidenceGraph::Edge e);
+
+std::vector<IncidenceGraph::Edge> collapse_edge_qmat(IncidenceGraph& ig, IncidenceGraph::Edge e,
+													 IncidenceGraph::Vertex& new_vertex);
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat_with_debug_info(
 	IncidenceGraph& ig, IncidenceGraph::Edge e);
 

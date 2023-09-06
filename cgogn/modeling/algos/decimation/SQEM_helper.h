@@ -27,6 +27,7 @@
 #include <cgogn/core/functions/attributes.h>
 #include <cgogn/core/functions/traversals/global.h>
 #include <cgogn/core/functions/traversals/vertex.h>
+#include <cgogn/core/functions/mesh_ops/vertex.h>
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph_ops.h>
 
@@ -234,10 +235,10 @@ struct DecimationSQEM_Helper
 		});
 	}
 
-	void simplify(int vertex_to_remain)
+	void simplify(int vertex_to_remain, bool boundary_preserve)
 	{
 		std::cout << "start simplification process" << std::endl;
-		if (nb_vertices < 100)
+		if (boundary_preserve && nb_vertices < 100)
 		{
 			
 			foreach_cell(m_, [&](Edge e) {
@@ -259,13 +260,17 @@ struct DecimationSQEM_Helper
 			EdgeInfo einfo = value<EdgeInfo>(m_, edge_queue_it_, e);
 			if (einfo.first)
 			{
+				Vertex v = add_vertex(m_);
 				value<EdgeInfo>(m_, edge_queue_it_, e).first = false;
-				
+				auto iv = incident_vertices(m_, e);
 				Vec4 opt = value<Vec4>(m_, sphere_opt_, e);
-				Slab_Quadric& eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
+				value<bool>(m_, fixed_vertex_, v) =
+						value<bool>(m_, fixed_vertex_, iv[0]) || value<bool>(m_, fixed_vertex_, iv[1]);
+				
+				Slab_Quadric eq = value<Slab_Quadric>(m_, edge_slab_quadric_, e);
 
-				auto [v, removed_edges] = collapse_edge_qmat(m_, e);
-
+				auto removed_edges = collapse_edge_qmat(m_, e, v);
+				
 				// update the position of v and the radius of the sphere
 				value<Vec4>(m_, sphere_info_, v) = opt;
 				value<Vec3>(m_, position_, v) = opt.head<3>();

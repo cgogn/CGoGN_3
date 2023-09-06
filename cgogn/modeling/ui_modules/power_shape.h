@@ -304,13 +304,14 @@ public:
 		return tri;
 	}
 
-	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, NONMANIFOLD* mv)
+	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, string name)
 	{
 		std::vector<double> sphere_radius;
 		std::vector<Point> sphere_center;
 		cgogn::io::IncidenceGraphImportData Initial_non_manifold;
 		std::unordered_map<std::pair<uint32, uint32>, size_t, edge_hash, edge_equal> edge_indices;
-		
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(name +
+														  std::to_string(nonmanifold_provider_->number_of_meshes()));
 		uint32 vertex_count = 0, edge_count = 0;
 		// Add vertices
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
@@ -492,8 +493,10 @@ public:
 		return power_shape;
 	}
 
-	void constrcut_power_shape_non_manifold( NONMANIFOLD* mv, Regular& power_shape)
+	void constrcut_power_shape_non_manifold(Regular& power_shape,string name)
 	{
+		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(name +
+														  std::to_string(nonmanifold_provider_->number_of_meshes()));
 		cgogn::io::IncidenceGraphImportData Inner_Power_shape_data;
 		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
 		uint32 edge_count = 0;
@@ -577,26 +580,25 @@ public:
 	void compute_power_shape(SURFACE& surface)
 	{
 		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
-		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_power_shape");
+		
 		Cgal_Surface_mesh csm;
 		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
 		Regular reg = compute_regular_tredrahedron(tree, tri);
-		constrcut_power_shape_non_manifold(mv, reg);
+		constrcut_power_shape_non_manifold( reg,surface_provider_->mesh_name(surface) +"_inner_power_shape");
 	}
 
 	void compute_original_power_diagram(SURFACE& surface)
 	{
 		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
-		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_inner_medial_axis");
 		Cgal_Surface_mesh csm;
 		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		compute_initial_non_manifold(tri, tree, mv);
+		compute_initial_non_manifold(tri, tree, surface_provider_->mesh_name(surface)+ "_inner_voronoi_diagram");
 	}
 
 
@@ -660,7 +662,7 @@ public:
 		helper.initial_slab_mesh();
 		helper.initial_boundary_mesh();
 		helper.initial_collapse_queue();
-		helper.simplify(number_vertices_remain);
+		helper.simplify(number_vertices_remain, true);
 		
 		remove_attribute<NonManifoldVertex>(nm, fixed_vertex);
 		nonmanifold_provider_->emit_connectivity_changed(nm);
@@ -688,7 +690,10 @@ public:
 				power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]),
 												(value<double>(mv, sphere_radius, nv) + dilation_factor) *
 													(value<double>(mv, sphere_radius, nv) + dilation_factor)));
-				
+			
+				std::cout << "Vertex: " << index_of(mv, nv) << " position is : " << pos.x() << " " << pos.y() << " "
+						  << pos.z()
+						  << std::endl;
 			}
 			return true;
 		});
@@ -696,7 +701,8 @@ public:
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
 		
-			power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]), dilation_factor * dilation_factor));
+			power_shape.insert(
+				Weight_Point(Point(pos[0], pos[1], pos[2]), (dilation_factor + 0.001) * (dilation_factor + 0.001)));
 			
 			return true;
 		});
@@ -710,13 +716,13 @@ public:
 				vit->info().id = count;
 				vit->info().inside = true;
 				count++;
+				
 			}
 		}
-		NONMANIFOLD* ca = nonmanifold_provider_->add_mesh(surface_provider_->mesh_name(surface) + "_coverage_axis");
-		constrcut_power_shape_non_manifold(ca, power_shape);
+		constrcut_power_shape_non_manifold(power_shape,surface_provider_->mesh_name(surface)+ "_coverage_axis");
 	}
 
-	void coverage_axis_collapse(NONMANIFOLD& nm, std::vector<double> selection_points)
+	void coverage_axis_collapse(NONMANIFOLD& nm, HighsSolution& solution)
 	{
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 		using Slab_Quadric = geometry::Slab_Quadric;
@@ -729,14 +735,15 @@ public:
 		auto sphere_info = get_attribute<Vec4, NonManifoldVertex>(nm, "sphere_info");
 		auto fixed_vertex = add_attribute<bool, NonManifoldVertex>(nm, "fixed_vertex");
 		int number_vertex_remain = 0;
-		foreach_cell(nm, [&](NonManifoldVertex v) -> bool {
-			if (selection_points[v.index_] > 0.5)
+		foreach_cell(nm, [&](NonManifoldVertex nv) -> bool {
+			Vec3 pos = value<Vec3>(nm, position, nv);
+			if (solution.col_value[index_of(nm, nv)] > 1e-5)
 			{
-				value<bool>(nm, fixed_vertex, v) = true;
+				value<bool>(nm, fixed_vertex, nv) = true;
 				number_vertex_remain++;
 			}
 			else
-				value<bool>(nm, fixed_vertex, v) = false;
+				value<bool>(nm, fixed_vertex, nv) = false;
 			
 			return true;
 		});
@@ -745,8 +752,13 @@ public:
 		helper.initial_slab_mesh();
 		helper.initial_boundary_mesh();
 		helper.initial_collapse_queue();
-		helper.simplify(number_vertex_remain);
+		helper.simplify(number_vertex_remain, false);
 
+		foreach_cell(nm, [&](NonManifoldVertex nv) {
+			Vec3 pos = value<Vec3>(nm, position, nv);
+			return true;
+		});
+		
 		remove_attribute<NonManifoldVertex>(nm, fixed_vertex);
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
@@ -755,23 +767,29 @@ public:
 	
  	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
 	{
+		typedef Eigen::SparseMatrix<double> SpMat; 
+		typedef Eigen::Triplet<double> T;
+		std::vector<T> triplets;
 		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
 		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
 		auto inner_point_nb = nb_cells<NonManifoldVertex>(mv);
 		auto sample_point_nb = nb_cells<Vertex>(surface);
-		Eigen::MatrixXd A(sample_point_nb, inner_point_nb);
 		foreach_cell(mv, [&](NonManifoldVertex nv) {
-			foreach_cell(surface, [&](Vertex v) {
-				A(index_of(surface, v), index_of(mv, nv) ) =
-					inside_sphere(value<Vec3>(surface, sample_position, v),
-								  value<Vec3>(mv, inner_position, nv),
-								  value<double>(mv, sphere_radius, nv) + dilation_factor) ? 1.0 : 0.0;
-				return true;
-			});
+			foreach_cell(surface, [&](Vertex v) { 
+				if (inside_sphere(value<Vec3>(surface, sample_position, v), value<Vec3>(mv, inner_position, nv),
+								  value<double>(mv, sphere_radius, nv) + dilation_factor))
+				{
+					triplets.push_back(T(index_of(surface, v), index_of(mv, nv), 1.0));
+				}
+				return true; });
 			return true;
 		});
+		SpMat A(sample_point_nb, inner_point_nb);
+		A.setFromTriplets(triplets.begin(), triplets.end());
+		A.makeCompressed();
 		HighsModel model;
+		model.lp_.a_matrix_.format_ = MatrixFormat::kColwise;
 		model.lp_.num_col_ = A.cols();
 		model.lp_.num_row_ = A.rows();
 		model.lp_.sense_ = ObjSense::kMinimize;
@@ -783,28 +801,17 @@ public:
 		model.lp_.row_lower_ = std::vector<double>(model.lp_.num_row_, 1.0);
 		model.lp_.row_upper_ = std::vector<double>(model.lp_.num_row_, 1e30);
 		model.lp_.integrality_ = std::vector<HighsVarType>(model.lp_.num_col_, type);
-		model.lp_.a_matrix_.format_ = MatrixFormat::kColwise;
+		
 		model.lp_.a_matrix_.num_col_ = model.lp_.num_col_;
 		model.lp_.a_matrix_.num_row_ = model.lp_.num_row_;
-		model.lp_.a_matrix_.start_.clear();
-		int currentStart = 0;
-		for (int col = 0; col < model.lp_.a_matrix_.num_col_; ++col)
-		{
-			model.lp_.a_matrix_.start_.push_back(currentStart);
-
-			for (int row = 0; row < model.lp_.a_matrix_.num_row_; ++row)
-			{
-				double value = A(row, col);
-				if (value != 0.0)
-				{
-					model.lp_.a_matrix_.index_.push_back(row);
-					model.lp_.a_matrix_.value_.push_back(value);
-					currentStart++;
-				}
-			}
-		}
-		model.lp_.a_matrix_.start_.push_back(currentStart);
-
+		model.lp_.a_matrix_.start_.resize(A.cols() + 1);
+		model.lp_.a_matrix_.index_.resize(A.nonZeros());
+		model.lp_.a_matrix_.value_.resize(A.nonZeros());
+		
+		// Copy the data from A to the vectors
+		std::copy(A.outerIndexPtr(), A.outerIndexPtr() + A.cols() + 1, model.lp_.a_matrix_.start_.begin());
+		std::copy(A.innerIndexPtr(), A.innerIndexPtr() + A.nonZeros(), model.lp_.a_matrix_.index_.begin());
+		std::copy(A.valuePtr(), A.valuePtr() + A.nonZeros(), model.lp_.a_matrix_.value_.begin());
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
 		HighsSolution solution; 
@@ -919,7 +926,7 @@ protected:
 				{
 
 					if (ImGui::Button("Collpase"))
-						coverage_axis_collapse(*selected_medial_axis_, solution.col_value);
+						coverage_axis_collapse(*selected_medial_axis_, solution);
 					if (ImGui::Button("PD"))
 						coverage_axis_PD(*selected_surface_mesh_, *selected_medial_axis_, solution, dilation_factor);
 				}

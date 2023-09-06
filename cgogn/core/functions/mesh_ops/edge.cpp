@@ -547,14 +547,12 @@ CPH3::CMAP::Vertex cut_edge(CPH3& m, CPH3::CMAP::Edge e, bool set_indices)
 	remove_cell<Vertex>(ig, v2);
 	return {new_vertex, removed_edges};
 }
-std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat(IncidenceGraph& ig,
-																						IncidenceGraph::Edge e)
+std::vector<IncidenceGraph::Edge> collapse_edge_qmat(IncidenceGraph& ig,
+													IncidenceGraph::Edge e, IncidenceGraph::Vertex& new_vertex)
 {
 	using Vertex = IncidenceGraph::Vertex;
 	using Edge = IncidenceGraph::Edge;
 	using Face = IncidenceGraph::Face;
-
-	Vertex new_vertex = add_vertex(ig);
 
 	std::vector<Edge> removed_edges;
 	auto [v1, v2] = (*ig.edge_incident_vertices_)[e.index_];
@@ -615,7 +613,7 @@ std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_ed
 	}
 	remove_cell<Vertex>(ig, v1);
 	remove_cell<Vertex>(ig, v2);
-	return {new_vertex, removed_edges};
+	return  removed_edges;
 }
 
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
