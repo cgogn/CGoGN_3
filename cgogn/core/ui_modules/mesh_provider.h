@@ -285,7 +285,7 @@ public:
 				io::export_OFF(m, vertex_position, filename + ".off");
 			else if (filetype.compare("ig") == 0)
 			{
-				if constexpr (has_edge<MESH>::value)
+				if constexpr (has_edge_v<MESH>)
 					io::export_IG(m, vertex_position, filename + ".ig");
 			}
 		}

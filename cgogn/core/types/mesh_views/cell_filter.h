@@ -79,7 +79,7 @@ public:
 	template <typename CELL, typename FilterFunction>
 	void set_filter(const FilterFunction&& filter)
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		static_assert(is_func_parameter_same<FilterFunction, CELL>::value, "Wrong function cell parameter type");
 		static_assert(is_func_return_same<FilterFunction, bool>::value, "Given function should return a bool");
 		cell_filter<CELL>() = [filter](CELL c) -> bool { return filter(c); };
@@ -88,7 +88,7 @@ public:
 	template <typename CELL>
 	bool filter(CELL c) const
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return cell_filter<CELL>()(c);
 	}
 };
@@ -98,13 +98,11 @@ struct mesh_traits<CellFilter<MESH>> : public mesh_traits<MESH>
 {
 };
 
-
-
 template <typename MESH, typename FUNC>
 void foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -116,12 +114,11 @@ void foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 	});
 }
 
-
 template <typename MESH, typename FUNC>
 void parallel_foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -132,7 +129,6 @@ void parallel_foreach_cell(const CellFilter<MESH>& cf, const FUNC& f)
 		return true;
 	});
 }
-
 
 } // namespace cgogn
 

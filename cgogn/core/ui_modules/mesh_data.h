@@ -115,7 +115,7 @@ public:
 	template <typename CELL>
 	uint32 nb_cells()
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
 		return nb_cells_[cell_index];
 	}
@@ -182,7 +182,7 @@ public:
 	template <typename CELL, typename FUNC>
 	void foreach_cells_set(const FUNC& f)
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		static_assert(is_func_parameter_same<FUNC, CellsSet<MESH, CELL>&>::value, "Wrong function parameter type");
 		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
 			f(cs);
@@ -191,7 +191,7 @@ public:
 	template <typename CELL>
 	void add_cells_set()
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
 		cells_sets<CELL>().emplace_back(*mesh_, mesh_traits<MESH>::cell_names[cell_index] +
 													std::to_string(cells_sets<CELL>().size()));

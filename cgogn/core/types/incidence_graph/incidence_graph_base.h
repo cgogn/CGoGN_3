@@ -35,7 +35,6 @@
 #include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
-#include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
 #include <any>
@@ -259,7 +258,7 @@ template <typename T, typename CELL, typename MESH,
 		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>* = nullptr>
 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	IncidenceGraphBase& mb = static_cast<IncidenceGraphBase&>(m);
 	return mb.attribute_containers_[CELL::CELL_INDEX].template add_attribute<T>(name);
 }
@@ -268,7 +267,7 @@ template <typename T, typename CELL, typename MESH,
 		  typename std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>* = nullptr>
 std::shared_ptr<IncidenceGraphBase::Attribute<T>> get_attribute(const MESH& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::CELL_INDEX].template get_attribute<T>(name);
 }
 
@@ -319,7 +318,7 @@ template <typename CELL, typename MESH>
 auto get_mark_attribute(const MESH& m)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>, typename mesh_traits<MESH>::MarkAttribute*>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::CELL_INDEX].get_mark_attribute();
 }
 
@@ -327,7 +326,7 @@ template <typename CELL, typename MESH>
 auto release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::CELL_INDEX].release_mark_attribute(attribute);
 }
 
@@ -339,7 +338,7 @@ template <typename MESH, typename FUNC>
 auto foreach_cell(const MESH& ig, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	for (uint32 i = ig.attribute_containers_[CELL::CELL_INDEX].first_index(),
@@ -357,7 +356,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, IncidenceGraphBase&>>
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();

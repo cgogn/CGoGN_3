@@ -27,12 +27,12 @@
 #include <cgogn/core/types/container/attribute_container.h>
 #include <cgogn/core/types/container/chunk_array.h>
 
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/mesh_traits.h>
 
 #include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
-#include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
 #include <cgogn/core/utils/numerics.h>
@@ -274,7 +274,7 @@ template <typename MESH, typename FUNC>
 auto foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std::is_convertible_v<MESH&, TriangleSoup&>>
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	constexpr uint32 container_index = TriangleSoup::cell_container_index<CELL>();
@@ -293,7 +293,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, TriangleSoup&>>
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();
@@ -375,7 +375,7 @@ void clear(TriangleSoup& ts, bool keep_attributes = true);
 void copy(TriangleSoup& dst, const TriangleSoup& src);
 
 /*************************************************************************/
-// Specific mesh info
+// Specific mesh info overload
 /*************************************************************************/
 
 inline uint32 codegree(const TriangleSoup& ts, TriangleSoup::Face f)
@@ -394,7 +394,7 @@ auto foreach_incident_vertex(const MESH& ts, CELL c, const FUNC& func)
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

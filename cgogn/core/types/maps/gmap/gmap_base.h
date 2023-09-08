@@ -373,7 +373,7 @@ template <typename MESH, typename CELL, typename FUNC>
 auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&>>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -454,7 +454,7 @@ auto foreach_incident_vertex(const MESH& m, CELL c, const FUNC& func, MapBase::T
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -597,7 +597,7 @@ auto foreach_incident_halfedge(const MESH& m, CELL c, const FUNC& func)
 {
 	using HalfEdge = typename mesh_traits<MESH>::HalfEdge;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, HalfEdge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -621,7 +621,7 @@ auto foreach_incident_edge(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 {
 	using Edge = typename mesh_traits<MESH>::Edge;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -747,7 +747,7 @@ auto foreach_incident_face(const MESH& m, CELL c, const FUNC& func, MapBase::Tra
 {
 	using Face = typename mesh_traits<MESH>::Face;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Face>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -945,7 +945,7 @@ auto foreach_incident_volume(const MESH& m, CELL c, const FUNC& func, MapBase::T
 {
 	using Volume = typename mesh_traits<MESH>::Volume;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Volume>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

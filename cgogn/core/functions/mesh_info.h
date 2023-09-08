@@ -49,6 +49,8 @@ template <typename MESH>
 struct has_vertex<MESH, typename void_<typename MESH::Vertex>::type> : std::true_type
 {
 };
+template <typename MESH>
+inline constexpr bool has_vertex_v = has_vertex<MESH>::value;
 
 template <typename MESH, typename = void>
 struct has_edge : std::false_type
@@ -58,6 +60,8 @@ template <typename MESH>
 struct has_edge<MESH, typename void_<typename MESH::Edge>::type> : std::true_type
 {
 };
+template <typename MESH>
+inline constexpr bool has_edge_v = has_edge<MESH>::value;
 
 template <typename MESH, typename = void>
 struct has_face : std::false_type
@@ -67,6 +71,8 @@ template <typename MESH>
 struct has_face<MESH, typename void_<typename MESH::Face>::type> : std::true_type
 {
 };
+template <typename MESH>
+inline constexpr bool has_face_v = has_face<MESH>::value;
 
 template <typename MESH, typename = void>
 struct has_volume : std::false_type
@@ -76,6 +82,17 @@ template <typename MESH>
 struct has_volume<MESH, typename void_<typename MESH::Volume>::type> : std::true_type
 {
 };
+template <typename MESH>
+inline constexpr bool has_volume_v = has_volume<MESH>::value;
+
+template <typename MESH, typename CELL>
+struct has_cell_type
+{
+	static constexpr bool value = is_in_tuple_v<CELL, typename mesh_traits<MESH>::Cells>;
+};
+
+template <typename MESH, typename CELL>
+inline constexpr bool has_cell_type_v = has_cell_type<MESH, CELL>::value;
 
 // some generic functions to get info about a mesh and its cells
 

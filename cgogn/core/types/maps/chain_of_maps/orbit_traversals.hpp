@@ -331,7 +331,7 @@ template <typename MESH, typename CELL, typename FUNC>
 auto foreach_dart_of_orbit(const MESH& m, CELL c, const FUNC& f)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, GMapBase&>>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Dart>::value, "Given function should take a Dart as parameter");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

@@ -228,7 +228,7 @@ private:
 					MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 					if (p.vertex_position_)
 					{
-						if constexpr (has_edge<MESH>::value)
+						if constexpr (has_edge_v<MESH>)
 							p.vertex_base_size_ =
 								float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 						else
@@ -248,7 +248,7 @@ private:
 						MeshData<MESH>& md = mesh_provider_->mesh_data(*m);
 						if (p.vertex_position_.get() == attribute)
 						{
-							if constexpr (has_edge<MESH>::value)
+							if constexpr (has_edge_v<MESH>)
 								p.vertex_base_size_ =
 									float32(geometry::mean_edge_length(*m, p.vertex_position_.get()) / 7.0);
 							else
@@ -285,7 +285,7 @@ public:
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
-			if constexpr (has_edge<MESH>::value)
+			if constexpr (has_edge_v<MESH>)
 				p.vertex_base_size_ = float32(geometry::mean_edge_length(m, p.vertex_position_.get()) / 7.0);
 			else
 				p.vertex_base_size_ = float32(geometry::mean_cell_area<Face>(m, p.vertex_position_.get()) * 10.0 *
@@ -902,7 +902,7 @@ protected:
 				}
 			}
 
-			if constexpr (has_edge<MESH>::value)
+			if constexpr (has_edge_v<MESH>)
 			{
 				using Edge = typename mesh_traits<MESH>::Edge;
 
