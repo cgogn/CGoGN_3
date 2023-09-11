@@ -52,31 +52,6 @@ namespace modeling
 using geometry::Scalar;
 using geometry::Vec3;
 
-///////////
-// CMap2 //
-///////////
-
-inline void cut_incident_faces(CMap2& m, CMap2::Vertex v)
-{
-	std::vector<CMap2::Face> ifaces = incident_faces(m, v);
-	for (CMap2::Face f : ifaces)
-		cut_face(m, CMap2::Vertex(f.dart_), CMap2::Vertex(phi<1, 1>(m, f.dart_)));
-}
-
-inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
-{
-	return CMap2::Vertex(phi_1(m, he.dart_));
-}
-
-inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
-{
-	return {CMap2::Vertex(phi_1(m, e.dart_)), CMap2::Vertex(phi<2, -1>(m, e.dart_))};
-}
-
-/////////////
-// GENERIC //
-/////////////
-
 template <typename MESH>
 struct MeanCurvatureSkeleton_Helper
 {
@@ -299,8 +274,7 @@ void mean_curvature_skeleton(MESH& m,
 	// 		// Vec3 newmp = mp0 + t * vec;
 	// 		Vec3 newmp = (mp0 + mp1) * 0.5;
 
-	// 		Vertex cv = cut_edge(m, e);
-	// 		cut_incident_faces(m, cv);
+	//		Vertex cv = cut_edge_and_incident_triangles(m, e);
 	// 		value<Vec3>(m, helper.vertex_position_, cv) = newp;
 	// 		value<Vec3>(m, helper.vertex_medial_point_, cv) = newmp;
 	// 		// std::pair<uint32, Scalar> k_res;

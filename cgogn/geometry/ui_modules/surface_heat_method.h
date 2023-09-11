@@ -29,13 +29,7 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
-#include <cgogn/geometry/algos/area.h>
-#include <cgogn/geometry/algos/laplacian.h>
-#include <cgogn/geometry/functions/angle.h>
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#include <cgogn/geometry/algos/distance.h>
 
 #include <chrono>
 #include <cmath>
@@ -53,41 +47,6 @@ namespace ui
 
 using Vec3 = geometry::Vec3;
 using Scalar = geometry::Scalar;
-
-///////////
-// CMap2 //
-///////////
-
-Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v, const CMap2::Attribute<Vec3>* face_gradient,
-								  const CMap2::Attribute<Vec3>* vertex_position)
-{
-	Scalar div = 0.0;
-	std::vector<CMap2::Edge> edges = incident_edges(m, v);
-	for (uint32 i = 0; i < edges.size(); ++i)
-	{
-		CMap2::Edge e1 = edges[i];
-		CMap2::Edge e2 = edges[(i + 1) % edges.size()];
-
-		CMap2::Face f(e1.dart_);
-
-		const Vec3& X = value<Vec3>(m, face_gradient, f);
-
-		const Vec3& p0 = value<Vec3>(m, vertex_position, v);
-		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart_)));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e2.dart_)));
-
-		Vec3 vecR = p0 - p2;
-		Vec3 vecL = p1 - p2;
-		Scalar cotValue1 = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-		vecR = p2 - p1;
-		vecL = p0 - p1;
-		Scalar cotValue2 = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-		div += cotValue1 * (p1 - p0).dot(X) + cotValue2 * (p2 - p0).dot(X);
-	}
-	return div / 2.0;
-}
 
 template <typename MESH>
 class SurfaceHeatMethod : public Module
@@ -131,95 +90,7 @@ public:
 	void geodesic_distance(MESH& m, const Attribute<Vec3>* vertex_position,
 						   const CellsSet<MESH, Vertex>* source_vertices, Attribute<Scalar>* vertex_geodesic_distance)
 	{
-		auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
-
-		uint32 nb_vertices = 0;
-		foreach_cell(m, [&](Vertex v) -> bool {
-			value<uint32>(m, vertex_index, v) = nb_vertices++;
-			return true;
-		});
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Lc =
-			geometry::cotan_operator_matrix(m, vertex_index.get(), vertex_position);
-
-		auto vertex_area = add_attribute<Scalar, Vertex>(m, "__vertex_area");
-		geometry::compute_area<Vertex>(m, vertex_position, vertex_area.get());
-
-		Eigen::VectorXd A(nb_vertices);
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			A(vidx) = value<Scalar>(m, vertex_area, v);
-			return true;
-		});
-
-		Eigen::VectorXd u0(nb_vertices);
-		u0.setZero();
-		source_vertices->foreach_cell([&](Vertex v) {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			u0(vidx) = 1.0;
-		});
-
-		Scalar h = geometry::mean_edge_length(m, vertex_position);
-		Scalar t = h * h;
-
-		Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Am(A.asDiagonal());
-		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> heat_solver(Am - t * Lc);
-		Eigen::VectorXd u = heat_solver.solve(u0);
-
-		auto vertex_heat = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_heat");
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			value<Scalar>(m, vertex_heat, v) = u(vidx);
-			return true;
-		});
-
-		auto face_heat_gradient = get_or_add_attribute<Vec3, Face>(m, "__face_heat_gradient");
-		parallel_foreach_cell(m, [&](Face f) -> bool {
-			Vec3 g(0, 0, 0);
-			Vec3 n = geometry::normal(m, f, vertex_position);
-			Scalar a = geometry::area(m, f, vertex_position);
-			std::vector<Vertex> vertices = incident_vertices(m, f);
-			for (uint32 i = 0; i < vertices.size(); ++i)
-			{
-				Vec3 e = value<Vec3>(m, vertex_position, vertices[(i + 2) % vertices.size()]) -
-						 value<Vec3>(m, vertex_position, vertices[(i + 1) % vertices.size()]);
-				g += value<Scalar>(m, vertex_heat, vertices[i]) * n.cross(e);
-			}
-			g /= 2 * a;
-			value<Vec3>(m, face_heat_gradient, f) = -1.0 * g.normalized();
-			return true;
-		});
-
-		auto vertex_heat_gradient_div = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_heat_gradient_div");
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			Scalar d = vertex_gradient_divergence(m, v, face_heat_gradient.get(), vertex_position);
-			value<Scalar>(m, vertex_heat_gradient_div, v) = d;
-			return true;
-		});
-
-		Eigen::VectorXd b(nb_vertices);
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			b(vidx) = value<Scalar>(m, vertex_heat_gradient_div, v);
-			return true;
-		});
-
-		Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> poisson_solver(Lc);
-		Eigen::VectorXd dist = poisson_solver.solve(b);
-
-		Scalar min = dist.minCoeff();
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			uint32 vidx = value<uint32>(m, vertex_index, v);
-			value<Scalar>(m, vertex_geodesic_distance, v) = dist(vidx) - min;
-			return true;
-		});
-
-		remove_attribute<Vertex>(m, vertex_index);
-		remove_attribute<Vertex>(m, vertex_area);
-		// remove_attribute<Vertex>(m, vertex_heat);
-		// remove_attribute<Face>(m, face_heat_gradient);
-		// remove_attribute<Vertex>(m, vertex_heat_gradient_div);
-
+		geometry::compute_geodesic_distance(m, vertex_position, source_vertices, vertex_geodesic_distance);
 		mesh_provider_->emit_attribute_changed(m, vertex_geodesic_distance);
 	}
 

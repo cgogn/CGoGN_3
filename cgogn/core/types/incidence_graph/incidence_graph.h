@@ -75,7 +75,7 @@ auto foreach_incident_vertex(const MESH& ig, CELL c, const FUNC& func)
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Vertex>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -165,7 +165,7 @@ auto foreach_incident_edge(const MESH& ig, CELL c, const FUNC& func)
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, Edge>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

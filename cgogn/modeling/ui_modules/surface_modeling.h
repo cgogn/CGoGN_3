@@ -48,8 +48,8 @@ namespace cgogn
 namespace ui
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 class SurfaceModeling : public Module
@@ -76,7 +76,7 @@ public:
 public:
 	void fill_holes(MESH& m)
 	{
-		modeling::fill_holes(m);
+		fill_boundaries(m);
 		mesh_provider_->emit_connectivity_changed(m);
 	}
 

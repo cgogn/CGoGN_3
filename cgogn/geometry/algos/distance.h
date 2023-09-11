@@ -24,10 +24,18 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_DISTANCE_H_
 #define CGOGN_GEOMETRY_ALGOS_DISTANCE_H_
 
-//#include <cgogn/core/utils/thread_pool.h>
+#include <cgogn/core/types/cells_set.h>
+
+#include <cgogn/geometry/algos/area.h>
+#include <cgogn/geometry/algos/gradient.h>
+#include <cgogn/geometry/algos/laplacian.h>
 
 #include <cgogn/geometry/functions/distance.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
+
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 namespace cgogn
 {
@@ -102,6 +110,87 @@ Vec3 closest_point_on_surface(const MESH& m,
 	});
 
 	return closest;
+}
+
+template <typename MESH>
+void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+							   const CellsSet<MESH, typename mesh_traits<MESH>::Vertex>* source_vertices,
+							   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_geodesic_distance)
+{
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	auto vertex_index = add_attribute<uint32, Vertex>(m, "__vertex_index");
+
+	uint32 nb_vertices = 0;
+	foreach_cell(m, [&](Vertex v) -> bool {
+		value<uint32>(m, vertex_index, v) = nb_vertices++;
+		return true;
+	});
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Lc =
+		geometry::cotan_operator_matrix(m, vertex_index.get(), vertex_position);
+
+	auto vertex_area = add_attribute<Scalar, Vertex>(m, "__vertex_area");
+	geometry::compute_area<Vertex>(m, vertex_position, vertex_area.get());
+
+	Eigen::VectorXd A(nb_vertices);
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		A(vidx) = value<Scalar>(m, vertex_area, v);
+		return true;
+	});
+
+	Eigen::VectorXd u0(nb_vertices);
+	u0.setZero();
+	source_vertices->foreach_cell([&](Vertex v) {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		u0(vidx) = 1.0;
+	});
+
+	Scalar h = geometry::mean_edge_length(m, vertex_position);
+	Scalar t = h * h;
+
+	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Am(A.asDiagonal());
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> heat_solver(Am - t * Lc);
+	Eigen::VectorXd u = heat_solver.solve(u0);
+
+	auto vertex_heat = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_heat");
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		value<Scalar>(m, vertex_heat, v) = u(vidx);
+		return true;
+	});
+
+	auto face_heat_gradient = get_or_add_attribute<Vec3, Face>(m, "__face_heat_gradient");
+	geometry::compute_gradient_of_vertex_scalar_field(m, vertex_position, vertex_heat.get(), face_heat_gradient.get());
+
+	auto vertex_heat_gradient_div = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_heat_gradient_div");
+	geometry::compute_div_of_face_vector_field(m, vertex_position, face_heat_gradient.get(),
+											   vertex_heat_gradient_div.get());
+
+	Eigen::VectorXd b(nb_vertices);
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		b(vidx) = value<Scalar>(m, vertex_heat_gradient_div, v);
+		return true;
+	});
+
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> poisson_solver(Lc);
+	Eigen::VectorXd dist = poisson_solver.solve(b);
+
+	Scalar min = dist.minCoeff();
+	parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		uint32 vidx = value<uint32>(m, vertex_index, v);
+		value<Scalar>(m, vertex_geodesic_distance, v) = dist(vidx) - min;
+		return true;
+	});
+
+	remove_attribute<Vertex>(m, vertex_index);
+	remove_attribute<Vertex>(m, vertex_area);
+	// remove_attribute<Vertex>(m, vertex_heat);
+	// remove_attribute<Face>(m, face_heat_gradient);
+	// remove_attribute<Vertex>(m, vertex_heat_gradient_div);
 }
 
 } // namespace geometry
