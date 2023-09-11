@@ -29,6 +29,8 @@
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
+#include <cgogn/core/functions/mesh_info.h>
+
 #include <array>
 #include <vector>
 

@@ -27,6 +27,7 @@
 
 #include <cgogn/core/functions/mesh_info.h>
 
+#include <cgogn/core/types/cells_set.h>
 #include <cgogn/core/types/maps/dart_marker.h>
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
@@ -774,9 +775,9 @@ CellCache<CMap3> get_slice(CMap3& m3, CMap3::Edge e)
 {
 	CellCache<CMap3> slice(m3);
 
-	cgogn::ui::CellsSet<CMap3, CMap3::Volume> slice_volumes(m3, "slice_w");
-	cgogn::ui::CellsSet<CMap3, CMap3::Face> slice_faces(m3, "slice_f");
-	cgogn::ui::CellsSet<CMap3, CMap3::Edge> slice_edges(m3, "slice_e");
+	CellsSet<CMap3, CMap3::Volume> slice_volumes(m3, "slice_w");
+	CellsSet<CMap3, CMap3::Face> slice_faces(m3, "slice_f");
+	CellsSet<CMap3, CMap3::Edge> slice_edges(m3, "slice_e");
 
 	std::vector<Dart> pending;
 	pending.push_back(e.dart_);

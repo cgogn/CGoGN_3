@@ -64,41 +64,6 @@ void compute_gradient_of_vertex_scalar_field(
 	});
 }
 
-///////////
-// CMap2 //
-///////////
-
-inline Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v, const CMap2::Attribute<Vec3>* face_gradient,
-										 const CMap2::Attribute<Vec3>* vertex_position)
-{
-	Scalar div = 0.0;
-	std::vector<CMap2::Edge> edges = incident_edges(m, v);
-	for (uint32 i = 0; i < edges.size(); ++i)
-	{
-		CMap2::Edge e1 = edges[i];
-		CMap2::Edge e2 = edges[(i + 1) % edges.size()];
-
-		CMap2::Face f(e1.dart_);
-
-		const Vec3& X = value<Vec3>(m, face_gradient, f);
-
-		const Vec3& p0 = value<Vec3>(m, vertex_position, v);
-		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart_)));
-		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e2.dart_)));
-
-		Vec3 vecR = p0 - p2;
-		Vec3 vecL = p1 - p2;
-		Scalar cotValue1 = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-		vecR = p2 - p1;
-		vecL = p0 - p1;
-		Scalar cotValue2 = vecR.dot(vecL) / vecR.cross(vecL).norm();
-
-		div += cotValue1 * (p1 - p0).dot(X) + cotValue2 * (p2 - p0).dot(X);
-	}
-	return div / 2.0;
-}
-
 /////////////
 // GENERIC //
 /////////////

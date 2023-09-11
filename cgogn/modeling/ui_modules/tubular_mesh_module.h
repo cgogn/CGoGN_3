@@ -177,65 +177,26 @@ public:
 	void recenter_graph_from_surface()
 	{
 		parallel_foreach_cell(*graph_, [&](GraphVertex v) -> bool {
-			uint32 d = degree(*graph_, v);
-			if (d > 2)
+			Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
+			Vec3 cp = surface_bvh_->closest_point(p);
+			Scalar prev_r;
+			Scalar r = (cp - p).norm();
+			// Vec3 prev_displ;
+			Vec3 displ = 0.01 * (p - cp);
+			p += displ;
+			do
 			{
-				// Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
-				// Vec3 displ;
-				// Vec3 prev_displ;
-				// std::pair<uint32, Scalar> k_res;
-				// surface_kdt_->find_nn(p, &k_res);
-				// Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
-				// displ = 0.01 * (p - nnp);
-				// p += displ;
-				// do
-				// {
-				// 	prev_displ = displ;
-				// 	surface_kdt_->find_nn(p, &k_res);
-				// 	Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
-				// 	displ = 0.01 * (p - nnp);
-				// 	p += displ;
-				// } while (prev_displ.dot(displ) > 0);
-
-				// Vec3 cp = surface_bvh_->closest_point(p);
-				// value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
-			}
-			else if (d == 2)
-			{
-				Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
-				// std::vector<GraphVertex> av = adjacent_vertices_through_edge(*graph_, v);
-
-				// Vec3 dir = (value<Vec3>(*graph_, graph_vertex_position_, av[0]) - p).normalized() -
-				// 		   (p - value<Vec3>(*graph_, graph_vertex_position_, av[1])).normalized();
-				// dir.normalize();
-
-				Vec3 displ;
-				Vec3 prev_displ;
-				// std::pair<uint32, Scalar> k_res;
-				// surface_kdt_->find_nn(p, &k_res);
-				// Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
-				Vec3 cp = surface_bvh_->closest_point(p);
-				// displ = dir * dir.dot(0.01 * (p - cp));
+				prev_r = r;
+				// prev_displ = displ;
+				cp = surface_bvh_->closest_point(p);
+				r = (cp - p).norm();
 				displ = 0.01 * (p - cp);
 				p += displ;
-				do
-				{
-					prev_displ = displ;
-					// surface_kdt_->find_nn(p, &k_res);
-					// Vec3& nnp = value<Vec3>(*surface_, surface_vertex_position_, surface_vertices_[k_res.first]);
-					cp = surface_bvh_->closest_point(p);
-					// displ = dir * dir.dot(0.01 * (p - cp));
-					displ = 0.01 * (p - cp);
-					p += displ;
-				} while (prev_displ.dot(displ) > 0);
+			} while (prev_r > r);
+			// } while (prev_displ.dot(displ) > 0);
 
-				cp = surface_bvh_->closest_point(p);
-				value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
-			}
-			else if (d == 1)
-			{
-				// TODO
-			}
+			cp = surface_bvh_->closest_point(p);
+			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
 
 			return true;
 		});
@@ -250,7 +211,7 @@ public:
 		parallel_foreach_cell(*graph_, [&](GraphVertex v) -> bool {
 			const Vec3& p = value<Vec3>(*graph_, graph_vertex_position_, v);
 			Vec3 cp = surface_bvh_->closest_point(p);
-			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm();
+			value<Scalar>(*graph_, graph_vertex_radius_, v) = (cp - p).norm() * 0.5;
 			return true;
 		});
 		graph_provider_->emit_attribute_changed(*graph_, graph_vertex_radius_.get());
@@ -286,7 +247,7 @@ public:
 
 	void subdivide_leaflets()
 	{
-		if constexpr (std::is_same_v<GRAPH, cgogn::IncidenceGraph>)
+		if constexpr (has_face<GRAPH>::value) // std::is_same_v<GRAPH, cgogn::IncidenceGraph>)
 		{
 			using Vertex = IncidenceGraph::Vertex;
 			modeling::quadrangulate_all_faces(
@@ -789,35 +750,44 @@ public:
 
 		parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
 			const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
-			Vec3 n{0, 0, 0};
-			foreach_incident_face(*volume_skin_, v, [&](SurfaceFace f) -> bool {
-				Vec3 nf = geometry::normal(*volume_skin_, f, volume_skin_vertex_position_.get());
-				Vec3 cf = geometry::centroid<Vec3>(*volume_skin_, f, volume_skin_vertex_position_.get());
-				bool inside = is_inside(cf);
-				if (!inside)
-					nf *= -1;
-				BVH_Hit h = intersect_bvh({cf, nf, 0, acc::inf});
-				if (h.hit)
-					n += inside ? h.pos - cf : cf - h.pos;
-				return true;
-			});
-			n.normalize();
-
-			if (!is_inside(p))
-				n *= -1;
-
-			BVH_Hit h = intersect_bvh({p, n, 0, acc::inf});
-			Vec3 pos;
-			if (h.hit)
-				pos = h.pos;
-			else
-				pos = surface_bvh_->closest_point(p);
-
-			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = pos;
+			Vec3 proj = surface_bvh_->closest_point(p);
+			value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = proj;
 			value<Vec3>(*volume_, volume_vertex_position_,
-						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = pos;
+						value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = proj;
 			return true;
 		});
+
+		// parallel_foreach_cell(*volume_skin_, [&](SurfaceVertex v) -> bool {
+		// 	const Vec3& p = value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v);
+		// 	Vec3 n{0, 0, 0};
+		// 	foreach_incident_face(*volume_skin_, v, [&](SurfaceFace f) -> bool {
+		// 		Vec3 nf = geometry::normal(*volume_skin_, f, volume_skin_vertex_position_.get());
+		// 		Vec3 cf = geometry::centroid<Vec3>(*volume_skin_, f, volume_skin_vertex_position_.get());
+		// 		bool inside = is_inside(cf);
+		// 		if (!inside)
+		// 			nf *= -1;
+		// 		BVH_Hit h = intersect_bvh({cf, nf, 0, acc::inf});
+		// 		if (h.hit)
+		// 			n += inside ? h.pos - cf : cf - h.pos;
+		// 		return true;
+		// 	});
+		// 	n.normalize();
+
+		// 	if (!is_inside(p))
+		// 		n *= -1;
+
+		// 	BVH_Hit h = intersect_bvh({p, n, 0, acc::inf});
+		// 	Vec3 pos;
+		// 	if (h.hit)
+		// 		pos = h.pos;
+		// 	else
+		// 		pos = surface_bvh_->closest_point(p);
+
+		// 	value<Vec3>(*volume_skin_, volume_skin_vertex_position_, v) = pos;
+		// 	value<Vec3>(*volume_, volume_vertex_position_,
+		// 				value<VolumeVertex>(*volume_skin_, volume_skin_vertex_volume_vertex_, v)) = pos;
+		// 	return true;
+		// });
 
 		volume_provider_->emit_attribute_changed(*volume_, volume_vertex_position_.get());
 		surface_provider_->emit_attribute_changed(*volume_skin_, volume_skin_vertex_position_.get());

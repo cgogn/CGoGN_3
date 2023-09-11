@@ -21,9 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-
-#include <cgogn/core/types/maps/cmap/cmap3.h>
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
+#include <cgogn/core/types/maps/cmap/cmap3.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -128,7 +127,7 @@ int main(int argc, char** argv)
 	// load surface
 	if (argc >= 3)
 	{
-		Surface* s = mps.load_surface_from_file(surface_filename);
+		Surface* s = mps.load_surface_from_file(surface_filename, false);
 		std::cout << "surface loaded" << std::endl;
 		if (!s)
 		{

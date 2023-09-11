@@ -26,6 +26,8 @@
 
 #include <cgogn/core/types/maps/cmap/cmap1.h>
 
+#include <cgogn/geometry/types/vector_traits.h>
+
 namespace cgogn
 {
 
@@ -122,6 +124,14 @@ CMap2::Face close_hole(CMap2& m, Dart d, bool set_indices = true);
 uint32 close(CMap2& m, bool set_indices = true);
 
 void reverse_orientation(CMap2& m);
+
+/*************************************************************************/
+// Specific implementation of algorithms
+/*************************************************************************/
+
+geometry::Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v,
+											const CMap2::Attribute<geometry::Vec3>* face_gradient,
+											const CMap2::Attribute<geometry::Vec3>* vertex_position);
 
 /*************************************************************************/
 // Debugging helper functions
