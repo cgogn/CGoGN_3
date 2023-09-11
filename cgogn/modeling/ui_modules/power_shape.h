@@ -51,6 +51,7 @@
 #include <CGAL/Bbox_3.h>
 #include <Highs.h>
 #include <iomanip>
+#include <limits>
 namespace cgogn
 {
 
@@ -82,7 +83,11 @@ class PowerShape : public Module
 	public:
 		uint32 id = -1;
 		bool inside = false;
+		bool angle_flag = false;
+		bool radius_flag = false;
+		bool selected = true;
 		Point centroid;
+		double angle;
 		double radius2;//radius square
 	};
 	class RegularVertexInfo
@@ -136,6 +141,7 @@ public:
 	}
 
 private:
+
 	struct point_hash
 	{
 		std::size_t operator()(const Point& p) const
@@ -278,24 +284,22 @@ public:
 		//auto start_timer = std::chrono::high_resolution_clock::now();
 		
 		// Construct delauney tredrahedron using CGAL
-		int inside_cell_index = 0;
+		int count = 0;
 		Delaunay tri;
 		for (Point p : Delaunay_tri_point)
 		{
-			Delaunay::Vertex_handle cell= tri.insert(p);
-			
+			Delaunay::Vertex_handle vh= tri.insert(p);
+			vh->info().id = count;
+			count++;
 		}
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
 			cit->info().id = -1;
 			cit->info().centroid = CGAL::circumcenter(tri.tetrahedron(cit));
 			cit->info().radius2 = CGAL::squared_distance(cit->info().centroid, cit->vertex(0)->point());
-			
 			if (pointInside(tree, cit->info().centroid))
 			{
 				cit->info().inside = true;
-				cit->info().id = inside_cell_index;
-				inside_cell_index++;
 			}
 			else
 			{
@@ -303,6 +307,40 @@ public:
 			}
 		}
 		return tri;
+	}
+
+	void filter_by_angle(Delaunay& tri, double angle_threshold)
+	{
+		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
+		{
+			double max_angle = 0;
+			for (size_t i = 0; i < 4; i++)
+			{
+				for (size_t j = i + 1; j < 4; j++)
+				{
+					Point p1 = cit->vertex(i)->point();
+					Point p2 = cit->vertex(j)->point();
+					Point p3 = cit->info().centroid;
+					Vec3 v1 = Vec3(p1.x(), p1.y(), p1.z()) - Vec3(p3.x(), p3.y(), p3.z());
+					Vec3 v2 = Vec3(p2.x(), p2.y(), p2.z()) - Vec3(p3.x(), p3.y(), p3.z());
+					double angle = std::acos(v1.dot(v2) / (std::sqrt(v1.dot(v1)) * std::sqrt(v2.dot(v2))));
+					max_angle = std::max(angle, max_angle);
+					
+				}
+			}
+			cit->info().angle = max_angle;
+			cit->info().angle_flag = max_angle > angle_threshold ? true : false;
+		}
+	}
+
+	void filter_by_circumradius(Delaunay& tri, double radius_threshold)
+	{
+		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
+		{
+			cit->info().radius_flag = std::sqrt(cit->info().radius2) > radius_threshold ? true : false;
+			min_radius_ = std::min(min_radius_, std::sqrt(cit->info().radius2));
+			max_radius_ = std::max(max_radius_, std::sqrt(cit->info().radius2));
+		}
 	}
 
 	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, string name)
@@ -313,24 +351,26 @@ public:
 		std::unordered_map<std::pair<uint32, uint32>, size_t, edge_hash, edge_equal> edge_indices;
 		NONMANIFOLD* mv = nonmanifold_provider_->add_mesh(name +
 														  std::to_string(nonmanifold_provider_->number_of_meshes()));
-		uint32 vertex_count = 0, edge_count = 0;
 		// Add vertices
+		int count = 0;
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
+			
 			if (cit->info().inside)
 			{
+				cit->info().id = count;
 				Point centroid = cit->info().centroid;
 				double radius = std::sqrt(cit->info().radius2);
 				Initial_non_manifold.vertex_position_.emplace_back(centroid[0], centroid[1], centroid[2]);
 				sphere_radius.push_back(radius);
 				sphere_center.push_back(centroid);
-			
+				count++;
 			}
 		}
 		// Add edges
 		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++fit)
 		{
-			if (fit->first->info().inside && tri.mirror_facet(*fit).first->info().inside){
+			if (fit->first->info().selected && tri.mirror_facet(*fit).first->info().selected){
 				uint32 v1_ind = fit->first->info().id;
 				uint32 v2_ind = tri.mirror_facet(*fit).first->info().id;
 				Initial_non_manifold.edges_vertex_indices_.push_back(v1_ind);
@@ -353,7 +393,7 @@ public:
  					all_finite_inside = false;
  					break;
  				}
- 				else if (cc->info().inside == false)
+ 				else if (cc->info().selected == false)
  				{
  					all_finite_inside = false;
  					break;
@@ -431,24 +471,23 @@ public:
 			tri.finite_incident_cells(vit, std::back_inserter(vertex_incident_cells));
 			for (auto cell : vertex_incident_cells)
 			{
-				
 				if (cell->info().inside)
 				{
-					if (cell->info().radius2 > vit->info().inside_pole_distance)
-					{
-						vit->info().inside_pole_distance = cell->info().radius2;
-						vit->info().inside_pole = cell->info().centroid;
-					}
+						if (cell->info().radius2 > vit->info().inside_pole_distance)
+						{
+							vit->info().inside_pole_distance = cell->info().radius2;
+							vit->info().inside_pole = cell->info().centroid;
+						}
+					
 				}
 				else
 				{
-					
-					if (cell->info().radius2 > vit->info().outside_pole_distance)
-					{
-						vit->info().outside_pole_distance = cell->info().radius2;
-						vit->info().outside_pole = cell->info().centroid;
-						outside = true;
-					}
+						if (cell->info().radius2 > vit->info().outside_pole_distance)
+						{
+							vit->info().outside_pole_distance = cell->info().radius2;
+							vit->info().outside_pole = cell->info().centroid;
+							outside = true;
+						}
 				}
 			}
 			Weight_Point wp1(vit->info().inside_pole, vit->info().inside_pole_distance);
@@ -484,6 +523,7 @@ public:
 		for (auto vit = power_shape.finite_vertices_begin(); vit != power_shape.finite_vertices_end(); ++vit)
 		{
 			// if the point is inside
+			
 			if (vit->info().inside)
 			{
 				power_point.push_back(vit->point());
@@ -557,31 +597,7 @@ public:
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
 
-	void compute_power_shape(SURFACE& surface)
-	{
-		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
-		
-		Cgal_Surface_mesh csm;
-		load_model_in_cgal(surface, csm);
-		Tree tree(faces(csm).first, faces(csm).second, csm);
-		tree.accelerate_distance_queries();
-		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		Regular reg = compute_regular_tredrahedron(tree, tri);
-		constrcut_power_shape_non_manifold( reg,surface_provider_->mesh_name(surface) +"_inner_power_shape");
-	}
-
-	void compute_original_power_diagram(SURFACE& surface)
-	{
-		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
-		Cgal_Surface_mesh csm;
-		load_model_in_cgal(surface, csm);
-		Tree tree(faces(csm).first, faces(csm).second, csm);
-		tree.accelerate_distance_queries();
-		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		compute_initial_non_manifold(tri, tree, surface_provider_->mesh_name(surface)+ "_inner_voronoi_diagram");
-	}
-
-
+	
 
 	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e,
 									  std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
@@ -971,7 +987,46 @@ public:
 		}
 		return solution;
 	}
-	
+	void compute_power_shape(SURFACE& surface)
+	{
+		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+
+		Cgal_Surface_mesh csm;
+		load_model_in_cgal(surface, csm);
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
+		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
+		if (angle_filtering_)
+		{
+			filter_by_angle(tri, angle_threshold_);
+		}
+		if (circumradius_filtering_)
+		{
+			filter_by_circumradius(tri, radius_threshold_);
+		}
+		Regular reg = compute_regular_tredrahedron(tree, tri);
+		constrcut_power_shape_non_manifold(reg, surface_provider_->mesh_name(surface) + "_inner_power_shape");
+	}
+
+	void compute_original_power_diagram(SURFACE& surface)
+	{
+		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		Cgal_Surface_mesh csm;
+		load_model_in_cgal(surface, csm);
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
+		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
+		if (angle_filtering_)
+		{
+			filter_by_angle(tri, angle_threshold_);
+		}
+		if (circumradius_filtering_)
+		{
+			filter_by_circumradius(tri, radius_threshold_);
+		}
+		compute_initial_non_manifold(tri, tree, surface_provider_->mesh_name(surface) + "_inner_voronoi_diagram");
+	}
+
 protected:
 	void init() override
 	{
@@ -996,7 +1051,13 @@ protected:
 
 		if (selected_surface_mesh_)
 		{
-			if (ImGui::Button("Power shape"))
+			ImGui::RadioButton("Filter by Angle", reinterpret_cast<int*>(&angle_filtering_), 1);
+			ImGui::DragFloat("angle", &((float)angle_threshold_), 0.01, 0.0, M_PI, "%.3f");
+			ImGui::RadioButton("Filter by circumradius", reinterpret_cast<int*>(&circumradius_filtering_), 1);
+			ImGui::DragFloat("circumradius", &((float)radius_threshold_), (max_radius_-min_radius_)/100, min_radius_, max_radius_,"%.3f");
+			
+			
+			if(ImGui::Button("Power shape"))
 			{
 				compute_power_shape(*selected_surface_mesh_);
 				
@@ -1026,7 +1087,6 @@ protected:
 				}
 				if (solution.col_value.size() > 0)
 				{
-
 					if (ImGui::Button("Collpase"))
 						coverage_axis_collapse(*selected_medial_axis_, solution);
 					if (ImGui::Button("PD"))
@@ -1035,9 +1095,6 @@ protected:
 						coverage_axis_CVD(*selected_surface_mesh_, *selected_medial_axis_, solution);
 				}
 			}
-				
-				
-			
 		}
 	}
 
@@ -1045,12 +1102,16 @@ private:
 	POINT* surface_sample_ = nullptr;
 	SURFACE* selected_surface_mesh_ = nullptr;
 	NONMANIFOLD* selected_medial_axis_ = nullptr;
-	std::shared_ptr<NonManifoldAttribute<double>> stability_ratio_ = nullptr;
 	MeshProvider<POINT>* point_provider_;
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
-	Regular medial_axis;
 	HighsSolution solution;
+	bool angle_filtering_ = false;
+	bool circumradius_filtering_ = false;
+	double angle_threshold_ = 0.0;
+	double radius_threshold_ = 0.0;
+	double min_radius_ = std::numeric_limits<double>::max();
+	double max_radius_ = std::numeric_limits<double>::min();
 };
 
 } // namespace ui
