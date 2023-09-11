@@ -45,6 +45,8 @@ struct CMap3 : public CMap2
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Cell<PHI1_PHI2_PHI3>;
 
+	using BoundaryCell = Volume;
+
 	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
 
 	std::shared_ptr<Attribute<Dart>> phi3_;

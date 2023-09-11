@@ -44,6 +44,8 @@ struct CMap2 : public CMap1
 	using Volume = Cell<PHI1_PHI2>;
 	using CC = Volume;
 
+	using BoundaryCell = Face;
+
 	using Cells = std::tuple<Vertex, HalfEdge, Edge, Face, Volume>;
 
 	std::shared_ptr<Attribute<Dart>> phi2_;
@@ -126,12 +128,43 @@ uint32 close(CMap2& m, bool set_indices = true);
 void reverse_orientation(CMap2& m);
 
 /*************************************************************************/
+// High-level operators
+/*************************************************************************/
+
+CMap2::Vertex cut_edge_and_incident_triangles(CMap2& m, CMap2::Edge e);
+
+/*************************************************************************/
+// Specific accessors
+/*************************************************************************/
+
+// return the 4 vertices of a tetrahedron
+std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v);
+
+// in a triangle mesh, return the opposite vertex of a halfedge
+inline CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he);
+
+// in a triangle mesh, return the opposite vertices of an edge
+inline std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e);
+
+/*************************************************************************/
 // Specific implementation of algorithms
 /*************************************************************************/
 
-geometry::Scalar vertex_gradient_divergence(const CMap2& m, CMap2::Vertex v,
-											const CMap2::Attribute<geometry::Vec3>* face_gradient,
-											const CMap2::Attribute<geometry::Vec3>* vertex_position);
+// return the divergence at a vertex of a vector field defined on faces
+geometry::Scalar face_vector_field_divergence(const CMap2& m, CMap2::Vertex v,
+											  const CMap2::Attribute<geometry::Vec3>* face_gradient,
+											  const CMap2::Attribute<geometry::Vec3>* vertex_position);
+
+// return [horizon_halfedges, visible_faces]
+// horizon_halfedges is a cycle of halfedges that are on the horizon
+// visible_faces are the faces that are visible from the point, starting from the given face (that is supposed visible)
+std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
+	CMap2& m, const CMap2::Attribute<geometry::Vec3>* vertex_position, const geometry::Vec3& point, CMap2::Face f);
+
+// remove faces in visible_faces and fill the hole with a fan of triangles
+// return the central vertex of the fan
+CMap2::Vertex remove_faces_and_fill(CMap2& m, const std::vector<CMap2::HalfEdge>& area_boundary,
+									const std::vector<CMap2::Face>& area_faces);
 
 /*************************************************************************/
 // Debugging helper functions

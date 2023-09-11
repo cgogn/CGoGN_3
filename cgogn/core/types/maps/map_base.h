@@ -179,7 +179,7 @@ inline bool is_boundary(const MapBase& m, Dart d)
 }
 
 // indicates if a cell is incident to the boundary of the mesh
-// do not downgrade the concrete MESH type to MapBase in case of an overload of index_of for a derived MESH type
+// do not downgrade the concrete MESH type to MapBase because foreach_dart_of_orbit is only defined for derived types
 template <typename MESH, typename CELL>
 auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>, bool>
 {
@@ -194,6 +194,37 @@ auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_
 		return true;
 	});
 	return result;
+}
+
+// forward declarations
+template <typename CELL>
+uint32 new_index(const MapBase& m);
+template <typename CELL>
+bool is_indexed(const MapBase& m);
+
+// consider all boundary cells as proper filled cells
+// do not downgrade the concrete MESH type to MapBase to get the BoundaryCell of derived types
+template <typename MESH>
+auto fill_boundaries(MESH& m, bool set_indices = true)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> && mesh_traits<MESH>::dimension >= 2>
+{
+	using BoundaryCell = typename MESH::BoundaryCell;
+
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (is_boundary(m, d))
+		{
+			set_boundary(m, d, false);
+			if (set_indices)
+			{
+				if (is_indexed<BoundaryCell>(m))
+				{
+					if (index_of(m, BoundaryCell(d)) == INVALID_INDEX)
+						set_index(m, BoundaryCell(d), new_index<BoundaryCell>(m));
+				}
+			}
+		}
+	}
 }
 
 /*************************************************************************/

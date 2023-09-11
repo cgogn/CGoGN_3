@@ -34,14 +34,11 @@ namespace cgogn
 namespace geometry
 {
 
-/////////////
-// GENERIC //
-/////////////
-
+// computes the gradient of a vertex scalar field at the faces of a mesh
 template <typename MESH>
 void compute_gradient_of_vertex_scalar_field(
 	const MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-	const typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_function,
+	const typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_scalar_field,
 	typename mesh_traits<MESH>::template Attribute<Vec3>* face_gradient)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
@@ -56,7 +53,7 @@ void compute_gradient_of_vertex_scalar_field(
 		{
 			Vec3 e = value<Vec3>(m, vertex_position, vertices[(i + 2) % vertices.size()]) -
 					 value<Vec3>(m, vertex_position, vertices[(i + 1) % vertices.size()]);
-			g += value<Scalar>(m, vertex_function, vertices[i]) * n.cross(e);
+			g += value<Scalar>(m, vertex_scalar_field, vertices[i]) * n.cross(e);
 		}
 		g /= 2 * a;
 		value<Vec3>(m, face_gradient, f) = -1.0 * g.normalized();
@@ -64,10 +61,7 @@ void compute_gradient_of_vertex_scalar_field(
 	});
 }
 
-/////////////
-// GENERIC //
-/////////////
-
+// computes the divergence of a face vector field at the vertices of a mesh
 template <typename MESH>
 void compute_div_of_face_vector_field(const MESH& m,
 									  const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
@@ -77,7 +71,7 @@ void compute_div_of_face_vector_field(const MESH& m,
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		Scalar d = vertex_gradient_divergence(m, v, face_vector_field, vertex_position);
+		Scalar d = face_vector_field_divergence(m, v, face_vector_field, vertex_position);
 		value<Scalar>(m, vertex_divergence, v) = d;
 		return true;
 	});
