@@ -29,6 +29,8 @@
 #include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
+#include <cgogn/core/functions/mesh_info.h>
+
 #include <array>
 #include <vector>
 
@@ -72,42 +74,42 @@ public:
 	template <typename CELL>
 	const std::vector<CELL>& cell_vector() const
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
 	}
 
 	template <typename CELL>
 	std::vector<CELL>& cell_vector()
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_);
 	}
 
 	template <typename CELL>
 	uint32 size() const
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return uint32(std::get<tuple_type_index<std::vector<CELL>, CellVectors>::value>(cells_).size());
 	}
 
 	template <typename CELL>
 	typename std::vector<CELL>::const_iterator begin() const
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return cell_vector<CELL>().begin();
 	}
 
 	template <typename CELL>
 	typename std::vector<CELL>::const_iterator end() const
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		return cell_vector<CELL>().end();
 	}
 
 	template <typename CELL>
 	void build()
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		std::vector<CELL>& cells = cell_vector<CELL>();
 		cells.clear();
 		foreach_cell(m_, [&](CELL c) -> bool {
@@ -119,7 +121,7 @@ public:
 	template <typename CELL, typename FUNC>
 	void build(const FUNC& filter)
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 		std::vector<CELL>& cells = cell_vector<CELL>();
@@ -134,14 +136,14 @@ public:
 	template <typename CELL>
 	void add(CELL c)
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		cell_vector<CELL>().push_back(c);
 	}
 
 	template <typename CELL>
 	void clear()
 	{
-		static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 		cell_vector<CELL>().clear();
 	}
 };
@@ -155,7 +157,7 @@ template <typename MESH, typename FUNC>
 void foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
@@ -168,7 +170,7 @@ template <typename MESH, typename FUNC>
 void parallel_foreach_cell(const CellCache<MESH>& cc, const FUNC& f)
 {
 	using CELL = func_parameter_type<FUNC>;
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function cell parameter type");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 

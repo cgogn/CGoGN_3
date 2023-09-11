@@ -24,6 +24,7 @@
 #ifndef CGOGN_MODELING_ALGOS_CONVEX_HULL_H_
 #define CGOGN_MODELING_ALGOS_CONVEX_HULL_H_
 
+#include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/numerics.h>
 
 #include <cgogn/geometry/functions/distance.h>
@@ -42,104 +43,6 @@ namespace modeling
 
 using geometry::Scalar;
 using geometry::Vec3;
-
-///////////
-// CMap2 //
-///////////
-
-std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v)
-{
-	return {CMap2::Vertex(v.dart_), CMap2::Vertex(phi1(m, v.dart_)), CMap2::Vertex(phi_1(m, v.dart_)),
-			CMap2::Vertex(phi<-1, 2, -1>(m, v.dart_))};
-}
-
-// return [horizon_halfedges, visible_faces]
-std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(CMap2& m,
-																				CMap2::Attribute<Vec3>* vertex_position,
-																				const Vec3& point, CMap2::Face f)
-{
-	std::vector<CMap2::HalfEdge> horizon_halfedges;
-	std::vector<CMap2::Face> visible_faces;
-	CellMarkerStore<CMap2, CMap2::Face> visible(m);
-	visible_faces.push_back(f);
-	visible.mark(f);
-	for (uint32 i = 0; i < uint32(visible_faces.size()); ++i)
-	{
-		const CMap2::Face f_i = visible_faces[i];
-		foreach_adjacent_face_through_edge(m, f_i, [&](CMap2::Face af) -> bool {
-			if (visible.is_marked(af))
-				return true;
-			std::vector<CMap2::Vertex> vertices = incident_vertices(m, af);
-			Vec3 N = geometry::normal(value<Vec3>(m, vertex_position, vertices[0]),
-									  value<Vec3>(m, vertex_position, vertices[1]),
-									  value<Vec3>(m, vertex_position, vertices[2]));
-			Scalar d = -N.dot(value<Vec3>(m, vertex_position, vertices[0]));
-			Scalar dist = geometry::signed_distance_plane_point(N, d, point);
-			if (dist > 0)
-			{
-				visible_faces.push_back(af);
-				visible.mark(af);
-			}
-			else
-				horizon_halfedges.push_back(CMap2::HalfEdge(phi2(m, af.dart_)));
-			return true;
-		});
-	}
-
-	// reorder horizon halfedges into a cycle
-	for (uint32 i = 0; i < uint32(horizon_halfedges.size()) - 1; ++i)
-	{
-		uint32 end_vertex_index = index_of(m, CMap2::Vertex(phi1(m, horizon_halfedges[i].dart_)));
-		for (uint32 j = i + 1; j < horizon_halfedges.size(); ++j)
-		{
-			uint32 begin_vertex_index = index_of(m, CMap2::Vertex(horizon_halfedges[i].dart_));
-			if (begin_vertex_index == end_vertex_index)
-			{
-				if (j > i + 1)
-					std::swap(horizon_halfedges[i + 1], horizon_halfedges[j]);
-				break;
-			}
-		}
-	}
-
-	return {horizon_halfedges, visible_faces};
-}
-
-CMap2::Vertex remove_visible_faces_and_fill(CMap2& m, std::vector<CMap2::HalfEdge>& horizon_halfedges,
-											std::vector<CMap2::Face>& visible_faces)
-{
-	Dart d = phi2(m, horizon_halfedges[0].dart_);
-	for (CMap2::HalfEdge he : horizon_halfedges)
-		phi2_unsew(m, he.dart_);
-	for (CMap2::Face f : visible_faces)
-		remove_face(static_cast<CMap1&>(m), CMap1::Face(f.dart_));
-
-	CMap2::Face f = close_hole(m, d);
-	if (is_indexed<CMap2::Face>(m))
-	{
-		if (index_of(m, f) == INVALID_INDEX)
-			set_index(m, f, new_index<CMap2::Face>(m));
-	}
-
-	Dart d0 = phi1(m, f.dart_);
-
-	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(f.dart_));
-	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
-
-	Dart x = phi<-1, -1>(m, d0);
-	Dart dd = phi1(m, d0);
-	while (dd != x)
-	{
-		cut_face(m, CMap2::Vertex(dd), CMap2::Vertex(phi1(m, x)));
-		dd = phi1(m, dd);
-	}
-
-	return CMap2::Vertex(phi2(m, x));
-}
-
-/////////////
-// GENERIC //
-/////////////
 
 // adapted from https://github.com/akuukka/quickhull
 
@@ -362,7 +265,7 @@ void convex_hull(const std::vector<Vec3>& points, MESH& m,
 		}
 
 		// remove faces & fill hole with new triangles
-		Vertex v = remove_visible_faces_and_fill(m, horizon_halfedges, visible_faces);
+		Vertex v = remove_faces_and_fill(m, horizon_halfedges, visible_faces);
 		value<Vec3>(m, vertex_position, v) = active_point;
 
 		foreach_incident_face(m, v, [&](Face iface) -> bool {

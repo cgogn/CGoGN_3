@@ -26,7 +26,7 @@
 
 #include <cgogn/core/types/cell_marker.h>
 
-#include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/utils/type_traits.h>
 
 #include <unordered_map>
@@ -34,13 +34,10 @@
 namespace cgogn
 {
 
-namespace ui
-{
-
 template <typename MESH, typename CELL>
 struct CellsSet
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 
 public:
 	CellsSet(const MESH& m, const std::string& name) : m_(m), marker_(m), name_(name)
@@ -168,8 +165,6 @@ private:
 	std::unordered_map<uint32, CELL> cells_;
 	std::string name_;
 };
-
-} // namespace ui
 
 } // namespace cgogn
 

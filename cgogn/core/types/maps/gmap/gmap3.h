@@ -45,6 +45,8 @@ struct GMap3 : public GMap2
 	using Volume = Cell<Orbit::BETA0_BETA1_BETA2>;
 	using CC = Cell<Orbit::BETA0_BETA1_BETA2_BETA3>;
 
+	using BoundaryCell = Volume;
+
 	using Cells = std::tuple<Vertex, Vertex2, HalfEdge, Edge, Edge2, Face, Face2, Volume>;
 
 	std::shared_ptr<Attribute<Dart>> beta3_;

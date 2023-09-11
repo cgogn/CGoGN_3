@@ -348,7 +348,7 @@ void MeshRender::init_primitives(const MESH& m, DrawingType prim,
 		break;
 	case LINES:
 	case INDEX_EDGES:
-		if constexpr (has_edge<MESH>::value)
+		if constexpr (has_edge_v<MESH>)
 		{
 			if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
 			{

@@ -24,7 +24,7 @@
 #ifndef CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 #define CGOGN_CORE_FUNCTIONS_ATTRIBUTES_H_
 
-#include <cgogn/core/utils/tuples.h>
+#include <cgogn/core/functions/mesh_info.h>
 
 #include <memory>
 
@@ -51,21 +51,21 @@ template <typename T, typename CELL, typename MESH>
 inline T& value(const MESH& m, const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& attribute,
 				CELL c)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
 }
 
 template <typename T, typename CELL, typename MESH>
 inline T& value(const MESH& m, typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
 }
 
 template <typename T, typename CELL, typename MESH>
 inline const T& value(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* attribute, CELL c)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return (*attribute)[index_of(m, c)];
 }
 

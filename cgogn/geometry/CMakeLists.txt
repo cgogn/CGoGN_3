@@ -35,6 +35,7 @@ set(src_list
         "${CMAKE_CURRENT_LIST_DIR}/algos/distance.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/ear_triangulation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/filtering.h"
+		"${CMAKE_CURRENT_LIST_DIR}/algos/gradient.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/hex_quality.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/laplacian.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/length.h"

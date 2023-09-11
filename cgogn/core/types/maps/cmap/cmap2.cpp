@@ -27,6 +27,12 @@
 
 #include <cgogn/core/types/cell_marker.h>
 
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/traversals/edge.h>
+
+#include <cgogn/geometry/algos/distance.h>
+#include <cgogn/geometry/algos/normal.h>
+
 namespace cgogn
 {
 
@@ -593,6 +599,164 @@ void reverse_orientation(CMap2& m)
 	}
 
 	m.phi1_->swap(m.phi_1_.get());
+}
+
+/*************************************************************************/
+// High-level operators
+/*************************************************************************/
+
+CMap2::Vertex cut_edge_and_incident_triangles(CMap2& m, CMap2::Edge e)
+{
+	CMap2::Vertex v = cut_edge(m, e);
+	Dart v1 = v.dart_;
+	Dart v2 = phi<2, 1>(m, v1);
+	cut_face(m, CMap2::Vertex(v1), CMap2::Vertex(phi<1, 1>(m, v1)));
+	cut_face(m, CMap2::Vertex(v2), CMap2::Vertex(phi<1, 1>(m, v2)));
+	return v;
+}
+
+/*************************************************************************/
+// Specific accessors
+/*************************************************************************/
+
+std::array<CMap2::Vertex, 4> tet_vertices(CMap2& m, CMap2::Volume v)
+{
+	return {CMap2::Vertex(v.dart_), CMap2::Vertex(phi1(m, v.dart_)), CMap2::Vertex(phi_1(m, v.dart_)),
+			CMap2::Vertex(phi<-1, 2, -1>(m, v.dart_))};
+}
+
+CMap2::Vertex opposite_vertex(CMap2& m, CMap2::HalfEdge he)
+{
+	return CMap2::Vertex(phi_1(m, he.dart_));
+}
+
+std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
+{
+	return {CMap2::Vertex(phi_1(m, e.dart_)), CMap2::Vertex(phi<2, -1>(m, e.dart_))};
+}
+
+/*************************************************************************/
+// Specific algorithms implementation
+/*************************************************************************/
+
+geometry::Scalar face_vector_field_divergence(const CMap2& m, CMap2::Vertex v,
+											  const CMap2::Attribute<geometry::Vec3>* face_gradient,
+											  const CMap2::Attribute<geometry::Vec3>* vertex_position)
+{
+	using Scalar = geometry::Scalar;
+	using Vec3 = geometry::Vec3;
+
+	Scalar div = 0.0;
+	std::vector<CMap2::Edge> edges = incident_edges(m, v);
+	for (uint32 i = 0; i < edges.size(); ++i)
+	{
+		CMap2::Edge e1 = edges[i];
+		CMap2::Edge e2 = edges[(i + 1) % edges.size()];
+
+		CMap2::Face f(e1.dart_);
+
+		const Vec3& X = value<Vec3>(m, face_gradient, f);
+
+		const Vec3& p0 = value<Vec3>(m, vertex_position, v);
+		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart_)));
+		const Vec3& p2 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e2.dart_)));
+
+		Vec3 vecR = p0 - p2;
+		Vec3 vecL = p1 - p2;
+		Scalar cotValue1 = vecR.dot(vecL) / vecR.cross(vecL).norm();
+
+		vecR = p2 - p1;
+		vecL = p0 - p1;
+		Scalar cotValue2 = vecR.dot(vecL) / vecR.cross(vecL).norm();
+
+		div += cotValue1 * (p1 - p0).dot(X) + cotValue2 * (p2 - p0).dot(X);
+	}
+	return div / 2.0;
+}
+
+std::pair<std::vector<CMap2::HalfEdge>, std::vector<CMap2::Face>> build_horizon(
+	CMap2& m, const CMap2::Attribute<geometry::Vec3>* vertex_position, const geometry::Vec3& point, CMap2::Face f)
+{
+	using Scalar = geometry::Scalar;
+	using Vec3 = geometry::Vec3;
+
+	std::vector<CMap2::HalfEdge> horizon_halfedges;
+	std::vector<CMap2::Face> visible_faces;
+	CellMarkerStore<CMap2, CMap2::Face> visible(m);
+	visible_faces.push_back(f);
+	visible.mark(f);
+	for (uint32 i = 0; i < uint32(visible_faces.size()); ++i)
+	{
+		const CMap2::Face f_i = visible_faces[i];
+		foreach_adjacent_face_through_edge(m, f_i, [&](CMap2::Face af) -> bool {
+			if (visible.is_marked(af))
+				return true;
+			std::vector<CMap2::Vertex> vertices = incident_vertices(m, af);
+			Vec3 N = geometry::normal(value<Vec3>(m, vertex_position, vertices[0]),
+									  value<Vec3>(m, vertex_position, vertices[1]),
+									  value<Vec3>(m, vertex_position, vertices[2]));
+			Scalar d = -N.dot(value<Vec3>(m, vertex_position, vertices[0]));
+			Scalar dist = geometry::signed_distance_plane_point(N, d, point);
+			if (dist > 0)
+			{
+				visible_faces.push_back(af);
+				visible.mark(af);
+			}
+			else
+				horizon_halfedges.push_back(CMap2::HalfEdge(phi2(m, af.dart_)));
+			return true;
+		});
+	}
+
+	// reorder horizon halfedges into a cycle
+	for (uint32 i = 0; i < uint32(horizon_halfedges.size()) - 1; ++i)
+	{
+		uint32 end_vertex_index = index_of(m, CMap2::Vertex(phi1(m, horizon_halfedges[i].dart_)));
+		for (uint32 j = i + 1; j < horizon_halfedges.size(); ++j)
+		{
+			uint32 begin_vertex_index = index_of(m, CMap2::Vertex(horizon_halfedges[i].dart_));
+			if (begin_vertex_index == end_vertex_index)
+			{
+				if (j > i + 1)
+					std::swap(horizon_halfedges[i + 1], horizon_halfedges[j]);
+				break;
+			}
+		}
+	}
+
+	return {horizon_halfedges, visible_faces};
+}
+
+CMap2::Vertex remove_faces_and_fill(CMap2& m, const std::vector<CMap2::HalfEdge>& area_boundary,
+									const std::vector<CMap2::Face>& area_faces)
+{
+	Dart d = phi2(m, area_boundary[0].dart_);
+	for (CMap2::HalfEdge he : area_boundary)
+		phi2_unsew(m, he.dart_);
+	for (CMap2::Face f : area_faces)
+		remove_face(static_cast<CMap1&>(m), CMap1::Face(f.dart_));
+
+	CMap2::Face f = close_hole(m, d);
+	if (is_indexed<CMap2::Face>(m))
+	{
+		if (index_of(m, f) == INVALID_INDEX)
+			set_index(m, f, new_index<CMap2::Face>(m));
+	}
+
+	Dart d0 = phi1(m, f.dart_);
+
+	cut_face(m, CMap2::Vertex(d0), CMap2::Vertex(f.dart_));
+	cut_edge(m, CMap2::Edge(phi_1(m, d0)));
+
+	Dart x = phi<-1, -1>(m, d0);
+	Dart dd = phi1(m, d0);
+	while (dd != x)
+	{
+		cut_face(m, CMap2::Vertex(dd), CMap2::Vertex(phi1(m, x)));
+		dd = phi1(m, dd);
+	}
+
+	return CMap2::Vertex(phi2(m, x));
 }
 
 /*************************************************************************/

@@ -38,7 +38,6 @@
 #include <cgogn/core/utils/assert.h>
 #include <cgogn/core/utils/thread.h>
 #include <cgogn/core/utils/thread_pool.h>
-#include <cgogn/core/utils/tuples.h>
 #include <cgogn/core/utils/type_traits.h>
 
 #include <any>
@@ -156,7 +155,7 @@ inline uint32 nb_darts(const MapBase& m)
 template <typename CELL, typename MESH>
 auto nb_darts_of_orbit(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>, uint32>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	uint32 result = 0;
 	foreach_dart_of_orbit(m, c, [&](Dart) -> bool {
 		++result;
@@ -180,11 +179,11 @@ inline bool is_boundary(const MapBase& m, Dart d)
 }
 
 // indicates if a cell is incident to the boundary of the mesh
-// do not downgrade the concrete MESH type to MapBase in case of an overload of index_of for a derived MESH type
+// do not downgrade the concrete MESH type to MapBase because foreach_dart_of_orbit is only defined for derived types
 template <typename MESH, typename CELL>
 auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>, bool>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	bool result = false;
 	foreach_dart_of_orbit(m, c, [&m, &result](Dart d) -> bool {
 		if (is_boundary(m, d))
@@ -195,6 +194,37 @@ auto is_incident_to_boundary(const MESH& m, CELL c) -> std::enable_if_t<std::is_
 		return true;
 	});
 	return result;
+}
+
+// forward declarations
+template <typename CELL>
+uint32 new_index(const MapBase& m);
+template <typename CELL>
+bool is_indexed(const MapBase& m);
+
+// consider all boundary cells as proper filled cells
+// do not downgrade the concrete MESH type to MapBase to get the BoundaryCell of derived types
+template <typename MESH>
+auto fill_boundaries(MESH& m, bool set_indices = true)
+	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&> && mesh_traits<MESH>::dimension >= 2>
+{
+	using BoundaryCell = typename MESH::BoundaryCell;
+
+	for (Dart d = m.begin(), end = m.end(); d != end; d = m.next(d))
+	{
+		if (is_boundary(m, d))
+		{
+			set_boundary(m, d, false);
+			if (set_indices)
+			{
+				if (is_indexed<BoundaryCell>(m))
+				{
+					if (index_of(m, BoundaryCell(d)) == INVALID_INDEX)
+						set_index(m, BoundaryCell(d), new_index<BoundaryCell>(m));
+				}
+			}
+		}
+	}
 }
 
 /*************************************************************************/
@@ -356,7 +386,7 @@ template <typename T, typename CELL, typename MESH,
 		  typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>> add_attribute(MESH& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
 		index_cells<CELL>(m);
 	MapBase& mb = static_cast<MapBase&>(m);
@@ -367,7 +397,7 @@ template <typename T, typename CELL, typename MESH,
 		  typename std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>* = nullptr>
 std::shared_ptr<MapBase::Attribute<T>> get_attribute(const MESH& m, const std::string& name)
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	return m.attribute_containers_[CELL::ORBIT].template get_attribute<T>(name);
 }
 
@@ -418,7 +448,7 @@ template <typename CELL, typename MESH>
 auto get_mark_attribute(const MESH& m)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>, typename mesh_traits<MESH>::MarkAttribute*>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	if (!is_indexed<CELL>(m))
 		index_cells<CELL>(const_cast<MESH&>(m));
 	const MapBase& mb = static_cast<const MapBase&>(m);
@@ -429,7 +459,7 @@ template <typename CELL, typename MESH>
 auto release_mark_attribute(const MESH& m, typename mesh_traits<MESH>::MarkAttribute* attribute)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	const MapBase& mb = static_cast<const MapBase&>(m);
 	return mb.attribute_containers_[CELL::ORBIT].release_mark_attribute(attribute);
 }
@@ -463,7 +493,7 @@ auto foreach_cell(const MESH& m, const FUNC& f, MapBase::TraversalPolicy travers
 {
 	using CELL = func_parameter_type<FUNC>;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	if (traversal_policy == MapBase::TraversalPolicy::AUTO && is_indexed<CELL>(m))
@@ -504,7 +534,7 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f) -> std::enable_if_t<std
 {
 	using CELL = func_parameter_type<FUNC>;
 
-	static_assert(is_in_tuple<CELL, typename mesh_traits<MESH>::Cells>::value, "CELL not supported in this MESH");
+	static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
 	static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
 
 	ThreadPool* pool = thread_pool();

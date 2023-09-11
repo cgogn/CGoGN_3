@@ -30,24 +30,6 @@
 namespace cgogn
 {
 
-// template <bool>
-// struct void_
-// {
-// 	typedef void type;
-// };
-
-// template <typename T, typename = void>
-// struct is_mesh_view
-// {
-// 	static const bool value = false;
-// };
-
-// template <typename T>
-// struct is_mesh_view<T, typename void_<T::is_mesh_view>::type>
-// {
-// 	static bool const value = true;
-// };
-
 namespace internal
 {
 

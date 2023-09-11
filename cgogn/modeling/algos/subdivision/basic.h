@@ -34,10 +34,6 @@ namespace cgogn
 namespace modeling
 {
 
-/////////////
-// GENERIC //
-/////////////
-
 template <typename MESH, typename FUNC>
 void cut_all_edges(MESH& m, const FUNC& on_edge_cut)
 {
