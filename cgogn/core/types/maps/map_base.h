@@ -132,10 +132,10 @@ struct MapBase
 };
 
 template <typename MESH, typename CELL>
-struct CellMarker;
+class CellMarker;
 
 template <typename MESH, typename CELL>
-struct CellMarkerStore;
+class CellMarkerStore;
 
 /*************************************************************************/
 // Darts basic functions

@@ -153,8 +153,8 @@ inline IncidenceGraph::Vertex quadrangulate_face(IncidenceGraph& ig, IncidenceGr
 		edges.push_back(Edge(new_edges[ev1.index_]));
 		edges.push_back(Edge(new_edges[ev0.index_]));
 		// create the face
-		Face f = add_face(ig, edges);
-		sort_face_edges(ig, f);
+		Face fa = add_face(ig, edges);
+		sort_face_edges(ig, fa);
 	}
 
 	remove_face(ig, f);
