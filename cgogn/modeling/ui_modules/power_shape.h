@@ -85,6 +85,7 @@ class PowerShape : public Module
 		bool inside = false;
 		bool angle_flag = false;
 		bool radius_flag = false;
+		bool distance_flag = true;
 		bool selected = true;
 		Point centroid;
 		double angle;
@@ -279,7 +280,7 @@ public:
 			Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
 		}
 		
-		plot_surface_samples(mesh_samples);		
+		//plot_surface_samples(mesh_samples);		
 
 		//auto start_timer = std::chrono::high_resolution_clock::now();
 		
@@ -297,9 +298,12 @@ public:
 			cit->info().id = -1;
 			cit->info().centroid = CGAL::circumcenter(tri.tetrahedron(cit));
 			cit->info().radius2 = CGAL::squared_distance(cit->info().centroid, cit->vertex(0)->point());
+			
 			if (pointInside(tree, cit->info().centroid))
 			{
 				cit->info().inside = true;
+				min_radius_ = std::min(min_radius_, std::sqrt(cit->info().radius2));
+				max_radius_ = std::max(max_radius_, std::sqrt(cit->info().radius2));
 			}
 			else
 			{
@@ -338,11 +342,74 @@ public:
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
 			cit->info().radius_flag = std::sqrt(cit->info().radius2) > radius_threshold ? true : false;
-			min_radius_ = std::min(min_radius_, std::sqrt(cit->info().radius2));
-			max_radius_ = std::max(max_radius_, std::sqrt(cit->info().radius2));
+			
 		}
 	}
 
+	void filter_by_distance(Delaunay& tri, double distance_threshold)
+	{
+		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++ fit)
+		{
+			auto opposite = tri.mirror_facet(*fit);
+			if (fit->first->info().distance_flag && 
+				opposite.first->info().distance_flag &&
+				fit->first->info().inside && 
+				opposite.first->info().inside)
+			{
+				double distance =
+					std::sqrt(CGAL::squared_distance(fit->first->info().centroid, opposite.first->info().centroid));
+				if (distance <= distance_threshold)
+				{
+					if (fit->first->info().radius2 < opposite.first->info().radius2)
+					{
+						opposite.first->info().distance_flag = false;
+					}
+					else
+					{
+						fit->first->info().distance_flag = false;
+					}
+				}
+			}
+		}
+	}
+
+	void construct_candidates_points(SURFACE& surface, Delaunay& tri)
+	{
+		cgogn::io::PointImportData candidates;
+		POINT* candidates_point = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "candidates");
+		std::vector<double> candidates_radius;
+		std::vector<double> angle;
+		
+		if (distance_filtering_) filter_by_distance(tri, distance_threshold_);
+		if (circumradius_filtering_) filter_by_circumradius(tri, radius_threshold_);
+		if (angle_filtering_) filter_by_angle(tri, angle_threshold_);
+		
+
+		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
+		{
+			if (cit->info().inside && 
+				(distance_filtering_ ? cit->info().distance_flag : true) && 
+				(circumradius_filtering_ ? cit->info().radius_flag : true) && 
+				(angle_filtering_ ? cit->info().angle_flag : true))
+			{
+				candidates.vertex_position_.emplace_back(cit->info().centroid.x(), cit->info().centroid.y(), cit->info().centroid.z());
+				candidates_radius.push_back(std::sqrt(cit->info().radius2));
+				angle.push_back(cit->info().angle);
+			}
+		}
+		candidates.reserve(candidates_radius.size());
+		cgogn::io::import_point_data(*candidates_point, candidates);
+		auto position = get_attribute<Vec3, PointVertex>(*candidates_point, "position");
+		if (position)
+			point_provider_->set_mesh_bb_vertex_position(*candidates_point, position);
+		auto sphere_radius = add_attribute<double, PointVertex>(*candidates_point, "sphere_radius");
+		auto point_angle = add_attribute<Vec3, PointVertex>(*candidates_point, "angle");
+		for (size_t idx = 0; idx < candidates_radius.size(); idx++)
+		{
+			(*sphere_radius)[idx] = candidates_radius[idx];
+			(*point_angle)[idx] = Vec3((angle[idx]/M_PI), 0 , 0);
+		}
+	}
 	void compute_initial_non_manifold(Delaunay& tri, Tree& tree, string name)
 	{
 		std::vector<double> sphere_radius;
@@ -355,7 +422,6 @@ public:
 		int count = 0;
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
-			
 			if (cit->info().inside)
 			{
 				cit->info().id = count;
@@ -370,7 +436,8 @@ public:
 		// Add edges
 		for (auto fit = tri.finite_facets_begin(); fit != tri.finite_facets_end(); ++fit)
 		{
-			if (fit->first->info().selected && tri.mirror_facet(*fit).first->info().selected){
+			if (fit->first->info().inside && tri.mirror_facet(*fit).first->info().inside)
+			{
 				uint32 v1_ind = fit->first->info().id;
 				uint32 v2_ind = tri.mirror_facet(*fit).first->info().id;
 				Initial_non_manifold.edges_vertex_indices_.push_back(v1_ind);
@@ -393,7 +460,7 @@ public:
  					all_finite_inside = false;
  					break;
  				}
- 				else if (cc->info().selected == false)
+				else if (cc->info().inside == false)
  				{
  					all_finite_inside = false;
  					break;
@@ -478,7 +545,6 @@ public:
 							vit->info().inside_pole_distance = cell->info().radius2;
 							vit->info().inside_pole = cell->info().centroid;
 						}
-					
 				}
 				else
 				{
@@ -507,7 +573,6 @@ public:
 				vit->info().inside = true;
 				count++;
 			}
-
 		}
 		return power_shape;
 	}
@@ -664,6 +729,8 @@ public:
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, stability_ratio.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 		
 	}
 	void construct_complete_constrained_voronoi_diagram(Delaunay& delaunay, std::string& name)
@@ -837,35 +904,31 @@ public:
 													"complete_CVD_" + surface_provider_->mesh_name(surface));
 	 }
 
-	void coverage_axis_PD(SURFACE& surface, NONMANIFOLD& mv, HighsSolution& solution, double dilation_factor)
+	void coverage_axis_PD(SURFACE& surface, POINT& selected_points, HighsSolution& solution, double dilation_factor)
 	{
 		Cgal_Surface_mesh csm;
 		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
-		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
+		auto inner_position = get_attribute<Vec3, PointVertex>(selected_points, "position");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
-		std::vector<Weight_Point> power_point;
+		auto sphere_radius = get_attribute<double, PointVertex>(selected_points, "sphere_radius");
 		Regular power_shape;
-		foreach_cell(mv, [&](NonManifoldVertex nv) {
-			if (solution.col_value[index_of(mv, nv)] > 1e-5)
+		foreach_cell(selected_points, [&](PointVertex nv) {
+			if (solution.col_value[index_of(selected_points, nv)] > 1e-5)
 			{
-				Vec3 pos = value<Vec3>(mv, inner_position, nv);
+				Vec3 pos = value<Vec3>(selected_points, inner_position, nv);
 				power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]),
-												(value<double>(mv, sphere_radius, nv) + dilation_factor) *
-													(value<double>(mv, sphere_radius, nv) + dilation_factor)));
-			
+												(value<double>(selected_points, sphere_radius, nv) + dilation_factor) *
+									 (value<double>(selected_points, sphere_radius, nv) + dilation_factor)));
 			}
 			return true;
 		});
 
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
-		
 			power_shape.insert(
-				Weight_Point(Point(pos[0], pos[1], pos[2]), (dilation_factor + 0.001) * (dilation_factor + 0.001)));
-			
+				Weight_Point(Point(pos[0], pos[1], pos[2]), (dilation_factor) * (dilation_factor)));
 			return true;
 		});
 		int count = 0;
@@ -878,7 +941,6 @@ public:
 				vit->info().id = count;
 				vit->info().inside = true;
 				count++;
-				
 			}
 		}
 		constrcut_power_shape_non_manifold(power_shape, "_coverage_axis" +surface_provider_->mesh_name(surface));
@@ -925,24 +987,26 @@ public:
 		nonmanifold_provider_->emit_connectivity_changed(nm);
 		nonmanifold_provider_->emit_attribute_changed(nm, position.get());
 		nonmanifold_provider_->emit_attribute_changed(nm, sphere_radius.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, stability_ratio.get());
+		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 	}
 	
- 	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, NONMANIFOLD& mv, double dilation_factor)
+ 	 HighsSolution point_selection_by_coverage_axis(SURFACE& surface, POINT& candidates, double dilation_factor)
 	{
 		typedef Eigen::SparseMatrix<double> SpMat; 
 		typedef Eigen::Triplet<double> T;
 		std::vector<T> triplets;
-		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
+		auto inner_position = get_attribute<Vec3, PointVertex>(candidates, "position");
+		auto sphere_radius = get_attribute<double, PointVertex>(candidates, "sphere_radius");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
-		auto inner_point_nb = nb_cells<NonManifoldVertex>(mv);
+		auto inner_point_nb = nb_cells<PointVertex>(candidates);
 		auto sample_point_nb = nb_cells<Vertex>(surface);
-		foreach_cell(mv, [&](NonManifoldVertex nv) {
+		foreach_cell(candidates, [&](PointVertex nv) {
 			foreach_cell(surface, [&](Vertex v) { 
-				if (inside_sphere(value<Vec3>(surface, sample_position, v), value<Vec3>(mv, inner_position, nv),
-								  value<double>(mv, sphere_radius, nv) + dilation_factor))
+				if (inside_sphere(value<Vec3>(surface, sample_position, v), value<Vec3>(candidates, inner_position, nv),
+								  value<double>(candidates, sphere_radius, nv) + dilation_factor))
 				{
-					triplets.push_back(T(index_of(surface, v), index_of(mv, nv), 1.0));
+					triplets.push_back(T(index_of(surface, v), index_of(candidates, nv), 1.0));
 				}
 				return true; });
 			return true;
@@ -974,6 +1038,7 @@ public:
 		std::copy(A.outerIndexPtr(), A.outerIndexPtr() + A.cols() + 1, model.lp_.a_matrix_.start_.begin());
 		std::copy(A.innerIndexPtr(), A.innerIndexPtr() + A.nonZeros(), model.lp_.a_matrix_.index_.begin());
 		std::copy(A.valuePtr(), A.valuePtr() + A.nonZeros(), model.lp_.a_matrix_.value_.begin());
+
 		Highs highs;
 		HighsStatus status = highs.passModel(model);
 		HighsSolution solution; 
@@ -995,15 +1060,8 @@ public:
 		load_model_in_cgal(surface, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
+
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		if (angle_filtering_)
-		{
-			filter_by_angle(tri, angle_threshold_);
-		}
-		if (circumradius_filtering_)
-		{
-			filter_by_circumradius(tri, radius_threshold_);
-		}
 		Regular reg = compute_regular_tredrahedron(tree, tri);
 		constrcut_power_shape_non_manifold(reg, surface_provider_->mesh_name(surface) + "_inner_power_shape");
 	}
@@ -1016,14 +1074,6 @@ public:
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		Delaunay tri = compute_delaunay_tredrahedron(surface, csm, tree);
-		if (angle_filtering_)
-		{
-			filter_by_angle(tri, angle_threshold_);
-		}
-		if (circumradius_filtering_)
-		{
-			filter_by_circumradius(tri, radius_threshold_);
-		}
 		compute_initial_non_manifold(tri, tree, surface_provider_->mesh_name(surface) + "_inner_voronoi_diagram");
 	}
 
@@ -1044,6 +1094,10 @@ protected:
 			selected_surface_mesh_ = &m;
 			surface_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
+		imgui_mesh_selector(point_provider_, selected_candidates_, "Candidates", [&](POINT& m) {
+			selected_candidates_ = &m;
+			point_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
+		});
 		imgui_mesh_selector(nonmanifold_provider_, selected_medial_axis_, "Medial_axis", [&](NONMANIFOLD& nm) {
 			selected_medial_axis_ = &nm;
 			nonmanifold_provider_->mesh_data(nm).outlined_until_ = App::frame_time_ + 1.0;
@@ -1051,12 +1105,35 @@ protected:
 
 		if (selected_surface_mesh_)
 		{
-			ImGui::RadioButton("Filter by Angle", reinterpret_cast<int*>(&angle_filtering_), 1);
-			ImGui::DragFloat("angle", &((float)angle_threshold_), 0.01, 0.0, M_PI, "%.3f");
-			ImGui::RadioButton("Filter by circumradius", reinterpret_cast<int*>(&circumradius_filtering_), 1);
-			ImGui::DragFloat("circumradius", &((float)radius_threshold_), (max_radius_-min_radius_)/100, min_radius_, max_radius_,"%.3f");
+			if (ImGui::Button("Compute delaunay"))
+			{
+				Cgal_Surface_mesh csm;
+				load_model_in_cgal(*selected_surface_mesh_, csm);
+				Tree tree(faces(csm).first, faces(csm).second, csm);
+				tree.accelerate_distance_queries();
+				tri_ = compute_delaunay_tredrahedron(*selected_surface_mesh_, csm, tree);
+			}
+
+			ImGui::Checkbox("Filter by Angle", &angle_filtering_);
+			if(angle_filtering_){
+				ImGui::DragFloat("angle", &angle_threshold_, 0.01, 0.0, M_PI, "%.2f");
+			}
+
+			ImGui::Checkbox("Filter by circumradius", &circumradius_filtering_);
+			if(circumradius_filtering_)
+			{
+				ImGui::DragFloat("circumradius", &radius_threshold_, (max_radius_ - min_radius_) / 100, min_radius_,
+							 max_radius_, "%.3f");
+			}
+			ImGui::Checkbox("Filter by distance", &distance_filtering_);
+			if (distance_filtering_){
+				ImGui::DragFloat("distance", &distance_threshold_, 1e-2, 0, 1, "%.4f");
+			}
 			
-			
+			if (ImGui::Button("Generate candidates"))
+			{
+				construct_candidates_points(*selected_surface_mesh_, tri_);
+			}
 			if(ImGui::Button("Power shape"))
 			{
 				compute_power_shape(*selected_surface_mesh_);
@@ -1068,21 +1145,23 @@ protected:
 			{
 				if (ImGui::Button("Compute stability ratio"))
 					compute_stability_ratio(*selected_medial_axis_);
-				static int32 number_vertex_remain = 1; 
+				static int32 number_vertex_remain = 1;
 				static float k = 1e-5;
 				ImGui::DragInt("Vertices to delete", &number_vertex_remain, 1, 0,
-								  nb_cells<NonManifoldVertex>(*selected_medial_axis_));
-				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f"); 
-				 if (ImGui::Button("QMAT"))
+							   nb_cells<NonManifoldVertex>(*selected_medial_axis_));
+				ImGui::DragFloat("K", &k, 1e-5, 0.0f, 1.0f, "%.5f");
+				if (ImGui::Button("QMAT"))
 				{
 					collapse_non_manifold_using_QMat(*selected_medial_axis_, number_vertex_remain, k);
-					
 				}
+			}
+			if (selected_candidates_){
 				static float dilation_factor = 0.02f;
 				ImGui::DragFloat("Dilation factor", &dilation_factor, 0.001f, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
-					solution = point_selection_by_coverage_axis(*selected_surface_mesh_, *selected_medial_axis_, dilation_factor);
+					solution = point_selection_by_coverage_axis(*selected_surface_mesh_, *selected_candidates_,
+																dilation_factor);
 					
 				}
 				if (solution.col_value.size() > 0)
@@ -1090,7 +1169,7 @@ protected:
 					if (ImGui::Button("Collpase"))
 						coverage_axis_collapse(*selected_medial_axis_, solution);
 					if (ImGui::Button("PD"))
-						coverage_axis_PD(*selected_surface_mesh_, *selected_medial_axis_, solution, dilation_factor);
+						coverage_axis_PD(*selected_surface_mesh_, *selected_candidates_, solution, dilation_factor);
 					if (ImGui::Button("CVD"))
 						coverage_axis_CVD(*selected_surface_mesh_, *selected_medial_axis_, solution);
 				}
@@ -1099,6 +1178,7 @@ protected:
 	}
 
 private:
+	POINT* selected_candidates_ = nullptr;
 	POINT* surface_sample_ = nullptr;
 	SURFACE* selected_surface_mesh_ = nullptr;
 	NONMANIFOLD* selected_medial_axis_ = nullptr;
@@ -1106,10 +1186,13 @@ private:
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
 	HighsSolution solution;
+	Delaunay tri_;
 	bool angle_filtering_ = false;
 	bool circumradius_filtering_ = false;
-	double angle_threshold_ = 0.0;
-	double radius_threshold_ = 0.0;
+	bool distance_filtering_ = false;
+	float distance_threshold_ = 0.0;
+	float angle_threshold_ = 0.0;
+	float radius_threshold_ = 0.0;
 	double min_radius_ = std::numeric_limits<double>::max();
 	double max_radius_ = std::numeric_limits<double>::min();
 };
