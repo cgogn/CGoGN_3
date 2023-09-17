@@ -104,13 +104,18 @@ class PowerShape : public Module
 	using Cb = CGAL::Triangulation_cell_base_with_info_3<DelaunayCellInfo,K>;
 	using Tds = CGAL::Triangulation_data_structure_3<Vb, Cb>;
 	using Delaunay = CGAL::Delaunay_triangulation_3<K, Tds, CGAL::Fast_location>;
-	// Regular
+	using Delaunay_Cell_handle = typename Delaunay::Cell_handle;
+	using Delaunay_Cell_circulator = typename Delaunay::Cell_circulator;
+	using Delaunay_Vertex_handle = typename Delaunay::Vertex_handle;
+	// Regular 
 	using Vb0 = CGAL::Regular_triangulation_vertex_base_3<K>;
 	using RVb = CGAL::Triangulation_vertex_base_with_info_3<RegularVertexInfo, K, Vb0>;
 	using RCb = CGAL::Regular_triangulation_cell_base_3<K>;
 	using RTds = CGAL::Triangulation_data_structure_3<RVb, RCb>;
 	using Regular = CGAL::Regular_triangulation_3<K, RTds, CGAL::Fast_location>;
+	using Regular_Cell_handle = typename Regular::Cell_handle;
 	
+
 	using Cgal_Surface_mesh = CGAL::Surface_mesh<Point>;
 	using Point_inside = CGAL::Side_of_triangle_mesh<Cgal_Surface_mesh, K>;
 	using Primitive = CGAL::AABB_face_graph_triangle_primitive<Cgal_Surface_mesh>;
@@ -143,7 +148,7 @@ public:
 	}
 
 private:
-
+	
 	struct point_hash
 	{
 		std::size_t operator()(const Point& p) const
@@ -194,13 +199,31 @@ private:
 			}
 		}
 	}
+
+	struct Cell_handle_hash
+	{
+		std::size_t operator()(const Delaunay_Cell_handle& cell) const
+		{
+			return std::hash<ptrdiff_t>()(cell->info().id);
+		}
+	};
+
+	struct Cell_handle_equal
+	{
+		bool operator()(const Delaunay_Cell_handle& cell1, const Delaunay_Cell_handle& cell2) const
+		{
+			return cell1->info().id == cell2->info().id;
+		}
+	};
+
 	void mark_poles(Delaunay& tri)
 	{
-		std::vector<Delaunay::Cell_handle> vertex_incident_cells;
+		std::vector<Delaunay_Cell_handle> vertex_incident_cells;
 		for (auto vit = tri.finite_vertices_begin(); vit != tri.finite_vertices_end(); ++vit)
 		{
 			vertex_incident_cells.clear();
-			Delaunay::Cell_handle ch;
+			Delaunay_Cell_handle ch_inside, ch_outside;
+			bool inside = false, outside = false;
 			tri.finite_incident_cells(vit, std::back_inserter(vertex_incident_cells));
 			for (auto cell : vertex_incident_cells)
 			{
@@ -209,7 +232,8 @@ private:
 					if (cell->info().radius2 > vit->info().inside_pole_distance)
 					{
 						vit->info().inside_pole_distance = cell->info().radius2;
-						ch = cell;
+						ch_inside = cell;
+						inside = true;
 					}
 				}
 				else
@@ -217,11 +241,19 @@ private:
 					if (cell->info().radius2 > vit->info().outside_pole_distance)
 					{
 						vit->info().outside_pole_distance = cell->info().radius2;
-						ch = cell;
+						ch_outside = cell;
+						outside = true;
 					}
 				}
 			}
-			ch->info().is_pole = true;
+			if (inside)
+				ch_inside->info().is_pole = true;
+			if (outside)
+				ch_outside->info().is_pole = true;
+			if (inside && outside)
+			{
+				inside_to_outside.insert({ch_inside, ch_outside});
+			}
 		}
 	}
 
@@ -269,6 +301,7 @@ private:
 
 	void filter_by_distance(Delaunay& tri, double distance_threshold)
 	{
+		
 		double min_dist = std::numeric_limits<double>::max();
 		double max_dist = std::numeric_limits<double>::min();
 		int count = 0;
@@ -318,7 +351,7 @@ public:
  	}
 */
 
-	/*std::array<std::array<double, 3>, 8> compute_big_box(SURFACE &surface, Cgal_Surface_mesh& csm)
+	std::array<std::array<double, 3>, 8> compute_big_box(SURFACE &surface, Cgal_Surface_mesh& csm)
 	{
 		std::array<Point, 8> obb_points;
 		Point acc(0, 0, 0);
@@ -343,7 +376,7 @@ public:
 			 {center[0] + offset_array[0], center[1] + offset_array[1], center[2] + offset_array[2]}}};
 		return cube_corners;
 	}
-*/
+
 
 	void plot_surface_samples(std::vector<Point>& mesh_samples)
 	{
@@ -364,7 +397,6 @@ public:
 	{
 	
 		std::vector<Point> Delaunay_tri_point;
-		
 		// Sampling the mesh surface
 		std::vector<Point> mesh_samples;
 		CGAL::Polygon_mesh_processing::sample_triangle_mesh(
@@ -372,12 +404,12 @@ public:
 			//CGAL::parameters::use_monte_carlo_sampling(true).number_of_points_per_area_unit(50));
 			CGAL::parameters::use_grid_sampling(true).grid_spacing(1));
 
- 		/*std::array<std::array<double, 3>, 8> cube_corners = compute_big_box(surface, csm);
+ 		std::array<std::array<double, 3>, 8> cube_corners = compute_big_box(surface, csm);
  		// 	Add bounding box vertices in the sample points set
  		for (auto& p : cube_corners)
  		{
  			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
- 		}*/
+ 		}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
 		for (auto& s : mesh_samples)
@@ -394,10 +426,11 @@ public:
 		Delaunay tri;
 		for (Point p : Delaunay_tri_point)
 		{
-			Delaunay::Vertex_handle vh= tri.insert(p);
+			Delaunay_Vertex_handle vh= tri.insert(p);
 			vh->info().id = count;
 			count++;
 		}
+		int cell_count = 0;
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
 			cit->info().id = -1;
@@ -407,13 +440,16 @@ public:
 			if (pointInside(tree, cit->info().centroid))
 			{
 				cit->info().inside = true;
+				cit->info().id = cell_count;
 				min_radius_ = std::min(min_radius_, std::sqrt(cit->info().radius2));
 				max_radius_ = std::max(max_radius_, std::sqrt(cit->info().radius2));
 			}
 			else
 			{
 				cit->info().inside = false;
+				cit->info().id = cell_count;
 			}
+			cell_count++;
 		}
 		mark_poles(tri);
 		return tri;
@@ -423,9 +459,14 @@ public:
 	void construct_candidates_points(SURFACE& surface, Delaunay& tri)
 	{
 		cgogn::io::PointImportData candidates;
+	
 		POINT* candidates_point = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "candidates");
+		
 		std::vector<double> candidates_radius;
 		std::vector<double> angle;
+
+		std::vector<Vec3> oustside_poles_center;
+		std::vector<double> oustside_poles_radius;
 		
 		if (distance_filtering_) filter_by_distance(tri, distance_threshold_);
 		if (circumradius_filtering_) filter_by_circumradius(tri, radius_threshold_);
@@ -440,23 +481,39 @@ public:
 				(angle_filtering_ ? cit->info().angle_flag : true)&&
 				(pole_filtering_? cit->info().is_pole: true))
 			{
-				candidates.vertex_position_.emplace_back(cit->info().centroid.x(), cit->info().centroid.y(), cit->info().centroid.z());
+				
+				Delaunay_Cell_handle c_out = inside_to_outside[cit];
+				candidates.vertex_position_.emplace_back(cit->info().centroid.x(), cit->info().centroid.y(),
+														 cit->info().centroid.z());
 				candidates_radius.push_back(std::sqrt(cit->info().radius2));
 				angle.push_back(cit->info().angle);
+				oustside_poles_radius.push_back(std::sqrt(c_out->info().radius2));	
+				oustside_poles_center.emplace_back(c_out->info().centroid.x(), c_out->info().centroid.y(),
+												   c_out->info().centroid.z());
 			}
 		}
 		candidates.reserve(candidates_radius.size());
+		
 		cgogn::io::import_point_data(*candidates_point, candidates);
-		auto position = get_attribute<Vec3, PointVertex>(*candidates_point, "position");
-		if (position)
-			point_provider_->set_mesh_bb_vertex_position(*candidates_point, position);
-		auto sphere_radius = add_attribute<double, PointVertex>(*candidates_point, "sphere_radius");
-		auto point_angle = add_attribute<Vec3, PointVertex>(*candidates_point, "angle");
+
+		auto candidates_position = get_attribute<Vec3, PointVertex>(*candidates_point, "position");
+		
+		if (candidates_position)
+		{
+			point_provider_->set_mesh_bb_vertex_position(*candidates_point, candidates_position);
+		}
+		auto sphere_radius_att = add_attribute<double, PointVertex>(*candidates_point, "sphere_radius");
+		auto point_angle_att = add_attribute<Vec3, PointVertex>(*candidates_point, "angle");
+		auto outside_pole_radius_att = add_attribute<double, PointVertex>(*candidates_point, "outside_pole_radius");
+		auto outside_pole_center_att= add_attribute<Vec3, PointVertex>(*candidates_point, "outside_pole_center");
 		for (size_t idx = 0; idx < candidates_radius.size(); idx++)
 		{
-			(*sphere_radius)[idx] = candidates_radius[idx];
-			(*point_angle)[idx] = Vec3(((angle[idx] - angle_threshold_)/(M_PI-  angle_threshold_)), 0 , 0);
+			(*sphere_radius_att)[idx] = candidates_radius[idx];
+			(*point_angle_att)[idx] = Vec3(((angle[idx] - angle_threshold_) / (M_PI - angle_threshold_)), 0, 0);
+			(*outside_pole_radius_att)[idx] = oustside_poles_radius[idx];
+			(*outside_pole_center_att)[idx] = oustside_poles_center[idx];
 		}
+		
 		std::cout << "point size: " << candidates_radius.size() << std::endl;
 	}
 	void compute_initial_non_manifold(Delaunay& tri, string name)
@@ -496,12 +553,12 @@ public:
 		}
 		bool all_finite_inside;
 		
-		std::vector<Delaunay::Cell_handle> incells;
+		std::vector<Delaunay_Cell_handle> incells;
 		for (auto eit = tri.finite_edges_begin(); eit != tri.finite_edges_end(); ++eit)
 		{
 			all_finite_inside = true;
 			incells.clear();
- 			Delaunay::Cell_circulator& cc = tri.incident_cells(*eit);
+ 			Delaunay_Cell_circulator& cc = tri.incident_cells(*eit);
  			do
  			{
  				if (tri.is_infinite(cc))
@@ -774,8 +831,8 @@ public:
 
 		for (auto eit = delaunay.finite_edges_begin(); eit != delaunay.finite_edges_end(); ++eit)
 		{
-			Delaunay::Vertex_handle v1 = eit->first->vertex(eit->second);
-			Delaunay::Vertex_handle v2 = eit->first->vertex(eit->third);
+			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
+			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
 			uint32 v1_ind = v1->info().id;
 			uint32 v2_ind = v2->info().id;
 			edge_indices.insert({{v1_ind, v2_ind}, edge_count});
@@ -787,7 +844,7 @@ public:
 
 		for (auto fit = delaunay.finite_facets_begin(); fit != delaunay.finite_facets_end(); ++fit)
 		{
-			Delaunay::Vertex_handle v[3];
+			Delaunay_Vertex_handle v[3];
 			int count = 0;
 			// If face is inside
 			for (size_t idx = 0; idx < 4; ++idx)
@@ -840,8 +897,8 @@ public:
 
 		for (auto eit = delaunay.finite_edges_begin(); eit != delaunay.finite_edges_end(); ++eit)
 		{
-			Delaunay::Vertex_handle v1 = eit->first->vertex(eit->second);
-			Delaunay::Vertex_handle v2 = eit->first->vertex(eit->third);
+			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
+			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
 			if (v1->info().inside && v2->info().inside)
 			{
 				// Add edge
@@ -856,7 +913,7 @@ public:
 
 		for (auto fit = delaunay.finite_facets_begin(); fit != delaunay.finite_facets_end(); ++fit)
 		{
-			Delaunay::Vertex_handle v[3];
+			Delaunay_Vertex_handle v[3];
 			int count = 0;
 			bool inside = true;
 			// If face is inside
@@ -893,20 +950,20 @@ public:
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
 	}
-	 void coverage_axis_CVD(SURFACE& surface, NONMANIFOLD& mv, HighsSolution& solution)
+	 void coverage_axis_CVD(SURFACE& surface, POINT& mv, HighsSolution& solution)
 	{
 		Cgal_Surface_mesh csm;
 		load_model_in_cgal(surface, csm);
-		auto inner_position = get_attribute<Vec3, NonManifoldVertex>(mv, "position");
+		auto inner_position = get_attribute<Vec3, PointVertex>(mv, "position");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
-		auto sphere_radius = get_attribute<double, NonManifoldVertex>(mv, "sphere_radius");
+		auto sphere_radius = get_attribute<double, PointVertex>(mv, "sphere_radius");
 		Delaunay constrained_voronoi_diagram;
 		uint32 count = 0;
-		foreach_cell(mv, [&](NonManifoldVertex nv) {
+		foreach_cell(mv, [&](PointVertex nv) {
 			if (solution.col_value[index_of(mv, nv)] > 1e-5)
 			{
 				Vec3 pos = value<Vec3>(mv, inner_position, nv);
-				Delaunay::Vertex_handle v = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
+				Delaunay_Vertex_handle v = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
 				v->info().inside = true;
 				v->info().id = count;
 				count++;
@@ -916,7 +973,7 @@ public:
 
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
-			Delaunay::Vertex_handle vhd = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
+			Delaunay_Vertex_handle vhd = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
 			vhd->info().inside = false;
 			vhd->info().id = count;
 			count++;
@@ -935,24 +992,64 @@ public:
 		Tree tree(faces(csm).first, faces(csm).second, csm);
 		tree.accelerate_distance_queries();
 		auto inner_position = get_attribute<Vec3, PointVertex>(selected_points, "position");
-		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
 		auto sphere_radius = get_attribute<double, PointVertex>(selected_points, "sphere_radius");
+		auto dilated_radius = get_attribute<double, PointVertex>(selected_points, "dilated_radius");
+		auto oustide_pole_center_att = get_attribute<Vec3, PointVertex>(selected_points, "outside_pole_center");
+		auto oustide_pole_radius_att = get_attribute<double, PointVertex>(selected_points, "outside_pole_radius");
+
+		auto coverage_infos = get_attribute<std::vector<uint32>, Vertex>(surface, "coverage_infos");
+		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
+	
+		POINT* outside_poles_point = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "outside_poles");
+		cgogn::io::PointImportData outside_poles;
+
+		std::vector<double> outside_poles_radius;
+		std::vector<double> selected_points_radius(nb_cells<PointVertex>(selected_points), 0.0);
 		Regular power_shape;
 		foreach_cell(selected_points, [&](PointVertex nv) {
 			if (solution.col_value[index_of(selected_points, nv)] > 1e-5)
 			{
 				Vec3 pos = value<Vec3>(selected_points, inner_position, nv);
-				power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]),
-												(value<double>(selected_points, sphere_radius, nv) + dilation_factor) *
-									 (value<double>(selected_points, sphere_radius, nv) + dilation_factor)));
+				
+				selected_points_radius[index_of(selected_points, nv)] =
+					value<double>(selected_points, dilated_radius, nv) - value<double>(selected_points, sphere_radius,nv);
+				power_shape.insert(Weight_Point(Point(pos[0], pos[1], pos[2]), value<double>(selected_points, dilated_radius, nv)*
+					value<double>(selected_points, dilated_radius, nv)));
+
+				Vec3 outside_pole_pos = value<Vec3>(selected_points, oustide_pole_center_att, nv);
+				outside_poles.vertex_position_.emplace_back(outside_pole_pos[0], outside_pole_pos[1], outside_pole_pos[2]);
+				outside_poles_radius.push_back(value<double>(selected_points, oustide_pole_radius_att, nv));
 			}
 			return true;
 		});
+		outside_poles.reserve(outside_poles_radius.size());
+
+		cgogn::io::import_point_data(*outside_poles_point, outside_poles);
+		auto outside_poles_position = get_attribute<Vec3, PointVertex>(*outside_poles_point, "position");
+		if (outside_poles_position)
+		{
+			point_provider_->set_mesh_bb_vertex_position(*outside_poles_point, outside_poles_position);
+		}
+		auto sphere_radius_att = add_attribute<double, PointVertex>(*outside_poles_point, "sphere_radius");
+		for (size_t idx = 0; idx < outside_poles_radius.size(); idx++)
+		{
+			(*sphere_radius_att)[idx] = outside_poles_radius[idx];
+		
+		}
 
 		foreach_cell(surface, [&](Vertex v) {
 			Vec3 pos = value<Vec3>(surface, sample_position, v);
+			std::vector<uint32> covered_sphere = value<std::vector<uint32>>(surface, coverage_infos, v);
+			double sample_sphere_radius = std::numeric_limits<double>::min();
+			for (uint32 idx : covered_sphere)
+			{
+				if (solution.col_value[idx] > 1e-5)
+				{
+					sample_sphere_radius = std::max(sample_sphere_radius, selected_points_radius[idx]);
+				}
+			}
 			power_shape.insert(
-				Weight_Point(Point(pos[0], pos[1], pos[2]), (dilation_factor) * (dilation_factor)));
+				Weight_Point(Point(pos[0], pos[1], pos[2]), sample_sphere_radius * sample_sphere_radius));
 			return true;
 		});
 		int count = 0;
@@ -1020,21 +1117,50 @@ public:
 		typedef Eigen::SparseMatrix<double> SpMat; 
 		typedef Eigen::Triplet<double> T;
 		std::vector<T> triplets;
+
+		auto dilated_radius = add_attribute<double, PointVertex>(candidates, "dilated_radius");
+		auto coverage_infos = add_attribute<std::vector<uint32>, Vertex>(surface, "coverage_infos");
+
 		auto inner_position = get_attribute<Vec3, PointVertex>(candidates, "position");
 		auto sphere_radius = get_attribute<double, PointVertex>(candidates, "sphere_radius");
+		auto outside_pole_radius = get_attribute<double, PointVertex>(candidates, "outside_pole_radius");
 		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
 		auto inner_point_nb = nb_cells<PointVertex>(candidates);
 		auto sample_point_nb = nb_cells<Vertex>(surface);
-		foreach_cell(candidates, [&](PointVertex nv) {
-			foreach_cell(surface, [&](Vertex v) { 
-				if (inside_sphere(value<Vec3>(surface, sample_position, v), value<Vec3>(candidates, inner_position, nv),
-								  value<double>(candidates, sphere_radius, nv) + dilation_factor))
+		
+		std::vector<Vec3> sample_points(sample_point_nb, Vec3(0, 0, 0));
+		std::vector<Vec3> inner_points(inner_point_nb, Vec3(0, 0, 0));
+		std::vector<double> weights(inner_point_nb, 0);
+		parallel_foreach_cell(candidates, [&](PointVertex nv) {
+			uint32 index = index_of(candidates, nv);
+			double radius = value<double>(candidates, sphere_radius, nv);
+			double outside_radius = value<double>(candidates, outside_pole_radius, nv);
+			if (radius * dilation_factor > outside_radius)
+			{
+				weights[index] = radius + 0.8 * outside_radius;
+			}
+			else
+			{
+				weights[index] = radius * (1 + dilation_factor);
+			}
+			value<double>(candidates, dilated_radius, nv) = weights[index];
+			inner_points[index] = value<Vec3>(candidates, inner_position, nv);
+			
+			return true;
+			});
+		foreach_cell(surface, [&](Vertex v) {
+			for (size_t idx = 0; idx < inner_point_nb; idx++)
+			{
+				if (inside_sphere(value<Vec3>(surface, sample_position, v), inner_points[idx], weights[idx]))
 				{
-					triplets.push_back(T(index_of(surface, v), index_of(candidates, nv), 1.0));
+					triplets.push_back(T(index_of(surface, v), idx, 1.0));
+					value<std::vector<uint32>>(surface, coverage_infos, v).push_back(idx);
 				}
-				return true; });
+			}
 			return true;
 		});
+		std::cout << triplets.size() << std::endl;
+				
 		SpMat A(sample_point_nb, inner_point_nb);
 		A.setFromTriplets(triplets.begin(), triplets.end());
 		A.makeCompressed();
@@ -1173,7 +1299,7 @@ protected:
 				}
 			}
 			if (selected_candidates_){
-				static float dilation_factor = 0.02f;
+				static float dilation_factor = 0.5f;
 				ImGui::DragFloat("Dilation factor", &dilation_factor, 0.001f, 0.0f, 1.0f, "%.4f");
 				if (ImGui::Button("Coverage Axis"))
 				{
@@ -1188,7 +1314,7 @@ protected:
 					if (ImGui::Button("PD"))
 						coverage_axis_PD(*selected_surface_mesh_, *selected_candidates_, solution, dilation_factor);
 					if (ImGui::Button("CVD"))
-						coverage_axis_CVD(*selected_surface_mesh_, *selected_medial_axis_, solution);
+						coverage_axis_CVD(*selected_surface_mesh_, *selected_candidates_, solution);
 				}
 			}
 		}
@@ -1203,6 +1329,7 @@ private:
 	MeshProvider<SURFACE>* surface_provider_;
 	MeshProvider<NONMANIFOLD>* nonmanifold_provider_;
 	HighsSolution solution;
+	std::unordered_map<Delaunay_Cell_handle,Delaunay_Cell_handle, Cell_handle_hash, Cell_handle_equal> inside_to_outside;
 	Delaunay tri_;
 	Tree tree_;
 	bool angle_filtering_ = false;
