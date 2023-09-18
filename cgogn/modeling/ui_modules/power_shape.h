@@ -363,7 +363,7 @@ public:
 		std::array<double, 3> center{acc.x() / 8, acc.y() / 8, acc.z() / 8};
 		// Create a large box surrounding object so that the Voronoi vertices are bounded
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(surface);
-		double offset = (md.bb_max_ - md.bb_min_).norm() * 20.0;
+		double offset = (md.bb_max_ - md.bb_min_).norm();
 		std::array<double, 3> offset_array = {offset, offset, offset};
 		std::array<std::array<double, 3>, 8> cube_corners = {
 			{{center[0] - offset_array[0], center[1] - offset_array[1], center[2] - offset_array[2]},
@@ -378,9 +378,10 @@ public:
 	}
 
 
-	void plot_surface_samples(std::vector<Point>& mesh_samples)
+	void plot_surface_samples(SURFACE& surface, std::vector<Point>& mesh_samples)
 	{
 		cgogn::io::PointImportData samples;
+		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		uint32 nb_vertices = mesh_samples.size();
 		samples.reserve(nb_vertices);
 		for (auto& s : mesh_samples)
@@ -409,6 +410,7 @@ public:
  		for (auto& p : cube_corners)
  		{
  			Delaunay_tri_point.emplace_back(p[0], p[1], p[2]);
+			mesh_samples.emplace_back(p[0], p[1], p[2]);
  		}
 
 		// Add sampled vertices into the volume data to construct the delauney tredrahedron
@@ -417,7 +419,7 @@ public:
 			Delaunay_tri_point.emplace_back(s[0], s[1], s[2]);
 		}
 		
-		//plot_surface_samples(mesh_samples);		
+		plot_surface_samples(surface, mesh_samples);		
 
 		//auto start_timer = std::chrono::high_resolution_clock::now();
 		
@@ -459,9 +461,9 @@ public:
 	void construct_candidates_points(SURFACE& surface, Delaunay& tri)
 	{
 		cgogn::io::PointImportData candidates;
-	
+		cgogn::io::PointImportData outside_poles_data;
 		POINT* candidates_point = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "candidates");
-		
+		POINT* outside_poles_point = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "outside_poles");
 		std::vector<double> candidates_radius;
 		std::vector<double> angle;
 
@@ -490,17 +492,23 @@ public:
 				oustside_poles_radius.push_back(std::sqrt(c_out->info().radius2));	
 				oustside_poles_center.emplace_back(c_out->info().centroid.x(), c_out->info().centroid.y(),
 												   c_out->info().centroid.z());
+				outside_poles_data.vertex_position_.emplace_back(c_out->info().centroid.x(), c_out->info().centroid.y(),
+																					 c_out->info().centroid.z());
 			}
 		}
 		candidates.reserve(candidates_radius.size());
-		
+		outside_poles_data.reserve(oustside_poles_radius.size());
 		cgogn::io::import_point_data(*candidates_point, candidates);
-
+		cgogn::io::import_point_data(*outside_poles_point, outside_poles_data);
 		auto candidates_position = get_attribute<Vec3, PointVertex>(*candidates_point, "position");
-		
+		auto outside_poles_position = get_attribute<Vec3, PointVertex>(*outside_poles_point, "position");
 		if (candidates_position)
 		{
 			point_provider_->set_mesh_bb_vertex_position(*candidates_point, candidates_position);
+		}
+		if (outside_poles_position)
+		{
+			point_provider_->set_mesh_bb_vertex_position(*outside_poles_point, outside_poles_position);
 		}
 		auto sphere_radius_att = add_attribute<double, PointVertex>(*candidates_point, "sphere_radius");
 		auto point_angle_att = add_attribute<Vec3, PointVertex>(*candidates_point, "angle");
@@ -513,10 +521,11 @@ public:
 			(*outside_pole_radius_att)[idx] = oustside_poles_radius[idx];
 			(*outside_pole_center_att)[idx] = oustside_poles_center[idx];
 		}
-		
+		Delaunay CVD = compute_constrained_voronoi_diagram(surface, *candidates_point);
+		construct_inner_constrained_voronoi_diagram(CVD, "constrained_voronoi_diagram");
 		std::cout << "point size: " << candidates_radius.size() << std::endl;
 	}
-	void compute_initial_non_manifold(Delaunay& tri, string name)
+	NONMANIFOLD& compute_initial_non_manifold(Delaunay& tri, string name)
 	{
 		std::vector<double> sphere_radius;
 		std::vector<Point> sphere_center;
@@ -628,6 +637,7 @@ public:
 			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
+		return *mv;
 	}
 
 	
@@ -636,10 +646,15 @@ public:
 		Regular power_shape;
 		for (auto cit = tri.finite_cells_begin(); cit != tri.finite_cells_end(); ++cit)
 		{
-			if (cit->info().is_pole)
+			if (cit->info().inside && (distance_filtering_ ? cit->info().distance_flag : true) &&
+				(circumradius_filtering_ ? cit->info().radius_flag : true) &&
+				(angle_filtering_ ? cit->info().angle_flag : true) && cit->info().is_pole)
 			{
+				Delaunay_Cell_handle c_out = inside_to_outside[cit];
 				Weight_Point wp(cit->info().centroid, cit->info().radius2);
 				power_shape.insert(wp);
+				Weight_Point wp_out(c_out->info().centroid, c_out->info().radius2);
+				power_shape.insert(wp_out);
 			}
 			
 		}
@@ -658,7 +673,172 @@ public:
 		return power_shape;
 	}
 
-	void constrcut_power_shape_non_manifold(Regular& power_shape, string name)
+	Delaunay compute_constrained_voronoi_diagram(SURFACE& surface, POINT& medial_points)
+	{
+		Cgal_Surface_mesh csm;
+		load_model_in_cgal(surface, csm);
+		auto inner_position = get_attribute<Vec3, PointVertex>(medial_points, "position");
+		auto sample_position = get_attribute<Vec3, Vertex>(surface, "position");
+		auto sphere_radius = get_attribute<double, PointVertex>(medial_points, "sphere_radius");
+		Delaunay constrained_voronoi_diagram;
+		uint32 count = 0;
+		foreach_cell(medial_points, [&](PointVertex nv){
+			Vec3 pos = value<Vec3>(medial_points, inner_position, nv);
+			Delaunay_Vertex_handle v = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
+			v->info().inside = true;
+			v->info().id = count;
+			count++;
+			return true;
+		});
+
+		foreach_cell(surface, [&](Vertex v) {
+			Vec3 pos = value<Vec3>(surface, sample_position, v);
+			Delaunay_Vertex_handle vhd = constrained_voronoi_diagram.insert(Point(pos[0], pos[1], pos[2]));
+			vhd->info().inside = false;
+			vhd->info().id = count;
+			count++;
+			return true;
+		});
+
+		return constrained_voronoi_diagram;
+	}
+	
+	void construct_complete_constrained_voronoi_diagram(Delaunay& delaunay, std::string& name)
+	{
+		NONMANIFOLD* mv =
+			nonmanifold_provider_->add_mesh(std::to_string(nonmanifold_provider_->number_of_meshes()) + "_" + name);
+		cgogn::io::IncidenceGraphImportData Inner_CVD_data;
+		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
+		uint32 edge_count = 0;
+		std::vector<Point> CVD_point;
+		for (auto vit = delaunay.finite_vertices_begin(); vit != delaunay.finite_vertices_end(); ++vit)
+		{
+			CVD_point.push_back(vit->point());
+			Inner_CVD_data.vertex_position_.push_back({vit->point().x(), vit->point().y(), vit->point().z()});
+		}
+
+		for (auto eit = delaunay.finite_edges_begin(); eit != delaunay.finite_edges_end(); ++eit)
+		{
+			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
+			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
+			uint32 v1_ind = v1->info().id;
+			uint32 v2_ind = v2->info().id;
+			edge_indices.insert({{v1_ind, v2_ind}, edge_count});
+			Inner_CVD_data.edges_vertex_indices_.push_back(v1_ind);
+			Inner_CVD_data.edges_vertex_indices_.push_back(v2_ind);
+			edge_count++;
+		}
+
+		for (auto fit = delaunay.finite_facets_begin(); fit != delaunay.finite_facets_end(); ++fit)
+		{
+			Delaunay_Vertex_handle v[3];
+			int count = 0;
+			// If face is inside
+			for (size_t idx = 0; idx < 4; ++idx)
+			{
+				if (idx != fit->second)
+				{
+					v[count] = fit->first->vertex(idx);
+					count++;
+				}
+			}
+			Inner_CVD_data.faces_nb_edges_.push_back(3);
+			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[0]->info().id, v[1]->info().id}]);
+			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[1]->info().id, v[2]->info().id}]);
+			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[2]->info().id, v[0]->info().id}]);
+		}
+		uint32 inner_power_nb_vertices = Inner_CVD_data.vertex_position_.size();
+		uint32 inner_power_nb_edges = Inner_CVD_data.edges_vertex_indices_.size() / 2;
+		uint32 inner_power_nb_faces = Inner_CVD_data.faces_nb_edges_.size();
+
+		Inner_CVD_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
+
+		import_incidence_graph_data(*mv, Inner_CVD_data);
+
+		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
+			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
+		if (mv_vertex_position)
+			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
+
+		nonmanifold_provider_->emit_connectivity_changed(*mv);
+	}
+	
+	NONMANIFOLD& construct_inner_constrained_voronoi_diagram(Delaunay& CVD, std::string name)
+	{
+		
+		NONMANIFOLD* mv =
+			nonmanifold_provider_->add_mesh(std::to_string(nonmanifold_provider_->number_of_meshes()) + "_" + name);
+		cgogn::io::IncidenceGraphImportData Inner_CVD_data;
+		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
+		uint32 edge_count = 0;
+		std::vector<Point> CVD_point;
+		for (auto vit = CVD.finite_vertices_begin(); vit != CVD.finite_vertices_end(); ++vit)
+		{
+			// if the point is inside
+			if (vit->info().inside)
+			{
+				CVD_point.push_back(vit->point());
+				Inner_CVD_data.vertex_position_.push_back({vit->point().x(), vit->point().y(), vit->point().z()});
+			}
+		}
+
+		for (auto eit = CVD.finite_edges_begin(); eit != CVD.finite_edges_end(); ++eit)
+		{
+			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
+			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
+			if (v1->info().inside && v2->info().inside)
+			{
+				// Add edge
+				uint32 v1_ind = v1->info().id;
+				uint32 v2_ind = v2->info().id;
+				edge_indices.insert({{v1_ind, v2_ind}, edge_count});
+				Inner_CVD_data.edges_vertex_indices_.push_back(v1_ind);
+				Inner_CVD_data.edges_vertex_indices_.push_back(v2_ind);
+				edge_count++;
+			}
+		}
+
+		for (auto fit = CVD.finite_facets_begin(); fit != CVD.finite_facets_end(); ++fit)
+		{
+			Delaunay_Vertex_handle v[3];
+			int count = 0;
+			bool inside = true;
+			// If face is inside
+			for (size_t idx = 0; idx < 4; ++idx)
+			{
+				if (idx != fit->second)
+				{
+					v[count] = fit->first->vertex(idx);
+					inside &= v[count]->info().inside;
+					count++;
+				}
+			}
+			if (inside)
+			{
+				Inner_CVD_data.faces_nb_edges_.push_back(3);
+				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[0]->info().id, v[1]->info().id}]);
+				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[1]->info().id, v[2]->info().id}]);
+				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[2]->info().id, v[0]->info().id}]);
+			}
+		}
+		uint32 inner_power_nb_vertices = Inner_CVD_data.vertex_position_.size();
+		uint32 inner_power_nb_edges = Inner_CVD_data.edges_vertex_indices_.size() / 2;
+		uint32 inner_power_nb_faces = Inner_CVD_data.faces_nb_edges_.size();
+
+		Inner_CVD_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
+
+		import_incidence_graph_data(*mv, Inner_CVD_data);
+
+		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
+			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
+		if (mv_vertex_position)
+			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
+
+		nonmanifold_provider_->emit_connectivity_changed(*mv);
+		return *mv;
+	}
+	
+	NONMANIFOLD& constrcut_power_shape_non_manifold(Regular& power_shape, string name)
 	{
 		NONMANIFOLD* mv =
 			nonmanifold_provider_->add_mesh(std::to_string(nonmanifold_provider_->number_of_meshes()) + "_" +name);
@@ -741,10 +921,9 @@ public:
 			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
 
 		nonmanifold_provider_->emit_connectivity_changed(*mv);
+		return *mv;
 	}
-
 	
-
 	void compute_stability_ratio_edge(NONMANIFOLD& nm, NonManifoldEdge e,
 									  std::shared_ptr<NonManifoldAttribute<double>>& stability_ratio,
 									  std::shared_ptr<NonManifoldAttribute<Vec3>>& stability_color,
@@ -814,142 +993,7 @@ public:
 		nonmanifold_provider_->emit_attribute_changed(nm, stability_color.get());
 		
 	}
-	void construct_complete_constrained_voronoi_diagram(Delaunay& delaunay, std::string& name)
-	{
-		NONMANIFOLD* mv =
-			nonmanifold_provider_->add_mesh(std::to_string(nonmanifold_provider_->number_of_meshes()) + "_" + name);
-		cgogn::io::IncidenceGraphImportData Inner_CVD_data;
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-		uint32 edge_count = 0;
-		std::vector<Point> CVD_point;
-		for (auto vit = delaunay.finite_vertices_begin(); vit != delaunay.finite_vertices_end(); ++vit)
-		{
-			CVD_point.push_back(vit->point());
-			Inner_CVD_data.vertex_position_.push_back({vit->point().x(), vit->point().y(), vit->point().z()});
-			
-		}
-
-		for (auto eit = delaunay.finite_edges_begin(); eit != delaunay.finite_edges_end(); ++eit)
-		{
-			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
-			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
-			uint32 v1_ind = v1->info().id;
-			uint32 v2_ind = v2->info().id;
-			edge_indices.insert({{v1_ind, v2_ind}, edge_count});
-			Inner_CVD_data.edges_vertex_indices_.push_back(v1_ind);
-			Inner_CVD_data.edges_vertex_indices_.push_back(v2_ind);
-			edge_count++;
-			
-		}
-
-		for (auto fit = delaunay.finite_facets_begin(); fit != delaunay.finite_facets_end(); ++fit)
-		{
-			Delaunay_Vertex_handle v[3];
-			int count = 0;
-			// If face is inside
-			for (size_t idx = 0; idx < 4; ++idx)
-			{
-				if (idx != fit->second)
-				{
-					v[count] = fit->first->vertex(idx);
-					count++;
-				}
-			}
-			Inner_CVD_data.faces_nb_edges_.push_back(3);
-			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[0]->info().id, v[1]->info().id}]);
-			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[1]->info().id, v[2]->info().id}]);
-			Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[2]->info().id, v[0]->info().id}]);
-			
-		}
-		uint32 inner_power_nb_vertices = Inner_CVD_data.vertex_position_.size();
-		uint32 inner_power_nb_edges = Inner_CVD_data.edges_vertex_indices_.size() / 2;
-		uint32 inner_power_nb_faces = Inner_CVD_data.faces_nb_edges_.size();
-
-		Inner_CVD_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges, inner_power_nb_faces);
-
-		import_incidence_graph_data(*mv, Inner_CVD_data);
-
-		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
-			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
-		if (mv_vertex_position)
-			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
-
-		nonmanifold_provider_->emit_connectivity_changed(*mv);
-	}
-	void construct_inner_constrained_voronoi_diagram(Delaunay& delaunay, std::string& name)
-	{
-		NONMANIFOLD* mv =
-			nonmanifold_provider_->add_mesh(std::to_string(nonmanifold_provider_->number_of_meshes()) + "_" +name);
-		cgogn::io::IncidenceGraphImportData Inner_CVD_data;
-		std::unordered_map<std::pair<uint32, uint32>, uint32, edge_hash, edge_equal> edge_indices;
-		uint32 edge_count = 0;
-		std::vector<Point> CVD_point;
-		for (auto vit = delaunay.finite_vertices_begin(); vit != delaunay.finite_vertices_end(); ++vit)
-		{
-			// if the point is inside
-			if (vit->info().inside)
-			{
-				CVD_point.push_back(vit->point());
-				Inner_CVD_data.vertex_position_.push_back(
-					{vit->point().x(), vit->point().y(), vit->point().z()});
-			}
-		}
-
-		for (auto eit = delaunay.finite_edges_begin(); eit != delaunay.finite_edges_end(); ++eit)
-		{
-			Delaunay_Vertex_handle v1 = eit->first->vertex(eit->second);
-			Delaunay_Vertex_handle v2 = eit->first->vertex(eit->third);
-			if (v1->info().inside && v2->info().inside)
-			{
-				// Add edge
-				uint32 v1_ind = v1->info().id;
-				uint32 v2_ind = v2->info().id;
-				edge_indices.insert({{v1_ind, v2_ind}, edge_count});
-				Inner_CVD_data.edges_vertex_indices_.push_back(v1_ind);
-				Inner_CVD_data.edges_vertex_indices_.push_back(v2_ind);
-				edge_count++;
-			}
-		}
-
-		for (auto fit = delaunay.finite_facets_begin(); fit != delaunay.finite_facets_end(); ++fit)
-		{
-			Delaunay_Vertex_handle v[3];
-			int count = 0;
-			bool inside = true;
-			// If face is inside
-			for (size_t idx = 0; idx < 4; ++idx)
-			{
-				if (idx != fit->second)
-				{
-					v[count] = fit->first->vertex(idx);
-					inside &= v[count]->info().inside;
-					count++;
-				}
-			}
-			if (inside)
-			{
-				Inner_CVD_data.faces_nb_edges_.push_back(3);
-				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[0]->info().id, v[1]->info().id}]);
-				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[1]->info().id, v[2]->info().id}]);
-				Inner_CVD_data.faces_edge_indices_.push_back(edge_indices[{v[2]->info().id, v[0]->info().id}]);
-			}
-		}
-		uint32 inner_power_nb_vertices = Inner_CVD_data.vertex_position_.size();
-		uint32 inner_power_nb_edges = Inner_CVD_data.edges_vertex_indices_.size() / 2;
-		uint32 inner_power_nb_faces = Inner_CVD_data.faces_nb_edges_.size();
-
-		Inner_CVD_data.set_parameter(inner_power_nb_vertices, inner_power_nb_edges,
-														   inner_power_nb_faces);
-
-		import_incidence_graph_data(*mv, Inner_CVD_data);
-
-		std::shared_ptr<NonManifoldAttribute<Vec3>> mv_vertex_position =
-			get_attribute<Vec3, NonManifoldVertex>(*mv, "position");
-		if (mv_vertex_position)
-			nonmanifold_provider_->set_mesh_bb_vertex_position(*mv, mv_vertex_position);
-
-		nonmanifold_provider_->emit_connectivity_changed(*mv);
-	}
+	
 	 void coverage_axis_CVD(SURFACE& surface, POINT& mv, HighsSolution& solution)
 	{
 		Cgal_Surface_mesh csm;
@@ -1067,8 +1111,15 @@ public:
 		constrcut_power_shape_non_manifold(power_shape, "_coverage_axis" +surface_provider_->mesh_name(surface));
 	}
 
-	void coverage_axis_collapse(NONMANIFOLD& nm, HighsSolution& solution)
+	void coverage_axis_collapse(SURFACE& surface, POINT& medial_points, HighsSolution& solution)
 	{
+		Cgal_Surface_mesh csm;
+		load_model_in_cgal(surface, csm);
+		Tree tree(faces(csm).first, faces(csm).second, csm);
+		tree.accelerate_distance_queries();
+		Delaunay CVD = compute_constrained_voronoi_diagram(surface, medial_points);
+		NONMANIFOLD& nm = construct_inner_constrained_voronoi_diagram(CVD, "constrained_voronoi_diagram");
+
 		using QMatHelper = modeling::DecimationSQEM_Helper<NONMANIFOLD>;
 		using Slab_Quadric = geometry::Slab_Quadric;
 
@@ -1204,7 +1255,7 @@ public:
 	}
 	void compute_power_shape(SURFACE& surface)
 	{
-		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
+		
 		Cgal_Surface_mesh csm;
 		load_model_in_cgal(*selected_surface_mesh_, csm);
 		Tree tree(faces(csm).first, faces(csm).second, csm);
@@ -1215,7 +1266,6 @@ public:
 
 	void compute_original_power_diagram(SURFACE& surface)
 	{
-		surface_sample_ = point_provider_->add_mesh(point_provider_->mesh_name(surface) + "surface_samples");
 		compute_initial_non_manifold(tri_, surface_provider_->mesh_name(surface) + "_inner_voronoi_diagram");
 	}
 
@@ -1310,7 +1360,7 @@ protected:
 				if (solution.col_value.size() > 0)
 				{
 					if (ImGui::Button("Collpase"))
-						coverage_axis_collapse(*selected_medial_axis_, solution);
+						coverage_axis_collapse(*selected_surface_mesh_, *selected_candidates_, solution); 
 					if (ImGui::Button("PD"))
 						coverage_axis_PD(*selected_surface_mesh_, *selected_candidates_, solution, dilation_factor);
 					if (ImGui::Button("CVD"))
