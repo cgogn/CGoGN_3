@@ -21,9 +21,9 @@
  *                                                                              *
  *******************************************************************************/
 
+#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 #include <cgogn/core/types/maps/cmap/graph.h>
-#include <cgogn/core/types/incidence_graph/incidence_graph.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
 
@@ -33,6 +33,7 @@
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/geometry/ui_modules/surface_filtering.h>
+#include <cgogn/geometry/ui_modules/surface_selection.h>
 #include <cgogn/modeling/ui_modules/skeleton_extractor_module.h>
 #include <cgogn/modeling/ui_modules/surface_modeling.h>
 #include <cgogn/rendering/ui_modules/graph_render.h>
@@ -71,6 +72,8 @@ int main(int argc, char** argv)
 	cgogn::ui::SurfaceModeling<Surface> sm(app);
 	cgogn::ui::SurfaceFiltering<Surface> sf(app);
 
+	cgogn::ui::SurfaceSelection<Surface> ss(app);
+
 	cgogn::ui::GraphRender<Graph> gr(app);
 	cgogn::ui::SurfaceRender<NonManifold> srnm(app);
 	cgogn::ui::SurfaceRender<Surface> srs(app);
@@ -84,24 +87,26 @@ int main(int argc, char** argv)
 	v->link_module(&mpg);
 	v->link_module(&mpnm);
 	v->link_module(&mps);
+
 	v->link_module(&gr);
 	v->link_module(&srnm);
 	v->link_module(&srs);
 
+	v->link_module(&ss);
+
 	// load surface
 	Surface* s = mps.load_surface_from_file(surface_filename);
-	std::cout << "surface loaded" << std::endl;
 	if (!s)
 	{
 		std::cout << "Surface file could not be loaded" << std::endl;
 		return 1;
 	}
 
-	Surface* clone = mps.clone_mesh(*s);
+	// Surface* clone = mps.clone_mesh(*s);
 
 	srs.set_render_vertices(*v, *s, false);
-	srs.set_render_vertices(*v, *clone, false);
-	srs.set_render_faces(*v, *clone, false);
+	// srs.set_render_vertices(*v, *clone, false);
+	// srs.set_render_faces(*v, *clone, false);
 
 	auto surface_vertex_position = cgogn::get_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "position");
 	auto surface_vertex_normal = cgogn::get_or_add_attribute<Vec3, cgogn::mesh_traits<Surface>::Vertex>(*s, "normal");

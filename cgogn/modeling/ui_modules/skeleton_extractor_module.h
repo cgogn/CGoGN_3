@@ -41,7 +41,9 @@
 #include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 #include <cgogn/modeling/algos/skeleton.h>
 
-#include <map>
+#include <boost/synapse/connect.hpp>
+
+#include <unordered_map>
 
 namespace cgogn
 {
@@ -49,9 +51,9 @@ namespace cgogn
 namespace ui
 {
 
-using geometry::Vec3;
-using geometry::Scalar;
 using geometry::Mat3;
+using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename SURFACE, typename NONMANIFOLD, typename GRAPH>
 class SkeletonExtractor : public Module
@@ -74,6 +76,16 @@ class SkeletonExtractor : public Module
 	using SurfaceEdge = typename mesh_traits<SURFACE>::Edge;
 	using SurfaceFace = typename mesh_traits<SURFACE>::Face;
 
+	struct SurfaceParameters
+	{
+		SURFACE* mesh_;
+		std::shared_ptr<SurfaceAttribute<Vec3>> medial_axis_samples_position_ = nullptr;
+		std::shared_ptr<SurfaceAttribute<Scalar>> medial_axis_samples_radius_ = nullptr;
+
+		float32 radius_threshold_ = 0.025f;
+
+		CellsSet<SURFACE, SurfaceVertex>* filtered_medial_axis_samples_set_ = nullptr;
+	};
 
 public:
 	SkeletonExtractor(const App& app)
@@ -87,13 +99,45 @@ public:
 	{
 	}
 
-	void medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
+private:
+	void init_surface_mesh(SURFACE* s)
 	{
-		auto sbc = get_or_add_attribute<Vec3, SurfaceVertex>(s, "shrinking_ball_centers");
-		auto sbr = get_or_add_attribute<Scalar, SurfaceVertex>(s, "shrinking_ball_radius");
-		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, sbc.get(), sbr.get());
-		surface_provider_->emit_attribute_changed(s, sbc.get());
-		surface_provider_->emit_attribute_changed(s, sbr.get());
+		SurfaceParameters& p = surface_parameters_[s];
+		p.mesh_ = s;
+		p.medial_axis_samples_position_ =
+			get_or_add_attribute<Vec3, SurfaceVertex>(*s, "__medial_axis_samples_position");
+		p.medial_axis_samples_radius_ = get_or_add_attribute<Scalar, SurfaceVertex>(*s, "__medial_axis_samples_radius");
+
+		MeshData<SURFACE>& md = surface_provider_->mesh_data(*s);
+		p.filtered_medial_axis_samples_set_ =
+			&md.template get_or_add_cells_set<SurfaceVertex>("__filtered_medial_axis_samples");
+	}
+
+public:
+	void sample_medial_axis(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position, SurfaceAttribute<Vec3>* vertex_normal)
+	{
+		SurfaceParameters& p = surface_parameters_[&s];
+
+		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, p.medial_axis_samples_position_.get(),
+										 p.medial_axis_samples_radius_.get());
+
+		p.filtered_medial_axis_samples_set_->select_if([&](SurfaceVertex v) { return true; });
+
+		surface_provider_->emit_attribute_changed(s, p.medial_axis_samples_position_.get());
+		surface_provider_->emit_attribute_changed(s, p.medial_axis_samples_radius_.get());
+
+		surface_provider_->emit_cells_set_changed(s, p.filtered_medial_axis_samples_set_);
+	}
+
+	void filter_medial_axis_samples(SURFACE& s)
+	{
+		SurfaceParameters& p = surface_parameters_[&s];
+
+		p.filtered_medial_axis_samples_set_->clear();
+		p.filtered_medial_axis_samples_set_->select_if(
+			[&](SurfaceVertex v) { return value<Scalar>(s, p.medial_axis_samples_radius_, v) > p.radius_threshold_; });
+
+		surface_provider_->emit_cells_set_changed(s, p.filtered_medial_axis_samples_set_);
 	}
 
 	void skeletonize(SURFACE& s, std::shared_ptr<SurfaceAttribute<Vec3>>& vertex_position, Scalar wL, Scalar wH,
@@ -225,6 +269,10 @@ protected:
 			app_.module("MeshProvider (" + std::string{mesh_traits<NONMANIFOLD>::name} + ")"));
 		surface_provider_ = static_cast<ui::MeshProvider<SURFACE>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<SURFACE>::name} + ")"));
+
+		surface_provider_->foreach_mesh([this](SURFACE& m, const std::string&) { init_surface_mesh(&m); });
+		connections_.push_back(boost::synapse::connect<typename MeshProvider<SURFACE>::mesh_added>(
+			surface_provider_, this, &SkeletonExtractor<SURFACE, NONMANIFOLD, GRAPH>::init_surface_mesh));
 	}
 
 	void left_panel() override
@@ -263,13 +311,22 @@ protected:
 
 				if (selected_surface_vertex_normal_)
 				{
-					if (ImGui::Button("Medial axis"))
-						medial_axis(*selected_surface_, selected_surface_vertex_position_.get(),
-									selected_surface_vertex_normal_.get());
+					SurfaceParameters& p = surface_parameters_[selected_surface_];
+
+					ImGui::Separator();
+					if (ImGui::Button("Sample medial axis"))
+						sample_medial_axis(*selected_surface_, selected_surface_vertex_position_.get(),
+										   selected_surface_vertex_normal_.get());
+					if (ImGui::SliderFloat("Min radius (log)", &p.radius_threshold_, 0.0001f, 1.0f, "%.4f",
+										   ImGuiSliderFlags_Logarithmic))
+						filter_medial_axis_samples(*selected_surface_);
+					if (ImGui::Button("Filter medial axis samples"))
+						filter_medial_axis_samples(*selected_surface_);
 				}
 			}
 			if (non_manifold_)
 			{
+				ImGui::Separator();
 				if (ImGui::Button("Collapse non-manifold"))
 					collapse_non_manifold();
 				if (ImGui::Button("Graph from non-manifold"))
@@ -292,6 +349,11 @@ private:
 	SURFACE* selected_surface_ = nullptr;
 	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_position_ = nullptr;
 	std::shared_ptr<SurfaceAttribute<Vec3>> selected_surface_vertex_normal_ = nullptr;
+	CellsSet<SURFACE, SurfaceVertex>* selected_surface_filtered_medial_axis_samples_set_ = nullptr;
+
+	std::unordered_map<const SURFACE*, SurfaceParameters> surface_parameters_;
+
+	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 };
 
 } // namespace ui
