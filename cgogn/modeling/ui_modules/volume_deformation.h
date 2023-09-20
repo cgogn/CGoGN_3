@@ -174,8 +174,6 @@ protected:
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -189,7 +187,7 @@ protected:
 				ImGui::Separator();
 				imgui_combo_cells_set<Vertex>(
 					md, p.selected_handle_vertices_set_, "Handle vertices",
-					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, &cs); });
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, cs); });
 			}
 		}
 	}

@@ -81,8 +81,10 @@ class SkeletonExtractor : public Module
 		SURFACE* mesh_;
 		std::shared_ptr<SurfaceAttribute<Vec3>> medial_axis_samples_position_ = nullptr;
 		std::shared_ptr<SurfaceAttribute<Scalar>> medial_axis_samples_radius_ = nullptr;
+		std::shared_ptr<SurfaceAttribute<std::pair<Vec3, Vec3>>> medial_axis_samples_closest_points_ = nullptr;
 
 		float32 radius_threshold_ = 0.025f;
+		float32 angle_threshold_ = M_PI / 2.0f;
 
 		CellsSet<SURFACE, SurfaceVertex>* filtered_medial_axis_samples_set_ = nullptr;
 	};
@@ -104,13 +106,14 @@ private:
 	{
 		SurfaceParameters& p = surface_parameters_[s];
 		p.mesh_ = s;
-		p.medial_axis_samples_position_ =
-			get_or_add_attribute<Vec3, SurfaceVertex>(*s, "__medial_axis_samples_position");
-		p.medial_axis_samples_radius_ = get_or_add_attribute<Scalar, SurfaceVertex>(*s, "__medial_axis_samples_radius");
+		p.medial_axis_samples_position_ = get_or_add_attribute<Vec3, SurfaceVertex>(*s, "medial_axis_samples_position");
+		p.medial_axis_samples_closest_points_ =
+			get_or_add_attribute<std::pair<Vec3, Vec3>, SurfaceVertex>(*s, "medial_axis_samples_closest_points");
+		p.medial_axis_samples_radius_ = get_or_add_attribute<Scalar, SurfaceVertex>(*s, "medial_axis_samples_radius");
 
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(*s);
 		p.filtered_medial_axis_samples_set_ =
-			&md.template get_or_add_cells_set<SurfaceVertex>("__filtered_medial_axis_samples");
+			&md.template get_or_add_cells_set<SurfaceVertex>("filtered_medial_axis_samples");
 	}
 
 public:
@@ -119,7 +122,8 @@ public:
 		SurfaceParameters& p = surface_parameters_[&s];
 
 		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, p.medial_axis_samples_position_.get(),
-										 p.medial_axis_samples_radius_.get());
+										 p.medial_axis_samples_radius_.get(),
+										 p.medial_axis_samples_closest_points_.get());
 
 		p.filtered_medial_axis_samples_set_->select_if([&](SurfaceVertex v) { return true; });
 
@@ -129,13 +133,17 @@ public:
 		surface_provider_->emit_cells_set_changed(s, p.filtered_medial_axis_samples_set_);
 	}
 
-	void filter_medial_axis_samples(SURFACE& s)
+	void filter_medial_axis_samples(SURFACE& s, SurfaceAttribute<Vec3>* vertex_position)
 	{
 		SurfaceParameters& p = surface_parameters_[&s];
 
 		p.filtered_medial_axis_samples_set_->clear();
-		p.filtered_medial_axis_samples_set_->select_if(
-			[&](SurfaceVertex v) { return value<Scalar>(s, p.medial_axis_samples_radius_, v) > p.radius_threshold_; });
+		p.filtered_medial_axis_samples_set_->select_if([&](SurfaceVertex v) {
+			const Vec3& c = value<Vec3>(s, p.medial_axis_samples_position_, v);
+			const auto& [c1, c2] = value<std::pair<Vec3, Vec3>>(s, p.medial_axis_samples_closest_points_, v);
+			const Scalar r = value<Scalar>(s, p.medial_axis_samples_radius_, v);
+			return r > p.radius_threshold_ && geometry::angle(c1 - c, c2 - c) > p.angle_threshold_;
+		});
 
 		surface_provider_->emit_cells_set_changed(s, p.filtered_medial_axis_samples_set_);
 	}
@@ -317,11 +325,12 @@ protected:
 					if (ImGui::Button("Sample medial axis"))
 						sample_medial_axis(*selected_surface_, selected_surface_vertex_position_.get(),
 										   selected_surface_vertex_normal_.get());
-					if (ImGui::SliderFloat("Min radius (log)", &p.radius_threshold_, 0.0001f, 1.0f, "%.4f",
-										   ImGuiSliderFlags_Logarithmic))
-						filter_medial_axis_samples(*selected_surface_);
+					if (ImGui::SliderFloat("Min radius (log)", &p.radius_threshold_, 0.0001f, 1.0f, "%.4f"))
+						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
+					if (ImGui::SliderFloat("Min angle (log)", &p.angle_threshold_, 0.0001f, M_PI, "%.4f"))
+						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
 					if (ImGui::Button("Filter medial axis samples"))
-						filter_medial_axis_samples(*selected_surface_);
+						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
 				}
 			}
 			if (non_manifold_)

@@ -60,7 +60,7 @@ const Scalar delta_convergence = 1e-5;
 const uint32 iteration_limit = 30;
 
 template <typename MESH>
-std::pair<Vec3, Scalar> shrinking_ball_center(
+std::tuple<Vec3, Scalar, Vec3> shrinking_ball_center(
 	MESH& m, typename mesh_traits<MESH>::Vertex v,
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
@@ -91,6 +91,7 @@ std::pair<Vec3, Scalar> shrinking_ball_center(
 	// 	std::cout << "intersection point not found !!!";
 
 	Vec3 c = p - (r * n);
+	Vec3 q = p - (2 * r * n);
 
 	while (true)
 	{
@@ -102,51 +103,54 @@ std::pair<Vec3, Scalar> shrinking_ball_center(
 		if (!found)
 			std::cout << "closest point not found !!!";
 
-		const Vec3& q = surface_kdt->vertex(k_res.first);
+		const Vec3& q_next = surface_kdt->vertex(k_res.first);
 		Scalar d = k_res.second;
-		// Vec3 q = cp_res.second;
-		// Scalar d = (q - c).norm();
+		// Vec3 q_next = cp_res.second;
+		// Scalar d = (q_next - c).norm();
 
 		// This should handle all (special) cases where we want to break the loop
 		// - normal case when ball no longer shrinks
 		// - the case where q == p
 		// - any duplicate point cases
-		if ((d >= r - delta_convergence) || (p == q))
+		if ((d >= r - delta_convergence) || (p == q_next))
 			break;
 
 		// Compute next ball center
-		r = compute_radius(p, n, q);
+		r = compute_radius(p, n, q_next);
 		Vec3 c_next = p - (r * n);
 
-		// // Denoising
+		// Denoising
 		if (denoise_preserve > 0 || denoise_planar > 0)
 		{
-			Scalar separation_angle = geometry::angle(p - c_next, q - c_next);
+			Scalar separation_angle = geometry::angle(p - c_next, q_next - c_next);
 
 			// if (j == 0 && denoise_planar > 0 && separation_angle < denoise_planar)
 			// 	break;
-			if (j > 0 && denoise_preserve > 0 && (separation_angle < denoise_preserve && r > (q - p).norm()))
+			if (j > 0 && denoise_preserve > 0 && (separation_angle < denoise_preserve && r > (q_next - p).norm()))
 				break;
 		}
 
-		// // Stop iteration if this looks like an infinite loop:
+		// Stop iteration if this looks like an infinite loop:
 		if (j > iteration_limit)
 			break;
 
 		c = c_next;
+		q = q_next;
 		j++;
 	}
 
-	return {c, r};
+	return {c, r, q};
 }
 
 // adapted from https://github.com/tudelft3d/masbcpp
 
 template <typename MESH>
-void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
-							const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
-							typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_shrinking_ball_center,
-							typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_shrinking_ball_radius)
+void shrinking_ball_centers(
+	MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
+	const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_normal,
+	typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_shrinking_ball_center,
+	typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_shrinking_ball_radius,
+	typename mesh_traits<MESH>::template Attribute<std::pair<Vec3, Vec3>>* vertex_shrinking_ball_closest_points)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -187,9 +191,12 @@ void shrinking_ball_centers(MESH& m, const typename mesh_traits<MESH>::template 
 	acc::KDTree<3, uint32>* surface_kdt = new acc::KDTree<3, uint32>(vertex_position_vector);
 
 	parallel_foreach_cell(m, [&](Vertex v) -> bool {
-		auto [c, r] = shrinking_ball_center(m, v, vertex_position, vertex_normal, surface_bvh, bvh_faces, surface_kdt);
+		auto [c, r, q] =
+			shrinking_ball_center(m, v, vertex_position, vertex_normal, surface_bvh, bvh_faces, surface_kdt);
 		value<Vec3>(m, vertex_shrinking_ball_center, v) = c;
 		value<Scalar>(m, vertex_shrinking_ball_radius, v) = r;
+		value<std::pair<Vec3, Vec3>>(m, vertex_shrinking_ball_closest_points, v) = {value<Vec3>(m, vertex_position, v),
+																					q};
 		return true;
 	});
 
