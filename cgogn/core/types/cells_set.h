@@ -78,6 +78,18 @@ public:
 		}
 	}
 
+	template <typename FUNC>
+	inline void select_if(const FUNC& f)
+	{
+		static_assert(is_func_parameter_same<FUNC, CELL>::value, "Wrong function parameter type");
+		static_assert(is_func_return_same<FUNC, bool>::value, "Given function should return a bool");
+		cgogn::foreach_cell(m_, [&](CELL c) -> bool {
+			if (f(c))
+				select(c);
+			return true;
+		});
+	}
+
 	inline bool contains(CELL c) const
 	{
 		return marker_.is_marked(c);

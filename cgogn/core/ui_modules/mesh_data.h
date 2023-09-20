@@ -197,6 +197,17 @@ public:
 														   std::to_string(cells_sets<CELL>().size()));
 	}
 
+	template <typename CELL>
+	CellsSet<MESH, CELL>& get_or_add_cells_set(const std::string& name)
+	{
+		static_assert(has_cell_type_v<MESH, CELL>, "CELL not supported in this MESH");
+		static const uint32 cell_index = tuple_type_index<CELL, typename mesh_traits<MESH>::Cells>::value;
+		for (CellsSet<MESH, CELL>& cs : cells_sets<CELL>())
+			if (cs.name() == name)
+				return cs;
+		return cells_sets<CELL>().emplace_back(*mesh_, name);
+	}
+
 private:
 	template <typename CELL>
 	void internal_rebuild_cells_sets_of_type()
