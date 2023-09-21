@@ -59,6 +59,12 @@ struct mesh_traits<CMap0>
 	using MarkAttribute = CMapBase::MarkAttribute;
 };
 
+/*************************************************************************/
+// Operators
+/*************************************************************************/
+
+CMap0::Vertex add_vertex(CMap0& m, bool set_indices = true);
+
 } // namespace cgogn
 
 #endif // CGOGN_CORE_TYPES_MAPS_CMAP_CMAP0_H_

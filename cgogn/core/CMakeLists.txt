@@ -31,6 +31,7 @@ set(src_list
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap2.h"

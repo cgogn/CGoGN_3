@@ -27,10 +27,9 @@
 #include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/utils/type_traits.h>
 
+#include <cgogn/rendering/shaders/shader_frame2d.h>
 #include <cgogn/ui/cgogn_ui_export.h>
 #include <cgogn/ui/inputs.h>
-
-#include <cgogn/rendering/shaders/shader_frame2d.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
@@ -117,6 +116,11 @@ public:
 	{
 		show_imgui_ = show;
 	}
+
+	// inline float get_dpi_scale()
+	// {
+	// 	return static_cast<float>(GetSystemMetrics(SM_CXSCREEN)) / 1920.f;
+	// }
 
 private:
 	void close_event();

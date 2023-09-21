@@ -529,6 +529,15 @@ public:
 		v.request_update();
 	}
 
+	void set_ghost_mode(View& v, const MESH& m, bool b)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.ghost_mode_ = b;
+		p.param_flat_->ghost_mode_ = p.ghost_mode_;
+		p.param_phong_->ghost_mode_ = p.ghost_mode_;
+		v.request_update();
+	}
+
 protected:
 	void update_vertex_scalar_min_max_values(Parameters& p)
 	{
@@ -953,8 +962,7 @@ protected:
 			{
 				if (ImGui::Checkbox("Ghost mode", &p.ghost_mode_))
 				{
-					p.param_flat_->ghost_mode_ = p.ghost_mode_;
-					p.param_phong_->ghost_mode_ = p.ghost_mode_;
+					set_ghost_mode(*selected_view_, *selected_mesh_, p.ghost_mode_);
 					need_update = true;
 				}
 				ImGui::TextUnformatted("Normals");

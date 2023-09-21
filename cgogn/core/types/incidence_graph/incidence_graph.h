@@ -302,6 +302,13 @@ IncidenceGraph::Vertex cut_edge(IncidenceGraph& ig, IncidenceGraph::Edge e, bool
 std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge(IncidenceGraph& ig,
 																				   IncidenceGraph::Edge e,
 																				   bool set_indices = true);
+std::vector<IncidenceGraph::Edge> collapse_edge_qmat(IncidenceGraph& ig, IncidenceGraph::Edge e,
+													 IncidenceGraph::Vertex& new_vertex);
+std::pair<IncidenceGraph::Vertex, std::vector<IncidenceGraph::Edge>> collapse_edge_qmat_with_debug_info(
+	IncidenceGraph& ig, IncidenceGraph::Edge e);
+std::vector<IncidenceGraph::Edge> collapse_edge_with_fixed_vertices(IncidenceGraph& ig, IncidenceGraph::Edge e,
+																	std::vector<double> selected_points);
+
 void remove_edge(IncidenceGraph& ig, IncidenceGraph::Edge e);
 
 IncidenceGraph::Face add_face(IncidenceGraph& ig, std::vector<IncidenceGraph::Edge>& edges);
