@@ -1477,7 +1477,7 @@ protected:
 			ImGui::Checkbox("Refresh edge target length", &refresh_edge_target_length_);
 
 			static float optimize_fit_to_surface = 1.0f;
-			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1, 100.0))
+			if (ImGui::SliderFloat("Optimize volume - Fit to surface", &optimize_fit_to_surface, 0.1f, 100.0f))
 				refresh_solver_matrix_values_only_ = true;
 			static int32 optimize_nb_iter = 1;
 			ImGui::SliderInt("Nb iter", &optimize_nb_iter, 1, 100, "%3d");
@@ -1511,7 +1511,7 @@ protected:
 				static bool init_steady_pos = false;
 				ImGui::Checkbox("Init steady pos", &init_steady_pos);
 				static float registration_fit_to_target = 0.05f;
-				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01, 0.5);
+				ImGui::SliderFloat("Registration - Fit to target", &registration_fit_to_target, 0.01f, 0.5f);
 				static int non_rigid_registration_proximity = geometry::NEAREST_POINT;
 				ImGui::RadioButton("Nearest", &non_rigid_registration_proximity, geometry::NEAREST_POINT);
 				ImGui::SameLine();
