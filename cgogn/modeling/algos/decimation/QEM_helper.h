@@ -24,7 +24,6 @@
 #ifndef CGOGN_MODELING_DECIMATION_EDGE_QUEUE_QEM_H_
 #define CGOGN_MODELING_DECIMATION_EDGE_QUEUE_QEM_H_
 
-
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/type_traits.h>
@@ -34,13 +33,12 @@
 namespace cgogn
 {
 
-
 namespace modeling
 {
 
-using geometry::Vec3;
-using geometry::Scalar;
 using geometry::Quadric;
+using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 struct DecimationQEM_Helper

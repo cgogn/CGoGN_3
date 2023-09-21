@@ -87,6 +87,7 @@ class SkeletonExtractor : public Module
 		float32 angle_threshold_ = M_PI / 2.0f;
 
 		CellsSet<SURFACE, SurfaceVertex>* filtered_medial_axis_samples_set_ = nullptr;
+		CellsSet<SURFACE, SurfaceVertex>* neutralized_surface_vertices_set_ = nullptr;
 	};
 
 public:
@@ -114,6 +115,8 @@ private:
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(*s);
 		p.filtered_medial_axis_samples_set_ =
 			&md.template get_or_add_cells_set<SurfaceVertex>("filtered_medial_axis_samples");
+		p.neutralized_surface_vertices_set_ =
+			&md.template get_or_add_cells_set<SurfaceVertex>("neutralized_surface_vertices");
 	}
 
 public:
@@ -138,11 +141,16 @@ public:
 		SurfaceParameters& p = surface_parameters_[&s];
 
 		p.filtered_medial_axis_samples_set_->clear();
-		p.filtered_medial_axis_samples_set_->select_if([&](SurfaceVertex v) {
+		p.neutralized_surface_vertices_set_->clear();
+		foreach_cell(s, [&](SurfaceVertex v) -> bool {
 			const Vec3& c = value<Vec3>(s, p.medial_axis_samples_position_, v);
 			const auto& [c1, c2] = value<std::pair<Vec3, Vec3>>(s, p.medial_axis_samples_closest_points_, v);
 			const Scalar r = value<Scalar>(s, p.medial_axis_samples_radius_, v);
-			return r > p.radius_threshold_ && geometry::angle(c1 - c, c2 - c) > p.angle_threshold_;
+			if (r > p.radius_threshold_ && geometry::angle(c1 - c, c2 - c) > p.angle_threshold_)
+				p.filtered_medial_axis_samples_set_->select(v);
+			else
+				p.neutralized_surface_vertices_set_->select(v);
+			return true;
 		});
 
 		surface_provider_->emit_cells_set_changed(s, p.filtered_medial_axis_samples_set_);

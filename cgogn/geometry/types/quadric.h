@@ -24,6 +24,7 @@
 #ifndef CGOGN_GEOMETRY_TYPES_QUADRIC_H_
 #define CGOGN_GEOMETRY_TYPES_QUADRIC_H_
 
+#include <cgogn/core/utils/numerics.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
