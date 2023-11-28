@@ -217,6 +217,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>
 	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_WIN_VER=${WIN_VERSION}>)
 
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
 if(CGOGN_USE_SIMD)
 	CGOGN_CHECK_FOR_SSE()
 endif(CGOGN_USE_SIMD)
