@@ -21,76 +21,69 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
 
-#include <cgogn/io/cgogn_io_export.h>
+#include <cgogn/core/types/maps/cmap/cmap2.h>
 
-#include <cgogn/core/utils/numerics.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
-#include <vector>
+#include <cgogn/ui/app.h>
+#include <cgogn/ui/view.h>
 
-namespace cgogn
+#include <cgogn/core/ui_modules/mesh_provider.h>
+#include <cgogn/rendering/ui_modules/surface_obj_render.h>
+
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
+
+using Mesh = cgogn::CMap2;
+
+template <typename T>
+using Attribute = typename cgogn::mesh_traits<Mesh>::Attribute<T>;
+using Vertex = typename cgogn::mesh_traits<Mesh>::Vertex;
+using Face = typename cgogn::mesh_traits<Mesh>::Face;
+
+using cgogn::geometry::Vec3;
+using cgogn::geometry::Vec2;
+using cgogn::geometry::Scalar;
+
+int main(int argc, char** argv)
 {
+	std::string filename;
+	if (argc <= 1)
+		filename = std::string("/home/thery/cube.obj"); //std::string(DEFAULT_MESH_PATH) + std::string("obj/");
+	else
+		filename = std::string(argv[1]);
 
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
-struct TriangleSoup;
+	cgogn::thread_start();
 
-namespace io
-{
+	cgogn::ui::App app;
+	app.set_window_title("Obj tex viewer");
+	app.set_window_size(1000, 800);
 
-
-using geometry::Vec3;
-using geometry::Vec2;
-
-template <typename VEC>
-struct SurfaceImportDataTGen
-{
-	using VEC_TYPE = VEC;
-
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
-
-	std::vector<VEC> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
-
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	std::vector<uint32> faces_tex_coord_indices_;
-	std::vector<uint32> faces_normal_indices_;
+	cgogn::ui::MeshProvider<Mesh> mp(app);
+	cgogn::ui::SurfaceObjRender<Mesh> sor(app);
 
 
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	app.init_modules();
+
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	v1->link_module(&sor);
+
+	if (filename.length() > 0)
 	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
+		auto [m_pos, m_tc, m_no] = mp.load_surface_from_OBJ_file(filename);
+		if (!m_pos)
+		{
+			std::cout << "File could not be loaded" << std::endl;
+			return 1;
+		}
+
+//		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m_pos, "position");
+//		std::shared_ptr<Attribute<Vec2>> vertex_tc = cgogn::get_attribute < Vec2,Vertex > (*m_tc, "position");
+//		sor.set_vertex_position(*v1, *m_pos, vertex_position);
+//		sor.set_vertex_tc(*v1, *m_tc, vertex_tc);
+////		sor.set_vertex_te(*v1, *m, vertex_normal);
 	}
-};
 
-using SurfaceImportData = SurfaceImportDataTGen<Vec3>;
-using SurfaceImportData2D = SurfaceImportDataTGen<Vec2>;
-
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData2D& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData2D& surface_data);
-
-} // namespace io
-
-} // namespace cgogn
-
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+	return app.launch();
+}

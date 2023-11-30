@@ -103,6 +103,16 @@ target_link_libraries(test_shape
 	${APPLE_LINK}
 )
 
+add_executable(obj_tex_viewer obj_tex_viewer.cpp)
+target_link_libraries(obj_tex_viewer
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+	${APPLE_LINK}
+)
+
 #if(APPLE)
 #	find_library(CORE_FOUNDATION CoreFoundation)
 #	find_library(CARBON Carbon)

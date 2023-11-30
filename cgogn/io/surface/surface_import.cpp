@@ -40,15 +40,16 @@ namespace cgogn
 namespace io
 {
 
-template <typename MESH>
-auto import_surface_data_map_tmpl(MESH& m, SurfaceImportData& surface_data)
+template <typename MESH, typename SURFDATA>
+auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	using ParentMESH = typename MESH::Parent;
 
 	using Vertex = typename MESH::Vertex;
+	using VEC = typename SURFDATA::VEC_TYPE;
 
-	auto position = get_or_add_attribute<geometry::Vec3, Vertex>(m, surface_data.vertex_position_attribute_name_);
+	auto position = get_or_add_attribute<VEC, Vertex>(m, surface_data.vertex_position_attribute_name_);
 
 	for (uint32 i = 0u; i < surface_data.nb_vertices_; ++i)
 	{
@@ -164,6 +165,13 @@ void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
 void import_surface_data(GMap2& m, SurfaceImportData& surface_data)
 {
 	import_surface_data_map_tmpl<GMap2>(m, surface_data);
+}
+
+
+
+void import_surface_data(CMap2& m, SurfaceImportData2D& surface_data)
+{
+	import_surface_data_map_tmpl<CMap2,SurfaceImportData2D>(m, surface_data);
 }
 
 void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
