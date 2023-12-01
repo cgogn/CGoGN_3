@@ -21,11 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_OBJ_FLAT_CPP_
+#define CGOGN_RENDER_SHADERS_OBJ_NORMAL_CPP_
 
 #include <iostream>
 
-#include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/shaders/shader_obj_normal_texture.h>
 
 namespace cgogn
 {
@@ -33,9 +33,9 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderObjFlatTexture* ShaderObjFlatTexture::instance_ = nullptr;
+ShaderObjNormalTexture* ShaderObjNormalTexture::instance_ = nullptr;
 
-ShaderObjFlatTexture::ShaderObjFlatTexture()
+ShaderObjNormalTexture::ShaderObjNormalTexture()
 {
 	const char* vertex_shader_source = R"(
 		#version 330
@@ -45,19 +45,26 @@ ShaderObjFlatTexture::ShaderObjFlatTexture()
 
 		uniform usamplerBuffer position_ind;
 		uniform usamplerBuffer tex_coord_ind;
+		uniform usamplerBuffer normal_ind;
 		uniform samplerBuffer vertex_position;
 		uniform samplerBuffer vertex_tc;
+		uniform samplerBuffer vertex_normal;
 
 		out vec3 position;
 		out vec2 tc;
+		out vec2 normal;
 
 		void main()
 		{
-			int ind_v = int(texelFetch(position_ind, 3 * gl_InstanceID + gl_VertexID).r);
+			int ind =  3 * gl_InstanceID + gl_VertexID
+			int ind_v = int(texelFetch(position_ind,ind).r);
 			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
 
-			int ind_tc = int(texelFetch(tex_coord_ind, 3 * gl_InstanceID + gl_VertexID).r);
+			int ind_tc = int(texelFetch(tex_coord_ind, ind).r);
 			tc = texelFetch(vertex_tc, ind_tc).rg;
+
+			int ind_no = int(texelFetch(normal_ind, ind).r);
+			normal = normal_matrix*texelFetch(vertex_normal, ind_no).rgb;
 
 			vec4 position4 = model_view_matrix * vec4(position_in, 1.0);
 			position = position4.xyz;
@@ -74,15 +81,15 @@ ShaderObjFlatTexture::ShaderObjFlatTexture()
 
 		in vec3 position;
 		in vec2 tc;
-
+		in vec3 normal
 		out vec3 frag_out;
 
 		void main()
 		{
-			vec3 N = normalize(cross(dFdx(position), dFdy(position)));
+			vec3 N = normalize(normal);
 			vec3 L = normalize(light_position - position);
 			float lambert = 0.25 + 0.75 * max(0.0,dot(N, L));
-			frag_out = (draw_param) ? vec3(tc,0) : texture(texture_img_unit,vec2(tc.x,1.0-tc.y)).rgb*lambert;
+			frag_out = (draw_param) ? N*0.5+0.5 : texture(texture_img_unit,vec2(tc.x,1.0-tc.y)).rgb*lambert;
 		}
 	)";
 
@@ -91,18 +98,18 @@ ShaderObjFlatTexture::ShaderObjFlatTexture()
 				 "draw_param");
 }
 
-void ShaderParamObjFlatTexture::set_uniforms()
+void ShaderParamObjNormalTexture::set_uniforms()
 {
 	shader_->set_uniforms_values(10, 11, 12, 13, texture_->bind(0), light_position_, draw_param_);
 }
 
-void ShaderParamObjFlatTexture::bind_texture_buffers()
+void ShaderParamObjNormalTexture::bind_texture_buffers()
 {
 	vbos_[VERTEX_POSITION]->bind_texture_buffer(12);
 	vbos_[VERTEX_TC]->bind_texture_buffer(13);
 }
 
-void ShaderParamObjFlatTexture::release_texture_buffers()
+void ShaderParamObjNormalTexture::release_texture_buffers()
 {
 	vbos_[VERTEX_POSITION]->release_texture_buffer(12);
 	vbos_[VERTEX_TC]->release_texture_buffer(13);

@@ -48,8 +48,9 @@ using cgogn::geometry::Scalar;
 int main(int argc, char** argv)
 {
 	std::string filename;
+	std::string imgname;
 	if (argc <= 1)
-		filename = std::string("/home/thery/cube.obj"); //std::string(DEFAULT_MESH_PATH) + std::string("obj/");
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("obj/cube.obj"); 
 	else
 		filename = std::string(argv[1]);
 
@@ -62,8 +63,37 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceObjRender<Mesh> sor(app);
 
-
 	app.init_modules();
+	// load texture after init_modules
+	if (argc <= 2)
+	{
+		cgogn::rendering::GLImage img(16, 16, 3);
+		std::vector<cgogn::uint8> pix;
+		pix.reserve(16*16*3);
+		for (int i = 0; i < 16; ++i)
+		{
+			for (int j = 0; j < 16; ++j)
+			{
+				if ((i + j) % 2 == 0)
+				{
+					pix.push_back(i*8);
+					pix.push_back(0);
+					pix.push_back(j*8);
+				}
+				else
+				{
+					pix.push_back(255);
+					pix.push_back(255);
+					pix.push_back(255);
+				}
+			}
+		}
+		img.copy_pixels_data(pix);
+		sor.load_texture(img);
+	}
+	else
+		sor.load_texture(std::string(argv[2]));
+
 
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
@@ -77,12 +107,6 @@ int main(int argc, char** argv)
 			std::cout << "File could not be loaded" << std::endl;
 			return 1;
 		}
-
-//		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m_pos, "position");
-//		std::shared_ptr<Attribute<Vec2>> vertex_tc = cgogn::get_attribute < Vec2,Vertex > (*m_tc, "position");
-//		sor.set_vertex_position(*v1, *m_pos, vertex_position);
-//		sor.set_vertex_tc(*v1, *m_tc, vertex_tc);
-////		sor.set_vertex_te(*v1, *m, vertex_normal);
 	}
 
 	return app.launch();

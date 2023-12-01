@@ -26,7 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shader_program.h>
-
+#include <cgogn/rendering/texture.h>
 namespace cgogn
 {
 
@@ -53,16 +53,14 @@ class CGOGN_RENDERING_EXPORT ShaderParamObjFlatTexture : public ShaderParam
 	};
 
 public:
-	GLColor ambiant_color_;
 	GLVec3 light_position_;
-//	bool double_side_;
-//	GLColor specular_color_;
-//	float32 specular_coef_;
+	std::shared_ptr<Texture2D> texture_;
+	bool draw_param_;
 
 	using ShaderType = ShaderObjFlatTexture;
 
 	ShaderParamObjFlatTexture(ShaderType* sh)
-		: ShaderParam(sh), ambiant_color_(0.05f, 0.05f, 0.05f, 1), light_position_(10, 100, 1000)
+		: ShaderParam(sh), light_position_(10, 100, 1000), texture_(nullptr), draw_param_(false)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;

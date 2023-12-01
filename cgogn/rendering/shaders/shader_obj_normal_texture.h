@@ -21,72 +21,54 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
+#ifndef CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
+#define CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
 
-#include <cgogn/io/cgogn_io_export.h>
-
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <vector>
-
+#include <cgogn/rendering/cgogn_rendering_export.h>
+#include <cgogn/rendering/shader_program.h>
+#include <cgogn/rendering/texture.h>
 namespace cgogn
 {
 
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
-struct TriangleSoup;
-
-namespace io
+namespace rendering
 {
+DECLARE_SHADER_CLASS(ObjNormalTexture, true, CGOGN_STR(ObjNormalTexture))
 
-
-using geometry::Vec3;
-using geometry::Vec2;
-
-template <typename VEC>
-struct SurfaceImportDataTGen
+class CGOGN_RENDERING_EXPORT ShaderParamObjNormalTexture : public ShaderParam
 {
-	using VEC_TYPE = VEC;
+	void set_uniforms() override;
 
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
-
-	std::vector<VEC> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
-
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	std::array<VBO*, 2> vbos_;
+	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
+		vbos_[i] = vbo;
+	}
+	void bind_texture_buffers() override;
+	void release_texture_buffers() override;
+
+	enum VBOName : uint32
+	{
+		VERTEX_POSITION = 0,
+		VERTEX_TC,
+	};
+
+public:
+	GLVec3 light_position_;
+	std::shared_ptr<Texture2D> texture_;
+	bool draw_param_;
+
+	using ShaderType = ShaderObjNormalTexture;
+
+	ShaderParamObjNormalTexture(ShaderType* sh)
+		: ShaderParam(sh), light_position_(10, 100, 1000), texture_(nullptr), draw_param_(false)
+	{
+		for (auto& v : vbos_)
+			v = nullptr;
 	}
 };
 
-using SurfaceImportData = SurfaceImportDataTGen<Vec3>;
-using SurfaceImportData2D = SurfaceImportDataTGen<Vec2>;
-
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData2D& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData2D& surface_data);
-
-} // namespace io
+} // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_IO_SURFACE_IMPORT_H_
+#endif // CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H__

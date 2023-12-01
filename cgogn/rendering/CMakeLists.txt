@@ -120,6 +120,9 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"
 )

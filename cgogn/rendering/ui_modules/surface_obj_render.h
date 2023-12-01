@@ -24,6 +24,9 @@
 #ifndef CGOGN_MODULE_SURFACE_OBJ_RENDER_H_
 #define CGOGN_MODULE_SURFACE_OBJ_RENDER_H_
 
+//#include <cgogn/core/types/mesh_traits.h>
+//#include <cgogn/core/functions/traversals/vertex.h>
+
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/imgui_helpers.h>
@@ -31,7 +34,10 @@
 #include <cgogn/ui/view.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
+
+
 #include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/texture.h>
 
 #include <boost/synapse/connect.hpp>
 #include <unordered_map>
@@ -62,13 +68,15 @@ class SurfaceObjRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_position_vbo_(nullptr),
-			  vertex_tc_(nullptr),  vertex_tc_vbo_(nullptr)
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr),
+			  vertex_tc_vbo_(nullptr)
 		{
 			param_flat_ = rendering::ShaderObjFlatTexture::generate_param();
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
+
+		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_flat_;
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
@@ -76,8 +84,8 @@ class SurfaceObjRender : public ViewModule
 		std::shared_ptr<Attribute<Vec2>> vertex_tc_;
 		rendering::VBO* vertex_tc_vbo_;
 
-		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_flat_;
 
+		std::array<rendering::EBO, 2> tri_ebos_;
 	};
 
 public:
@@ -92,25 +100,93 @@ public:
 	}
 
 private:
+	const MESH* tc_mesh(const MESH* m)
+	{
+		return mesh_provider_->mesh_data(*m).attached_[0]->mesh_;
+	}
+
+	const MESH* no_mesh(const MESH* m)
+	{
+		return mesh_provider_->mesh_data(*m).attached_[1]->mesh_;
+	}
+
+	void update_ebo(Parameters& p, const MESH* m)
+	{
+		const MESH* mtc = tc_mesh(m);
+		using Vertex = mesh_traits<MESH>::Vertex;
+		using Face = mesh_traits<MESH>::Face;
+		std::vector<uint32> table_pos_indices;
+		table_pos_indices.reserve(8192);
+		std::vector<uint32> table_tc_indices;
+		table_tc_indices.reserve(8192);
+		std::vector<Vertex> vertices;
+		vertices.reserve(32u);
+		foreach_cell(*m, [&](Face f) -> bool {
+			vertices.clear();
+			append_incident_vertices(*m, f, vertices);
+			for (uint32 i = 1; i < uint32(vertices.size()) - 1; ++i)
+			{
+				table_pos_indices.push_back(index_of(*m, vertices[0]));
+				table_pos_indices.push_back(index_of(*m, vertices[i]));
+				table_pos_indices.push_back(index_of(*m, vertices[i + 1]));
+				table_tc_indices.push_back(index_of(*mtc, vertices[0]));
+				table_tc_indices.push_back(index_of(*mtc, vertices[i]));
+				table_tc_indices.push_back(index_of(*mtc, vertices[i + 1]));
+			}
+			return true;
+		});
+		if (!p.tri_ebos_[0].is_created())
+			p.tri_ebos_[0].create();
+		p.tri_ebos_[0].bind();
+		p.tri_ebos_[0].allocate(table_pos_indices.size());
+		uint32* ptr1 =p.tri_ebos_[0].lock_pointer();
+		std::memcpy(ptr1, table_pos_indices.data(), sizeof(uint32) * table_pos_indices.size());
+		p.tri_ebos_[0].set_name("EBO_Pos");
+		p.tri_ebos_[0].release_pointer();
+		p.tri_ebos_[0].release();
+
+		if (!p.tri_ebos_[1].is_created())
+			p.tri_ebos_[1].create();
+		p.tri_ebos_[1].bind();
+		p.tri_ebos_[1].allocate(table_pos_indices.size());
+		uint32* ptr2 = p.tri_ebos_[1].lock_pointer();
+		std::memcpy(ptr2, table_tc_indices.data(), sizeof(uint32) * table_pos_indices.size());
+		p.tri_ebos_[1].set_name("EBO_TC");
+		p.tri_ebos_[1].release_pointer();
+		p.tri_ebos_[1].release();
+	}
+
 	void init_mesh(MESH* m)
 	{
-		mr_pos.init_primitives(*m, rendering::DrawingType::TRIANGLES);
-		mr_tc.init_primitives(*m, rendering::DrawingType::TRIANGLES);
 		for (View* v : linked_views_)
 		{
-			parameters_[v][m];
+			Parameters& p = parameters_[v][m];
+			update_ebo(p, m);
 			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_vertex_position(*v, *m, vertex_position);
 		}
 	}
 
+
+
 public:
+	void load_texture(const std::string& img_name)
+	{
+		rendering::GLImage img(img_name);
+		tex_->load(img);
+	}
+
+	void load_texture(const rendering::GLImage& img)
+	{
+		tex_->load(img);
+	}
+
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
-//		if (p.vertex_position_ == vertex_position)
-//			return;
+		if (p.vertex_position_ == vertex_position)
+			return;
 
 		p.vertex_position_ = vertex_position;
 		if (p.vertex_position_)
@@ -118,33 +194,17 @@ public:
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
 			MeshData<MESH>* md_tc = md.attached_[0];
+			p.vertex_tc_ = cgogn::get_attribute<Vec2, Vertex>(*md_tc->mesh_, "position");
 			p.vertex_tc_vbo_ = md_tc->update_vbo(p.vertex_tc_.get(), true);
 		}
 		else
+		{
 			p.vertex_position_vbo_ = nullptr;
+			p.vertex_tc_vbo_ = nullptr;
+		}
 
 		p.param_flat_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
 		v.request_update();	
-	}
-
-
-	void set_vertex_tc(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec2>>& vertex_tc)
-	{
-		Parameters& p = parameters_[&v][&m];
-		if (p.vertex_tc_ == vertex_tc)
-			return;
-
-		p.vertex_tc_ = vertex_tc;
-		if (p.vertex_tc_)
-		{
-			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
-			p.vertex_tc_vbo_ = md.update_vbo(p.vertex_tc_.get(), true);
-		}
-		else
-			p.vertex_tc_vbo_ = nullptr;
-
-		p.param_flat_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
-		v.request_update();
 	}
 
 	void init() override
@@ -154,6 +214,7 @@ public:
 		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceObjRender<MESH>::init_mesh));
+		tex_ = std::make_shared<rendering::Texture2D>();
 	}
 
 	void draw(View* view) override
@@ -168,13 +229,14 @@ public:
 
 			if (p.param_flat_->attributes_initialized())
 			{
-				mr_pos.get_EBO(rendering::DrawingType::TRIANGLES)->bind_texture_buffer(10);
-				mr_tc.get_EBO(rendering::DrawingType::TRIANGLES)->bind_texture_buffer(11);
+				p.param_flat_->texture_ = tex_;
+				p.tri_ebos_[0].bind_texture_buffer(10);
+				p.tri_ebos_[1].bind_texture_buffer(11);
 				p.param_flat_->bind(proj_matrix, view_matrix);
-				glDrawArraysInstanced(GL_TRIANGLES, 0, 3, mr_pos.get_EBO(rendering::DrawingType::TRIANGLES)->size() / 3);
+				glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
 				p.param_flat_->release();
-				mr_tc.get_EBO(rendering::DrawingType::TRIANGLES)->release_texture_buffer(11);
-				mr_pos.get_EBO(rendering::DrawingType::TRIANGLES)->release_texture_buffer(10);
+				p.tri_ebos_[1].release_texture_buffer(11);
+				p.tri_ebos_[0].release_texture_buffer(10);
 			}
 		}
 	}
@@ -195,12 +257,13 @@ public:
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
 
-			imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
-												[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-													set_vertex_position(*selected_view_, *selected_mesh_, attribute);
-												});
-
-			ImGui::Separator();
+			//imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
+			//									[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+			//										set_vertex_position(*selected_view_, *selected_mesh_, attribute);
+			//									});
+			if (ImGui::Checkbox("draw_param", &p.param_flat_->draw_param_))
+				need_update = true;
+//			ImGui::Separator();
 
 			if (need_update)
 				for (View* v : linked_views_)
@@ -215,8 +278,9 @@ private:
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
-	rendering::MeshRender mr_pos;
-	rendering::MeshRender mr_tc;
+	//rendering::MeshRender mr_pos;
+	//rendering::MeshRender mr_tc;
+	std::shared_ptr<rendering::Texture2D> tex_;
 };
 
 } // namespace ui
