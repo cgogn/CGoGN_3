@@ -35,8 +35,8 @@
 #include <cgogn/geometry/types/vector_traits.h>
 
 
-
 #include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/shaders/shader_obj_meshuv.h>
 #include <cgogn/rendering/texture.h>
 
 #include <boost/synapse/connect.hpp>
@@ -69,14 +69,16 @@ class SurfaceObjRender : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr),
-			  vertex_tc_vbo_(nullptr)
+			  vertex_tc_vbo_(nullptr),draw_flatten_(false)
 		{
-			param_flat_ = rendering::ShaderObjFlatTexture::generate_param();
+			param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
+			param_flatten_ = rendering::ShaderObjMeshUV::generate_param();
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
-		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_flat_;
+		std::unique_ptr<rendering::ShaderObjMeshUV::Param> param_flatten_;
+		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_textured_;
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
@@ -84,8 +86,8 @@ class SurfaceObjRender : public ViewModule
 		std::shared_ptr<Attribute<Vec2>> vertex_tc_;
 		rendering::VBO* vertex_tc_vbo_;
 
-
 		std::array<rendering::EBO, 2> tri_ebos_;
+		bool draw_flatten_;
 	};
 
 public:
@@ -113,8 +115,8 @@ private:
 	void update_ebo(Parameters& p, const MESH* m)
 	{
 		const MESH* mtc = tc_mesh(m);
-		using Vertex = mesh_traits<MESH>::Vertex;
-		using Face = mesh_traits<MESH>::Face;
+		using Vertex = typename mesh_traits<MESH>::Vertex;
+		using Face = typename mesh_traits<MESH>::Face;
 		std::vector<uint32> table_pos_indices;
 		table_pos_indices.reserve(8192);
 		std::vector<uint32> table_tc_indices;
@@ -203,7 +205,8 @@ public:
 			p.vertex_tc_vbo_ = nullptr;
 		}
 
-		p.param_flat_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
+		p.param_textured_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
+		p.param_flatten_->set_vbos({p.vertex_tc_vbo_});
 		v.request_update();	
 	}
 
@@ -230,16 +233,37 @@ public:
 			const rendering::GLMat4& proj_matrix = view->projection_matrix();
 			const rendering::GLMat4& view_matrix = view->modelview_matrix();
 
-			if (p.param_flat_->attributes_initialized())
+			if (p.draw_flatten_)
 			{
-				p.param_flat_->texture_ = tex_;
-				p.tri_ebos_[0].bind_texture_buffer(10);
-				p.tri_ebos_[1].bind_texture_buffer(11);
-				p.param_flat_->bind(proj_matrix, view_matrix);
-				glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
-				p.param_flat_->release();
-				p.tri_ebos_[1].release_texture_buffer(11);
-				p.tri_ebos_[0].release_texture_buffer(10);
+				p.param_flatten_->ratio_ =
+					(view->viewport_width() > view->viewport_height())
+						? rendering::GLVec2(float32(view->viewport_height()) / view->viewport_width(), 1.0f)
+						: rendering::GLVec2(1.0f, view->viewport_width() / float32(view->viewport_height()));
+
+				if (p.param_flatten_->attributes_initialized())
+				{
+					glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+					p.tri_ebos_[1].bind_texture_buffer(10);
+					p.param_flatten_->bind(proj_matrix, view_matrix);
+					glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					p.param_flatten_->release();
+					p.tri_ebos_[1].release_texture_buffer(10);
+					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				}
+			}
+			else
+			{
+				if (p.param_textured_->attributes_initialized())
+				{
+					p.param_textured_->texture_ = tex_;
+					p.tri_ebos_[0].bind_texture_buffer(10);
+					p.tri_ebos_[1].bind_texture_buffer(11);
+					p.param_textured_->bind(proj_matrix, view_matrix);
+					glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					p.param_textured_->release();
+					p.tri_ebos_[1].release_texture_buffer(11);
+					p.tri_ebos_[0].release_texture_buffer(10);
+				}
 			}
 		}
 	}
@@ -256,6 +280,7 @@ public:
 			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
 		});
 
+
 		if (selected_view_ && selected_mesh_)
 		{
 			Parameters& p = parameters_[selected_view_][selected_mesh_];
@@ -264,9 +289,11 @@ public:
 			//									[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
 			//										set_vertex_position(*selected_view_, *selected_mesh_, attribute);
 			//									});
-			if (ImGui::Checkbox("draw_param", &p.param_flat_->draw_param_))
+			if (ImGui::Checkbox("draw_flatten", &p.draw_flatten_))
 				need_update = true;
 //			ImGui::Separator();
+			if (ImGui::Checkbox("draw_param", &p.param_textured_->draw_param_))
+				need_update = true;
 
 			if (need_update)
 				for (View* v : linked_views_)

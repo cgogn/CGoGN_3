@@ -21,11 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_OBJ_FLAT_CPP_
+#define CGOGN_RENDER_SHADERS_OBJ_NORMAL_CPP_
 
 #include <iostream>
 
-#include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/shaders/shader_obj_meshuv.h>
 
 namespace cgogn
 {
@@ -33,80 +33,58 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderObjFlatTexture* ShaderObjFlatTexture::instance_ = nullptr;
+ShaderObjMeshUV* ShaderObjMeshUV::instance_ = nullptr;
 
-ShaderObjFlatTexture::ShaderObjFlatTexture()
+ShaderObjMeshUV::ShaderObjMeshUV()
 {
 	const char* vertex_shader_source = R"(
 		#version 330
-		uniform mat4 projection_matrix;
-		uniform mat4 model_view_matrix;
-		uniform mat3 normal_matrix;
-
-		uniform usamplerBuffer position_ind;
+		uniform vec2 ratio;
 		uniform usamplerBuffer tex_coord_ind;
-		uniform samplerBuffer vertex_position;
 		uniform samplerBuffer vertex_tc;
 
-		out vec3 position;
 		out vec2 tc;
+		out vec2 normal;
 
 		void main()
 		{
-			int ind =  3 * gl_InstanceID + gl_VertexID;
-			int ind_v = int(texelFetch(position_ind, ind).r);
-			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
-
+			int ind = 3 * gl_InstanceID + gl_VertexID;
 			int ind_tc = int(texelFetch(tex_coord_ind, ind).r);
 			tc = texelFetch(vertex_tc, ind_tc).rg;
-
-			vec4 position4 = model_view_matrix * vec4(position_in, 1.0);
-			position = position4.xyz;
-			gl_Position = projection_matrix * position4;
+			vec2 P2 = vec2(2.0*tc-1.0)*ratio;
+			gl_Position = vec4(P2.xy,0.5,1);
 		}
 	)";
 
 	const char* fragment_shader_source = R"(
 		#version 330
 
-		uniform sampler2D texture_img_unit;
-		uniform vec3 light_position;
-		uniform bool draw_param;
-
-		in vec3 position;
-		in vec2 tc;
-
 		out vec3 frag_out;
 
 		void main()
 		{
-			vec3 N = normalize(cross(dFdx(position), dFdy(position)));
-			vec3 L = normalize(light_position - position);
-			float lambert = 0.25 + 0.75 * max(0.0,dot(N, L));
-			frag_out = (draw_param) ? vec3(tc,0) : texture(texture_img_unit,vec2(tc.x,1.0-tc.y)).rgb*lambert;
+			frag_out = vec3(1,1,0);
 		}
 	)";
 
 	load(vertex_shader_source, fragment_shader_source);
-	get_uniforms("position_ind", "tex_coord_ind", "vertex_position", "vertex_tc", "texture_img_unit", "light_position",
-				 "draw_param");
+	get_uniforms("tex_coord_ind","vertex_tc","ratio");
 }
 
-void ShaderParamObjFlatTexture::set_uniforms()
+void ShaderParamObjMeshUV::set_uniforms()
 {
-	shader_->set_uniforms_values(10, 11, 12, 13, texture_->bind(0), light_position_, draw_param_);
+
+	shader_->set_uniforms_values(10, 11,ratio_);
 }
 
-void ShaderParamObjFlatTexture::bind_texture_buffers()
+void ShaderParamObjMeshUV::bind_texture_buffers()
 {
-	vbos_[VERTEX_POSITION]->bind_texture_buffer(12);
-	vbos_[VERTEX_TC]->bind_texture_buffer(13);
+	vbos_[VERTEX_TC]->bind_texture_buffer(11);
 }
 
-void ShaderParamObjFlatTexture::release_texture_buffers()
+void ShaderParamObjMeshUV::release_texture_buffers()
 {
-	vbos_[VERTEX_POSITION]->release_texture_buffer(12);
-	vbos_[VERTEX_TC]->release_texture_buffer(13);
+	vbos_[VERTEX_TC]->release_texture_buffer(11);
 }
 
 } // namespace rendering
