@@ -214,7 +214,10 @@ public:
 		mesh_provider_->foreach_mesh([this](MESH& m, const std::string&) { init_mesh(&m); });
 		connections_.push_back(boost::synapse::connect<typename MeshProvider<MESH>::mesh_added>(
 			mesh_provider_, this, &SurfaceObjRender<MESH>::init_mesh));
-		tex_ = std::make_shared<rendering::Texture2D>();
+		tex_ = std::make_shared<rendering::Texture2D>(
+			std::vector<std::pair<GLenum, GLint>>{
+			{GL_TEXTURE_MIN_FILTER, GL_LINEAR}, {GL_TEXTURE_MAG_FILTER, GL_NEAREST}, {GL_TEXTURE_WRAP_S, GL_REPEAT},
+													   {GL_TEXTURE_WRAP_T, GL_REPEAT}});
 	}
 
 	void draw(View* view) override

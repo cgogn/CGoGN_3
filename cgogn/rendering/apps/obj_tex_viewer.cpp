@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	std::string imgname;
 	if (argc <= 1)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("obj/cube.obj"); 
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("obj/monkey.obj"); 
 	else
 		filename = std::string(argv[1]);
 
@@ -68,27 +68,15 @@ int main(int argc, char** argv)
 	if (argc <= 2)
 	{
 		cgogn::rendering::GLImage img(16, 16, 3);
-		std::vector<cgogn::uint8> pix;
-		pix.reserve(16*16*3);
+		std::vector<std::array<cgogn::uint8, 3>> pix;
+		pix.reserve(16*16);
 		for (int i = 0; i < 16; ++i)
-		{
 			for (int j = 0; j < 16; ++j)
-			{
 				if ((i + j) % 2 == 0)
-				{
-					pix.push_back(i*8);
-					pix.push_back(0);
-					pix.push_back(j*8);
-				}
+					pix.push_back({0u, 0u, 0u});
 				else
-				{
-					pix.push_back(255);
-					pix.push_back(255);
-					pix.push_back(255);
-				}
-			}
-		}
-		img.copy_pixels_data(pix);
+					pix.push_back({255u, 255u, 255u});
+		img.copy_pixels_data(pix.data()->data());
 		sor.load_texture(img);
 	}
 	else
