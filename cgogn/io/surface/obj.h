@@ -41,7 +41,7 @@ bool import_OBJ(MESH& m, const std::string& filename)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
-	using Vertex = typename MESH::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
 
 	Scoped_C_Locale loc;
 
@@ -307,16 +307,16 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 				return true;
 			if (mesh_tc_ok)
 			{
-				if ((index_of(m_tc, MESH::Vertex(d2)) == index_of(m_tc, MESH::Vertex(phi1(m_tc, d)))) &&
-					(index_of(m_tc, MESH::Vertex(d)) == index_of(m_tc, MESH::Vertex(phi1(m_tc, d2)))))
+				if ((index_of(m_tc, Vertex(d2)) == index_of(m_tc, Vertex(phi1(m_tc, d)))) &&
+					(index_of(m_tc, Vertex(d)) == index_of(m_tc, Vertex(phi1(m_tc, d2)))))
 					phi2_sew(m_tc, d, d2);
 				else
 					nb_boundary_edges_tc++;
 			}
 			if (mesh_n_ok)
 			{
-				if ((index_of(m_n, MESH::Vertex(d2)) == index_of(m_n, MESH::Vertex(phi1(m_n, d)))) &&
-					(index_of(m_n, MESH::Vertex(d)) == index_of(m_n, MESH::Vertex(phi1(m_n, d2)))))
+				if ((index_of(m_n, Vertex(d2)) == index_of(m_n, Vertex(phi1(m_n, d)))) &&
+					(index_of(m_n, Vertex(d)) == index_of(m_n, Vertex(phi1(m_n, d2)))))
 					phi2_sew(m_n, d, d2);
 				else
 					nb_boundary_edges_n++;
