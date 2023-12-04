@@ -67,7 +67,7 @@ class SurfaceObjRender : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr), vertex_tc_vbo_(nullptr),
-			  draw_flatten_(true), draw_bound_pos_(false), draw_bound_tc_(true)
+			  draw_flatten_(false), draw_bound_pos_(false), draw_bound_tc_(false)
 		{
 			param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
 			param_flatten_ = rendering::ShaderObjMeshUV::generate_param();
@@ -341,7 +341,7 @@ public:
 				rendering::GLVec2 ratio = (view->viewport_width() > view->viewport_height())
 						? rendering::GLVec2(float32(view->viewport_height()) / view->viewport_width(), 1.0f)
 						: rendering::GLVec2(1.0f, view->viewport_width() / float32(view->viewport_height()));
-
+				ratio *= 0.95f;
 				if (p.param_flatten_->attributes_initialized())
 				{
 					p.param_flatten_->ratio_ = ratio;
@@ -372,7 +372,7 @@ public:
 					glDisable(GL_DEPTH_TEST);
 					p.boundary_ebos_[1].bind_texture_buffer(10);
 					p.param_boundary_edges_->ratio_ = ratio;
-					p.param_boundary_edges_->color_ = rendering::GLColor(0, 0, 1, 1);
+					p.param_boundary_edges_->color_ = rendering::GLColor(0, 1, 1, 1);
 					p.param_boundary_edges_->bind();
 					glDrawArrays(GL_LINES, 0, p.boundary_ebos_[1].size());
 					p.param_boundary_edges_->release();
@@ -428,6 +428,8 @@ public:
 			if (p.draw_flatten_)
 			{
 				if (ImGui::Checkbox("draw_boundary position", &p.draw_bound_pos_))
+					need_update = true;
+				if (ImGui::Checkbox("draw_boundary tex coord", &p.draw_bound_tc_))
 					need_update = true;
 			}
 			if (ImGui::Checkbox("draw_param", &p.param_textured_->draw_param_))

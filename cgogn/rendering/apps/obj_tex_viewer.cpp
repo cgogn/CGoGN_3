@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	std::string imgname;
 	if (argc <= 1)
-		filename = std::string(DEFAULT_MESH_PATH) + std::string("obj/monkey.obj"); 
+		filename = std::string(DEFAULT_MESH_PATH) + std::string("wavefront_obj/suzanne.obj"); 
 	else
 		filename = std::string(argv[1]);
 

@@ -66,7 +66,6 @@ char const* vertex_shader_source = R"(
 
 void ShaderParamMesh2DEdges::set_uniforms()
 {
-
 	shader_->set_uniforms_values(10, 11, ratio_, color_);
 }
 
