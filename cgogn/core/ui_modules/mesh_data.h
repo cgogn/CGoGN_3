@@ -235,7 +235,6 @@ public:
 	Vec3 bb_min_, bb_max_;
 	std::array<uint32, std::tuple_size<typename mesh_traits<MESH>::Cells>::value> nb_cells_;
 	float64 outlined_until_;
-	std::vector<MeshData*> attached_;
 
 private:
 	template <class>

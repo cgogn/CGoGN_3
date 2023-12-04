@@ -126,7 +126,8 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
-	using Vertex = typename MESH::Vertex;
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Edge = typename mesh_traits<MESH>::Edge;
 
 	Scoped_C_Locale loc;
 
@@ -247,16 +248,6 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 							if (str_ind.size() > 0)
 								index = std::atoi(str_ind.c_str());
 							indices_n.push_back(index - 1);
-
-							//							std::cout << "P: ";
-							//							for (const auto& i : indices_p)
-							//								std::cout << i << " " << std::endl;
-							//							std::cout << "N: " << indices_n.back() << std::endl;
-							//							for (const auto& i : indices_n)
-							//								std::cout << i << " " << std::endl;
-							//							std::cout << "TC : ";
-							//							for (const auto& i : indices_tc)
-							//								std::cout << i << " " << std::endl;
 						}
 					}
 				}
@@ -296,14 +287,54 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 		return false;
 	}
 
-	import_surface_data(m_p, surface_data_p);
-	if (surface_data_tc.nb_faces_ > 0u)
-		import_surface_data(m_tc, surface_data_tc);
-	if (surface_data_n.nb_faces_ > 0u)
-		import_surface_data(m_n, surface_data_n);
+	import_surface_data(m_p, surface_data_p,true);
+	import_surface_data(m_tc, surface_data_tc, false);
+	import_surface_data(m_n, surface_data_n, false);
+	bool mesh_tc_ok = (surface_data_tc.nb_faces_ > 0u);
+	bool mesh_n_ok = (surface_data_n.nb_faces_ > 0u);
+	
+	if (mesh_tc_ok || mesh_n_ok)
+	{
+		uint32 nb_boundary_edges_tc = 0;
+		uint32 nb_boundary_edges_n = 0;
+		foreach_cell(m_p, [&](MESH::Edge e) -> bool {
+			Dart d = e.dart_;
+			Dart d2 = phi2(m_p,d);
+			if (is_boundary(m_p, d2) || is_boundary(m_p, d))
+				return true;
+			if (d2 == d)
+				return true;
+			if (mesh_tc_ok)
+			{
+				if ((index_of(m_tc, MESH::Vertex(d2)) == index_of(m_tc, MESH::Vertex(phi1(m_tc, d)))) &&
+					(index_of(m_tc, MESH::Vertex(d)) == index_of(m_tc, MESH::Vertex(phi1(m_tc, d2)))))
+					phi2_sew(m_tc, d, d2);
+				else
+					nb_boundary_edges_tc++;
+			}
+			if (mesh_n_ok)
+			{
+				if ((index_of(m_n, MESH::Vertex(d2)) == index_of(m_n, MESH::Vertex(phi1(m_n, d)))) &&
+					(index_of(m_n, MESH::Vertex(d)) == index_of(m_n, MESH::Vertex(phi1(m_n, d2)))))
+					phi2_sew(m_n, d, d2);
+				else
+					nb_boundary_edges_n++;
+			}
+			return true;
+		});
+		uint32 nb_holes = close(m_tc);
+		std::cout << nb_holes << " hole(s) have been closed in texture coord map" << std::endl;
+		std::cout << nb_boundary_edges_tc << " edges in boundary of texture coord map" << std::endl;
+		nb_holes = close(m_n);	
+		std::cout << nb_holes << " hole(s) have been closed in normal map" << std::endl;
+		std::cout << nb_boundary_edges_n << " edges in boundary of normal map" << std::endl;
+	}
+
 
 	return true;
 }
+
+
 template <typename MESH>
 void export_OBJ(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
 				const std::string& filename)

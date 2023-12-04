@@ -126,6 +126,8 @@ set(src_list
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"

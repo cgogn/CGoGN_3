@@ -361,9 +361,9 @@ public:
 				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
 			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
 			MESH* m_pos = it->second.get();
-			const auto [it2, inserted2] = hidden_meshes_.emplace(name + "_tc", std::make_unique<MESH>());
+			const auto [it2, inserted2] = meshes_.emplace(name + "_tc", std::make_unique<MESH>());
 			MESH* m_tc = it2->second.get();
-			const auto [it3, inserted3] = hidden_meshes_.emplace(name + "_no", std::make_unique<MESH>());
+			const auto [it3, inserted3] = meshes_.emplace(name + "_no", std::make_unique<MESH>());
 			MESH* m_n = it3->second.get();
 
 			std::string ext = extension(filename);
@@ -391,9 +391,6 @@ public:
 				MeshData<MESH>& md_no = mesh_data(*m_n);
 				md_no.init(m_n);
 				mesh_filename_[m_n] = filename + "_no";
-
-				md.attached_.push_back(&md_tc);
-				md.attached_.push_back(&md_no);
 
 				boost::synapse::emit<mesh_added>(this, m_pos);
 
@@ -752,8 +749,6 @@ private:
 	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
-	// for stored but not exposed meshes
-	std::unordered_map<std::string, std::unique_ptr<MESH>> hidden_meshes_;
 	std::unordered_map<const MESH*, std::string> mesh_filename_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;

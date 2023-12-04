@@ -21,8 +21,8 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
-#define CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
+#ifndef CGOGN_RENDERING_SHADERS_MESH_2D_EDGES_H_
+#define CGOGN_RENDERING_SHADERS_MESH_2D_EDGES_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shader_program.h>
@@ -33,13 +33,15 @@ namespace cgogn
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ObjMeshUV, true, CGOGN_STR(ObjMeshUV))
 
-class CGOGN_RENDERING_EXPORT ShaderParamObjMeshUV : public ShaderParam
+DECLARE_SHADER_CLASS(Mesh2DEdges, true, CGOGN_STR(Mesh2DEdges))
+
+class CGOGN_RENDERING_EXPORT ShaderParamMesh2DEdges : public ShaderParam
 {
 	void set_uniforms() override;
 
 	std::array<VBO*, 1> vbos_;
+
 	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
 		vbos_[i] = vbo;
@@ -53,14 +55,18 @@ class CGOGN_RENDERING_EXPORT ShaderParamObjMeshUV : public ShaderParam
 	};
 
 public:
-	using ShaderType = ShaderObjMeshUV;
+	using ShaderType = ShaderMesh2DEdges;
 	GLVec2 ratio_;
+	GLColor color_;
 
-	ShaderParamObjMeshUV(ShaderType* sh)
-		: ShaderParam(sh)
+	ShaderParamMesh2DEdges(ShaderType* sh) : ShaderParam(sh)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
+	}
+
+	inline ~ShaderParamMesh2DEdges() override
+	{
 	}
 };
 
@@ -68,4 +74,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H__
+#endif // CGOGN_RENDERING_SHADERS_NO_ILLUM_2D_H_

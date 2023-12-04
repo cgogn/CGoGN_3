@@ -41,7 +41,7 @@ namespace io
 {
 
 template <typename MESH, typename SURFDATA>
-auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data)
+auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data, bool reconstruct_phi2)
 	-> std::enable_if_t<std::is_convertible_v<MESH&, MapBase&>>
 {
 	using ParentMESH = typename MESH::Parent;
@@ -56,6 +56,36 @@ auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data)
 		uint32 vertex_id = new_index<Vertex>(m);
 		(*position)[vertex_id] = surface_data.vertex_position_[i];
 		surface_data.vertex_id_after_import_.push_back(vertex_id);
+	}
+
+	if (!reconstruct_phi2)
+	{
+		uint32 faces_vertex_index = 0u;
+		std::vector<uint32> vertices_buffer;
+		vertices_buffer.reserve(16u);
+
+		for (uint32 i = 0u; i < surface_data.nb_faces_; ++i)
+		{
+			uint32 nbv = surface_data.faces_nb_vertices_[i];
+			vertices_buffer.clear();
+			for (uint32 j = 0u; j < nbv; ++j)
+			{
+				uint32 idx =
+					surface_data.vertex_id_after_import_[surface_data.faces_vertex_indices_[faces_vertex_index++]];
+				vertices_buffer.push_back(idx);
+			}
+
+			nbv = uint32(vertices_buffer.size());
+			typename ParentMESH::Face f = add_face(static_cast<ParentMESH&>(m), nbv, false);
+			Dart d = f.dart_;
+			for (uint32 j = 0u; j < nbv; ++j)
+			{
+				const uint32 vertex_index = vertices_buffer[j];
+				set_index<Vertex>(m, d, vertex_index);
+				d = phi1(m, d);
+			}
+		}
+		return;
 	}
 
 	auto darts_per_vertex = add_attribute<std::vector<Dart>, Vertex>(m, "__darts_per_vertex");
@@ -98,6 +128,9 @@ auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data)
 		}
 	}
 
+	if (!reconstruct_phi2)
+		return;
+	
 	bool need_vertex_unicity_check = false;
 	uint32 nb_boundary_edges = 0u;
 
@@ -157,21 +190,21 @@ auto import_surface_data_map_tmpl(MESH& m, SURFDATA& surface_data)
 	remove_attribute<Vertex>(m, darts_per_vertex);
 }
 
-void import_surface_data(CMap2& m, SurfaceImportData& surface_data)
+void import_surface_data(CMap2& m, SurfaceImportData& surface_data,bool reconstruct_phi2)
 {
-	import_surface_data_map_tmpl<CMap2>(m, surface_data);
+	import_surface_data_map_tmpl<CMap2>(m, surface_data, reconstruct_phi2);
 }
 
-void import_surface_data(GMap2& m, SurfaceImportData& surface_data)
+void import_surface_data(GMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2)
 {
-	import_surface_data_map_tmpl<GMap2>(m, surface_data);
+	import_surface_data_map_tmpl<GMap2>(m, surface_data, reconstruct_phi2);
 }
 
 
 
-void import_surface_data(CMap2& m, SurfaceImportData2D& surface_data)
+void import_surface_data(CMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2)
 {
-	import_surface_data_map_tmpl<CMap2,SurfaceImportData2D>(m, surface_data);
+	import_surface_data_map_tmpl<CMap2, SurfaceImportData2D>(m, surface_data,reconstruct_phi2);
 }
 
 void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)

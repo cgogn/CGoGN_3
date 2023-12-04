@@ -21,51 +21,66 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
-#define CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H_
-
-#include <cgogn/rendering/cgogn_rendering_export.h>
-#include <cgogn/rendering/shader_program.h>
-#include <cgogn/rendering/texture.h>
+#include <cgogn/rendering/shaders/shader_mesh_2d_edges.h>
 
 namespace cgogn
 {
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ObjMeshUV, true, CGOGN_STR(ObjMeshUV))
 
-class CGOGN_RENDERING_EXPORT ShaderParamObjMeshUV : public ShaderParam
+ShaderMesh2DEdges* ShaderMesh2DEdges::instance_ = nullptr;
+
+ShaderMesh2DEdges::ShaderMesh2DEdges()
 {
-	void set_uniforms() override;
+char const* vertex_shader_source = R"(
+	#version 330
+	uniform vec2 ratio;
+	uniform usamplerBuffer edge_indices;
+	uniform samplerBuffer vertex_tc;
 
-	std::array<VBO*, 1> vbos_;
-	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
+	void main()
 	{
-		vbos_[i] = vbo;
+		int ind = gl_VertexID;
+		int ind_tc = int(texelFetch(edge_indices, ind).r);
+		vec2 P2 = vec2(2.0 * texelFetch(vertex_tc, ind_tc).rg - 1.0) * ratio;
+		gl_Position = vec4(P2.xy, 0.5, 1);
 	}
-	void bind_texture_buffers() override;
-	void release_texture_buffers() override;
+	)";
 
-	enum VBOName : uint32
-	{
-		VERTEX_TC = 0,
-	};
+	char const* fragment_shader_source = R"(
+		#version 330
+		uniform vec4 color;
+		
+		out vec4 frag_out;
 
-public:
-	using ShaderType = ShaderObjMeshUV;
-	GLVec2 ratio_;
+		void main()
+		{
+			frag_out = color;
+		}
+	)";
 
-	ShaderParamObjMeshUV(ShaderType* sh)
-		: ShaderParam(sh)
-	{
-		for (auto& v : vbos_)
-			v = nullptr;
-	}
-};
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("edge_indices", "vertex_tc", "ratio", "color");
+}
+
+void ShaderParamMesh2DEdges::set_uniforms()
+{
+
+	shader_->set_uniforms_values(10, 11, ratio_, color_);
+}
+
+void ShaderParamMesh2DEdges::bind_texture_buffers()
+{
+	vbos_[VERTEX_TC]->bind_texture_buffer(11);
+}
+
+void ShaderParamMesh2DEdges::release_texture_buffers()
+{
+	vbos_[VERTEX_TC]->release_texture_buffer(11);
+}
+
 
 } // namespace rendering
 
 } // namespace cgogn
-
-#endif // CGOGN_RENDERING_SHADERS_OBJ_NORMAL_TEXTURE_H__

@@ -60,7 +60,7 @@ public:
 	using ShaderType = ShaderObjFlatTexture;
 
 	ShaderParamObjFlatTexture(ShaderType* sh)
-		: ShaderParam(sh), light_position_(10, 100, 1000), texture_(nullptr), draw_param_(false)
+		: ShaderParam(sh), light_position_(1000, 10000, 100000), texture_(nullptr), draw_param_(false)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;

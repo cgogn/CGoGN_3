@@ -37,6 +37,7 @@
 
 #include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
 #include <cgogn/rendering/shaders/shader_obj_meshuv.h>
+#include <cgogn/rendering/shaders/shader_mesh_2d_edges.h>
 #include <cgogn/rendering/texture.h>
 
 #include <boost/synapse/connect.hpp>
@@ -68,17 +69,19 @@ class SurfaceObjRender : public ViewModule
 	struct Parameters
 	{
 		Parameters()
-			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr),
-			  vertex_tc_vbo_(nullptr),draw_flatten_(false)
+			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr), vertex_tc_vbo_(nullptr),
+			  draw_flatten_(true), draw_bound_pos_(false), draw_bound_tc_(true)
 		{
 			param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
 			param_flatten_ = rendering::ShaderObjMeshUV::generate_param();
+			param_boundary_edges_ = rendering::ShaderMesh2DEdges::generate_param();
 		}
 
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::unique_ptr<rendering::ShaderObjMeshUV::Param> param_flatten_;
 		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_textured_;
+		std::unique_ptr<rendering::ShaderMesh2DEdges::Param> param_boundary_edges_;		
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
 		rendering::VBO* vertex_position_vbo_;
@@ -88,12 +91,15 @@ class SurfaceObjRender : public ViewModule
 
 		std::array<rendering::EBO, 2> tri_ebos_;
 		bool draw_flatten_;
+		std::array<rendering::EBO, 3> boundary_ebos_;
+		bool draw_bound_pos_;
+		bool draw_bound_tc_;
 	};
 
 public:
 	SurfaceObjRender(const App& app)
 		: ViewModule(app, "SurfaceRender (" + std::string{mesh_traits<MESH>::name} + ")"),
-		  selected_view_(app.current_view()), selected_mesh_(nullptr)
+		  selected_view_(app.current_view()), selected_mesh_pos_(nullptr)
 	{
 	}
 
@@ -102,21 +108,16 @@ public:
 	}
 
 private:
-	const MESH* tc_mesh(const MESH* m)
-	{
-		return mesh_provider_->mesh_data(*m).attached_[0]->mesh_;
-	}
-
-	const MESH* no_mesh(const MESH* m)
-	{
-		return mesh_provider_->mesh_data(*m).attached_[1]->mesh_;
-	}
 
 	void update_ebo(Parameters& p, const MESH* m)
 	{
-		const MESH* mtc = tc_mesh(m);
+		//const MESH* mtc = tc_mesh(m);
+		//const MESH* mno = no_mesh(m);
+		auto pm = attached_meshes_[m];
+
 		using Vertex = typename mesh_traits<MESH>::Vertex;
 		using Face = typename mesh_traits<MESH>::Face;
+		using Edge = typename mesh_traits<MESH>::Edge;
 		std::vector<uint32> table_pos_indices;
 		table_pos_indices.reserve(8192);
 		std::vector<uint32> table_tc_indices;
@@ -131,18 +132,19 @@ private:
 				table_pos_indices.push_back(index_of(*m, vertices[0]));
 				table_pos_indices.push_back(index_of(*m, vertices[i]));
 				table_pos_indices.push_back(index_of(*m, vertices[i + 1]));
-				table_tc_indices.push_back(index_of(*mtc, vertices[0]));
-				table_tc_indices.push_back(index_of(*mtc, vertices[i]));
-				table_tc_indices.push_back(index_of(*mtc, vertices[i + 1]));
+				table_tc_indices.push_back(index_of(*pm.first, vertices[0]));
+				table_tc_indices.push_back(index_of(*pm.first, vertices[i]));
+				table_tc_indices.push_back(index_of(*pm.first, vertices[i + 1]));
 			}
 			return true;
 		});
+
 		if (!p.tri_ebos_[0].is_created())
 			p.tri_ebos_[0].create();
 		p.tri_ebos_[0].bind();
 		p.tri_ebos_[0].allocate(table_pos_indices.size());
-		uint32* ptr1 =p.tri_ebos_[0].lock_pointer();
-		std::memcpy(ptr1, table_pos_indices.data(), sizeof(uint32) * table_pos_indices.size());
+		uint32* ptr =p.tri_ebos_[0].lock_pointer();
+		std::memcpy(ptr, table_pos_indices.data(), sizeof(uint32) * table_pos_indices.size());
 		p.tri_ebos_[0].set_name("EBO_Pos");
 		p.tri_ebos_[0].release_pointer();
 		p.tri_ebos_[0].release();
@@ -151,15 +153,116 @@ private:
 			p.tri_ebos_[1].create();
 		p.tri_ebos_[1].bind();
 		p.tri_ebos_[1].allocate(table_pos_indices.size());
-		uint32* ptr2 = p.tri_ebos_[1].lock_pointer();
-		std::memcpy(ptr2, table_tc_indices.data(), sizeof(uint32) * table_pos_indices.size());
+		ptr = p.tri_ebos_[1].lock_pointer();
+		std::memcpy(ptr, table_tc_indices.data(), sizeof(uint32) * table_pos_indices.size());
 		p.tri_ebos_[1].set_name("EBO_TC");
 		p.tri_ebos_[1].release_pointer();
 		p.tri_ebos_[1].release();
+
+		if (!p.tri_ebos_[1].is_created())
+			p.tri_ebos_[1].create();
+		p.tri_ebos_[1].bind();
+		p.tri_ebos_[1].allocate(table_pos_indices.size());
+		ptr = p.tri_ebos_[1].lock_pointer();
+		std::memcpy(ptr, table_tc_indices.data(), sizeof(uint32) * table_pos_indices.size());
+		p.tri_ebos_[1].set_name("EBO_TC");
+		p.tri_ebos_[1].release_pointer();
+		p.tri_ebos_[1].release();
+
+
+		std::vector<uint32> table_pos_boundary_indices;
+		std::vector<uint32> table_tc_boundary_indices;
+		std::vector<uint32> table_no_boundary_indices;
+		table_pos_boundary_indices.reserve(8192);
+		table_tc_boundary_indices.reserve(8192);
+		table_no_boundary_indices.reserve(8192);
+
+
+		//foreach_cell(*m, [&](Edge e) -> bool {
+		//	vertices.clear();
+		//	append_incident_vertices(*m, e, vertices);
+		//		table_pos_boundary_indices.push_back(index_of(*m, vertices[0]));
+		//		table_pos_boundary_indices.push_back(index_of(*m, vertices[1]));
+		//	return true;
+		//});
+	
+		const MESH& map_pos = *m;
+		const MESH& map_tc = *pm.first;
+		const MESH& map_no = *pm.second;
+
+		foreach_cell(map_pos, [&](Edge e) -> bool {
+			if (is_boundary(map_pos, e.dart_) || is_boundary(map_pos, phi2(map_pos, e.dart_)))
+			{
+				table_pos_boundary_indices.push_back(index_of(map_tc, Vertex(e.dart_)));
+				table_pos_boundary_indices.push_back(index_of(map_tc, Vertex(phi1(map_pos, e.dart_))));
+			}
+			return true;
+		});
+
+		foreach_cell(map_tc, [&](Edge e) -> bool {
+			if (is_boundary(map_tc, e.dart_) || is_boundary(map_tc, phi2(map_tc, e.dart_)))
+			{
+				table_tc_boundary_indices.push_back(index_of(map_tc, Vertex(e.dart_)));
+				table_tc_boundary_indices.push_back(index_of(map_tc, Vertex(phi1(map_tc, e.dart_))));
+			}
+			return true;
+		});
+
+		foreach_cell(map_no, [&](Edge e) -> bool {
+			if (is_boundary(map_no, e.dart_) || is_boundary(map_no, phi2(map_no, e.dart_)))
+			{
+				table_no_boundary_indices.push_back(index_of(map_tc, Vertex(e.dart_)));
+				table_no_boundary_indices.push_back(index_of(map_tc, Vertex(phi1(map_no, e.dart_))));
+			}
+			return true;
+		});
+
+		if (!p.boundary_ebos_[0].is_created())
+			p.boundary_ebos_[0].create();
+		p.boundary_ebos_[0].bind();
+		p.boundary_ebos_[0].allocate(table_pos_boundary_indices.size());
+		ptr = p.boundary_ebos_[0].lock_pointer();
+		std::memcpy(ptr, table_pos_boundary_indices.data(), sizeof(uint32) * table_pos_boundary_indices.size());
+		p.boundary_ebos_[0].set_name("EBO_Bound_pos");
+		p.boundary_ebos_[0].release_pointer();
+		p.boundary_ebos_[0].release();
+
+		if (!p.boundary_ebos_[1].is_created())
+			p.boundary_ebos_[1].create();
+		p.boundary_ebos_[1].bind();
+		p.boundary_ebos_[1].allocate(table_tc_boundary_indices.size());
+		ptr = p.boundary_ebos_[1].lock_pointer();
+		std::memcpy(ptr, table_tc_boundary_indices.data(), sizeof(uint32) * table_tc_boundary_indices.size());
+		p.boundary_ebos_[1].set_name("EBO_TC_pos");
+		p.boundary_ebos_[1].release_pointer();
+		p.boundary_ebos_[1].release();
+
+		if (!p.boundary_ebos_[2].is_created())
+			p.boundary_ebos_[2].create();
+		p.boundary_ebos_[2].bind();
+		p.boundary_ebos_[2].allocate(table_no_boundary_indices.size());
+		ptr = p.boundary_ebos_[2].lock_pointer();
+		std::memcpy(ptr, table_no_boundary_indices.data(), sizeof(uint32) * table_no_boundary_indices.size());
+		p.boundary_ebos_[2].set_name("EBO_No_pos");
+		p.boundary_ebos_[2].release_pointer();
+		p.boundary_ebos_[2].release();
 	}
 
 	void init_mesh(MESH* m)
 	{
+		const std::string& bname = mesh_provider_->mesh_name(*m);
+		std::string tc_name = bname + "_tc";
+		std::string no_name = bname + "_no";
+		std::pair<MESH*, MESH*> att = std::make_pair<MESH*, MESH*>(nullptr, nullptr);
+		mesh_provider_->foreach_mesh([&](MESH& mm, const std::string& name) {
+			if (name == tc_name)
+				att.first = &mm;
+			if (name == no_name)
+				att.second = &mm;
+		});
+		attached_meshes_[m] = att;
+		
+
 		for (View* v : linked_views_)
 		{
 			Parameters& p = parameters_[v][m];
@@ -195,9 +298,11 @@ public:
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 			p.vertex_position_vbo_ = md.update_vbo(p.vertex_position_.get(), true);
-			MeshData<MESH>* md_tc = md.attached_[0];
-			p.vertex_tc_ = cgogn::get_attribute<Vec2, Vertex>(*md_tc->mesh_, "position");
-			p.vertex_tc_vbo_ = md_tc->update_vbo(p.vertex_tc_.get(), true);
+
+			auto pm = attached_meshes_[&m];
+			MeshData<MESH>& md_tc = mesh_provider_->mesh_data(*pm.first);
+			p.vertex_tc_ = cgogn::get_attribute<Vec2, Vertex>(*md_tc.mesh_, "position");
+			p.vertex_tc_vbo_ = md_tc.update_vbo(p.vertex_tc_.get(), true);
 		}
 		else
 		{
@@ -207,6 +312,7 @@ public:
 
 		p.param_textured_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
 		p.param_flatten_->set_vbos({p.vertex_tc_vbo_});
+		p.param_boundary_edges_->set_vbos({p.vertex_tc_vbo_});
 		v.request_update();	
 	}
 
@@ -235,20 +341,46 @@ public:
 
 			if (p.draw_flatten_)
 			{
-				p.param_flatten_->ratio_ =
-					(view->viewport_width() > view->viewport_height())
+				rendering::GLVec2 ratio = (view->viewport_width() > view->viewport_height())
 						? rendering::GLVec2(float32(view->viewport_height()) / view->viewport_width(), 1.0f)
 						: rendering::GLVec2(1.0f, view->viewport_width() / float32(view->viewport_height()));
 
 				if (p.param_flatten_->attributes_initialized())
 				{
+					p.param_flatten_->ratio_ = ratio;
 					glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 					p.tri_ebos_[1].bind_texture_buffer(10);
-					p.param_flatten_->bind(proj_matrix, view_matrix);
+					p.param_flatten_->bind();
 					glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
 					p.param_flatten_->release();
 					p.tri_ebos_[1].release_texture_buffer(10);
 					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+				}
+
+				if (p.draw_bound_pos_ && (p.param_boundary_edges_->attributes_initialized()))
+				{
+					glDisable(GL_DEPTH_TEST);
+					p.boundary_ebos_[0].bind_texture_buffer(10);
+					p.param_boundary_edges_->ratio_ = ratio;
+					p.param_boundary_edges_->color_ = rendering::GLColor(1, 0, 0, 1);
+					p.param_boundary_edges_->bind();
+					glDrawArrays(GL_LINES, 0, p.boundary_ebos_[0].size());
+					p.param_boundary_edges_->release();
+					p.boundary_ebos_[0].release_texture_buffer(10);
+					glDisable(GL_DEPTH_TEST);
+				}
+
+				if (p.draw_bound_tc_ && (p.param_boundary_edges_->attributes_initialized()))
+				{
+					glDisable(GL_DEPTH_TEST);
+					p.boundary_ebos_[1].bind_texture_buffer(10);
+					p.param_boundary_edges_->ratio_ = ratio;
+					p.param_boundary_edges_->color_ = rendering::GLColor(0, 0, 1, 1);
+					p.param_boundary_edges_->bind();
+					glDrawArrays(GL_LINES, 0, p.boundary_ebos_[1].size());
+					p.param_boundary_edges_->release();
+					p.boundary_ebos_[1].release_texture_buffer(10);
+					glDisable(GL_DEPTH_TEST);
 				}
 			}
 			else
@@ -268,6 +400,8 @@ public:
 		}
 	}
 
+
+
 	void left_panel() override
 	{
 		bool need_update = false;
@@ -275,23 +409,30 @@ public:
 		if (app_.nb_views() > 1)
 			imgui_view_selector(this, selected_view_, [&](View* v) { selected_view_ = v; });
 
-		imgui_mesh_selector(mesh_provider_, selected_mesh_, "Surface", [&](MESH& m) {
-			selected_mesh_ = &m;
-			mesh_provider_->mesh_data(m).outlined_until_ = App::frame_time_ + 1.0;
+		imgui_mesh_selector(mesh_provider_, selected_mesh_pos_, "Surf Obj Position", [&](MESH& m) {
+			selected_mesh_pos_ = &m;
+			const std::string& bname = mesh_provider_->mesh_name(m);
+			std::string tc_name = bname + "_tc";
+//			std::string no_name = bname + "_no";
+			mesh_provider_->foreach_mesh([&](MESH& mm, const std::string& name) {
+				if (name == tc_name)
+					selected_mesh_tc_ = &mm;
+//				if (name == no_name)
+//					selected_mesh_no_ = &mm;
+			});
+
 		});
 
-
-		if (selected_view_ && selected_mesh_)
+		if (selected_view_ && selected_mesh_pos_ && selected_mesh_tc_ /* && selected_mesh_no_*/)
 		{
-			Parameters& p = parameters_[selected_view_][selected_mesh_];
-
-			//imgui_combo_attribute<Vertex, Vec3>(*selected_mesh_, p.vertex_position_, "Position",
-			//									[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
-			//										set_vertex_position(*selected_view_, *selected_mesh_, attribute);
-			//									});
+			Parameters& p = parameters_[selected_view_][selected_mesh_pos_];
 			if (ImGui::Checkbox("draw_flatten", &p.draw_flatten_))
 				need_update = true;
-//			ImGui::Separator();
+			if (p.draw_flatten_)
+			{
+				if (ImGui::Checkbox("draw_boundary position", &p.draw_bound_pos_))
+					need_update = true;
+			}
 			if (ImGui::Checkbox("draw_param", &p.param_textured_->draw_param_))
 				need_update = true;
 
@@ -303,14 +444,15 @@ public:
 
 private:
 	View* selected_view_;
-	const MESH* selected_mesh_;
+	const MESH* selected_mesh_pos_;
+	const MESH* selected_mesh_tc_;
+//	const MESH* selected_mesh_no_;
 	std::unordered_map<View*, std::unordered_map<const MESH*, Parameters>> parameters_;
 	std::vector<std::shared_ptr<boost::synapse::connection>> connections_;
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
-	//rendering::MeshRender mr_pos;
-	//rendering::MeshRender mr_tc;
 	std::shared_ptr<rendering::Texture2D> tex_;
+	std::unordered_map<const MESH*, std::pair<MESH*,MESH*>> attached_meshes_;
 };
 
 } // namespace ui
