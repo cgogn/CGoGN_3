@@ -24,9 +24,6 @@
 #ifndef CGOGN_MODULE_SURFACE_OBJ_RENDER_H_
 #define CGOGN_MODULE_SURFACE_OBJ_RENDER_H_
 
-//#include <cgogn/core/types/mesh_traits.h>
-//#include <cgogn/core/functions/traversals/vertex.h>
-
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/imgui_helpers.h>

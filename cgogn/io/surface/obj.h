@@ -120,6 +120,7 @@ bool import_OBJ(MESH& m, const std::string& filename)
 	return true;
 }
 
+struct MapBase;
 
 template <typename MESH>
 bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename)
@@ -297,7 +298,7 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 	{
 		uint32 nb_boundary_edges_tc = 0;
 		uint32 nb_boundary_edges_n = 0;
-		foreach_cell(m_p, [&](MESH::Edge e) -> bool {
+		foreach_cell(m_p, [&](Edge e) -> bool {
 			Dart d = e.dart_;
 			Dart d2 = phi2(m_p,d);
 			if (is_boundary(m_p, d2) || is_boundary(m_p, d))
