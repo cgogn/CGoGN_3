@@ -4,6 +4,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/types.h>
+#include <vector>
 
 namespace cgogn
 {
