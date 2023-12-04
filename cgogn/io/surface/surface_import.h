@@ -77,7 +77,7 @@ using SurfaceImportData = SurfaceImportDataTGen<Vec3>;
 using SurfaceImportData2D = SurfaceImportDataTGen<Vec2>;
 
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2=true);
+void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
 void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
 void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
 void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);

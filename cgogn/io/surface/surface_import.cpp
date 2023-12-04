@@ -207,6 +207,11 @@ void import_surface_data(CMap2& m, SurfaceImportData2D& surface_data, bool recon
 	import_surface_data_map_tmpl<CMap2, SurfaceImportData2D>(m, surface_data,reconstruct_phi2);
 }
 
+void import_surface_data(GMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2)
+{
+	import_surface_data_map_tmpl<GMap2, SurfaceImportData2D>(m, surface_data, reconstruct_phi2);
+}
+
 void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
 {
 	using Vertex = IncidenceGraph::Vertex;
