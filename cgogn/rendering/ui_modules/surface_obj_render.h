@@ -50,6 +50,13 @@ using geometry::Scalar;
 using geometry::Vec3;
 using geometry::Vec2;
 
+enum OBJBoundaries
+{
+	BoundaryPos = 0,
+	BoundaryTC,
+	BoundaryNONE
+};
+
 template <typename MESH>
 class SurfaceObjRender : public ViewModule
 {
@@ -67,7 +74,7 @@ class SurfaceObjRender : public ViewModule
 	{
 		Parameters()
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr), vertex_tc_vbo_(nullptr),
-			  draw_flatten_(false), draw_bound_pos_(false), draw_bound_tc_(false)
+			  draw_flatten_(false), draw_bound_(BoundaryNONE)
 		{
 			param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
 			param_flatten_ = rendering::ShaderObjMeshUV::generate_param();
@@ -89,8 +96,7 @@ class SurfaceObjRender : public ViewModule
 		std::array<rendering::EBO, 2> tri_ebos_;
 		bool draw_flatten_;
 		std::array<rendering::EBO, 3> boundary_ebos_;
-		bool draw_bound_pos_;
-		bool draw_bound_tc_;
+		OBJBoundaries draw_bound_;
 	};
 
 public:
@@ -348,36 +354,27 @@ public:
 					glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 					p.tri_ebos_[1].bind_texture_buffer(10);
 					p.param_flatten_->bind();
-					glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					//glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					glDrawArrays(GL_TRIANGLES, 0, p.tri_ebos_[0].size());
 					p.param_flatten_->release();
 					p.tri_ebos_[1].release_texture_buffer(10);
 					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 				}
-
-				if (p.draw_bound_pos_ && (p.param_boundary_edges_->attributes_initialized()))
+				if (p.draw_bound_!=BoundaryNONE)
 				{
-					glDisable(GL_DEPTH_TEST);
-					p.boundary_ebos_[0].bind_texture_buffer(10);
-					p.param_boundary_edges_->ratio_ = ratio;
-					p.param_boundary_edges_->color_ = rendering::GLColor(1, 0, 0, 1);
-					p.param_boundary_edges_->bind();
-					glDrawArrays(GL_LINES, 0, p.boundary_ebos_[0].size());
-					p.param_boundary_edges_->release();
-					p.boundary_ebos_[0].release_texture_buffer(10);
-					glDisable(GL_DEPTH_TEST);
-				}
-
-				if (p.draw_bound_tc_ && (p.param_boundary_edges_->attributes_initialized()))
-				{
-					glDisable(GL_DEPTH_TEST);
-					p.boundary_ebos_[1].bind_texture_buffer(10);
-					p.param_boundary_edges_->ratio_ = ratio;
-					p.param_boundary_edges_->color_ = rendering::GLColor(0, 1, 1, 1);
-					p.param_boundary_edges_->bind();
-					glDrawArrays(GL_LINES, 0, p.boundary_ebos_[1].size());
-					p.param_boundary_edges_->release();
-					p.boundary_ebos_[1].release_texture_buffer(10);
-					glDisable(GL_DEPTH_TEST);
+					if ((p.param_boundary_edges_->attributes_initialized()))
+					{
+						glDisable(GL_DEPTH_TEST);
+						auto& ebo = p.boundary_ebos_[p.draw_bound_];
+						ebo.bind_texture_buffer(10);
+						p.param_boundary_edges_->ratio_ = ratio;
+						p.param_boundary_edges_->color_ = rendering::GLColor(0, 1, 1, 1);
+						p.param_boundary_edges_->bind();
+						glDrawArrays(GL_LINES, 0, ebo.size());
+						p.param_boundary_edges_->release();
+						ebo.release_texture_buffer(10);
+						glEnable(GL_DEPTH_TEST);
+					}
 				}
 			}
 			else
@@ -388,7 +385,8 @@ public:
 					p.tri_ebos_[0].bind_texture_buffer(10);
 					p.tri_ebos_[1].bind_texture_buffer(11);
 					p.param_textured_->bind(proj_matrix, view_matrix);
-					glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					//glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+					glDrawArrays(GL_TRIANGLES, 0, p.tri_ebos_[0].size());
 					p.param_textured_->release();
 					p.tri_ebos_[1].release_texture_buffer(11);
 					p.tri_ebos_[0].release_texture_buffer(10);
@@ -427,13 +425,23 @@ public:
 				need_update = true;
 			if (p.draw_flatten_)
 			{
-				if (ImGui::Checkbox("draw_boundary position", &p.draw_bound_pos_))
-					need_update = true;
-				if (ImGui::Checkbox("draw_boundary tex coord", &p.draw_bound_tc_))
-					need_update = true;
+				ImGui::Separator();
+				ImGui::TextUnformatted("draw boundary");
+				ImGui::BeginGroup();
+				int* dr_bound = reinterpret_cast<int*>(& p.draw_bound_);
+				need_update |= ImGui::RadioButton("Pos##bound", dr_bound, BoundaryPos);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("TC##bound", dr_bound, BoundaryTC);
+				ImGui::SameLine();
+				need_update |= ImGui::RadioButton("NONE##bound", dr_bound, BoundaryNONE);
+				ImGui::EndGroup();
+
 			}
-			if (ImGui::Checkbox("draw_param", &p.param_textured_->draw_param_))
-				need_update = true;
+			else
+			{
+				if (ImGui::Checkbox("draw_param", &p.param_textured_->draw_param_))
+								need_update = true;
+			}
 
 			if (need_update)
 				for (View* v : linked_views_)

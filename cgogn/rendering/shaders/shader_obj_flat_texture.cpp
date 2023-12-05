@@ -53,11 +53,10 @@ ShaderObjFlatTexture::ShaderObjFlatTexture()
 
 		void main()
 		{
-			int ind =  3 * gl_InstanceID + gl_VertexID;
-			int ind_v = int(texelFetch(position_ind, ind).r);
+			int ind_v = int(texelFetch(position_ind, gl_VertexID).r);
 			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
 
-			int ind_tc = int(texelFetch(tex_coord_ind, ind).r);
+			int ind_tc = int(texelFetch(tex_coord_ind, gl_VertexID).r);
 			tc = texelFetch(vertex_tc, ind_tc).rg;
 
 			vec4 position4 = model_view_matrix * vec4(position_in, 1.0);

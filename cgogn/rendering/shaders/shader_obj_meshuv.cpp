@@ -48,8 +48,7 @@ ShaderObjMeshUV::ShaderObjMeshUV()
 
 		void main()
 		{
-			int ind = 3 * gl_InstanceID + gl_VertexID;
-			int ind_tc = int(texelFetch(tex_coord_ind, ind).r);
+			int ind_tc = int(texelFetch(tex_coord_ind, gl_VertexID).r);
 			tc = texelFetch(vertex_tc, ind_tc).rg;
 			vec2 P2 = vec2(2.0*tc-1.0)*ratio;
 			gl_Position = vec4(P2.xy,0.5,1);

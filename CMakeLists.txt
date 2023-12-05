@@ -205,7 +205,7 @@ foreach(subdir ${CGOGN_CONFIGURED_MODULES})
 	endif()
 endforeach()
 
-
+#
 # uninstall target
 # see https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake
 if(NOT TARGET uninstall)
