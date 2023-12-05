@@ -21,72 +21,65 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_IO_SURFACE_IMPORT_H_
-#define CGOGN_IO_SURFACE_IMPORT_H_
-
-#include <cgogn/io/cgogn_io_export.h>
-
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/geometry/types/vector_traits.h>
-
-#include <vector>
+#include <cgogn/rendering/shaders/shader_mesh_2d_edges.h>
 
 namespace cgogn
 {
 
-struct CMap2;
-struct GMap2;
-struct IncidenceGraph;
-struct TriangleSoup;
-
-namespace io
+namespace rendering
 {
 
+ShaderMesh2DEdges* ShaderMesh2DEdges::instance_ = nullptr;
 
-using geometry::Vec3;
-using geometry::Vec2;
-
-template <typename VEC>
-struct SurfaceImportDataTGen
+ShaderMesh2DEdges::ShaderMesh2DEdges()
 {
-	using VEC_TYPE = VEC;
+char const* vertex_shader_source = R"(
+	#version 330
+	uniform vec2 ratio;
+	uniform usamplerBuffer edge_indices;
+	uniform samplerBuffer vertex_tc;
 
-	uint32 nb_vertices_ = 0;
-	uint32 nb_faces_ = 0;
-
-	std::vector<VEC> vertex_position_;
-	std::string vertex_position_attribute_name_ = "position";
-
-	std::vector<uint32> faces_nb_vertices_;
-	std::vector<uint32> faces_vertex_indices_;
-
-	std::vector<uint32> vertex_id_after_import_;
-
-	inline void reserve(uint32 nb_vertices, uint32 nb_faces)
+	void main()
 	{
-		nb_vertices_ = nb_vertices;
-		nb_faces_ = nb_faces;
-		vertex_position_.reserve(nb_vertices);
-		faces_nb_vertices_.reserve(nb_faces);
-		faces_vertex_indices_.reserve(nb_faces * 4u);
-		vertex_id_after_import_.reserve(nb_vertices);
+		int ind = gl_VertexID;
+		int ind_tc = int(texelFetch(edge_indices, ind).r);
+		vec2 P2 = vec2(2.0 * texelFetch(vertex_tc, ind_tc).rg - 1.0) * ratio;
+		gl_Position = vec4(P2.xy, 0.5, 1);
 	}
-};
+	)";
 
-using SurfaceImportData = SurfaceImportDataTGen<Vec3>;
-using SurfaceImportData2D = SurfaceImportDataTGen<Vec2>;
+	char const* fragment_shader_source = R"(
+		#version 330
+		uniform vec4 color;
+		
+		out vec4 frag_out;
+
+		void main()
+		{
+			frag_out = color;
+		}
+	)";
+
+	load(vertex_shader_source, fragment_shader_source);
+	get_uniforms("edge_indices", "vertex_tc", "ratio", "color");
+}
+
+void ShaderParamMesh2DEdges::set_uniforms()
+{
+	shader_->set_uniforms_values(10, 11, ratio_, color_);
+}
+
+void ShaderParamMesh2DEdges::bind_texture_buffers()
+{
+	vbos_[VERTEX_TC]->bind_texture_buffer(11);
+}
+
+void ShaderParamMesh2DEdges::release_texture_buffers()
+{
+	vbos_[VERTEX_TC]->release_texture_buffer(11);
+}
 
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
-void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);
-
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2 = true);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2 = true);
-
-} // namespace io
+} // namespace rendering
 
 } // namespace cgogn
-
-#endif // CGOGN_IO_SURFACE_IMPORT_H_

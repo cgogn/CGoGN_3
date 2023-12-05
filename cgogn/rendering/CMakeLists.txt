@@ -40,6 +40,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/graph_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/point_cloud_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_obj_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/vector_per_vertex_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_render.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/topo_render.h"
@@ -116,6 +117,17 @@ set(src_list
 
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.cpp"
 
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"

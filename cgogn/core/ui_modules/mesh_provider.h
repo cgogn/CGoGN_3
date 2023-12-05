@@ -351,6 +351,64 @@ public:
 		}
 	}
 
+
+	std::array<MESH*, 3> load_surface_from_OBJ_file(const std::string& filename, bool normalized = true)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
+		{
+			std::string name = filename_from_path(filename);
+			if (has_mesh(name))
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m_pos = it->second.get();
+			const auto [it2, inserted2] = meshes_.emplace(name + "_tc", std::make_unique<MESH>());
+			MESH* m_tc = it2->second.get();
+			const auto [it3, inserted3] = meshes_.emplace(name + "_no", std::make_unique<MESH>());
+			MESH* m_n = it3->second.get();
+
+			std::string ext = extension(filename);
+			bool imported = false;
+
+			if (ext.compare("obj") == 0)
+				imported = io::import_OBJ_tn(*m_pos, *m_tc, *m_n, filename);
+
+			if (imported)
+			{
+				MeshData<MESH>& md = mesh_data(*m_pos);
+				md.init(m_pos);
+				mesh_filename_[m_pos] = filename;
+				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m_pos, "position");
+				if (vertex_position)
+				{
+					if (normalized)
+						geometry::rescale(*vertex_position, 1);
+					set_mesh_bb_vertex_position(*m_pos, vertex_position);
+				}
+
+				MeshData<MESH>& md_tc = mesh_data(*m_tc);
+				md_tc.init(m_tc);
+				mesh_filename_[m_tc] = filename + "_tc";
+				MeshData<MESH>& md_no = mesh_data(*m_n);
+				md_no.init(m_n);
+				mesh_filename_[m_n] = filename + "_no";
+
+				boost::synapse::emit<mesh_added>(this, m_pos);
+
+				return {m_pos, m_tc, m_n};
+			}
+			else
+			{
+				meshes_.erase(name);
+				return {nullptr, nullptr, nullptr};
+			}
+		}
+		else
+			return {nullptr, nullptr, nullptr};
+	}
+
+
+
+
 	template <typename FUNC>
 	void foreach_mesh(const FUNC& f)
 	{

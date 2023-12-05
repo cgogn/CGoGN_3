@@ -84,7 +84,7 @@ class SkeletonExtractor : public Module
 		std::shared_ptr<SurfaceAttribute<std::pair<Vec3, Vec3>>> medial_axis_samples_closest_points_ = nullptr;
 
 		float32 radius_threshold_ = 0.025f;
-		float32 angle_threshold_ = M_PI / 2.0f;
+		float32 angle_threshold_ = float32(M_PI) / 2.0f;
 
 		CellsSet<SURFACE, SurfaceVertex>* filtered_medial_axis_samples_set_ = nullptr;
 		CellsSet<SURFACE, SurfaceVertex>* neutralized_surface_vertices_set_ = nullptr;
@@ -335,7 +335,7 @@ protected:
 										   selected_surface_vertex_normal_.get());
 					if (ImGui::SliderFloat("Min radius (log)", &p.radius_threshold_, 0.0001f, 1.0f, "%.4f"))
 						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
-					if (ImGui::SliderFloat("Min angle (log)", &p.angle_threshold_, 0.0001f, M_PI, "%.4f"))
+					if (ImGui::SliderFloat("Min angle (log)", &p.angle_threshold_, 0.0001f, float(M_PI), "%.4f"))
 						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
 					if (ImGui::Button("Filter medial axis samples"))
 						filter_medial_axis_samples(*selected_surface_, selected_surface_vertex_position_.get());
