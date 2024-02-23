@@ -30,6 +30,15 @@ target_link_libraries(heat_method
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(sphere_fitting sphere_fitting.cpp)
+target_link_libraries(sphere_fitting
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
 add_executable(registration registration.cpp)
 target_link_libraries(registration
 	cgogn::core
