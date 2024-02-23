@@ -46,6 +46,8 @@ struct CGOGN_UI_EXPORT Inputs
 	float64 spin_sensitivity_;
 	float64 double_click_timeout_;
 
+	int32 mouse_x_;
+	int32 mouse_y_;
 	int32 previous_mouse_x_;
 	int32 previous_mouse_y_;
 	float64 previous_click_time_;

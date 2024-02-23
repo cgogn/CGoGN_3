@@ -153,6 +153,15 @@ public:
 		return (inputs_->mouse_buttons_ & (1 << b)) > 0;
 	}
 
+	inline int32 mouse_x() const
+	{
+		return inputs_->mouse_x_;
+	}
+	inline int32 mouse_y() const
+	{
+		return inputs_->mouse_y_;
+	}
+
 	inline int32 previous_mouse_x() const
 	{
 		return inputs_->previous_mouse_x_;
