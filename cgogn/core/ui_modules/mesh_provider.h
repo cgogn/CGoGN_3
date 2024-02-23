@@ -91,6 +91,15 @@ public:
 	{
 	}
 
+	MESH* mesh(const std::string& name)
+	{
+		auto it = std::find(meshes_.begin(), meshes_.end(), name);
+		if (it != meshes_.end())
+			return it->second.get();
+		else
+			return nullptr;
+	}
+
 	MESH* add_mesh(const std::string& name)
 	{
 		if constexpr (std::is_default_constructible_v<MESH>)
