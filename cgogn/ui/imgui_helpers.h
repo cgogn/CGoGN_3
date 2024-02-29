@@ -78,6 +78,44 @@ void imgui_combo_attribute(const MESH& m,
 	}
 }
 
+/**
+ * @brief generate combo box for attribute selection
+ * @param m mesh
+ * @param label label of the combo box
+ * @param selected_attribute current selected attribute
+ * @param on_change function to call with newly selected attribute
+ */
+template <typename CELL, typename T, typename MESH, typename FUNC>
+void imgui_combo_attribute(const MESH& m, const typename mesh_traits<MESH>::template Attribute<T>* selected_attribute,
+						   const std::string& label, const FUNC& on_change)
+{
+	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
+	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<Attribute>&>::value,
+				  "Wrong function attribute parameter type");
+
+	if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
+	{
+		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
+			bool is_selected = attribute.get() == selected_attribute;
+			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+			{
+				if (attribute.get() != selected_attribute)
+					on_change(attribute);
+			}
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		});
+		ImGui::EndCombo();
+	}
+	if (selected_attribute)
+	{
+		double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - float32(X_button_width));
+		if (ImGui::Button(("X##" + label).c_str()))
+			on_change(nullptr);
+	}
+}
+
 template <typename CELL, typename MESH, typename FUNC>
 void imgui_combo_cells_set(MeshData<MESH>& md, const CellsSet<MESH, CELL>* selected_set, const std::string& label,
 						   const FUNC& on_change)
