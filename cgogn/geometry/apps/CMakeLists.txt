@@ -36,6 +36,7 @@ target_link_libraries(sphere_fitting
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	cgogn::modeling
 	${CMAKE_DL_LIBS}
 )
 

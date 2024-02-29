@@ -29,10 +29,10 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/geometry/ui_modules/sphere_fitting.h>
-#include <cgogn/geometry/ui_modules/surface_differential_properties.h>
-#include <cgogn/geometry/ui_modules/surface_selection.h>
 #include <cgogn/rendering/ui_modules/point_cloud_render.h>
 #include <cgogn/rendering/ui_modules/surface_render.h>
+
+#include <cgogn/modeling/algos/remeshing/pliant_remeshing.h>
 
 #define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
 
@@ -71,8 +71,6 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Points> mpp(app);
 	cgogn::ui::SurfaceRender<Surface> sr(app);
 	cgogn::ui::PointCloudRender<Points> pcr(app);
-	cgogn::ui::SurfaceDifferentialProperties<Surface> sdp(app);
-	cgogn::ui::SurfaceSelection<Surface> ss(app);
 	cgogn::ui::SphereFitting<Surface, Points> sf(app);
 
 	app.init_modules();
@@ -81,7 +79,6 @@ int main(int argc, char** argv)
 	v1->link_module(&mps);
 	v1->link_module(&mpp);
 	v1->link_module(&sr);
-	v1->link_module(&ss);
 	v1->link_module(&pcr);
 	v1->link_module(&sf);
 
@@ -92,45 +89,35 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	std::shared_ptr<SAttribute<Vec3>> s_vertex_position = cgogn::get_attribute<Vec3, SVertex>(*s, "position");
-	std::shared_ptr<SAttribute<Vec3>> s_vertex_normal = cgogn::add_attribute<Vec3, SVertex>(*s, "normal");
+	auto s_vertex_position = cgogn::get_attribute<Vec3, SVertex>(*s, "position");
 
 	mps.set_mesh_bb_vertex_position(*s, s_vertex_position);
 
-	sdp.compute_normal(*s, s_vertex_position.get(), s_vertex_normal.get());
+	cgogn::modeling::pliant_remeshing(*s, s_vertex_position, 1.0, true, true);
+	mps.emit_connectivity_changed(*s);
+	mps.emit_attribute_changed(*s, s_vertex_position.get());
+
+	sf.set_selected_surface(*s);
+	sf.set_surface_vertex_position(*s, s_vertex_position);
+	sf.init_surface_data(*s);
+	sf.init_spheres(*s);
+
+	auto s_vertex_normal = cgogn::get_attribute<Vec3, SVertex>(*s, "normal");
 
 	sr.set_vertex_position(*v1, *s, s_vertex_position);
 	sr.set_vertex_normal(*v1, *s, s_vertex_normal);
 	sr.set_ghost_mode(*v1, *s, true);
 	sr.set_render_edges(*v1, *s, false);
 
-	cgogn::ui::MeshData<Surface>& md = mps.mesh_data(*s);
-	cgogn::CellsSet<Surface, SVertex>& cs = md.add_cells_set<SVertex>();
-
-	ss.set_vertex_position(*s, s_vertex_position);
-
-	Points* spheres = mpp.add_mesh("spheres");
-
-	std::shared_ptr<PAttribute<Vec3>> p_vertex_position = cgogn::add_attribute<Vec3, PVertex>(*spheres, "position");
-	std::shared_ptr<PAttribute<Scalar>> p_vertex_radius = cgogn::add_attribute<Scalar, PVertex>(*spheres, "radius");
-	std::shared_ptr<PAttribute<Vec4>> p_vertex_color = cgogn::add_attribute<Vec4, PVertex>(*spheres, "color");
-
-	mpp.set_mesh_bb_vertex_position(*spheres, p_vertex_position);
+	Points* spheres = mpp.mesh(mps.mesh_name(*s) + "_spheres");
+	auto p_vertex_position = cgogn::get_attribute<Vec3, PVertex>(*spheres, "position");
+	auto p_vertex_radius = cgogn::get_attribute<Scalar, PVertex>(*spheres, "radius");
+	auto p_vertex_color = cgogn::get_attribute<Vec4, PVertex>(*spheres, "color");
 
 	pcr.set_vertex_position(*v1, *spheres, p_vertex_position);
 	pcr.set_vertex_radius(*v1, *spheres, p_vertex_radius);
 	pcr.set_vertex_color(*v1, *spheres, p_vertex_color);
 	pcr.set_vertex_color_per_cell(*v1, *spheres, cgogn::ui::PointCloudRender<Points>::AttributePerCell::PER_VERTEX);
-
-	sf.set_surface(*s);
-	sf.set_surface_vertex_position(s_vertex_position);
-	sf.set_surface_vertex_normal(s_vertex_normal);
-	sf.set_surface_vertices_set(&cs);
-
-	sf.set_spheres(*spheres);
-	sf.set_spheres_position(p_vertex_position);
-	sf.set_spheres_radius(p_vertex_radius);
-	sf.set_spheres_color(p_vertex_color);
 
 	return app.launch();
 }
