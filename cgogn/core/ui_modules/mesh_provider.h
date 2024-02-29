@@ -93,7 +93,7 @@ public:
 
 	MESH* mesh(const std::string& name)
 	{
-		auto it = std::find(meshes_.begin(), meshes_.end(), name);
+		auto it = meshes_.find(name);
 		if (it != meshes_.end())
 			return it->second.get();
 		else
