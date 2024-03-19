@@ -113,6 +113,15 @@ target_link_libraries(obj_tex_viewer
 	${APPLE_LINK}
 )
 
+add_executable(test_skel_shapes test_skel_shapes.cpp)
+target_link_libraries(test_skel_shapes
+	cgogn::core
+	cgogn::ui
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+	${APPLE_LINK}
+)
+
 #if(APPLE)
 #	find_library(CORE_FOUNDATION CoreFoundation)
 #	find_library(CARBON Carbon)
