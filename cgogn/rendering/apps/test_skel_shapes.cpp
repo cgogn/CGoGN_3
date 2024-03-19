@@ -26,57 +26,59 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/rendering/shape_drawer.h>
+#include <cgogn/rendering/skelshape.h>
+
+
 using namespace ::cgogn;
 using namespace ::cgogn::rendering;
 
-class ShapeRender : public ui::ViewModule
+class SkelShapeRender : public ui::ViewModule
 {
 public:
-	ShapeRender(const ui::App & app)
-		: ViewModule(app, "Test Shape"), app_(app), shape_(nullptr)
+	SkelShapeRender(const ui::App& app) : ViewModule(app, "Test skel Shape"), app_(app), sphere_drawer_(nullptr)
 	{}
 
-	~ShapeRender()	{}
+	~SkelShapeRender()
+	{
+	}
 
 public:
 	void init() override
 	{
-		app_.current_view()->set_scene_radius(5);
+		app_.current_view()->set_scene_radius(1.5f);
 		app_.current_view()->set_scene_center(GLVec3(0,0,0));
-		shape_ = ShapeDrawer::instance();
-		shape_->update_subdivision(24);
-		shape_->color(ShapeDrawer::CYLINDER) = GLColor(1,0,0,1);
-		shape_->color(ShapeDrawer::SPHERE) = GLColor(0, 1, 0, 1);
-		shape_->color(ShapeDrawer::CONE) = GLColor(0, 0, 1, 1);
-		shape_->color(ShapeDrawer::CUBE) = GLColor(1, 0, 1, 1);
+		sphere_drawer_ = SkelSphereDrawer::instance();
+
+
+//		sphere_drawer_->set_subdiv(64);
+		//GLVec4 C1 = {0.0f, 0.0f, 0.0f, 1.0f};
+		//GLVec4 C2 = {0.0f, 2.0f, 0.0f, 0.6f};
+		//GLVec4 C3 = {3.0f, 0.0f, 0.0f, 0.4f};
+		//sphere_drawer_->set_spheres({C1, C2, C3});
+		std::vector<GLVec4> sphs;
+		static const int NB = 20;
+		sphs.reserve((2 * NB + 1) * (2 * NB + 1) * (2 * NB + 1));
+		for (int k = -NB; k < NB; ++k)
+			for (int j = -NB; j < NB; ++j)
+				for (int i = -NB; i < NB; ++i)
+					sphs.push_back({k / float(NB), j / float(NB), i / float(NB), // 0.2f});
+									(float32(rand()) / RAND_MAX) / (2*NB)});
+ //						float32(((i+j+k)%10)*(0.5/NB))});
+
+		sphere_drawer_->set_spheres(sphs);
+
 	}
 
 	void draw(ui::View * view) override
 	{
 		const GLMat4& proj_matrix = view->projection_matrix();
 		const GLMat4& view_matrix = view->modelview_matrix();
-		Eigen::Affine3f transfo = Eigen::Translation3f(GLVec3(4, 0, 0)) * Eigen::Scaling(2.0f);
-		shape_->draw(ShapeDrawer::CYLINDER, proj_matrix, view_matrix * transfo.matrix());
-		transfo = Eigen::Translation3f(GLVec3(-4, 0, 0)) * Eigen::Scaling(2.0f);
-		shape_->draw(ShapeDrawer::SPHERE, proj_matrix, view_matrix * transfo.matrix());
-		transfo = Eigen::Translation3f(GLVec3(0, -4, 0)) * Eigen::Scaling(2.0f);
-		shape_->draw(ShapeDrawer::CONE, proj_matrix, view_matrix * transfo.matrix());
-		transfo = Eigen::Translation3f(GLVec3(0, 4, 0)) * Eigen::Scaling(GLVec3(1.5f,0.5f,2));
-		shape_->draw(ShapeDrawer::CUBE, proj_matrix, view_matrix * transfo.matrix());
-
-		shape_->drawCylinder(proj_matrix, view_matrix, GLVec3(-3.75f, -4, -4.1f), GLVec3(4.1f, 4.3f, 3.95f), 0.5f);
-
-		shape_->drawSphere(proj_matrix, view_matrix, GLVec3(-3.75f, -4, -4.1f), 0.4f);
-		shape_->drawSphere(proj_matrix, view_matrix, GLVec3(4.1f, 4.3f, 3.95f), 0.4f);
-
-		shape_->drawCone(proj_matrix, view_matrix, GLVec3(0,0,2), GLVec3(-2,1,3.5), 0.75f);
-		std::cout << "DRAW" << std::endl;
+		sphere_drawer_->draw(proj_matrix, view_matrix);
 	}
 
 private:
 	const ui::App& app_;
-	ShapeDrawer* shape_;
+	SkelSphereDrawer* sphere_drawer_;
 };
 
 int main(int argc, char** argv)
@@ -86,9 +88,10 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	// declare a local module and link it
-	ShapeRender sr(app);
+	SkelShapeRender sr(app);
 	app.init_modules();
 	app.current_view()->link_module(&sr);
+
 	//no need gui here
 	//app.show_gui(false);
 	return app.launch();

@@ -21,7 +21,7 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/rendering/shape_drawer.h>
+#include <cgogn/rendering/skelshape.h>
 
 namespace cgogn
 {
@@ -56,7 +56,6 @@ void main()
 }
 )";
 
-
 // ShaderSkelCone* ShaderSkelCone::instance_ = nullptr;
 
 // ShaderSkelCone::ShaderSkelCone()
@@ -82,7 +81,7 @@ void main()
 // 	Po = P4.xyz;
 // 	if (iid ==0)
 // 		No = normal_matrix * vec3(Pc,0);
-// 	else 
+// 	else
 // 	 	No = normal_matrix[2]*float(iid);
 // 	gl_Position = projection_matrix * P4;
 // }
@@ -93,13 +92,10 @@ void main()
 // 	get_uniforms("nb","color","roughness","shininess","light_position");
 // }
 
-ShaderParamSkelShape::ShaderParamSkelShape(ShaderProgram* prg):
-nbs_(16),color_(0.8f, 0, 0, 1), roughness_(150), shininess_(0.5), light_position_(10, 100, 1000)
-{}
-
-void ShaderParamSkelShape::set_uniforms()
+ShaderParamSkelShape::ShaderParamSkelShape(ShaderProgram* prg)
+	: nbs_(16), color_(0.8f, 0, 0, 1), roughness_(150), shininess_(0.5), light_position_(10, 100, 1000),
+	  ShaderParam(prg)
 {
-	shader_->set_uniforms_values(nb_, color_, roughness_, shininess_, light_position_);
 }
 
 
@@ -114,7 +110,7 @@ uniform mat4 projection_matrix;
 uniform mat4 model_view_matrix;
 uniform mat3 normal_matrix;
 
-in vec4 centers;
+in vec4 center;
 
 out vec3 Po;
 out vec3 No;
@@ -128,23 +124,60 @@ void main()
 	float a = 2.0*PI*float(gl_VertexID/2)/float(nbs);
 	vec2 Cir = vec2(cos(a),sin(a));
 	vec3 Ps = vec3(cos(b)*Cir,sin(b));
-	vec4 P4 = model_view_matrix * vec4(Ps,1);
+	vec4 P4 = model_view_matrix * vec4(center.xyz+center.w*Ps,1);
 	Po = P4.xyz;
 	No = normal_matrix * Ps;
 	gl_Position = projection_matrix * P4;
 }
 )";
 
-	load2_bind(vertex_shader_source, shape_fragment_shader_source,"centers");
+	load2_bind(vertex_shader_source, skel_shape_fragment_shader_source, "center");
 	get_uniforms("nbs", "color", "roughness", "shininess", "light_position");
 }
 
-void ShaderParamSphere::draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi)
+void ShaderParamSkelSphere::set_uniforms()
 {
-	this->bind(projection, view);
-	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 2*nbs_+2, nbs_*nbi);	
-	this->release();
-
-
+	shader_->set_uniforms_values(nbs_, color_, roughness_, shininess_, light_position_);
 }
 
+void ShaderParamSkelSphere::draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi)
+{
+	this->bind(projection, view);
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 2 * nbs_ + 2, nbs_ * nbi);
+	this->release();
+}
+
+SkelSphereDrawer* SkelSphereDrawer::instance_ = nullptr;
+
+SkelSphereDrawer::SkelSphereDrawer()
+{
+	param_sphere_ = ShaderSkelSphere::generate_param();
+	vbo_.set_divisor(param_sphere_->nbs_);
+}
+
+SkelSphereDrawer* SkelSphereDrawer::instance()
+{
+	if (instance_ == nullptr)
+		instance_ = new SkelSphereDrawer();
+	return instance_;
+}
+
+void SkelSphereDrawer::set_subdiv(uint32 ssub)
+{
+	param_sphere_->set_subdiv(ssub);
+	vbo_.set_divisor(param_sphere_->nbs_);
+}
+
+void SkelSphereDrawer::set_spheres(const std::vector<GLVec4>& spheres)
+{
+	update_vbo(spheres, &vbo_);
+	param_sphere_->set_vbos({&vbo_});
+}
+
+void SkelSphereDrawer::draw(const GLMat4& projection, const GLMat4& view)
+{
+	param_sphere_->draw_inst(projection, view, vbo_.size());
+}
+
+} // namespace rendering
+} // namespace cgogn

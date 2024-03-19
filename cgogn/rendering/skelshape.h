@@ -1,4 +1,4 @@
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<</*******************************************************************************
+/*******************************************************************************
  * CGoGN: Combinatorial and Geometric modeling with Generic N-dimensional Maps  *
  * Copyright (C), IGG Group, ICube, University of Strasbourg, France            *
  *                                                                              *
@@ -26,6 +26,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shader_program.h>
+#include <cgogn/rendering/vbo_update.h>
 
 namespace cgogn
 {
@@ -40,11 +41,11 @@ void VBO::associate(GLuint attrib, int32 stride = 0, uint32 first = 0, uint32 di
 class ShaderParamSkelShape : public ShaderParam
 {
 public:
-	inline virtual void set_subdiv(int32 nb){};
-	inline virtual void draw(const GLMat4& projection, const GLMat4& view) = 0;
-
-	int nb_;
+	//subdiv
+	int nbs_;
+	//color RBGA 
 	GLColor color_;
+
 	float roughness_;
 	float shininess_;
 	GLVec3 light_position_;
@@ -53,21 +54,24 @@ public:
 
 	ShaderParamSkelShape(ShaderProgram* prg);
 
-	virtual void draw_inst(const GLMat4& projection, const GLMat4& view) = 0;
+	virtual void draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi) = 0;
 
+	inline virtual void set_subdiv(int32 nb)
+	{
+		nbs_ = nb;
+	};
 };
 
 
-DECLARE_SHADER_CLASS(SkelCone, false, CGOGN_STR(SkelCone))
+DECLARE_SHADER_CLASS(SkelSphere, false, CGOGN_STR(SkelSphere))
 
 class CGOGN_RENDERING_EXPORT ShaderParamSkelSphere : public ShaderParamSkelShape
 {
-
 	void set_uniforms() override;
 
 public:
 
-	using ShaderType = ShaderSphere;
+	using ShaderType = ShaderSkelSphere;
 
 	inline ShaderParamSkelSphere(ShaderType* sh):
 	ShaderParamSkelShape(sh) 
@@ -75,21 +79,26 @@ public:
 
 	inline ~ShaderParamSkelSphere() override {}
 
-	void draw_inst(const GLMat4& projection, const GLMat4& view) override;
+	inline void set_subdiv(int32 nb)
+	{
+		nbs_ = nb;
+	};
+
+	void draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi) override;
 };
 
 class SkelSphereDrawer
 {
-    std::unique_ptr<rendering::VBO> vbo_;
+	VBO vbo_;
 	std::unique_ptr<ShaderSkelSphere::Param> param_sphere_;
-public:
-	inline void set_spheres(const std::vector<GLVec4>& P1)
-    {
-       update_vbo(P1,vbo_.get());
-       param_sphere_->set_vbo({vbo_.get()});
-    }
+	static SkelSphereDrawer* instance_;
 
-	void draw(const GLMat4& projection, const GLMat4& view) override;
+public:
+	SkelSphereDrawer();
+	static SkelSphereDrawer* instance();
+	void set_spheres(const std::vector<GLVec4>& P1);
+	void set_subdiv(uint32 sub);
+	void draw(const GLMat4& projection, const GLMat4& view);
 };
 
 // DECLARE_SHADER_CLASS(SkelCone, false, CGOGN_STR(SkelCone))
