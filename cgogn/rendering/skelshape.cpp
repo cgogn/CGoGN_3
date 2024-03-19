@@ -179,5 +179,104 @@ void SkelSphereDrawer::draw(const GLMat4& projection, const GLMat4& view)
 	param_sphere_->draw_inst(projection, view, vbo_.size());
 }
 
+
+ShaderSkelCone* ShaderSkelCone::instance_ = nullptr;
+
+ShaderSkelCone::ShaderSkelCone()
+{
+	const char* vertex_shader_source = R"(
+#version 330
+uniform int nbs;
+uniform mat4 projection_matrix;
+uniform mat4 model_view_matrix;
+uniform mat3 normal_matrix;
+
+in vec4 P1;
+in vec4 P2;
+in vec3 N1;
+in vec3 N2;
+
+out vec3 Po;
+out vec3 No;
+
+const float PI = acos(-1.0);
+
+void main()
+{
+	float a = 2.0*PI*float(gl_VertexID/2)/float(nbs);
+	vec3 Q = mat2(N1,N2) * vec2(cos(a),sin(a));
+	vec4 P4 = model_view_matrix * vec4(glVertex_ID%2 !=0 ? P1.xyz +P1.w * Q : P2.xyz+P2.w * Q,1);
+	Po = P4.xyz;
+	float b = (P1.w-P2.w)/length(P2.xyz-P1.xyz);
+	No = normal_matrix * normalize(Q + b*cross(N1,N2));
+	gl_Position = projection_matrix * P4;
+)";
+
+	load2_bind(vertex_shader_source, skel_shape_fragment_shader_source, "P1,P2,N1,N2");
+	get_uniforms("nbs", "color", "roughness", "shininess", "light_position");
+}
+
+void ShaderParamSkelCone::set_uniforms()
+{
+	shader_->set_uniforms_values(nbs_, color_, roughness_, shininess_, light_position_);
+}
+
+void ShaderParamSkelCone::draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi)
+{
+	this->bind(projection, view);
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 2 * nbs_ + 2, nbs_ * nbi);
+	this->release();
+}
+
+SkelConeDrawer* SkelConeDrawer::instance_ = nullptr;
+
+SkelConeDrawer::SkelConeDrawer()
+{
+	param_cone_ = ShaderSkelCone::generate_param();
+	vbo1_.set_divisor(1);
+	vbo2_.set_divisor(1);
+	vbo3_.set_divisor(1);
+	vbo4_.set_divisor(1);
+}
+
+SkelConeDrawer* SkelConeDrawer::instance()
+{
+	if (instance_ == nullptr)
+		instance_ = new SkelConeDrawer();
+	return instance_;
+}
+
+void SkelConeDrawer::set_subdiv(uint32 ssub)
+{
+	param_cone_->set_subdiv(ssub);
+}
+
+void SkelConeDrawer::set_cones(const std::vector<GLVec4>& P1, const std::vector<GLVec4>& P2, const std::vector<GLVec3>& N1, const std::vector<GLVec3>& N2)
+{
+	update_vbo(P1, &vbo1_);
+	update_vbo(P2, &vbo2_);	
+	update_vbo(N1, &vbo3_);
+	update_vbo(N2, &vbo4_);
+	param_cone_->set_vbos({&vbo1_,&vbo2_,&vbo3_,&vbo4_});
+}
+
+void SkelConeDrawer::draw(const GLMat4& projection, const GLMat4& view)
+{
+	param_cone_->draw_inst(projection, view, vbo1_.size());
+}
+
+void SkelConeDrawer::compute_skel_cone(const GLVec4& A, const GLVec4& B, GLVec4& P1, GLVec4& P2, GLVec3& N1, GLVec3& N2)
+{
+	P1 = A;
+	P2 = B;
+	GLVec3 AB = B.block<1,3>(0,0) - A.block<1,3>(0,0);
+	if (AB.z()<0.7)
+		N1 = AB.cross(GLVec3(0,0,1)).normalized();
+	else
+		N1 = AB.cross(GLVec3(1,0,0)).normalized();
+	N2 = AB.cross(N1).normalized();
+
+}
+
 } // namespace rendering
 } // namespace cgogn
