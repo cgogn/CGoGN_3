@@ -184,7 +184,7 @@ ShaderSkelCone* ShaderSkelCone::instance_ = nullptr;
 
 ShaderSkelCone::ShaderSkelCone()
 {
-	const char* vertex_shader_source = R"(
+const char* vertex_shader_source = R"(
 #version 330
 uniform int nbs;
 uniform mat4 projection_matrix;
@@ -204,15 +204,19 @@ const float PI = acos(-1.0);
 void main()
 {
 	float a = 2.0*PI*float(gl_VertexID/2)/float(nbs);
-	vec3 Q = mat2(N1,N2) * vec2(cos(a),sin(a));
-	vec4 P4 = model_view_matrix * vec4(glVertex_ID%2 !=0 ? P1.xyz +P1.w * Q : P2.xyz+P2.w * Q,1);
+	vec3 Q = cos(a) * N1 + sin(a) * N2;
+
+	vec4 Px = mix(P1,P2,float(gl_VertexID%2));
+	vec4 P4 = model_view_matrix * vec4(Px.xyz + Px.w * Q, 1);
+	
 	Po = P4.xyz;
 	float b = (P1.w-P2.w)/length(P2.xyz-P1.xyz);
 	No = normal_matrix * normalize(Q + b*cross(N1,N2));
 	gl_Position = projection_matrix * P4;
+}
 )";
 
-	load2_bind(vertex_shader_source, skel_shape_fragment_shader_source, "P1,P2,N1,N2");
+	load2_bind(vertex_shader_source, skel_shape_fragment_shader_source, "P1","P2","N1","N2");
 	get_uniforms("nbs", "color", "roughness", "shininess", "light_position");
 }
 
@@ -240,7 +244,7 @@ SkelConeDrawer::SkelConeDrawer()
 }
 
 SkelConeDrawer* SkelConeDrawer::instance()
-{
+{   
 	if (instance_ == nullptr)
 		instance_ = new SkelConeDrawer();
 	return instance_;
@@ -267,14 +271,26 @@ void SkelConeDrawer::draw(const GLMat4& projection, const GLMat4& view)
 
 void SkelConeDrawer::compute_skel_cone(const GLVec4& A, const GLVec4& B, GLVec4& P1, GLVec4& P2, GLVec3& N1, GLVec3& N2)
 {
-	P1 = A;
-	P2 = B;
-	GLVec3 AB = B.block<1,3>(0,0) - A.block<1,3>(0,0);
-	if (AB.z()<0.7)
-		N1 = AB.cross(GLVec3(0,0,1)).normalized();
+	GLVec4 AB = B-A;
+
+	if (abs(AB.z())<0.7f)
+		N1 = AB.topRows<3>().cross(GLVec3(0,0,1)).normalized();
 	else
-		N1 = AB.cross(GLVec3(1,0,0)).normalized();
-	N2 = AB.cross(N1).normalized();
+		N1 = AB.topRows<3>().cross(GLVec3(1,0,0)).normalized();
+	N2 = AB.topRows<3>().cross(N1).normalized();
+
+
+
+	const GLVec3& AB3 =  AB.topRows<3>();
+	float d =  AB3.norm();
+	float k = AB[3]/(d*d) ;
+	P1.topRows<3>() = A.topRows<3>() - AB3 * (k*A[3]);
+	P2.topRows<3>() = B.topRows<3>() - AB3 * (k*B[3]);
+	float kk = std::sqrt(1.0f-(AB[3]*AB[3]/(d*d)));
+	P1[3] = A[3] * kk;
+	P2[3] = B[3] * kk;
+	// P2[3] = std::sqrt(B[3]*B[3]-(B[3]*B[3]*AB[3]*AB[3]/(d*d)));
+
 
 }
 

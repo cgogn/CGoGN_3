@@ -51,6 +51,9 @@ public:
 		app_.current_view()->set_scene_center(GLVec3(0,0,0));
 		sphere_drawer_ = SkelSphereDrawer::instance();
 		cone_drawer_ = SkelConeDrawer::instance();
+		sphere_drawer_->set_subdiv(40);
+		cone_drawer_->set_subdiv(40);
+
 
 		//GLVec4 C3 = {3.0f, 0.0f, 0.0f, 0.4f};
 		//sphere_drawer_->set_spheres({C1, C2, C3});
@@ -65,11 +68,25 @@ public:
 		// 							(float32(rand()) / RAND_MAX) / (2*NB)});
 		// sphere_drawer_->set_spheres(sphs);
 
-		GLVec4 C1 = {0.0f, 0.0f, 0.0f, 1.0f};
-		GLVec4 C2 = {0.0f, 2.0f, 0.0f, 0.6f};
+		GLVec4 C1 = {0.0f, 0.0f, 0.0f, 0.3f};
+		GLVec4 C2 = {0.4f, 2.0f, 0.2f, 1.1f};
 		GLVec4 C3 = {3.0f, 0.0f, 0.0f, 0.4f};
-		GLVec4 P1,P2;
-		GLVec3 N1,N2;
+		sphere_drawer_->set_spheres({C1, C2});
+
+// 		cone_drawer_->compute_skel_cone(C1,C2,P1,P2,N1,N2);
+// 		GLVec4 P1,P2;
+// 		GLVec3 N1,N2;
+// 		GLVec4 P1b,P2b;
+// 		GLVec3 N1b,N2b;
+// 		cone_drawer_->compute_skel_cone(C2,C3,P1b,P2b,N1b,N2b);
+// //		cone_drawer_->set_cones({P1},{P2} ,{N1},{N2});
+
+		// GLVec3 N1 = {1.0f,0.0f,0.0f};
+		// GLVec3 N2 = {0.0f,0.0f,1.0f};
+		// cone_drawer_->set_cones({C1},{C2} ,{N1},{N2});
+ 		GLVec4 P1,P2;
+ 		GLVec3 N1,N2;
+		cone_drawer_->compute_skel_cone(C1,C2,P1,P2,N1,N2);
 		cone_drawer_->set_cones({P1},{P2} ,{N1},{N2});
 
 	}

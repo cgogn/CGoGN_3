@@ -144,18 +144,46 @@ public:
 };
 
 
-// class SkelConeDrawer
-// {
-// 	std::unique_ptr<ShaderSkelCone::Param> param_cone_;
-//     rendering::VBO> vbo1_;
-//     rendering::VBO> vbo2_;
-// public:
-//     inline void set_cones(const std::vector<GLVec4>& P1, const std::vector<GLVec4>& P2)
-//     {
-//        update_vbo(P1,&vbo_)
-//        set_vbo({&vbo_});
-//     }
-// };
+DECLARE_SHADER_CLASS(SkelTri, false, CGOGN_STR(SkelTri))
+
+class CGOGN_RENDERING_EXPORT ShaderParamSkelTrihj : public ShaderParamSkelShape
+{
+
+	void set_uniforms() override;
+
+public:
+
+	using ShaderType = ShaderSkelCone;
+
+	inline ShaderParamSkelCone(ShaderType* sh):
+	ShaderParamSkelShape(sh) 
+	{}
+
+	inline ~ShaderParamSkelCone() override {}
+
+	void draw_inst(const GLMat4& projection, const GLMat4& view, uint32 nbi) override;
+};
+
+class SkelTriDrawer
+{
+	VBO vbo1_;
+	VBO vbo2_;
+	VBO vbo3_;
+	VBO vbo4_;
+
+	std::unique_ptr<ShaderSkelTri::Param> param_cone_;
+	static SkelTriDrawer* instance_;
+
+public:
+	SkelConeDrawer();
+	static SkelConeDrawer* instance();
+	void set_cones(const std::vector<GLVec4>& P1, const std::vector<GLVec4>& P2,  const std::vector<GLVec3>& N1, const std::vector<GLVec3>& N2);
+	void set_subdiv(uint32 sub);
+	void draw(const GLMat4& projection, const GLMat4& view);
+	void compute_skel_cone(const GLVec4& A, const GLVec4& B, GLVec4& P1, GLVec4& P2, GLVec3& N1, GLVec3& N2);
+
+};
+
 
 } // namespace rendering
 
