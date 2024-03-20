@@ -414,6 +414,14 @@ public:
 		v.request_update();
 	}
 
+	void set_edge_width(View& v, const MESH& m, float32 width)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_bold_line_->width_ = width;
+		p.param_bold_line_color_->width_ = width;
+		v.request_update();
+	}
+
 	void set_face_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& face_color)
 	{
 		Parameters& p = parameters_[&v][&m];
