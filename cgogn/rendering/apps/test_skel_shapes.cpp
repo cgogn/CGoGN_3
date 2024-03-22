@@ -32,78 +32,57 @@
 using namespace ::cgogn;
 using namespace ::cgogn::rendering;
 
-class SkelShapeRender : public ui::ViewModule
+class MySkelRender : public ui::ViewModule
 {
 public:
-	SkelShapeRender(const ui::App& app) : ViewModule(app, "Test skel Shape"), app_(app),
-		sphere_drawer_(nullptr),
-		cone_drawer_(nullptr)
-	{}
-
-	~SkelShapeRender()
+	MySkelRender(const ui::App& app)
+		: ViewModule(app, "Test skel Shape"), app_(app)
 	{
 	}
 
-public:
+	~MySkelRender()
+	{
+	}
+
 	void init() override
 	{
-		app_.current_view()->set_scene_radius(1.5f);
-		app_.current_view()->set_scene_center(GLVec3(0,0,0));
-		sphere_drawer_ = SkelSphereDrawer::instance();
-		cone_drawer_ = SkelConeDrawer::instance();
-		sphere_drawer_->set_subdiv(40);
-		cone_drawer_->set_subdiv(40);
+		app_.current_view()->set_scene_radius(4.0f);
+		app_.current_view()->set_scene_center(GLVec3(0, 0, 0));
 
+		skel_drawer_.set_color({1, 0, 1, 1});
+		skel_drawer_.set_subdiv(40);
 
-		//GLVec4 C3 = {3.0f, 0.0f, 0.0f, 0.4f};
-		//sphere_drawer_->set_spheres({C1, C2, C3});
-
-		// std::vector<GLVec4> sphs;
-		// static const int NB = 5;
-		// sphs.reserve((2 * NB + 1) * (2 * NB + 1) * (2 * NB + 1));
-		// for (int k = -NB; k < NB; ++k)
-		// 	for (int j = -NB; j < NB; ++j)
-		// 		for (int i = -NB; i < NB; ++i)
-		// 			sphs.push_back({k / float(NB), j / float(NB), i / float(NB), // 0.2f});
-		// 							(float32(rand()) / RAND_MAX) / (2*NB)});
-		// sphere_drawer_->set_spheres(sphs);
-
-		GLVec4 C1 = {0.0f, 0.0f, 0.0f, 0.3f};
-		GLVec4 C2 = {0.4f, 2.0f, 0.2f, 1.1f};
-		GLVec4 C3 = {3.0f, 0.0f, 0.0f, 0.4f};
-		sphere_drawer_->set_spheres({C1, C2});
-
-// 		cone_drawer_->compute_skel_cone(C1,C2,P1,P2,N1,N2);
-// 		GLVec4 P1,P2;
-// 		GLVec3 N1,N2;
-// 		GLVec4 P1b,P2b;
-// 		GLVec3 N1b,N2b;
-// 		cone_drawer_->compute_skel_cone(C2,C3,P1b,P2b,N1b,N2b);
-// //		cone_drawer_->set_cones({P1},{P2} ,{N1},{N2});
-
-		// GLVec3 N1 = {1.0f,0.0f,0.0f};
-		// GLVec3 N2 = {0.0f,0.0f,1.0f};
-		// cone_drawer_->set_cones({C1},{C2} ,{N1},{N2});
- 		GLVec4 P1,P2;
- 		GLVec3 N1,N2;
-		cone_drawer_->compute_skel_cone(C1,C2,P1,P2,N1,N2);
-		cone_drawer_->set_cones({P1},{P2} ,{N1},{N2});
-
+		GLVec4 C00 = {-2.5f, -2.0f, 0.9f, 0.3f};
+		GLVec4 C0 = {-2.0f, 0.0f, 0.4f, 0.2f};
+		GLVec4 C1 = {-0.5f, 0.0f, 0.0f, 0.4f};
+		GLVec4 C2 = {0.4f, 1.0f, 0.2f, 0.7f};
+		GLVec4 C3 = {1.0f, -1.0f, -0.5f, 0.2f};
+		skel_drawer_.add_vertex(C00);
+		skel_drawer_.add_vertex(C0);
+		skel_drawer_.add_vertex(C1);
+		skel_drawer_.add_vertex(C2);
+		skel_drawer_.add_vertex(C3);
+		skel_drawer_.add_edge(C00, C0);
+		skel_drawer_.add_edge(C0, C1);
+		skel_drawer_.add_edge(C1, C2);
+		skel_drawer_.add_edge(C2, C3);
+		skel_drawer_.add_edge(C3, C1);
+		skel_drawer_.add_triangle(C1, C2, C3);
+		skel_drawer_.update();
 	}
 
-	void draw(ui::View * view) override
+	void draw(ui::View* view) override
 	{
 		const GLMat4& proj_matrix = view->projection_matrix();
 		const GLMat4& view_matrix = view->modelview_matrix();
-		sphere_drawer_->draw(proj_matrix, view_matrix);
-		cone_drawer_->draw(proj_matrix, view_matrix);
+		skel_drawer_.draw(proj_matrix, view_matrix);
 	}
 
 private:
 	const ui::App& app_;
-	SkelSphereDrawer* sphere_drawer_;
-	SkelConeDrawer* cone_drawer_;
+	SkelShapeDrawer skel_drawer_;
 };
+
 
 int main(int argc, char** argv)
 {
@@ -112,7 +91,7 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	// declare a local module and link it
-	SkelShapeRender sr(app);
+	MySkelRender sr(app);
 	app.init_modules();
 	app.current_view()->link_module(&sr);
 
