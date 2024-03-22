@@ -131,6 +131,10 @@ set(src_list
 
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/skelshape.h"
+		"${CMAKE_CURRENT_LIST_DIR}/skelshape.cpp"
+
 )
 target_sources(${PROJECT_NAME} PRIVATE ${src_list})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
