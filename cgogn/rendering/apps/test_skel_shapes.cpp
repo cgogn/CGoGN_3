@@ -52,13 +52,15 @@ public:
 		skel_drawer_.set_color({1, 0, 1, 1});
 		skel_drawer_.set_subdiv(40);
 
-		GLVec4 C00 = {-2.5f, -2.0f, 0.9f, 0.3f};
-		GLVec4 C0 = {-2.0f, 0.0f, 0.4f, 0.2f};
+		// 2 first in double others in float to check on the fly conversion
+		GLVec4d C00 = {-2.5, -2.0, 0.9, 0.3};
+		GLVec4d C0 = {-2.0, 0.0, 0.4, 0.2};
+
 		GLVec4 C1 = {-0.5f, 0.0f, 0.0f, 0.4f};
 		GLVec4 C2 = {0.4f, 1.0f, 0.2f, 0.7f};
 		GLVec4 C3 = {1.0f, -1.0f, -0.5f, 0.2f};
-		skel_drawer_.add_vertex(C00);
-		skel_drawer_.add_vertex(C0);
+		skel_drawer_.add_vertex(C00.topRows<3>(), C00[3]); // just to test version with radius parameter
+		skel_drawer_.add_vertex(GLVec3d{-2.0, 0.0, 0.4}, 0.2);
 		skel_drawer_.add_vertex(C1);
 		skel_drawer_.add_vertex(C2);
 		skel_drawer_.add_vertex(C3);

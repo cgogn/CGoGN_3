@@ -182,8 +182,14 @@ public:
 	void draw(const GLMat4& projection, const GLMat4& view);
 };
 
+
 /*
-must be created with correct OGL context !
+  must be created with correct OGL context !
+  usage:
+  1 fill the buffers with add_vertex add_edge and add tri
+    (parameter can be any type of VEC which offer [] operator and good number of components.
+  2 call update
+  3 draw
 */
 class SkelShapeDrawer
 {
@@ -199,40 +205,47 @@ public:
 	inline SkelShapeDrawer()
 	{}
 
-	inline void add_vertex(const GLVec4& v)
+
+	template<typename VEC4>
+	void add_vertex(const VEC4& v)
 	{
-		vertices_.push_back(v);
+		vertices_.emplace_back(float(v[0]), float(v[1]), float(v[2]), float(v[3]));
 	}
 
-	inline void add_vertex(const GLVec3& v, float r)
+	template <typename VEC3, typename SCAL>
+	inline void add_vertex(const VEC3& v, SCAL r)
 	{
-		vertices_.emplace_back(v[0], v[1], v[2], r);
+		vertices_.emplace_back(float(v[0]), float(v[1]), float(v[2]), float(r));
 	}
 
-	inline void add_edge(const GLVec4& e1, const GLVec4& e2)
+	template <typename VEC4_1, typename VEC4_2>
+	void add_edge(const VEC4_1& e1, const VEC4_2& e2)
 	{
-		edges_.push_back(e1);
-		edges_.push_back(e2);
+		edges_.emplace_back(float(e1[0]), float(e1[1]), float(e1[2]), float(e1[3]));
+		edges_.emplace_back(float(e2[0]), float(e2[1]), float(e2[2]), float(e2[3]));
 	}
 
-	inline void add_edge(const GLVec3& e1, float r1, const GLVec3& e2, float r2)
+	template <typename VEC3_1, typename VEC3_2, typename SCAL_1, typename SCAL_2>
+	void add_edge(const VEC3_1& e1, SCAL_1 r1, const VEC3_2& e2, SCAL_2 r2)
 	{
-		edges_.emplace_back(e1[0], e1[1], e1[2], r1);
-		edges_.emplace_back(e2[0], e2[1], e2[2], r2);
+		edges_.emplace_back(float(e1[0]), float(e1[1]), float(e1[2]), float(r1));
+		edges_.emplace_back(float(e2[0]), float(e2[1]), float(e2[2]), float(r2));
 	}
 
-	inline void add_triangle(const GLVec4& t1, const GLVec4& t2, const GLVec4& t3)
+	template <typename VEC4_1, typename VEC4_2, typename VEC4_3>
+	void add_triangle(const VEC4_1& t1, const VEC4_2& t2, const VEC4_3& t3)
 	{
-		triangles_.push_back(t1);
-		triangles_.push_back(t2);
-		triangles_.push_back(t3);
+		triangles_.emplace_back(float(t1[0]), float(t1[1]), float(t1[2]), float(t1[3]));
+		triangles_.emplace_back(float(t2[0]), float(t2[1]), float(t2[2]), float(t2[3]));
+		triangles_.emplace_back(float(t3[0]), float(t3[1]), float(t3[2]), float(t3[3]));
 	}
 
-	inline void add_edge(const GLVec3& t1, float r1, const GLVec3& t2, float r2, const GLVec3& t3, float r3)
+	template <typename VEC3_1, typename VEC3_2, typename VEC3_3, typename SCAL_1, typename SCAL_2, typename SCAL_3>
+	void add_triangle(const VEC3_1& t1, SCAL_1 r1, const VEC3_2& t2, SCAL_2 r2, const VEC3_3& t3, SCAL_3 r3)
 	{
-		triangles_.emplace_back(t1[0], t1[1], t1[2], r1);
-		triangles_.emplace_back(t2[0], t2[1], t2[2], r2);
-		triangles_.emplace_back(t3[0], t3[1], t3[2], r2);
+		triangles_.emplace_back(float(t1[0]), float(t1[1]), float(t1[2]), float(r1));
+		triangles_.emplace_back(float(t2[0]), float(t2[1]), float(t2[2]), float(r2));
+		triangles_.emplace_back(float(t3[0]), float(t3[1]), float(t3[2]), float(r3));
 	}
 
 	/*
