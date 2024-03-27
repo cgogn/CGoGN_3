@@ -31,6 +31,13 @@ struct Tri
 };
 
 template <typename Vec3fType>
+struct Sphere
+{
+	Vec3fType center;
+	double radius;
+};
+
+template <typename Vec3fType>
 struct Ray
 {
 	Vec3fType origin;
@@ -85,6 +92,16 @@ inline void calculate_aabb(Tri<Vec3fType> const& tri, AABB<Vec3fType>* aabb)
 	{
 		aabb->min[i] = std::min(tri.a[i], std::min(tri.b[i], tri.c[i]));
 		aabb->max[i] = std::max(tri.a[i], std::max(tri.b[i], tri.c[i]));
+	}
+}
+
+template <typename Vec3fType>
+inline void calculate_aabb(Sphere<Vec3fType> const& sphere, AABB<Vec3fType>* aabb)
+{
+	for (int i = 0; i < 3; ++i)
+	{
+		aabb->min[i] = sphere.center[i] - sphere.radius;
+		aabb->max[i] = sphere.center[i] + sphere.radius;
 	}
 }
 
@@ -225,6 +242,14 @@ inline Vec3fType closest_point(Vec3fType const& vertex, Tri<Vec3fType> const& tr
 	}
 
 	return tri.a * bcoords[0] + tri.b * bcoords[1] + tri.c * bcoords[2];
+}
+
+template <typename Vec3fType>
+inline Vec3fType closest_point(Vec3fType const& vertex, Sphere<Vec3fType> const& sphere)
+{
+	Vec3fType diff = vertex - sphere.center;
+	double n = diff.norm();
+	return sphere.center + sphere.radius * diff / n;
 }
 
 template <typename Vec3fType>
