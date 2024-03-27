@@ -24,6 +24,8 @@
 #include <cgogn/core/types/incidence_graph/incidence_graph.h>
 #include <cgogn/core/types/maps/cmap/cmap2.h>
 
+#include <cgogn/core/functions/attributes.h>
+
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <cgogn/ui/app.h>
@@ -109,6 +111,19 @@ int main(int argc, char** argv)
 
 	// cgogn::modeling::pliant_remeshing(*s, s_vertex_position, 1.0, true, true);
 	// mps.emit_connectivity_changed(*s);
+	// mps.emit_attribute_changed(*s, s_vertex_position.get());
+
+	// auto s_vertex_normal = cgogn::get_or_add_attribute<Vec3, SVertex>(*s, "normal");
+	// cgogn::geometry::compute_normal<SVertex>(*s, s_vertex_position.get(), s_vertex_normal.get());
+	// // add some random noise in the vertices positions along their normals
+	// cgogn::foreach_cell(*s, [&](SVertex v) -> bool {
+	// 	float32 r = float32(rand()) / float32(RAND_MAX);
+	// 	int i = rand() % 2;
+	// 	if (i == 0)
+	// 		r *= -1.0f;
+	// 	cgogn::value<Vec3>(*s, s_vertex_position, v) += r * 0.005f * cgogn::value<Vec3>(*s, s_vertex_normal, v);
+	// 	return true;
+	// });
 	// mps.emit_attribute_changed(*s, s_vertex_position.get());
 
 	sf.set_selected_surface(*s);

@@ -35,6 +35,7 @@
 
 #include <Eigen/Sparse>
 #include <libacc/bvh_tree.h>
+#include <libacc/bvh_tree_spheres.h>
 #include <libacc/kd_tree.h>
 
 #include <GLFW/glfw3.h>
@@ -113,7 +114,7 @@ class SphereFitting : public ViewModule
 		float32 init_min_radius_ = 0.01f;
 		float32 init_dilation_factor_ = 1.5f;
 
-		UpdateMethod update_method_ = MEAN;
+		UpdateMethod update_method_ = FIT;
 		float32 mean_update_curvature_weight_ = 0.01f;
 		bool auto_split_outside_spheres_ = false;
 
@@ -413,31 +414,49 @@ public:
 		});
 		p.surface_vertex_cluster_->fill(PVertex());
 
+		// auto start = std::chrono::high_resolution_clock::now();
+
+		// build spheres BVH
+		MeshData<POINTS>& md = points_provider_->mesh_data(*p.spheres_);
+		uint32 nb_spheres = md.template nb_cells<PVertex>();
+		std::vector<Vec3> sphere_centers;
+		sphere_centers.reserve(nb_spheres);
+		std::vector<Scalar> sphere_radii;
+		sphere_radii.reserve(nb_spheres);
+		std::vector<PVertex> spheres_bvh_vertices;
+		spheres_bvh_vertices.reserve(nb_spheres);
+		foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+			spheres_bvh_vertices.push_back(v);
+			sphere_centers.push_back(value<Vec3>(*p.spheres_, p.spheres_position_, v));
+			sphere_radii.push_back(value<Scalar>(*p.spheres_, p.spheres_radius_, v));
+			return true;
+		});
+		acc::BVHTreeSpheres<uint32, Vec3> spheres_bvh(sphere_centers, sphere_radii);
+
 		// assign each surface vertex to its closest sphere cluster
-		foreach_cell(s, [&](SVertex v) -> bool {
+		parallel_foreach_cell(s, [&](SVertex v) -> bool {
 			if (!value<bool>(s, p.medial_axis_selected_, v))
 				return true;
 
 			const Vec3& vp = value<Vec3>(s, p.surface_vertex_position_, v);
 			PVertex closest_sphere;
-			foreach_cell(*p.spheres_, [&](PVertex s) -> bool {
-				if (!closest_sphere.is_valid())
-					closest_sphere = s;
-				else
-				{
-					Scalar d = (value<Vec3>(*p.spheres_, p.spheres_position_, s) - vp).norm() -
-							   value<Scalar>(*p.spheres_, p.spheres_radius_, s);
-					Scalar d_closest = (value<Vec3>(*p.spheres_, p.spheres_position_, closest_sphere) - vp).norm() -
-									   value<Scalar>(*p.spheres_, p.spheres_radius_, closest_sphere);
-					if (d < d_closest)
-						closest_sphere = s;
-				}
-				return true;
-			});
-			value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, closest_sphere).push_back(v);
+
+			std::pair<uint32, Vec3> bvh_res;
+			spheres_bvh.closest_point(vp, &bvh_res);
+			closest_sphere = spheres_bvh_vertices[bvh_res.first];
+
 			value<PVertex>(s, p.surface_vertex_cluster_, v) = closest_sphere;
+
+			std::lock_guard<std::mutex> lock(spheres_mutex_[bvh_res.first % spheres_mutex_.size()]);
+			value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, closest_sphere).push_back(v);
+
 			return true;
 		});
+
+		// auto end = std::chrono::high_resolution_clock::now();
+
+		// std::cout << "Cluster computation time: " << std::chrono::duration<Scalar>(end - start).count() << "s"
+		// 		  << std::endl;
 
 		// remove small clusters
 		foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
@@ -1071,6 +1090,8 @@ private:
 
 	SURFACE* selected_surface_ = nullptr;
 	PVertex picked_sphere_;
+
+	std::array<std::mutex, 43> spheres_mutex_;
 
 	std::shared_ptr<boost::synapse::connection> timer_connection_;
 };
