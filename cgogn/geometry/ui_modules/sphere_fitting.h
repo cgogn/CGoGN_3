@@ -103,25 +103,32 @@ class SphereFitting : public ViewModule
 		std::shared_ptr<PAttribute<std::set<PVertex>>> spheres_neighbor_clusters_ = nullptr;
 		std::shared_ptr<PAttribute<Scalar>> spheres_error_ = nullptr;
 		std::shared_ptr<PAttribute<Scalar>> spheres_deviation_ = nullptr;
+		std::shared_ptr<PAttribute<Scalar>> spheres_correction_error_ = nullptr;
 		PAttribute<Scalar>* selected_spheres_error_ = nullptr;
 
 		NONMANIFOLD* skeleton_;
 		std::shared_ptr<NMAttribute<Vec3>> skeleton_position_ = nullptr;
 
-		float32 filter_radius_threshold_ = 0.01f;
-		float32 filter_angle_threshold_ = M_PI / 4.0f;
+		float32 filter_radius_threshold_ = 0.005f;
+		float32 filter_angle_threshold_ = M_PI / 8.0f;
 
-		float32 init_min_radius_ = 0.01f;
-		float32 init_dilation_factor_ = 1.75f;
+		float32 init_min_radius_ = 0.005f;
+		float32 init_dilation_factor_ = 2.5f;
 
 		UpdateMethod update_method_ = FIT;
 		float32 mean_update_curvature_weight_ = 0.01f;
 		bool auto_split_outside_spheres_ = false;
 
+		bool auto_stop_ = false;
+		bool auto_split_ = true;
+		float32 auto_split_threshold_ = 0.15f;
+
 		Scalar total_error_ = 0.0;
+		Scalar last_total_error_ = 0.0;
 		Scalar min_error_ = 0.0;
 		Scalar max_error_ = 0.0;
 
+		uint32 iteration_count_ = 0;
 		std::mutex mutex_;
 		bool running_ = false;
 		bool stopping_ = false;
@@ -245,6 +252,7 @@ public:
 		p.spheres_color_ = add_attribute<Vec4, PVertex>(*p.spheres_, "color");
 		p.spheres_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "error");
 		p.spheres_deviation_ = add_attribute<Scalar, PVertex>(*p.spheres_, "deviation");
+		p.spheres_correction_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "correction_error");
 		p.selected_spheres_error_ = p.spheres_error_.get();
 
 		// cluster info
@@ -266,8 +274,6 @@ public:
 
 	void filter_medial_samples(SurfaceParameters& p)
 	{
-		std::lock_guard<std::mutex> lock(p.mutex_);
-
 		parallel_foreach_cell(*p.surface_, [&](SVertex v) -> bool {
 			uint32 v_index = index_of(*p.surface_, v);
 			const Vec3& c = (*p.medial_axis_position_)[v_index];
@@ -317,8 +323,6 @@ public:
 	{
 		SurfaceParameters& p = surface_parameters_[&s];
 
-		std::lock_guard<std::mutex> lock(p.mutex_);
-
 		clear(*p.spheres_);
 
 		// auto nb_covered = add_attribute<uint32, SVertex>(s, "__nb_covered");
@@ -363,8 +367,12 @@ public:
 			Scalar vr = (*p.medial_axis_radius_)[v_index];
 
 			PVertex sphere = add_vertex(*p.spheres_);
-			value<Vec3>(*p.spheres_, p.spheres_position_, sphere) = vp;
-			value<Scalar>(*p.spheres_, p.spheres_radius_, sphere) = vr;
+			uint32 sphere_index = index_of(*p.spheres_, sphere);
+
+			(*p.spheres_position_)[sphere_index] = vp;
+			(*p.spheres_radius_)[sphere_index] = vr;
+
+			(*p.spheres_correction_error_)[sphere_index] = 0.0;
 
 			std::stack<SVertex> stack;
 			stack.push(v);
@@ -656,6 +664,8 @@ public:
 
 		(*p.spheres_position_)[sphere_index] = center;
 		(*p.spheres_radius_)[sphere_index] = radius;
+
+		(*p.spheres_correction_error_)[sphere_index] = (c - center).norm();
 	}
 
 	void update_sphere_fit(SurfaceParameters& p, PVertex sphere)
@@ -728,13 +738,13 @@ public:
 
 		(*p.spheres_position_)[sphere_index] = center;
 		(*p.spheres_radius_)[sphere_index] = radius;
+
+		(*p.spheres_correction_error_)[sphere_index] = (s2c - center).norm();
 	}
 
 	void update_spheres(SurfaceParameters& p)
 	{
 		// auto start = std::chrono::high_resolution_clock::now();
-
-		std::lock_guard<std::mutex> lock(p.mutex_);
 
 		switch (p.update_method_)
 		{
@@ -754,6 +764,13 @@ public:
 		}
 		}
 
+		if (p.auto_split_ && p.iteration_count_ % 10 == 0)
+		{
+			auto [max_sphere, max_error] = max_error_sphere(p, p.selected_spheres_error_);
+			if (max_error > p.auto_split_threshold_)
+				split_sphere(p, max_sphere, false);
+		}
+
 		compute_clusters(p);
 		compute_spheres_error(p);
 
@@ -764,11 +781,9 @@ public:
 			update_render_data(p);
 	}
 
-	void split_sphere(SurfaceParameters& p, PVertex v)
+	void split_sphere(SurfaceParameters& p, PVertex v, bool update_clusters = true)
 	{
 		uint32 v_index = index_of(*p.spheres_, v);
-
-		std::lock_guard<std::mutex> lock(p.mutex_);
 
 		// find the vertex of the cluster with maximal distance to the sphere
 
@@ -796,17 +811,20 @@ public:
 		(*p.spheres_position_)[new_sphere_index] = (*p.medial_axis_position_)[farthest_vertex_index];
 		(*p.spheres_radius_)[new_sphere_index] = (*p.medial_axis_radius_)[farthest_vertex_index];
 
-		compute_clusters(p);
-		compute_spheres_error(p);
+		(*p.spheres_correction_error_)[new_sphere_index] = 0.0;
 
-		if (!p.running_)
-			update_render_data(p);
+		if (update_clusters)
+		{
+			compute_clusters(p);
+			compute_spheres_error(p);
+
+			if (!p.running_)
+				update_render_data(p);
+		}
 	}
 
 	void remove_sphere(SurfaceParameters& p, PVertex v)
 	{
-		std::lock_guard<std::mutex> lock(p.mutex_);
-
 		const std::vector<SVertex>& cluster = value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, v);
 		for (SVertex sv : cluster)
 			value<PVertex>(*p.surface_, p.surface_vertex_cluster_, sv) = PVertex();
@@ -819,23 +837,23 @@ public:
 			update_render_data(p);
 	}
 
-	PVertex max_error_sphere(SurfaceParameters& p)
+	std::pair<PVertex, Scalar> max_error_sphere(SurfaceParameters& p, PAttribute<Scalar>* attribute)
 	{
 		// find sphere with maximal error according to the selected error attribute
 
 		PVertex max_sphere;
-		Scalar max = 0.0;
+		Scalar max_error = 0.0;
 		foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
-			Scalar error = value<Scalar>(*p.spheres_, p.selected_spheres_error_, v);
-			if (error > max)
+			Scalar error = value<Scalar>(*p.spheres_, attribute, v);
+			if (error > max_error)
 			{
-				max = error;
+				max_error = error;
 				max_sphere = v;
 			}
 			return true;
 		});
 
-		return max_sphere;
+		return {max_sphere, max_error};
 	}
 
 	void compute_skeleton(SurfaceParameters& p)
@@ -921,16 +939,25 @@ protected:
 	void start_spheres_update(SurfaceParameters& p)
 	{
 		p.running_ = true;
+		p.iteration_count_ = 0;
+		p.last_total_error_ = std::numeric_limits<Scalar>::max();
 
 		launch_thread([&]() {
 			while (true)
 			{
-				update_spheres(p);
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
+					update_spheres(p);
+					p.iteration_count_++;
+				}
 				if (p.slow_down_)
 					std::this_thread::sleep_for(std::chrono::microseconds(1000000 / p.update_rate_));
 				else
 					std::this_thread::yield();
-				if (p.stopping_)
+
+				Scalar error_diff = fabs(p.total_error_ - p.last_total_error_);
+				p.last_total_error_ = p.total_error_;
+				if (p.stopping_ || (p.auto_stop_ && error_diff < 1e-3))
 				{
 					p.running_ = false;
 					p.stopping_ = false;
@@ -980,9 +1007,15 @@ protected:
 			});
 
 			if (key_code == GLFW_KEY_S && picked_sphere_.is_valid())
+			{
+				std::lock_guard<std::mutex> lock(p.mutex_);
 				split_sphere(p, picked_sphere_);
+			}
 			else if (key_code == GLFW_KEY_D && picked_sphere_.is_valid())
+			{
+				std::lock_guard<std::mutex> lock(p.mutex_);
 				remove_sphere(p, picked_sphere_);
+			}
 		}
 	}
 
@@ -1010,13 +1043,22 @@ protected:
 				ImGui::SliderFloat("Init min radius", &p.init_min_radius_, 0.001, 0.02);
 				ImGui::SliderFloat("Init dilation factor", &p.init_dilation_factor_, 1.0, 4.0);
 				if (ImGui::Button("Init spheres"))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
 					init_spheres(*selected_surface_);
+				}
 
 				if (ImGui::SliderFloat("Samples min radius", &p.filter_radius_threshold_, 0.0001f, 1.0f, "%.4f",
 									   ImGuiSliderFlags_Logarithmic))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
 					filter_medial_samples(p);
+				}
 				if (ImGui::SliderFloat("Samples min angle", &p.filter_angle_threshold_, 0.0001f, M_PI, "%.4f"))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
 					filter_medial_samples(p);
+				}
 
 				ImGui::RadioButton("Fit", (int*)&p.update_method_, FIT);
 				ImGui::SameLine();
@@ -1025,10 +1067,13 @@ protected:
 				ImGui::SliderFloat("Mean update curvature weight", &p.mean_update_curvature_weight_, 0.0f, 1.0f, "%.3f",
 								   ImGuiSliderFlags_Logarithmic);
 
-				ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
+				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
 
 				if (ImGui::Button("Update spheres"))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
 					update_spheres(p);
+				}
 
 				ImGui::Checkbox("Slow down", &p.slow_down_);
 				if (p.slow_down_)
@@ -1043,8 +1088,12 @@ protected:
 					if (ImGui::Button("Stop spheres update"))
 						stop_spheres_update(p);
 				}
+				ImGui::Checkbox("Auto stop", &p.auto_stop_);
 
 				ImGui::Separator();
+
+				ImGui::Checkbox("Auto split", &p.auto_split_);
+				ImGui::SliderFloat("Auto split threshold", &p.auto_split_threshold_, 0.0001f, 0.5f, "%.4f");
 
 				imgui_combo_attribute<PVertex, Scalar>(*p.spheres_, p.selected_spheres_error_, "Error measure",
 													   [&](const std::shared_ptr<PAttribute<Scalar>>& attribute) {
@@ -1053,7 +1102,8 @@ protected:
 
 				if (ImGui::Button("Split max error sphere"))
 				{
-					PVertex v = max_error_sphere(p);
+					auto [v, e] = max_error_sphere(p, p.selected_spheres_error_);
+					std::lock_guard<std::mutex> lock(p.mutex_);
 					split_sphere(p, v);
 				}
 
