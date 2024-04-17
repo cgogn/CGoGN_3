@@ -29,9 +29,12 @@
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
 
+#include <cgogn/geometry/algos/fitting.h>
 #include <cgogn/geometry/algos/medial_axis.h>
 #include <cgogn/geometry/functions/angle.h>
 #include <cgogn/geometry/functions/distance.h>
+
+#include <cgogn/modeling/algos/decimation/SQEM_helper.h>
 
 #include <Eigen/Sparse>
 #include <libacc/bvh_tree.h>
@@ -49,6 +52,8 @@ namespace cgogn
 namespace ui
 {
 
+using geometry::Mat3;
+using geometry::Mat4;
 using geometry::Scalar;
 using geometry::Vec3;
 using geometry::Vec4;
@@ -72,8 +77,8 @@ class SphereFitting : public ViewModule
 
 	enum UpdateMethod : uint32
 	{
-		MEAN,
-		FIT
+		FIT,
+		SQEM
 	};
 
 	struct SurfaceParameters
@@ -95,15 +100,20 @@ class SphereFitting : public ViewModule
 		acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
 		std::vector<SVertex> surface_kdt_vertices_;
 
+		modeling::ClusteringSQEM_Helper<SURFACE>* sqem_helper_ = nullptr;
+		float32 sqem_update_lambda_ = 0.01f;
+		float32 sqem_clustering_lambda_ = 0.1f;
+
 		POINTS* spheres_;
 		std::shared_ptr<PAttribute<Vec3>> spheres_position_ = nullptr;
 		std::shared_ptr<PAttribute<Scalar>> spheres_radius_ = nullptr;
 		std::shared_ptr<PAttribute<Vec4>> spheres_color_ = nullptr;
 		std::shared_ptr<PAttribute<std::vector<SVertex>>> spheres_cluster_ = nullptr;
 		std::shared_ptr<PAttribute<std::set<PVertex>>> spheres_neighbor_clusters_ = nullptr;
-		std::shared_ptr<PAttribute<Scalar>> spheres_error_ = nullptr;
-		std::shared_ptr<PAttribute<Scalar>> spheres_deviation_ = nullptr;
+		std::shared_ptr<PAttribute<Scalar>> spheres_distance_error_ = nullptr;
 		std::shared_ptr<PAttribute<Scalar>> spheres_correction_error_ = nullptr;
+		std::shared_ptr<PAttribute<Scalar>> spheres_sqem_error_ = nullptr;
+		std::shared_ptr<PAttribute<Scalar>> spheres_combined_error_ = nullptr;
 		PAttribute<Scalar>* selected_spheres_error_ = nullptr;
 
 		NONMANIFOLD* skeleton_;
@@ -112,12 +122,11 @@ class SphereFitting : public ViewModule
 		float32 filter_radius_threshold_ = 0.005f;
 		float32 filter_angle_threshold_ = M_PI / 8.0f;
 
-		float32 init_min_radius_ = 0.005f;
 		float32 init_dilation_factor_ = 2.5f;
 
-		UpdateMethod update_method_ = FIT;
-		float32 mean_update_curvature_weight_ = 0.01f;
-		bool auto_split_outside_spheres_ = false;
+		UpdateMethod update_method_ = SQEM;
+
+		// bool auto_split_outside_spheres_ = false;
 
 		bool auto_stop_ = false;
 		bool auto_split_ = true;
@@ -221,6 +230,11 @@ public:
 		p.surface_vertex_normal_ = get_or_add_attribute<Vec3, SVertex>(s, "normal");
 		geometry::compute_normal<SVertex>(s, p.surface_vertex_position_.get(), p.surface_vertex_normal_.get());
 
+		// initialize SQEM helper
+
+		p.sqem_helper_ = new modeling::ClusteringSQEM_Helper<SURFACE>(s, p.surface_vertex_position_.get(),
+																	  p.surface_vertex_normal_.get());
+
 		// compute shrinking balls for the surface vertices
 
 		p.medial_axis_position_ = get_or_add_attribute<Vec3, SVertex>(s, "medial_axis_position");
@@ -250,10 +264,11 @@ public:
 		p.spheres_position_ = add_attribute<Vec3, PVertex>(*p.spheres_, "position");
 		p.spheres_radius_ = add_attribute<Scalar, PVertex>(*p.spheres_, "radius");
 		p.spheres_color_ = add_attribute<Vec4, PVertex>(*p.spheres_, "color");
-		p.spheres_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "error");
-		p.spheres_deviation_ = add_attribute<Scalar, PVertex>(*p.spheres_, "deviation");
+		p.spheres_distance_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "distance_error");
 		p.spheres_correction_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "correction_error");
-		p.selected_spheres_error_ = p.spheres_error_.get();
+		p.spheres_sqem_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "sqem_error");
+		p.spheres_combined_error_ = add_attribute<Scalar, PVertex>(*p.spheres_, "combined_error");
+		p.selected_spheres_error_ = p.spheres_combined_error_.get();
 
 		// cluster info
 
@@ -353,8 +368,8 @@ public:
 		{
 			uint32 v_index = index_of(*p.surface_, v);
 
-			// do not add spheres with radius smaller than init_min_radius_
-			if ((*p.medial_axis_radius_)[v_index] < p.init_min_radius_)
+			// do not add spheres with radius smaller than filter_radius_threshold_
+			if ((*p.medial_axis_radius_)[v_index] < p.filter_radius_threshold_)
 				break;
 
 			if ((*covered)[v_index])
@@ -420,51 +435,95 @@ public:
 		parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
 			uint32 v_index = index_of(*p.spheres_, v);
 			(*p.spheres_cluster_)[v_index].clear();
-			(*p.spheres_neighbor_clusters_)[v_index].clear();
 			return true;
 		});
 		p.surface_vertex_cluster_->fill(PVertex());
 
 		// auto start = std::chrono::high_resolution_clock::now();
 
-		// build spheres BVH
-		MeshData<POINTS>& md = points_provider_->mesh_data(*p.spheres_);
-		uint32 nb_spheres = md.template nb_cells<PVertex>();
-		std::vector<Vec3> sphere_centers;
-		sphere_centers.reserve(nb_spheres);
-		std::vector<Scalar> sphere_radii;
-		sphere_radii.reserve(nb_spheres);
-		std::vector<PVertex> spheres_bvh_vertices;
-		spheres_bvh_vertices.reserve(nb_spheres);
-		foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
-			uint32 v_index = index_of(*p.spheres_, v);
-			spheres_bvh_vertices.push_back(v);
-			sphere_centers.push_back((*p.spheres_position_)[v_index]);
-			sphere_radii.push_back((*p.spheres_radius_)[v_index]);
-			return true;
-		});
-		acc::BVHTreeSpheres<uint32, Vec3> spheres_bvh(sphere_centers, sphere_radii);
-
-		// assign each surface vertex to its closest sphere cluster
-		parallel_foreach_cell(*p.surface_, [&](SVertex v) -> bool {
-			uint32 v_index = index_of(*p.surface_, v);
-			if (!(*p.medial_axis_selected_)[v_index])
+		switch (p.update_method_)
+		{
+		case FIT: {
+			// build spheres BVH
+			MeshData<POINTS>& md = points_provider_->mesh_data(*p.spheres_);
+			uint32 nb_spheres = md.template nb_cells<PVertex>();
+			std::vector<Vec3> sphere_centers;
+			sphere_centers.reserve(nb_spheres);
+			std::vector<Scalar> sphere_radii;
+			sphere_radii.reserve(nb_spheres);
+			std::vector<PVertex> spheres_bvh_vertices;
+			spheres_bvh_vertices.reserve(nb_spheres);
+			foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+				uint32 v_index = index_of(*p.spheres_, v);
+				spheres_bvh_vertices.push_back(v);
+				sphere_centers.push_back((*p.spheres_position_)[v_index]);
+				sphere_radii.push_back((*p.spheres_radius_)[v_index]);
 				return true;
+			});
+			acc::BVHTreeSpheres<uint32, Vec3> spheres_bvh(sphere_centers, sphere_radii);
 
-			const Vec3& vp = (*p.surface_vertex_position_)[v_index];
-			PVertex closest_sphere;
+			// assign each surface vertex to its closest sphere cluster
+			parallel_foreach_cell(*p.surface_, [&](SVertex v) -> bool {
+				uint32 v_index = index_of(*p.surface_, v);
+				if (!(*p.medial_axis_selected_)[v_index])
+					return true;
 
-			std::pair<uint32, Vec3> bvh_res;
-			spheres_bvh.closest_point(vp, &bvh_res);
-			closest_sphere = spheres_bvh_vertices[bvh_res.first];
+				const Vec3& vp = (*p.surface_vertex_position_)[v_index];
+				PVertex closest_sphere;
 
-			(*p.surface_vertex_cluster_)[v_index] = closest_sphere;
+				std::pair<uint32, Vec3> bvh_res;
+				spheres_bvh.closest_point(vp, &bvh_res);
+				closest_sphere = spheres_bvh_vertices[bvh_res.first];
 
-			std::lock_guard<std::mutex> lock(spheres_mutex_[bvh_res.first % spheres_mutex_.size()]);
-			value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, closest_sphere).push_back(v);
+				(*p.surface_vertex_cluster_)[v_index] = closest_sphere;
 
-			return true;
-		});
+				std::lock_guard<std::mutex> lock(spheres_mutex_[bvh_res.first % spheres_mutex_.size()]);
+				value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, closest_sphere).push_back(v);
+
+				return true;
+			});
+
+			break;
+		}
+		case SQEM: {
+			parallel_foreach_cell(*p.surface_, [&](SVertex v) -> bool {
+				uint32 v_index = index_of(*p.surface_, v);
+				if (!(*p.medial_axis_selected_)[v_index])
+					return true;
+
+				const Vec3& vp = (*p.surface_vertex_position_)[v_index];
+				Scalar min_distance = std::numeric_limits<Scalar>::max();
+				PVertex closest_sphere;
+				uint32 closest_sphere_index;
+
+				foreach_cell(*p.spheres_, [&](PVertex pv) {
+					uint32 pv_index = index_of(*p.spheres_, pv);
+
+					const Vec3& center = (*p.spheres_position_)[pv_index];
+					Scalar radius = (*p.spheres_radius_)[pv_index];
+					Scalar dist_eucl = fabs((vp - center).norm() - radius);
+					Scalar dist_sqem = p.sqem_helper_->vertex_cost(v, Vec4(center.x(), center.y(), center.z(), radius));
+					Scalar dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
+					if (dist < min_distance)
+					{
+						min_distance = dist;
+						closest_sphere = pv;
+						closest_sphere_index = pv_index;
+					}
+					return true;
+				});
+
+				value<PVertex>(*p.surface_, p.surface_vertex_cluster_, v) = closest_sphere;
+
+				std::lock_guard<std::mutex> lock(spheres_mutex_[closest_sphere_index % spheres_mutex_.size()]);
+				value<std::vector<SVertex>>(*p.spheres_, p.spheres_cluster_, closest_sphere).push_back(v);
+
+				return true;
+			});
+
+			break;
+		}
+		}
 
 		// auto end = std::chrono::high_resolution_clock::now();
 
@@ -483,21 +542,6 @@ public:
 			}
 			return true;
 		});
-
-		// compute neighbor clusters
-		foreach_cell(*p.surface_, [&](SEdge e) -> bool {
-			std::vector<SVertex> vertices = incident_vertices(*p.surface_, e);
-
-			PVertex v1_cluster = value<PVertex>(*p.surface_, p.surface_vertex_cluster_, vertices[0]);
-			PVertex v2_cluster = value<PVertex>(*p.surface_, p.surface_vertex_cluster_, vertices[1]);
-			if (v1_cluster.is_valid() && v2_cluster.is_valid() && v1_cluster != v2_cluster)
-			{
-				value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, v1_cluster).insert(v2_cluster);
-				value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, v2_cluster).insert(v1_cluster);
-			}
-
-			return true;
-		});
 	}
 
 	void compute_spheres_error(SurfaceParameters& p)
@@ -505,28 +549,28 @@ public:
 		parallel_foreach_cell(*p.spheres_, [&](PVertex v) {
 			uint32 v_index = index_of(*p.spheres_, v);
 
-			Scalar error = 0.0;
 			const Vec3& center = (*p.spheres_position_)[v_index];
 			Scalar radius = (*p.spheres_radius_)[v_index];
 			const std::vector<SVertex>& cluster = (*p.spheres_cluster_)[v_index];
-			for (SVertex sv : cluster)
-			{
-				Scalar d = (value<Vec3>(*p.surface_, p.surface_vertex_position_, sv) - center).norm() - radius;
-				error += d * d;
-			}
-			(*p.spheres_error_)[v_index] = error;
 
-			Scalar mean_error = error / cluster.size();
-			Scalar variance = 0.0;
+			Scalar distance_error = 0.0;
 			for (SVertex sv : cluster)
 			{
-				Scalar d = (value<Vec3>(*p.surface_, p.surface_vertex_position_, sv) - center).norm() - radius;
-				Scalar err = d * d;
-				variance += (err - mean_error) * (err - mean_error);
+				distance_error +=
+					fabs((value<Vec3>(*p.surface_, p.surface_vertex_position_, sv) - center).norm() - radius);
 			}
-			variance /= cluster.size();
-			Scalar deviation = std::sqrt(variance);
-			(*p.spheres_deviation_)[v_index] = deviation;
+			(*p.spheres_distance_error_)[v_index] = distance_error;
+
+			Scalar sqem_error = 0.0;
+			for (SVertex sv : cluster)
+			{
+				Scalar cost = p.sqem_helper_->vertex_cost(sv, Vec4(center.x(), center.y(), center.z(), radius));
+				sqem_error += cost;
+			}
+			(*p.spheres_sqem_error_)[v_index] = sqem_error;
+
+			// use update lambda in the combined error
+			(*p.spheres_combined_error_)[v_index] = sqem_error + p.sqem_update_lambda_ * distance_error;
 
 			return true;
 		});
@@ -573,89 +617,162 @@ public:
 	// others which maximizes the angle [p1-pos, p2-pos] (p2). Then:
 	// - update the given sphere with center and radius of the shrinking ball adjacent to p1
 	// - adds a new sphere with center and radius of the shrinking ball adjacent to p2
-	void split_outside_sphere(SurfaceParameters& p, const Vec3& center, PVertex sphere)
-	{
-		std::cout << "outside center" << std::endl;
+	// void split_outside_sphere(SurfaceParameters& p, const Vec3& center, PVertex sphere)
+	// {
+	// 	std::cout << "outside center" << std::endl;
 
-		std::vector<std::pair<uint32, Scalar>> k_res;
-		p.surface_kdt_->find_nns(center, 25, &k_res);
+	// 	std::vector<std::pair<uint32, Scalar>> k_res;
+	// 	p.surface_kdt_->find_nns(center, 25, &k_res);
 
-		// look for the closest vertex with maximal angle with the first closest vertex
-		Scalar max_angle = 0.0;
-		SVertex max_angle_vertex;
-		for (uint32 i = 1; i < k_res.size(); ++i)
-		{
-			Scalar a = geometry::angle(p.surface_kdt_->vertex(k_res[0].first) - center,
-									   p.surface_kdt_->vertex(k_res[i].first) - center);
-			if (a > max_angle)
-			{
-				max_angle = a;
-				max_angle_vertex = p.surface_kdt_vertices_[k_res[i].first];
-			}
-		}
+	// 	// look for the closest vertex with maximal angle with the first closest vertex
+	// 	Scalar max_angle = 0.0;
+	// 	SVertex max_angle_vertex;
+	// 	for (uint32 i = 1; i < k_res.size(); ++i)
+	// 	{
+	// 		Scalar a = geometry::angle(p.surface_kdt_->vertex(k_res[0].first) - center,
+	// 								   p.surface_kdt_->vertex(k_res[i].first) - center);
+	// 		if (a > max_angle)
+	// 		{
+	// 			max_angle = a;
+	// 			max_angle_vertex = p.surface_kdt_vertices_[k_res[i].first];
+	// 		}
+	// 	}
 
-		const Vec3& pos0 =
-			value<Vec3>(*p.surface_, p.surface_vertex_position_, p.surface_kdt_vertices_[k_res[0].first]);
-		const Vec3& pos0n = value<Vec3>(*p.surface_, p.surface_vertex_normal_, p.surface_kdt_vertices_[k_res[0].first]);
+	// 	const Vec3& pos0 =
+	// 		value<Vec3>(*p.surface_, p.surface_vertex_position_, p.surface_kdt_vertices_[k_res[0].first]);
+	// 	const Vec3& pos0n = value<Vec3>(*p.surface_, p.surface_vertex_normal_, p.surface_kdt_vertices_[k_res[0].first]);
 
-		auto [center0, radius0, secondary0] =
-			geometry::shrinking_ball_center(*p.surface_, pos0, pos0n, p.surface_vertex_position_.get(), p.surface_bvh_,
-											p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
+	// 	auto [center0, radius0, secondary0] =
+	// 		geometry::shrinking_ball_center(*p.surface_, pos0, pos0n, p.surface_vertex_position_.get(), p.surface_bvh_,
+	// 										p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
 
-		value<Vec3>(*p.spheres_, p.spheres_position_, sphere) = center0;
-		value<Scalar>(*p.spheres_, p.spheres_radius_, sphere) = radius0;
+	// 	value<Vec3>(*p.spheres_, p.spheres_position_, sphere) = center0;
+	// 	value<Scalar>(*p.spheres_, p.spheres_radius_, sphere) = radius0;
 
-		const Vec3& pos1 = value<Vec3>(*p.surface_, p.surface_vertex_position_, max_angle_vertex);
-		const Vec3& pos1n = value<Vec3>(*p.surface_, p.surface_vertex_normal_, max_angle_vertex);
+	// 	const Vec3& pos1 = value<Vec3>(*p.surface_, p.surface_vertex_position_, max_angle_vertex);
+	// 	const Vec3& pos1n = value<Vec3>(*p.surface_, p.surface_vertex_normal_, max_angle_vertex);
 
-		auto [center1, radius1, secondary1] =
-			geometry::shrinking_ball_center(*p.surface_, pos1, pos1n, p.surface_vertex_position_.get(), p.surface_bvh_,
-											p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
+	// 	auto [center1, radius1, secondary1] =
+	// 		geometry::shrinking_ball_center(*p.surface_, pos1, pos1n, p.surface_vertex_position_.get(), p.surface_bvh_,
+	// 										p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
 
-		PVertex new_sphere = add_vertex(*p.spheres_);
-		value<Vec3>(*p.spheres_, p.spheres_position_, new_sphere) = center1;
-		value<Scalar>(*p.spheres_, p.spheres_radius_, new_sphere) = radius1;
-	}
+	// 	PVertex new_sphere = add_vertex(*p.spheres_);
+	// 	uint32 new_sphere_index = index_of(*p.spheres_, new_sphere);
 
-	void update_sphere_mean(SurfaceParameters& p, PVertex sphere)
+	// 	(*p.spheres_position_)[new_sphere_index] = center1;
+	// 	(*p.spheres_radius_)[new_sphere_index] = radius1;
+
+	// 	(*p.spheres_correction_error_)[new_sphere_index] = 0.0;
+	// }
+
+	void update_sphere_fit(SurfaceParameters& p, PVertex sphere)
 	{
 		uint32 sphere_index = index_of(*p.spheres_, sphere);
 
 		const std::vector<SVertex>& cluster = (*p.spheres_cluster_)[sphere_index];
-		Vec3 c = Vec3(0.0, 0.0, 0.0);
-		Scalar n = 0.0;
-
-		for (SVertex v : cluster)
-		{
-			uint32 v_index = index_of(*p.surface_, v);
-			Scalar r = (*p.medial_axis_radius_)[v_index];
-			// avoid division by zero (or too small value)
-			r = std::max(r, 0.001);
-			// w varies between 1 and r when mean_update_curvature_weight_ varies between 0 and 1
-			Scalar w = 1.0 + (1.0 - p.mean_update_curvature_weight_) * (r - 1.0);
-			c += (w / r) * (*p.medial_axis_position_)[v_index];
-			n += (w / r);
-		}
-		c /= n;
+		auto [c, r] = geometry::sphere_fitting(*p.surface_, cluster, p.surface_vertex_position_.get());
 
 		std::pair<uint32, Vec3> bvh_res;
 		p.surface_bvh_->closest_point(c, &bvh_res);
 		Vec3 closest_point_position = bvh_res.second;
-		Scalar closest_point_dist = (closest_point_position - c).norm();
-		Vec3 closest_point_dir = (closest_point_position - c) / closest_point_dist;
+		Vec3 closest_point_dir = (closest_point_position - c).normalized();
+
+		Vec3 closest_face_normal =
+			value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
+		// TODO: exterior detection is not reliable
+		if (closest_point_dir.dot(closest_face_normal) <= 0.0)
+		{
+			// if (p.auto_split_outside_spheres_)
+			// {
+			// 	split_outside_sphere(p, c, sphere);
+			// 	return;
+			// }
+			// else
+			closest_point_dir = -closest_point_dir;
+
+			auto [center, radius, secondary] = geometry::shrinking_ball_center(
+				*p.surface_, closest_point_position, closest_point_dir, p.surface_vertex_position_.get(),
+				p.surface_bvh_, p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
+
+			// affect the correction error to the sphere
+			Scalar correction = (c - center).norm();
+			(*p.spheres_correction_error_)[sphere_index] = correction;
+			// but only update the sphere if the correction error is small enough
+			if (correction < p.auto_split_threshold_)
+			{
+				(*p.spheres_position_)[sphere_index] = center;
+				(*p.spheres_radius_)[sphere_index] = radius;
+			}
+		}
+		else
+		{
+			auto [center, radius, secondary] = geometry::shrinking_ball_center(
+				*p.surface_, closest_point_position, closest_point_dir, p.surface_vertex_position_.get(),
+				p.surface_bvh_, p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
+
+			(*p.spheres_position_)[sphere_index] = center;
+			(*p.spheres_radius_)[sphere_index] = radius;
+
+			(*p.spheres_correction_error_)[sphere_index] = (c - center).norm();
+		}
+	}
+
+	void update_sphere_sqem(SurfaceParameters& p, PVertex sphere)
+	{
+		uint32 sphere_index = index_of(*p.spheres_, sphere);
+
+		const std::vector<SVertex>& cluster = (*p.spheres_cluster_)[sphere_index];
+
+		Vec3 c = (*p.spheres_position_)[sphere_index];
+		Scalar r = (*p.spheres_radius_)[sphere_index];
+
+		Eigen::MatrixXd J(2 * cluster.size(), 4);
+		Eigen::VectorXd b(2 * cluster.size());
+		uint32 idx = 0;
+		Eigen::VectorXd s(4);
+		s << c[0], c[1], c[2], r;
+		for (uint32 i = 0; i < 5; ++i)
+		{
+			idx = 0;
+			for (SVertex v : cluster)
+			{
+				// SQEM energy
+				const Vec3& pos = value<Vec3>(*p.surface_, p.surface_vertex_position_, v);
+				Vec4 ji = p.sqem_helper_->jacobian(v, s);
+				J.row(idx) = ji.transpose();
+				b(idx) = -1.0 * p.sqem_helper_->vertex_cost(v, s);
+				++idx;
+				// distance energy
+				Vec3 d = pos - Vec3(s(0), s(1), s(2));
+				Scalar l = d.norm();
+				J.row(idx) = Eigen::Vector4d(-(d[0] / l), -(d[1] / l), -(d[2] / l), -1.0) * p.sqem_update_lambda_;
+				b(idx) = -(l - s(3)) * p.sqem_update_lambda_; // scale the row by the update lambda
+				++idx;
+			};
+			Eigen::LDLT<Eigen::MatrixXd> solver(J.transpose() * J);
+			s += solver.solve(J.transpose() * b);
+		}
+
+		c = s.head<3>();
+		r = s[3];
+
+		std::pair<uint32, Vec3> bvh_res;
+		p.surface_bvh_->closest_point(c, &bvh_res);
+		Vec3 closest_point_position = bvh_res.second;
+		Vec3 closest_point_dir = (closest_point_position - c).normalized();
 
 		const Vec3& closest_face_normal =
 			value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
 		// TODO: exterior detection is not reliable
 		if (closest_point_dir.dot(closest_face_normal) <= 0.0)
 		{
-			if (p.auto_split_outside_spheres_)
-			{
-				split_outside_sphere(p, c, sphere);
-				return;
-			}
-			else
-				closest_point_dir = -closest_point_dir;
+			// if (p.auto_split_outside_spheres_)
+			// {
+			// 	split_outside_sphere(p, c, sphere);
+			// 	return;
+			// }
+			// else
+			closest_point_dir = -closest_point_dir;
 		}
 
 		auto [center, radius, secondary] = geometry::shrinking_ball_center(
@@ -668,93 +785,12 @@ public:
 		(*p.spheres_correction_error_)[sphere_index] = (c - center).norm();
 	}
 
-	void update_sphere_fit(SurfaceParameters& p, PVertex sphere)
-	{
-		uint32 sphere_index = index_of(*p.spheres_, sphere);
-
-		const std::vector<SVertex>& cluster = (*p.spheres_cluster_)[sphere_index];
-		Eigen::MatrixXd A(cluster.size(), 4);
-		Eigen::VectorXd b(cluster.size());
-		uint32 idx = 0;
-		for (SVertex v : cluster)
-		{
-			const Vec3& pos = value<Vec3>(*p.surface_, p.surface_vertex_position_, v);
-			A.row(idx) = Eigen::Vector4d(-2.0 * pos[0], -2.0 * pos[1], -2.0 * pos[2], 1.0);
-			b(idx) = -(pos[0] * pos[0]) - (pos[1] * pos[1]) - (pos[2] * pos[2]);
-			++idx;
-		};
-		Eigen::LDLT<Eigen::MatrixXd> solver(A.transpose() * A);
-		Eigen::MatrixXd s1 = solver.solve(A.transpose() * b);
-		s1(3) = std::sqrt(s1(0) * s1(0) + s1(1) * s1(1) + s1(2) * s1(2) - s1(3));
-
-		Vec3 s1c = Vec3(s1(0), s1(1), s1(2));
-		Scalar s1r = s1(3);
-
-		Eigen::MatrixXd J(cluster.size(), 4);
-		Eigen::VectorXd r(cluster.size());
-		Eigen::VectorXd s2(4);
-		s2 << s1(0), s1(1), s1(2), s1(3);
-		for (uint32 i = 0; i < 5; ++i) // TODO: check number of iterations
-		{
-			idx = 0;
-			for (SVertex v : cluster)
-			{
-				const Vec3& pos = value<Vec3>(*p.surface_, p.surface_vertex_position_, v);
-				Vec3 d = pos - Vec3(s2(0), s2(1), s2(2));
-				Scalar l = d.norm();
-				J.row(idx) = Eigen::Vector4d(-(d[0] / l), -(d[1] / l), -(d[2] / l), -1.0);
-				r(idx) = -(l - s2(3));
-				++idx;
-			}
-			Eigen::LDLT<Eigen::MatrixXd> solver(J.transpose() * J);
-			s2 += solver.solve(J.transpose() * r);
-		}
-
-		Vec3 s2c = Vec3(s2(0), s2(1), s2(2));
-		Scalar s2r = s2(3);
-
-		std::pair<uint32, Vec3> bvh_res;
-		p.surface_bvh_->closest_point(s2c, &bvh_res);
-		Vec3 closest_point_position = bvh_res.second;
-		Vec3 closest_point_dir = (closest_point_position - s2c).normalized();
-
-		Vec3 closest_face_normal =
-			value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
-		// TODO: exterior detection is not reliable
-		if (closest_point_dir.dot(closest_face_normal) <= 0.0)
-		{
-			if (p.auto_split_outside_spheres_)
-			{
-				split_outside_sphere(p, s2c, sphere);
-				return;
-			}
-			else
-				closest_point_dir = -closest_point_dir;
-		}
-
-		auto [center, radius, secondary] = geometry::shrinking_ball_center(
-			*p.surface_, closest_point_position, closest_point_dir, p.surface_vertex_position_.get(), p.surface_bvh_,
-			p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_);
-
-		(*p.spheres_position_)[sphere_index] = center;
-		(*p.spheres_radius_)[sphere_index] = radius;
-
-		(*p.spheres_correction_error_)[sphere_index] = (s2c - center).norm();
-	}
-
 	void update_spheres(SurfaceParameters& p)
 	{
 		// auto start = std::chrono::high_resolution_clock::now();
 
 		switch (p.update_method_)
 		{
-		case MEAN: {
-			parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
-				update_sphere_mean(p, v);
-				return true;
-			});
-			break;
-		}
 		case FIT: {
 			parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
 				update_sphere_fit(p, v);
@@ -762,13 +798,37 @@ public:
 			});
 			break;
 		}
+		case SQEM: {
+			parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+				update_sphere_sqem(p, v);
+				return true;
+			});
+			break;
+		}
 		}
 
-		if (p.auto_split_ && p.iteration_count_ % 10 == 0)
+		if (p.auto_split_ && p.iteration_count_ % 5 == 0)
 		{
-			auto [max_sphere, max_error] = max_error_sphere(p, p.selected_spheres_error_);
-			if (max_error > p.auto_split_threshold_)
-				split_sphere(p, max_sphere, false);
+			std::vector<PVertex> sorted_spheres;
+			MeshData<POINTS>& md = points_provider_->mesh_data(*p.spheres_);
+			uint32 nb_spheres = md.template nb_cells<PVertex>();
+			sorted_spheres.reserve(nb_spheres);
+			foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+				sorted_spheres.push_back(v);
+				return true;
+			});
+			std::sort(sorted_spheres.begin(), sorted_spheres.end(), [&](PVertex a, PVertex b) {
+				return value<Scalar>(*p.spheres_, p.selected_spheres_error_, a) >
+					   value<Scalar>(*p.spheres_, p.selected_spheres_error_, b);
+			});
+			for (PVertex sphere : sorted_spheres)
+			{
+				Scalar error = value<Scalar>(*p.spheres_, p.selected_spheres_error_, sphere);
+				if (error > p.auto_split_threshold_)
+					split_sphere(p, sphere, false);
+				else
+					break;
+			}
 		}
 
 		compute_clusters(p);
@@ -858,6 +918,28 @@ public:
 
 	void compute_skeleton(SurfaceParameters& p)
 	{
+		// clean neighbor clusters sets
+		parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+			uint32 v_index = index_of(*p.spheres_, v);
+			(*p.spheres_neighbor_clusters_)[v_index].clear();
+			return true;
+		});
+
+		// compute neighbor clusters
+		foreach_cell(*p.surface_, [&](SEdge e) -> bool {
+			std::vector<SVertex> vertices = incident_vertices(*p.surface_, e);
+
+			PVertex v1_cluster = value<PVertex>(*p.surface_, p.surface_vertex_cluster_, vertices[0]);
+			PVertex v2_cluster = value<PVertex>(*p.surface_, p.surface_vertex_cluster_, vertices[1]);
+			if (v1_cluster.is_valid() && v2_cluster.is_valid() && v1_cluster != v2_cluster)
+			{
+				value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, v1_cluster).insert(v2_cluster);
+				value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, v2_cluster).insert(v1_cluster);
+			}
+
+			return true;
+		});
+
 		clear(*p.skeleton_);
 
 		auto spheres_skeleton_vertex_map =
@@ -955,18 +1037,26 @@ protected:
 				else
 					std::this_thread::yield();
 
-				Scalar error_diff = fabs(p.total_error_ - p.last_total_error_);
-				p.last_total_error_ = p.total_error_;
-				if (p.stopping_ || (p.auto_stop_ && error_diff < 1e-3))
+				if (p.auto_stop_)
 				{
-					p.running_ = false;
+					Scalar error_diff = fabs(p.total_error_ - p.last_total_error_);
+					p.last_total_error_ = p.total_error_;
+					auto [max_sphere, max_error] = max_error_sphere(p, p.selected_spheres_error_);
+					if (error_diff < 1e-3 && max_error < p.auto_split_threshold_)
+						p.stopping_ = true;
+				}
+
+				if (p.stopping_)
+				{
 					p.stopping_ = false;
+					p.running_ = false;
+					std::cout << "nb iterations: " << p.iteration_count_ << std::endl;
 					break;
 				}
 			}
 		});
 
-		app_.start_timer(100, [&]() -> bool { return !p.running_; });
+		app_.start_timer(200, [&]() -> bool { return !p.running_; });
 	}
 
 	void stop_spheres_update(SurfaceParameters& p)
@@ -978,7 +1068,12 @@ protected:
 	{
 		SurfaceParameters& p = surface_parameters_[selected_surface_];
 
-		if (key_code == GLFW_KEY_I || key_code == GLFW_KEY_S || key_code == GLFW_KEY_D)
+		if (key_code == GLFW_KEY_U)
+		{
+			std::lock_guard<std::mutex> lock(p.mutex_);
+			update_render_data(p);
+		}
+		else if (key_code == GLFW_KEY_I || key_code == GLFW_KEY_S || key_code == GLFW_KEY_D)
 		{
 			int32 x = view->mouse_x();
 			int32 y = view->mouse_y();
@@ -1040,7 +1135,6 @@ protected:
 
 			if (p.initialized_)
 			{
-				ImGui::SliderFloat("Init min radius", &p.init_min_radius_, 0.001, 0.02);
 				ImGui::SliderFloat("Init dilation factor", &p.init_dilation_factor_, 1.0, 4.0);
 				if (ImGui::Button("Init spheres"))
 				{
@@ -1048,13 +1142,14 @@ protected:
 					init_spheres(*selected_surface_);
 				}
 
-				if (ImGui::SliderFloat("Samples min radius", &p.filter_radius_threshold_, 0.0001f, 1.0f, "%.4f",
+				if (ImGui::SliderFloat("Samples min radius", &p.filter_radius_threshold_, 0.0f, 1.0f, "%.6f",
 									   ImGuiSliderFlags_Logarithmic))
 				{
 					std::lock_guard<std::mutex> lock(p.mutex_);
 					filter_medial_samples(p);
 				}
-				if (ImGui::SliderFloat("Samples min angle", &p.filter_angle_threshold_, 0.0001f, M_PI, "%.4f"))
+				if (ImGui::SliderFloat("Samples min angle", &p.filter_angle_threshold_, 0.0f, M_PI, "%.6f"))
+
 				{
 					std::lock_guard<std::mutex> lock(p.mutex_);
 					filter_medial_samples(p);
@@ -1062,10 +1157,15 @@ protected:
 
 				ImGui::RadioButton("Fit", (int*)&p.update_method_, FIT);
 				ImGui::SameLine();
-				ImGui::RadioButton("Mean", (int*)&p.update_method_, MEAN);
+				ImGui::RadioButton("SQEM", (int*)&p.update_method_, SQEM);
 
-				ImGui::SliderFloat("Mean update curvature weight", &p.mean_update_curvature_weight_, 0.0f, 1.0f, "%.3f",
-								   ImGuiSliderFlags_Logarithmic);
+				if (p.update_method_ == SQEM)
+				{
+					ImGui::SliderFloat("update lambda", &p.sqem_update_lambda_, 0.0f, 1.0f, "%.6f",
+									   ImGuiSliderFlags_Logarithmic);
+					ImGui::SliderFloat("clustering lambda", &p.sqem_clustering_lambda_, 0.0f, 1.0f, "%.6f",
+									   ImGuiSliderFlags_Logarithmic);
+				}
 
 				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
 
