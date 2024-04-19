@@ -29,6 +29,7 @@
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/invertion.h>
 #include <cgogn/geometry/types/slab_quadric.h>
 #include <cgogn/geometry/types/spherical_quadric.h>
@@ -57,19 +58,30 @@ struct ClusteringSQEM_Helper
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
 
-	ClusteringSQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* vertex_normal)
-		: m_(m), vertex_position_(vertex_position), vertex_normal_(vertex_normal)
+	ClusteringSQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position, const Attribute<Vec3>* face_normal,
+						  const Attribute<Vec3>* vertex_normal, bool use_vertex_normals = false)
+		: m_(m)
 	{
-		vertex_quadric_ = add_attribute<Spherical_Quadric, Vertex>(m_, "__vertex_quadric");
+		vertex_quadric_ = get_or_add_attribute<Spherical_Quadric, Vertex>(m_, "__vertex_spherical_quadric");
 		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
-			value<Spherical_Quadric>(m_, vertex_quadric_, v).clear();
-			return true;
-		});
-		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
-			const Vec3& p = value<Vec3>(m_, vertex_position_, v);
-			const Vec3& n = value<Vec3>(m_, vertex_normal_, v);
-			value<Spherical_Quadric>(m_, vertex_quadric_, v) =
-				Spherical_Quadric(Vec4(p.x(), p.y(), p.z(), 0), Vec4(n.x(), n.y(), n.z(), 1));
+			uint32 v_index = index_of(m_, v);
+			Spherical_Quadric& q = (*vertex_quadric_)[v_index];
+			q.clear();
+			const Vec3& p = (*vertex_position)[v_index];
+			if (use_vertex_normals)
+			{
+				const Vec3& n = (*vertex_normal)[v_index];
+				q += Spherical_Quadric(Vec4(p.x(), p.y(), p.z(), 0), Vec4(n.x(), n.y(), n.z(), 1));
+			}
+			else
+			{
+				foreach_incident_face(m_, v, [&](Face f) -> bool {
+					const Vec3& n = value<Vec3>(m_, face_normal, f);
+					q += Spherical_Quadric(Vec4(p.x(), p.y(), p.z(), 0), Vec4(n.x(), n.y(), n.z(), 1)) *
+						 (geometry::area(m_, f, vertex_position) / 3.0);
+					return true;
+				});
+			}
 			return true;
 		});
 	}
@@ -172,8 +184,6 @@ struct ClusteringSQEM_Helper
 	}
 
 	MESH& m_;
-	const Attribute<Vec3>* vertex_position_;
-	const Attribute<Vec3>* vertex_normal_;
 	std::shared_ptr<Attribute<Spherical_Quadric>> vertex_quadric_;
 };
 
