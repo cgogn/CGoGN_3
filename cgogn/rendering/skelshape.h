@@ -280,6 +280,149 @@ public:
 };
 
 
+
+template <VEC>
+inline typename VEC::SCALAR evalSphereSDF(const VEC& P, std::vector<std::pair<VEC, typename VEC::SCALAR>::const_iterator it)
+//const VEC& C, typename VEC::SCALAR R)
+{
+	return (it->first - P).norm() - it->second;
+}
+
+template <VEC>
+inline typename VEC::SCALAR evalConeSDF(const VEC& P, std::vector<std::pair<VEC, typename VEC::SCALAR>::const_iterator it)
+//, const VEC Ca, typename VEC::SCALAR Ra, const VEC Cb, typename VEC::SCALAR Rb)
+{
+	using SCALAR = typename VEC::SCALAR;
+
+	const VEC& Pa = it->first;
+	SCALAR ra = it->second;
+	++ït;
+	const VEC& Pb = it->first;
+	SCALAR rb = it->second;
+
+	SCALAR rba  = rb-ra;
+	VEC ba = Cb - Ca;
+  	SCALAR baba = dot(ba,ba);
+	VEC pa = P-Ca;
+  	SCALAR papa = dot(pa,pa);
+  	SCALAR paba = dot(pa,ba)/baba;
+  	SCALAR x = std::sqrt( papa - paba*paba*baba );
+  	SCALAR cax = std::max(SCALAR(0),x-((paba<SCALAR(0.5))?ra:rb));
+  	SCALAR cay = std::abs(paba-0.5)-0.5;
+  	SCALAR k = rba*rba + baba;
+  	SCALAR f = (rba*(x-ra)+paba*baba)/k
+	if (f<SCALAR(0))
+		f = SCALAR(0);
+	if (f>SCALAR(1))
+		f = SCALAR(1);
+	SCALAR cbx = x-ra - f*rba;
+  	SCALAR cby = paba - f;
+ 	SCALAR s = (cbx<SCALAR(0) && cay<SCALAR(0)) ? SCALAR(-1) : SCALAR(1);
+  	return s*std::sqrt( std::min(cax*cax + cay*cay*baba, cbx*cbx + cby*cby*baba) );
+}
+
+
+template <VEC>
+inline typename VEC::SCALAR evalPlaneSDF(const VEC& P, std::vector<std::pair<VEC, typename VEC::SCALAR>::const_iterator it)
+//, const VEC N, typename VEC::SCALAR D)
+{
+	return P.dot(it->first) + it->second;
+}
+
+template <VEC>
+inline typename VEC::SCALAR evalPrismTriSDF(const VEC& P, std::vector<std::pair<VEC, typename VEC::SCALAR>::const_iterator it)
+//, const std::array<VEC,6> Ns, const std::array<VEC,typename VEC::SCALAR> Ds)
+{
+	auto dist = evalPlaneSDF(P,it)
+	for(int i=1;i<<6;++i)
+		dist = std::max(dist,evalPlaneSDF(P,++it);
+	return dist;
+}
+
+template <typename VEC>
+class SkelSDF
+{
+public:
+	@using SCALAR = typename VEC::SCALAR;
+	inline SkelSDF()
+	{}	using SCALAR = typename VEC::SCALAR;
+
+protected
+	std::vector<std::pair<VEC, SCALAR> vertices_;
+	std::vector<std::pair<VEC, SCALAR> edges_;
+	std::vector<std::pair<VEC, SCALAR> triangles_;
+
+public:
+
+	template<typename VEC4>
+	void add_vertex(const VEC4& v)
+	{
+		vertices_.emplace_back(stdd::make_pair(VEC(double(v[0]), double(v[1]), double(v[2])), SCALAR(v[3])));
+	}
+
+	template <typename VEC3, typename SCAL>
+	inline void add_vertex(const VEC3& v, SCAL r)
+	{
+		vertices_.emplace_back(stdd::make_pair(VEC(double(v[0]), double(v[1]), double(v[2])), SCALAR(r)));
+	}
+
+	template <typename VEC4_1, typename VEC4_2>
+	void add_edge(const VEC4_1& e1, const VEC4_2& e2)
+	{
+// calculer les positions;
+		// edges_.emplace_back(stdd::make_pair(VEC(double(e1[0]), double(e1[1]), double(e1[2])), SCALAR(e1[3])));
+		// edges_.emplace_back(stdd::make_pair(VEC(double(e2[0]), double(e2[1]), double(e2[2])), SCALAR(e2[3])));
+	}
+
+	template <typename VEC3_1, typename VEC3_2, typename SCAL_1, typename SCAL_2>
+	void add_edge(const VEC3_1& e1, SCAL_1 r1, const VEC3_2& e2, SCAL_2 r2)
+	{
+//		calculer les positions;
+		// edges_.emplace_back(stdd::make_pair(VEC(double(e1[0]), double(e1[1]), double(e1[2])), SCALAR(r1)));
+		// edges_.emplace_back(stdd::make_pair(VEC(double(e2[0]), double(e2[1]), double(e2[2])), SCALAR(r2)));
+	}
+
+	template <typename VEC4_1, typename VEC4_2, typename VEC4_3>
+	void add_triangle(const VEC4_1& t1, const VEC4_2& t2, const VEC4_3& t3)
+	{
+// calculer
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t1[0]), double(t1[1]), double(t1[2])), SCALAR(t1[3])));
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t2[0]), double(t2[1]), double(t2[2])), SCALAR(t2[3])));
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t3[0]), double(t3[1]), double(t3[2])), SCALAR(t3[3])));
+	}
+
+	template <typename VEC3_1, typename VEC3_2, typename VEC3_3, typename SCAL_1, typename SCAL_2, typename SCAL_3>
+	void add_triangle(const VEC3_1& t1, SCAL_1 r1, const VEC3_2& t2, SCAL_2 r2, const VEC3_3& t3, SCAL_3 r3)
+	{
+// calculer
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t1[0]), double(t1[1]), double(t1[2])), SCALAR(r1)));
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t2[0]), double(t2[1]), double(t2[2])), SCALAR(r2)));
+		// triangles_.emplace_back(stdd::make_pair(VEC(double(t3[0]), double(t3[1]), double(t3[2])), SCALAR(r3)));
+	}
+
+	inline SCALAR eval(const VEC& P)
+	{
+		auto it = vertices_.begin();
+		auto dist = evalSphereSDF(P,it++);
+		while (it != vertices_.end())
+			dist = std::min(dist,evalSphereSDF(P,++it);
+		
+		it = edges_.begin();
+		while (it != edges_.end())
+			dist = std::min(dist,evalConeSDF(P,it++++);
+
+		it = triangles_.begin();
+		while (it != triangles_.end())
+			dist = std::min(dist,evalConeSDF(P,it++++++);
+
+		return dist;
+	}
+
+
+};
+
+
+
 } // namespace rendering
 
 } // namespace cgogn
