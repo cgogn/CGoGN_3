@@ -29,6 +29,7 @@
 #include <cgogn/rendering/vbo_update.h>
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <Eigen/Dense>
 
 namespace cgogn
 {
@@ -300,28 +301,36 @@ public:
 		vertices_.emplace_back(SCALAR(v[0]),SCALAR(v[1]),SCALAR(v[2]),SCALAR(r));
 	}
 
+
 	void add_edge(const VEC3& A, SCALAR Ra, const VEC3& B, SCALAR Rb)
 	{
 		// copmpute real cone center and radius
-		VEC AB = B - A;
+		VEC3 AB = B - A;
 
-		SCALAR d = AB3.norm();
+		SCALAR d = AB.norm();
 		SCALAR k = (Rb - Ra) / (d * d);
-		SCALAR kk = std::sqrt(1.0 - ((Rb - Ra) * AB[3] / (d * d)));
+		SCALAR kk = std::sqrt(1.0 - (Rb - Ra) * k);
+
 		VEC3 Ea = A - AB * (k * Ra);
 		VEC3 Eb = B - AB * (k * Rb);
 		edges_.emplace_back(Ea[0], Ea[1], Ea[2], Ra * kk);
-		edges_.emplace_back(Ea[0], Eb[1], Eb[2], Rb * kk);
+		edges_.emplace_back(Eb[0], Eb[1], Eb[2], Rb * kk);
 	}
 
 	inline void add_edge(const VEC4& A, const VEC4& B)
 	{
-		add_edge(A.topRows<3>(), A[3], B.topRows<3>(), B[3]);
+		add_edge(A.template topRows<3>(), A[3], B.template topRows<3>(), B[3]);
 	}
 
-	void add_triangle(const VEC4_1& t1, const VEC4_2& t2, const VEC4_3& t3)
+	void add_triangle(const VEC3& A, SCALAR Ra, const VEC3& B, SCALAR Rb, const VEC3& C, SCALAR Rc)
 	{
+	}
 
+	inline void add_triangle(const VEC4& A, const VEC4& B, const VEC4& C)
+	{
+		auto nb = triangles_.size();
+		triangles_.resize(nb+5);
+		compute_prism(A,B,C,&(triangles_[nb]));
 	}
 
 	inline SCALAR eval_skeketon(const VEC3& P)
@@ -329,47 +338,52 @@ public:
 		auto it = vertices_.begin();
 		auto dist = evalSphereSDF(P, it++);
 		while (it != vertices_.end())
-			dist = std::min(dist,evalSphereSDF(P,++it);
+			dist = std::min(dist,evalSphereSDF(P,++it));
 		
 		it = edges_.begin();
 		while (it != edges_.end())
-			dist = std::min(dist,evalConeSDF(P,it++++);
+			dist = std::min(dist,evalConeSDF(P,it++++));
 
 		it = triangles_.begin();
 		while (it != triangles_.end())
-			dist = std::min(dist,evalConeSDF(P,it++++++);
+		{
+			dist = std::min(dist,evalConeSDF(P,it));
+			it += 5;
+		}
 	}
 	
-protected
-	std::vector < std::pair<VEC, SCALAR> vertices_;	 // one by one
-	std::vector < std::pair<VEC, SCALAR> edges_;	 // by pair
-	std::vector < std::pair<VEC, SCALAR> triangles_; // by triplet
+protected:
+	std::vector<VEC4> vertices_;	 // one by one
+	std::vector<VEC4> edges_;	 // by pair
+	std::vector<VEC4> triangles_; // by 5
 
-	static inline SCALAR evalSphereSDF( const VEC& P, std::vector <VEC4>::const_iterator it)
+	static inline SCALAR evalSphereSDF( const VEC3& P, typename std::vector<VEC4>::const_iterator it)
 	{
-		return (it->topRows<3>() - P).norm() - it->w();
+		return (it->template topRows<3>() - P).norm() - it->w();
 	}
 
 	static inline SCALAR evalConeSDF(
-		const VEC3& P, std::vector<VEC4>::const_iterator it)
+		const VEC3& P, typename std::vector<VEC4>::const_iterator it)
 	{
-		const VEC3& Pa = it->topRows<3>();
+		const VEC3& P_a = it->template topRows<3>();
 		SCALAR ra = it->w();
-		++ït;
-		const VEC& Pb = it->first;
+		++it;
+		const VEC3& Pb = it->first;
 		SCALAR rb = it->second;
 
 		SCALAR rba = rb - ra;
-		VEC3 ba = Cb - Ca;
+		VEC3 ba = Pb - P_a;
 		SCALAR baba = dot(ba, ba);
-		VEC3 pa = P - Ca;
+		VEC3 pa = P - P_a;
 		SCALAR papa = dot(pa, pa);
 		SCALAR paba = dot(pa, ba) / baba;
 		SCALAR x = std::sqrt(papa - paba * paba * baba);
 		SCALAR cax = std::max(SCALAR(0), x - ((paba < SCALAR(0.5)) ? ra : rb));
 		SCALAR cay = std::abs(paba - 0.5) - 0.5;
 		SCALAR k = rba * rba + baba;
-		SCALAR f = (rba * (x - ra) + paba * baba) / k if (f < SCALAR(0)) f = SCALAR(0);
+		SCALAR f = (rba * (x - ra) + paba * baba) / k;
+		if (f < SCALAR(0))
+			f = SCALAR(0);
 		if (f > SCALAR(1))
 			f = SCALAR(1);
 		SCALAR cbx = x - ra - f * rba;
@@ -378,33 +392,33 @@ protected
 		return s * std::sqrt(std::min(cax * cax + cay * cay * baba, cbx * cbx + cby * cby * baba));
 	}
 
-	static inline SCALAR evalPlaneSDF(const VEC3& P, std::vector<VEC4>::const_iterator it)
+	static inline SCALAR evalPlaneSDF(const VEC3& P, typename std::vector<VEC4>::const_iterator it)
 	{
-		return P.dot(it->topRows<3>()) + it->w();
+		return P.dot(it->template topRows<3>()) + it->w();
 	}
 
-	static inline SCALAR evalPrismTriSDF(const VEC3& P, std::vector<VEC4>::const_iterator it)
+	static inline SCALAR evalPrismTriSDF(const VEC3& P, typename std::vector<VEC4>::const_iterator it)
 	{
-		SCALAR dist = evalPlaneSDF(P,it)
-		for(int i=1;i<<6;++i)
-			dist = std::max(dist,evalPlaneSDF(P,++it);
+		SCALAR dist = evalPlaneSDF(P,it);
+		for(int i=1;i<6;++i)
+			dist = std::max(dist,evalPlaneSDF(P,++it));
 		return dist;
 	}
 
 	static inline void compute_CenterDisk(const VEC4& sphA, const VEC4& sphB, VEC3& centerA, VEC3& centerB)
 	{
 		auto AB = sphB - sphA;
-		const auto3& AB3 = AB.topRows<3>();
+		const VEC3& AB3 = AB.template topRows<3>();
 		auto d = AB3.norm();
 		auto k = AB[3] / (d * d);
-		centerA = sphA.topRows<3>() - AB3 * (k * sphA[3]);
-		centerB = sphB.topRows<3>() - AB3 * (k * sphB[3]);
+		centerA = sphA.template topRows<3>() - AB3 * (k * sphA[3]);
+		centerB = sphB.template topRows<3>() - AB3 * (k * sphB[3]);
 	}
 
 	static inline void interPPS(const VEC4& planeA, const VEC4& planeB, const VEC4& Sph, VEC3& I1, VEC3& I2)
 	{
-		const VEC3& Na = planeA.topRows<3>();
-		const VEC3& Nb = planeB.topRows<3>();
+		const VEC3& Na = planeA.template topRows<3>();
+		const VEC3& Nb = planeB.template topRows<3>();
 
 		VEC3 U = Na.cross(Nb).normalized();
 
@@ -413,7 +427,7 @@ protected
 		SCALAR c2 = (-planeB[3] + planeA[3] * dp);
 		VEC3 O = (c1 * Na + c2 * Nb) / (1.0f - dp * dp);
 
-		VEC3 CO = O - Sph.topRows<3>();
+		VEC3 CO = O - Sph.template topRows<3>();
 		dp = U.dot(CO);
 		SCALAR delta = dp * dp - (CO.dot(CO) - Sph[3] * Sph[3]);
 		SCALAR k1 = -dp + std::sqrt(delta);
@@ -425,16 +439,16 @@ protected
 
 	void compute_prism(const VEC4& Sph1, const VEC4& Sph2, const VEC4& Sph3, VEC4* Planes)
 	{
-		std::array<GLVec3, 6> centers;
+		std::array<VEC3, 6> centers;
 
 		compute_CDisk(Sph1, Sph2, centers[1], centers[2]);
-		GLVec3 N1 = (Sph2.topRows<3>() - Sph1.topRows<3>()).normalized();
+		VEC3 N1 = (Sph2.template topRows<3>() - Sph1.template topRows<3>()).normalized();
 		compute_CDisk(Sph2, Sph3, centers[3], centers[4]);
-		GLVec3 N2 = (Sph3.topRows<3>() - Sph2.topRows<3>()).normalized();
+		VEC3 N2 = (Sph3.template topRows<3>() - Sph2.template topRows<3>()).normalized();
 		compute_CDisk(Sph3, Sph1, centers[5], centers[0]);
-		GLVec3 N3 = (Sph1.topRows<3>() - Sph3.topRows<3>()).normalized();
+		VEC3 N3 = (Sph1.template topRows<3>() - Sph3.template topRows<3>()).normalized();
 
-		std::array<GLVec3, 6> I;
+		std::array<VEC3, 6> I;
 
 		interPPS({N1[0], N1[1], N1[2], -N1.dot(centers[1])}, {-N3[0], -N3[1], -N3[2], N3.dot(centers[0])}, Sph1, I[0],
 				 I[3]);
@@ -442,12 +456,24 @@ protected
 				 I[5]);
 		interPPS({N3[0], N3[1], N3[2], -N3.dot(centers[5])}, {-N2[0], -N2[1], -N2[2], N2.dot(centers[4])}, Sph3, I[2],
 				 I[4]);
-	}
-	VEC4 Pl;
-	Pl.topRows<3>() = (I[2] - I[0]).cross(I[1] - I[0]).normalized();
-	Pl.w = Pl.topRows<3>().dot(I[0])
 
-	Plane[0] =
+
+		Planes[0].template topRows<3>() = (I[1] - I[0]).cross(I[2] - I[0]).normalized();
+		Planes[0].w() = Planes[0].template topRows<3>().dot(I[0]);
+
+		Planes[1].template topRows<3>() = (I[4] - I[3]).cross(I[5] - I[3]).normalized();
+		Planes[1].w() = Planes[1].template topRows<3>().dot(I[3]);
+
+		Planes[2].template topRows<3>() = (I[5] - I[3]).cross(I[0] - I[3]).normalized();
+		Planes[2].w() = Planes[2].template topRows<3>().dot(I[3]);
+
+		Planes[3].template topRows<3>() = (I[4] - I[5]).cross(I[1] - I[5]).normalized();
+		Planes[3].w() = Planes[3].template topRows<3>().dot(I[5]);
+
+		Planes[4].template topRows<3>() = (I[3] - I[4]).cross(I[2] - I[4]).normalized();
+		Planes[4].w() = Planes[4].template topRows<3>().dot(I[4]);
+
+	}
 };
 
 
@@ -500,18 +526,18 @@ class SkelSDF
 	//template <typename VEC4>
 	//void add_edge(const VEC4& A, const VEC4& B)
 	//{
-	//	add_edge(A.topRows<3>(), A[3], B.topRows<3>(), B[3]);
+	//	add_edge(A.template topRows<3>(), A[3], B.template topRows<3>(), B[3]);
 	//}
 
 	/*template <typename VEC4, typename VEC3>
 	void compute_CenterDisk(const VEC4& sphA, const VEC4& sphB, VEC3& centerA, VEC3& centerB)
 	{
 		auto AB = sphB - sphA;
-		const auto3& AB3 = AB.topRows<3>();
+		const auto3& AB3 = AB.template topRows<3>();
 		auto d = AB3.norm();
 		auto k = AB[3] / (d * d);
-		centerA = sphA.topRows<3>() - AB3 * (k * sphA[3]);
-		centerB = sphB.topRows<3>() - AB3 * (k * sphB[3]);
+		centerA = sphA.template topRows<3>() - AB3 * (k * sphA[3]);
+		centerB = sphB.template topRows<3>() - AB3 * (k * sphB[3]);
 	};*/
 
 
@@ -520,7 +546,7 @@ class SkelSDF
 		//	auto c2 = (-planeB[3] + planeA[3] * dp);
 		//	VEC3 O = (c1 * Na + c2 * Nb) / (1.0f - dp * dp);
 
-		//	VEC3 CO = O - Sph.topRows<3>();
+		//	VEC3 CO = O - Sph.template topRows<3>();
 		//	dp = U.dot(CO);
 		//	auto delta = dp * dp - (CO.dot(CO) - Sph[3] * Sph[3]);
 		//	auto k1 = -dp + std::sqrt(delta);

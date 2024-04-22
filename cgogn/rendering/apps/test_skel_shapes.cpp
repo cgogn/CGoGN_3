@@ -83,6 +83,8 @@ public:
 private:
 	const ui::App& app_;
 	SkelShapeDrawer skel_drawer_;
+
+	SkeletonSampler<GLVec4, GLVec3, float> sksampler_;
 };
 
 
