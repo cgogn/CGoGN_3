@@ -326,7 +326,6 @@ public:
 		edges_.emplace_back(Ea[0], Ea[1], Ea[2], Ra * kk);
 		edges_.emplace_back(Eb[0], Eb[1], Eb[2], Rb * kk);
 
-
 		update_BB(A, Ra);
 		update_BB(B, Rb);
 	}
@@ -341,10 +340,10 @@ public:
 		auto nb = triangles_.size();
 		triangles_.resize(nb+5);
 		compute_prism(A,B,C,&(triangles_[nb]));
+
 		update_BB(A);
 		update_BB(B);
 		update_BB(C);
-
 	}
 
 	inline SCALAR eval_skeleton(const VEC3& P)
@@ -366,39 +365,53 @@ public:
 
 	inline void inter_skeleton(const VEC3& P, const VEC3& Du, std::vector<VEC3>& I, SCALAR ds_max)
 	{
-		VEC3 Q = P;
+		
 		SCALAR d = eval_skeleton(P);
 		SCALAR ds = d;
 		while (ds < ds_max)
 		{
-			while (d > Epsilon)
+			// std::cout << "ds:"<< ds <<	 " < s_max:" <<ds_max<< std::endl;
+			VEC3 Q;
+			while ((d > Epsilon) && (ds < ds_max))
 			{
+				// std::cout << "d: "<< d <<	std::endl;
 				Q = P + ds * Du;
 				d = eval_skeleton(Q);
 				ds += d;
+				// std::cout << "-> ds: "<< ds <<	std::endl;
+
 			}
-			I.push_back(Q);
-			ds += 2 * Epsilon;
-			Q = P + ds * Du;
-			d = eval_skeleton(Q);
-			while (d < -Epsilon)
+			if (ds < ds_max)
 			{
+				I.push_back(Q);
+				// std::cout << "push "<< Q <<	std::endl;
+				ds += 2 * Epsilon;
 				Q = P + ds * Du;
 				d = eval_skeleton(Q);
-				ds -= d;
+				while ((d < -Epsilon)&&(ds < ds_max))
+				{
+					// std::cout << "d (-): "<< d <<	std::endl;
+					Q = P + ds * Du;
+					d = eval_skeleton(Q);
+					ds -= d;
+					// std::cout << "-> ds: "<< ds <<	std::endl;
+
+				}
+				if (ds < ds_max)
+					I.push_back(Q);
 			}
-			I.push_back(Q);
 		}
 	}
 
 	inline void sample(SCALAR step)
 	{
+		std::cout << "BB: ["<< bb_min_.transpose() << " - "<< bb_max_.transpose() << "]"<< std::endl;	
 		samples_.clear();
 		samples_.reserve(8192);
 		// Z
-		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-			for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-				inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samples_, bb_max_[2] - bb_min_[2]);
+		for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+			for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+				inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samples_, bb_max_[2] - bb_min_[2]);	
 
 
 		// Y
@@ -411,7 +424,10 @@ public:
 			for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
 				inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samples_, bb_max_[0] - bb_min_[0]);
 
+		std::cout << samples_.size() << "points genrated"<< std::endl;;	
 	}
+
+	std::vector<VEC3> samples() { return samples_;}
 	
 protected:
 	std::vector<VEC4> vertices_;	 // one by one
@@ -432,7 +448,7 @@ protected:
 		{
 			SCALAR s = v[i] - v[3];
 			if (s < bb_min_[i])
-				bb_min_[0] = s;
+				bb_min_[i] = s;
 			s = v[i] + v[3];
 			if (s > bb_max_[i])
 				bb_max_[i] = s;

@@ -26,11 +26,12 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 
-#include <cgogn/rendering/shaders/shader_bold_line_color.h>
-#include <cgogn/rendering/shaders/shader_color_per_vertex.h>
+#include <cgogn/rendering/shaders/shader_bold_line.h>
+#include <cgogn/rendering/shaders/shader_flat_color_per_vertex.h>
+
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
-#include <cgogn/rendering/shaders/shader_round_point_color.h>
+//#include <cgogn/rendering/shaders/shader_round_point_color.h>
 
 #include <cgogn/rendering/types.h>
 
@@ -107,7 +108,7 @@ public:
 
 		std::unique_ptr<ShaderFlatColorPerVertex::Param> param_cpv_;
 		std::unique_ptr<ShaderBoldLineColor::Param> param_bl_;
-		std::unique_ptr<ShaderRoundPointColor::Param> param_rp_;
+		//std::unique_ptr<ShaderRoundPointColor::Param> param_rp_;
 		std::unique_ptr<ShaderPointSpriteColor::Param> param_ps_;
 		DisplayListDrawer* drawer_data_;
 

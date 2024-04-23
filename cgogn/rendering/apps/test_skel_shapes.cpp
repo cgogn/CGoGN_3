@@ -27,7 +27,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/rendering/skelshape.h>
-
+#include <cgogn/rendering/shaders/shader_point_sprite.h>
 
 using namespace ::cgogn;
 using namespace ::cgogn::rendering;
@@ -78,29 +78,39 @@ public:
 		//skel_sampler_.add_edge(GLVec3(0, 0, 0), 2, GLVec3(9, 0, 0), 4 );
 		//for (float f = 0.0f; f<=11.0f; f+=0.5)
 		//std::cout << "D = " << skel_sampler_.eval_skeketon(GLVec3(f, 10, 0)) << std::endl;
-		; 
-		 skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.5), GLVec4(0, 4, 0, 3));
-		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1, 1, 9)) << std::endl;
-		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1, 1, -9)) << std::endl;
-		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(7, 7, 1)) << std::endl;
-		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1,1, 1)) << std::endl;
+		// skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.5), GLVec4(0, 4, 0, 3));
 
-		 skel_sampler_.sample(0.1);
+		skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.65), GLVec4(0, 4, 0,3.1));
+		skel_sampler_.add_vertex(GLVec4(0, 0, 0, 2));
+		skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
+		skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
 
+		skel_sampler_.sample(0.05);	
 
-//		 std::vector<GLVec4> vd = {{0, 0, 1, -1}};
-		 //std::cout << "D = " <<SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(5, 5, 5), vd.begin()) << std::endl;;
-		 //std::cout << "D = " << SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(5, 5, -5), vd.begin())
-			//	   << std::endl;
-		 ;
-
+		param_point_sprite_ = ShaderPointSprite::generate_param();
+		param_point_sprite_->color_ = rendering::GLColor(1, 1, 0, 1);
+		param_point_sprite_->point_size_ = 3;
+		param_point_sprite_->set_vbos({&vbo_samples_});
+		update_vbo(skel_sampler_.samples(), &vbo_samples_);
+		
+		// for (const auto& p : skel_sampler_.samples())
+		// 	std::cout << p.transpose()<< std::endl;		 
 	}
 
 	void draw(ui::View* view) override
 	{
 		const GLMat4& proj_matrix = view->projection_matrix();
 		const GLMat4& view_matrix = view->modelview_matrix();
-		skel_drawer_.draw(proj_matrix, view_matrix);
+//		skel_drawer_.draw(proj_matrix, view_matrix);
+
+		if (param_point_sprite_->attributes_initialized())
+		{
+			std::cout << "DR "<< skel_sampler_.samples().size()<<std::endl;
+			param_point_sprite_->bind(proj_matrix, view_matrix);
+			glDrawArrays(GL_POINT,0,10000);//skel_sampler_.samples().size());
+			param_point_sprite_->release();
+		}						
+						
 	}
 
 private:
@@ -108,6 +118,9 @@ private:
 	SkelShapeDrawer skel_drawer_;
 
 	SkeletonSampler<GLVec4, GLVec3, float> skel_sampler_;
+	VBO vbo_samples_;
+	std::unique_ptr<ShaderPointSprite::Param> param_point_sprite_;
+public:
 };
 
 
