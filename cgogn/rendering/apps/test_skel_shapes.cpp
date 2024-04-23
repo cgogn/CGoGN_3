@@ -71,6 +71,29 @@ public:
 		skel_drawer_.add_edge(C3, C1);
 		skel_drawer_.add_triangle(C1, C2, C3);
 		skel_drawer_.update();
+
+		//SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(1,1,1),)
+
+//		skel_sampler_.add_vertex(GLVec4(5, 5, 5, 2));
+		//skel_sampler_.add_edge(GLVec3(0, 0, 0), 2, GLVec3(9, 0, 0), 4 );
+		//for (float f = 0.0f; f<=11.0f; f+=0.5)
+		//std::cout << "D = " << skel_sampler_.eval_skeketon(GLVec3(f, 10, 0)) << std::endl;
+		; 
+		 skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.5), GLVec4(0, 4, 0, 3));
+		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1, 1, 9)) << std::endl;
+		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1, 1, -9)) << std::endl;
+		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(7, 7, 1)) << std::endl;
+		 std::cout << "D = " << skel_sampler_.eval_skeleton(GLVec3(1,1, 1)) << std::endl;
+
+		 skel_sampler_.sample(0.1);
+
+
+//		 std::vector<GLVec4> vd = {{0, 0, 1, -1}};
+		 //std::cout << "D = " <<SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(5, 5, 5), vd.begin()) << std::endl;;
+		 //std::cout << "D = " << SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(5, 5, -5), vd.begin())
+			//	   << std::endl;
+		 ;
+
 	}
 
 	void draw(ui::View* view) override
@@ -84,7 +107,7 @@ private:
 	const ui::App& app_;
 	SkelShapeDrawer skel_drawer_;
 
-	SkeletonSampler<GLVec4, GLVec3, float> sksampler_;
+	SkeletonSampler<GLVec4, GLVec3, float> skel_sampler_;
 };
 
 
