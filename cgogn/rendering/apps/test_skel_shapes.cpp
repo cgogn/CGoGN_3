@@ -53,8 +53,8 @@ public:
 		skel_drawer_.set_subdiv(40);
 
 		// 2 first in double others in float to check on the fly conversion
-		GLVec4d C00 = {-2.5, -2.0, 0.9, 0.3};
-		GLVec4d C0 = {-2.0, 0.0, 0.4, 0.2};
+		GLVec4 C00 = {-2.5, -2.0, 0.9, 0.3};
+		GLVec4 C0 = {-2.0, 0.0, 0.4, 0.2};
 
 		GLVec4 C1 = {-0.5f, 0.0f, 0.0f, 0.4f};
 		GLVec4 C2 = {0.4f, 1.0f, 0.2f, 0.7f};
@@ -70,6 +70,8 @@ public:
 		skel_drawer_.add_edge(C2, C3);
 		skel_drawer_.add_edge(C3, C1);
 		skel_drawer_.add_triangle(C1, C2, C3);
+
+
 		skel_drawer_.update();
 
 		//SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(1,1,1),)
@@ -85,9 +87,16 @@ public:
 		//skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
 		//skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
 
-		skel_sampler_.add_vertex(GLVec4(0, 0, 0, 1));
-	
-		skel_sampler_.sample(0.2f);	
+		for (int i=0; i<1000; i++)
+		{
+			float alpha = 0.314f*i;
+			float h = 0.3f*i;
+			float r = (i%2)?1.4f:0.9f;
+			float rr = (i%2)?1.4f:0.9f;
+			skel_sampler_.add_vertex(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r));
+			skel_sampler_.add_cone(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r),GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,rr));
+
+			skel_sampler_.sample(0.1f);	
 
 		param_point_sprite_ = ShaderPointSprite::generate_param();
 		param_point_sprite_->color_ = rendering::GLColor(1, 1, 0, 1);
@@ -95,8 +104,8 @@ public:
 		param_point_sprite_->set_vbos({&vbo_samples_});
 		update_vbo(skel_sampler_.samples(), &vbo_samples_);
 		
-		 for (const auto& p : skel_sampler_.samples())
-		 	std::cout << p.transpose()<< std::endl;		 
+		//  for (const auto& p : skel_sampler_.samples())
+		//  	std::cout << p.transpose()<< " => "<<p.norm()<<std::endl;		 
 	}
 
 	void draw(ui::View* view) override

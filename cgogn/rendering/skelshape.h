@@ -365,81 +365,72 @@ public:
 
 	inline void inter_skeleton(const VEC3& P, const VEC3& Du, std::vector<VEC3>& I, SCALAR ds_max)
 	{
-		std::cout << "INTER! P=" << P.transpose() << std::endl;
+	//	std::cout << "INTER! P=" << P.transpose() << std::endl;
 		SCALAR d = eval_skeleton(P);
 		SCALAR ds = d;
+		VEC3 Q;
 		while (ds < ds_max)
 		{
-			 std::cout << "ds:"<< ds <<	 " < s_max:" <<ds_max<< std::endl;
-			VEC3 Q;
-			while ((d > Epsilon) && (ds < ds_max))
-			{
-				std::cout << "d: "<< d <<	std::endl;
+			//  std::cout << "ds:"<< ds <<	 " < s_max:" <<ds_max<< std::endl;
+			while ((d > Epsilon) && (ds < ds_max))			{
+				// std::cout << "d: "<< d <<	std::endl;
 				Q = P + ds * Du;
-				std::cout << "-> ds: " << ds << " -> Q: " << Q.transpose() << std::endl;
+				// std::cout << "-> ds: " << ds << " -> Q: " << Q.transpose() << std::endl;
 				d = eval_skeleton(Q);
 				ds += d;
-
 			}
-			if (ds < ds_max)
-			{
-				/*if (d < 0)
-				{
-					VEC3 Qp = P + (ds - 2 * Epsilon) * Du;
-					SCALAR dp = eval_skeleton(Qp);
-					if (dp >= 0)
-						I.push_back((Q * dp - Qp * d) / (dp - d));
-				}
-				else
-				{
-					VEC3 Qn = P + (ds + 2 * Epsilon) * Du;
-					SCALAR dn = eval_skeleton(Qn);
-					if (dn <= 0)
-						I.push_back((Qn * d - Q * dn) / (d - dn));
-				}*/
-				I.push_back(Q);
 
-				std::cout << "push "<< Q.transpose() <<	std::endl;
-				ds += 2 * Epsilon;
+			SCALAR ds_prec;
+			SCALAR d_prec;
+			while ((ds < ds_max) && (d < Epsilon))
+			{
+				d_prec = d;
+				ds_prec = ds;
 				Q = P + ds * Du;
 				d = eval_skeleton(Q);
-				while ((d < -Epsilon)&&(ds < ds_max))
+				ds += Epsilon;
+				if (d<=SCALAR(0))
 				{
-					std::cout << "d: " << d << std::endl;
-					Q = P + ds * Du;
-					d = eval_skeleton(Q);
-					ds -= d;
-				}
-				std::cout << "-> ds: " << ds << std::endl;
-
-				if (ds < ds_max)
-				{
-					I.push_back(Q);
-					std::cout << "push " << Q.transpose() << std::endl;
-		/*			if (d > 0)
-					{
-						VEC3 Qn = P + (ds - 2 * Epsilon) * Du;
-						SCALAR dn = eval_skeleton(Qn);
-						if (dn <= SCALAR(0))
-							I.push_back((Qn * d - Q * dn) / (d - dn));
-					}
-					else
-					{
-						VEC3 Qp = P + (ds + 2 * Epsilon) * Du;
-						SCALAR dp = eval_skeleton(Qp);
-						if (dp >= SCALAR(0))
-							I.push_back((Q * dp - Qp * d) / (dp - d));
-					}*/
-
+					I.push_back(P + Du*(ds_prec+ds)/SCALAR(2));
+				//	std::cout << "push "<< I.back().transpose() <<	std::endl;
+					ds += Epsilon;
+					break;
 				}
 			}
+
+			while ((d < -Epsilon) && (ds < ds_max))
+			{
+			//	std::cout << "d: "<< d <<	std::endl;
+				Q = P + ds * Du;
+			//	std::cout << "-> ds: " << ds << " -> Q: " << Q.transpose() << std::endl;
+				d = eval_skeleton(Q);
+				ds -= d;
+			}
+
+			while ((ds < ds_max) && (d >= -Epsilon))
+			{
+				d_prec = d;
+				ds_prec = ds;
+				Q = P + ds * Du;
+				d = eval_skeleton(Q);
+				ds += Epsilon;
+				if (d>=SCALAR(0))
+				{
+					I.push_back(P + Du*(ds_prec+ds)/SCALAR(2));
+			//		std::cout << "push "<< I.back().transpose() <<	std::endl;
+					ds += Epsilon;
+					break;
+				}
+			}
+
+				// d = eval_skeleton(Q);
 		}
 	}
 
 	inline void sample(SCALAR step)
 	{
 		std::cout << "BB: ["<< bb_min_.transpose() << " - "<< bb_max_.transpose() << "]"<< std::endl;	
-		Epsilon = step / SCALAR(10);
+		Epsilon = step / SCALAR(50);
 		samples_.clear();
 		samples_.reserve(8192);
 		// Z
@@ -448,15 +439,15 @@ public:
 				inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samples_, bb_max_[2] - bb_min_[2]);	
 
 
-		//// Y
-		//for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-		//	for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-		//		inter_skeleton(VEC3{x, bb_min_[1], z}, VEC3{0, 1, 0}, samples_, bb_max_[1] - bb_min_[1]);
+		// Y
+		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+			for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+				inter_skeleton(VEC3{x, bb_min_[1], z}, VEC3{0, 1, 0}, samples_, bb_max_[1] - bb_min_[1]);
 
-		//// X
-		//for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-		//	for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-		//		inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samples_, bb_max_[0] - bb_min_[0]);
+		// X
+		for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+			for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+				inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samples_, bb_max_[0] - bb_min_[0]);
 
 		std::cout << samples_.size() << "points genrated"<< std::endl;;	
 	}
@@ -620,7 +611,3 @@ protected:
 } // namespace cgogn
 
 #endif // CGOGN_RENDERING_SHAPE3_DRAWER_H_
-
-
-
-
