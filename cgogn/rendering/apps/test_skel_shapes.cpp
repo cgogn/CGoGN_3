@@ -80,12 +80,14 @@ public:
 		//std::cout << "D = " << skel_sampler_.eval_skeketon(GLVec3(f, 10, 0)) << std::endl;
 		// skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.5), GLVec4(0, 4, 0, 3));
 
-		skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.65), GLVec4(0, 4, 0,3.1));
-		skel_sampler_.add_vertex(GLVec4(0, 0, 0, 2));
-		skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
-		skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
+		//skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.65), GLVec4(0, 4, 0,3.1));
+		//skel_sampler_.add_vertex(GLVec4(0, 0, 0, 2));
+		//skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
+		//skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
 
-		skel_sampler_.sample(0.05);	
+		skel_sampler_.add_vertex(GLVec4(0, 0, 0, 1));
+	
+		skel_sampler_.sample(0.2f);	
 
 		param_point_sprite_ = ShaderPointSprite::generate_param();
 		param_point_sprite_->color_ = rendering::GLColor(1, 1, 0, 1);
@@ -93,8 +95,8 @@ public:
 		param_point_sprite_->set_vbos({&vbo_samples_});
 		update_vbo(skel_sampler_.samples(), &vbo_samples_);
 		
-		// for (const auto& p : skel_sampler_.samples())
-		// 	std::cout << p.transpose()<< std::endl;		 
+		 for (const auto& p : skel_sampler_.samples())
+		 	std::cout << p.transpose()<< std::endl;		 
 	}
 
 	void draw(ui::View* view) override
