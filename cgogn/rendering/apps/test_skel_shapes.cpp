@@ -53,15 +53,14 @@ public:
 		skel_drawer_.set_color({1, 0, 1, 1});
 		skel_drawer_.set_subdiv(40);
 
-		// 2 first in double others in float to check on the fly conversion
-		GLVec4 C00 = {-2.5, -2.0, 0.9, 0.3};
-		GLVec4 C0 = {-2.0, 0.0, 0.4, 0.2};
+		GLVec4 C00 = {-2.5f, -2.0f, 0.9f, 0.3f};
+		GLVec4 C0 = {-2.0f, 0.0f, 0.4f, 0.2f};
 
 		GLVec4 C1 = {-0.5f, 0.0f, 0.0f, 0.4f};
 		GLVec4 C2 = {0.4f, 1.0f, 0.2f, 0.7f};
 		GLVec4 C3 = {1.0f, -1.0f, -0.5f, 0.2f};
 		skel_drawer_.add_vertex(C00.topRows<3>(), C00[3]); // just to test version with radius parameter
-		skel_drawer_.add_vertex(GLVec3d{-2.0, 0.0, 0.4}, 0.2);
+		skel_drawer_.add_vertex(GLVec3{-2.0f, 0.0f, 0.4f}, 0.2f);
 		skel_drawer_.add_vertex(C1);
 		skel_drawer_.add_vertex(C2);
 		skel_drawer_.add_vertex(C3);
@@ -75,7 +74,6 @@ public:
 
 		skel_drawer_.update();
 
-		//SkeletonSampler<GLVec4, GLVec3, float>::evalPlaneSDF(GLVec3(1,1,1),)
 
 //		skel_sampler_.add_vertex(GLVec4(5, 5, 5, 2));
 		//skel_sampler_.add_edge(GLVec3(0, 0, 0), 2, GLVec3(9, 0, 0), 4 );
@@ -88,39 +86,72 @@ public:
 		//skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
 		//skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
 
-	/*	for (int i=0; i<1000; i++)
-		{
-			float alpha = 0.314f*i;
-			float h = 0.3f*i;
-			float r = (i%2)?1.4f:0.9f;
-			float rr = (i%2)?1.4f:0.9f;
-			skel_sampler_.add_vertex(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r));
-			skel_sampler_.add_cone(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r),GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,rr));*/
+		// for (int i=0; i<200; i++)
+		// {
+		// 	float alpha = 0.314f*i;
+		// 	float h = -2.0f+0.04f*i;
+		// 	float r = (i%2==1)?0.4f:0.3f;
+		// 	float rr = (i%2==0)?0.4f:0.3f;
+		// 	//skel_sampler_.add_vertex(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r));
+		// 	skel_sampler_.add_edge(GLVec4(1.0f*std::cos(alpha),1.0f*std::sin(alpha),h,r),GLVec4(2.5f*std::cos(alpha),2.5f*std::sin(alpha),h+2,rr));
+		// }
 
-			skel_sampler_.add_vertex(GLVec4(0,0,0,1));
-			skel_sampler_.sample(0.1f);	
+		//skel_sampler_.add_vertex(GLVec4(0,0,0,1));
+		// skel_sampler_.add_edge(GLVec4(0,0,0,1),GLVec4(5,3,2,2));
+		// skel_sampler_.add_vertex(GLVec4(5,3,2,2));
+		
+		skel_sampler_.add_vertex(C00.topRows<3>(), C00[3]); // just to test version with radius parameter
+		skel_sampler_.add_vertex(GLVec3{-2.0f, 0.0f, 0.4f}, 0.2f);
+		skel_sampler_.add_vertex(C1);
+		skel_sampler_.add_vertex(C2);
+		skel_sampler_.add_vertex(C3);
+		skel_sampler_.add_edge(C00, C0);
+		skel_sampler_.add_edge(C0, C1);
+		skel_sampler_.add_edge(C1, C2);
+		skel_sampler_.add_edge(C2, C3);
+		skel_sampler_.add_edge(C3, C1);
+		skel_sampler_.add_triangle(C1, C2, C3);
+
+
+//	skel_sampler_.add_vertex(GLVec4(0, 0, 0, 1));
+
+		GLVec3 bbw = skel_sampler_.BBwidth();
+		float step = std::min(std::min(bbw.x(),bbw.y()),bbw.z())/20;
+		skel_sampler_.sample(step,step/10);	
+
+		// for(auto p:skel_sampler_.samples())
+		//  	std::cout << p.norm()<< std::endl;
 
 		param_point_sprite_ = ShaderPointSprite::generate_param();
 		param_point_sprite_->color_ = rendering::GLColor(1, 1, 0, 1);
-		param_point_sprite_->point_size_ = 3;
+		param_point_sprite_->point_size_ = 0.0025;
 		param_point_sprite_->set_vbos({&vbo_samples_});
+
+		// std::vector<GLVec3> pp;
+		// for (float z=-4.0f;z<=4.0f; z += 0.2)
+		// 	for (float y=-4.0f;y<=4.0f; y += 0.2)
+		// 		for (float x=-4.0f;x<=4.0f; x += 0.2)
+		// 		pp.emplace_back(x,y,z);
+
 		update_vbo(skel_sampler_.samples(), &vbo_samples_);
+//		update_vbo(pp, &vbo_samples_);
+
 		//
-		  for (const auto& p : skel_sampler_.samples())
-		  	std::cout << p.transpose()<< " => "<<p.norm()<<std::endl;		 
+		//   for (const auto& p : skel_sampler_.samples())
+		//   	std::cout << p.transpose()<< " => "<<p.norm()<<std::endl;		 
 	}
 
 	void draw(ui::View* view) override
 	{
 		const GLMat4& proj_matrix = view->projection_matrix();
 		const GLMat4& view_matrix = view->modelview_matrix();
-//		skel_drawer_.draw(proj_matrix, view_matrix);
+		skel_drawer_.draw(proj_matrix, view_matrix);
 
 		if (param_point_sprite_->attributes_initialized())
 		{
 			std::cout << "DR "<< skel_sampler_.samples().size()<<std::endl;
 			param_point_sprite_->bind(proj_matrix, view_matrix);
-			glDrawArrays(GL_POINT,0,10000);//skel_sampler_.samples().size());
+			glDrawArrays(GL_POINTS,0,vbo_samples_.size());//skel_sampler_.samples().size());
 			param_point_sprite_->release();
 		}						
 						
