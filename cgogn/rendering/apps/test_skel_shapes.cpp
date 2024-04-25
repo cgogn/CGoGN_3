@@ -27,6 +27,7 @@
 #include <cgogn/ui/view.h>
 
 #include <cgogn/rendering/skelshape.h>
+#include <cgogn/modeling/skeleton_sampling.h>
 #include <cgogn/rendering/shaders/shader_point_sprite.h>
 
 using namespace ::cgogn;
@@ -87,15 +88,16 @@ public:
 		//skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
 		//skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
 
-		for (int i=0; i<1000; i++)
+	/*	for (int i=0; i<1000; i++)
 		{
 			float alpha = 0.314f*i;
 			float h = 0.3f*i;
 			float r = (i%2)?1.4f:0.9f;
 			float rr = (i%2)?1.4f:0.9f;
 			skel_sampler_.add_vertex(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r));
-			skel_sampler_.add_cone(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r),GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,rr));
+			skel_sampler_.add_cone(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r),GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,rr));*/
 
+			skel_sampler_.add_vertex(GLVec4(0,0,0,1));
 			skel_sampler_.sample(0.1f);	
 
 		param_point_sprite_ = ShaderPointSprite::generate_param();
@@ -103,9 +105,9 @@ public:
 		param_point_sprite_->point_size_ = 3;
 		param_point_sprite_->set_vbos({&vbo_samples_});
 		update_vbo(skel_sampler_.samples(), &vbo_samples_);
-		
-		//  for (const auto& p : skel_sampler_.samples())
-		//  	std::cout << p.transpose()<< " => "<<p.norm()<<std::endl;		 
+		//
+		  for (const auto& p : skel_sampler_.samples())
+		  	std::cout << p.transpose()<< " => "<<p.norm()<<std::endl;		 
 	}
 
 	void draw(ui::View* view) override
@@ -128,7 +130,7 @@ private:
 	const ui::App& app_;
 	SkelShapeDrawer skel_drawer_;
 
-	SkeletonSampler<GLVec4, GLVec3, float> skel_sampler_;
+	cgogn::modeling::SkeletonSampler<GLVec4, GLVec3, float> skel_sampler_;
 	VBO vbo_samples_;
 	std::unique_ptr<ShaderPointSprite::Param> param_point_sprite_;
 public:
