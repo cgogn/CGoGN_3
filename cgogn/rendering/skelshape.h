@@ -28,6 +28,9 @@
 #include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/vbo_update.h>
 
+#include <cgogn/geometry/types/vector_traits.h>
+#include <Eigen/Dense>
+
 namespace cgogn
 {
 
@@ -41,6 +44,7 @@ void VBO::associate(GLuint attrib, int32 stride = 0, uint32 first = 0, uint32 di
 class ShaderParamSkelShape : public ShaderParam
 {
 public:
+
 	//subdiv
 	int nbs_;
 	//color RBGA 
@@ -280,12 +284,9 @@ public:
 };
 
 
+
 } // namespace rendering
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHAPE3_DRAWER_H_
-
-
-
-
+#endif // CGOGN_RENDERING_SHAPE_DRAWER_H_

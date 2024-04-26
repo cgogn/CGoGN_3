@@ -261,7 +261,7 @@ void SkelConeDrawer::compute_skel_cone(const GLVec4& A, const GLVec4& B, GLVec4&
 	float k = AB[3]/(d*d) ;
 	P1.topRows<3>() = A.topRows<3>() - AB3 * (k*A[3]);
 	P2.topRows<3>() = B.topRows<3>() - AB3 * (k*B[3]);
-	float kk = std::sqrt(1.0f-(AB[3]*AB[3]/(d*d)));
+	float kk = std::sqrt(1.0f-(AB[3]*k));
 	P1[3] = A[3] * kk ;
 	P2[3] = B[3] * kk ;
 }

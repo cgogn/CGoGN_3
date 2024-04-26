@@ -9,8 +9,8 @@ add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::rendering ALIAS ${PROJECT_NAME})
 
 set(src_list
-#		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
-#		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
 #		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.cpp"
 #		"${CMAKE_CURRENT_LIST_DIR}/volume_drawer.h"
