@@ -25,7 +25,7 @@
 #define CGOGN_RENDERING_SKELETON_SAMPLER_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
-// #include <Eigen/Dense>
+#include <random>
 
 namespace cgogn
 {
@@ -199,7 +199,6 @@ public:
 
 	inline void inter_skeleton(const VEC3& P, const VEC3& Du, std::vector<VEC3>& I, SCALAR ds_max)
 	{
-		// std::cout << "INTER! P=" << P.transpose() << std::endl;
 		SCALAR d = eval_skeleton(P);
 		SCALAR ds = SCALAR(0);
 		SCALAR d_prec = SCALAR(0);;
@@ -208,7 +207,6 @@ public:
 		VEC3 Q;
 		while (ds < ds_max)
 		{
-			// std::cout << "ds:" << ds << " < s_max:" << ds_max << std::endl;
 			while ((d >= SCALAR(0)) && (ds < ds_max))
 			{
 				ds_prec = ds;
@@ -216,103 +214,166 @@ public:
 				Q = P + ds * Du;
 				d_prec = d;
 				d = eval_skeleton(Q);
-				// std::cout <<"d="<< d<< " -> ds: " << ds << " -> Q: " << Q.transpose() << std::endl;				
 			}
 			if (ds >= ds_max)
 				break;
-			// std::cout << "ENTER OBJ" << d<< std::endl;
 			SCALAR a = (ds * d_prec - ds_prec * d)/(d_prec-d);
 			I.push_back(P + Du * a);
-			// std::cout << "d: " << d_prec << " => " << d << "ds: " << ds_prec << " => " << ds << "=> a = " << a  << std::endl;
-			// std::cout << "PUSH FRONT " << I.back().transpose() << std::endl;
-//			ds += Epsilon;			
 
 			while ((d < SCALAR(0)) && (ds < ds_max))
 			{
-				// std::cout << "IN OBJ" << d<< std::endl;
 				ds_prec = ds;
 				ds += std::max(Epsilon,-d);
 				Q = P + ds * Du;
 				d_prec = d;
 				d = eval_skeleton(Q);
-				// std::cout << "-> ds: " << ds << " -> Q: " << Q.transpose() << "  d: "<<d << std::endl;				
 			}
 
-			// std::cout << "OUT OBJ" << d<< std::endl;
 			a = (ds * d_prec - ds_prec * d)/(d_prec-d);
 			I.push_back(P + Du * a);
-			// std::cout << "d: " << d_prec << " => " << d << "ds: " << ds_prec << " => " << ds << "=> a = " << a  << std::endl;
-			// std::cout << "PUSH BACK " << I.back().transpose() << std::endl;
 		}
 	}
 
 
-	// inline void sample(SCALAR step)
-	// {
-	// 	std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
-	// 	Epsilon = step / SCALAR(10);
-	// 	samples_.clear();
-	// 	samples_.reserve(8192);
-	// 	// Z
-	// 	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-	// 		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-	// 			inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samples_, bb_max_[2] - bb_min_[2]);
+	 //inline void sample(SCALAR step)
+	 //{
+	 //	std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
+	 //	Epsilon = step / SCALAR(10);
+	 //	samples_.clear();
+	 //	samples_.reserve(8192);
+	 //	// Z
+	 //	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+	 //		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+	 //			inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samples_, bb_max_[2] - bb_min_[2]);
 
-	// 	// Y
-	// 	for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-	// 		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-	// 			inter_skeleton(VEC3{x, bb_min_[1], z}, VEC3{0, 1, 0}, samples_, bb_max_[1] - bb_min_[1]);
+	 //	// Y
+	 //	for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+	 //		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+	 //			inter_skeleton(VEC3{x, bb_min_[1], z}, VEC3{0, 1, 0}, samples_, bb_max_[1] - bb_min_[1]);
 
-	// 	// X
-	// 	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-	// 		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-	// 			inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samples_, bb_max_[0] - bb_min_[0]);
+	 //	// X
+	 //	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+	 //		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+	 //			inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samples_, bb_max_[0] - bb_min_[0]);
 
-	// 	std::cout << samples_.size() << "points genrated" << std::endl;
-	// }
+	 //	std::cout << samples_.size() << "points genrated" << std::endl;
+	 //}
 
-	void sample(SCALAR step, SCALAR epsi=SCALAR(0))
+	//void sample(SCALAR step, SCALAR epsi=SCALAR(0))
+	//{
+	//	std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
+	//	Epsilon = epsi==SCALAR(0) ? step / SCALAR(20): epsi;
+	//	std::vector<VEC3> samp1;
+	//	samp1.reserve(8192);
+	//	std::vector<VEC3> samp2;
+	//	samp2.reserve(8192);
+	//	std::vector<VEC3> samp3;
+	//	samp3.reserve(8192);
+
+	//	std::random_device rd; // Will be used to obtain a seed for the random number engine
+	//	std::mt19937 gen(rd());			
+	//	std::uniform_real_distribution<SCALAR> dis(SCALAR(0), step / SCALAR(2));
+
+	//	// Z
+	//	std::thread th1([&]()
+	//	{
+	//	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+	//		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+	//			inter_skeleton(VEC3{x + dis(gen), y + dis(gen), bb_min_[2]}, VEC3{0, 0, 1}, samp1,
+	//						   bb_max_[2] - bb_min_[2]);
+	//	});
+
+	//	// Y
+	//	std::thread th2([&]()
+	//	{
+	//	for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
+	//		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+	//				inter_skeleton(VEC3{x + dis(gen), bb_min_[1], z + dis(gen)}, VEC3{0, 1, 0}, samp2,
+	//							   bb_max_[1] - bb_min_[1]);
+	//	});
+
+	//	// X
+	//	std::thread th3([&]()
+	//	{
+	//	for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
+	//		for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
+	//				inter_skeleton(VEC3{bb_min_[0], y + dis(gen), z + dis(gen)}, VEC3{1, 0, 0}, samp3,
+	//							   bb_max_[0] - bb_min_[0]);
+	//	});
+	//	th1.join();
+	//	th2.join();
+	//	th3.join();
+
+	//	samples_.clear();
+	//	samples_.insert(samples_.end(),samp1.begin(),samp1.end());
+	//	samples_.insert(samples_.end(),samp2.begin(),samp2.end());
+	//	samples_.insert(samples_.end(),samp3.begin(),samp3.end());
+
+	//	std::cout << samples_.size() << "points genrated" << std::endl;
+	//}
+
+
+	void sample(SCALAR step, SCALAR epsi = SCALAR(0))
 	{
 		std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
-		Epsilon = epsi==SCALAR(0) ? step / SCALAR(20): epsi;
-		std::vector<VEC3> samp1;
-		samp1.reserve(8192);
-		std::vector<VEC3> samp2;
-		samp2.reserve(8192);
-		std::vector<VEC3> samp3;
-		samp3.reserve(8192);
+		Epsilon = epsi == SCALAR(0) ? step / SCALAR(10) : epsi;
 
-		// Z
-		std::thread th1([&]()
-		{
-		for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-			for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-				inter_skeleton(VEC3{x, y, bb_min_[2]}, VEC3{0, 0, 1}, samp1, bb_max_[2] - bb_min_[2]);
-		});
+		SCALAR s2 = step / 2;
+		VEC3 min_bb = bb_min_ + VEC3(s2, s2, s2);
+		VEC3 max_bb = bb_max_ - VEC3(s2, s2, s2);
 
-		// Y
-		std::thread th2([&]()
-		{
-		for (SCALAR x = bb_min_[0] + step / 2; x < bb_max_[0] - step / 2; x += step)
-			for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-				inter_skeleton(VEC3{x, bb_min_[1], z}, VEC3{0, 1, 0}, samp2, bb_max_[1] - bb_min_[1]);
-		});
+		int nbthr = std::thread::hardware_concurrency() / 3;
+		SCALAR nstep = step * nbthr;
+		
+		std::vector<std::thread*> th(3 * nbthr, nullptr);
+		std::vector<std::vector<VEC3>> samp(3 * nbthr);
+		int k = 0;
 
-		// X
-		std::thread th3([&]()
+		for (int i = 0; i < nbthr; ++i)
 		{
-		for (SCALAR y = bb_min_[1] + step / 2; y < bb_max_[1] - step / 2; y += step)
-			for (SCALAR z = bb_min_[2] + step / 2; z < bb_max_[2] - step / 2; z += step)
-				inter_skeleton(VEC3{bb_min_[0], y, z}, VEC3{1, 0, 0}, samp3, bb_max_[0] - bb_min_[0]);
-		});
-		th1.join();
-		th2.join();
-		th3.join();
+			samp[k].reserve(8192);
+			th[k] = new std::thread([this,i, k, step, nstep,min_bb,max_bb,&samp]() {
+				thread_local std::random_device rd; 
+				thread_local std::mt19937 gen(rd());
+				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+				for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
+					for (SCALAR x = min_bb[0] + step / 2; x < max_bb[0]; x += step)
+						inter_skeleton(VEC3{x + dis(gen), y + dis(gen), min_bb[2]}, VEC3{0, 0, 1}, samp[k],
+									  bb_max_[2] - bb_min_[2]);
+			});
+			k++;
+			samp[k].reserve(8192);
+			th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
+				thread_local std::random_device rd; 
+				thread_local std::mt19937 gen(rd());
+				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+				for (SCALAR x = min_bb[0] + step * i; x < max_bb[0]; x += nstep)
+					for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
+						inter_skeleton(VEC3{x + dis(gen), min_bb[1], z + dis(gen)}, VEC3{0, 1, 0}, samp[k],
+									   bb_max_[1] - bb_min_[1]);
+			});
+			k++;
+			samp[k].reserve(8192);
+			th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
+				thread_local std::random_device rd; 
+				thread_local std::mt19937 gen(rd());
+				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+				for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
+					for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
+						inter_skeleton(VEC3{min_bb[0], y + dis(gen), z + dis(gen)}, VEC3{1, 0, 0}, samp[k],
+									   bb_max_[0] - bb_min_[0]);
+			});
+			k++;
+		}
+		std::cout << k << " threads launched" << std::endl;
 
 		samples_.clear();
-		samples_.insert(samples_.end(),samp1.begin(),samp1.end());
-		samples_.insert(samples_.end(),samp2.begin(),samp2.end());
-		samples_.insert(samples_.end(),samp3.begin(),samp3.end());
+		for (int i = 0; i < k; ++i)
+		{
+			th[i]->join();
+			delete th[i];
+			samples_.insert(samples_.end(), samp[i].begin(), samp[i].end());
+		}
 
 		std::cout << samples_.size() << "points genrated" << std::endl;
 	}

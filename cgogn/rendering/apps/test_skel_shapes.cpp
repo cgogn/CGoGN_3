@@ -59,6 +59,8 @@ public:
 		GLVec4 C1 = {-0.5f, 0.0f, 0.0f, 0.4f};
 		GLVec4 C2 = {0.4f, 1.0f, 0.2f, 0.7f};
 		GLVec4 C3 = {1.0f, -1.0f, -0.5f, 0.2f};
+
+
 		skel_drawer_.add_vertex(C00.topRows<3>(), C00[3]); // just to test version with radius parameter
 		skel_drawer_.add_vertex(GLVec3{-2.0f, 0.0f, 0.4f}, 0.2f);
 		skel_drawer_.add_vertex(C1);
@@ -70,35 +72,8 @@ public:
 		skel_drawer_.add_edge(C2, C3);
 		skel_drawer_.add_edge(C3, C1);
 		skel_drawer_.add_triangle(C1, C2, C3);
-
-
 		skel_drawer_.update();
 
-
-//		skel_sampler_.add_vertex(GLVec4(5, 5, 5, 2));
-		//skel_sampler_.add_edge(GLVec3(0, 0, 0), 2, GLVec3(9, 0, 0), 4 );
-		//for (float f = 0.0f; f<=11.0f; f+=0.5)
-		//std::cout << "D = " << skel_sampler_.eval_skeketon(GLVec3(f, 10, 0)) << std::endl;
-		// skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.5), GLVec4(0, 4, 0, 3));
-
-		//skel_sampler_.add_triangle(GLVec4(0, 0, 0, 2), GLVec4(4, 0, 0, 2.65), GLVec4(0, 4, 0,3.1));
-		//skel_sampler_.add_vertex(GLVec4(0, 0, 0, 2));
-		//skel_sampler_.add_vertex(GLVec4(4, 0, 0, 2.65));
-		//skel_sampler_.add_vertex(GLVec4(0, 4, 0, 3.1));
-
-		// for (int i=0; i<200; i++)
-		// {
-		// 	float alpha = 0.314f*i;
-		// 	float h = -2.0f+0.04f*i;
-		// 	float r = (i%2==1)?0.4f:0.3f;
-		// 	float rr = (i%2==0)?0.4f:0.3f;
-		// 	//skel_sampler_.add_vertex(GLVec4(7.0f*std::cos(alpha),7.0f*std::sin(alpha),h,r));
-		// 	skel_sampler_.add_edge(GLVec4(1.0f*std::cos(alpha),1.0f*std::sin(alpha),h,r),GLVec4(2.5f*std::cos(alpha),2.5f*std::sin(alpha),h+2,rr));
-		// }
-
-		//skel_sampler_.add_vertex(GLVec4(0,0,0,1));
-		// skel_sampler_.add_edge(GLVec4(0,0,0,1),GLVec4(5,3,2,2));
-		// skel_sampler_.add_vertex(GLVec4(5,3,2,2));
 		
 		skel_sampler_.add_vertex(C00.topRows<3>(), C00[3]); // just to test version with radius parameter
 		skel_sampler_.add_vertex(GLVec3{-2.0f, 0.0f, 0.4f}, 0.2f);
@@ -112,12 +87,33 @@ public:
 		skel_sampler_.add_edge(C3, C1);
 		skel_sampler_.add_triangle(C1, C2, C3);
 
+		
+		 // for (int i=0; i<100; i++)
+		//{
+		//	float alpha = 0.34f*i;
+		//	float h = -2.0f+0.04f*i;
+		//	float r = (i%2==1)?0.3f:0.2f;
+		//	float rr = (i%2==0)?0.3f:0.2f;
+		// skel_sampler_.add_edge(GLVec4(1.0f * std::cos(alpha), 1.0f * std::sin(alpha), h, r),
+		//					   GLVec4(3.5f * std::cos(alpha), 3.5f * std::sin(alpha), h + 0.5, rr));
+		// skel_sampler_.add_vertex(GLVec4(1.0f * std::cos(alpha), 1.0f * std::sin(alpha), h, r));
+		// skel_sampler_.add_vertex(GLVec4(3.5f * std::cos(alpha), 3.5f * std::sin(alpha), h + 0.5, rr));
 
-//	skel_sampler_.add_vertex(GLVec4(0, 0, 0, 1));
+		//	skel_drawer_.add_edge(GLVec4(1.0f * std::cos(alpha), 1.0f * std::sin(alpha), h, r),
+		//					   GLVec4(3.5f * std::cos(alpha), 3.5f * std::sin(alpha), h + 0.5, rr));
+		// skel_drawer_.add_vertex(GLVec4(1.0f * std::cos(alpha), 1.0f * std::sin(alpha), h, r));
+		// skel_drawer_.add_vertex(GLVec4(3.5f * std::cos(alpha), 3.5f * std::sin(alpha), h + 0.5, rr));
+		//}
+		//skel_drawer_.update();
+
+		
+				
+		//	skel_sampler_.add_vertex(GLVec4(0, 0, 0, 1));
+
 
 		GLVec3 bbw = skel_sampler_.BBwidth();
-		float step = std::min(std::min(bbw.x(),bbw.y()),bbw.z())/20;
-		skel_sampler_.sample(step,step/10);	
+		float step = std::min(std::min(bbw.x(),bbw.y()),bbw.z())/200;
+		skel_sampler_.sample(step);	
 
 		// for(auto p:skel_sampler_.samples())
 		//  	std::cout << p.norm()<< std::endl;
