@@ -144,7 +144,7 @@ class SphereFitting : public ViewModule
 
 		bool auto_stop_ = false;
 		bool auto_split_ = false;
-		float32 auto_split_threshold_ = 0.1f;
+		float32 auto_split_threshold_ = 0.3f;
 
 		Scalar total_error_ = 0.0;
 		Scalar last_total_error_ = 0.0;
@@ -1428,8 +1428,7 @@ protected:
 				ImGui::Separator();
 
 				ImGui::Checkbox("Auto split", &p.auto_split_);
-				ImGui::SliderFloat("Auto split threshold", &p.auto_split_threshold_, 0.00001f, 0.5f, "%.6f",
-								   ImGuiSliderFlags_Logarithmic);
+				ImGui::SliderFloat("Auto split threshold", &p.auto_split_threshold_, 0.00001f, 1.0f, "%.6f");
 
 				imgui_combo_attribute<PVertex, Scalar>(*p.spheres_, p.selected_spheres_error_, "Error measure",
 													   [&](const std::shared_ptr<PAttribute<Scalar>>& attribute) {
