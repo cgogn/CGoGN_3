@@ -106,32 +106,32 @@ std::tuple<Vec3, Scalar, typename mesh_traits<MESH>::Vertex> shrinking_ball_cent
 		Vec3 q_next;
 		Vertex q_next_v;
 
-		if (use_kdt_only)
-		{
-			std::pair<uint32, Scalar> k_res;
-			surface_kdt->find_nn(c, &k_res);
-			q_next = surface_kdt->vertex(k_res.first);
-			d = k_res.second;
-			q_next_v = kdt_vertices[k_res.first];
-		}
-		else
-		{
-			std::pair<uint32, Vec3> cp_res;
-			surface_bvh->closest_point(c, &cp_res);
-			q_next = cp_res.second;
-			d = (q_next - c).norm();
-			Face f = bvh_faces[cp_res.first];
-			std::vector<Vertex> vertices = incident_vertices(m, f);
-			Scalar d0 = (q_next - value<Vec3>(m, vertex_position, vertices[0])).squaredNorm();
-			Scalar d1 = (q_next - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
-			Scalar d2 = (q_next - value<Vec3>(m, vertex_position, vertices[2])).squaredNorm();
-			if (d0 < d1 && d0 < d2)
-				q_next_v = vertices[0];
-			else if (d1 < d0 && d1 < d2)
-				q_next_v = vertices[1];
-			else
-				q_next_v = vertices[2];
-		}
+		// if (use_kdt_only)
+		// {
+		std::pair<uint32, Scalar> k_res;
+		surface_kdt->find_nn(c, &k_res);
+		q_next = surface_kdt->vertex(k_res.first);
+		d = k_res.second;
+		q_next_v = kdt_vertices[k_res.first];
+		// }
+		// else
+		// {
+		// 	std::pair<uint32, Vec3> cp_res;
+		// 	surface_bvh->closest_point(c, &cp_res);
+		// 	q_next = cp_res.second;
+		// 	d = (q_next - c).norm();
+		// 	Face f = bvh_faces[cp_res.first];
+		// 	std::vector<Vertex> vertices = incident_vertices(m, f);
+		// 	Scalar d0 = (q_next - value<Vec3>(m, vertex_position, vertices[0])).squaredNorm();
+		// 	Scalar d1 = (q_next - value<Vec3>(m, vertex_position, vertices[1])).squaredNorm();
+		// 	Scalar d2 = (q_next - value<Vec3>(m, vertex_position, vertices[2])).squaredNorm();
+		// 	if (d0 < d1 && d0 < d2)
+		// 		q_next_v = vertices[0];
+		// 	else if (d1 < d0 && d1 < d2)
+		// 		q_next_v = vertices[1];
+		// 	else
+		// 		q_next_v = vertices[2];
+		// }
 
 		// If the closest point is (almost) the same as the previous one, or if the ball no longer shrinks, we stop
 		if ((d >= r - delta_convergence) || (q_next - q).norm() < delta_convergence)

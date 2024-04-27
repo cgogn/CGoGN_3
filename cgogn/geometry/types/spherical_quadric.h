@@ -69,12 +69,19 @@ struct Spherical_Quadric
 		return *this;
 	}
 
-	Spherical_Quadric& operator*(Scalar s)
+	Spherical_Quadric& operator*=(Scalar s)
 	{
 		_A *= s;
 		_b *= s;
 		_c *= s;
 		return *this;
+	}
+
+	friend Spherical_Quadric operator*(const Spherical_Quadric& q, Scalar s)
+	{
+		Spherical_Quadric result(q);
+		result *= s;
+		return result;
 	}
 
 	friend Spherical_Quadric operator+(const Spherical_Quadric& lhs, const Spherical_Quadric& rhs)
@@ -87,6 +94,11 @@ struct Spherical_Quadric
 	Scalar eval(const Vec4& p) const
 	{
 		return (0.5 * p.transpose() * _A * p) - (Scalar)(_b.transpose() * p) + _c;
+	}
+
+	Vec4 gradient(const Vec4& p) const
+	{
+		return _A * p - _b;
 	}
 
 	bool optimized(Vec4& sphere)
