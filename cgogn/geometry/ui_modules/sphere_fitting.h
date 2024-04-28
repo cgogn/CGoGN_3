@@ -144,7 +144,7 @@ class SphereFitting : public ViewModule
 
 		bool auto_stop_ = false;
 		bool auto_split_ = false;
-		float32 auto_split_threshold_ = 0.3f;
+		float32 auto_split_threshold_ = 0.0001f;
 
 		Scalar total_error_ = 0.0;
 		Scalar last_total_error_ = 0.0;
@@ -741,13 +741,13 @@ public:
 				Scalar sqem =
 					(*p.surface_vertex_quadric_)[sv_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
 				sqem_error += sqem;
-				(*p.surface_vertex_error_)[sv_index] = sqem + /*p.sqem_update_lambda_ **/ dist * dist;
+				(*p.surface_vertex_error_)[sv_index] = sqem + p.sqem_clustering_lambda_ * dist * dist;
 			}
 
 			(*p.spheres_distance_error_)[v_index] = distance_error;
 			(*p.spheres_sqem_error_)[v_index] = sqem_error;
 
-			(*p.spheres_combined_error_)[v_index] = (sqem_error + /*p.sqem_update_lambda_ **/ distance_error);
+			(*p.spheres_combined_error_)[v_index] = (sqem_error + p.sqem_clustering_lambda_ * distance_error);
 
 			return true;
 		});
@@ -1386,20 +1386,10 @@ protected:
 
 				if (p.update_method_ == SQEM)
 				{
-					static bool sync_lambdas = false;
-					ImGui::Checkbox("Sync lambdas", &sync_lambdas);
-					if (ImGui::SliderFloat("update lambda", &p.sqem_update_lambda_, 0.0f, 1.0f, "%.6f",
-										   ImGuiSliderFlags_Logarithmic))
-					{
-						if (sync_lambdas)
-							p.sqem_clustering_lambda_ = p.sqem_update_lambda_;
-					}
-					if (ImGui::SliderFloat("clustering lambda", &p.sqem_clustering_lambda_, 0.0f, 1.0f, "%.6f",
-										   ImGuiSliderFlags_Logarithmic))
-					{
-						if (sync_lambdas)
-							p.sqem_update_lambda_ = p.sqem_clustering_lambda_;
-					}
+					ImGui::SliderFloat("update lambda", &p.sqem_update_lambda_, 0.0f, 0.5f, "%.8f",
+									   ImGuiSliderFlags_Logarithmic);
+					ImGui::SliderFloat("clustering lambda", &p.sqem_clustering_lambda_, 0.0f, 1.0f, "%.6f",
+									   ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_ReadOnly);
 				}
 
 				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
@@ -1428,7 +1418,8 @@ protected:
 				ImGui::Separator();
 
 				ImGui::Checkbox("Auto split", &p.auto_split_);
-				ImGui::SliderFloat("Auto split threshold", &p.auto_split_threshold_, 0.00001f, 1.0f, "%.6f");
+				ImGui::SliderFloat("Auto split threshold", &p.auto_split_threshold_, 0.000001f, 0.2f, "%.6f",
+								   ImGuiSliderFlags_Logarithmic);
 
 				imgui_combo_attribute<PVertex, Scalar>(*p.spheres_, p.selected_spheres_error_, "Error measure",
 													   [&](const std::shared_ptr<PAttribute<Scalar>>& attribute) {
