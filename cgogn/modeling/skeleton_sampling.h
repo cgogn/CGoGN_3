@@ -318,9 +318,12 @@ public:
 		std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
 		Epsilon = epsi == SCALAR(0) ? step / SCALAR(10) : epsi;
 
+		VEC3 min_bb = bb_min_;
+		VEC3 max_bb = bb_max_;
+
 		SCALAR s2 = step / 2;
-		VEC3 min_bb = bb_min_ + VEC3(s2, s2, s2);
-		VEC3 max_bb = bb_max_ - VEC3(s2, s2, s2);
+		bb_max_ += VEC3(s2, s2, s2);
+		bb_min_ -= VEC3(s2, s2, s2);
 
 		int nbthr = std::thread::hardware_concurrency() / 3;
 		SCALAR nstep = step * nbthr;
