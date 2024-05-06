@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	sf.set_selected_surface(*s);
 	sf.set_surface_vertex_position(*s, s_vertex_position);
 	sf.init_surface_data(*s);
-	sf.init_spheres(*s, 20);
+	sf.init_spheres(*s, 1);
 
 	auto s_vertex_normal = cgogn::get_attribute<Vec3, SVertex>(*s, "normal");
 

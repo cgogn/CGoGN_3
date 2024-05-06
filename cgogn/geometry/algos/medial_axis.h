@@ -134,7 +134,7 @@ std::tuple<Vec3, Scalar, typename mesh_traits<MESH>::Vertex> shrinking_ball_cent
 		// }
 
 		// If the closest point is (almost) the same as the previous one, or if the ball no longer shrinks, we stop
-		if ((d >= r - delta_convergence) || (q_next - q).norm() < delta_convergence)
+		if (fabs(d - r) <= delta_convergence || (q_next - q).norm() < delta_convergence)
 			break;
 
 		// Compute next ball center
