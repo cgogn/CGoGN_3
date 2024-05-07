@@ -25,6 +25,8 @@
 #define CGOGN_RENDERING_SKELETON_SAMPLER_H_
 
 #include <cgogn/geometry/types/vector_traits.h>
+#include <cgogn/core/utils/thread.h>
+#include <cgogn/core/utils/thread_pool.h>
 #include <random>
 
 namespace cgogn
@@ -48,14 +50,14 @@ public:
 	void add_vertex(const VEC4& v)
 	{
 		vertices_.push_back(v);
-
 		update_BB(v);
 	}
 
 	void add_vertex(const VEC3& v, SCALAR r)
 	{
-		//		vertices_.emplace_back(stdd::make_pair(VEC(double(v[0]), double(v[1]), double(v[2])), SCALAR(r)));
 		vertices_.emplace_back(v[0], v[1], v[2], r);
+		update_BB(v,r);
+
 	}
 
 	void add_edge(const VEC3& A, SCALAR Ra, const VEC3& B, SCALAR Rb)
@@ -85,7 +87,11 @@ public:
 	{
 		auto nb = triangles_.size();
 		triangles_.resize(nb + 5);
-		compute_prism(A, B, C, &(triangles_[nb]));
+		auto nbp = triangles_points_.size();
+		triangles_points_.resize(nbp + 6);
+
+		compute_prism(A, B, C, &(triangles_[nb]), &(triangles_points_[nbp]));
+
 
 		update_BB(A);
 		update_BB(B);
@@ -102,8 +108,9 @@ public:
 		for (auto it = edges_.begin(); it != edges_.end(); it += 2)
 			dist = std::min(dist, evalConeSDF(P, it));
 
-		for (auto it = triangles_.begin(); it != triangles_.end(); it += 5)
-			dist = std::min(dist, evalPrismTriSDF(P, it));
+		auto jt = triangles_points_.begin();
+		for (auto it = triangles_.begin(); it != triangles_.end(); it += 5, jt+=6)
+			dist = std::min(dist, evalPrismTriSDF(P, it, jt));
 
 		return dist;
 	}
@@ -313,74 +320,150 @@ public:
 	//}
 
 
+	//void sample(SCALAR step, SCALAR epsi = SCALAR(0))
+	//{
+	//	std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
+	//	Epsilon = epsi == SCALAR(0) ? step / SCALAR(10) : epsi;
+	//	smooth_ = 10 * step;
+
+	//	VEC3 min_bb = bb_min_;
+	//	VEC3 max_bb = bb_max_;
+
+	//	SCALAR s2 = step * 20;
+	//	bb_max_ += VEC3(s2, s2, s2);
+	//	bb_min_ -= VEC3(s2, s2, s2);
+
+	//	int nbthr = std::thread::hardware_concurrency() / 3;
+	//	SCALAR nstep = step * nbthr;
+	//	
+	//	std::vector<std::thread*> th(3 * nbthr, nullptr);
+	//	std::vector<std::vector<VEC3>> samp(3 * nbthr);
+	//	int k = 0;
+
+	//	for (int i = 0; i < nbthr; ++i)
+	//	{
+	//		samp[k].reserve(8192);
+	//		th[k] = new std::thread([this,i, k, step, nstep,min_bb,max_bb,&samp]() {
+	//			thread_local std::random_device rd; 
+	//			thread_local std::mt19937 gen(rd());
+	//			thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+	//			for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
+	//				for (SCALAR x = min_bb[0] + step / 2; x < max_bb[0]; x += step)
+	//					inter_skeleton(VEC3{x + dis(gen), y + dis(gen), min_bb[2]}, VEC3{0, 0, 1}, samp[k],
+	//								  bb_max_[2] - bb_min_[2]);
+	//		});
+	//		k++;
+	//		samp[k].reserve(8192);
+	//		th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
+	//			thread_local std::random_device rd; 
+	//			thread_local std::mt19937 gen(rd());
+	//			thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+	//			for (SCALAR x = min_bb[0] + step * i; x < max_bb[0]; x += nstep)
+	//				for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
+	//					inter_skeleton(VEC3{x + dis(gen), min_bb[1], z + dis(gen)}, VEC3{0, 1, 0}, samp[k],
+	//								   bb_max_[1] - bb_min_[1]);
+	//		});
+	//		k++;
+	//		samp[k].reserve(8192);
+	//		th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
+	//			thread_local std::random_device rd; 
+	//			thread_local std::mt19937 gen(rd());
+	//			thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+	//			for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
+	//				for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
+	//					inter_skeleton(VEC3{min_bb[0], y + dis(gen), z + dis(gen)}, VEC3{1, 0, 0}, samp[k],
+	//								   bb_max_[0] - bb_min_[0]);
+	//		});
+	//		k++;
+	//	}
+	//	std::cout << k << " threads launched" << std::endl;
+
+	//	samples_.clear();
+	//	for (int i = 0; i < k; ++i)
+	//	{
+	//		th[i]->join();
+	//		delete th[i];
+	//		samples_.insert(samples_.end(), samp[i].begin(), samp[i].end());
+	//	}
+
+	//	std::cout << samples_.size() << "points genrated" << std::endl;
+	//}
+
+
 	void sample(SCALAR step, SCALAR epsi = SCALAR(0))
 	{
+		using Future = std::future<void>;
+		std::vector<Future> futures;	
+
 		std::cout << "BB: [" << bb_min_.transpose() << " - " << bb_max_.transpose() << "]" << std::endl;
 		Epsilon = epsi == SCALAR(0) ? step / SCALAR(10) : epsi;
+		smooth_ = 10 * step;
 
 		VEC3 min_bb = bb_min_;
 		VEC3 max_bb = bb_max_;
 
-		SCALAR s2 = step / 2;
+		SCALAR s2 = step * 20;
 		bb_max_ += VEC3(s2, s2, s2);
 		bb_min_ -= VEC3(s2, s2, s2);
 
-		int nbthr = std::thread::hardware_concurrency() / 3;
+		ThreadPool* pool = thread_pool();
+		uint32 nbthr = pool->nb_workers() / 3;
 		SCALAR nstep = step * nbthr;
-		
+
 		std::vector<std::thread*> th(3 * nbthr, nullptr);
 		std::vector<std::vector<VEC3>> samp(3 * nbthr);
 		int k = 0;
 
-		for (int i = 0; i < nbthr; ++i)
+		futures.reserve(nbthr*3);
+
+		for (uint32 i = 0; i < nbthr; ++i)
 		{
 			samp[k].reserve(8192);
-			th[k] = new std::thread([this,i, k, step, nstep,min_bb,max_bb,&samp]() {
-				thread_local std::random_device rd; 
+			futures.push_back(pool->enqueue( [this, i, k, step, nstep, min_bb, max_bb, &samp]() {
+				thread_local std::random_device rd;
 				thread_local std::mt19937 gen(rd());
 				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
+
 				for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
 					for (SCALAR x = min_bb[0] + step / 2; x < max_bb[0]; x += step)
-						inter_skeleton(VEC3{x + dis(gen), y + dis(gen), min_bb[2]}, VEC3{0, 0, 1}, samp[k],
-									  bb_max_[2] - bb_min_[2]);
-			});
+						inter_skeleton(VEC3{x + dis(gen), y + dis(gen), min_bb[2]},
+							VEC3{0, 0, 1}, samp[k], bb_max_[2] - bb_min_[2]);
+			}));
 			k++;
 			samp[k].reserve(8192);
-			th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
-				thread_local std::random_device rd; 
+			futures.push_back(pool->enqueue([this, i, k, step, nstep, min_bb, max_bb, &samp]() {
+				thread_local std::random_device rd;
 				thread_local std::mt19937 gen(rd());
 				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
 				for (SCALAR x = min_bb[0] + step * i; x < max_bb[0]; x += nstep)
 					for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
-						inter_skeleton(VEC3{x + dis(gen), min_bb[1], z + dis(gen)}, VEC3{0, 1, 0}, samp[k],
-									   bb_max_[1] - bb_min_[1]);
-			});
+						inter_skeleton(VEC3{x + dis(gen), min_bb[1], z + dis(gen)},
+							VEC3{0, 1, 0}, samp[k], bb_max_[1] - bb_min_[1]);
+			}));
 			k++;
 			samp[k].reserve(8192);
-			th[k] = new std::thread([this,i, k, step, nstep, min_bb, max_bb, &samp]() {
-				thread_local std::random_device rd; 
+			futures.push_back(pool->enqueue([this, i, k, step, nstep, min_bb, max_bb, &samp]() {
+				thread_local std::random_device rd;
 				thread_local std::mt19937 gen(rd());
 				thread_local std::uniform_real_distribution<SCALAR> dis(-step / SCALAR(2), step / SCALAR(2));
 				for (SCALAR y = min_bb[1] + step * i; y < max_bb[1]; y += nstep)
 					for (SCALAR z = min_bb[2] + step / 2; z < max_bb[2]; z += step)
-						inter_skeleton(VEC3{min_bb[0], y + dis(gen), z + dis(gen)}, VEC3{1, 0, 0}, samp[k],
-									   bb_max_[0] - bb_min_[0]);
-			});
+						inter_skeleton(VEC3{min_bb[0], y + dis(gen), z + dis(gen)},
+							VEC3{1, 0, 0},  samp[k], bb_max_[0] - bb_min_[0]);
+			}));
 			k++;
 		}
-		std::cout << k << " threads launched" << std::endl;
+		std::cout << k << " threads workers launched" << std::endl;
 
 		samples_.clear();
 		for (int i = 0; i < k; ++i)
 		{
-			th[i]->join();
-			delete th[i];
+			futures[i].wait();
 			samples_.insert(samples_.end(), samp[i].begin(), samp[i].end());
 		}
 
 		std::cout << samples_.size() << "points genrated" << std::endl;
 	}
-
 
 	std::vector<VEC3> samples()
 	{
@@ -396,12 +479,19 @@ protected:
 	std::vector<VEC4> vertices_;  // one by one
 	std::vector<VEC4> edges_;	  // by pair
 	std::vector<VEC4> triangles_; // by 5
+	std::vector<VEC3> triangles_points_;// by 6
 
 	std::vector<VEC3> samples_;
+
+
+
 	VEC3 bb_min_;
 	VEC3 bb_max_;
 
 	SCALAR Epsilon;
+
+	SCALAR smooth_;
+
 
 	inline void update_BB(const VEC4& v)
 	{
@@ -461,15 +551,103 @@ protected:
 		return P.dot(it->template topRows<3>()) + it->w();
 	}
 
-	static inline SCALAR evalPrismTriSDF(const VEC3& P, typename std::vector<VEC4>::const_iterator it)
+
+
+	inline SCALAR evalPrismTriSDF(const VEC3& P, typename std::vector<VEC4>::const_iterator it,
+								  typename std::vector<VEC3>::const_iterator jt)
 	{
-		SCALAR dist = evalPlaneSDF(P, it);
-		for (int i = 1; i < 5; ++i)
-			dist = std::max(dist, evalPlaneSDF(P, ++it));
-		return dist;
+		SCALAR dists[5];
+		for (int i = 0; i < 5; ++i)
+		{
+			dists[i] = evalPlaneSDF(P, it++);
+		}
+
+		if (dists[0] >= 0)
+		{
+			if (dists[2] >= 0)
+			{
+				if (dists[4] >= 0)
+					return (*jt - P).norm();
+				if (dists[3] >= 0)
+					return (*(jt + 1) - P).norm();
+
+				VEC3 U = (*(jt + 1) - *jt).normalized();
+				return (U.cross(P - *jt)).norm();
+
+			}
+			if (dists[3] >= 0)
+			{
+				if (dists[4] >= 0)
+					return (*(jt + 2) - P).norm();
+
+				VEC3 U = (*(jt + 2) - *(jt+1)).normalized();
+				return U.cross(P - *(jt+1)).norm();
+			}
+			if (dists[4] >= 0)
+			{
+				VEC3 U = (*(jt + 2) - *jt).normalized();
+				return U.cross(P - *jt).norm();
+			}
+
+		}
+
+		if (dists[1] >= 0)
+		{
+			if (dists[2] >= 0)
+			{
+				if (dists[4] >= 0)
+					return (*(jt + 3) - P).norm();
+				if (dists[3] >= 0)
+					return (*(jt + 5) - P).norm();
+
+				VEC3 U = (*(jt + 3) - *(jt + 5)).normalized();
+				return U.cross(P - *(jt + 5)).norm();
+
+			}
+			if (dists[3] >= 0)
+			{
+				if (dists[4] >= 0)
+					return (*(jt + 4) - P).norm();
+				VEC3 U = (*(jt + 4) - *(jt + 5)).normalized();
+				return U.cross(P - *(jt + 5)).norm();
+			}
+			if (dists[4] >= 0)
+			{
+				VEC3 U = (*(jt + 4) - *(jt + 3)).normalized();
+				return U.cross(P - *(jt + 3)).norm();
+			}
+		}
+
+		if ((dists[0] <= 0) && (dists[1] <= 0))
+		{
+			if (dists[2] >= 0)
+			{
+				if (dists[3] >= 0)
+				{
+					VEC3 U = (*(jt + 5) - *(jt + 1)).normalized();
+					return U.cross(P - *(jt + 1)).norm();
+				}
+				if (dists[4] >= 0)
+				{
+					VEC3 U = (*(jt + 3) - *jt).normalized();
+					return U.cross(P - *jt).norm();
+				}
+			}
+			if ((dists[3] >= 0) && (dists[4] >= 0))
+			{
+				VEC3 U = (*(jt + 4) - *(jt + 2)).normalized();
+				return U.cross(P - *(jt + 2)).norm();
+			}
+		}
+		
+		// other case
+		 SCALAR dist = dists[0];
+		 for (int i = 1; i < 5; ++i)
+			dist = std::max(dist, dists[i]);
+		 return dist;
 	}
 
-	static inline void compute_CenterDisk(const VEC4& sphA, const VEC4& sphB, VEC3& centerA, VEC3& centerB)
+	inline void compute_CenterDisk(const VEC4& sphA, const VEC4& sphB, VEC3& centerA, VEC3& centerB)
 	{
 		auto AB = sphB - sphA;
 		const VEC3& AB3 = AB.template topRows<3>();
@@ -501,7 +679,22 @@ protected:
 		I2 = O + k2 * U;
 	};
 
-	void compute_prism(const VEC4& Sph1, const VEC4& Sph2, const VEC4& Sph3, VEC4* Planes)
+	static inline VEC3 interPPP(const VEC4& planeA, const VEC4& planeB, const VEC4& planeC)
+	{
+		const VEC3& Na = planeA.template topRows<3>();
+		const VEC3& Nb = planeB.template topRows<3>();
+
+		VEC3 U = Na.cross(Nb).normalized();
+
+		SCALAR dp = Na.dot(Nb);
+		SCALAR c1 = (-planeA[3] + planeB[3] * dp);
+		SCALAR c2 = (-planeB[3] + planeA[3] * dp);
+		VEC3 O = (c1 * Na + c2 * Nb) / (1.0f - dp * dp);
+		SCALAR a = planeC.dot(VEC4(O[0], O[1], O[2], SCALAR(1))) / planeC.topRows<3>().dot(U);
+		return O + a * U;
+	};
+
+	void compute_prism(const VEC4& Sph1, const VEC4& Sph2, const VEC4& Sph3, VEC4* Planes, VEC3* I)
 	{
 		std::array<VEC3, 6> centers;
 
@@ -512,7 +705,7 @@ protected:
 		compute_CenterDisk(Sph3, Sph1, centers[5], centers[0]);
 		VEC3 N3 = (Sph1.template topRows<3>() - Sph3.template topRows<3>()).normalized();
 
-		std::array<VEC3, 6> I;
+//		std::array<VEC3, 6> I;
 
 		interPPS({N1[0], N1[1], N1[2], -N1.dot(centers[1])}, {-N3[0], -N3[1], -N3[2], N3.dot(centers[0])}, Sph1, I[0],
 				 I[3]);
