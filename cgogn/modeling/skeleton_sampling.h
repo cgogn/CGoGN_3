@@ -690,7 +690,7 @@ protected:
 		SCALAR c1 = (-planeA[3] + planeB[3] * dp);
 		SCALAR c2 = (-planeB[3] + planeA[3] * dp);
 		VEC3 O = (c1 * Na + c2 * Nb) / (1.0f - dp * dp);
-		SCALAR a = planeC.dot(VEC4(O[0], O[1], O[2], SCALAR(1))) / planeC.topRows<3>().dot(U);
+		SCALAR a = planeC.dot(VEC4(O[0], O[1], O[2], SCALAR(1))) / planeC.template topRows<3>().dot(U);
 		return O + a * U;
 	};
 
