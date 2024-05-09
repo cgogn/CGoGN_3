@@ -151,6 +151,8 @@ class SphereFitting : public ViewModule
 
 		// bool auto_split_outside_spheres_ = false;
 
+		bool sphere_correction_step_ = true;
+
 		AutoSplitMode auto_split_mode_ = ERROR_THRESHOLD;
 
 		bool auto_stop_ = false;
@@ -160,7 +162,7 @@ class SphereFitting : public ViewModule
 
 		Scalar total_error_ = 0.0;
 		Scalar last_total_error_ = 0.0;
-		Scalar total_error_diff_ = std::numeric_limits<Scalar>::max();
+		Scalar total_error_diff_ = 0.0;
 		Scalar min_error_ = 0.0;
 		Scalar max_error_ = 0.0;
 		PVertex max_error_sphere_ = PVertex();
@@ -1021,42 +1023,49 @@ public:
 		c = s.head<3>();
 		r = s[3];
 
-		Vec3 closest_point_position;
-		Vec3 closest_point_dir;
-
-		if (p.point_cloud_mode_)
+		if (p.sphere_correction_step_)
 		{
-			std::pair<uint32, Scalar> k_res;
-			p.surface_kdt_->find_nn(c, &k_res);
-			SVertex closest_vertex = p.surface_kdt_vertices_[k_res.first];
-			closest_point_position = p.surface_kdt_->vertex(k_res.first);
-			closest_point_dir = (closest_point_position - c).normalized();
+			Vec3 closest_point_position;
+			Vec3 closest_point_dir;
 
-			const Vec3& closest_vertex_normal = value<Vec3>(*p.surface_, p.surface_vertex_normal_, closest_vertex);
-			// TODO: exterior detection is not reliable
-			if (closest_point_dir.dot(closest_vertex_normal) <= 0.0)
-				closest_point_dir = -closest_point_dir;
+			if (p.point_cloud_mode_)
+			{
+				std::pair<uint32, Scalar> k_res;
+				p.surface_kdt_->find_nn(c, &k_res);
+				SVertex closest_vertex = p.surface_kdt_vertices_[k_res.first];
+				closest_point_position = p.surface_kdt_->vertex(k_res.first);
+				closest_point_dir = (closest_point_position - c).normalized();
+
+				const Vec3& closest_vertex_normal = value<Vec3>(*p.surface_, p.surface_vertex_normal_, closest_vertex);
+				// TODO: exterior detection is not reliable
+				if (closest_point_dir.dot(closest_vertex_normal) <= 0.0)
+					closest_point_dir = -closest_point_dir;
+			}
+			else
+			{
+				std::pair<uint32, Vec3> bvh_res;
+				p.surface_bvh_->closest_point(c, &bvh_res);
+				closest_point_position = bvh_res.second;
+				closest_point_dir = (closest_point_position - c).normalized();
+
+				const Vec3& closest_face_normal =
+					value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
+				// TODO: exterior detection is not reliable
+				if (closest_point_dir.dot(closest_face_normal) <= 0.0)
+					closest_point_dir = -closest_point_dir;
+			}
+
+			auto [center, radius, secondary] =
+				geometry::shrinking_ball_center(*p.surface_, closest_point_position, closest_point_dir,
+												p.surface_vertex_position_.get(), p.surface_bvh_, p.surface_bvh_faces_,
+												p.surface_kdt_, p.surface_kdt_vertices_, p.point_cloud_mode_, 0.25f);
+
+			c = center;
+			r = radius;
 		}
-		else
-		{
-			std::pair<uint32, Vec3> bvh_res;
-			p.surface_bvh_->closest_point(c, &bvh_res);
-			closest_point_position = bvh_res.second;
-			closest_point_dir = (closest_point_position - c).normalized();
 
-			const Vec3& closest_face_normal =
-				value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
-			// TODO: exterior detection is not reliable
-			if (closest_point_dir.dot(closest_face_normal) <= 0.0)
-				closest_point_dir = -closest_point_dir;
-		}
-
-		auto [center, radius, secondary] = geometry::shrinking_ball_center(
-			*p.surface_, closest_point_position, closest_point_dir, p.surface_vertex_position_.get(), p.surface_bvh_,
-			p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_, p.point_cloud_mode_, 0.25f);
-
-		(*p.spheres_position_)[sphere_index] = center;
-		(*p.spheres_radius_)[sphere_index] = radius;
+		(*p.spheres_position_)[sphere_index] = c;
+		(*p.spheres_radius_)[sphere_index] = r;
 	}
 
 	void update_spheres(SurfaceParameters& p)
@@ -1084,10 +1093,6 @@ public:
 		// }
 		// }
 
-		compute_spheres_error(p);
-
-		compute_skeleton(p, true);
-
 		if (p.auto_split_ && (p.total_error_diff_ < 1e-5 || p.iteration_count_ % 5 == 0)) // wait max 5 iterations
 		{
 			switch (p.auto_split_mode_)
@@ -1095,6 +1100,9 @@ public:
 			case ERROR_THRESHOLD: {
 				if (p.max_error_ > p.auto_split_error_threshold_)
 				{
+					compute_spheres_error(p);  // compute spheres error and neigbors
+					compute_skeleton(p, true); // only when needed for a possible split
+
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
 					foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
@@ -1105,8 +1113,8 @@ public:
 						return value<Scalar>(*p.spheres_, p.spheres_error_, a) >
 							   value<Scalar>(*p.spheres_, p.spheres_error_, b);
 					});
-					// do not split more than 10% of the spheres at once (and 10 at most)
-					uint32 to_split_max = std::min(uint32(std::ceil(p.nb_spheres_ * 0.1)), 10u);
+					// do not split more than 20% of the spheres at once (and 10 at most)
+					uint32 to_split_max = std::min(uint32(std::ceil(p.nb_spheres_ * 0.2)), 10u);
 					for (PVertex sphere : sorted_spheres)
 					{
 						uint32 s_index = index_of(*p.spheres_, sphere);
@@ -1115,7 +1123,7 @@ public:
 							break;
 						if (to_split_max > 0 && !(*p.spheres_do_not_split_)[s_index]) // do not split neighbor spheres
 						{
-							split_sphere(p, sphere, false);
+							split_sphere(p, sphere);
 							for (PVertex neighbor : (*p.spheres_neighbor_clusters_)[s_index])
 								value<bool>(*p.spheres_, p.spheres_do_not_split_, neighbor) = true;
 							--to_split_max;
@@ -1127,6 +1135,9 @@ public:
 			case MAX_NB_SPHERES: {
 				if (p.nb_spheres_ < p.auto_split_max_nb_spheres_)
 				{
+					compute_spheres_error(p);  // compute spheres error and neigbors
+					compute_skeleton(p, true); // only when needed for a possible split
+
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
 					foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
@@ -1137,8 +1148,8 @@ public:
 						return value<Scalar>(*p.spheres_, p.spheres_error_, a) >
 							   value<Scalar>(*p.spheres_, p.spheres_error_, b);
 					});
-					// do not split more than 10% of the spheres at once (and 10 at most)
-					uint32 to_split_max = std::min(uint32(std::ceil(p.nb_spheres_ * 0.1)), 10u);
+					// do not split more than 20% of the spheres at once (and 10 at most)
+					uint32 to_split_max = std::min(uint32(std::ceil(p.nb_spheres_ * 0.2)), 10u);
 					for (PVertex sphere : sorted_spheres)
 					{
 						uint32 s_index = index_of(*p.spheres_, sphere);
@@ -1146,7 +1157,7 @@ public:
 							break;
 						if (to_split_max > 0 && !(*p.spheres_do_not_split_)[s_index]) // do not split neighbor spheres
 						{
-							split_sphere(p, sphere, false);
+							split_sphere(p, sphere);
 							for (PVertex neighbor : (*p.spheres_neighbor_clusters_)[s_index])
 								value<bool>(*p.spheres_, p.spheres_do_not_split_, neighbor) = true;
 							--to_split_max;
@@ -1165,7 +1176,7 @@ public:
 			update_render_data(p);
 	}
 
-	void split_sphere(SurfaceParameters& p, PVertex v, bool update_clusters = true)
+	void split_sphere(SurfaceParameters& p, PVertex v)
 	{
 		uint32 v_index = index_of(*p.spheres_, v);
 
@@ -1194,14 +1205,6 @@ public:
 		(*p.spheres_radius_)[new_sphere_index] = (*p.medial_axis_radius_)[max_error_vertex_index];
 		(*p.spheres_cluster_color_)[new_sphere_index] =
 			Vec3(rand() % 256 / 255.0f, rand() % 256 / 255.0f, rand() % 256 / 255.0f);
-
-		if (update_clusters)
-		{
-			compute_clusters(p);
-
-			if (!p.running_)
-				update_render_data(p);
-		}
 	}
 
 	void remove_sphere(SurfaceParameters& p, PVertex v)
@@ -1211,11 +1214,6 @@ public:
 			value<PVertex>(*p.surface_, p.surface_vertex_sphere_, sv) = PVertex();
 		remove_vertex(*p.spheres_, v);
 		p.nb_spheres_--;
-
-		compute_clusters(p);
-
-		if (!p.running_)
-			update_render_data(p);
 	}
 
 	void compute_skeleton(SurfaceParameters& p, bool compute_neighbor_clusters_only = false)
@@ -1363,6 +1361,7 @@ protected:
 	{
 		p.running_ = true;
 		p.iteration_count_ = 0;
+		p.total_error_diff_ = 0.0;
 		p.last_total_error_ = std::numeric_limits<Scalar>::max();
 
 		launch_thread([&]() {
@@ -1424,8 +1423,11 @@ protected:
 
 		if (key_code == GLFW_KEY_U)
 		{
-			std::lock_guard<std::mutex> lock(p.mutex_);
-			update_render_data(p);
+			if (!p.running_)
+			{
+				std::lock_guard<std::mutex> lock(p.mutex_);
+				update_render_data(p);
+			}
 		}
 		else if (key_code == GLFW_KEY_I || key_code == GLFW_KEY_S || key_code == GLFW_KEY_D)
 		{
@@ -1459,11 +1461,19 @@ protected:
 			{
 				std::lock_guard<std::mutex> lock(p.mutex_);
 				split_sphere(p, picked_sphere_);
+				compute_clusters(p);
+				compute_spheres_error(p);
+				if (!p.running_)
+					update_render_data(p);
 			}
 			else if (key_code == GLFW_KEY_D && picked_sphere_.is_valid())
 			{
 				std::lock_guard<std::mutex> lock(p.mutex_);
 				remove_sphere(p, picked_sphere_);
+				compute_clusters(p);
+				compute_spheres_error(p);
+				if (!p.running_)
+					update_render_data(p);
 			}
 		}
 	}
@@ -1551,11 +1561,27 @@ protected:
 				// }
 
 				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
+				ImGui::Checkbox("Sphere correction step", &p.sphere_correction_step_);
 
 				if (ImGui::Button("Update spheres"))
 				{
-					std::lock_guard<std::mutex> lock(p.mutex_);
-					update_spheres(p);
+					if (!p.running_)
+					{
+						std::lock_guard<std::mutex> lock(p.mutex_);
+						update_spheres(p);
+						compute_spheres_error(p);
+						update_render_data(p);
+					}
+				}
+				if (ImGui::Button("Compute clusters"))
+				{
+					if (!p.running_)
+					{
+						std::lock_guard<std::mutex> lock(p.mutex_);
+						compute_clusters(p);
+						compute_spheres_error(p);
+						update_render_data(p);
+					}
 				}
 
 				ImGui::Checkbox("Slow down", &p.slow_down_);
@@ -1597,6 +1623,10 @@ protected:
 				{
 					std::lock_guard<std::mutex> lock(p.mutex_);
 					split_sphere(p, p.max_error_sphere_);
+					compute_clusters(p);
+					compute_spheres_error(p);
+					if (!p.running_)
+						update_render_data(p);
 				}
 
 				ImGui::Separator();
