@@ -90,6 +90,12 @@ class SphereFitting : public ViewModule
 		ERROR_THRESHOLD
 	};
 
+	enum CorrectionMode : uint32
+	{
+		CORRECT_ALWAYS,
+		CORRECT_ON_SPLIT
+	};
+
 	const uint32 k = 6;
 
 	struct SurfaceParameters
@@ -119,7 +125,7 @@ class SphereFitting : public ViewModule
 		acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
 		std::vector<SVertex> surface_kdt_vertices_;
 
-		float32 noise_factor_ = 0.005f;
+		float32 noise_factor_ = 0.01f;
 
 		bool point_cloud_mode_ = false;
 
@@ -151,12 +157,13 @@ class SphereFitting : public ViewModule
 
 		// bool auto_split_outside_spheres_ = false;
 
-		bool sphere_correction_step_ = true;
-
-		AutoSplitMode auto_split_mode_ = ERROR_THRESHOLD;
+		bool sphere_correction_ = true;
+		CorrectionMode sphere_correction_mode_ = CORRECT_ALWAYS;
 
 		bool auto_stop_ = false;
 		bool auto_split_ = false;
+		AutoSplitMode auto_split_mode_ = ERROR_THRESHOLD;
+		// bool auto_simplify_ = false;
 		float32 auto_split_error_threshold_ = 0.00025f;
 		uint32 auto_split_max_nb_spheres_ = 50;
 
@@ -166,6 +173,9 @@ class SphereFitting : public ViewModule
 		Scalar min_error_ = 0.0;
 		Scalar max_error_ = 0.0;
 		PVertex max_error_sphere_ = PVertex();
+
+		bool error_as_spheres_color_ = false;
+		float32 spheres_transparency_ = 0.5f;
 
 		uint32 iteration_count_ = 0;
 		std::mutex mutex_;
@@ -205,13 +215,17 @@ public:
 			return;
 		}
 
+		const MeshData<SURFACE>& md = surface_provider_->mesh_data(*p.surface_);
+		Scalar bb_diag = (md.bb_max_ - md.bb_min_).norm() / 2.0;
+
 		parallel_foreach_cell(*p.surface_, [&](SVertex v) -> bool {
 			uint32 v_index = index_of(*p.surface_, v);
 			float32 r = float32(rand()) / float32(RAND_MAX);
 			int i = rand() % 2;
 			if (i == 0)
 				r *= -1.0f;
-			(*p.surface_vertex_position_)[v_index] += r * p.noise_factor_ * (*p.surface_vertex_normal_)[v_index];
+			(*p.surface_vertex_position_)[v_index] +=
+				r * p.noise_factor_ * bb_diag * (*p.surface_vertex_normal_)[v_index];
 			return true;
 		});
 
@@ -582,7 +596,9 @@ public:
 			(*p.spheres_position_)[sphere_index] = vp;
 			(*p.spheres_radius_)[sphere_index] = vr;
 			(*p.spheres_cluster_color_)[sphere_index] =
-				Vec3(rand() % 256 / 255.0f, rand() % 256 / 255.0f, rand() % 256 / 255.0f);
+				Vec3(0.5 + 0.5 * (rand() % 256) / 256.0, 0.5 + 0.5 * (rand() % 256) / 256.0,
+					 0.5 + 0.5 * (rand() % 256) / 256.0);
+			// Vec3(rand() % 256 / 255.0f, rand() % 256 / 255.0f, rand() % 256 / 255.0f);
 
 			std::stack<SVertex> stack;
 			stack.push(v);
@@ -776,6 +792,7 @@ public:
 				Scalar dist_sqem =
 					(*p.surface_vertex_quadric_)[sv_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
 				Scalar dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
+				// Scalar dist = dist_sqem + p.sqem_update_lambda_ * dist_eucl;
 				(*p.surface_vertex_error_)[sv_index] = dist;
 				cluster_error += dist;
 			}
@@ -810,12 +827,19 @@ public:
 	{
 		parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
 			uint32 v_index = index_of(*p.spheres_, v);
-			(*p.spheres_color_)[v_index] = color_map((*p.spheres_error_)[v_index], p.min_error_, p.max_error_);
+			if (p.error_as_spheres_color_)
+				(*p.spheres_color_)[v_index] =
+					color_map((*p.spheres_error_)[v_index], p.min_error_, p.max_error_, p.spheres_transparency_);
+			else
+			{
+				const Vec3& c = (*p.spheres_cluster_color_)[v_index];
+				(*p.spheres_color_)[v_index] = Vec4(c.x(), c.y(), c.z(), p.spheres_transparency_);
+			}
 			return true;
 		});
 	}
 
-	Vec4 color_map(Scalar x, Scalar min, Scalar max)
+	Vec4 color_map(Scalar x, Scalar min, Scalar max, float32 transparency = 1.0)
 	{
 		x = (x - min) / (max - min);
 		x = std::clamp(x, 0.0, 1.0);
@@ -824,13 +848,13 @@ public:
 		switch (int(std::floor(std::max(0.0, x2 + 1.0))))
 		{
 		case 0:
-			return Vec4(0.0, 0.0, 1.0, 0.5);
+			return Vec4(0.0, 0.0, 1.0, transparency);
 		case 1:
-			return Vec4(x2, x2, 1.0, 0.5);
+			return Vec4(x2, x2, 1.0, transparency);
 		case 2:
-			return Vec4(1.0, 2.0 - x2, 2.0 - x2, 0.5);
+			return Vec4(1.0, 2.0 - x2, 2.0 - x2, transparency);
 		}
-		return Vec4(1.0, 0.0, 0.0, 0.5);
+		return Vec4(1.0, 0.0, 0.0, transparency);
 	}
 
 	// search for the 25 closest vertices to the exterior center "center" and keep the first (p1) and the one among the
@@ -1023,49 +1047,53 @@ public:
 		c = s.head<3>();
 		r = s[3];
 
-		if (p.sphere_correction_step_)
-		{
-			Vec3 closest_point_position;
-			Vec3 closest_point_dir;
-
-			if (p.point_cloud_mode_)
-			{
-				std::pair<uint32, Scalar> k_res;
-				p.surface_kdt_->find_nn(c, &k_res);
-				SVertex closest_vertex = p.surface_kdt_vertices_[k_res.first];
-				closest_point_position = p.surface_kdt_->vertex(k_res.first);
-				closest_point_dir = (closest_point_position - c).normalized();
-
-				const Vec3& closest_vertex_normal = value<Vec3>(*p.surface_, p.surface_vertex_normal_, closest_vertex);
-				// TODO: exterior detection is not reliable
-				if (closest_point_dir.dot(closest_vertex_normal) <= 0.0)
-					closest_point_dir = -closest_point_dir;
-			}
-			else
-			{
-				std::pair<uint32, Vec3> bvh_res;
-				p.surface_bvh_->closest_point(c, &bvh_res);
-				closest_point_position = bvh_res.second;
-				closest_point_dir = (closest_point_position - c).normalized();
-
-				const Vec3& closest_face_normal =
-					value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
-				// TODO: exterior detection is not reliable
-				if (closest_point_dir.dot(closest_face_normal) <= 0.0)
-					closest_point_dir = -closest_point_dir;
-			}
-
-			auto [center, radius, secondary] =
-				geometry::shrinking_ball_center(*p.surface_, closest_point_position, closest_point_dir,
-												p.surface_vertex_position_.get(), p.surface_bvh_, p.surface_bvh_faces_,
-												p.surface_kdt_, p.surface_kdt_vertices_, p.point_cloud_mode_, 0.25f);
-
-			c = center;
-			r = radius;
-		}
-
 		(*p.spheres_position_)[sphere_index] = c;
 		(*p.spheres_radius_)[sphere_index] = r;
+	}
+
+	void correct_sphere(SurfaceParameters& p, PVertex v)
+	{
+		uint32 v_index = index_of(*p.spheres_, v);
+
+		Vec3& c = (*p.spheres_position_)[v_index];
+		Scalar& r = (*p.spheres_radius_)[v_index];
+
+		Vec3 closest_point_position;
+		Vec3 closest_point_dir;
+
+		if (p.point_cloud_mode_)
+		{
+			std::pair<uint32, Scalar> k_res;
+			p.surface_kdt_->find_nn(c, &k_res);
+			SVertex closest_vertex = p.surface_kdt_vertices_[k_res.first];
+			closest_point_position = p.surface_kdt_->vertex(k_res.first);
+			closest_point_dir = (closest_point_position - c).normalized();
+
+			const Vec3& closest_vertex_normal = value<Vec3>(*p.surface_, p.surface_vertex_normal_, closest_vertex);
+			// TODO: exterior detection is not reliable
+			if (closest_point_dir.dot(closest_vertex_normal) <= 0.0)
+				closest_point_dir = -closest_point_dir;
+		}
+		else
+		{
+			std::pair<uint32, Vec3> bvh_res;
+			p.surface_bvh_->closest_point(c, &bvh_res);
+			closest_point_position = bvh_res.second;
+			closest_point_dir = (closest_point_position - c).normalized();
+
+			const Vec3& closest_face_normal =
+				value<Vec3>(*p.surface_, p.surface_face_normal_, p.surface_bvh_faces_[bvh_res.first]);
+			// TODO: exterior detection is not reliable
+			if (closest_point_dir.dot(closest_face_normal) <= 0.0)
+				closest_point_dir = -closest_point_dir;
+		}
+
+		auto [center, radius, secondary] = geometry::shrinking_ball_center(
+			*p.surface_, closest_point_position, closest_point_dir, p.surface_vertex_position_.get(), p.surface_bvh_,
+			p.surface_bvh_faces_, p.surface_kdt_, p.surface_kdt_vertices_, p.point_cloud_mode_, 0.25f);
+
+		c = center;
+		r = radius;
 	}
 
 	void update_spheres(SurfaceParameters& p)
@@ -1086,6 +1114,8 @@ public:
 		// case SQEM: {
 		parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
 			update_sphere_sqem(p, v);
+			if (p.sphere_correction_ && p.sphere_correction_mode_ == CORRECT_ALWAYS)
+				correct_sphere(p, v);
 			value<bool>(*p.spheres_, p.spheres_do_not_split_, v) = false;
 			return true;
 		});
@@ -1093,15 +1123,25 @@ public:
 		// }
 		// }
 
-		if (p.auto_split_ && (p.total_error_diff_ < 1e-5 || p.iteration_count_ % 5 == 0)) // wait max 5 iterations
+		compute_spheres_error(p); // compute spheres error
+
+		if (p.auto_split_ &&
+			(p.total_error_diff_ < 1e-5 || p.iteration_count_ % 5 == 0)) // wait for convergence or max 5 iterations
 		{
 			switch (p.auto_split_mode_)
 			{
 			case ERROR_THRESHOLD: {
 				if (p.max_error_ > p.auto_split_error_threshold_)
 				{
-					compute_spheres_error(p);  // compute spheres error and neigbors
-					compute_skeleton(p, true); // only when needed for a possible split
+					compute_skeleton(p, true); // only neighbor clusters computation
+
+					if (p.sphere_correction_ && p.sphere_correction_mode_ == CORRECT_ON_SPLIT)
+					{
+						parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+							correct_sphere(p, v);
+							return true;
+						});
+					}
 
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
@@ -1123,9 +1163,9 @@ public:
 							break;
 						if (to_split_max > 0 && !(*p.spheres_do_not_split_)[s_index]) // do not split neighbor spheres
 						{
-							split_sphere(p, sphere);
 							for (PVertex neighbor : (*p.spheres_neighbor_clusters_)[s_index])
 								value<bool>(*p.spheres_, p.spheres_do_not_split_, neighbor) = true;
+							split_sphere(p, sphere);
 							--to_split_max;
 						}
 					}
@@ -1135,8 +1175,15 @@ public:
 			case MAX_NB_SPHERES: {
 				if (p.nb_spheres_ < p.auto_split_max_nb_spheres_)
 				{
-					compute_spheres_error(p);  // compute spheres error and neigbors
-					compute_skeleton(p, true); // only when needed for a possible split
+					compute_skeleton(p, true); // only neighbor clusters computation
+
+					if (p.sphere_correction_ && p.sphere_correction_mode_ == CORRECT_ON_SPLIT)
+					{
+						parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+							correct_sphere(p, v);
+							return true;
+						});
+					}
 
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
@@ -1157,9 +1204,9 @@ public:
 							break;
 						if (to_split_max > 0 && !(*p.spheres_do_not_split_)[s_index]) // do not split neighbor spheres
 						{
-							split_sphere(p, sphere);
 							for (PVertex neighbor : (*p.spheres_neighbor_clusters_)[s_index])
 								value<bool>(*p.spheres_, p.spheres_do_not_split_, neighbor) = true;
+							split_sphere(p, sphere);
 							--to_split_max;
 						}
 					}
@@ -1203,8 +1250,10 @@ public:
 		uint32 new_sphere_index = index_of(*p.spheres_, new_sphere);
 		(*p.spheres_position_)[new_sphere_index] = (*p.medial_axis_position_)[max_error_vertex_index];
 		(*p.spheres_radius_)[new_sphere_index] = (*p.medial_axis_radius_)[max_error_vertex_index];
-		(*p.spheres_cluster_color_)[new_sphere_index] =
-			Vec3(rand() % 256 / 255.0f, rand() % 256 / 255.0f, rand() % 256 / 255.0f);
+
+		// sample a random bright pastel color for the new sphere
+		(*p.spheres_cluster_color_)[new_sphere_index] = Vec3(
+			0.5 + 0.5 * (rand() % 256) / 256.0, 0.5 + 0.5 * (rand() % 256) / 256.0, 0.5 + 0.5 * (rand() % 256) / 256.0);
 	}
 
 	void remove_sphere(SurfaceParameters& p, PVertex v)
@@ -1215,6 +1264,23 @@ public:
 		remove_vertex(*p.spheres_, v);
 		p.nb_spheres_--;
 	}
+
+	struct edge_hash
+	{
+		std::size_t operator()(const std::pair<uint32, uint32>& edge) const
+		{
+			return std::hash<uint32>()(edge.first) + std::hash<uint32>()(edge.second);
+		}
+	};
+
+	struct edge_equal
+	{
+		bool operator()(const std::pair<uint32, uint32>& edge1, const std::pair<uint32, uint32>& edge2) const
+		{
+			return ((edge1.first == edge2.first && edge1.second == edge2.second) ||
+					(edge1.first == edge2.second && edge1.second == edge2.first));
+		}
+	};
 
 	void compute_skeleton(SurfaceParameters& p, bool compute_neighbor_clusters_only = false)
 	{
@@ -1274,6 +1340,8 @@ public:
 			return true;
 		});
 
+		std::unordered_map<std::pair<uint32, uint32>, NMEdge, edge_hash, edge_equal> edge_indices;
+
 		foreach_cell(*p.spheres_, [&](PVertex pv) -> bool {
 			uint32 pv_index = index_of(*p.spheres_, pv);
 			NMVertex nmv1 = (*spheres_skeleton_vertex_map)[pv_index];
@@ -1283,7 +1351,39 @@ public:
 				NMVertex nmv2 = value<NMVertex>(*p.spheres_, spheres_skeleton_vertex_map, neighbor);
 				std::vector<NMVertex> av = adjacent_vertices_through_edge(*p.skeleton_, nmv1);
 				if (std::find(av.begin(), av.end(), nmv2) == av.end())
-					add_edge(*p.skeleton_, nmv1, nmv2);
+				{
+					NMEdge e = add_edge(*p.skeleton_, nmv1, nmv2);
+					edge_indices[{index_of(*p.skeleton_, nmv1), index_of(*p.skeleton_, nmv2)}] = e;
+				}
+			}
+			return true;
+		});
+
+		foreach_cell(*p.spheres_, [&](PVertex pv) -> bool {
+			NMVertex nmv1 = value<NMVertex>(*p.spheres_, spheres_skeleton_vertex_map, pv);
+			const std::set<PVertex>& n_pv = value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, pv);
+			for (const PVertex& ne1 : n_pv)
+			{
+				NMVertex nmv2 = value<NMVertex>(*p.spheres_, spheres_skeleton_vertex_map, ne1);
+				const std::set<PVertex>& ne_ne1 =
+					value<std::set<PVertex>>(*p.spheres_, p.spheres_neighbor_clusters_, ne1);
+				for (const PVertex& ne2 : ne_ne1)
+				{
+					if (n_pv.find(ne2) != n_pv.end())
+					{
+						NMVertex nmv3 = value<NMVertex>(*p.spheres_, spheres_skeleton_vertex_map, ne2);
+						if (index_of(*p.skeleton_, nmv1) < index_of(*p.skeleton_, nmv2) &&
+							index_of(*p.skeleton_, nmv2) < index_of(*p.skeleton_, nmv3))
+						{
+							std::vector<NMEdge> edges;
+							edges.reserve(3);
+							edges.push_back(edge_indices[{index_of(*p.skeleton_, nmv1), index_of(*p.skeleton_, nmv2)}]);
+							edges.push_back(edge_indices[{index_of(*p.skeleton_, nmv2), index_of(*p.skeleton_, nmv3)}]);
+							edges.push_back(edge_indices[{index_of(*p.skeleton_, nmv1), index_of(*p.skeleton_, nmv3)}]);
+							add_face(*p.skeleton_, edges);
+						}
+					}
+				}
 			}
 			return true;
 		});
@@ -1548,12 +1648,12 @@ protected:
 				// {
 				static bool sync_lambda = false;
 				ImGui::Checkbox("Sync lambda", &sync_lambda);
-				if (ImGui::SliderFloat("update lambda", &p.sqem_update_lambda_, 0.0f, 5.0f, "%.8f"))
+				if (ImGui::SliderFloat("update lambda", &p.sqem_update_lambda_, 0.0f, 2.0f, "%.6f"))
 				{
 					if (sync_lambda)
 						p.sqem_clustering_lambda_ = p.sqem_update_lambda_;
 				}
-				if (ImGui::SliderFloat("clustering lambda", &p.sqem_clustering_lambda_, 0.0f, 5.0f, "%.8f"))
+				if (ImGui::SliderFloat("clustering lambda", &p.sqem_clustering_lambda_, 0.0f, 2.0f, "%.6f"))
 				{
 					if (sync_lambda)
 						p.sqem_update_lambda_ = p.sqem_clustering_lambda_;
@@ -1561,7 +1661,6 @@ protected:
 				// }
 
 				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
-				ImGui::Checkbox("Sphere correction step", &p.sphere_correction_step_);
 
 				if (ImGui::Button("Update spheres"))
 				{
@@ -1573,12 +1672,35 @@ protected:
 						update_render_data(p);
 					}
 				}
+
 				if (ImGui::Button("Compute clusters"))
 				{
 					if (!p.running_)
 					{
 						std::lock_guard<std::mutex> lock(p.mutex_);
 						compute_clusters(p);
+						compute_spheres_error(p);
+						update_render_data(p);
+					}
+				}
+
+				ImGui::Checkbox("Sphere correction step", &p.sphere_correction_);
+				if (p.sphere_correction_)
+				{
+					ImGui::RadioButton("Always", (int*)&p.sphere_correction_mode_, CORRECT_ALWAYS);
+					ImGui::SameLine();
+					ImGui::RadioButton("On split", (int*)&p.sphere_correction_mode_, CORRECT_ON_SPLIT);
+				}
+
+				if (ImGui::Button("Correct spheres"))
+				{
+					if (!p.running_)
+					{
+						std::lock_guard<std::mutex> lock(p.mutex_);
+						parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
+							correct_sphere(p, v);
+							return true;
+						});
 						compute_spheres_error(p);
 						update_render_data(p);
 					}
@@ -1604,20 +1726,29 @@ protected:
 				ImGui::Checkbox("Auto split", &p.auto_split_);
 				if (p.auto_split_)
 				{
+					// ImGui::Checkbox("Auto simplify", &p.auto_simplify_);
 					ImGui::RadioButton("Error threshold", (int*)&p.auto_split_mode_, ERROR_THRESHOLD);
 					ImGui::SameLine();
 					ImGui::RadioButton("Max nb sphere", (int*)&p.auto_split_mode_, MAX_NB_SPHERES);
 					if (p.auto_split_mode_ == ERROR_THRESHOLD)
-						ImGui::SliderFloat("Error threshold", &p.auto_split_error_threshold_, 0.0f, 1.0f, "%.6f",
+						ImGui::SliderFloat("Threshold", &p.auto_split_error_threshold_, 0.0f, 1.0f, "%.6f",
 										   ImGuiSliderFlags_Logarithmic);
 					else
-						ImGui::InputScalar("Max nb spheres", ImGuiDataType_U32, &p.auto_split_max_nb_spheres_);
+						ImGui::InputScalar("Nb spheres", ImGuiDataType_U32, &p.auto_split_max_nb_spheres_);
 				}
 
-				// imgui_combo_attribute<PVertex, Scalar>(*p.spheres_, p.selected_spheres_error_, "Error measure",
-				// 									   [&](const std::shared_ptr<PAttribute<Scalar>>& attribute) {
-				// 										   set_selected_spheres_error(p, attribute.get());
-				// 									   });
+				if (ImGui::Checkbox("Error as color", &p.error_as_spheres_color_))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
+					if (!p.running_)
+						update_render_data(p);
+				}
+				if (ImGui::SliderFloat("Transparency", &p.spheres_transparency_, 0.0f, 1.0f))
+				{
+					std::lock_guard<std::mutex> lock(p.mutex_);
+					if (!p.running_)
+						update_render_data(p);
+				}
 
 				if (ImGui::Button("Split max error sphere"))
 				{

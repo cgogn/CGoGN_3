@@ -1489,6 +1489,33 @@ public:
   }
 
   /**
+   * @brief Common-case helper to get edge indices for a mesh. If not template type is given, size_t is used. Naively
+   * converts to requested signedness, which may lead to unexpected values if an unsigned type is used and file contains
+   * negative values.
+   *
+   * @return The indices into the vertex elements for each edge. Usually 0-based, though there are no formal rules.
+   */
+  template <typename T = size_t>
+  std::vector<std::array<T, 2>> getEdgeIndices() {
+
+    for (const std::string& f : std::vector<std::string>{"edge"}) {
+        try {
+          std::vector<T> v1 = getElement(f).getProperty<T>("vertex1");
+          std::vector<T> v2 = getElement(f).getProperty<T>("vertex2");
+          std::vector<std::array<T, 2>> result(v1.size());
+          for (size_t i = 0; i < result.size(); i++) {
+            result[i][0] = v1[i];
+            result[i][1] = v2[i];
+          }
+          return result;
+        } catch (const std::runtime_error&) {
+          // that's fine
+        }
+    }
+    throw std::runtime_error("PLY parser: could not find edge vertex indices attribute under any common name.");
+  }
+
+  /**
    * @brief Common-case helper to get face indices for a mesh. If not template type is given, size_t is used. Naively
    * converts to requested signedness, which may lead to unexpected values if an unsigned type is used and file contains
    * negative values.
@@ -1509,7 +1536,6 @@ public:
     }
     throw std::runtime_error("PLY parser: could not find face vertex indices attribute under any common name.");
   }
-
 
   /**
    * @brief Common-case helper set mesh vertex positons. Creates vertex element, if necessary.
@@ -1649,7 +1675,45 @@ public:
     getElement(faceName).addListProperty<IndType>("vertex_indices", intInds);
   }
 
+  template<typename T>
+  void addEdgeIndices(std::vector<std::array<T, 2>>& indices) {
+    std::string edgeName = "edge";
+    size_t N = indices.size();
 
+    // Create the element
+    if (!hasElement(edgeName)) {
+      addElement(edgeName, N);
+    }
+
+    // Cast to 32 bit
+    typedef typename std::conditional<std::is_signed<T>::value, int32_t, uint32_t>::type IndType;
+    std::vector<IndType> intInds1;
+    std::vector<IndType> intInds2;
+    for (std::array<T, 2>& l : indices)
+    {
+      IndType valConverted = static_cast<IndType>(l[0]);
+      if (valConverted != l[0])
+      {
+      throw std::runtime_error("Index value " + std::to_string(l[0]) +
+                  " could not be converted to a .ply integer without loss of data. Note that .ply "
+                  "only supports 32-bit ints.");
+      }
+      intInds1.push_back(valConverted);
+      valConverted = static_cast<IndType>(l[1]);
+      if (valConverted != l[1])
+      {
+      throw std::runtime_error("Index value " + std::to_string(l[1]) +
+                  " could not be converted to a .ply integer without loss of data. Note that .ply "
+                  "only supports 32-bit ints.");
+      }
+      intInds2.push_back(valConverted);
+    }
+
+    // Store
+    getElement(edgeName).addProperty<IndType>("vertex1", intInds1);
+    getElement(edgeName).addProperty<IndType>("vertex2", intInds2);
+  }
+  
   /**
    * @brief Comments for the file. When writing, each entry will be written as a sequential comment line.
    */

@@ -138,6 +138,8 @@ int main(int argc, char** argv)
 	sr.set_render_vertices(*v1, *s, false);
 	sr.set_ghost_mode(*v1, *s, true);
 	sr.set_render_edges(*v1, *s, false);
+	sr.set_face_front_color(*v1, *s, cgogn::rendering::GLColor(0.23f, 0.77f, 1.0f, 1.0f));
+	sr.set_face_back_color(*v1, *s, cgogn::rendering::GLColor(0.23f, 0.77f, 1.0f, 1.0f));
 
 	Points* spheres = mpp.mesh(mps.mesh_name(*s) + "_spheres");
 	auto p_vertex_position = cgogn::get_attribute<Vec3, PVertex>(*spheres, "position");
@@ -149,11 +151,19 @@ int main(int argc, char** argv)
 	pcr.set_vertex_color(*v1, *spheres, p_vertex_color);
 	pcr.set_vertex_color_per_cell(*v1, *spheres, cgogn::ui::PointCloudRender<Points>::AttributePerCell::PER_VERTEX);
 
+	pcr.set_vertex_position(*v1, *spheres, nullptr);
+
 	NonManifold* skeleton = mpnm.mesh(mps.mesh_name(*s) + "_skeleton");
 	auto nm_vertex_position = cgogn::get_attribute<Vec3, NMVertex>(*skeleton, "position");
 
 	srnm.set_vertex_position(*v1, *skeleton, nm_vertex_position);
-	srnm.set_edge_width(*v1, *skeleton, 4.0f);
+	srnm.set_edge_width(*v1, *skeleton, 6.5f);
+	srnm.set_vertex_scale_factor(*v1, *skeleton, 0.3f);
+	srnm.set_render_vertices(*v1, *skeleton, false);
+	srnm.set_face_front_color(*v1, *skeleton, cgogn::rendering::GLColor(1.0f, 1.0f, 1.0f, 1.0f));
+	srnm.set_face_back_color(*v1, *skeleton, cgogn::rendering::GLColor(1.0f, 1.0f, 1.0f, 1.0f));
+
+	app.background_color_ = cgogn::rendering::GLColor(0.5f, 0.5f, 0.5f, 1.0f);
 
 	return app.launch();
 }

@@ -232,6 +232,19 @@ void import_surface_data(IncidenceGraph& ig, SurfaceImportData& surface_data)
 			add_face(ig, face_edges);
 		}
 	}
+
+	for (uint32 i = 0u; i < surface_data.edges_vertex_indices_.size(); i += 2u)
+	{
+		uint32 vertex_index_1 = surface_data.edges_vertex_indices_[i];
+		uint32 vertex_index_2 = surface_data.edges_vertex_indices_[i + 1];
+
+		if (vertex_index_1 > vertex_index_2)
+			std::swap(vertex_index_1, vertex_index_2);
+
+		std::pair<uint32, uint32> e(vertex_index_1, vertex_index_2);
+		if (edges.find(e) == edges.end())
+			add_edge(ig, e.first, e.second);
+	}
 }
 
 void import_surface_data(TriangleSoup& ts, SurfaceImportData& surface_data)

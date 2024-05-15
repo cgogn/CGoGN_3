@@ -295,6 +295,8 @@ public:
 		{
 			if (filetype.compare("off") == 0)
 				io::export_OFF(m, vertex_position, filename + ".off");
+			if (filetype.compare("ply") == 0)
+				io::export_PLY(m, vertex_position, filename + ".ply");
 			else if (filetype.compare("ig") == 0)
 			{
 				if constexpr (has_edge_v<MESH>)
@@ -504,7 +506,7 @@ protected:
 				if constexpr (mesh_traits<MESH>::dimension == 2)
 				{
 					for (auto file : result)
-						load_surface_from_file(file);
+						load_surface_from_file(file, load_normalized_);
 				}
 				if constexpr (mesh_traits<MESH>::dimension == 3)
 				{
@@ -520,6 +522,7 @@ protected:
 		{
 			if (ImGui::MenuItem("Add mesh"))
 				add_mesh(std::string{mesh_traits<MESH>::name});
+			ImGui::Checkbox("Normalize on load", &load_normalized_);
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
 			{
@@ -695,6 +698,7 @@ private:
 	std::vector<std::string>* supported_formats_ = nullptr;
 
 	bool open_save_popup_ = false;
+	bool load_normalized_ = true;
 
 	const MESH* selected_mesh_;
 	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
