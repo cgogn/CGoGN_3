@@ -67,6 +67,9 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_face.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_face.cpp"
 
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_texture.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_vertex.h"
