@@ -21,11 +21,11 @@
  *                                                                              *
  *******************************************************************************/
 
-#define CGOGN_RENDER_SHADERS_OBJ_FLAT_CPP_
+#define CGOGN_RENDER_SHADERS_FLAT_CPP_
 
 #include <iostream>
 
-#include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/shaders/shader_flat_texture.h>
 
 namespace cgogn
 {
@@ -33,36 +33,28 @@ namespace cgogn
 namespace rendering
 {
 
-ShaderObjFlatTexture* ShaderObjFlatTexture::instance_ = nullptr;
+ShaderFlatTexture* ShaderFlatTexture::instance_ = nullptr;
 
-ShaderObjFlatTexture::ShaderObjFlatTexture()
+ShaderFlatTexture::ShaderFlatTexture()
 {
-	const char* vertex_shader_source = R"(
-		#version 330
-		uniform mat4 projection_matrix;
-		uniform mat4 model_view_matrix;
+    	const char* vertex_shader_source = R"(
+        #version 330
+        uniform mat4 projection_matrix;
+        uniform mat4 model_view_matrix;
 
-		uniform usamplerBuffer position_ind;
-		uniform usamplerBuffer tex_coord_ind;
-		uniform samplerBuffer vertex_position;
-		uniform samplerBuffer vertex_tc;
-
-		out vec3 position;
-		out vec2 tc;
-
-		void main()
-		{
-			int ind_v = int(texelFetch(position_ind, gl_VertexID).r);
-			vec3 position_in = texelFetch(vertex_position, ind_v).rgb;
-
-			int ind_tc = int(texelFetch(tex_coord_ind, gl_VertexID).r);
-			tc = texelFetch(vertex_tc, ind_tc).rg;
-
-			vec4 position4 = model_view_matrix * vec4(position_in, 1.0);
-			position = position4.xyz;
-			gl_Position = projection_matrix * position4;
-		}
-	)";
+        in vec3 vertex_position;
+        in vec2 vertex_tc;
+        
+        out vec3 position;
+        out vec2 tc;
+        void main()
+        {
+            vec4 position4 = model_view_matrix * vec4(vertex_position, 1.0);
+            position = position4.xyz;
+            tc = vertex_tc;
+            gl_Position = projection_matrix * position4;
+        }
+    )";
 
 	const char* fragment_shader_source = R"(
 		#version 330
@@ -85,26 +77,13 @@ ShaderObjFlatTexture::ShaderObjFlatTexture()
 		}
 	)";
 
-	load(vertex_shader_source, fragment_shader_source);
-	get_uniforms("position_ind", "tex_coord_ind", "vertex_position", "vertex_tc", "texture_img_unit", "light_position",
-				 "draw_param");
+    load2_bind(vertex_shader_source, fragment_shader_source, "vertex_position", "vertex_tc");
+	get_uniforms("texture_img_unit","light_position", "draw_param");
 }
 
-void ShaderParamObjFlatTexture::set_uniforms()
+void ShaderParamFlatTexture::set_uniforms()
 {
-	shader_->set_uniforms_values(10, 11, 12, 13, texture_->bind(0), light_position_, draw_param_);
-}
-
-void ShaderParamObjFlatTexture::bind_texture_buffers()
-{
-	vbos_[VERTEX_POSITION]->bind_texture_buffer(12);
-	vbos_[VERTEX_TC]->bind_texture_buffer(13);
-}
-
-void ShaderParamObjFlatTexture::release_texture_buffers()
-{
-	vbos_[VERTEX_POSITION]->release_texture_buffer(12);
-	vbos_[VERTEX_TC]->release_texture_buffer(13);
+	shader_->set_uniforms_values(texture_->bind(0), light_position_, draw_param_);
 }
 
 } // namespace rendering
