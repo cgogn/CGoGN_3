@@ -143,6 +143,7 @@ class SphereFitting : public ViewModule
 		std::shared_ptr<PAttribute<std::set<PVertex>>> spheres_neighbor_clusters_ = nullptr;
 		std::shared_ptr<PAttribute<bool>> spheres_do_not_split_ = nullptr;
 		std::shared_ptr<PAttribute<Scalar>> spheres_error_ = nullptr;
+		std::shared_ptr<PAttribute<Scalar>> spheres_error_not_normalized_ = nullptr;
 		// PAttribute<Scalar>* selected_spheres_error_ = nullptr;
 
 		NONMANIFOLD* skeleton_;
@@ -168,6 +169,7 @@ class SphereFitting : public ViewModule
 		uint32 auto_split_max_nb_spheres_ = 50;
 
 		Scalar total_error_ = 0.0;
+		Scalar total_error_not_normalized_ = 0.0;
 		Scalar last_total_error_ = 0.0;
 		Scalar total_error_diff_ = 0.0;
 		Scalar min_error_ = 0.0;
@@ -459,7 +461,9 @@ public:
 		p.spheres_cluster_area_ = get_or_add_attribute<Scalar, PVertex>(*p.spheres_, "cluster_area");
 
 		p.spheres_error_ = get_or_add_attribute<Scalar, PVertex>(*p.spheres_, "error");
+		p.spheres_error_not_normalized_ = get_or_add_attribute<Scalar, PVertex>(*p.spheres_, "error_not_normalized");
 		p.spheres_error_->fill(0.0);
+		p.spheres_error_not_normalized_->fill(0.0);
 
 		p.spheres_do_not_split_ = get_or_add_attribute<bool, PVertex>(*p.spheres_, "do_not_split");
 
@@ -798,6 +802,7 @@ public:
 			}
 
 			(*p.spheres_error_)[v_index] = cluster_error / (*p.spheres_cluster_area_)[v_index];
+			(*p.spheres_error_not_normalized_)[v_index] = cluster_error;
 
 			return true;
 		});
@@ -806,9 +811,11 @@ public:
 		p.max_error_ = std::numeric_limits<Scalar>::min();
 		p.max_error_sphere_ = PVertex();
 		p.total_error_ = 0.0;
+		p.total_error_not_normalized_ = 0.0;
 
 		foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
 			Scalar error = value<Scalar>(*p.spheres_, p.spheres_error_, v);
+			Scalar error_not_normalized = value<Scalar>(*p.spheres_, p.spheres_error_not_normalized_, v);
 			p.min_error_ = std::min(p.min_error_, error);
 			if (error > p.max_error_)
 			{
@@ -816,6 +823,7 @@ public:
 				p.max_error_sphere_ = v;
 			}
 			p.total_error_ += error;
+			p.total_error_not_normalized_ += error_not_normalized;
 			return true;
 		});
 
@@ -1124,9 +1132,10 @@ public:
 		// }
 
 		compute_spheres_error(p); // compute spheres error
+		// std::cout << p.total_error_not_normalized_ << std::endl;
 
 		if (p.auto_split_ &&
-			(p.total_error_diff_ < 1e-5 || p.iteration_count_ % 5 == 0)) // wait for convergence or max 5 iterations
+			(p.total_error_diff_ < 1e-5 || p.iteration_count_ % 10 == 0)) // wait for convergence or max 10 iterations
 		{
 			switch (p.auto_split_mode_)
 			{
@@ -1142,6 +1151,8 @@ public:
 							return true;
 						});
 					}
+
+					// std::cout << 0.0 << std::endl;
 
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
@@ -1184,6 +1195,8 @@ public:
 							return true;
 						});
 					}
+
+					// std::cout << 0.0 << std::endl;
 
 					std::vector<PVertex> sorted_spheres;
 					sorted_spheres.reserve(p.nb_spheres_);
@@ -1509,7 +1522,7 @@ protected:
 			std::cout << "Nb iterations: " << p.iteration_count_ << std::endl;
 		});
 
-		app_.start_timer(200, [&]() -> bool { return !p.running_; });
+		app_.start_timer(100, [&]() -> bool { return !p.running_; });
 	}
 
 	void stop_spheres_update(SurfaceParameters& p)

@@ -75,24 +75,24 @@ std::tuple<Vec3, Scalar, typename mesh_traits<MESH>::Vertex> shrinking_ball_cent
 	uint32 j = 0;
 	Scalar r = 0.0;
 
-	if (use_kdt_only)
+	// if (use_kdt_only)
 		r = initial_radius;
-	else
-	{
-		acc::Ray<Vec3> ray{p, -n, 1e-10, acc::inf};
-		acc::BVHTree<uint32, Vec3>::Hit h;
-		if (surface_bvh->intersect(ray, &h))
-		{
-			Face f = bvh_faces[h.idx];
-			std::vector<Vertex> vertices = incident_vertices(m, f);
-			Vec3 ip = h.bcoords[0] * value<Vec3>(m, vertex_position, vertices[0]) +
-					  h.bcoords[1] * value<Vec3>(m, vertex_position, vertices[1]) +
-					  h.bcoords[2] * value<Vec3>(m, vertex_position, vertices[2]);
-			r = (p - ip).norm() * 0.75;
-		}
-		else
-			std::cout << "intersection point not found !!!";
-	}
+	// else
+	// {
+	// 	acc::Ray<Vec3> ray{p, -n, 1e-10, acc::inf};
+	// 	acc::BVHTree<uint32, Vec3>::Hit h;
+	// 	if (surface_bvh->intersect(ray, &h))
+	// 	{
+	// 		Face f = bvh_faces[h.idx];
+	// 		std::vector<Vertex> vertices = incident_vertices(m, f);
+	// 		Vec3 ip = h.bcoords[0] * value<Vec3>(m, vertex_position, vertices[0]) +
+	// 				  h.bcoords[1] * value<Vec3>(m, vertex_position, vertices[1]) +
+	// 				  h.bcoords[2] * value<Vec3>(m, vertex_position, vertices[2]);
+	// 		r = (p - ip).norm() * 0.75;
+	// 	}
+	// 	else
+	// 		std::cout << "intersection point not found !!!";
+	// }
 
 	Vec3 c = p - (r * n);
 	Vec3 q = p - (2 * r * n);

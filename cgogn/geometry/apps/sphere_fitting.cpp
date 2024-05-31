@@ -158,8 +158,10 @@ int main(int argc, char** argv)
 
 	srnm.set_vertex_position(*v1, *skeleton, nm_vertex_position);
 	srnm.set_edge_width(*v1, *skeleton, 6.5f);
-	srnm.set_vertex_scale_factor(*v1, *skeleton, 0.3f);
-	srnm.set_render_vertices(*v1, *skeleton, false);
+	srnm.set_edge_color(*v1, *skeleton, cgogn::rendering::GLColor(0.21f, 0.64f, 0.83f, 1.0f));
+	srnm.set_vertex_scale_factor(*v1, *skeleton, 0.5f);
+	srnm.set_render_vertices(*v1, *skeleton, true);
+	srnm.set_vertex_color(*v1, *skeleton, cgogn::rendering::GLColor(0.23f, 0.77f, 1.0f, 1.0f));
 	srnm.set_face_front_color(*v1, *skeleton, cgogn::rendering::GLColor(1.0f, 1.0f, 1.0f, 1.0f));
 	srnm.set_face_back_color(*v1, *skeleton, cgogn::rendering::GLColor(1.0f, 1.0f, 1.0f, 1.0f));
 

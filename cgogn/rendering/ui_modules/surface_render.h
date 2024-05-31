@@ -365,6 +365,14 @@ public:
 		v.request_update();
 	}
 
+	void set_vertex_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_point_sprite_->color_ = color;
+		p.param_point_sprite_size_->color_ = color;
+		v.request_update();
+	}
+
 	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
@@ -419,6 +427,13 @@ public:
 
 		p.param_bold_line_color_->set_vbos({p.vertex_position_vbo_, p.edge_color_vbo_});
 
+		v.request_update();
+	}
+
+	void set_edge_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_bold_line_->color_ = color;
 		v.request_update();
 	}
 
