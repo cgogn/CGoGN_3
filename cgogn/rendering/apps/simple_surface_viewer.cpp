@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceTexRender<Mesh> str(app);
+//	cgogn::ui::SurfaceTexRender<Mesh> str(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&str);
+//	v1->link_module(&str);
 
 
 	if (filename.length() > 0)
