@@ -115,7 +115,8 @@ Vec3 closest_point_on_surface(const MESH& m,
 template <typename MESH>
 void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position,
 							   const CellsSet<MESH, typename mesh_traits<MESH>::Vertex>* source_vertices,
-							   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_geodesic_distance)
+							   typename mesh_traits<MESH>::template Attribute<Scalar>* vertex_geodesic_distance,
+							   double t_multiplier = 1.0)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Face = typename mesh_traits<MESH>::Face;
@@ -131,7 +132,7 @@ void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::templa
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Lc =
 		geometry::cotan_operator_matrix(m, vertex_index.get(), vertex_position);
 
-	auto vertex_area = add_attribute<Scalar, Vertex>(m, "__vertex_area");
+	auto vertex_area = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_area");
 	geometry::compute_area<Vertex>(m, vertex_position, vertex_area.get());
 
 	Eigen::VectorXd A(nb_vertices);
@@ -149,9 +150,10 @@ void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::templa
 	});
 
 	Scalar h = geometry::mean_edge_length(m, vertex_position);
-	Scalar t = h * h;
+	Scalar t = h * h * t_multiplier;
 
 	Eigen::SparseMatrix<Scalar, Eigen::ColMajor> Am(A.asDiagonal());
+	// should be memorized between calls
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> heat_solver(Am - t * Lc);
 	Eigen::VectorXd u = heat_solver.solve(u0);
 
@@ -165,6 +167,13 @@ void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::templa
 	auto face_heat_gradient = get_or_add_attribute<Vec3, Face>(m, "__face_heat_gradient");
 	geometry::compute_gradient_of_vertex_scalar_field(m, vertex_position, vertex_heat.get(), face_heat_gradient.get());
 
+	// normalize gradient and flip sign
+	parallel_foreach_cell(m, [&](Face f) -> bool {
+		Vec3& g = value<Vec3>(m, face_heat_gradient, f);
+		g = -1.0 * g.normalized();
+		return true;
+	});
+
 	auto vertex_heat_gradient_div = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_heat_gradient_div");
 	geometry::compute_div_of_face_vector_field(m, vertex_position, face_heat_gradient.get(),
 											   vertex_heat_gradient_div.get());
@@ -176,6 +185,7 @@ void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::templa
 		return true;
 	});
 
+	// should be memorized between calls
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar, Eigen::ColMajor>> poisson_solver(Lc);
 	Eigen::VectorXd dist = poisson_solver.solve(b);
 
@@ -187,7 +197,7 @@ void compute_geodesic_distance(MESH& m, const typename mesh_traits<MESH>::templa
 	});
 
 	remove_attribute<Vertex>(m, vertex_index);
-	remove_attribute<Vertex>(m, vertex_area);
+	// remove_attribute<Vertex>(m, vertex_area);
 	// remove_attribute<Vertex>(m, vertex_heat);
 	// remove_attribute<Face>(m, face_heat_gradient);
 	// remove_attribute<Vertex>(m, vertex_heat_gradient_div);
