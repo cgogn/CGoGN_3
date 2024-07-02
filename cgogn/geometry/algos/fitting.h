@@ -21,47 +21,68 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_UI_INPUTS_H_
-#define CGOGN_UI_INPUTS_H_
+#ifndef CGOGN_GEOMETRY_ALGOS_FITTING_H_
+#define CGOGN_GEOMETRY_ALGOS_FITTING_H_
 
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace ui
+namespace geometry
 {
 
-struct CGOGN_UI_EXPORT Inputs
+template <typename MESH>
+std::pair<Vec3, Scalar> sphere_fitting(const MESH& m, const std::vector<typename mesh_traits<MESH>::Vertex>& vertices,
+									   const typename mesh_traits<MESH>::template Attribute<Vec3>* vertex_position)
 {
-	Inputs()
-		: wheel_sensitivity_(0.0025), mouse_sensitivity_(0.005), spin_sensitivity_(0.025), double_click_timeout_(0.3),
-		  mouse_buttons_(0), shift_pressed_(false), control_pressed_(false), alt_pressed_(false), meta_pressed_(false)
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+
+	Eigen::MatrixXd A(vertices.size(), 4);
+	Eigen::VectorXd b(vertices.size());
+	uint32 idx = 0;
+	for (Vertex v : vertices)
 	{
+		const Vec3& pos = value<Vec3>(m, vertex_position, v);
+		A.row(idx) = Eigen::Vector4d(-2.0 * pos[0], -2.0 * pos[1], -2.0 * pos[2], 1.0);
+		b(idx) = -(pos[0] * pos[0]) - (pos[1] * pos[1]) - (pos[2] * pos[2]);
+		++idx;
+	};
+	Eigen::LDLT<Eigen::MatrixXd> solver(A.transpose() * A);
+	Eigen::MatrixXd s1 = solver.solve(A.transpose() * b);
+	s1(3) = std::sqrt(s1(0) * s1(0) + s1(1) * s1(1) + s1(2) * s1(2) - s1(3));
+
+	Vec3 s1c = Vec3(s1(0), s1(1), s1(2));
+	Scalar s1r = s1(3);
+
+	Eigen::MatrixXd J(vertices.size(), 4);
+	Eigen::VectorXd r(vertices.size());
+	Eigen::VectorXd s2(4);
+	s2 << s1(0), s1(1), s1(2), s1(3);
+	for (uint32 i = 0; i < 5; ++i) // TODO: check number of iterations
+	{
+		idx = 0;
+		for (Vertex v : vertices)
+		{
+			const Vec3& pos = value<Vec3>(m, vertex_position, v);
+			Vec3 d = pos - Vec3(s2(0), s2(1), s2(2));
+			Scalar l = d.norm();
+			J.row(idx) = Eigen::Vector4d(-(d[0] / l), -(d[1] / l), -(d[2] / l), -1.0);
+			r(idx) = -(l - s2(3));
+			++idx;
+		}
+		Eigen::LDLT<Eigen::MatrixXd> solver(J.transpose() * J);
+		s2 += solver.solve(J.transpose() * r);
 	}
 
-	float64 wheel_sensitivity_;
-	float64 mouse_sensitivity_;
-	float64 spin_sensitivity_;
-	float64 double_click_timeout_;
+	Vec3 s2c = Vec3(s2(0), s2(1), s2(2));
+	Scalar s2r = s2(3);
 
-	int32 mouse_x_;
-	int32 mouse_y_;
-	int32 previous_mouse_x_;
-	int32 previous_mouse_y_;
-	float64 previous_click_time_;
+	return {s2c, s2r};
+}
 
-	uint32 mouse_buttons_;
-
-	bool shift_pressed_;
-	bool control_pressed_;
-	bool alt_pressed_;
-	bool meta_pressed_;
-};
-
-} // namespace ui
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_UI_INPUTS_H_
+#endif // CGOGN_GEOMETRY_ALGOS_FITTING_H_

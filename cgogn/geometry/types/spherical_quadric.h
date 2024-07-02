@@ -21,47 +21,111 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_UI_INPUTS_H_
-#define CGOGN_UI_INPUTS_H_
+#ifndef CGOGN_GEOMETRY_TYPES_SPHEREICAL_QUADRIC_H_
+#define CGOGN_GEOMETRY_TYPES_SPHEREICAL_QUADRIC_H_
 
-#include <cgogn/core/utils/numerics.h>
-#include <cgogn/ui/cgogn_ui_export.h>
+#include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
 {
 
-namespace ui
+namespace geometry
 {
 
-struct CGOGN_UI_EXPORT Inputs
+struct Spherical_Quadric
 {
-	Inputs()
-		: wheel_sensitivity_(0.0025), mouse_sensitivity_(0.005), spin_sensitivity_(0.025), double_click_timeout_(0.3),
-		  mouse_buttons_(0), shift_pressed_(false), control_pressed_(false), alt_pressed_(false), meta_pressed_(false)
+	Spherical_Quadric()
 	{
+		this->clear();
 	}
 
-	float64 wheel_sensitivity_;
-	float64 mouse_sensitivity_;
-	float64 spin_sensitivity_;
-	float64 double_click_timeout_;
+	void clear()
+	{
+		_A.setZero();
+		_b.setZero();
+		_c = 0;
+	}
 
-	int32 mouse_x_;
-	int32 mouse_y_;
-	int32 previous_mouse_x_;
-	int32 previous_mouse_y_;
-	float64 previous_click_time_;
+	inline Spherical_Quadric(const Vec4& p, const Vec4& n)
+	{
+		_A = 2 * (n * n.transpose());
+		_b = 2 * (n.transpose() * p * n.transpose());
+		_c = n.transpose() * p * p.transpose() * n;
+	}
 
-	uint32 mouse_buttons_;
+	Spherical_Quadric& operator=(const Spherical_Quadric& q)
+	{
+		_A = q._A;
+		_b = q._b;
+		_c = q._c;
+		return *this;
+	}
 
-	bool shift_pressed_;
-	bool control_pressed_;
-	bool alt_pressed_;
-	bool meta_pressed_;
+	Spherical_Quadric& operator+=(const Spherical_Quadric& q)
+	{
+		_A += q._A;
+		_b += q._b;
+		_c += q._c;
+		return *this;
+	}
+
+	Spherical_Quadric& operator*=(Scalar s)
+	{
+		_A *= s;
+		_b *= s;
+		_c *= s;
+		return *this;
+	}
+
+	friend Spherical_Quadric operator*(const Spherical_Quadric& q, Scalar s)
+	{
+		Spherical_Quadric result(q);
+		result *= s;
+		return result;
+	}
+
+	friend Spherical_Quadric operator+(const Spherical_Quadric& lhs, const Spherical_Quadric& rhs)
+	{
+		Spherical_Quadric result(lhs);
+		result += rhs;
+		return result;
+	}
+
+	Scalar eval(const Vec4& p) const
+	{
+		return (0.5 * p.transpose() * _A * p) - (Scalar)(_b.transpose() * p) + _c;
+	}
+
+	Vec4 gradient(const Vec4& p) const
+	{
+		return _A * p - _b;
+	}
+
+	bool optimized(Vec4& sphere)
+	{
+		Mat4 inverse;
+		inverse.setZero();
+		Scalar determinant;
+		bool invertible;
+		_A.computeInverseAndDetWithCheck(inverse, determinant, invertible, 0.01);
+		if (invertible)
+			sphere = inverse * _b;
+		return invertible;
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const Spherical_Quadric& quad)
+	{
+		os << quad._A << ", " << quad._b << ", " << quad._c;
+		return os;
+	}
+
+	Mat4 _A;
+	Vec4 _b;
+	Scalar _c = 0;
 };
 
-} // namespace ui
+} // namespace geometry
 
 } // namespace cgogn
 
-#endif // CGOGN_UI_INPUTS_H_
+#endif // CGOGN_GEOMETRY_TYPES_SPHERICAL_QUADRIC_H_

@@ -64,6 +64,7 @@ struct mesh_traits<CMap0>
 /*************************************************************************/
 
 CMap0::Vertex add_vertex(CMap0& m, bool set_indices = true);
+void remove_vertex(CMap0& m, CMap0::Vertex v);
 
 } // namespace cgogn
 

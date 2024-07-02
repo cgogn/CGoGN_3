@@ -62,7 +62,7 @@ template <typename VEC,
 void update_vbo(const std::vector<VEC>& vector, VBO* vbo)
 {
 	static const std::size_t element_size = geometry::vector_traits<VEC>::SIZE;
-	uint32 nb_elements = uint32(uint32(vector.size()));
+	uint32 nb_elements = uint32(vector.size());
 
 	vbo->bind();
 	vbo->allocate(nb_elements, element_size);
@@ -83,7 +83,7 @@ void update_vbo(const std::vector<VEC>& vector, VBO* vbo, const FUNC& convert)
 
 	using OutputType = func_return_type<FUNC>;
 	static const std::size_t output_type_size = geometry::vector_traits<OutputType>::SIZE;
-	uint32 nb_elements = uint32(uint32(vector.size()));
+	uint32 nb_elements = uint32(vector.size());
 
 	vbo->bind();
 	vbo->allocate(nb_elements, output_type_size);

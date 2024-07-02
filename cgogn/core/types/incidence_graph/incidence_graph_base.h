@@ -183,6 +183,15 @@ struct IncidenceGraphBase
 
 	IncidenceGraphBase()
 	{
+		create_incidence_attributes();
+	};
+
+	~IncidenceGraphBase()
+	{
+	}
+
+	void create_incidence_attributes()
+	{
 		vertex_incident_edges_ =
 			attribute_containers_[Vertex::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 		edge_incident_vertices_ =
@@ -193,10 +202,6 @@ struct IncidenceGraphBase
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<Edge>>("incident_edges");
 		face_incident_edges_dir_ =
 			attribute_containers_[Face::CELL_INDEX].add_attribute<std::vector<uint8>>("incident_edges_dir");
-	};
-
-	~IncidenceGraphBase()
-	{
 	}
 };
 
@@ -421,6 +426,35 @@ auto parallel_foreach_cell(const MESH& m, const FUNC& f)
 		fu.wait();
 	for (auto& b : cells_buffers[1u])
 		buffers->release_buffer(b);
+}
+
+/*************************************************************************/
+// Clear incidence graph
+/*************************************************************************/
+
+inline void clear(IncidenceGraphBase& m, bool keep_attributes = true)
+{
+	if (!keep_attributes)
+	{
+		m.vertex_incident_edges_.reset();
+		m.edge_incident_vertices_.reset();
+		m.edge_incident_faces_.reset();
+		m.face_incident_edges_.reset();
+		m.face_incident_edges_dir_.reset();
+	}
+
+	for (IncidenceGraphBase::AttributeContainer& container : m.attribute_containers_)
+	{
+		container.clear_attributes();
+		if (!keep_attributes)
+		{
+			// if there are still shared_ptr somewhere, some attributes may not be removed
+			container.remove_attributes();
+		}
+	}
+
+	if (!keep_attributes)
+		m.create_incidence_attributes();
 }
 
 /*************************************************************************/

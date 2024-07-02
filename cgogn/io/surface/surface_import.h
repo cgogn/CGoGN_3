@@ -59,6 +59,7 @@ struct SurfaceImportDataTGen
 
 	std::vector<uint32> faces_nb_vertices_;
 	std::vector<uint32> faces_vertex_indices_;
+	std::vector<uint32> edges_vertex_indices_; // only for IncidenceGraph
 
 	std::vector<uint32> vertex_id_after_import_;
 

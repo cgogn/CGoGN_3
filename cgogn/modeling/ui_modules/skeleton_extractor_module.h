@@ -81,7 +81,7 @@ class SkeletonExtractor : public Module
 		SURFACE* mesh_;
 		std::shared_ptr<SurfaceAttribute<Vec3>> medial_axis_samples_position_ = nullptr;
 		std::shared_ptr<SurfaceAttribute<Scalar>> medial_axis_samples_radius_ = nullptr;
-		std::shared_ptr<SurfaceAttribute<std::pair<Vec3, Vec3>>> medial_axis_samples_closest_points_ = nullptr;
+		std::shared_ptr<SurfaceAttribute<SurfaceVertex>> medial_axis_samples_secondary_vertex_ = nullptr;
 
 		float32 radius_threshold_ = 0.025f;
 		float32 angle_threshold_ = float32(M_PI) / 2.0f;
@@ -108,8 +108,8 @@ private:
 		SurfaceParameters& p = surface_parameters_[s];
 		p.mesh_ = s;
 		p.medial_axis_samples_position_ = get_or_add_attribute<Vec3, SurfaceVertex>(*s, "medial_axis_samples_position");
-		p.medial_axis_samples_closest_points_ =
-			get_or_add_attribute<std::pair<Vec3, Vec3>, SurfaceVertex>(*s, "medial_axis_samples_closest_points");
+		p.medial_axis_samples_secondary_vertex_ =
+			get_or_add_attribute<SurfaceVertex, SurfaceVertex>(*s, "medial_axis_samples_secondary_vertex");
 		p.medial_axis_samples_radius_ = get_or_add_attribute<Scalar, SurfaceVertex>(*s, "medial_axis_samples_radius");
 
 		MeshData<SURFACE>& md = surface_provider_->mesh_data(*s);
@@ -126,7 +126,7 @@ public:
 
 		geometry::shrinking_ball_centers(s, vertex_position, vertex_normal, p.medial_axis_samples_position_.get(),
 										 p.medial_axis_samples_radius_.get(),
-										 p.medial_axis_samples_closest_points_.get());
+										 p.medial_axis_samples_secondary_vertex_.get());
 
 		p.filtered_medial_axis_samples_set_->select_if([&](SurfaceVertex v) { return true; });
 
@@ -144,7 +144,9 @@ public:
 		p.neutralized_surface_vertices_set_->clear();
 		foreach_cell(s, [&](SurfaceVertex v) -> bool {
 			const Vec3& c = value<Vec3>(s, p.medial_axis_samples_position_, v);
-			const auto& [c1, c2] = value<std::pair<Vec3, Vec3>>(s, p.medial_axis_samples_closest_points_, v);
+			const SurfaceVertex sv = value<SurfaceVertex>(s, p.medial_axis_samples_secondary_vertex_, v);
+			const Vec3& c1 = value<Vec3>(s, vertex_position, v);
+			const Vec3& c2 = value<Vec3>(s, vertex_position, sv);
 			const Scalar r = value<Scalar>(s, p.medial_axis_samples_radius_, v);
 			if (r > p.radius_threshold_ && geometry::angle(c1 - c, c2 - c) > p.angle_threshold_)
 				p.filtered_medial_axis_samples_set_->select(v);

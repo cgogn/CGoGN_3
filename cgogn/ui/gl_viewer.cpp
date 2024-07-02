@@ -101,6 +101,9 @@ void GLViewer::mouse_dbl_click_event(int32 /*buttons*/, int32 x, int32 y)
 
 void GLViewer::mouse_move_event(int32 x, int32 y)
 {
+	inputs_->mouse_x_ = x;
+	inputs_->mouse_y_ = y;
+
 	float64 dx = float64(x - inputs_->previous_mouse_x_);
 	float64 dy = float64(y - inputs_->previous_mouse_y_);
 

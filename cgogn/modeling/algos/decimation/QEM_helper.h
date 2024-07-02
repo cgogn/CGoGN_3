@@ -52,7 +52,7 @@ struct DecimationQEM_Helper
 
 	DecimationQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position) : m_(m), vertex_position_(vertex_position)
 	{
-		vertex_quadric_ = add_attribute<Quadric, Vertex>(m, "__vertex_quadric");
+		vertex_quadric_ = get_or_add_attribute<Quadric, Vertex>(m, "__vertex_quadric");
 		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
 			value<Quadric>(m_, vertex_quadric_, v).zero();
 			return true;

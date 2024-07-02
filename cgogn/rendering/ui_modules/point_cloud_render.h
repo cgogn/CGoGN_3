@@ -25,6 +25,7 @@
 #define CGOGN_MODULE_POINT_CLOUD_RENDER_H_
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
+
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/imgui_helpers.h>
 #include <cgogn/ui/module.h>
@@ -50,6 +51,7 @@ using geometry::Vec3;
 template <typename MESH>
 class PointCloudRender : public ViewModule
 {
+public:
 	enum AttributePerCell
 	{
 		GLOBAL = 0,
@@ -60,6 +62,7 @@ class PointCloudRender : public ViewModule
 		VECTOR = 0
 	};
 
+private:
 	template <typename T>
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 
@@ -89,7 +92,7 @@ class PointCloudRender : public ViewModule
 		rendering::VBO* vertex_position_vbo_;
 		std::shared_ptr<Attribute<Scalar>> vertex_radius_;
 		rendering::VBO* vertex_radius_vbo_;
-		std::shared_ptr<Attribute<Vec3>> vertex_color_;
+		std::shared_ptr<Attribute<Vec4>> vertex_color_;
 		rendering::VBO* vertex_color_vbo_;
 
 		std::unique_ptr<rendering::ShaderPointSprite::Param> param_point_sprite_;
@@ -187,7 +190,7 @@ public:
 		v.request_update();
 	}
 
-	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_color)
+	void set_vertex_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec4>>& vertex_color)
 	{
 		Parameters& p = parameters_[&v][&m];
 		if (p.vertex_color_ == vertex_color)
@@ -205,6 +208,16 @@ public:
 		p.param_point_sprite_color_->set_vbos({p.vertex_position_vbo_, p.vertex_color_vbo_});
 		p.param_point_sprite_color_size_->set_vbos({p.vertex_position_vbo_, p.vertex_color_vbo_, p.vertex_radius_vbo_});
 
+		v.request_update();
+	}
+
+	void set_vertex_color_per_cell(View& v, const MESH& m, const AttributePerCell color_per_cell)
+	{
+		Parameters& p = parameters_[&v][&m];
+		if (p.color_per_cell_ == color_per_cell)
+			return;
+
+		p.color_per_cell_ = color_per_cell;
 		v.request_update();
 	}
 
@@ -237,7 +250,10 @@ protected:
 						if (p.param_point_sprite_size_->attributes_initialized())
 						{
 							p.param_point_sprite_size_->bind(proj_matrix, view_matrix);
+							glEnable(GL_BLEND);
+							glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 							md.draw(rendering::POINTS);
+							glDisable(GL_BLEND);
 							p.param_point_sprite_size_->release();
 						}
 					}
@@ -246,7 +262,10 @@ protected:
 						if (p.param_point_sprite_color_size_->attributes_initialized())
 						{
 							p.param_point_sprite_color_size_->bind(proj_matrix, view_matrix);
+							glEnable(GL_BLEND);
+							glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 							md.draw(rendering::POINTS);
+							glDisable(GL_BLEND);
 							p.param_point_sprite_color_size_->release();
 						}
 					}
@@ -262,7 +281,10 @@ protected:
 						{
 							p.param_point_sprite_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_->bind(proj_matrix, view_matrix);
+							glEnable(GL_BLEND);
+							glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 							md.draw(rendering::POINTS);
+							glDisable(GL_BLEND);
 							p.param_point_sprite_->release();
 						}
 					}
@@ -272,7 +294,10 @@ protected:
 						{
 							p.param_point_sprite_color_->point_size_ = p.vertex_base_size_ * p.vertex_scale_factor_;
 							p.param_point_sprite_color_->bind(proj_matrix, view_matrix);
+							glEnable(GL_BLEND);
+							glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 							md.draw(rendering::POINTS);
+							glDisable(GL_BLEND);
 							p.param_point_sprite_color_->release();
 						}
 					}
@@ -338,9 +363,9 @@ protected:
 				}
 				else if (p.color_per_cell_ == PER_VERTEX)
 				{
-					imgui_combo_attribute<Vertex, Vec3>(
+					imgui_combo_attribute<Vertex, Vec4>(
 						*selected_mesh_, p.vertex_color_, "Attribute##vectorvertexcolor",
-						[&](const std::shared_ptr<Attribute<Vec3>>& attribute) {
+						[&](const std::shared_ptr<Attribute<Vec4>>& attribute) {
 							set_vertex_color(*selected_view_, *selected_mesh_, attribute);
 						});
 				}

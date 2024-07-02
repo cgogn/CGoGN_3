@@ -29,8 +29,10 @@
 #include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
+#include <cgogn/geometry/algos/area.h>
 #include <cgogn/geometry/algos/invertion.h>
 #include <cgogn/geometry/types/slab_quadric.h>
+#include <cgogn/geometry/types/spherical_quadric.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 namespace cgogn
@@ -38,6 +40,8 @@ namespace cgogn
 
 namespace modeling
 {
+
+using geometry::Mat4;
 using geometry::Scalar;
 using geometry::Slab_Quadric;
 using geometry::Vec3;
