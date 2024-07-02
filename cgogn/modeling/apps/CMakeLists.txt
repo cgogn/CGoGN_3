@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
 project(cgogn_rendering_examples
     LANGUAGES CXX
 )

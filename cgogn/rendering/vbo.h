@@ -49,11 +49,17 @@ protected:
 	std::size_t nb_vectors_;
 	int32 vector_dimension_;
 	std::string name_;
+	uint32 divisor_;
 
 public:
-	inline VBO(int32 vec_dim = 3) : id_texture_buffer_(0), nb_vectors_(0), vector_dimension_(vec_dim)
+	inline VBO(int32 vec_dim = 3) : id_texture_buffer_(0), nb_vectors_(0), vector_dimension_(vec_dim), divisor_(0)
 	{
 		glGenBuffers(1, &id_);
+	}
+
+	inline void set_divisor(uint32 d)
+	{
+		divisor_ = d;
 	}
 
 	inline ~VBO()
@@ -180,6 +186,7 @@ public:
 		glEnableVertexAttribArray(attrib);
 		glVertexAttribPointer(attrib, vector_dimension(), GL_FLOAT, GL_FALSE, stride * vector_dimension() * 4,
 							  reinterpret_cast<GLvoid*>(first * uint64(vector_dimension()) * 4u));
+		glVertexAttribDivisor(attrib, divisor_);
 		release();
 	}
 };

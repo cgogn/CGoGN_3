@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
 project(cgogn_rendering_examples
 	LANGUAGES CXX
 )
@@ -96,6 +94,25 @@ target_link_libraries(simple_volume_viewer
 
 add_executable(test_shape test_shape.cpp)
 target_link_libraries(test_shape
+	cgogn::core
+	cgogn::ui
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+	${APPLE_LINK}
+)
+
+add_executable(obj_tex_viewer obj_tex_viewer.cpp)
+target_link_libraries(obj_tex_viewer
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	${CMAKE_DL_LIBS}
+	${APPLE_LINK}
+)
+
+add_executable(test_skel_shapes test_skel_shapes.cpp)
+target_link_libraries(test_skel_shapes
 	cgogn::core
 	cgogn::ui
 	cgogn::rendering

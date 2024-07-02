@@ -26,7 +26,7 @@
 
 #include <cgogn/io/incidence_graph/incidence_graph_import.h>
 #include <cgogn/io/utils.h>
-
+#include <cgogn/core/functions/traversals/edge.h>
 #include <cgogn/core/functions/attributes.h>
 
 #include <fstream>
