@@ -24,6 +24,7 @@
 #ifndef CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 #define CGOGN_GEOMETRY_ALGOS_MEDIAL_AXIS_H_
 
+#include <cgogn/core/utils/numerics.h>
 #include <cgogn/core/functions/traversals/vertex.h>
 
 #include <cgogn/geometry/functions/angle.h>
@@ -43,6 +44,8 @@ namespace geometry
 
 using geometry::Scalar;
 using geometry::Vec3;
+
+using namespace cgogn::numerics;
 
 // Compute radius of the ball that touches points p and q and whose center falls on the normal n from p
 inline Scalar compute_radius(const Vec3& p, const Vec3& n, const Vec3& q)

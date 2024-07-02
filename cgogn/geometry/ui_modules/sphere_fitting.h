@@ -1547,9 +1547,10 @@ protected:
 			int32 x = view->mouse_x();
 			int32 y = view->mouse_y();
 
-			rendering::GLVec3d near = view->unproject(x, y, 0.0);
+			// minwindef.h (included by MSVC) defines near and far macros, which is why the underscore is needed
+			rendering::GLVec3d near_ = view->unproject(x, y, 0.0);
 			rendering::GLVec3d far_d = view->unproject(x, y, 1.0);
-			Vec3 A{near.x(), near.y(), near.z()};
+			Vec3 A{near_.x(), near_.y(), near_.z()};
 			Vec3 B{far_d.x(), far_d.y(), far_d.z()};
 
 			Vec3 picked_sphere_center;
