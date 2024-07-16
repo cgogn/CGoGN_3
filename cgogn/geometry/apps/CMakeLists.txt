@@ -11,20 +11,6 @@ find_package(cgogn_rendering REQUIRED)
 
 set(CGOGN_TEST_PREFIX "test_")
 
-if (CGOGN_USE_CGAL)
-	find_package(CGAL REQUIRED)
-	add_executable(delaunay3_viewer delaunay3_viewer.cpp)
-	target_link_libraries(delaunay3_viewer
-		CGAL::CGAL
-		cgogn::core
-		cgogn::ui
-		cgogn::io
-		cgogn::rendering
-		cgogn::modeling
-		${CMAKE_DL_LIBS}
-	)
-endif()
-
 
 add_executable(filtering filtering.cpp)
 target_link_libraries(filtering
@@ -41,6 +27,17 @@ target_link_libraries(heat_method
 	cgogn::ui
 	cgogn::io
 	cgogn::rendering
+	${CMAKE_DL_LIBS}
+)
+
+add_executable(sphere_fitting sphere_fitting.cpp)
+target_link_libraries(sphere_fitting
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	Blossom5
 	${CMAKE_DL_LIBS}
 )
 

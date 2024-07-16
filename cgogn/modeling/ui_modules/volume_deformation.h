@@ -43,8 +43,8 @@ namespace cgogn
 namespace ui
 {
 
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 class VolumeDeformation : public ViewModule
@@ -174,8 +174,6 @@ protected:
 
 		if (selected_mesh_)
 		{
-			float X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
-
 			MeshData<MESH>& md = mesh_provider_->mesh_data(*selected_mesh_);
 			Parameters& p = parameters_[selected_mesh_];
 
@@ -187,26 +185,9 @@ protected:
 			if (p.vertex_position_)
 			{
 				ImGui::Separator();
-
-				if (ImGui::BeginCombo("Handle vertices", p.selected_handle_vertices_set_
-															 ? p.selected_handle_vertices_set_->name().c_str()
-															 : "-- select --"))
-				{
-					md.template foreach_cells_set<Vertex>([&](CellsSet<MESH, Vertex>& cs) {
-						bool is_selected = &cs == p.selected_handle_vertices_set_;
-						if (ImGui::Selectable(cs.name().c_str(), is_selected))
-							set_selected_handle_vertices_set(*selected_mesh_, &cs);
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-					});
-					ImGui::EndCombo();
-				}
-				if (p.selected_handle_vertices_set_)
-				{
-					ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - X_button_width);
-					if (ImGui::Button("X##selected_handle_vertices_set"))
-						set_selected_handle_vertices_set(*selected_mesh_, nullptr);
-				}
+				imgui_combo_cells_set<Vertex>(
+					md, p.selected_handle_vertices_set_, "Handle vertices",
+					[&](CellsSet<MESH, Vertex>* cs) { set_selected_handle_vertices_set(*selected_mesh_, cs); });
 			}
 		}
 	}

@@ -61,6 +61,7 @@ namespace ui
 
 using geometry::Scalar;
 using geometry::Vec3;
+using rendering::GLColor;
 
 template <typename MESH>
 class SurfaceRender : public ViewModule
@@ -364,6 +365,14 @@ public:
 		v.request_update();
 	}
 
+	void set_vertex_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_point_sprite_->color_ = color;
+		p.param_point_sprite_size_->color_ = color;
+		v.request_update();
+	}
+
 	void set_vertex_scalar(View& v, const MESH& m, const std::shared_ptr<Attribute<Scalar>>& vertex_scalar)
 	{
 		Parameters& p = parameters_[&v][&m];
@@ -394,6 +403,13 @@ public:
 		v.request_update();
 	}
 
+	void set_vertex_scale_factor(View& v, const MESH& m, float32 scale_factor)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.vertex_scale_factor_ = scale_factor;
+		v.request_update();
+	}
+
 	void set_edge_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& edge_color)
 	{
 		Parameters& p = parameters_[&v][&m];
@@ -411,6 +427,21 @@ public:
 
 		p.param_bold_line_color_->set_vbos({p.vertex_position_vbo_, p.edge_color_vbo_});
 
+		v.request_update();
+	}
+
+	void set_edge_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_bold_line_->color_ = color;
+		v.request_update();
+	}
+
+	void set_edge_width(View& v, const MESH& m, float32 width)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_bold_line_->width_ = width;
+		p.param_bold_line_color_->width_ = width;
 		v.request_update();
 	}
 
@@ -432,6 +463,22 @@ public:
 		p.param_flat_color_per_face_->set_vbos({p.vertex_position_vbo_, p.face_color_vbo_});
 		p.param_phong_color_per_face_->set_vbos({p.vertex_position_vbo_, p.vertex_normal_vbo_, p.face_color_vbo_});
 
+		v.request_update();
+	}
+
+	void set_face_front_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_flat_->front_color_ = color;
+		p.param_phong_->front_color_ = color;
+		v.request_update();
+	}
+
+	void set_face_back_color(View& v, const MESH& m, const GLColor& color)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.param_flat_->back_color_ = color;
+		p.param_phong_->back_color_ = color;
 		v.request_update();
 	}
 
@@ -526,6 +573,15 @@ public:
 	{
 		Parameters& p = parameters_[&v][&m];
 		p.render_faces_ = b;
+		v.request_update();
+	}
+
+	void set_ghost_mode(View& v, const MESH& m, bool b)
+	{
+		Parameters& p = parameters_[&v][&m];
+		p.ghost_mode_ = b;
+		p.param_flat_->ghost_mode_ = p.ghost_mode_;
+		p.param_phong_->ghost_mode_ = p.ghost_mode_;
 		v.request_update();
 	}
 
@@ -953,8 +1009,7 @@ protected:
 			{
 				if (ImGui::Checkbox("Ghost mode", &p.ghost_mode_))
 				{
-					p.param_flat_->ghost_mode_ = p.ghost_mode_;
-					p.param_phong_->ghost_mode_ = p.ghost_mode_;
+					set_ghost_mode(*selected_view_, *selected_mesh_, p.ghost_mode_);
 					need_update = true;
 				}
 				ImGui::TextUnformatted("Normals");

@@ -31,6 +31,7 @@ set(src_list
 
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.h"
+		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap0.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.h"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap1.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/types/maps/cmap/cmap2.h"
@@ -215,6 +216,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_CPP_STD=17>
 	$<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>
 	$<$<CXX_COMPILER_ID:MSVC>:CGOGN_WIN_VER=${WIN_VERSION}>)
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 if(CGOGN_USE_SIMD)
 	CGOGN_CHECK_FOR_SSE()

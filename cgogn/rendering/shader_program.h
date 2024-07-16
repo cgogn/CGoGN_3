@@ -33,32 +33,33 @@
 #include <iostream>
 #include <memory>
 
-#define DECLARE_SHADER_CLASS(NAME, TB, STRNAME)                                                                        \
-	class ShaderParam##NAME;                                                                                           \
-	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                                   \
-	{                                                                                                                  \
-	public:                                                                                                            \
-		using Self = Shader##NAME;                                                                                     \
-		using Param = ShaderParam##NAME;                                                                               \
-		friend Param;                                                                                                  \
-		inline static std::unique_ptr<Param> generate_param()                                                          \
-		{                                                                                                              \
-			if (!instance_)                                                                                            \
-			{                                                                                                          \
-				instance_ = new Self();                                                                                \
-				ShaderProgram::register_instance(instance_);                                                           \
-			}                                                                                                          \
-			return std::make_unique<Param>(instance_);                                                                 \
-		}                                                                                                              \
-		inline std::string name() const override                                                                       \
-		{                                                                                                              \
-			return STRNAME;                                                                                            \
-		}                                                                                                              \
-		inline bool use_texture_buffer() const override                                                                \
-		{                                                                                                              \
-			return TB;                                                                                                 \
-		}                                                                                                              \
-                                                                                                                       \
+#define DECLARE_SHADER_CLASS(NAME, TB, STRNAME)                                                                 \
+	class ShaderParam##NAME;                                                                                    \
+	class CGOGN_RENDERING_EXPORT Shader##NAME : public ShaderProgram                                            \
+	{                                                                                                           \
+	public:                                                                                                     \
+		using Self = Shader##NAME;                                                                              \
+		using Param = ShaderParam##NAME;                                                                        \
+		friend Param;																							\
+		template <typename... T>																				\
+		inline static std::unique_ptr<Param> generate_param(T... par)											\
+		{																										\
+			if (!instance_)																						\
+			{																									\
+				instance_ = new Self(par...);																	\
+				ShaderProgram::register_instance(instance_);													\
+			}																									\
+			return std::make_unique<Param>(instance_);															\
+		}																										\
+inline std::string name() const override                                                                       \
+		{                                                                                                      \
+			return STRNAME;                                                                                     \
+		}                                                                                                        \
+		inline bool use_texture_buffer() const override                                                           \
+		{                                                                                                          \
+			return TB;                                                                                              \
+		}                                                                                                            \
+                                                                                                                      \
 	protected:                                                                                                         \
 		Shader##NAME();                                                                                                \
 		Shader##NAME(const Shader##NAME&) = delete;                                                                    \

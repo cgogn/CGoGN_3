@@ -13,7 +13,7 @@ foreach(p
 	CMP0048 # version
 	CMP0054 # CMake 3.1
 	CMP0072 # opengl
-        CMP0092 # remove /W3 by default in MSVC
+	CMP0092 # remove /W3 by default in MSVC
 )
 	if(POLICY ${p})
 		cmake_policy(SET ${p} NEW)
@@ -60,11 +60,6 @@ endif()
 
 ### External Templates
 option(CGOGN_EXTERNAL_TEMPLATES "Use external templates to reduce compile time" OFF)
-
-### C++ 17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 #### ThirdParty options
@@ -210,7 +205,7 @@ foreach(subdir ${CGOGN_CONFIGURED_MODULES})
 	endif()
 endforeach()
 
-
+#
 # uninstall target
 # see https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake
 if(NOT TARGET uninstall)

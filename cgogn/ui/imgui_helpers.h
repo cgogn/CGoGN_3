@@ -43,25 +43,32 @@ namespace ui
  * @brief generate combo box for attribute selection
  * @param m mesh
  * @param label label of the combo box
- * @param selected_attribute current selected attribute
+ * @param selected_attribute current selected attribute (raw or shared pointer)
  * @param on_change function to call with newly selected attribute
  */
-template <typename CELL, typename T, typename MESH, typename FUNC>
-void imgui_combo_attribute(const MESH& m,
-						   const std::shared_ptr<typename mesh_traits<MESH>::template Attribute<T>>& selected_attribute,
+template <typename CELL, typename T, typename MESH, typename AttributeP, typename FUNC>
+void imgui_combo_attribute(const MESH& m, const AttributeP& selected_attribute,
 						   const std::string& label, const FUNC& on_change)
 {
 	using Attribute = typename mesh_traits<MESH>::template Attribute<T>;
 	static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<Attribute>&>::value,
 				  "Wrong function attribute parameter type");
 
+	// @TODO: add unique_ptr or weak_ptr if desired
+	static constexpr const bool selected_attribute_is_smart_pointer = std::is_same_v<AttributeP, std::shared_ptr<Attribute>>;
+	static_assert(selected_attribute_is_smart_pointer || std::is_same_v<AttributeP, Attribute*>);
+
 	if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
 	{
 		foreach_attribute<T, CELL>(m, [&](const std::shared_ptr<Attribute>& attribute) {
-			bool is_selected = attribute == selected_attribute;
+			bool is_selected;
+			if constexpr (selected_attribute_is_smart_pointer)
+				is_selected = attribute == selected_attribute;
+			else // raw pointer
+				is_selected = attribute.get() == selected_attribute;
 			if (ImGui::Selectable(attribute->name().c_str(), is_selected))
 			{
-				if (attribute != selected_attribute)
+				if (!is_selected) // new attribute is different from the selected one
 					on_change(attribute);
 			}
 			if (is_selected)

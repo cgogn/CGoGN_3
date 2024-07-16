@@ -21,7 +21,6 @@
  *                                                                              *
  *******************************************************************************/
 
-#include <cgogn/core/functions/mesh_info.h>
 #include <cgogn/core/types/maps/cmap/cmap1.h>
 
 #include <cgogn/core/types/cell_marker.h>

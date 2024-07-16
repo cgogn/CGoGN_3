@@ -56,7 +56,7 @@ void compute_gradient_of_vertex_scalar_field(
 			g += value<Scalar>(m, vertex_scalar_field, vertices[i]) * n.cross(e);
 		}
 		g /= 2 * a;
-		value<Vec3>(m, face_gradient, f) = -1.0 * g.normalized();
+		value<Vec3>(m, face_gradient, f) = g;
 		return true;
 	});
 }

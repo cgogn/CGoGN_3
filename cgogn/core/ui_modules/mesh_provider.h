@@ -48,6 +48,7 @@
 
 #include <boost/synapse/emit.hpp>
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -88,6 +89,15 @@ public:
 
 	~MeshProvider()
 	{
+	}
+
+	MESH* mesh(const std::string& name)
+	{
+		auto it = meshes_.find(name);
+		if (it != meshes_.end())
+			return it->second.get();
+		else
+			return nullptr;
 	}
 
 	MESH* add_mesh(const std::string& name)
@@ -199,6 +209,7 @@ public:
 		{
 			MeshData<MESH>& md = mesh_data(*m);
 			md.init(m);
+			mesh_filename_[m] = filename;
 			std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 			if (vertex_position)
 				set_mesh_bb_vertex_position(*m, vertex_position);
@@ -256,6 +267,7 @@ public:
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
+				mesh_filename_[m] = filename;
 				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
 				{
@@ -283,6 +295,8 @@ public:
 		{
 			if (filetype.compare("off") == 0)
 				io::export_OFF(m, vertex_position, filename + ".off");
+			if (filetype.compare("ply") == 0)
+				io::export_PLY(m, vertex_position, filename + ".ply");
 			else if (filetype.compare("ig") == 0)
 			{
 				if constexpr (has_edge_v<MESH>)
@@ -314,6 +328,7 @@ public:
 			{
 				MeshData<MESH>& md = mesh_data(*m);
 				md.init(m);
+				mesh_filename_[m] = filename;
 				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m, "position");
 				if (vertex_position)
 					set_mesh_bb_vertex_position(*m, vertex_position);
@@ -347,6 +362,64 @@ public:
 		}
 	}
 
+
+	std::array<MESH*, 3> load_surface_from_OBJ_file(const std::string& filename, bool normalized = true)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 2 && std::is_default_constructible_v<MESH>)
+		{
+			std::string name = filename_from_path(filename);
+			if (has_mesh(name))
+				name = remove_extension(name) + "_" + std::to_string(number_of_meshes()) + "." + extension(name);
+			const auto [it, inserted] = meshes_.emplace(name, std::make_unique<MESH>());
+			MESH* m_pos = it->second.get();
+			const auto [it2, inserted2] = meshes_.emplace(name + "_tc", std::make_unique<MESH>());
+			MESH* m_tc = it2->second.get();
+			const auto [it3, inserted3] = meshes_.emplace(name + "_no", std::make_unique<MESH>());
+			MESH* m_n = it3->second.get();
+
+			std::string ext = extension(filename);
+			bool imported = false;
+
+			if (ext.compare("obj") == 0)
+				imported = io::import_OBJ_tn(*m_pos, *m_tc, *m_n, filename);
+
+			if (imported)
+			{
+				MeshData<MESH>& md = mesh_data(*m_pos);
+				md.init(m_pos);
+				mesh_filename_[m_pos] = filename;
+				std::shared_ptr<Attribute<Vec3>> vertex_position = get_attribute<Vec3, Vertex>(*m_pos, "position");
+				if (vertex_position)
+				{
+					if (normalized)
+						geometry::rescale(*vertex_position, 1);
+					set_mesh_bb_vertex_position(*m_pos, vertex_position);
+				}
+
+				MeshData<MESH>& md_tc = mesh_data(*m_tc);
+				md_tc.init(m_tc);
+				mesh_filename_[m_tc] = filename + "_tc";
+				MeshData<MESH>& md_no = mesh_data(*m_n);
+				md_no.init(m_n);
+				mesh_filename_[m_n] = filename + "_no";
+
+				boost::synapse::emit<mesh_added>(this, m_pos);
+
+				return {m_pos, m_tc, m_n};
+			}
+			else
+			{
+				meshes_.erase(name);
+				return {nullptr, nullptr, nullptr};
+			}
+		}
+		else
+			return {nullptr, nullptr, nullptr};
+	}
+
+
+
+
 	template <typename FUNC>
 	void foreach_mesh(const FUNC& f)
 	{
@@ -367,6 +440,14 @@ public:
 			std::find_if(meshes_.begin(), meshes_.end(), [&](const auto& pair) { return pair.second.get() == &m; });
 		if (it != meshes_.end())
 			return it->first;
+		else
+			return "";
+	}
+
+	std::string mesh_filename(const MESH& m)
+	{
+		if (mesh_filename_.count(&m) > 0)
+			return mesh_filename_[&m];
 		else
 			return "";
 	}
@@ -483,7 +564,7 @@ protected:
 				if constexpr (mesh_traits<MESH>::dimension == 2)
 				{
 					for (auto file : result)
-						load_surface_from_file(file);
+						load_surface_from_file(file, load_normalized_);
 				}
 				if constexpr (mesh_traits<MESH>::dimension == 3)
 				{
@@ -499,6 +580,7 @@ protected:
 		{
 			if (ImGui::MenuItem("Add mesh"))
 				add_mesh(std::string{mesh_traits<MESH>::name});
+			ImGui::Checkbox("Normalize on load", &load_normalized_);
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, (bool)open_file_dialog);
 			if (ImGui::MenuItem("Load mesh"))
 			{
@@ -674,11 +756,13 @@ private:
 	std::vector<std::string>* supported_formats_ = nullptr;
 
 	bool open_save_popup_ = false;
+	bool load_normalized_ = true;
 
 	const MESH* selected_mesh_;
 	// std::array<char[32], std::tuple_size<typename mesh_traits<MESH>::Cells>::value> new_attribute_name_;
 
 	std::unordered_map<std::string, std::unique_ptr<MESH>> meshes_;
+	std::unordered_map<const MESH*, std::string> mesh_filename_;
 	std::unordered_map<const MESH*, MeshData<MESH>> mesh_data_;
 	Vec3 bb_min_, bb_max_;
 };

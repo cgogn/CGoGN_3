@@ -139,10 +139,10 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 	const char* vertex_shader_source = R"(
 		#version 150
 		in vec3 vertex_position;
-		in vec3 vertex_color;
+		in vec4 vertex_color;
 		in vec3 clipping_position;
 		out vec3 clip_pos_v;
-		out vec3 color_v;
+		out vec4 color_v;
 		
 		void main()
 		{
@@ -163,10 +163,10 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		uniform vec4 plane_clip2;
 		uniform float point_size;
 		
-		in vec3 color_v[];
+		in vec4 color_v[];
 		in vec3 clip_pos_v[];
 
-		out vec3 color_f;
+		out vec4 color_f;
 		out vec2 spriteCoord;
 		out vec3 sphereCenter;
 
@@ -203,7 +203,7 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 		uniform vec3 light_position;
 		uniform float point_size;
 
-		in vec3 color_f;
+		in vec4 color_f;
 		in vec2 spriteCoord;
 		in vec3 sphereCenter;
 
@@ -225,7 +225,7 @@ ShaderPointSpriteColor::ShaderPointSpriteColor()
 			vec3 N = normalize(frag_position_eye - sphereCenter);
 			vec3 L = normalize (light_position - frag_position_eye);
 			float lambertTerm = dot(N, L);
-			vec4 result = vec4(color_f * lambertTerm, 1.0);
+			vec4 result = vec4(color_f.rgb * lambertTerm, color_f.a);
 			result += vec4(ambiant.rgb, 0.0);
 			frag_out = result.rgba;
 		}
@@ -358,9 +358,9 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 	const char* vertex_shader_source = R"(
 		#version 150
 		in vec3 vertex_position;
-		in vec3 vertex_color;
+		in vec4 vertex_color;
 		in vec3 clipping_position;
-		out vec3 color_v;
+		out vec4 color_v;
 		in float vertex_size;
 		out float size_v;
 		out vec3 clip_pos_v;
@@ -384,11 +384,11 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		uniform vec4 plane_clip;
 		uniform vec4 plane_clip2;
 		
-		in vec3 color_v[];
+		in vec4 color_v[];
 		in float size_v[];
 		in vec3 clip_pos_v[];
 
-		out vec3 color_f;
+		out vec4 color_f;
 		out float size_f;
 		out vec2 spriteCoord;
 		out vec3 sphereCenter;
@@ -427,7 +427,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 		uniform vec3 light_position;
 
 		in float size_f;
-		in vec3 color_f;
+		in vec4 color_f;
 		in vec2 spriteCoord;
 		in vec3 sphereCenter;
 
@@ -450,7 +450,7 @@ ShaderPointSpriteColorSize::ShaderPointSpriteColorSize()
 			vec3 N = normalize(frag_position_eye - sphereCenter);
 			vec3 L = normalize (light_position - frag_position_eye);
 			float lambertTerm = dot(N, L);
-			vec4 result = vec4(color_f * lambertTerm, 1.0);
+			vec4 result = vec4(color_f.rgb * lambertTerm, color_f.a);
 			result += vec4(ambiant.rgb, 0.0);
 			frag_out = result.rgba;
 		}

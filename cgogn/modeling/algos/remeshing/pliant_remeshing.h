@@ -116,27 +116,43 @@ struct PliantRemeshing_Helper
 
 	void compute_bvh()
 	{
-		if (surface_bvh_)
-			delete surface_bvh_;
+		uint32 nb_vertices = nb_cells<Vertex>(m_);
+		uint32 nb_faces = nb_cells<Face>(m_);
+
 		auto bvh_vertex_index = add_attribute<uint32, Vertex>(m_, "__bvh_vertex_index");
-		std::vector<Vec3> bvh_vertex_position;
-		bvh_vertex_position.reserve(nb_cells<Vertex>(m_));
+
+		surface_kdt_vertices_.clear();
+		surface_kdt_vertices_.reserve(nb_vertices);
+		std::vector<Vec3> vertex_position_vector;
+		vertex_position_vector.reserve(nb_vertices);
 		uint32 idx = 0;
 		foreach_cell(m_, [&](Vertex v) -> bool {
+			surface_kdt_vertices_.push_back(v);
 			value<uint32>(m_, bvh_vertex_index, v) = idx++;
-			bvh_vertex_position.push_back(value<Vec3>(m_, vertex_position_, v));
+			vertex_position_vector.push_back(value<Vec3>(m_, vertex_position_, v));
 			return true;
 		});
+		surface_bvh_faces_.clear();
+		surface_bvh_faces_.reserve(nb_faces);
 		std::vector<uint32> face_vertex_indices;
-		face_vertex_indices.reserve(nb_cells<Face>(m_) * 3);
+		face_vertex_indices.reserve(nb_faces * 3);
 		foreach_cell(m_, [&](Face f) -> bool {
+			surface_bvh_faces_.push_back(f);
 			foreach_incident_vertex(m_, f, [&](Vertex v) -> bool {
 				face_vertex_indices.push_back(value<uint32>(m_, bvh_vertex_index, v));
 				return true;
 			});
 			return true;
 		});
-		surface_bvh_ = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, bvh_vertex_position);
+
+		if (surface_bvh_)
+			delete surface_bvh_;
+		surface_bvh_ = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, vertex_position_vector);
+
+		if (surface_kdt_)
+			delete surface_kdt_;
+		surface_kdt_ = new acc::KDTree<3, uint32>(vertex_position_vector);
+
 		remove_attribute<Vertex>(m_, bvh_vertex_index);
 	}
 
@@ -144,17 +160,28 @@ struct PliantRemeshing_Helper
 	{
 		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
 		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
+
 		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		auto vertex_medial_point_radius = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
-		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal.get(), vertex_medial_point.get(),
-										 vertex_medial_point_radius.get());
+		auto vertex_medial_point_secondary_vertex_ =
+			add_attribute<Vertex, Vertex>(m_, "__vertex_medial_point_secondary_vertex");
+
+		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
+			auto [c, r, q] = geometry::shrinking_ball_center(
+				m_, value<Vec3>(m_, vertex_position_, v), value<Vec3>(m_, vertex_normal, v), vertex_position_.get(),
+				surface_bvh_, surface_bvh_faces_, surface_kdt_, surface_kdt_vertices_);
+			value<Vec3>(m_, vertex_medial_point, v) = c;
+			value<Scalar>(m_, vertex_medial_point_radius, v) = r;
+			value<Vertex>(m_, vertex_medial_point_secondary_vertex_, v) = q;
+			return true;
+		});
 
 		vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
 		lfs_min_ = std::numeric_limits<float64>::max();
 		lfs_max_ = std::numeric_limits<float64>::lowest();
 		lfs_mean_ = 0.0;
 		uint32 nbv = 0;
-		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
+		foreach_cell(m_, [&](Vertex v) -> bool {
 			++nbv;
 			uint32 vidx = index_of(m_, v);
 			Scalar lfs = ((*vertex_medial_point)[vidx] - (*vertex_position_)[vidx]).norm();
@@ -171,6 +198,7 @@ struct PliantRemeshing_Helper
 		remove_attribute<Vertex>(m_, vertex_normal);
 		remove_attribute<Vertex>(m_, vertex_medial_point);
 		remove_attribute<Vertex>(m_, vertex_medial_point_radius);
+		remove_attribute<Vertex>(m_, vertex_medial_point_secondary_vertex_);
 
 		std::cout << "lfs min: " << lfs_min_ << std::endl;
 		std::cout << "lfs max: " << lfs_max_ << std::endl;
@@ -221,7 +249,10 @@ struct PliantRemeshing_Helper
 	std::shared_ptr<Attribute<bool>> feature_corner_;
 	std::shared_ptr<Attribute<Scalar>> vertex_lfs_;
 	Scalar lfs_min_, lfs_max_, lfs_mean_;
-	acc::BVHTree<uint32, Vec3>* surface_bvh_;
+	acc::BVHTree<uint32, Vec3>* surface_bvh_ = nullptr;
+	std::vector<Face> surface_bvh_faces_;
+	acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
+	std::vector<Vertex> surface_kdt_vertices_;
 };
 
 template <typename MESH>

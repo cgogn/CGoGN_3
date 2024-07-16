@@ -640,7 +640,7 @@ std::vector<CMap2::Vertex> opposite_vertices(CMap2& m, CMap2::Edge e)
 /*************************************************************************/
 
 geometry::Scalar face_vector_field_divergence(const CMap2& m, CMap2::Vertex v,
-											  const CMap2::Attribute<geometry::Vec3>* face_gradient,
+											  const CMap2::Attribute<geometry::Vec3>* face_vector_field,
 											  const CMap2::Attribute<geometry::Vec3>* vertex_position)
 {
 	using Scalar = geometry::Scalar;
@@ -653,9 +653,12 @@ geometry::Scalar face_vector_field_divergence(const CMap2& m, CMap2::Vertex v,
 		CMap2::Edge e1 = edges[i];
 		CMap2::Edge e2 = edges[(i + 1) % edges.size()];
 
+		if (is_boundary(m, e1.dart_))
+			continue;
+
 		CMap2::Face f(e1.dart_);
 
-		const Vec3& X = value<Vec3>(m, face_gradient, f);
+		const Vec3& X = value<Vec3>(m, face_vector_field, f);
 
 		const Vec3& p0 = value<Vec3>(m, vertex_position, v);
 		const Vec3& p1 = value<Vec3>(m, vertex_position, CMap2::Vertex(phi1(m, e1.dart_)));

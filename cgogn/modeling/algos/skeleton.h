@@ -72,8 +72,11 @@ struct MeanCurvatureSkeleton_Helper
 
 		vertex_medial_point_ = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
 		vertex_medial_point_radius_ = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
+		vertex_medial_point_secondary_vertex_ =
+			add_attribute<Vertex, Vertex>(m_, "__vertex_medial_point_secondary_vertex_");
 		geometry::shrinking_ball_centers(m_, vertex_position_.get(), vertex_normal_.get(), vertex_medial_point_.get(),
-										 vertex_medial_point_radius_.get());
+										 vertex_medial_point_radius_.get(),
+										 vertex_medial_point_secondary_vertex_.get());
 
 		// TODO: regularize medial axis ?
 
@@ -95,6 +98,7 @@ struct MeanCurvatureSkeleton_Helper
 		remove_attribute<Vertex>(m_, vertex_normal_);
 		remove_attribute<Vertex>(m_, vertex_medial_point_);
 		remove_attribute<Vertex>(m_, vertex_medial_point_radius_);
+		remove_attribute<Vertex>(m_, vertex_medial_point_secondary_vertex_);
 		remove_attribute<Vertex>(m_, vertex_is_fixed_);
 		remove_attribute<Vertex>(m_, vertex_index_);
 		remove_attribute<Edge>(m_, edge_weight_);
@@ -106,6 +110,7 @@ struct MeanCurvatureSkeleton_Helper
 	std::shared_ptr<Attribute<Vec3>> vertex_normal_;
 	std::shared_ptr<Attribute<Vec3>> vertex_medial_point_;
 	std::shared_ptr<Attribute<Scalar>> vertex_medial_point_radius_;
+	std::shared_ptr<Attribute<Vertex>> vertex_medial_point_secondary_vertex_;
 	std::shared_ptr<Attribute<bool>> vertex_is_fixed_;
 	std::shared_ptr<Attribute<Vec3>> vertex_is_fixed_color_;
 	std::shared_ptr<Attribute<uint32>> vertex_index_;

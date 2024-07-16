@@ -88,9 +88,11 @@ public:
 	}
 
 	void geodesic_distance(MESH& m, const Attribute<Vec3>* vertex_position,
-						   const CellsSet<MESH, Vertex>* source_vertices, Attribute<Scalar>* vertex_geodesic_distance)
+						   const CellsSet<MESH, Vertex>* source_vertices, Attribute<Scalar>* vertex_geodesic_distance,
+						   double t_multiplier)
 	{
-		geometry::compute_geodesic_distance(m, vertex_position, source_vertices, vertex_geodesic_distance);
+		geometry::compute_geodesic_distance(m, vertex_position, source_vertices, vertex_geodesic_distance,
+											t_multiplier);
 		mesh_provider_->emit_attribute_changed(m, vertex_geodesic_distance);
 	}
 
@@ -142,17 +144,18 @@ protected:
 													  [&](const std::shared_ptr<Attribute<Scalar>>& attribute) {
 														  geodesic_distance_vertex_ = attribute;
 													  });
+
+				static double t_multiplier = 1.0;
+				ImGui::InputDouble("Scalar t_multiplier", &t_multiplier, 0.01f, 100.0f, "%.3f");
+
 				if (ImGui::Button("Compute Geodesic Distance"))
 				{
 					if (!geodesic_distance_vertex_)
 						geodesic_distance_vertex_ =
 							get_or_add_attribute<Scalar, Vertex>(*selected_mesh_, "geodesic distance");
 					geodesic_distance(*selected_mesh_, selected_vertex_position_.get(), selected_vertices_set_,
-									  geodesic_distance_vertex_.get());
+									  geodesic_distance_vertex_.get(), t_multiplier);
 				}
-
-				static double t_multiplier = 1.0;
-				ImGui::InputDouble("Scalar t_multiplier", &t_multiplier, 0.01f, 100.0f, "%.3f");
 			}
 		}
 	}

@@ -42,18 +42,24 @@ struct TriangleSoup;
 namespace io
 {
 
-using geometry::Vec3;
 
-struct SurfaceImportData
+using geometry::Vec3;
+using geometry::Vec2;
+
+template <typename VEC>
+struct SurfaceImportDataTGen
 {
+	using VEC_TYPE = VEC;
+
 	uint32 nb_vertices_ = 0;
 	uint32 nb_faces_ = 0;
 
-	std::vector<Vec3> vertex_position_;
+	std::vector<VEC> vertex_position_;
 	std::string vertex_position_attribute_name_ = "position";
 
 	std::vector<uint32> faces_nb_vertices_;
 	std::vector<uint32> faces_vertex_indices_;
+	std::vector<uint32> edges_vertex_indices_; // only for IncidenceGraph
 
 	std::vector<uint32> vertex_id_after_import_;
 
@@ -68,10 +74,17 @@ struct SurfaceImportData
 	}
 };
 
-void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data);
-void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data);
+using SurfaceImportData = SurfaceImportDataTGen<Vec3>;
+using SurfaceImportData2D = SurfaceImportDataTGen<Vec2>;
+
+
+void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
+void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData& surface_data, bool reconstruct_phi2 = true);
 void CGOGN_IO_EXPORT import_surface_data(IncidenceGraph& m, SurfaceImportData& surface_data);
 void CGOGN_IO_EXPORT import_surface_data(TriangleSoup& m, SurfaceImportData& surface_data);
+
+void CGOGN_IO_EXPORT import_surface_data(CMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2 = true);
+void CGOGN_IO_EXPORT import_surface_data(GMap2& m, SurfaceImportData2D& surface_data, bool reconstruct_phi2 = true);
 
 } // namespace io
 

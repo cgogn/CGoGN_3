@@ -24,7 +24,6 @@
 #ifndef CGOGN_MODELING_DECIMATION_EDGE_QUEUE_QEM_H_
 #define CGOGN_MODELING_DECIMATION_EDGE_QUEUE_QEM_H_
 
-
 #include <cgogn/core/functions/traversals/vertex.h>
 #include <cgogn/core/types/mesh_traits.h>
 #include <cgogn/core/utils/type_traits.h>
@@ -34,13 +33,12 @@
 namespace cgogn
 {
 
-
 namespace modeling
 {
 
-using geometry::Vec3;
-using geometry::Scalar;
 using geometry::Quadric;
+using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 struct DecimationQEM_Helper
@@ -54,7 +52,7 @@ struct DecimationQEM_Helper
 
 	DecimationQEM_Helper(MESH& m, const Attribute<Vec3>* vertex_position) : m_(m), vertex_position_(vertex_position)
 	{
-		vertex_quadric_ = add_attribute<Quadric, Vertex>(m, "__vertex_quadric");
+		vertex_quadric_ = get_or_add_attribute<Quadric, Vertex>(m, "__vertex_quadric");
 		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
 			value<Quadric>(m_, vertex_quadric_, v).zero();
 			return true;

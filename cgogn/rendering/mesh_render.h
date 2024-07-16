@@ -352,8 +352,17 @@ void MeshRender::init_primitives(const MESH& m, DrawingType prim,
 		{
 			if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
 			{
-				init_lines<true>(m, table_indices, table_indices_emb);
-				func_update_ebo(INDEX_EDGES, table_indices_emb);
+				if (is_indexed<typename mesh_traits<MESH>::Edge>(m))
+				{
+					init_lines<true>(m, table_indices, table_indices_emb);
+					func_update_ebo(INDEX_EDGES, table_indices_emb);
+				}
+				else
+				{
+					init_lines<false>(m, table_indices, table_indices_emb);
+					func_update_ebo2(INDEX_EDGES, table_indices_emb);
+				}
+				func_update_ebo(LINES, table_indices);
 			}
 			else
 			{

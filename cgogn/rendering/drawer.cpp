@@ -233,13 +233,13 @@ DisplayListDrawer::Renderer::Renderer(DisplayListDrawer* dr) : drawer_data_(dr)
 {
 	param_cpv_ = ShaderFlatColorPerVertex::generate_param();
 	param_bl_ = ShaderBoldLineColor::generate_param();
-	param_rp_ = ShaderRoundPointColor::generate_param();
+//	param_rp_ = ShaderRoundPointColor::generate_param();
 	param_ps_ = ShaderPointSpriteColor::generate_param();
 
 	std::vector<VBO*> vbos = {dr->vbo_pos_.get(), dr->vbo_col_.get()};
 	param_cpv_->set_vbos(vbos);
 	param_bl_->set_vbos(vbos);
-	param_rp_->set_vbos(vbos);
+//	param_rp_->set_vbos(vbos);
 	param_ps_->set_vbos(vbos);
 }
 
@@ -247,7 +247,7 @@ DisplayListDrawer::Renderer::~Renderer()
 {
 	param_cpv_.reset();
 	param_bl_.reset();
-	param_rp_.reset();
+//	param_rp_.reset();
 	param_ps_.reset();
 }
 
@@ -283,9 +283,9 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 		for (const auto& pp : drawer_data_->begins_balls_)
 		{
 			// get direct access to the shader to modify parameters while keeping the original param binded
-			ShaderPointSpriteColor* shader_ps_ = static_cast<ShaderPointSpriteColor*>(param_ps_->get_shader());
+//			ShaderPointSpriteColor* shader_ps_ = ShaderPointSpriteColor::instance_;
 			//			shader_ps_->set_size(pp.width);
-			shader_ps_->set_uniform_value(2, pp.width);
+//			shader_ps_->set_uniform_value(2, pp.width);
 
 			glDrawArrays(pp.mode, pp.begin, pp.nb);
 		}
@@ -297,31 +297,31 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
 	// round points
-	if (!drawer_data_->begins_round_point_.empty())
-	{
-		param_rp_->bind(projection, modelview);
-		for (const auto& pp : drawer_data_->begins_round_point_)
-		{
-			// get direct access to the shader to modify parameters while keeping the original param binded
-			ShaderRoundPointColor* shader_rp_ = static_cast<ShaderRoundPointColor*>(param_rp_->get_shader());
-			// shader_rp_->set_size(pp.width);
-			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_rp_->set_uniform_value(0, wd);
+	// if (!drawer_data_->begins_round_point_.empty())
+	// {
+	// 	param_rp_->bind(projection, modelview);
+	// 	for (const auto& pp : drawer_data_->begins_round_point_)
+	// 	{
+	// 		// get direct access to the shader to modify parameters while keeping the original param binded
+	// 		ShaderRoundPointColor* shader_rp_ = static_cast<ShaderRoundPointColor*>(param_rp_->get_shader());
+	// 		// shader_rp_->set_size(pp.width);
+	// 		GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
+	// 		shader_rp_->set_uniform_value(0, wd);
 
-			if (pp.aa)
-			{
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
+	// 		if (pp.aa)
+	// 		{
+	// 			glEnable(GL_BLEND);
+	// 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// 		}
 
-			glDrawArrays(pp.mode, pp.begin, pp.nb);
+	// 		glDrawArrays(pp.mode, pp.begin, pp.nb);
 
-			if (pp.aa)
-				glDisable(GL_BLEND);
-		}
+	// 		if (pp.aa)
+	// 			glDisable(GL_BLEND);
+	// 	}
 
-		param_rp_->release();
-	}
+	// 	param_rp_->release();
+	// }
 
 	// bold lines
 	if (!drawer_data_->begins_bold_line_.empty())
@@ -331,9 +331,9 @@ void DisplayListDrawer::Renderer::draw(const GLMat4& projection, const GLMat4& m
 		for (const auto& pp : drawer_data_->begins_bold_line_)
 		{
 			// get direct access to the shader to modify parameters while keeping the original param binded
-			ShaderBoldLineColor* shader_bl_ = static_cast<ShaderBoldLineColor*>(param_bl_->get_shader());
-			GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
-			shader_bl_->set_uniform_value(0, wd);
+			// ShaderBoldLineColor* shader_bl_ = static_cast<ShaderBoldLineColor*>(param_bl_->get_shader());
+			// GLVec2 wd(pp.width / float32(viewport[2]), pp.width / float32(viewport[3]));
+			// shader_bl_->set_uniform_value(0, wd);
 
 			if (pp.aa)
 			{

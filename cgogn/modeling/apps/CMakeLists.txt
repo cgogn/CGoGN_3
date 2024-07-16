@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
 project(cgogn_rendering_examples
     LANGUAGES CXX
 )
@@ -20,6 +18,20 @@ target_link_libraries(modeling
 	Blossom5
 	${CMAKE_DL_LIBS}
 )
+
+if (CGOGN_USE_CGAL)
+	find_package(CGAL REQUIRED)
+	add_executable(power_shape power_shape.cpp)
+	target_link_libraries(power_shape highs::highs
+		CGAL::CGAL
+		cgogn::core
+		cgogn::ui
+		cgogn::io
+		cgogn::rendering
+		cgogn::modeling
+		${CMAKE_DL_LIBS}
+	)
+endif()
 
 add_executable(tubular_mesh tubular_mesh.cpp)
 target_link_libraries(tubular_mesh
@@ -73,6 +85,12 @@ if(APPLE)
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
+	if (CGOGN_USE_CGAL)
+		target_link_libraries(power_shape
+			${CORE_FOUNDATION}
+			${CARBON}
+		)
+	endif()
 	target_link_libraries(tubular_mesh
 		${CORE_FOUNDATION}
 		${CARBON}

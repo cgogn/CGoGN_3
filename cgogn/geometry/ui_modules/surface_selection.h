@@ -28,8 +28,8 @@
 #include <cgogn/ui/module.h>
 #include <cgogn/ui/view.h>
 
-#include <cgogn/core/ui_modules/mesh_provider.h>
 #include <cgogn/core/functions/traversals/volume.h>
+#include <cgogn/core/ui_modules/mesh_provider.h>
 
 #include <cgogn/geometry/algos/length.h>
 #include <cgogn/geometry/algos/picking.h>
@@ -59,9 +59,8 @@ namespace cgogn
 namespace ui
 {
 
-
-using geometry::Vec3;
 using geometry::Scalar;
+using geometry::Vec3;
 
 template <typename MESH>
 class SurfaceSelection : public ViewModule
@@ -914,6 +913,11 @@ protected:
 							p.selected_vertices_set_->clear();
 							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
 						}
+						if (ImGui::Button("Select all##vertices_set"))
+						{
+							p.selected_vertices_set_->select_if([&](Vertex) { return true; });
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_vertices_set_);
+						}
 					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |= ImGui::ColorEdit3("color##vertices", p.param_point_sprite_->color_.data(),
@@ -938,6 +942,11 @@ protected:
 							p.selected_edges_set_->clear();
 							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
 						}
+						if (ImGui::Button("Select all##edges_set"))
+						{
+							p.selected_edges_set_->select_if([&](Edge) { return true; });
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_edges_set_);
+						}
 					}
 					ImGui::TextUnformatted("Drawing parameters");
 					need_update |=
@@ -960,6 +969,11 @@ protected:
 						if (ImGui::Button("Clear##faces_set"))
 						{
 							p.selected_faces_set_->clear();
+							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
+						}
+						if (ImGui::Button("Select all##faces_set"))
+						{
+							p.selected_faces_set_->select_if([&](Face) { return true; });
 							mesh_provider_->emit_cells_set_changed(*selected_mesh_, p.selected_faces_set_);
 						}
 					}

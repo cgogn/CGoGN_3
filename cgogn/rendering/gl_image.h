@@ -4,6 +4,7 @@
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/types.h>
+#include <vector>
 
 namespace cgogn
 {
@@ -44,6 +45,19 @@ public:
 	{
 		return data_;
 	}
+	
+	inline void copy_pixels_data(uint8* ptr)
+	{
+		std::memcpy(data_, ptr, width_ * height_ * channels_);
+	}
+
+	inline void copy_pixels_data(const std::vector<uint8> pix)
+	{
+		auto sz = width_ * height_ * channels_;
+		if (pix.size() >= sz)
+			std::memcpy(data_, pix.data(), sz);
+	}
+
 	inline void set_pixel(int32 x, int32 y, const GLColor& col)
 	{
 		uint8* ptr = data_ + (uint64(channels_) * (y * width_ + x));
