@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::SurfaceTexRender<Mesh> str(app);
+//	cgogn::ui::SurfaceTexRender<Mesh> str(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
 
 	app.init_modules();
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
 	v1->link_module(&sr);
-	v1->link_module(&str);
+//	v1->link_module(&str);
 
 
 	if (filename.length() > 0)
@@ -152,21 +152,24 @@ int main(int argc, char** argv)
 		sr.set_vertex_position(*v1, *m, vertex_position);
 		sr.set_vertex_normal(*v1, *m, vertex_normal);
 
-		str.set_vertex_position(*v1, *m, vertex_position);
-		std::shared_ptr<Attribute<Vec2>> vertex_tc = cgogn::add_attribute<Vec2, Vertex>(*m, "tc");	
+	
 		
-		std::pair<Vec3,Vec3> bb = mp.meshes_bb();
-		Vec3 bbw = bb.second - bb.first;
+		//std::shared_ptr<Attribute<Vec2>> vertex_tc = cgogn::add_attribute<Vec2, Vertex>(*m, "tc");	
+		//
+		//std::pair<Vec3,Vec3> bb = mp.meshes_bb();
+		//Vec3 bbw = bb.second - bb.first;
 
-		cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
-			Vec2 P = cgogn::value<Vec3>(*m, vertex_position, v).topRows<2>();
-			Vec2 TC{(P.x() - bb.first.x())/ bbw.x(), (P.y() - bb.first.y())/ bbw.y()};
-			cgogn::value<Vec2>(*m, vertex_tc, v) = TC;
-			// std::cout<< TC.transpose() << std::endl;
-			return true;
-		});
-		str.set_vertex_texcoord(*v1, *m, vertex_tc);
-		str.chekered_texture();
+		//cgogn::foreach_cell(*m, [&](Vertex v) -> bool {
+		//	Vec2 P = cgogn::value<Vec3>(*m, vertex_position, v).topRows<2>();
+		//	Vec2 TC{(P.x() - bb.first.x())/ bbw.x(), (P.y() - bb.first.y())/ bbw.y()};
+		//	cgogn::value<Vec2>(*m, vertex_tc, v) = TC;
+		//	// std::cout<< TC.transpose() << std::endl;
+		//	return true;
+		//});
+		// 
+		//str.set_vertex_position(*v1, *m, vertex_position);
+		//str.set_vertex_texcoord(*v1, *m, vertex_tc);
+		//str.chekered_texture();
 	}
 
 	return app.launch();
