@@ -1,10 +1,12 @@
 
-if(CGOGN_USE_QT)
-	add_subdirectory(libQGLViewer)
-	set_target_properties(QOGLViewer PROPERTIES FOLDER thirdparty)
-endif(CGOGN_USE_QT)
+add_definitions("-D_CRT_SECURE_NO_WARNINGS")
 
-add_subdirectory(ply)
 #add_subdirectory(OffBinConverter)
 add_subdirectory(libMeshb)
 add_subdirectory(termcolor)
+add_subdirectory(imgui)
+add_subdirectory(synapse)
+add_subdirectory(simpleICP)
+# add_subdirectory(cgns-3.4.2)
+add_subdirectory(Blossom5)
+add_subdirectory(HIGHS)

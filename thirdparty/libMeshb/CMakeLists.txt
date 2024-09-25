@@ -1,16 +1,14 @@
 project(Meshb
 	LANGUAGES C
-	)
+)
 
 set(HEADER_FILES
 	libmeshb.h
-	)
+)
 
 set(SOURCE_FILES
 	libmeshb.c
-	)
-
-
+)
 
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
@@ -28,7 +26,7 @@ install(FILES "libmeshb.h" DESTINATION "include/cgogn/thirdparty")
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
-set_target_properties(Meshb PROPERTIES FOLDER thirdparty)
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER thirdparty)
 
 
 

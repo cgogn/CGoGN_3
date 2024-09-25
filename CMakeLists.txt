@@ -7,18 +7,18 @@ set(CGOGN_VERSION_PATCH 0)
 project(CGoGN
 	VERSION ${CGOGN_VERSION_MAJOR}.${CGOGN_VERSION_MINOR}.${CGOGN_VERSION_PATCH}
 	LANGUAGES CXX C
-	)
+)
 
 foreach(p
-		CMP0048 # version
-		CMP0054 # CMake 3.1
-		CMP0072 # opengl
-		)
+	CMP0048 # version
+	CMP0054 # CMake 3.1
+	CMP0072 # opengl
+	CMP0092 # remove /W3 by default in MSVC
+)
 	if(POLICY ${p})
 		cmake_policy(SET ${p} NEW)
 	endif()
 endforeach()
-
 
 #### Default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -27,6 +27,10 @@ endif()
 
 #### CGoGN PATH
 set(CGOGN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+#### CGoGN DATA PATH
+set(CGOGN_DATA_PATH "${CGOGN_SOURCE_DIR}/data/")
+add_definitions("-DCGOGN_DATA_PATH=${CGOGN_DATA_PATH}")
 
 #### Here are located the FindPackages that we need
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
@@ -53,32 +57,15 @@ if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
 		  ${CMAKE_CURRENT_BINARY_DIR}/stage/${CMAKE_INSTALL_LIBDIR})
 endif()
 
+
 ### External Templates
 option(CGOGN_EXTERNAL_TEMPLATES "Use external templates to reduce compile time" OFF)
-
-### C++ 11/14/17
-set(CGOGN_CPP_STD "11" CACHE STRING "The version of the c++ standard to use.")
-if (NOT MSVC)
-	set_property(CACHE CGOGN_CPP_STD PROPERTY STRINGS "11" "14" "17") # drop down list with cmake-gui
-endif(NOT MSVC)
-
-
-if (CGOGN_CPP_STD STREQUAL "11")
-	set(CMAKE_CXX_STANDARD 11)
-elseif(CGOGN_CPP_STD STREQUAL "14")
-	set(CMAKE_CXX_STANDARD 14)
-else(CGOGN_CPP_STD STREQUAL "11")
-	set(CMAKE_CXX_STANDARD 17)
-endif(CGOGN_CPP_STD STREQUAL "11")
-
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 #### ThirdParty options
 set(CGOGN_THIRDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 option(CGOGN_BUILD_TESTS "Build cgogn unit tests using google test framework." OFF)
-option(CGOGN_BUILD_EXAMPLES "Build some example apps." OFF)
+option(CGOGN_BUILD_EXAMPLES "Build some example apps." ON)
 option(CGOGN_USE_OPENMP "Activate openMP directives." OFF)
 option(CGOGN_USE_SIMD "Enable SIMD instructions (sse,avx...)" ON)
 option(CGOGN_ENABLE_LTO "Enable link-time optimizations (only with gcc)" ON)
@@ -95,7 +82,10 @@ endif(NOT MSVC)
 if (${CGOGN_USE_PARALLEL_GLIBCXX})
 	set(CGOGN_USE_OPENMP "ON")
 endif()
-option(CGOGN_USE_QT "use Qt (5.4 min) for interface & rendering" ON)
+option(CGOGN_GL43_DEBUG_MODE "GL43 DEBUGGING MODE")
+
+option(CGOGN_USE_CGAL "Add CGAL dependency and compile all that use it" OFF)
+
 
 #### Continuous integration options
 option(CGOGN_WITH_GPROF "Builds the project for performance analysis with gprof" OFF)
@@ -160,6 +150,16 @@ include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+if(APPLE)
+	find_library(CORE_FOUNDATION CoreFoundation)
+	find_library(CARBON Carbon)
+endif()
+
+if(MSVC)
+  string(REGEX REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  string(REGEX REPLACE "-W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  add_compile_definitions(_SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING)
+endif()
 
 if(CGOGN_BUILD_TESTS)
 	include(cmake/googletest.cmake)
@@ -178,7 +178,7 @@ add_subdirectory(${CGOGN_THIRDPARTY_DIR})
 cgogn_list_subdirectory(CGOGN_CONFIGURED_MODULES ${CGOGN_SYSTEM_MODULE_PATH})
 
 foreach(subdir ${CGOGN_CONFIGURED_MODULES})
-	option( CGOGN_MODULE_${subdir} "Enable CGOGN component ${subdir}" ON)
+	option(CGOGN_MODULE_${subdir} "Enable CGOGN component ${subdir}" ON)
 	if(CGOGN_MODULE_${subdir})
 		list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cgogn/${subdir}")
 	endif()
@@ -198,14 +198,14 @@ foreach(subdir ${CGOGN_CONFIGURED_MODULES})
 			endif()
 		endif()
 		if(CGOGN_BUILD_EXAMPLES)
-			if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cgogn/${subdir}/examples/)
-				add_subdirectory(cgogn/${subdir}/examples)
+			if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cgogn/${subdir}/apps/)
+				add_subdirectory(cgogn/${subdir}/apps)
 			endif()
 		endif()
 	endif()
 endforeach()
 
-
+#
 # uninstall target
 # see https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake
 if(NOT TARGET uninstall)

@@ -1,56 +1,147 @@
 project(cgogn_rendering
-	LANGUAGES CXX
+	LANGUAGES CXX C
 )
 
-# Hide symbols by default
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
+find_package(cgogn_core REQUIRED)
+find_package(ImGUI REQUIRED)
 
-find_package(Qt5 5.4.0 COMPONENTS Gui REQUIRED)
-find_package(QOGLViewer REQUIRED)
+add_library(${PROJECT_NAME} STATIC "")
+add_library(cgogn::rendering ALIAS ${PROJECT_NAME})
 
-#CMake will handle .qrc files added as target sources
-set(CMAKE_AUTORCC ON)
-
-add_library(${PROJECT_NAME} SHARED "")
-
-add_library(cgogn::rendering ALIAS cgogn_rendering)
-
-target_sources(${PROJECT_NAME}
-	PRIVATE
-	    "${CMAKE_CURRENT_LIST_DIR}/mesh_render.h"
+set(src_list
+		"${CMAKE_CURRENT_LIST_DIR}/drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/drawer.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/topo_drawer.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/volume_drawer.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/volume_drawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/mesh_render_base.h"
 		"${CMAKE_CURRENT_LIST_DIR}/mesh_render.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/wall_paper.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.h"
+		"${CMAKE_CURRENT_LIST_DIR}/frame_manipulator.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/text_drawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/types.h"
+		"${CMAKE_CURRENT_LIST_DIR}/gl_image.h"
+		"${CMAKE_CURRENT_LIST_DIR}/gl_image.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/vbo.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ebo.h"
+		"${CMAKE_CURRENT_LIST_DIR}/vao.h"
+		"${CMAKE_CURRENT_LIST_DIR}/texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/fbo.h"
+		"${CMAKE_CURRENT_LIST_DIR}/fbo.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/vbo_update.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shader_program.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shader_program.cpp"
 
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_simple_color.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_simple_color.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_color_per_vertex.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_color_per_vertex.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_scalar_per_vertex.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_scalar_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/graph_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/point_cloud_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_obj_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/vector_per_vertex_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/topo_render.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_tex_render.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_vertex.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_vertex.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_color_per_vertex.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_color_per_vertex.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_face.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_scalar_per_face.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_color_per_face.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_no_illum_color_per_face.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_vector_per_vertex.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_vector_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_scalar_per_vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_scalar_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_scalar_per_face.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_scalar_per_face.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_face.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_color_per_face.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_flat_texture.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_vertex.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_face.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_color_per_face.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_face.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_phong_scalar_per_face.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_vector_per_vertex.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_vector_per_vertex.cpp"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_bold_line.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_round_point.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_round_point.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_point_sprite.cpp"
+
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_color.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_scalar.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.h"
 		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_explode_volumes_line.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_texture.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_texture.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_text.h"
-		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_text.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_fullscreen_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_fullscreen_texture.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_frame2d.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_frame2d.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/transform_feedback.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_volume_centers.cpp"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.h"
+#		"${CMAKE_CURRENT_LIST_DIR}/shaders/compute_normals.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_function_color_maps.cpp"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/outliner.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/frame_manip_drawer.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_flat_texture.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_normal_texture.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_obj_meshuv.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shaders/shader_mesh_2d_edges.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.h"
+		"${CMAKE_CURRENT_LIST_DIR}/shape_drawer.cpp"
+
+		"${CMAKE_CURRENT_LIST_DIR}/skelshape.h"
+		"${CMAKE_CURRENT_LIST_DIR}/skelshape.cpp"
+
 )
+target_sources(${PROJECT_NAME} PRIVATE ${src_list})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX "_d"
@@ -59,19 +150,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-	$<BUILD_INTERFACE:${CGOGN_THIRDPARTY_QOGLVIEWER_INCLUDE_DIR}>
+	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}/thirdparty>
+	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}/thirdparty/imgui>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/cgogn/thirdparty>
 )
 
+target_link_libraries(${PROJECT_NAME} cgogn::core ImGUI)
+
 # Write out cgogn_rendering_export.h to the current binary directory
-include(GenerateExportHeader)
-generate_export_header(cgogn_rendering)
+generate_export_header(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} cgogn::core cgogn::geometry Qt5::Gui QOGLViewer)
-
-set(PKG_CONFIG_REQUIRES "cgogn_core cgogn_geometry")
+set(PKG_CONFIG_REQUIRES "cgogn_core ImGUI")
 configure_file(${PROJECT_SOURCE_DIR}/cgogn_rendering.pc.in ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
@@ -92,5 +183,4 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cgogn_rendering_export.h
 
 cgogn_create_package("${CMAKE_CURRENT_SOURCE_DIR}")
 
-# VisualStudio nice source organisation
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER cgogn)

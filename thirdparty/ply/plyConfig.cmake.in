@@ -1,5 +1,0 @@
-@PACKAGE_INIT@
-
-if(NOT TARGET ply)
-	include("${CMAKE_CURRENT_LIST_DIR}/plyTargets.cmake")
-endif()

@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(cgogn_core REQUIRED)
+find_dependency(cgogn_geometry REQUIRED)
+
+if(NOT TARGET cgogn::simulation)
+	include("${CMAKE_CURRENT_LIST_DIR}/cgogn_simulationTargets.cmake")
+endif()

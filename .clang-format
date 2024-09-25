@@ -1,0 +1,8 @@
+﻿---
+BasedOnStyle: Microsoft
+AccessModifierOffset: '-4'
+AlwaysBreakTemplateDeclarations: 'Yes'
+PointerAlignment: Left
+UseTab: Always
+
+...
