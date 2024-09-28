@@ -458,7 +458,7 @@ void App::adapt_views_geometry()
 	case 3:
 		views_[0]->set_view_ratio(0, 0, 0.5, 0.5);
 		views_[1]->set_view_ratio(0.5, 0, 0.5, 0.5);
-		views_[2]->set_view_ratio(0, 0, 1, 0.5);
+		views_[2]->set_view_ratio(0, 0.5, 1, 0.5);
 		break;
 	case 4:
 		views_[0]->set_view_ratio(0, 0, 0.5, 0.5);
@@ -471,6 +471,35 @@ void App::adapt_views_geometry()
 	for (const auto& v : views_)
 		v->resize_event(window_width_, window_height_, framebuffer_width_, framebuffer_height_);
 }
+
+void App::set_views_3_columns()
+{
+	if (views_.size() == 3)
+	{
+		views_[0]->set_view_ratio(0, 0, 0.33, 1);
+		views_[1]->set_view_ratio(0.33, 0, 0.33, 1);
+		views_[2]->set_view_ratio(0.66, 0, 0.33, 1);
+	}
+
+	for (const auto& v : views_)
+		v->resize_event(window_width_, window_height_, framebuffer_width_, framebuffer_height_);
+}
+
+
+void App::set_views_4_columns()
+{
+	if (views_.size() == 4)
+	{
+		views_[0]->set_view_ratio(0, 0, 0.25, 1);
+		views_[1]->set_view_ratio(0.25, 0, 0.25, 1);
+		views_[2]->set_view_ratio(0.5, 0, 0.25, 1);
+		views_[3]->set_view_ratio(0.75, 0, 0.25, 1);
+	}
+
+	for (const auto& v : views_)
+		v->resize_event(window_width_, window_height_, framebuffer_width_, framebuffer_height_);
+}
+
 
 void App::init_modules()
 {
@@ -489,6 +518,9 @@ int App::launch()
 		boost::synapse::poll(*tlq_);
 
 		glfwPollEvents();
+		if (glfwWindowShouldClose(window_))
+			break;
+
 		glfwMakeContextCurrent(window_);
 
 		frame_time_ = glfwGetTime();
@@ -674,8 +706,8 @@ int App::launch()
 
 void App::stop()
 {
-	close_event();
 	glfwSetWindowShouldClose(window_, GLFW_TRUE);
+	close_event();
 }
 
 } // namespace ui

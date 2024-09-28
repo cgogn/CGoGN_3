@@ -82,6 +82,7 @@ public:
 		return linked_views_;
 	}
 
+
 protected:
 	virtual void mouse_press_event(View* view, int32 button, int32 x, int32 y);
 	virtual void mouse_release_event(View* view, int32 button, int32 x, int32 y);
@@ -94,6 +95,7 @@ protected:
 	virtual void draw(View* view);
 
 	std::vector<View*> linked_views_;
+
 };
 
 /*****************************************************************************/

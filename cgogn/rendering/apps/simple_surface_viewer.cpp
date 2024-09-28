@@ -94,6 +94,20 @@ int main(int argc, char** argv)
 	v1->link_module(&sr);
 //	v1->link_module(&str);
 
+	// test for camera sharing
+	cgogn::ui::View* v2 = app.add_view();
+	v2->link_module(&mp);
+	v2->link_module(&sr);
+
+	v2->share_camera(v1);
+
+	cgogn::ui::View* v3 = app.add_view();
+	v3->link_module(&mp);
+	v3->link_module(&sr);
+
+	v3->share_camera(v1);
+
+	app.set_views_3_columns();
 
 	if (filename.length() > 0)
 	{
