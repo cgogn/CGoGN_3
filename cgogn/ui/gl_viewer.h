@@ -30,6 +30,8 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 #include <cgogn/ui/inputs.h>
 
+#include <memory>
+
 #include <fstream>
 
 namespace cgogn
