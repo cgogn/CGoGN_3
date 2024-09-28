@@ -30,6 +30,8 @@
 #include <cgogn/ui/cgogn_ui_export.h>
 #include <cgogn/ui/inputs.h>
 
+#include <memory>
+
 #include <fstream>
 
 namespace cgogn
@@ -45,18 +47,30 @@ public:
 	virtual ~GLViewer();
 	CGOGN_NOT_COPYABLE_NOR_MOVABLE(GLViewer);
 
+	inline void share_camera(GLViewer* v)
+	{
+		camera_ = v->camera_;
+		current_frame_ = v->current_frame_;
+		shared_cam_with_.push_back(v);
+		v->shared_cam_with_.push_back(this);
+	}
+
 	inline bool need_redraw() const
 	{
 		return need_redraw_;
 	}
+
 	inline void request_update()
 	{
 		need_redraw_ = true;
+		for (auto* v : shared_cam_with_)
+			if (!v->need_redraw())
+				v->request_update();
 	}
 
 	inline const Camera& camera() const
 	{
-		return camera_;
+		return *camera_;
 	}
 	inline void save_camera()
 	{
@@ -64,61 +78,62 @@ public:
 		out_file.open("saved_camera");
 		if (out_file.is_open())
 		{
-			out_file << camera_;
+			out_file << *camera_;
 			out_file.close();
 		}
-		camera_saved_ = camera_;
+		camera_saved_ = *camera_;
 	}
 	inline void restore_camera()
 	{
-		camera_ = camera_saved_;
+		*camera_ = camera_saved_;
 		std::ifstream in_file("saved_camera", std::ios::in);
 		if (in_file.is_open())
 		{
-			in_file >> camera_;
+			in_file >> *camera_;
 			in_file.close();
 		}
-		need_redraw_ = true;
+		request_update();
 	}
 
 	inline const rendering::GLMat4& projection_matrix() const
 	{
-		return camera_.projection_matrix();
+		return camera_->projection_matrix();
 	}
 	inline const rendering::GLMat4d& projection_matrix_d() const
 	{
-		return camera_.projection_matrix_d();
+		return camera_->projection_matrix_d();
 	}
 	inline const rendering::GLMat4& modelview_matrix() const
 	{
-		return camera_.modelview_matrix();
+		return camera_->modelview_matrix();
 	}
 	inline const rendering::GLMat4d& modelview_matrix_d() const
 	{
-		return camera_.modelview_matrix_d();
+		return camera_->modelview_matrix_d();
 	}
 
+	
 	void set_manipulated_frame(MovingFrame* frame);
 
 	inline void set_scene_radius(float64 radius)
 	{
-		camera_.set_scene_radius(radius);
+		camera_->set_scene_radius(radius);
 	}
 	inline void set_scene_center(const rendering::GLVec3d& center)
 	{
 		scene_center_ = center;
-		if (!camera_.pivot_point_initialized())
-			camera_.set_pivot_point(scene_center_);
+		if (!camera_->pivot_point_initialized())
+			camera_->set_pivot_point(scene_center_);
 	}
 	inline void set_scene_center(const rendering::GLVec3& center)
 	{
 		scene_center_ = center.cast<float64>();
-		if (!camera_.pivot_point_initialized())
-			camera_.set_pivot_point(scene_center_);
+		if (!camera_->pivot_point_initialized())
+			camera_->set_pivot_point(scene_center_);
 	}
 	inline void show_entire_scene()
 	{
-		camera_.show_entire_scene();
+		camera_->show_entire_scene();
 		request_update();
 	}
 
@@ -201,11 +216,13 @@ protected:
 
 	inline bool obj_mode() const
 	{
-		return current_frame_ != &camera_;
+		return current_frame_ != camera_.get();
 	}
 	void spin();
 
-	Camera camera_;
+	std::shared_ptr<Camera> camera_;
+	std::vector<GLViewer*> shared_cam_with_;
+
 	Camera camera_saved_;
 	MovingFrame* current_frame_;
 	rendering::GLVec3d scene_center_;

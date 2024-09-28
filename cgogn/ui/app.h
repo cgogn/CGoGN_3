@@ -68,6 +68,11 @@ public:
 	static float64 frame_time_;
 
 	View* add_view();
+
+	void set_views_3_columns();
+
+	void set_views_4_columns();
+
 	inline View* current_view() const
 	{
 		return current_view_;
