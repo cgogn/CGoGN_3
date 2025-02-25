@@ -20,6 +20,17 @@ target_link_libraries(shallow_water
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(shape_matching shape_matching.cpp)
+target_link_libraries(shape_matching
+        cgogn::core
+        cgogn::ui
+        cgogn::io
+        cgogn::rendering
+        cgogn::simulation
+        ${CMAKE_DL_LIBS}
+)
+
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)

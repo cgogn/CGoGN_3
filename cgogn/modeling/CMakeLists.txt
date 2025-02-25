@@ -47,6 +47,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/tubular_mesh_module.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_deformation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_mr_modeling.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/action_unit_change.h"
 )
 target_sources(${PROJECT_NAME} PRIVATE ${src_list})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})
@@ -56,6 +57,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	EXPORT_NAME modeling
 	LINKER_LANGUAGE CXX
 )
+
+target_compile_options(${PROJECT_NAME} PUBLIC -g)
+target_link_options(${PROJECT_NAME} PUBLIC -g)
+# target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
+# target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
