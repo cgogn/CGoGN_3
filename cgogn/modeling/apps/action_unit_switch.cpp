@@ -33,18 +33,19 @@
 
 #include <cgogn/ui/app.h>
 #include <cgogn/ui/view.h>
+#include <cgogn/io/utils.h>
 
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <imgui/imgui_internal.h>
 
 #include <cgogn/core/ui_modules/mesh_provider.h>
-#include <cgogn/geometry/ui_modules/surface_differential_properties.h>
-#include <cgogn/modeling/ui_modules/surface_modeling.h>
-#include <cgogn/rendering/ui_modules/surface_render.h>
-#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 #include <cgogn/modeling/ui_modules/action_unit_change.h>
-// #include <cgogn/geometry/ui_modules/surface_selection.h>
+#include <cgogn/geometry/ui_modules/surface_differential_properties.h>
+#include <cgogn/rendering/ui_modules/surface_obj_render.h>
+#include <cgogn/rendering/ui_modules/surface_render.h>
+#include <cgogn/modeling/ui_modules/surface_modeling.h>
+#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 
 #include <cgogn/core/types/mesh_views/cell_filter.h>
 #include <cgogn/modeling/algos/subdivision.h>
@@ -69,11 +70,14 @@ int main(int argc, char** argv)
 	using Face = typename cgogn::mesh_traits<Mesh>::Face;
 
 	using Vec3 = cgogn::geometry::Vec3;
+	using Vec2 = cgogn::geometry::Vec2;
 	using Scalar = cgogn::geometry::Scalar;
 
 	std::string dirname;
-	if (argc < 2)
-		dirname = std::string(DEFAULT_MESH_PATH) + std::string("off/socket.off");
+	if (argc < 2){
+		std::cout << "Folder with files not found" << std::endl;
+		return 1;
+	}
 	else
 		dirname = std::string(argv[1]);
 
@@ -84,53 +88,70 @@ int main(int argc, char** argv)
 	app.set_window_size(1000, 800);
 
 	cgogn::ui::MeshProvider<Mesh> mp(app);
-	cgogn::ui::SurfaceRender<Mesh> sr(app);
-	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
-	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	cgogn::ui::SurfaceModeling<Mesh> sm(app);
 	cgogn::ui::ActionUnitChange<Mesh> auc(app);
-	// cgogn::ui::SurfaceSelection<Mesh> ss(app);
+	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
+	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	cgogn::ui::SurfaceModeling<Mesh> sm(app);
+	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
+	cgogn::ui::SurfaceObjRender<Mesh> sor(app);
 
+	auc.set_directory(dirname);
 
-	auc.get_directory(dirname);
+	app.init_modules();
+	// load texture after init_modules
+	if (argc <= 2)
+	{
+		cgogn::rendering::GLImage img(16, 16, 3);
+		std::vector<std::array<cgogn::uint8, 3>> pix;
+		pix.reserve(16*16);
+		for (int i = 0; i < 16; ++i)
+			for (int j = 0; j < 16; ++j)
+				if ((i + j) % 2 == 0)
+					pix.push_back({0u, 0u, 0u});
+				else
+					pix.push_back({255u, 255u, 255u});
+		img.copy_pixels_data(pix.data()->data());
+		sor.load_texture(img);
+	}
+	else{
+		sor.load_texture(std::string(argv[2]));
+	}
+	cgogn::ui::View* v1 = app.current_view();
+	v1->link_module(&mp);
+	//v1->link_module(&sor);
+	v1->link_module(&sr);
+	v1->link_module(&auc);
+	v1->link_module(&vpvr);
 
-	Mesh* m = mp.load_surface_from_file(dirname + std::string("AU00.obj"));
-	if (!m)
+	auto [m_pos,m_tc,m_no] = mp.load_surface_from_OBJ_file(dirname + std::string("AU00.obj"));
+	if (!m_pos)
 	{
 		std::cout << "Folder with files not found" << std::endl;
 		return 1;
 	}
 
-	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m, "position");
-	std::shared_ptr<Attribute<Vec3>> vertex_position_interpolation = cgogn::add_attribute<Vec3, Vertex>(*m, "position_interpolation");
-	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m, "normal");
-	std::shared_ptr<Attribute<Vec3>> vertex_color = cgogn::add_attribute<Vec3, Vertex>(*m, "color");
-	
-	auc.get_mesh(*m,vertex_position);
+	std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*m_pos, "position");
+	std::shared_ptr<Attribute<Vec3>> vertex_normal = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "normal");
+	std::shared_ptr<Attribute<Vec3>> vertex_position_interpolation = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "position_interpolation");
+	std::shared_ptr<Attribute<Vec3>> vertex_color = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "color");
+	std::shared_ptr<Attribute<Vec3>> vertex_distance = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "distance");
+
+
+	auc.set_mesh(*m_pos,vertex_position);
+	auc.set_to_blue(*m_pos);
+	auc.set_attribute(*m_pos,vertex_position.get(),"position_interpolation");
+	auc.set_attribute(*m_pos,vertex_position.get(),"distance");
+
+	sdp.compute_normal(*m_pos, vertex_position.get(), vertex_normal.get());
+
+	mp.set_mesh_bb_vertex_position(*m_pos, vertex_position);
+
+	auc.set_view(*v1);
+	auc.setup_mesh_attributes();
+
+	sr.set_vertex_position(*v1, *m_pos, vertex_position);
+	sr.set_vertex_normal(*v1, *m_pos, vertex_normal);
 
 	
-
-	ImGui::GetIO().DeltaTime = 1./30.;
-
-	cgogn::ui::View* v1 = app.current_view();
-
-	app.init_modules();
-	v1->link_module(&mp);
-	v1->link_module(&sr);
-	v1->link_module(&vpvr);
-	// v1->link_module(&ss);
-
-	mp.set_mesh_bb_vertex_position(*m, vertex_position);
-
-	auc.get_view(*v1);
-
-	sdp.compute_normal(*m, vertex_position.get(), vertex_normal.get());
-
-	// mp.emit_connectivity_changed(m);
-	// mp.emit_attribute_changed(m, vertex_position.get());
-
-	sr.set_vertex_position(*v1, *m, vertex_position);
-	sr.set_vertex_normal(*v1, *m, vertex_normal);
-
 	return app.launch();
 }

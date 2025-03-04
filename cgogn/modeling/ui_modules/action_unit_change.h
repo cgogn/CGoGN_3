@@ -53,27 +53,12 @@ namespace ui
 using geometry::Scalar;
 using geometry::Vec3;
 
-const Vec3 BLACK = Vec3(0, 0, 0);
-const Vec3 WHITE = Vec3(255, 255, 255);
-const Vec3 GRAY = Vec3(128, 128, 128);
-const Vec3 DARK_RED = Vec3(139, 0, 0);
-const Vec3 LIGHT_GRAY = Vec3(192, 192, 192);
-const Vec3 DARK_GRAY = Vec3(64, 64, 64);
-const Vec3 RED = Vec3(255, 0, 0);
-const Vec3 LIGHT_RED = Vec3(255, 99, 71);
-const Vec3 ORANGE = Vec3(255, 165, 0);
-const Vec3 LIGHT_ORANGE = Vec3(255, 140, 0);
-const Vec3 DARK_ORANGE = Vec3(255, 69, 0);
+
 const Vec3 GREEN = Vec3(0, 128, 0);
 const Vec3 BLUE = Vec3(0, 0, 255);
-const Vec3 YELLOW = Vec3(255, 255, 0);
-const Vec3 LIME = Vec3(0, 255 , 0 );
-const Vec3 OLIVE = Vec3(128,128,0);
-
-const std::vector<Vec3> colors = {BLACK,WHITE,GRAY,DARK_RED,LIGHT_GRAY,DARK_GRAY,RED,LIGHT_RED,ORANGE,LIGHT_ORANGE,DARK_ORANGE,YELLOW,LIME,OLIVE};
 
 template <typename MESH>
-class ActionUnitChange: public Module
+class ActionUnitChange: public ViewModule
 {
 	static_assert(mesh_traits<MESH>::dimension >= 2, "ActionUnitChange can only be used with meshes of dimension >= 2");
 
@@ -83,11 +68,12 @@ class ActionUnitChange: public Module
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
 	using Face = typename mesh_traits<MESH>::Face;
+	
 
 public:
 	ActionUnitChange(const App& app)
-		: Module(app, "ActionUnitChange (" + std::string{mesh_traits<MESH>::name} + ")"), selected_mesh_(nullptr),
-		  selected_vertex_position_(nullptr)
+		: ViewModule(app, "ActionUnitChange (" + std::string{mesh_traits<MESH>::name} + ")"),
+		  selected_view_(app.current_view()), selected_mesh_(nullptr) , selected_vertex_position_(nullptr)
 	{
 	}
 	~ActionUnitChange()
@@ -102,21 +88,20 @@ public:
 		return str.size() >= suffix.size() && str.compare(str.size()-suffix.size(), suffix.size(), suffix) == 0;
 	}
 
-	void get_directory(std::string dirname){
+	void set_directory(std::string dirname){
 		directory_ = dirname;
 	}
 
-	void get_mesh(MESH& m , std::shared_ptr<Attribute<Vec3>> vertex_position){
+	void set_mesh(MESH& m , std::shared_ptr<Attribute<Vec3>> vertex_position){
 		selected_mesh_ = &m;
 		selected_vertex_position_ = vertex_position;
 	}
 
-	void get_view(View& v){
+	void set_view(View& v){
 		selected_view_ = &v;
 	}
 
-
-	void get_all(std::string root, std::string ext , std::vector<std::string>& paths)
+	void set_all(std::string root, std::string ext , std::vector<std::string>& paths)
 	{
 		root = root.substr(2, root.size() - 3);
 		for (auto &p : fs::recursive_directory_iterator(root))
@@ -138,6 +123,10 @@ public:
 		});
 	}
 
+	std::vector<std::string> get_path(){
+		return path_aus_;
+	}
+
 	void change_to_selected_au(MESH& m , Attribute<Vec3>* au_position){
 		
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
@@ -149,21 +138,74 @@ public:
 		mesh_provider_->emit_attribute_changed(m,vertex_pos_value);
 	}
 
-	void setup_mesh_attributes(MESH& m, MESH& blend_mesh, std::vector<std::shared_ptr<Attribute<Vec3>>>& pos_au , std::string attribute_name){
+	void setup_mesh_attributes(){
 
-		std::shared_ptr<Attribute<Vec3>> new_vertex_position;
-		std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3 , Vertex>(m , attribute_name.c_str());
-		pos_au.push_back(new_attribute);
-		new_vertex_position = cgogn::get_attribute<Vec3, Vertex>(blend_mesh, "position");
+		for (auto path : path_aus_)
+		{
+			std::cout << path.substr(path.size() - 8 , path.size() - (path.size() - 8) - 4) << std::endl;
+			std::ifstream fp(path.c_str(), std::ios::in);
+			if (!fp.good())
+			{
+				std::cerr << "Error opening file " << path.c_str() << std::endl;
+				return;
+			}
+			std::shared_ptr<Attribute<Vec3>> au_pos = cgogn::add_attribute<Vec3, Vertex>(*selected_mesh_, path.substr(path.size() - 8 , path.size() - (path.size() - 8) - 4));
+			pos_aus_.push_back(au_pos);
+			fp.seekg(0, std::ios::end);
+			uint64 sz = fp.tellg();
+			fp.seekg(0, std::ios::beg);
+			std::vector<char> buffer(sz + 1);
+			fp.read(buffer.data(), sz);
+			buffer[sz] = 0;
+			std::string sbuffer(buffer.data());
+			std::istringstream ss(sbuffer);
 
-		parallel_foreach_cell(blend_mesh, [&](Vertex v) -> bool {
-			value<Vec3>(m, new_attribute, v) = value<Vec3>(blend_mesh, new_vertex_position , v);
-			return true;
-		});
+			std::string tag;
+			std::string line;
+			std::vector<Vec3> vec_pos;
+			// read vertices position
+			do
+			{
+				ss >> tag;
+				if (tag == std::string("v"))
+				{
+					float64 x = cgogn::io::read_double(ss, line);
+					float64 y = cgogn::io::read_double(ss, line);
+					float64 z = cgogn::io::read_double(ss, line);
+					Vec3 temp = Vec3(x,y,z);
+					vec_pos.push_back(temp);
+				}
+			}while (!ss.eof());
+
+
+			int incr = 0;
+			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "position");
+			Vec3 point;
+			cgogn::foreach_cell(*selected_mesh_, [&](Vertex v) -> bool {
+				point = value<Vec3>(*selected_mesh_,vertex_position,v);
+				std::cout << "Point numéro : " << incr << std::endl;
+				std::cout << "Position des points_au : x = " << vec_pos[incr][0] << " y =  " << vec_pos[incr][1] << " z =  " << vec_pos[incr][2]  << std::endl;
+				std::cout << "Position des points_repos : x = " << point[0] << " y =  " << point[1] << " z =  " << point[2]  << std::endl;
+				cgogn::value<Vec3>(*selected_mesh_,au_pos,v) = vec_pos[incr];
+				incr++;
+				return true;
+			});
+
+			geometry::rescale(*au_pos,1);
+			Vec3 point_norm;
+			cgogn::foreach_cell(*selected_mesh_, [&](Vertex v) -> bool {
+				point = value<Vec3>(*selected_mesh_,vertex_position,v);
+				point_norm = value<Vec3>(*selected_mesh_,au_pos,v);
+				std::cout << "Point numéro : " << incr << std::endl;
+				std::cout << "Position des points_au_normalisé : x = " << point_norm[0] << " y =  " << point_norm[1] << " z =  " << point_norm[2]  << std::endl;
+				std::cout << "Position des points_repos : x = " << point[0] << " y =  " << point[1] << " z =  " << point[2]  << std::endl;
+				return true;
+			});
+		}
 	}
 
-	void csv_parser(std::string& filename){
-		rapidcsv::Document doc(filename,rapidcsv::LabelParams(0,-1),rapidcsv::SeparatorParams(';',true));
+	void csv_parser(std::string& filename,char separator){
+		rapidcsv::Document doc(filename,rapidcsv::LabelParams(0,-1),rapidcsv::SeparatorParams(separator,true));
 		std::ofstream outputFile("test.txt");  // Open/create a file named "test.txt" for writing
 		std::vector<std::string> csv_columns_name = doc.GetColumnNames();
 		std::vector<float> tempData;
@@ -221,58 +263,36 @@ public:
 		});
 	}
 
-	void highlight_difference(MESH& m , Attribute<Vec3>* au_position , Vec3 color){
-		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
-		Attribute<Vec3>* vertex_pos_value = vertex_position.get();
+	void highlight_difference(MESH& m , Attribute<Vec3>* au_position){
 		std::shared_ptr<Attribute<Vec3>> color_change = cgogn::get_attribute<Vec3 , Vertex>(m , "color");
 		std::shared_ptr<Attribute<Vec3>> pos_au_repos = cgogn::get_attribute<Vec3 , Vertex>(m , "AU00");
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			
-			if(value<Vec3>(m,vertex_pos_value,v) != value<Vec3>(m,pos_au_repos,v)){
-				if(value<Vec3>(m,vertex_pos_value,v) != value<Vec3>(m,au_position,v) && (value<Vec3>(m,vertex_pos_value,v) != value<Vec3>(m,pos_au_repos,v)))
-					value<Vec3>(m,color_change,v) = GREEN;
-				else
-					value<Vec3>(m,color_change,v) = GREEN;
+			if(value<Vec3>(m,au_position,v) != value<Vec3>(m,pos_au_repos,v)){
+				value<Vec3>(m,color_change,v) = GREEN;
 			}
-			else if(value<Vec3>(m,vertex_pos_value,v) != value<Vec3>(m,au_position,v))
-				value<Vec3>(m,color_change,v) = color;
-
-			// if ((value<Vec3>(m,color_change,v) == GREEN) && (value<Vec3>(m,vertex_pos_value,v) != value<Vec3>(m,au_position,v)))
-			// {
-			// 	value<Vec3>(m,color_change,v) = RED;
-			// }
-			
+			else
+				value<Vec3>(m,color_change,v) = BLUE;
 			return true;
 		});
 		mesh_provider_->emit_attribute_changed(m,color_change.get());
 	}
 
-	void blend(MESH& m , std::vector<std::shared_ptr<Attribute<Vec3>>>& attribute_to_blend , std::vector<float> weights){
-		
+	void blending(MESH& m , Attribute<Vec3>* attribute_to_blend , float weight){
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
+		std::shared_ptr<Attribute<Vec3>> color = cgogn::get_attribute<Vec3, Vertex>(m, "color");
 		std::shared_ptr<Attribute<Vec3>> repos_position = cgogn::get_attribute<Vec3, Vertex>(m, "AU00");
 		Attribute<Vec3>* new_vertex_pos_value = vertex_position.get();
-		std::vector<Attribute<Vec3>*> val_attribute_to_blend;
-		std::ostringstream new_attribute_name;
 		Vec3 diff_distance_repos = Vec3(0,0,0);
-		for (int i = 0; i < attribute_to_blend.size(); i++)
-		{
-			//highlight_difference(m,attribute_to_blend[i].get(),colors[i]);
-			//new_attribute_name << attribute_to_blend[i]->name().c_str() << 'w' << weights[i] << '+' ;
-			val_attribute_to_blend.push_back(attribute_to_blend[i].get());
-		}
-
-		//std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3 , Vertex>(m , new_attribute_name.str().substr(0,new_attribute_name.str().size()-1).c_str());
 
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			value<Vec3>(m,vertex_position,v) = value<Vec3>(m,repos_position,v);
-			for (int i = 0; i < attribute_to_blend.size(); i++)
+			if (value<Vec3>(m,color,v) == GREEN)
 			{
-				diff_distance_repos = value<Vec3>(m,val_attribute_to_blend[i],v) - value<Vec3>(m,repos_position,v);
-				diff_distance_repos = diff_distance_repos * weights[i];
+				value<Vec3>(m,vertex_position,v) = value<Vec3>(m,repos_position,v);
+				diff_distance_repos = value<Vec3>(m,attribute_to_blend,v) - value<Vec3>(m,repos_position,v);
+				diff_distance_repos = diff_distance_repos * weight;
 				value<Vec3>(m,vertex_position,v) += diff_distance_repos;
 			}
-			//value<Vec3>(m,new_attribute,v) = value<Vec3>(m,vertex_position,v);
 			return true;
 		});
 		mesh_provider_->emit_attribute_changed(m,new_vertex_pos_value);
@@ -302,29 +322,13 @@ public:
 		mesh_provider_->emit_attribute_changed(m,interpolation_value);
 	}
 
-
-
 protected:
 	void init() override
 	{
 		mesh_provider_ = static_cast<ui::MeshProvider<MESH>*>(
 			app_.module("MeshProvider (" + std::string{mesh_traits<MESH>::name} + ")"));
-		get_all(directory_,".obj",path_aus_);
-		get_all(directory_,".csv",path_csv_);
-		MESH* new_m = nullptr;
-		for (int i = 0; i < path_aus_.size(); i++)
-		{
-			new_m = mesh_provider_->load_surface_from_file(path_aus_[i]);
-			std::cout << path_aus_[i].substr(path_aus_[i].size() - 8 , path_aus_[i].size() - (path_aus_[i].size() - 8) - 4) << std::endl;
-			setup_mesh_attributes(*selected_mesh_,*new_m,pos_aus_,path_aus_[i].substr(path_aus_[i].size() - 8 , path_aus_[i].size() - (path_aus_[i].size() - 8) - 4));
-			mesh_provider_->remove_mesh(*new_m);
-		}
-		set_to_blue(*selected_mesh_);
-		cgogn::add_attribute<Vec3, Vertex>(*selected_mesh_, "distance");
-		set_attribute(*selected_mesh_,cgogn::get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "position").get(),"position_interpolation");
-		set_attribute(*selected_mesh_,cgogn::get_or_add_attribute<Vec3, Vertex>(*selected_mesh_, "position").get(),"distance");
-
-		ImGui::GetIO().DeltaTime = 1./30.;
+		set_all(directory_,".obj",path_aus_);
+		set_all(directory_,".csv",path_csv_);
 	}
 
 	void left_panel() override
@@ -338,6 +342,7 @@ protected:
 
 		if (selected_mesh_)
 		{
+			static float weight = 0.;
 			imgui_combo_attribute<Vertex, Vec3>(
 				*selected_mesh_, selected_vertex_position_, "Position",
 				[&](const std::shared_ptr<Attribute<Vec3>>& attribute) { selected_vertex_position_ = attribute; });
@@ -361,8 +366,11 @@ protected:
 						bool is_selected = (current_item_mesh == pos_aus_[n]->name().c_str()); // You can store your selection however you want, outside or inside your objects
 						if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected)){
 							current_item_mesh = pos_aus_[n]->name().c_str();
-							attribute_to_blend_.push_back(pos_aus_[n]);
-							weights.push_back(1.);
+							if (!(std::find(std::begin(attribute_to_blend_),std::end(attribute_to_blend_),pos_aus_[n]) != std::end(attribute_to_blend_)))
+							{
+								attribute_to_blend_.push_back(pos_aus_[n]);
+								weights.push_back(1.);
+							}
 						}
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
@@ -374,35 +382,73 @@ protected:
 				{
 					for (int i = 0; i < attribute_to_blend_.size(); i++)
 					{
-						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weights[i], 0.0, 5.0);
+						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weight, 0.0, 5.0);
 					}
 				}
-				
+				static bool start = false;
 				if (ImGui::Button("Blend"))
 				{
-					blend(*selected_mesh_,attribute_to_blend_,weights);
-					attribute_to_blend_.clear();
-					weights.clear();
-				}
-
-				ImGui::Separator();
-
-				static const char* current_item_aus = NULL;
-				if (ImGui::BeginCombo("AUs Difference", current_item_aus)) // The second parameter is the label previewed before opening the combo.
-				{
-					
-					for (int n = 0; n < pos_aus_.size() ; n++)
+					//std::ostringstream new_attribute_name;
+					for (int i = 0; i < attribute_to_blend_.size(); i++)
 					{
-						bool is_selected = (current_item_aus == pos_aus_[n]->name().c_str()); // You can store your selection however you want, outside or inside your objects
-						if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected)){
-							current_item_aus = pos_aus_[n]->name().c_str();
-							highlight_difference(*selected_mesh_,pos_aus_[n].get(),RED);
-						}
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+						//new_attribute_name << attribute_to_blend[i]->name().c_str() << 'w' << weights[i] << '+';
+						//highlight_difference(*selected_mesh_,attribute_to_blend_[i].get());
+						//blending(*selected_mesh_,attribute_to_blend_[i].get(),weights[i]);
 					}
-					ImGui::EndCombo();
+					//std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3 , Vertex>(m , new_attribute_name.str().substr(0,new_attribute_name.str().size()-1).c_str());
+					
+					highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
+					start = true;
+					// attribute_to_blend_.clear();
+					// weights.clear();
 				}
+
+				if (ImGui::Button("Clear"))
+				{
+					std::shared_ptr<Attribute<Vec3>> repos_position = cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "AU00");
+					blending(*selected_mesh_,repos_position.get(),weight);
+					start = false;
+					weight = 0;
+					attribute_to_blend_.clear();
+				}
+
+				if (ImGui::Button("Stop"))
+				{
+					start = false;
+				}
+
+				if (start)
+				{
+					if (weight < 5.)
+					{
+						blending(*selected_mesh_,attribute_to_blend_[0].get(),weight);
+						weight += 0.003;
+					}
+					else
+						start = false;
+				}
+				
+				
+				
+
+				// ImGui::Separator();
+
+				// static const char* current_item_aus = NULL;
+				// if (ImGui::BeginCombo("AUs Difference", current_item_aus)) // The second parameter is the label previewed before opening the combo.
+				// {
+					
+				// 	for (int n = 0; n < pos_aus_.size() ; n++)
+				// 	{
+				// 		bool is_selected = (current_item_aus == pos_aus_[n]->name().c_str()); // You can store your selection however you want, outside or inside your objects
+				// 		if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected)){
+				// 			current_item_aus = pos_aus_[n]->name().c_str();
+				// 			highlight_difference(*selected_mesh_,pos_aus_[n].get(),RED);
+				// 		}
+				// 		if (is_selected)
+				// 			ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+				// 	}
+				// 	ImGui::EndCombo();
+				// }
 
 				static const char* current_item_csv = NULL;
 				if (ImGui::BeginCombo("Load CSV", current_item_csv)) // The second parameter is the label previewed before opening the combo.
@@ -414,15 +460,16 @@ protected:
 							current_item_csv = path_csv_[n].c_str();
 							csv_.clear();
 							timestamp_csv_.clear();
-							csv_parser(path_csv_[n]);
+							csv_parser(path_csv_[n],';');
 						}
 						if (is_selected)
 							ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
 					}
 					ImGui::EndCombo();
 				}
-
-
+				
+				static int incr = 0.;
+				static float poids_frame = 1.;
 				if (current_item_csv != NULL)
 				{
 					if (ImGui::Button("Apply CSV"))
@@ -435,20 +482,21 @@ protected:
 							{
 								timestamp_csv_ = it.second;
 							}
-							
 						}
 						for (int i = 0; i < timestamp_csv_.size(); i++)
 						{
 							std::cout << timestamp_csv_[i] << std::endl;
 						}
-						
+											
 						time_start = ui::App::frame_time_;
+						incr = 0.;
+						poids_frame = 1.;
 						
 					}
 				}
 				
-				static int incr = 0;
-				static float poids_frame = 1.;
+				
+				
 				if (incr < count2)
 				{
 					std::vector<int> aus_confirm;
@@ -459,7 +507,6 @@ protected:
 					for (auto &it : csv_){
 						if (ends_with(it.first , "_r"))
 						{	
-							
 							attributes_csv_.push_back(cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, it.first.substr(0,it.first.size()-2)));
 							if (incr+1 < count2)
 							{
@@ -470,6 +517,12 @@ protected:
 								weights_frame.push_back(it.second[incr-1]);
 								weights_next_frame.push_back(it.second[incr]);
 							}
+							if (it.second[incr] > 0.01)
+							{
+								std::cout << it.first << " poids : " << it.second[incr] << std::endl;
+							}
+							
+							
 						}
 						if (ends_with(it.first , "_c"))
 						{
@@ -495,8 +548,9 @@ protected:
 							weights_next_frame[i] = 0.;
 						}
 						weights.push_back((weights_frame[i]*(1-poids_frame)) + (weights_next_frame[i]*poids_frame));
-					}
-					blend(*selected_mesh_,attributes_csv_,weights);			
+						highlight_difference(*selected_mesh_,attributes_csv_[i].get());
+						blending(*selected_mesh_,attributes_csv_[i].get(),weights[i]);
+					}	
 					timer = ui::App::frame_time_ - time_start;
 
 					while((timer > timestamp_csv_[incr]) && (incr < count2))
@@ -573,8 +627,6 @@ protected:
 					interpolation(*selected_mesh_,1./nb_frames);
 					count--;
 				}
-
-				//selected_view_->save_screenshot_name();
 				
 			}
 		}
@@ -589,7 +641,6 @@ private:
 	std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_csv_;
 	// std::shared_ptr<Attribute<Vec3>> selected_vertex_normal_;
 	MeshProvider<MESH>* mesh_provider_;
-	SurfaceRender<MESH>* surface_renderer_;
 	std::vector<std::string> path_aus_;
 	std::vector<std::string> path_csv_;
 	std::vector<float> weights;
