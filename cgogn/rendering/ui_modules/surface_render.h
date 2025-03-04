@@ -538,21 +538,17 @@ public:
 		Parameters& p = parameters_[&v][&m];
 		if (p.vertex_point_color_ == vertex_point_color)
 			return;
-		std::cout << "ICI7" << std::endl;
 		p.vertex_point_color_ = vertex_point_color;
 		if (p.vertex_point_color_)
 		{
 			MeshData<MESH>& md = mesh_provider_->mesh_data(m);
 			p.vertex_point_color_vbo_ = md.update_vbo(p.vertex_point_color_.get(), true);
-			std::cout << "ICI8" << std::endl;
 		}
 		else
 			p.vertex_point_color_vbo_ = nullptr;
-		std::cout << "ICI9" << std::endl;
 		p.param_point_sprite_color_->set_vbos({p.vertex_position_vbo_, p.vertex_point_color_vbo_});
 		p.param_point_sprite_color_size_->set_vbos(
 			{p.vertex_position_vbo_, p.vertex_point_color_vbo_, p.vertex_radius_vbo_});
-		std::cout << "ICI10" << std::endl;
 		v.request_update();
 	}
 
