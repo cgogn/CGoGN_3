@@ -60,8 +60,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_compile_options(${PROJECT_NAME} PUBLIC -g)
 target_link_options(${PROJECT_NAME} PUBLIC -g)
-# target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
-# target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
+#target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
+#target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
