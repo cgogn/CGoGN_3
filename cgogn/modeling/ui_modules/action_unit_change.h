@@ -38,10 +38,6 @@
 #include <cstring> 
 #include <filesystem>
 
-
-
-
-
 namespace fs = std::filesystem;
 
 namespace cgogn
@@ -88,22 +84,25 @@ public:
 		return str.size() >= suffix.size() && str.compare(str.size()-suffix.size(), suffix.size(), suffix) == 0;
 	}
 
+	//call this function after you initialized the module
 	void set_directory(std::string dirname){
 		directory_ = dirname;
 	}
 
+	// No signal system , call this function after you initialized the module
 	void set_mesh(MESH& m , std::shared_ptr<Attribute<Vec3>> vertex_position){
 		selected_mesh_ = &m;
 		selected_vertex_position_ = vertex_position;
 	}
 
+	// No signal system , call this function after you initialized the module
 	void set_view(View& v){
 		selected_view_ = &v;
 	}
 
+	// Put inside a vector all the files with an extension ext
 	void set_all(std::string root, std::string ext , std::vector<std::string>& paths)
 	{
-		root = root.substr(2, root.size() - 3);
 		for (auto &p : fs::recursive_directory_iterator(root))
 		{
 			if (p.path().extension() == ext)
@@ -115,20 +114,16 @@ public:
 		std::sort(paths.begin(),paths.end());
 	}
 
-	void set_attribute(MESH&m , Attribute<Vec3>* to_set , std::string attribute_name){
+	// Create a new attribute or get an attribute and fill it with data from another attribute
+	void set_attribute(MESH&m , Attribute<Vec3>* to_set , std::string attribute_name , float weight){
 		std::shared_ptr<Attribute<Vec3>> attribute_to_change = cgogn::get_or_add_attribute<Vec3, Vertex>(m, attribute_name.c_str());
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			value<Vec3>(m,attribute_to_change,v) = value<Vec3>(m,to_set,v);
+			value<Vec3>(m,attribute_to_change,v) = value<Vec3>(m,to_set,v) * weight;
 			return true;
 		});
 	}
 
-	std::vector<std::string> get_path(){
-		return path_aus_;
-	}
-
 	void change_to_selected_au(MESH& m , Attribute<Vec3>* au_position){
-		
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
 		Attribute<Vec3>* vertex_pos_value = vertex_position.get();
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
@@ -138,6 +133,8 @@ public:
 		mesh_provider_->emit_attribute_changed(m,vertex_pos_value);
 	}
 
+	// This function creates all the differents AUs that have been found with set_all and create for each of them an attribute
+	// DO NOT USE LOAD_SURFACE_FROM_FILE since it creates a new mesh and causes problems with the signal system
 	void setup_mesh_attributes(){
 
 		for (auto path : path_aus_)
@@ -177,33 +174,82 @@ public:
 				}
 			}while (!ss.eof());
 
+			// rewind
+			ss.clear();
+			ss.seekg(0, std::ios::beg);
+
+			std::vector<uint32> indices_p;
+			std::vector<uint32> indices_tc;
+			std::vector<uint32> indices_n;	
+			do
+			{
+				ss >> tag;
+				cgogn::io::getline_safe(ss, line);
+				if (tag == "f"s)
+				{
+					std::istringstream iss(line);
+					while (!iss.eof())
+					{
+						std::string word_buf;
+						iss >> word_buf;
+						if (!word_buf.empty())
+						{
+							//					std::cout << "WORD: " << word_buf << std::endl;
+							auto slash1 = word_buf.find('/');
+							if (slash1 == std::string::npos)
+							{
+								uint32 index = std::atoi(word_buf.c_str());
+								indices_p.push_back(index - 1);
+							}
+							else
+							{
+								auto slash2 = word_buf.find('/', slash1 + 1);
+								if (slash2 == std::string::npos)
+								{
+									std::string str_ind = word_buf.substr(0, slash1);
+									uint32 index = std::atoi(str_ind.c_str());
+									indices_p.push_back(index - 1);
+									str_ind = word_buf.substr(slash1 + 1, std::string::npos);
+									index = std::atoi(str_ind.c_str());
+									indices_tc.push_back(index - 1);
+								}
+								else
+								{
+									std::string str_ind = word_buf.substr(0, slash1);
+									uint32 index = std::atoi(str_ind.c_str());
+									indices_p.push_back(index - 1);
+									if ((slash2 - slash1) > 1)
+									{
+										str_ind = word_buf.substr(slash1 + 1, slash2);
+										index = std::atoi(str_ind.c_str());
+										indices_tc.push_back(index - 1);
+									}
+									str_ind = word_buf.substr(slash2 + 1, std::string::npos);
+									if (str_ind.size() > 0)
+										index = std::atoi(str_ind.c_str());
+									indices_n.push_back(index - 1);
+								}
+							}
+						}
+					}
+				}
+			} while (!ss.eof());
 
 			int incr = 0;
-			std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "position");
-			Vec3 point;
+			Vec3 point_norm;
 			cgogn::foreach_cell(*selected_mesh_, [&](Vertex v) -> bool {
-				point = value<Vec3>(*selected_mesh_,vertex_position,v);
-				std::cout << "Point numéro : " << incr << std::endl;
-				std::cout << "Position des points_au : x = " << vec_pos[incr][0] << " y =  " << vec_pos[incr][1] << " z =  " << vec_pos[incr][2]  << std::endl;
-				std::cout << "Position des points_repos : x = " << point[0] << " y =  " << point[1] << " z =  " << point[2]  << std::endl;
-				cgogn::value<Vec3>(*selected_mesh_,au_pos,v) = vec_pos[incr];
+				point_norm = vec_pos[index_of(*selected_mesh_,v)];
+				value<Vec3>(*selected_mesh_,au_pos,v) = point_norm;
 				incr++;
 				return true;
 			});
 
 			geometry::rescale(*au_pos,1);
-			Vec3 point_norm;
-			cgogn::foreach_cell(*selected_mesh_, [&](Vertex v) -> bool {
-				point = value<Vec3>(*selected_mesh_,vertex_position,v);
-				point_norm = value<Vec3>(*selected_mesh_,au_pos,v);
-				std::cout << "Point numéro : " << incr << std::endl;
-				std::cout << "Position des points_au_normalisé : x = " << point_norm[0] << " y =  " << point_norm[1] << " z =  " << point_norm[2]  << std::endl;
-				std::cout << "Position des points_repos : x = " << point[0] << " y =  " << point[1] << " z =  " << point[2]  << std::endl;
-				return true;
-			});
+			mesh_provider_->emit_attribute_changed(*selected_mesh_,au_pos.get());
 		}
 	}
 
+	// Parse a csv using a filename and the separator of the csv
 	void csv_parser(std::string& filename,char separator){
 		rapidcsv::Document doc(filename,rapidcsv::LabelParams(0,-1),rapidcsv::SeparatorParams(separator,true));
 		std::ofstream outputFile("test.txt");  // Open/create a file named "test.txt" for writing
@@ -243,9 +289,8 @@ public:
 					outputFile2 << i;
 					outputFile2 << ";";
 					// Close the file
-				} else {
+				} else
 					std::cout << "Failed to create the file." << std::endl;  // Display an error message if file creation failed
-				}
 			}
 
 			outputFile2 << it.second.size();
@@ -255,22 +300,26 @@ public:
 		outputFile2.close();  // Close the file after writing
 	}
 
+	// Set the color of the points to blue 
+	// Use this function before changing 
 	void set_to_blue(MESH& m){
 		std::shared_ptr<Attribute<Vec3>> color_change = cgogn::get_attribute<Vec3 , Vertex>(m, "color");
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			value<Vec3>(m,color_change,v) = BLUE;
 			return true;
 		});
+		mesh_provider_->emit_attribute_changed(m,color_change.get());
 	}
 
+	// Change the color of the point to green 
+	// Used for optimisation (WIP)
 	void highlight_difference(MESH& m , Attribute<Vec3>* au_position){
 		std::shared_ptr<Attribute<Vec3>> color_change = cgogn::get_attribute<Vec3 , Vertex>(m , "color");
 		std::shared_ptr<Attribute<Vec3>> pos_au_repos = cgogn::get_attribute<Vec3 , Vertex>(m , "AU00");
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			
-			if(value<Vec3>(m,au_position,v) != value<Vec3>(m,pos_au_repos,v)){
+			if(value<Vec3>(m,au_position,v) != value<Vec3>(m,pos_au_repos,v))
 				value<Vec3>(m,color_change,v) = GREEN;
-			}
 			else
 				value<Vec3>(m,color_change,v) = BLUE;
 			return true;
@@ -278,6 +327,8 @@ public:
 		mesh_provider_->emit_attribute_changed(m,color_change.get());
 	}
 
+	// Blending function 
+	// Currently it's a sum of vectors of each different attributes that will be blent
 	void blending(MESH& m , Attribute<Vec3>* attribute_to_blend , float weight){
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
 		std::shared_ptr<Attribute<Vec3>> color = cgogn::get_attribute<Vec3, Vertex>(m, "color");
@@ -298,18 +349,72 @@ public:
 		mesh_provider_->emit_attribute_changed(m,new_vertex_pos_value);
 	}
 
-	void set_distance(MESH &m, Attribute<Vec3>* blendshape_start , Attribute<Vec3>* blendshape_target){
+	// Function called each frame after clicking on Apply CSV
+	// Setup the differents AUs and weights to calculate the frames
+	void blending_csv(std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_csv, std::vector<float> weights , int incr , float poids_frame){
+		std::vector<int> aus_confirm;
+		std::vector<int> aus_confirm_next_frame;
+		std::vector<float> weights_frame;
+		std::vector<float> weights_next_frame;
+		
+		for (auto &it : csv_){
+			if (ends_with(it.first , "_r"))
+			{	
+				attributes_csv.push_back(cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, it.first.substr(0,it.first.size()-2)));
+				if (incr+1 < count_timer_csv)
+				{
+					weights_frame.push_back(it.second[incr]);
+					weights_next_frame.push_back(it.second[incr+1]);
+				}
+				else{
+					weights_frame.push_back(it.second[incr-1]);
+					weights_next_frame.push_back(it.second[incr]);
+				}
+				if (it.second[incr] > 0.01)
+					std::cout << it.first << " poids : " << it.second[incr] << std::endl;
+			}
+			if (ends_with(it.first , "_c"))
+			{
+				if (incr+1 < count_timer_csv)
+				{
+					aus_confirm.push_back(it.second[incr]);
+					aus_confirm_next_frame.push_back(it.second[incr+1]);
+				}
+				else{
+					aus_confirm.push_back(it.second[incr-1]);
+					aus_confirm_next_frame.push_back(it.second[incr]);
+				}
+			}
+		}
+		for (int i = 0; i < attributes_csv.size(); i++)
+		{
+			if (aus_confirm[i] == 0)
+				weights_frame[i] = 0.;
+			if (aus_confirm_next_frame[i] == 0)
+				weights_next_frame[i] = 0.;
+
+			weights.push_back((weights_frame[i]*(1-poids_frame)) + (weights_next_frame[i]*poids_frame));
+			highlight_difference(*selected_mesh_,attributes_csv[i].get());
+			blending(*selected_mesh_,attributes_csv[i].get(),weights[i]);
+		}
+	}
+
+	// Compute the distance between points in the starting configuration and the end configuration for the interpolation algorithm
+	void set_distance(MESH &m, Attribute<Vec3>* blendshape_start , Attribute<Vec3>* blendshape_target , float weight_start , float weight_target){
 		std::shared_ptr<Attribute<Vec3>> distance = cgogn::get_or_add_attribute<Vec3, Vertex>(m, "distance");
+		std::shared_ptr<Attribute<Vec3>> repos_position = cgogn::get_attribute<Vec3, Vertex>(m, "AU00");
 		Attribute<Vec3>* distance_value = distance.get();
 		Vec3 diff_distance_repos = Vec3(0,0,0);
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
-			diff_distance_repos = value<Vec3>(m,blendshape_target,v) - value<Vec3>(m,blendshape_start,v);
+			diff_distance_repos = ((value<Vec3>(m,blendshape_target,v) - value<Vec3>(m,repos_position,v))  * weight_target) - ((value<Vec3>(m,blendshape_start,v) - value<Vec3>(m,repos_position,v)) * weight_start);
 			value<Vec3>(m,distance_value,v) = diff_distance_repos;
 			return true;
 		});
-
 	}
 
+	// Interpolation function with a step
+	// Call set_distance before this function
+	// Switch attribute to position_interpolation to watch the interpolation
 	void interpolation(MESH &m, float pas){
 		std::shared_ptr<Attribute<Vec3>> distance = cgogn::get_or_add_attribute<Vec3, Vertex>(m, "distance");
 		std::shared_ptr<Attribute<Vec3>> position_interpolation = cgogn::get_or_add_attribute<Vec3, Vertex>(m, "position_interpolation");
@@ -364,7 +469,8 @@ protected:
 					for (int n = 0; n < pos_aus_.size() ; n++)
 					{
 						bool is_selected = (current_item_mesh == pos_aus_[n]->name().c_str()); // You can store your selection however you want, outside or inside your objects
-						if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected)){
+						if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected))
+						{
 							current_item_mesh = pos_aus_[n]->name().c_str();
 							if (!(std::find(std::begin(attribute_to_blend_),std::end(attribute_to_blend_),pos_aus_[n]) != std::end(attribute_to_blend_)))
 							{
@@ -382,26 +488,34 @@ protected:
 				{
 					for (int i = 0; i < attribute_to_blend_.size(); i++)
 					{
-						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weight, 0.0, 5.0);
+						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weights[i], 0.0, 5.0);
 					}
 				}
 				static bool start = false;
 				if (ImGui::Button("Blend"))
 				{
-					//std::ostringstream new_attribute_name;
+					std::ostringstream new_attribute_name;
 					for (int i = 0; i < attribute_to_blend_.size(); i++)
 					{
-						//new_attribute_name << attribute_to_blend[i]->name().c_str() << 'w' << weights[i] << '+';
-						//highlight_difference(*selected_mesh_,attribute_to_blend_[i].get());
-						//blending(*selected_mesh_,attribute_to_blend_[i].get(),weights[i]);
+						new_attribute_name << attribute_to_blend_[i]->name().c_str() << 'w' << weights[i] << '+';
+						highlight_difference(*selected_mesh_,attribute_to_blend_[i].get());
+						blending(*selected_mesh_,attribute_to_blend_[i].get(),weights[i]);
 					}
-					//std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3 , Vertex>(m , new_attribute_name.str().substr(0,new_attribute_name.str().size()-1).c_str());
+					std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3 , Vertex>(*selected_mesh_ , new_attribute_name.str().substr(0,new_attribute_name.str().size()-1).c_str());
 					
 					highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
 					start = true;
-					// attribute_to_blend_.clear();
-					// weights.clear();
+					attribute_to_blend_.clear();
+					weights.clear();
 				}
+
+				// if (ImGui::Button("Blend progressif"))
+				// {
+				// 	highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
+				// 	start = true;
+				// 	// attribute_to_blend_.clear();
+				// 	// weights.clear();
+				// }
 
 				if (ImGui::Button("Clear"))
 				{
@@ -412,42 +526,20 @@ protected:
 					attribute_to_blend_.clear();
 				}
 
-				if (ImGui::Button("Stop"))
-				{
-					start = false;
-				}
-
-				if (start)
-				{
-					if (weight < 5.)
-					{
-						blending(*selected_mesh_,attribute_to_blend_[0].get(),weight);
-						weight += 0.003;
-					}
-					else
-						start = false;
-				}
-				
-				
-				
-
-				// ImGui::Separator();
-
-				// static const char* current_item_aus = NULL;
-				// if (ImGui::BeginCombo("AUs Difference", current_item_aus)) // The second parameter is the label previewed before opening the combo.
+				// if (ImGui::Button("Stop"))
 				// {
-					
-				// 	for (int n = 0; n < pos_aus_.size() ; n++)
+				// 	start = false;
+				// }
+
+				// if (start)
+				// {
+				// 	if (weight < 5.)
 				// 	{
-				// 		bool is_selected = (current_item_aus == pos_aus_[n]->name().c_str()); // You can store your selection however you want, outside or inside your objects
-				// 		if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected)){
-				// 			current_item_aus = pos_aus_[n]->name().c_str();
-				// 			highlight_difference(*selected_mesh_,pos_aus_[n].get(),RED);
-				// 		}
-				// 		if (is_selected)
-				// 			ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+				// 		blending(*selected_mesh_,attribute_to_blend_[0].get(),weight);
+				// 		weight += 0.003;
 				// 	}
-				// 	ImGui::EndCombo();
+				// 	else
+				// 		start = false;
 				// }
 
 				static const char* current_item_csv = NULL;
@@ -456,7 +548,8 @@ protected:
 					for (int n = 0; n < path_csv_.size() ; n++)
 					{
 						bool is_selected = (current_item_csv == path_csv_[n].c_str()); // You can store your selection however you want, outside or inside your objects
-						if (ImGui::Selectable(path_csv_[n].c_str(), is_selected)){
+						if (ImGui::Selectable(path_csv_[n].substr(directory_.size(),path_csv_[n].size()).c_str(), is_selected))
+						{
 							current_item_csv = path_csv_[n].c_str();
 							csv_.clear();
 							timestamp_csv_.clear();
@@ -475,13 +568,11 @@ protected:
 					if (ImGui::Button("Apply CSV"))
 					{	
 						std::map<std::string, std::vector<float>>::iterator iter = csv_.begin();
-						count2 = iter->second.size();
+						count_timer_csv = iter->second.size();
 						for (auto &it : csv_)
 						{
 							if (it.first == "timestamp")
-							{
 								timestamp_csv_ = it.second;
-							}
 						}
 						for (int i = 0; i < timestamp_csv_.size(); i++)
 						{
@@ -491,69 +582,21 @@ protected:
 						time_start = ui::App::frame_time_;
 						incr = 0.;
 						poids_frame = 1.;
-						
+					}
+
+					if (ImGui::Button("Stop CSV"))
+					{	
+						incr = count_timer_csv+1;
 					}
 				}
 				
 				
 				
-				if (incr < count2)
+				if (incr < count_timer_csv)
 				{
-					std::vector<int> aus_confirm;
-					std::vector<int> aus_confirm_next_frame;
-					std::vector<float> weights_frame;
-					std::vector<float> weights_next_frame;
-					
-					for (auto &it : csv_){
-						if (ends_with(it.first , "_r"))
-						{	
-							attributes_csv_.push_back(cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, it.first.substr(0,it.first.size()-2)));
-							if (incr+1 < count2)
-							{
-								weights_frame.push_back(it.second[incr]);
-								weights_next_frame.push_back(it.second[incr+1]);
-							}
-							else{
-								weights_frame.push_back(it.second[incr-1]);
-								weights_next_frame.push_back(it.second[incr]);
-							}
-							if (it.second[incr] > 0.01)
-							{
-								std::cout << it.first << " poids : " << it.second[incr] << std::endl;
-							}
-							
-							
-						}
-						if (ends_with(it.first , "_c"))
-						{
-							if (incr+1 < count2)
-							{
-								aus_confirm.push_back(it.second[incr]);
-								aus_confirm_next_frame.push_back(it.second[incr+1]);
-							}
-							else{
-								aus_confirm.push_back(it.second[incr-1]);
-								aus_confirm_next_frame.push_back(it.second[incr]);
-							}
-						}
-					}
-					for (int i = 0; i < attributes_csv_.size(); i++)
-					{
-						if (aus_confirm[i] == 0)
-						{
-							weights_frame[i] = 0.;
-						}
-						if (aus_confirm_next_frame[i] == 0)
-						{
-							weights_next_frame[i] = 0.;
-						}
-						weights.push_back((weights_frame[i]*(1-poids_frame)) + (weights_next_frame[i]*poids_frame));
-						highlight_difference(*selected_mesh_,attributes_csv_[i].get());
-						blending(*selected_mesh_,attributes_csv_[i].get(),weights[i]);
-					}	
+					blending_csv(attributes_csv_ , weights , incr,poids_frame);
 					timer = ui::App::frame_time_ - time_start;
-
-					while((timer > timestamp_csv_[incr]) && (incr < count2))
+					while((timer > timestamp_csv_[incr]) && (incr < count_timer_csv))
 					{
 						incr++;
 					}
@@ -572,10 +615,6 @@ protected:
 			
 				ImGui::Separator();
 
-				ImGui::InputText( "FPS", std::to_string(ui::App::fps()).data() , std::to_string(ui::App::fps()).size());
-
-				ImGui::InputText( "Time since last Frame", std::to_string(ui::App::frame_time_).data() , std::to_string(ui::App::frame_time_).size());
-
 				static const char* current_item_start = NULL;
 				if (ImGui::BeginCombo("Interpolation shape start", current_item_start)) // The second parameter is the label previewed before opening the combo.
 				{
@@ -593,6 +632,12 @@ protected:
 					ImGui::EndCombo();
 				}
 
+				if (current_item_start != NULL)
+				{
+					ImGui::SliderFloat(au_start->name().c_str(), &weight_start, 0.0, 5.0);
+				}
+				
+
 				static const char* current_item_target = NULL;
 				if (ImGui::BeginCombo("Interpolation shape target", current_item_target)) // The second parameter is the label previewed before opening the combo.
 				{
@@ -609,23 +654,28 @@ protected:
 					}
 					ImGui::EndCombo();
 				}
+
+				if (current_item_target != nullptr)
+				{
+					ImGui::SliderFloat(au_target->name().c_str(), &weight_target, 0.0, 5.0);
+				}
 				
-				ImGui::SliderInt("Nb_frames", &nb_frames, 1, 600);
+				ImGui::SliderInt("Nb_frames", &nb_frames, 120, 600);
 
 				if (ImGui::Button("Start Interpolation"))
 				{
 					if ((current_item_start != NULL) && (current_item_target != NULL))
 					{
-						set_attribute(*selected_mesh_,au_start,"position_interpolation");
-						set_distance(*selected_mesh_,au_start,au_target);
-						count = nb_frames;
+						set_attribute(*selected_mesh_,au_start,"position_interpolation",weight_start);
+						set_distance(*selected_mesh_,au_start,au_target,weight_start,weight_target);
+						count_interpolation = nb_frames;
 					}
 				}
 
-				if (count != 0)
+				if (count_interpolation != 0)
 				{
 					interpolation(*selected_mesh_,1./nb_frames);
-					count--;
+					count_interpolation--;
 				}
 				
 			}
@@ -644,6 +694,8 @@ private:
 	std::vector<std::string> path_aus_;
 	std::vector<std::string> path_csv_;
 	std::vector<float> weights;
+	float weight_start = 1.;
+	float weight_target = 1.;
 	std::string directory_;
 	std::map<std::string,std::vector<float>> csv_;
 	std::vector<float> timestamp_csv_;
@@ -651,9 +703,9 @@ private:
 	Attribute<Vec3>* au_start;
 	int nb_frames = 1;
 	float64 timer = 0.;
-	float64 time_start = 0;
-	int count = 0;
-	int count2 = 0;
+	float64 time_start = 0.;
+	int count_interpolation = 0;
+	int count_timer_csv = 0;
 };
 
 } // namespace ui

@@ -43,14 +43,15 @@
 #include <cgogn/modeling/ui_modules/action_unit_change.h>
 #include <cgogn/geometry/ui_modules/surface_differential_properties.h>
 #include <cgogn/rendering/ui_modules/surface_obj_render.h>
-#include <cgogn/rendering/ui_modules/surface_render.h>
+//#include <cgogn/rendering/ui_modules/surface_render.h>
 #include <cgogn/modeling/ui_modules/surface_modeling.h>
-#include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
+// #include <cgogn/rendering/ui_modules/vector_per_vertex_render.h>
 
 #include <cgogn/core/types/mesh_views/cell_filter.h>
 #include <cgogn/modeling/algos/subdivision.h>
 
-#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "/meshes/"
+#define DEFAULT_MESH_PATH CGOGN_STR(CGOGN_DATA_PATH) "meshes/"
+#define DEFAULT_TEXTURE_PATH CGOGN_STR(CGOGN_DATA_PATH) "textures/"
 
 using namespace cgogn::numerics;
 
@@ -79,7 +80,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	else
-		dirname = std::string(argv[1]);
+		dirname = std::string(DEFAULT_MESH_PATH) + std::string(argv[1]);
 
 	cgogn::thread_start();
 
@@ -90,38 +91,21 @@ int main(int argc, char** argv)
 	cgogn::ui::MeshProvider<Mesh> mp(app);
 	cgogn::ui::ActionUnitChange<Mesh> auc(app);
 	cgogn::ui::SurfaceDifferentialProperties<Mesh> sdp(app);
-	cgogn::ui::SurfaceRender<Mesh> sr(app);
+	//cgogn::ui::SurfaceRender<Mesh> sr(app);
 	cgogn::ui::SurfaceModeling<Mesh> sm(app);
-	cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
+	//cgogn::ui::VectorPerVertexRender<Mesh> vpvr(app);
 	cgogn::ui::SurfaceObjRender<Mesh> sor(app);
 
 	auc.set_directory(dirname);
 
 	app.init_modules();
-	// load texture after init_modules
-	if (argc <= 2)
-	{
-		cgogn::rendering::GLImage img(16, 16, 3);
-		std::vector<std::array<cgogn::uint8, 3>> pix;
-		pix.reserve(16*16);
-		for (int i = 0; i < 16; ++i)
-			for (int j = 0; j < 16; ++j)
-				if ((i + j) % 2 == 0)
-					pix.push_back({0u, 0u, 0u});
-				else
-					pix.push_back({255u, 255u, 255u});
-		img.copy_pixels_data(pix.data()->data());
-		sor.load_texture(img);
-	}
-	else{
-		sor.load_texture(std::string(argv[2]));
-	}
+
 	cgogn::ui::View* v1 = app.current_view();
 	v1->link_module(&mp);
-	//v1->link_module(&sor);
-	v1->link_module(&sr);
+	v1->link_module(&sor);
+	//v1->link_module(&sr);
 	v1->link_module(&auc);
-	v1->link_module(&vpvr);
+	//v1->link_module(&vpvr);
 
 	auto [m_pos,m_tc,m_no] = mp.load_surface_from_OBJ_file(dirname + std::string("AU00.obj"));
 	if (!m_pos)
@@ -139,8 +123,8 @@ int main(int argc, char** argv)
 
 	auc.set_mesh(*m_pos,vertex_position);
 	auc.set_to_blue(*m_pos);
-	auc.set_attribute(*m_pos,vertex_position.get(),"position_interpolation");
-	auc.set_attribute(*m_pos,vertex_position.get(),"distance");
+	auc.set_attribute(*m_pos,vertex_position.get(),"position_interpolation",1.);
+	auc.set_attribute(*m_pos,vertex_position.get(),"distance",1.);
 
 	sdp.compute_normal(*m_pos, vertex_position.get(), vertex_normal.get());
 
@@ -149,8 +133,25 @@ int main(int argc, char** argv)
 	auc.set_view(*v1);
 	auc.setup_mesh_attributes();
 
-	sr.set_vertex_position(*v1, *m_pos, vertex_position);
-	sr.set_vertex_normal(*v1, *m_pos, vertex_normal);
+	if (argc <= 2)
+	{
+		cgogn::rendering::GLImage img(16, 16, 3);
+		std::vector<std::array<cgogn::uint8, 3>> pix;
+		pix.reserve(16*16);
+		for (int i = 0; i < 16; ++i)
+			for (int j = 0; j < 16; ++j)
+				if ((i + j) % 2 == 0)
+					pix.push_back({0u, 0u, 0u});
+				else
+					pix.push_back({255u, 255u, 255u});
+		img.copy_pixels_data(pix.data()->data());
+		sor.load_texture(img);
+	}
+	else
+		sor.load_texture(std::string(DEFAULT_TEXTURE_PATH) + std::string(argv[2]));
+
+	// sr.set_vertex_position(*v1, *m_pos, vertex_position);
+	// sr.set_vertex_normal(*v1, *m_pos, vertex_normal);
 
 	
 	return app.launch();
