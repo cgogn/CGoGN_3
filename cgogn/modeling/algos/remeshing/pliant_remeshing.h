@@ -30,13 +30,16 @@
 #include <cgogn/core/types/mesh_views/cell_cache.h>
 
 #include <cgogn/geometry/algos/angle.h>
+#include <cgogn/geometry/algos/curvature.h>
 #include <cgogn/geometry/algos/length.h>
-#include <cgogn/geometry/algos/medial_axis.h>
+#include <cgogn/geometry/algos/normal.h>
+// #include <cgogn/geometry/algos/medial_axis.h>
 #include <cgogn/geometry/types/vector_traits.h>
 
 #include <vector>
 
 #include <libacc/bvh_tree.h>
+// #include <libacc/kd_tree.h>
 
 namespace cgogn
 {
@@ -110,8 +113,14 @@ struct PliantRemeshing_Helper
 			delete surface_bvh_;
 		if (feature_edge_)
 			remove_attribute<Edge>(m_, feature_edge_);
-		if (vertex_lfs_)
-			remove_attribute<Vertex>(m_, vertex_lfs_);
+		if (feature_vertex_)
+			remove_attribute<Vertex>(m_, feature_vertex_);
+		if (feature_corner_)
+			remove_attribute<Vertex>(m_, feature_corner_);
+		if (vertex_sizing_field_squared_)
+			remove_attribute<Vertex>(m_, vertex_sizing_field_squared_);
+		// if (vertex_lfs_)
+		// 	remove_attribute<Vertex>(m_, vertex_lfs_);
 	}
 
 	void compute_bvh()
@@ -121,13 +130,13 @@ struct PliantRemeshing_Helper
 
 		auto bvh_vertex_index = add_attribute<uint32, Vertex>(m_, "__bvh_vertex_index");
 
-		surface_kdt_vertices_.clear();
-		surface_kdt_vertices_.reserve(nb_vertices);
+		// surface_kdt_vertices_.clear();
+		// surface_kdt_vertices_.reserve(nb_vertices);
 		std::vector<Vec3> vertex_position_vector;
 		vertex_position_vector.reserve(nb_vertices);
 		uint32 idx = 0;
 		foreach_cell(m_, [&](Vertex v) -> bool {
-			surface_kdt_vertices_.push_back(v);
+			// 	surface_kdt_vertices_.push_back(v);
 			value<uint32>(m_, bvh_vertex_index, v) = idx++;
 			vertex_position_vector.push_back(value<Vec3>(m_, vertex_position_, v));
 			return true;
@@ -149,71 +158,68 @@ struct PliantRemeshing_Helper
 			delete surface_bvh_;
 		surface_bvh_ = new acc::BVHTree<uint32, Vec3>(face_vertex_indices, vertex_position_vector);
 
-		if (surface_kdt_)
-			delete surface_kdt_;
-		surface_kdt_ = new acc::KDTree<3, uint32>(vertex_position_vector);
+		// if (surface_kdt_)
+		// 	delete surface_kdt_;
+		// surface_kdt_ = new acc::KDTree<3, uint32>(vertex_position_vector);
 
 		remove_attribute<Vertex>(m_, bvh_vertex_index);
 	}
 
-	void compute_lfs()
-	{
-		auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
-		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
+	// void compute_lfs()
+	// {
+	// 	auto vertex_normal = add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
+	// 	geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
 
-		auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
-		auto vertex_medial_point_radius = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
-		auto vertex_medial_point_secondary_vertex_ =
-			add_attribute<Vertex, Vertex>(m_, "__vertex_medial_point_secondary_vertex");
+	// 	auto vertex_medial_point = add_attribute<Vec3, Vertex>(m_, "__vertex_medial_point");
+	// 	auto vertex_medial_point_radius = add_attribute<Scalar, Vertex>(m_, "__vertex_medial_point_radius");
+	// 	auto vertex_medial_point_secondary_vertex_ =
+	// 		add_attribute<Vertex, Vertex>(m_, "__vertex_medial_point_secondary_vertex");
 
-		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
-			auto [c, r, q] = geometry::shrinking_ball_center(
-				m_, value<Vec3>(m_, vertex_position_, v), value<Vec3>(m_, vertex_normal, v), vertex_position_.get(),
-				surface_bvh_, surface_bvh_faces_, surface_kdt_, surface_kdt_vertices_);
-			value<Vec3>(m_, vertex_medial_point, v) = c;
-			value<Scalar>(m_, vertex_medial_point_radius, v) = r;
-			value<Vertex>(m_, vertex_medial_point_secondary_vertex_, v) = q;
-			return true;
-		});
+	// 	parallel_foreach_cell(m_, [&](Vertex v) -> bool {
+	// 		auto [c, r, q] = geometry::shrinking_ball_center(
+	// 			m_, value<Vec3>(m_, vertex_position_, v), value<Vec3>(m_, vertex_normal, v), vertex_position_.get(),
+	// 			surface_bvh_, surface_bvh_faces_, surface_kdt_, surface_kdt_vertices_);
+	// 		value<Vec3>(m_, vertex_medial_point, v) = c;
+	// 		value<Scalar>(m_, vertex_medial_point_radius, v) = r;
+	// 		value<Vertex>(m_, vertex_medial_point_secondary_vertex_, v) = q;
+	// 		return true;
+	// 	});
 
-		vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
-		lfs_min_ = std::numeric_limits<float64>::max();
-		lfs_max_ = std::numeric_limits<float64>::lowest();
-		lfs_mean_ = 0.0;
-		uint32 nbv = 0;
-		foreach_cell(m_, [&](Vertex v) -> bool {
-			++nbv;
-			uint32 vidx = index_of(m_, v);
-			Scalar lfs = ((*vertex_medial_point)[vidx] - (*vertex_position_)[vidx]).norm();
-			if (lfs < lfs_min_)
-				lfs_min_ = lfs;
-			if (lfs > lfs_max_)
-				lfs_max_ = lfs;
-			lfs_mean_ += lfs;
-			(*vertex_lfs_)[vidx] = lfs;
-			return true;
-		});
-		lfs_mean_ /= Scalar(nbv);
+	// 	vertex_lfs_ = get_or_add_attribute<Scalar, Vertex>(m_, "__vertex_lfs");
+	// 	lfs_min_ = std::numeric_limits<float64>::max();
+	// 	lfs_max_ = std::numeric_limits<float64>::lowest();
+	// 	lfs_mean_ = 0.0;
+	// 	uint32 nbv = 0;
+	// 	foreach_cell(m_, [&](Vertex v) -> bool {
+	// 		++nbv;
+	// 		uint32 vidx = index_of(m_, v);
+	// 		Scalar lfs = ((*vertex_medial_point)[vidx] - (*vertex_position_)[vidx]).norm();
+	// 		if (lfs < lfs_min_)
+	// 			lfs_min_ = lfs;
+	// 		if (lfs > lfs_max_)
+	// 			lfs_max_ = lfs;
+	// 		lfs_mean_ += lfs;
+	// 		(*vertex_lfs_)[vidx] = lfs;
+	// 		return true;
+	// 	});
+	// 	lfs_mean_ /= Scalar(nbv);
 
-		remove_attribute<Vertex>(m_, vertex_normal);
-		remove_attribute<Vertex>(m_, vertex_medial_point);
-		remove_attribute<Vertex>(m_, vertex_medial_point_radius);
-		remove_attribute<Vertex>(m_, vertex_medial_point_secondary_vertex_);
+	// 	remove_attribute<Vertex>(m_, vertex_normal);
+	// 	remove_attribute<Vertex>(m_, vertex_medial_point);
+	// 	remove_attribute<Vertex>(m_, vertex_medial_point_radius);
+	// 	remove_attribute<Vertex>(m_, vertex_medial_point_secondary_vertex_);
 
-		std::cout << "lfs min: " << lfs_min_ << std::endl;
-		std::cout << "lfs max: " << lfs_max_ << std::endl;
-		std::cout << "lfs mean: " << lfs_mean_ << std::endl;
-	}
+	// 	std::cout << "lfs min: " << lfs_min_ << std::endl;
+	// 	std::cout << "lfs max: " << lfs_max_ << std::endl;
+	// 	std::cout << "lfs mean: " << lfs_mean_ << std::endl;
+	// }
 
 	void detect_features()
 	{
 		Scalar angle_threshold = 60.0 * M_PI / 180.0;
-		if (!feature_edge_)
-			feature_edge_ = add_attribute<bool, Edge>(m_, "__feature_edge");
-		if (!feature_vertex_)
-			feature_vertex_ = add_attribute<bool, Vertex>(m_, "__feature_vertex");
-		if (!feature_corner_)
-			feature_corner_ = add_attribute<bool, Vertex>(m_, "__feature_corner");
+		feature_edge_ = get_or_add_attribute<bool, Edge>(m_, "__feature_edge");
+		feature_vertex_ = get_or_add_attribute<bool, Vertex>(m_, "__feature_vertex");
+		feature_corner_ = get_or_add_attribute<bool, Vertex>(m_, "__feature_corner");
 		feature_edge_->fill(false);
 		feature_vertex_->fill(false);
 		feature_corner_->fill(false);
@@ -242,23 +248,63 @@ struct PliantRemeshing_Helper
 		});
 	}
 
+	void compute_sizing_field(Scalar approx_tolerance)
+	{
+		auto vertex_normal = get_or_add_attribute<Vec3, Vertex>(m_, "__vertex_normal");
+		auto edge_angle = add_attribute<Scalar, Edge>(m_, "__edge_angle");
+		auto vertex_kmax = get_or_add_attribute<Scalar, Vertex>(m_, "__kmax");
+		auto vertex_kmin = get_or_add_attribute<Scalar, Vertex>(m_, "__kmin");
+		auto vertex_Kmax = get_or_add_attribute<Vec3, Vertex>(m_, "__Kmax");
+		auto vertex_Kmin = get_or_add_attribute<Vec3, Vertex>(m_, "__Kmin");
+		auto vertex_Knormal = get_or_add_attribute<Vec3, Vertex>(m_, "__Knormal");
+
+		vertex_sizing_field_squared_ = get_or_add_attribute<Scalar, Vertex>(m_, "__sizing_field");
+
+		Scalar mean_edge_length = geometry::mean_edge_length(m_, vertex_position_.get());
+		geometry::compute_normal<Vertex>(m_, vertex_position_.get(), vertex_normal.get());
+		geometry::compute_angle(m_, vertex_position_.get(), edge_angle.get());
+		geometry::compute_curvature(m_, mean_edge_length * 3.0, vertex_position_.get(), vertex_normal.get(),
+									edge_angle.get(), vertex_kmax.get(), vertex_kmin.get(), vertex_Kmax.get(),
+									vertex_Kmin.get(), vertex_Knormal.get());
+
+		parallel_foreach_cell(m_, [&](Vertex v) -> bool {
+			Scalar max_abs_curvature =
+				std::max(std::abs(value<Scalar>(m_, vertex_kmax, v)), std::abs(value<Scalar>(m_, vertex_kmin, v)));
+			if (max_abs_curvature < 0.0001)
+				max_abs_curvature = 0.0001;
+			value<Scalar>(m_, vertex_sizing_field_squared_, v) =
+				std::clamp((6.0 * approx_tolerance / max_abs_curvature) - (3.0 * approx_tolerance * approx_tolerance),
+						   0.00001, 0.002);
+			return true;
+		});
+
+		remove_attribute<Vertex>(m_, vertex_normal);
+		remove_attribute<Edge>(m_, edge_angle);
+		remove_attribute<Vertex>(m_, vertex_kmax);
+		remove_attribute<Vertex>(m_, vertex_kmin);
+		remove_attribute<Vertex>(m_, vertex_Kmax);
+		remove_attribute<Vertex>(m_, vertex_Kmin);
+		remove_attribute<Vertex>(m_, vertex_Knormal);
+	}
+
 	MESH& m_;
 	std::shared_ptr<Attribute<Vec3>> vertex_position_;
 	std::shared_ptr<Attribute<bool>> feature_edge_;
 	std::shared_ptr<Attribute<bool>> feature_vertex_;
 	std::shared_ptr<Attribute<bool>> feature_corner_;
-	std::shared_ptr<Attribute<Scalar>> vertex_lfs_;
-	Scalar lfs_min_, lfs_max_, lfs_mean_;
+	std::shared_ptr<Attribute<Scalar>> vertex_sizing_field_squared_;
+	// std::shared_ptr<Attribute<Scalar>> vertex_lfs_;
+	// Scalar lfs_min_, lfs_max_, lfs_mean_;
 	acc::BVHTree<uint32, Vec3>* surface_bvh_ = nullptr;
 	std::vector<Face> surface_bvh_faces_;
-	acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
-	std::vector<Vertex> surface_kdt_vertices_;
+	// acc::KDTree<3, uint32>* surface_kdt_ = nullptr;
+	// std::vector<Vertex> surface_kdt_vertices_;
 };
 
 template <typename MESH>
 void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::template Attribute<Vec3>>& vertex_position,
-					  Scalar edge_length_target_ratio = 1.0, bool preserve_features = false, bool lfs_adaptive = false,
-					  bool recompute_bvh = false)
+					  Scalar density_factor = 1.0, bool preserve_features = false, bool adaptive = false,
+					  Scalar adaptive_tolerance_factor = 1.0, bool recompute_bvh = false)
 {
 	using Vertex = typename mesh_traits<MESH>::Vertex;
 	using Edge = typename mesh_traits<MESH>::Edge;
@@ -273,120 +319,125 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		helper.compute_bvh();
 	if (preserve_features)
 		helper.detect_features();
-	if (lfs_adaptive)
-		helper.compute_lfs();
 
-	Scalar edge_length_target = geometry::mean_edge_length(m, vertex_position.get()) * edge_length_target_ratio;
+	Scalar mean_edge_length = geometry::mean_edge_length(m, vertex_position.get());
+	std::cout << "mean edge length: " << mean_edge_length << std::endl;
 
-	const Scalar squared_min_edge_length = Scalar(0.5625) * edge_length_target * edge_length_target; // 0.5625 = 0.75^2
-	const Scalar squared_max_edge_length = Scalar(1.5625) * edge_length_target * edge_length_target; // 1.5625 = 1.25^2
+	Scalar approx_tolerance = mean_edge_length * 0.1 * adaptive_tolerance_factor;
 
 	CellCache<MESH> cache(m);
+	auto vertex_area = get_or_add_attribute<Scalar, Vertex>(m, "__vertex_area");
 
-	for (uint32 i = 0; i < 3; ++i)
+	for (uint32 pass = 0; pass < 7; ++pass)
 	{
+		if (adaptive && (pass == 2 || pass == 4))
+			helper.compute_sizing_field(approx_tolerance);
+
 		// cut long edges (and adjacent faces)
-		bool has_long_edge = false;
-		do
-		{
-			cache.template build<Edge>();
-			has_long_edge = false;
-			foreach_cell(cache, [&](Edge e) -> bool {
-				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs = 0.0; // init to zero for warning remove
-				Scalar coeff = 1.0;
-				if (lfs_adaptive)
+		cache.template build<Edge>();
+		foreach_cell(cache, [&](Edge e) -> bool {
+			std::vector<Vertex> iv = incident_vertices(m, e);
+			Scalar threshold = 0.0;
+			if (adaptive && pass >= 2)
+			{
+				Scalar sizing_field_squared = std::min(value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[0]),
+													   value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[1]));
+				threshold = sizing_field_squared;
+			}
+			else
+			{
+				Scalar target = mean_edge_length * density_factor;
+				threshold = target * target * 1.5625;
+			}
+			Scalar length_squared =
+				(value<Vec3>(m, vertex_position, iv[0]) - value<Vec3>(m, vertex_position, iv[1])).squaredNorm();
+			if (length_squared > threshold)
+			{
+				Vertex v = cut_edge(m, e);
+				if (adaptive && pass >= 2)
 				{
-					lfs = (value<Scalar>(m, helper.vertex_lfs_, iv[0]) + value<Scalar>(m, helper.vertex_lfs_, iv[1])) *
-						  0.5;
-					if (lfs < helper.lfs_mean_)
-						coeff = 0.25 + ((lfs - helper.lfs_min_) / (helper.lfs_mean_ - helper.lfs_min_) * 0.75);
-					else
-						coeff = 1 + ((lfs - helper.lfs_mean_) / (helper.lfs_max_ - helper.lfs_mean_) * 3.0);
+					value<Scalar>(m, helper.vertex_sizing_field_squared_, v) =
+						(value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[0]) +
+						 value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[1])) *
+						0.5;
 				}
-				Scalar threshold = squared_max_edge_length * coeff;
-				if (geometry::squared_length(m, e, vertex_position.get()) > threshold)
+				if (preserve_features)
 				{
-					has_long_edge = true;
-					Vertex v = cut_edge(m, e);
-					if (preserve_features)
+					if (value<bool>(m, helper.feature_edge_, e))
 					{
-						if (value<bool>(m, helper.feature_edge_, e))
-						{
-							foreach_incident_edge(m, v, [&](Edge ie) -> bool {
-								value<bool>(m, helper.feature_edge_, ie) = true;
-								return true;
-							});
-						}
+						foreach_incident_edge(m, v, [&](Edge ie) -> bool {
+							value<bool>(m, helper.feature_edge_, ie) = true;
+							return true;
+						});
 					}
-					value<Vec3>(m, vertex_position, v) =
-						(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
-					if (lfs_adaptive)
-						value<Scalar>(m, helper.vertex_lfs_, v) = lfs;
-					if (preserve_features)
-					{
-						value<bool>(m, helper.feature_corner_, v) = false;
-						if (value<bool>(m, helper.feature_edge_, e))
-							value<bool>(m, helper.feature_vertex_, v) = true;
-					}
-					triangulate_incident_faces(m, v);
 				}
-				return true;
-			});
-		} while (has_long_edge);
+				value<Vec3>(m, vertex_position, v) =
+					(value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
+				if (preserve_features)
+				{
+					value<bool>(m, helper.feature_corner_, v) = false;
+					if (value<bool>(m, helper.feature_edge_, e))
+						value<bool>(m, helper.feature_vertex_, v) = true;
+				}
+				triangulate_incident_faces(m, v);
+			}
+			return true;
+		});
 
 		// collapse short edges
-		bool has_short_edge = false;
-		do
-		{
-			has_short_edge = false;
-			foreach_cell(m, [&](Edge e) -> bool {
-				std::vector<Vertex> iv = incident_vertices(m, e);
-				Scalar lfs;
-				Scalar coeff = 1.0;
-				if (lfs_adaptive)
+		foreach_cell(m, [&](Edge e) -> bool {
+			std::vector<Vertex> iv = incident_vertices(m, e);
+			Scalar threshold = 0.0;
+			if (adaptive && pass >= 2)
+			{
+				Scalar sizing_field_squared = std::min(value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[0]),
+													   value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[1]));
+				threshold = sizing_field_squared;
+			}
+			else
+			{
+				Scalar target = mean_edge_length * density_factor;
+				threshold = target * target * 1.5625;
+			}
+			Scalar length_squared =
+				(value<Vec3>(m, vertex_position, iv[0]) - value<Vec3>(m, vertex_position, iv[1])).squaredNorm();
+			if (length_squared < threshold)
+			{
+				bool collapse = true;
+				const Vec3& p = value<Vec3>(m, vertex_position, iv[0]);
+				foreach_adjacent_vertex_through_edge(m, iv[1], [&](Vertex v) -> bool {
+					const Vec3& vec = p - value<Vec3>(m, vertex_position, v);
+					if (vec.squaredNorm() > threshold)
+						collapse = false;
+					return collapse;
+				});
+				if (preserve_features)
 				{
-					lfs = (value<Scalar>(m, helper.vertex_lfs_, iv[0]) + value<Scalar>(m, helper.vertex_lfs_, iv[1])) *
-						  0.5;
-					if (lfs < helper.lfs_mean_)
-						coeff = 0.25 + ((lfs - helper.lfs_min_) / (helper.lfs_mean_ - helper.lfs_min_) * 0.75);
-					else
-						coeff = 1 + ((lfs - helper.lfs_mean_) / (helper.lfs_max_ - helper.lfs_mean_) * 3.0);
+					if (value<bool>(m, helper.feature_corner_, iv[0]) || value<bool>(m, helper.feature_corner_, iv[1]))
+						collapse = false;
+					if ((value<bool>(m, helper.feature_vertex_, iv[0]) &&
+						 !value<bool>(m, helper.feature_vertex_, iv[1])) ||
+						(!value<bool>(m, helper.feature_vertex_, iv[0]) &&
+						 value<bool>(m, helper.feature_vertex_, iv[1])))
+						collapse = false;
 				}
-				Scalar threshold = squared_min_edge_length * coeff;
-				if (geometry::squared_length(m, e, vertex_position.get()) < threshold)
+				if (collapse && edge_can_collapse(m, e))
 				{
-					bool collapse = true;
-					const Vec3& p = value<Vec3>(m, vertex_position, iv[0]);
-					foreach_adjacent_vertex_through_edge(m, iv[1], [&](Vertex v) -> bool {
-						const Vec3& vec = p - value<Vec3>(m, vertex_position, v);
-						if (vec.squaredNorm() > threshold)
-							collapse = false;
-						return collapse;
-					});
-					if (preserve_features)
-					{
-						if (value<bool>(m, helper.feature_corner_, iv[0]) ||
-							value<bool>(m, helper.feature_corner_, iv[1]))
-							collapse = false;
-						if ((value<bool>(m, helper.feature_vertex_, iv[0]) &&
-							 !value<bool>(m, helper.feature_vertex_, iv[1])) ||
-							(!value<bool>(m, helper.feature_vertex_, iv[0]) &&
-							 value<bool>(m, helper.feature_vertex_, iv[1])))
-							collapse = false;
-					}
-					if (collapse && edge_can_collapse(m, e))
-					{
-						has_short_edge = true;
-						Vec3 mp = value<Vec3>(m, vertex_position, iv[1]);
-						// (value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
-						Vertex cv = collapse_edge(m, e);
-						value<Vec3>(m, vertex_position, cv) = mp;
-					}
+					Vec3 mp = (value<Vec3>(m, vertex_position, iv[0]) + value<Vec3>(m, vertex_position, iv[1])) * 0.5;
+					// value<Vec3>(m, vertex_position, iv[1]);
+					Scalar ms = (adaptive && pass >= 2)
+									? (value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[0]) +
+									   value<Scalar>(m, helper.vertex_sizing_field_squared_, iv[1])) *
+										  0.5
+									: 1.0;
+					Vertex cv = collapse_edge(m, e);
+					value<Vec3>(m, vertex_position, cv) = mp;
+					if (adaptive && pass >= 2)
+						value<Scalar>(m, helper.vertex_sizing_field_squared_, cv) = ms;
 				}
-				return true;
-			});
-		} while (has_short_edge);
+			}
+			return true;
+		});
 
 		// equalize valences with edge flips
 		foreach_cell(m, [&](Edge e) -> bool {
@@ -413,7 +464,6 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 			return true;
 		});
 
-		auto vertex_area = add_attribute<Scalar, Vertex>(m, "vertex_area__");
 		geometry::compute_area<Vertex>(m, vertex_position.get(), vertex_area.get());
 
 		// tangential relaxation
@@ -421,68 +471,55 @@ void pliant_remeshing(MESH& m, std::shared_ptr<typename mesh_traits<MESH>::templ
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			if (is_incident_to_boundary(m, v))
 				return true;
-			Vec3 new_pos = value<Vec3>(m, vertex_position, v);
-			if (preserve_features)
-			{
-				if (!value<bool>(m, helper.feature_corner_, v))
-				{
-					if (value<bool>(m, helper.feature_vertex_, v))
-					{
-						// Vec3 q(0, 0, 0);
-						// uint32 count = 0;
-						// foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-						// 	if (value<bool>(m, helper.feature_vertex_, av))
-						// 	{
-						// 		q += value<Vec3>(m, vertex_position, av);
-						// 		++count;
-						// 	}
-						// 	return true;
-						// });
-						// if (count == 2)
-						// {
-						// 	q /= Scalar(count);
-						// 	Vec3 n = geometry::normal(m, v, vertex_position.get());
-						// 	new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-						// }
-					}
-					else
-					{
-						Vec3 q(0, 0, 0);
-						Scalar total_area = 0.0;
-						foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-							Scalar a = value<Scalar>(m, vertex_area, av);
-							q += a * value<Vec3>(m, vertex_position, av);
-							total_area += a;
-							return true;
-						});
-						q /= Scalar(total_area);
-						Vec3 n = geometry::normal(m, v, vertex_position.get());
-						new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-						new_pos = helper.surface_bvh_->closest_point(new_pos);
-					}
-				}
-			}
-			else
+			if (!preserve_features ||
+				(!value<bool>(m, helper.feature_corner_, v) && !value<bool>(m, helper.feature_vertex_, v)))
 			{
 				Vec3 q(0, 0, 0);
-				Scalar total_area = 0.0;
-				foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
-					Scalar a = value<Scalar>(m, vertex_area, av);
-					q += a * value<Vec3>(m, vertex_position, av);
-					total_area += a;
-					return true;
-				});
-				q /= Scalar(total_area);
+				Scalar total_w = 0.0;
+				if (adaptive && pass >= 2)
+				{
+					foreach_incident_face(m, v, [&](Face f) -> bool {
+						Scalar avg_sizing_field = 0.0;
+						Vec3 avg_position{0, 0, 0};
+						uint32 count = 0;
+						foreach_incident_vertex(m, f, [&](Vertex iv) -> bool {
+							avg_sizing_field += value<Scalar>(m, helper.vertex_sizing_field_squared_, iv);
+							avg_position += value<Vec3>(m, vertex_position, iv);
+							++count;
+							return true;
+						});
+						avg_sizing_field /= Scalar(count);
+						avg_position /= Scalar(count);
+						Scalar w = geometry::area(m, f, vertex_position.get()) * avg_sizing_field;
+						q += w * avg_position;
+						total_w += w;
+						return true;
+					});
+					q /= total_w;
+				}
+				else
+				{
+					foreach_adjacent_vertex_through_edge(m, v, [&](Vertex av) -> bool {
+						Scalar a = value<Scalar>(m, vertex_area, av);
+						q += a * value<Vec3>(m, vertex_position, av);
+						total_w += a;
+						return true;
+					});
+					q /= total_w;
+				}
 				Vec3 n = geometry::normal(m, v, vertex_position.get());
-				new_pos = q + n.dot(value<Vec3>(m, vertex_position, v) - q) * n;
-				new_pos = helper.surface_bvh_->closest_point(new_pos);
+				Vec3& pos = value<Vec3>(m, vertex_position, v);
+				pos = q + n.dot(pos - q) * n;
+				pos = helper.surface_bvh_->closest_point(pos);
 			}
-			value<Vec3>(m, vertex_position, v) = new_pos;
 			return true;
 		});
-
-		remove_attribute<Vertex>(m, vertex_area);
 	}
+
+	mean_edge_length = geometry::mean_edge_length(m, vertex_position.get());
+	std::cout << "mean edge length: " << mean_edge_length << std::endl;
+
+	remove_attribute<Vertex>(m, vertex_area);
 }
 
 } // namespace modeling
