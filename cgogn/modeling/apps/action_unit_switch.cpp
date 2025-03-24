@@ -120,7 +120,6 @@ int main(int argc, char** argv)
 	std::shared_ptr<Attribute<Vec3>> vertex_color = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "color");
 	std::shared_ptr<Attribute<Vec3>> vertex_distance = cgogn::add_attribute<Vec3, Vertex>(*m_pos, "distance");
 
-
 	auc.set_mesh(*m_pos,vertex_position);
 	auc.set_to_blue(*m_pos);
 	auc.set_attribute(*m_pos,vertex_position.get(),"position_interpolation",1.);
@@ -132,6 +131,7 @@ int main(int argc, char** argv)
 
 	auc.set_view(*v1);
 	auc.setup_mesh_attributes();
+	//auc.setup_csv_matrix();
 
 	if (argc <= 2)
 	{

@@ -313,7 +313,7 @@ void View::save_screenshot()
 	}
 }
 
-void View::save_screenshot_name(std::string filename , std::string path)
+void View::save_screenshot_name(std::string filename)
 {
 	std::cout << "saving screenshot : " << filename << std::endl;
 
