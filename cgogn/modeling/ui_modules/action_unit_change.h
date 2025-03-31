@@ -138,12 +138,34 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_pos_value);
 	}
 
+	void take_screenshot(int num , std::string dir_of_name ){
+		std::ostringstream name;
+		name << DEFAULT_PATH << "CGoGN_3/build/stage/bin/";
+		name << "Screenshot_";
+		for (int j = 0; j < 4 - std::to_string(num).size(); j++)
+		{
+			name << "0";
+		}
+		name << num;
+		name << ".jpg";
+
+		std::ostringstream dirname;
+		dirname << DEFAULT_PATH << "OpenFace/OpenFace/samples/" << dir_of_name << "/" ;
+
+		selected_view_->save_screenshot_name(name.str());
+		fs::path sourceFile = name.str().c_str();
+		fs::path targetParent = dirname.str().c_str();
+		if (!fs::is_directory(targetParent) || !fs::exists(targetParent))
+			fs::create_directory(targetParent);
+		
+		fs::copy(sourceFile, targetParent, fs::copy_options::overwrite_existing);
+	}
+
 	// This function creates all the differents AUs that have been found with set_all_paths and create for each of them
 	// an attribute DO NOT USE LOAD_SURFACE_FROM_FILE since it creates a new mesh and causes problems with the signal
 	// system
 	void setup_mesh_attributes()
 	{
-
 		for (auto path : path_aus_)
 		{
 			std::cout << path.substr(path.size() - 8, path.size() - (path.size() - 8) - 4) << std::endl;
@@ -196,139 +218,123 @@ public:
 		}
 	}
 
-	void setup_csv_matrix()
-	{
-		int i = 0;
+	void setup_csv_matrix(int incr , std::shared_ptr<Attribute<Vec3>> au){
 		std::ostringstream command;
-		command << PATH_OF << " " << DEFAULT_PATH << "OpenFace/OpenFace/samples/Matrix/" << " " << directory_ << "CSV/" << " " << DEFAULT_PATH << "OpenFace/OpenFace/build/bin/";
-		for (auto au : pos_aus_)
+		command << PATH_OF << " " 
+			<< DEFAULT_PATH << "OpenFace/OpenFace/samples/Matrix/" << " " 
+			<< directory_ << "CSV/" << " " 
+			<< DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" << " " 
+			<< "-python" << " "
+			<< DEFAULT_PATH << "CGoGN_3/data/rewrite_csv.py";
+		highlight_difference(*selected_mesh_, au);
+		blending(*selected_mesh_, au, weight_for_jacob_matrix);
+
+		if (incr == pos_aus_.size())
 		{
-			highlight_difference(*selected_mesh_, au);
-			blending(*selected_mesh_, au, epsilon);
-
-			std::ostringstream name;
-			name << "/home/roger/Documents/stage/CGoGn/CGoGN_3/build/stage/bin/";
-			name << "Screenshot_";
-			for (int j = 0; j < 4 - std::to_string(i).size(); j++)
+			if(system(command.str().c_str()) == 0)
 			{
-				name << "0";
-			}
-			name << i;
-			name << ".jpg";
-
-			std::ostringstream dirname;
-			dirname << "/home/roger/Documents/stage/CGoGn/OpenFace/OpenFace/samples/Matrix/" ;
-
-			selected_view_->save_screenshot_name(name.str());
-			fs::path sourceFile = name.str().c_str();
-			fs::path targetParent = dirname.str().c_str();
-			if (!fs::is_directory(targetParent) || !fs::exists(targetParent))
-				fs::create_directory(targetParent);
-			
-			fs::copy(sourceFile, targetParent, fs::copy_options::overwrite_existing);
-
-			if (strcmp(au->name().c_str(), "AU00") == 0)
-			{
-				if(system(command.str().c_str()) == 0)
-				{
-					std::ostringstream matrix_csv_path;
-					matrix_csv_path << directory_ << "CSV/Matrix.csv";
-					std::string path = matrix_csv_path.str();
-					csv_parser(path, ',');
-					std::vector<int> weights_confirm;
-					std::vector<float> weights_detect;
-					for (auto& it : csv_)
-					{
-						if (ends_with(it.first, "_r"))
-							weights_detect.push_back(it.second[0]);
-						if (ends_with(it.first, "_c"))
-							weights_confirm.push_back(it.second[0]);
-					}
-					for (int i = 0; i < weights_confirm.size(); i++)
-					{
-						// if (weights_confirm[i] == 0)
-						vector_OF_rest_cgogn.push_back(weights_detect[i]);
-						// else
-						// 	vector_OF_rest_cgogn.push_back(0);
-
-						std::cout << vector_OF_rest_cgogn[i] << " ";
-					}
-					std::cout << std::endl;
-				}
+				if(system("rm -rf *.jpg") == 0)
+					std::cout << "Erasing screenshots" << std::endl;
 				else
 					std::cout << "Command invalid" << std::endl;
+
+				std::ostringstream matrix_csv_path;
+				matrix_csv_path << directory_ << "CSV/Matrix.csv";
+				// path_csv_.push_back(matrix_csv_path.str());
+				std::string path = matrix_csv_path.str();
+				csv_parser(path, ',', csv_weights_detected_, csv_weights_confirm_, vector_OF_rest_csv_);
+				set_matrix_jacob();
 			}
 			else
-				i++;
+				std::cout << "Command invalid" << std::endl;
 		}
-		
+
+	}
+
+	void setup_vector_at_rest()
+	{
+		std::shared_ptr<Attribute<Vec3>> au_repos = cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "AU00");
+		std::ostringstream command;
+		command << PATH_OF << " " << DEFAULT_PATH << "OpenFace/OpenFace/samples/Matrix/" << " " << directory_ << "CSV/" << " " << DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" ;
+		blending(*selected_mesh_, au_repos, weight_for_jacob_matrix);
+
+		take_screenshot(0 , "Matrix");
+		//command << " " << "-erase";
+		std::cout << command.str().c_str() << std::endl;
 		if(system(command.str().c_str()) == 0)
 		{
-			if(system("rm -rf *.jpg") == 0)
-				std::cout << "Erasing screenshots" << std::endl;
-			else
-				std::cout << "Command invalid" << std::endl;
-
 			std::ostringstream matrix_csv_path;
 			matrix_csv_path << directory_ << "CSV/Matrix.csv";
-			// path_csv_.push_back(matrix_csv_path.str());
 			std::string path = matrix_csv_path.str();
-			csv_parser(path, ',');
-			get_matrix_csv(path);
+			csv_parser(path, ',' , csv_weights_detected_ , csv_weights_confirm_ , vector_OF_rest_csv_);
+			vector_OF_rest_cgogn_ = vector_OF_rest_csv_;
+			std::cout << "Vector of rest cgogn " << std::endl << vector_OF_rest_cgogn_ << std::endl;
+			matrix_jacob.resize(csv_weights_confirm_.cols() , csv_weights_confirm_.cols());
 		}
 		else
 			std::cout << "Command invalid" << std::endl;
 	}
 
-	void get_matrix_csv(std::string path_csv)
+	void set_matrix_jacob()
 	{
-		std::vector<std::vector<float>> weights_confirm;
-		std::vector<std::vector<float>> weights_detect;
-		int incr = 0;
-		for (auto& it : csv_)
-		{	
-			std::cout << it.first.c_str() << std::endl;
-			if (ends_with(it.first, "_r"))
-				weights_detect.push_back(it.second);
-			if (ends_with(it.first, "_c"))
-				weights_confirm.push_back(it.second);
-		}
-		std::cout << weights_detect.size() << weights_detect[0].size() << std::endl;
-		for (int i = 0; i < weights_confirm.size(); i++)
+		matrix_jacob.resize(csv_weights_detected_.rows() , csv_weights_detected_.cols());
+
+		for (int i = 0; i < csv_weights_detected_.rows(); i++)
 		{
-			std::vector<float> tmp;
-			for (int j = 0; j < weights_confirm[i].size(); j++)
+			for (int j = 0; j < csv_weights_detected_.cols(); j++)
 			{
-				
-				if (weights_confirm[i][j] == 0.){
-					weights_detect[i][j] = 0.;
-				}
-				tmp.push_back(0.);
+				float element_jacob = (csv_weights_detected_(i,j) - vector_OF_rest_cgogn_(j)) / weight_for_jacob_matrix;
+				matrix_jacob(i,j) = ((abs(element_jacob) > epsilon) ? element_jacob : 0);
 			}
-			matrix_jacob.push_back(tmp);
 		}
 
-		for (int i = 0; i < weights_detect[0].size(); i++)
+		std::cout << "Jacobian Matrix : " << std::endl << matrix_jacob.format(OctaveFmt) << std::endl;
+
+		std::cout << "Vector from face at rest : " << std::endl << vector_OF_rest_cgogn_ << std::endl;
+	}
+
+	void apply_matrix_csv(){
+
+		Eigen::VectorXd tmp;
+		tmp.resize(csv_weights_detected_.cols());
+		for (int i = 0; i < csv_weights_detected_.rows(); i++)
 		{
-			std::cout << "Line number : " << i << std::endl;
-			for (int j = 0; j < weights_detect.size(); j++)
-			{
-				float element_jacob = (((vector_OF_rest_cgogn[j] + (weights_detect[j][i] * epsilon)) - vector_OF_rest_cgogn[j] ) / epsilon);
-				std::cout << ((element_jacob > epsilon) ? element_jacob : 0) << " "; 
-				matrix_jacob[j][i] = ((element_jacob > epsilon) ? element_jacob : 0);
-				std::cout << matrix_jacob[j][i] << " ";
+			for (int j = 0; j < csv_weights_detected_.cols(); j++)
+			{	
+				// if (csv_weights_confirm(i,j) == 0)
+				// 	csv_weights_detected(i,j) = 0.;
+				// else
+				{
+					csv_weights_detected_(i,j) = csv_weights_detected_(i,j) + vector_OF_rest_cgogn_(j);
+				}
 			}
-			std::cout << std::endl;
+			tmp = matrix_jacob * csv_weights_detected_.row(i).transpose();
+			csv_weights_detected_.row(i) = tmp.transpose();
 		}
+
+		std::cout << "Matrix of detection : " << std::endl << csv_weights_detected_.format(OctaveFmt) << std::endl;
+	}
+
+	void compare_matrices(Eigen::MatrixXd& csv_weights_detected,Eigen::MatrixXd& compare_weights_detected){
+		for (int i = 0; i < compare_weights_detected.rows(); i++)
+		{
+			for (int j = 0; j < compare_weights_detected.cols(); j++)
+			{
+				compare_weights_detected(i,j) = (compare_weights_detected(i,j) - vector_OF_rest_csv_(j));
+				compare_weights_detected(i,j) = compare_weights_detected(i,j) - csv_weights_detected(i,j);
+			}
+		}
+		std::cout << "Matrice de la comparaison entre le csv et le nouveau csv : " << std::endl << compare_weights_detected.format(OctaveFmt) << std::endl;
 	}
 
 	// Parse a csv using a filename and the separator of the csv
-	void csv_parser(std::string& filename, char separator)
+	void csv_parser(std::string& filename, char separator ,	Eigen::MatrixXd& csv_weights_detected_ , Eigen::MatrixXd& csv_weights_confirm_ , Eigen::VectorXd& vector_OF_rest_csv_)
 	{
 		rapidcsv::Document doc(filename, rapidcsv::LabelParams(0, -1), rapidcsv::SeparatorParams(separator, true));
 		std::ofstream outputFile("test.txt"); // Open/create a file named "test.txt" for writing
 		std::vector<std::string> csv_columns_name = doc.GetColumnNames();
 		std::vector<float> tempData;
+		int nb_elem = 0;
 		csv_.clear();
 		for (int i = 0; i < csv_columns_name.size(); i++)
 		{
@@ -341,7 +347,7 @@ public:
 					if (outputFile.is_open())
 					{ // Check if the file was successfully opened
 						// Write some text into the file
-						outputFile << tempData[i];
+						outputFile << tempData[j];
 						outputFile << ";";
 						// Close the file
 					}
@@ -362,6 +368,7 @@ public:
 
 		std::ofstream outputFile2("test2.txt"); // Open/create a file named "test2.txt" for writing
 		int i = 0 ;
+		int nb_columns = 0 ; 
 		for (auto& it : csv_)
 		{
 			std::cout << i << " ";
@@ -381,13 +388,65 @@ public:
 					std::cout << "Failed to create the file."
 							  << std::endl; // Display an error message if file creation failed
 			}
-
+			if (ends_with(it.first, "_r") || ends_with(it.first, "_c"))
+			{
+				nb_columns++;
+			}
 			outputFile2 << it.second.size();
 			outputFile2 << "\n";
+			nb_elem = it.second.size();
 		}
 		std::cout << std::endl;
 		std::cout << "Text has been written to the file." << std::endl; // Display a success message
 		outputFile2.close();											// Close the file after writing
+
+		int incr = 0;
+		int incr2 = 0;
+
+		if (nb_elem > 1)
+		{
+			nb_elem--;
+		}
+		
+		std::cout << "NB_columns : " << nb_columns/2 << std::endl;
+		std::cout << "NB_elems : " << nb_elem << std::endl;
+		csv_weights_detected_.resize(nb_elem , nb_columns/2);
+		csv_weights_confirm_.resize(nb_elem , nb_columns/2);
+		vector_OF_rest_csv_.resize(nb_columns/2);
+		vector_OF_rest_cgogn_.resize(nb_columns/2);
+
+		for (auto& it : csv_)
+		{
+			if (ends_with(it.first, "_r"))
+			{
+				vector_OF_rest_csv_(incr) = it.second[0];
+				for (int j = 1; j < it.second.size(); j++)
+					csv_weights_detected_(j-1,incr) = it.second[j];
+				incr++;
+			}
+			if (ends_with(it.first, "_c"))
+			{
+				for (int j = 1; j < it.second.size(); j++)
+					csv_weights_confirm_(j-1,incr2) = it.second[j];
+				incr2++;
+			}
+		}
+
+		// if (!ends_with(filename , "Matrix.csv"))
+		// {
+		// 	for (int i = 0; i < csv_weights_detected_.rows(); i++)
+		// 	{
+		// 		for (int j = 0; j < csv_weights_detected_.cols(); j++)
+		// 		{
+		// 			// if (csv_weights_confirm(i,j) == 0)
+		// 			// 	csv_weights_detected(i,j) = 0;
+		// 			csv_weights_detected_(i,j) = (csv_weights_detected_(i,j) - vector_OF_rest_csv_(j)) ;
+		// 		}
+		// 	}
+		// }
+		std::cout << "Vector of rest csv : " << std::endl << vector_OF_rest_csv_ << std::endl;
+		std::cout << "Matrix of detection : " << std::endl << csv_weights_detected_.format(OctaveFmt) << std::endl;
+		std::cout << "Matrix of confirmation : " << std::endl << csv_weights_confirm_.format(OctaveFmt) << std::endl;
 	}
 
 	// Set the color of the points to blue
@@ -454,55 +513,26 @@ public:
 	// Setup the differents AUs and weights to calculate the frames
 	void blending_csv(std::vector<float> weights, int incr, float poids_frame)
 	{
-		std::vector<int> aus_confirm;
-		std::vector<int> aus_confirm_next_frame;
-		std::vector<float> weights_frame;
-		std::vector<float> weights_next_frame;
 		std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_csv;
-
+		blending(*selected_mesh_, pos_aus_[0], 1.0);
+		float weight = 0;
 		for (auto& it : csv_)
 		{
 			if (ends_with(it.first, "_r"))
 			{
 				attributes_csv.push_back(
 					cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, it.first.substr(0, it.first.size() - 2)));
-				if (incr + 1 < count_timer_csv)
-				{
-					weights_frame.push_back(it.second[incr]);
-					weights_next_frame.push_back(it.second[incr + 1]);
-				}
-				else
-				{
-					weights_frame.push_back(it.second[incr - 1]);
-					weights_next_frame.push_back(it.second[incr]);
-				}
-				if (it.second[incr] > 0.01)
-					std::cout << it.first << " poids : " << it.second[incr] << std::endl;
-			}
-			if (ends_with(it.first, "_c"))
-			{
-				if (incr + 1 < count_timer_csv)
-				{
-					aus_confirm.push_back(it.second[incr]);
-					aus_confirm_next_frame.push_back(it.second[incr + 1]);
-				}
-				else
-				{
-					aus_confirm.push_back(it.second[incr - 1]);
-					aus_confirm_next_frame.push_back(it.second[incr]);
-				}
 			}
 		}
-		for (int i = 0; i < attributes_csv.size(); i++)
+		for (int i = 1; i < pos_aus_.size(); i++)
 		{
-			if (aus_confirm[i] == 0)
-				weights_frame[i] = 0.;
-			if (aus_confirm_next_frame[i] == 0)
-				weights_next_frame[i] = 0.;
-
-			weights.push_back((weights_frame[i] * (1 - poids_frame)) + (weights_next_frame[i] * poids_frame));
-			highlight_difference(*selected_mesh_, attributes_csv[i]);
-			blending(*selected_mesh_, attributes_csv[i], weights[i]);
+			if (incr + 1 < csv_weights_detected_.rows()){
+				weight = (csv_weights_detected_(incr,i-1) * (1 - poids_frame)) + (csv_weights_detected_(incr + 1,i-1) * poids_frame);
+			}
+			else
+				weight = (csv_weights_detected_(incr - 1,i-1) * (1 - poids_frame)) + (csv_weights_detected_(incr,i-1) * poids_frame);
+			highlight_difference(*selected_mesh_, pos_aus_[i]);
+			blending(*selected_mesh_, pos_aus_[i], weight);
 		}
 	}
 
@@ -594,7 +624,7 @@ protected:
 											pos_aus_[n]) != std::end(attribute_to_blend_)))
 							{
 								attribute_to_blend_.push_back(pos_aus_[n]);
-								weights.push_back(1.);
+								weights.push_back(1.5);
 							}
 						}
 						if (is_selected)
@@ -604,103 +634,93 @@ protected:
 					ImGui::EndCombo();
 				}
 
+				static bool start = false;
+				static int i = 0;
+				static int nb_au = 1;
 				if (attribute_to_blend_.size() != 0)
 				{
 					for (int i = 0; i < attribute_to_blend_.size(); i++)
 					{
-						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weights[i], -1.0, 2.0);
+						ImGui::SliderFloat(attribute_to_blend_[i]->name().c_str(), &weights[i], -1.0, 5.0);
 					}
-				}
-				static bool start = false;
-				if (ImGui::Button("Blend"))
-				{
-					std::ostringstream new_attribute_name;
-					blending(*selected_mesh_, pos_aus_[0], 1.);
-					for (int i = 0; i < attribute_to_blend_.size(); i++)
+
+					
+					if (ImGui::Button("Blend"))
 					{
-						new_attribute_name << attribute_to_blend_[i]->name().c_str() << 'w' << weights[i] << '+';
-						highlight_difference(*selected_mesh_, attribute_to_blend_[i]);
-						blending(*selected_mesh_, attribute_to_blend_[i], weights[i]);
-					}
-					std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3, Vertex>(
-						*selected_mesh_,
-						new_attribute_name.str().substr(0, new_attribute_name.str().size() - 1).c_str());
-
-					// highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
-					// start = true;
-					attribute_to_blend_.clear();
-					weights.clear();
-				}
-
-				if (ImGui::Button("Blend progressif"))
-				{
-					highlight_difference(*selected_mesh_, pos_aus_[1]);
-					start = true;
-					// attribute_to_blend_.clear();
-					// weights.clear();
-				}
-
-				if (ImGui::Button("Clear"))
-				{
-					std::shared_ptr<Attribute<Vec3>> repos_position =
-						cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "AU00");
-					blending(*selected_mesh_, repos_position, weight);
-					start = false;
-					weight = -1.;
-					attribute_to_blend_.clear();
-				}
-
-				if (ImGui::Button("Stop"))
-				{
-					start = false;
-				}
-
-				static int i = 0;
-				static int nb_au = 1;
-				if (start)
-				{
-					if (weight < 5.)
-					{
-						blending(*selected_mesh_, pos_aus_[nb_au], weight);
-						weight += 0.003;
-					}
-					else
-					{
-						if (nb_au >= pos_aus_.size())
+						std::ostringstream new_attribute_name;
+						blending(*selected_mesh_, pos_aus_[0], 1.);
+						for (int i = 0; i < attribute_to_blend_.size(); i++)
 						{
-							start = false;
+							new_attribute_name << attribute_to_blend_[i]->name().c_str() << 'w' << weights[i] << '+';
+							highlight_difference(*selected_mesh_, attribute_to_blend_[i]);
+							blending(*selected_mesh_, attribute_to_blend_[i], weights[i]);
+						}
+						std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3, Vertex>(
+							*selected_mesh_,
+							new_attribute_name.str().substr(0, new_attribute_name.str().size() - 1).c_str());
+
+						// highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
+						// start = true;
+						attribute_to_blend_.clear();
+						weights.clear();
+					}
+
+					if (ImGui::Button("Blend progressif"))
+					{
+						highlight_difference(*selected_mesh_, pos_aus_[1]);
+						start = true;
+						// attribute_to_blend_.clear();
+						// weights.clear();
+					}
+
+					if (ImGui::Button("Clear"))
+					{
+						std::shared_ptr<Attribute<Vec3>> repos_position =
+							cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "AU00");
+						blending(*selected_mesh_, repos_position, weight);
+						start = false;
+						weight = -1.;
+						attribute_to_blend_.clear();
+					}
+
+					if (ImGui::Button("Stop"))
+					{
+						start = false;
+					}
+
+
+					if (start)
+					{
+						if (weight < 5.)
+						{
+							blending(*selected_mesh_, pos_aus_[nb_au], weight);
+							weight += 0.003;
 						}
 						else
 						{
-							nb_au++;
-							weight = 0.;
-							blending(*selected_mesh_, pos_aus_[0], weight);
-							highlight_difference(*selected_mesh_, pos_aus_[nb_au]);
-							blending(*selected_mesh_, pos_aus_[nb_au], weight);
-							i = 0;
+							if (nb_au >= pos_aus_.size())
+							{
+								start = false;
+							}
+							else
+							{
+								nb_au++;
+								weight = 0.;
+								blending(*selected_mesh_, pos_aus_[0], weight);
+								highlight_difference(*selected_mesh_, pos_aus_[nb_au]);
+								blending(*selected_mesh_, pos_aus_[nb_au], weight);
+								i = 0;
+							}
 						}
 					}
 				}
 
 				if (ImGui::Button("Screenshot"))
 				{
-					std::ostringstream name;
-					name << "/home/roger/Documents/stage/CGoGn/CGoGN_3/build/stage/bin/";
-					name << "Screenshot_" << i << ".png";
-					std::cout << name.str().c_str() << std::endl;
-
-					std::ostringstream dirname;
-					dirname << "/home/roger/Documents/stage/CGoGn/OpenFace/OpenFace/samples/";
-					dirname << selected_vertex_position_->name().c_str() << "/";
-					i++;
-					std::cout << dirname.str().c_str() << std::endl;
-
-					selected_view_->save_screenshot_name(name.str());
-					fs::path sourceFile = name.str().c_str();
-					fs::path targetParent = dirname.str().c_str();
-					if (!fs::is_directory(targetParent) || !fs::exists(targetParent))
-						fs::create_directory(targetParent);
-					fs::copy(sourceFile, targetParent, fs::copy_options::overwrite_existing);
+					take_screenshot(0,"AU01+AU02");
+					std::ostringstream command;
+					command << PATH_OF << " " << DEFAULT_PATH << "OpenFace/OpenFace/samples/AU01+AU02/" << " " << directory_ << "CSV/" << " " << DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" ;
+					if(system(command.str().c_str()) == 0);
 				}
 
 				static const char* current_item_csv = NULL;
@@ -719,7 +739,9 @@ protected:
 							current_item_csv = path_csv_[n].c_str();
 							csv_.clear();
 							timestamp_csv_.clear();
-							csv_parser(path_csv_[n], ',');
+							csv_parser(path_csv_[n], ',', csv_weights_detected_, csv_weights_confirm_, vector_OF_rest_csv_);
+							apply_matrix_csv();
+							i = 0;
 						}
 						if (is_selected)
 							ImGui::SetItemDefaultFocus(); // You may set the initial focus when opening the combo
@@ -728,7 +750,8 @@ protected:
 					ImGui::EndCombo();
 				}
 
-				static int incr = 0.;
+				static int incr = 0;
+				static int nb_screen = 0;
 				static float poids_frame = 1.;
 				if (current_item_csv != NULL)
 				{
@@ -755,6 +778,32 @@ protected:
 					{
 						incr = count_timer_csv + 1;
 					}
+
+					// A enterrer dans le plus profond de l'histoire du code
+					if (ImGui::Button("Send to OF"))
+					{
+						std::ostringstream command;
+						command << PATH_OF << " " 
+							<< DEFAULT_PATH << "OpenFace/OpenFace/samples/CSV/" << " " 
+							<< directory_ << "CSV/" << " " 
+							<< DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" << " " 
+							<< "-python" << " "
+							<< DEFAULT_PATH << "CGoGN_3/data/rewrite_csv.py";
+						if (system(command.str().c_str()) == 0){
+							std::cout << "Creation of new CSV" << std::endl;
+							std::ostringstream path;
+							path << directory_ << "CSV/CSV.csv";
+							std::string string_path = path.str(); 
+							Eigen::MatrixXd compare_weights_detected_;
+							Eigen::MatrixXd compare_weights_confirm_;
+							Eigen::VectorXd vec_compare_rest;
+							csv_parser(string_path,',',compare_weights_detected_,compare_weights_confirm_,vec_compare_rest);
+							compare_matrices(csv_weights_detected_,csv_weights_confirm_);
+						}
+						else
+							std::cout << "Command invalid" << std::endl;
+						
+					}
 				}
 
 				if (incr < count_timer_csv)
@@ -771,11 +820,14 @@ protected:
 						poids_frame =
 							(timer - timestamp_csv_[incr - 1]) / (timestamp_csv_[incr] - timestamp_csv_[incr - 1]);
 					}
+					if (nb_screen > 0)
+					{
+						take_screenshot(nb_screen - 1,"CSV");
+					}
 					std::cout << "timer : " << timer << std::endl;
 					std::cout << "poids_frame : " << poids_frame << std::endl;
 					std::cout << "timestamp_csv : " << timestamp_csv_[incr] << std::endl;
-
-					weights.clear();
+					nb_screen++;
 				}
 
 				ImGui::Separator();
@@ -861,43 +913,118 @@ protected:
 
 				if (start)
 				{
-					std::ostringstream name;
-					name << "/home/roger/Documents/stage/CGoGn/CGoGN_3/build/stage/bin/";
-
-					int nb_num = 4;
-
-					name << "Screenshot_";
-					for (int j = 0; j < nb_num - std::to_string(i).size(); j++)
-					{
-						name << "0";
-					}
-					name << i;
-					name << ".jpg";
-
-					std::cout << name.str().c_str() << std::endl;
-
-					std::ostringstream dirname;
-					dirname << "/home/roger/Documents/stage/CGoGn/OpenFace/OpenFace/samples/";
-					dirname << pos_aus_[nb_au]->name().c_str() << "/";
-					i++;
-					std::cout << dirname.str().c_str() << std::endl;
-
-					selected_view_->save_screenshot_name(name.str());
-					fs::path sourceFile = name.str().c_str();
-					fs::path targetParent = dirname.str().c_str();
-					if (!fs::is_directory(targetParent) || !fs::exists(targetParent))
-						fs::create_directory(targetParent);
-					fs::copy(sourceFile, targetParent, fs::copy_options::overwrite_existing);
+					take_screenshot(i , pos_aus_[nb_au]->name());
 				}
 
-				static bool matrix = true;
-				if (matrix)
+				// static int matrix_incr = 0;
+				// if (matrix_incr == pos_aus_.size())
+				// {
+				// 	blending(*selected_mesh_,pos_aus_[0],1.);
+				// 	take_screenshot(matrix_incr - 1 , "Matrix");
+				// 	setup_csv_matrix(matrix_incr , pos_aus_[matrix_incr - 1]);
+				// 	matrix_incr++;
+				// }
+				// if (matrix_incr < pos_aus_.size())
+				// {
+				// 	if (matrix_incr == 0)
+				// 	{
+				// 		blending(*selected_mesh_,pos_aus_[0],1.);
+				// 		setup_vector_at_rest();
+				// 		matrix_incr++;
+				// 	}
+				// 	else
+				// 	{
+				// 		blending(*selected_mesh_,pos_aus_[0],1.);
+				// 		setup_csv_matrix(matrix_incr , pos_aus_[matrix_incr]);
+				// 		if (matrix_incr >= 2)
+				// 		{
+				// 			take_screenshot(matrix_incr -1 , "Matrix");
+				// 		}
+				// 		matrix_incr++;
+				// 	}
+				// }
+
+				static int matrix_incr = 0;
+				if (matrix_incr == pos_aus_.size())
 				{
-				 	setup_csv_matrix();
 					blending(*selected_mesh_,pos_aus_[0],1.);
-					matrix = false;
+					take_screenshot(0 , "test");
+					std::ostringstream command;
+					command << PATH_OF << " " 
+						<< DEFAULT_PATH << "OpenFace/OpenFace/samples/test/" << " " 
+						<< directory_ << "CSV/" << " " 
+						<< DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" << " ";
+						// << "-python" << " "
+						// << DEFAULT_PATH << "CGoGN_3/data/rewrite_csv.py";
+					if (system(command.str().c_str()) == 0)
+					{
+						std::ostringstream path;
+						path << directory_ << "CSV/test.csv";
+						std::string string_path = path.str(); 
+						Eigen::MatrixXd compare_weights_detected_;
+						Eigen::MatrixXd compare_weights_confirm_;
+						Eigen::VectorXd vec_compare_rest;
+						csv_parser(string_path,',',compare_weights_detected_,compare_weights_confirm_,vec_compare_rest);
+						for (int j = 0; j < vec_compare_rest.rows(); j++)
+						{
+							float element_jacob = (vec_compare_rest(j) - vector_OF_rest_cgogn_(j)) / weight_for_jacob_matrix;
+							std::cout << element_jacob << std::endl;
+							matrix_jacob(matrix_incr - 2,j) = ((abs(element_jacob) > epsilon) ? element_jacob : 0);
+						}
+						std::cout << matrix_incr - 2 << std::endl;
+						std::cout << "Vector at rest : " << std::endl << vec_compare_rest << std::endl;
+					}
+					// setup_csv_matrix(matrix_incr , pos_aus_[matrix_incr - 1]);
+					matrix_incr++;
+					std::cout << "Jacobian Matrix : " << std::endl << matrix_jacob.format(OctaveFmt) << std::endl;
+
+					std::cout << "Vector from face at rest : " << std::endl << vector_OF_rest_cgogn_ << std::endl;
 				}
-				
+				if (matrix_incr < pos_aus_.size())
+				{
+					if (matrix_incr == 0)
+					{
+						blending(*selected_mesh_,pos_aus_[0],1.);
+						setup_vector_at_rest();
+						matrix_incr++;
+						blending(*selected_mesh_,pos_aus_[0],1.);
+						setup_csv_matrix(matrix_incr , pos_aus_[matrix_incr]);
+					}
+					else
+					{
+						blending(*selected_mesh_,pos_aus_[0],1.);
+						setup_csv_matrix(matrix_incr , pos_aus_[matrix_incr]);
+						if (matrix_incr >= 2)
+						{
+							take_screenshot(0, "test");
+							std::ostringstream command;
+							command << PATH_OF << " " 
+								<< DEFAULT_PATH << "OpenFace/OpenFace/samples/test/" << " " 
+								<< directory_ << "CSV/" << " " 
+								<< DEFAULT_PATH << "OpenFace/OpenFace/build/bin/" << " "
+								<< "-python" << " "
+								<< DEFAULT_PATH << "CGoGN_3/data/rewrite_csv.py";
+							if (system(command.str().c_str()) == 0)
+							{
+								std::ostringstream path;
+								path << directory_ << "CSV/test.csv";
+								std::string string_path = path.str(); 
+								Eigen::MatrixXd compare_weights_detected_;
+								Eigen::MatrixXd compare_weights_confirm_;
+								Eigen::VectorXd vec_compare_rest;
+								csv_parser(string_path,',',compare_weights_detected_,compare_weights_confirm_,vec_compare_rest);
+								for (int j = 0; j < vec_compare_rest.rows(); j++)
+								{
+									float element_jacob = (vec_compare_rest(j) - vector_OF_rest_cgogn_(j)) / weight_for_jacob_matrix;
+									std::cout << element_jacob << std::endl;
+									matrix_jacob(matrix_incr-2,j) = ((abs(element_jacob) > epsilon) ? element_jacob : 0);
+								}
+								std::cout << matrix_incr - 2 << std::endl;
+							}
+						}
+						matrix_incr++;
+					}
+				}
 			}
 		}
 	}
@@ -919,12 +1046,17 @@ private:
 	std::vector<std::string> path_csv_;
 	std::string directory_;
 	std::map<std::string, std::vector<float>> csv_;
+	Eigen::MatrixXd csv_weights_detected_;
+	Eigen::MatrixXd csv_weights_confirm_;
 
-	std::vector<std::vector<float>> matrix_jacob;
+	Eigen::MatrixXd matrix_jacob;
+	Eigen::IOFormat OctaveFmt = Eigen::IOFormat(2, 0, ", ", ";\n", "", "", "[", "]");
+
 	std::vector<float> weights;
 	std::vector<float> timestamp_csv_;
-	std::vector<float> vector_OF_rest_cgogn;
-	std::vector<float> vector_OF_rest_csv;
+
+	Eigen::VectorXd vector_OF_rest_cgogn_;
+	Eigen::VectorXd vector_OF_rest_csv_;
 
 	int nb_frames = 1;
 	float64 timer = 0.;
@@ -933,7 +1065,8 @@ private:
 	int count_timer_csv = 0;
 	float weight_start = 1.;
 	float weight_target = 1.;
-	float epsilon = 0.5;
+	float weight_for_jacob_matrix = 1.5;
+	float epsilon = 0.01;
 };
 
 } // namespace ui
