@@ -961,18 +961,30 @@ public:
 		std::shared_ptr<Attribute<Vec3>> repos_position = cgogn::get_attribute<Vec3, Vertex>(m, "AU00");
 		Attribute<Vec3>* new_vertex_pos_value = vertex_position.get();
 		Vec3 diff_distance_repos = Vec3(0, 0, 0);
+		float epsilon = 0.0001;
 
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			value<Vec3>(m, vertex_position, v) = value<Vec3>(m, repos_position, v);
 			Vec3 result = Vec3(0, 0, 0);
+			float nb_au_influence = 0.;
 
 			for (int i = 0; i < attributes_to_blend.size(); i++)
-			{
+			{	
 				diff_distance_repos = value<Vec3>(m, attributes_to_blend[i], v) - value<Vec3>(m, repos_position, v);
+				
+				if(abs(diff_distance_repos[0]) > 0. || abs(diff_distance_repos[1]) > 0. || abs(diff_distance_repos[2]) > 0.){
+					nb_au_influence++;
+				}
 				result += diff_distance_repos * weight_list[i];
 			}
 
-			result = result / attributes_to_blend.size();
+			if (nb_au_influence != 0.)
+				result = result / nb_au_influence;
+
+			result[0] = (abs(result[0]) > epsilon) ? result[0] : 0. ; 
+			result[1] = (abs(result[1]) > epsilon) ? result[1] : 0. ;
+			result[2] = (abs(result[2]) > epsilon) ? result[2] : 0. ;
+			
 			value<Vec3>(m, vertex_position, v) += result ;
 			return true;
 		});
