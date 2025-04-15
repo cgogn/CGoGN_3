@@ -164,12 +164,7 @@ public:
 
 	void remove_mesh(MESH& m)
 	{
-		if (has_mesh(mesh_name(m)))
-		{
-			clear_mesh(m);
-			meshes_.erase(mesh_name(m));
-		}
-		
+		// TODO	
 	}
 
 	bool has_mesh(const std::string& name) const
