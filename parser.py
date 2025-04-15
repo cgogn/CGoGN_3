@@ -5,7 +5,7 @@ from scipy.interpolate import make_interp_spline
 from os import listdir
 from os.path import isfile, join , basename
 
-filepath = "data/meshes/AUs/buste_no_brows_clean/CSV_VIDEO/"
+filepath = "data/meshes/AUs/buste_no_brows_clean/CSV/"
 
 onlyfiles = [f for f in listdir(filepath) if isfile(join(filepath, f))]
 

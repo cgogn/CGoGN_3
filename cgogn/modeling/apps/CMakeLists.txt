@@ -78,6 +78,17 @@ target_link_libraries(convex_hull
 	${CMAKE_DL_LIBS}
 )
 
+add_executable(action_unit_switch action_unit_switch.cpp)
+target_link_libraries(action_unit_switch
+	cgogn::core
+	cgogn::ui
+	cgogn::io
+	cgogn::rendering
+	cgogn::modeling
+	Blossom5
+	${CMAKE_DL_LIBS}
+)
+
 if(APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	find_library(CARBON Carbon)
@@ -107,4 +118,9 @@ if(APPLE)
 		${CORE_FOUNDATION}
 		${CARBON}
 	)
+
+	target_link_libraries(action_unit_switch
+	${CORE_FOUNDATION}
+	${CARBON}
+)
 endif()

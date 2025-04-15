@@ -62,6 +62,7 @@ class App;
 
 using geometry::Scalar;
 using geometry::Vec3;
+using geometry::Vec2;
 
 template <typename MESH>
 class MeshProvider : public ProviderModule
@@ -163,7 +164,12 @@ public:
 
 	void remove_mesh(MESH& m)
 	{
-		// TODO
+		if (has_mesh(mesh_name(m)))
+		{
+			clear_mesh(m);
+			meshes_.erase(mesh_name(m));
+		}
+		
 	}
 
 	bool has_mesh(const std::string& name) const
@@ -302,6 +308,17 @@ public:
 				if constexpr (has_edge_v<MESH>)
 					io::export_IG(m, vertex_position, filename + ".ig");
 			}
+		}
+	}
+
+	void save_surface_to_OBJ_file(MESH& m_p, MESH& m_no , MESH& m_tc , const Attribute<Vec3>* vertex_position,
+								const std::string& filename)
+	{
+		if constexpr (mesh_traits<MESH>::dimension == 2)
+		{
+			auto vertex_normal = get_attribute<Vec3, Vertex>(m_no,"position").get();
+			auto vertex_texture = get_attribute<Vec2, Vertex>(m_tc,"position").get();
+			io::export_OBJ(m_p, m_no, m_tc, vertex_position, vertex_normal, vertex_texture, filename + ".obj");
 		}
 	}
 
@@ -609,6 +626,8 @@ protected:
 		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			static MESH* selected_mesh = nullptr;
+			static MESH* selected_mesh_normal = nullptr;
+			static MESH* selected_mesh_texture = nullptr;
 			static char filename[32] = "\0";
 			static std::string filetype = (*supported_formats_)[0];
 			static std::function<void()> cleanup = []() {};
@@ -627,6 +646,13 @@ protected:
 				}
 				ImGui::EndCombo();
 			}
+			
+			if (filetype.compare("obj") == 0)
+			{
+				imgui_mesh_selector(this, selected_mesh_normal, "Mesh_no", [&](MESH& m) { selected_mesh_normal = &m; });
+				imgui_mesh_selector(this, selected_mesh_texture, "Mesh_tc", [&](MESH& m) { selected_mesh_texture = &m; });
+			}
+
 			ImGui::InputText("Filename", filename, 32);
 
 			if (selected_mesh)
@@ -641,8 +667,11 @@ protected:
 					{
 						if constexpr (mesh_traits<MESH>::dimension == 1)
 							save_graph_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
-						if constexpr (mesh_traits<MESH>::dimension == 2)
-							save_surface_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
+						if constexpr (mesh_traits<MESH>::dimension == 2 )
+							if (filetype.compare("obj") == 0)
+								save_surface_to_OBJ_file(*selected_mesh, *selected_mesh_normal , *selected_mesh_texture, selected_vertex_position.get(), filename);
+							else
+								save_surface_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
 						if constexpr (mesh_traits<MESH>::dimension == 3)
 							save_volume_to_file(*selected_mesh, selected_vertex_position.get(), filetype, filename);
 						close_popup = true;
