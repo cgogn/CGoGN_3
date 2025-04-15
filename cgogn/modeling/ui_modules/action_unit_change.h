@@ -224,9 +224,7 @@ public:
 	//
 	void setup_csv_matrix(int incr, std::shared_ptr<Attribute<Vec3>> au, float weight)
 	{
-		highlight_difference(*selected_mesh_, au);
-		blending(*selected_mesh_, au, weight);
-
+		blending(*selected_mesh_, {au}, {weight});
 		if (incr == pos_aus_.size())
 		{
 			std::ostringstream command;
@@ -383,7 +381,6 @@ public:
 	{
 		if ((incr == pos_aus_.size()))
 		{
-			blending(*selected_mesh_, pos_aus_[0], 1.);
 			create_matrix_test_and_jacob(matrix, incr, resize, false);
 			test_matrix(matrix_jacob, matrix, weight, name, vector_confidence_lower_bound,
 						vector_confidence_upper_bound, confidence);
@@ -394,14 +391,12 @@ public:
 		{
 			if (incr == 1)
 			{
-				blending(*selected_mesh_, pos_aus_[0], 1.);
 				setup_csv_matrix(incr, pos_aus_[incr], weight);
 				incr++;
 				resize = true;
 			}
 			else
 			{
-				blending(*selected_mesh_, pos_aus_[0], 1.);
 				setup_csv_matrix(incr, pos_aus_[incr], weight);
 				create_matrix_test_and_jacob(matrix, incr, resize, false);
 				if (resize)
@@ -959,7 +954,7 @@ public:
 
 	// Blending function
 	// Currently it's a sum of vectors of each different attributes that will be blent
-	void blending(MESH& m, std::shared_ptr<Attribute<Vec3>> attribute_to_blend, float weight)
+	void blending(MESH& m, std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_to_blend, std::vector<float> weight_list)
 	{
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
 		std::shared_ptr<Attribute<Vec3>> color = cgogn::get_attribute<Vec3, Vertex>(m, "color");
@@ -967,28 +962,21 @@ public:
 		Attribute<Vec3>* new_vertex_pos_value = vertex_position.get();
 		Vec3 diff_distance_repos = Vec3(0, 0, 0);
 
-		if (attribute_to_blend->name().c_str() == repos_position->name().c_str())
-		{
-			parallel_foreach_cell(m, [&](Vertex v) -> bool {
-				value<Vec3>(m, vertex_position, v) = value<Vec3>(m, repos_position, v);
-				return true;
-			});
-		}
-		else
-		{
-			parallel_foreach_cell(m, [&](Vertex v) -> bool {
-				if (value<Vec3>(m, color, v) == GREEN)
-				{
-					if (weight != 0)
-					{
-						diff_distance_repos = value<Vec3>(m, attribute_to_blend, v) - value<Vec3>(m, repos_position, v);
-						diff_distance_repos = diff_distance_repos * weight;
-						value<Vec3>(m, vertex_position, v) = value<Vec3>(m, vertex_position, v) + diff_distance_repos;
-					}
-				}
-				return true;
-			});
-		}
+		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+			value<Vec3>(m, vertex_position, v) = value<Vec3>(m, repos_position, v);
+			Vec3 result = Vec3(0, 0, 0);
+
+			for (int i = 0; i < attributes_to_blend.size(); i++)
+			{
+				diff_distance_repos = value<Vec3>(m, attributes_to_blend[i], v) - value<Vec3>(m, repos_position, v);
+				result += diff_distance_repos * weight_list[i];
+			}
+
+			result = result / attributes_to_blend.size();
+			value<Vec3>(m, vertex_position, v) += result ;
+			return true;
+		});
+
 		mesh_provider_->emit_attribute_changed(m, new_vertex_pos_value);
 	}
 
@@ -997,8 +985,8 @@ public:
 	void blending_csv(std::vector<float> weights, int incr, float poids_frame)
 	{
 		std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_csv;
-		blending(*selected_mesh_, pos_aus_[0], 1.0);
-		float weight = 0;
+		std::vector<float> weight_list;
+
 		for (auto& it : csv_)
 		{
 			if (ends_with(it.first, "_r"))
@@ -1011,15 +999,15 @@ public:
 		{
 			if (incr + 1 < csv_weights_detected_.rows())
 			{
-				weight = (csv_weights_detected_(incr, i - 1) * (1 - poids_frame)) +
-						 (csv_weights_detected_(incr + 1, i - 1) * poids_frame);
+				weight_list.push_back((csv_weights_detected_(incr, i - 1) * (1 - poids_frame)) +
+						 (csv_weights_detected_(incr + 1, i - 1) * poids_frame));
 			}
 			else
-				weight = (csv_weights_detected_(incr - 1, i - 1) * (1 - poids_frame)) +
-						 (csv_weights_detected_(incr, i - 1) * poids_frame);
-			highlight_difference(*selected_mesh_, pos_aus_[i]);
-			blending(*selected_mesh_, pos_aus_[i], weight);
+				weight_list.push_back((csv_weights_detected_(incr - 1, i - 1) * (1 - poids_frame)) +
+						 (csv_weights_detected_(incr, i - 1) * poids_frame));
 		}
+		//highlight_difference(*selected_mesh_, pos_aus_[i]);
+		blending(*selected_mesh_, attributes_csv, weight_list);
 	}
 
 	// Compute the distance between points in the starting configuration and the end configuration for the interpolation
@@ -1136,13 +1124,14 @@ protected:
 					if (ImGui::Button("Blend"))
 					{
 						std::ostringstream new_attribute_name;
-						blending(*selected_mesh_, pos_aus_[0], 1.);
+		
 						for (int i = 0; i < attribute_to_blend_.size(); i++)
 						{
 							new_attribute_name << attribute_to_blend_[i]->name().c_str() << 'w' << weights[i] << '+';
-							highlight_difference(*selected_mesh_, attribute_to_blend_[i]);
-							blending(*selected_mesh_, attribute_to_blend_[i], weights[i]);
+							// highlight_difference(*selected_mesh_, attribute_to_blend_[i]);
 						}
+						blending(*selected_mesh_, attribute_to_blend_, weights);
+
 						std::shared_ptr<Attribute<Vec3>> new_attribute = add_attribute<Vec3, Vertex>(
 							*selected_mesh_,
 							new_attribute_name.str().substr(0, new_attribute_name.str().size() - 1).c_str());
@@ -1166,7 +1155,7 @@ protected:
 				{
 					std::shared_ptr<Attribute<Vec3>> repos_position =
 						cgogn::get_attribute<Vec3, Vertex>(*selected_mesh_, "AU00");
-					blending(*selected_mesh_, repos_position, weight);
+					blending(*selected_mesh_, {repos_position}, {weight});
 					start = false;
 					weight = -1.;
 					attribute_to_blend_.clear();
@@ -1181,7 +1170,7 @@ protected:
 				{
 					if (weight < 5.)
 					{
-						blending(*selected_mesh_, pos_aus_[nb_au], weight);
+						blending(*selected_mesh_, {pos_aus_[nb_au]}, {weight});
 						weight += 0.003;
 						i++;
 					}
@@ -1204,9 +1193,9 @@ protected:
 						else
 						{
 							weight = 0.;
-							blending(*selected_mesh_, pos_aus_[0], weight);
-							highlight_difference(*selected_mesh_, pos_aus_[nb_au]);
-							blending(*selected_mesh_, pos_aus_[nb_au], weight);
+							// blending(*selected_mesh_, pos_aus_[0], weight);
+							// highlight_difference(*selected_mesh_, pos_aus_[nb_au]);
+							blending(*selected_mesh_, {pos_aus_[nb_au]}, {weight});
 							i = 0;
 						}
 					}
@@ -1389,7 +1378,7 @@ protected:
 				{
 					if (matrix_incr == pos_aus_.size())
 					{
-						blending(*selected_mesh_, pos_aus_[0], 1.);
+		
 						create_matrix_test_and_jacob(matrix_jacob, matrix_incr, false, true);
 						matrix_incr++;
 						confidence_1 = true;
@@ -1400,15 +1389,15 @@ protected:
 					{
 						if (matrix_incr == 0)
 						{
-							blending(*selected_mesh_, pos_aus_[0], 1.);
+			
 							setup_vector_at_rest();
 							matrix_incr++;
-							blending(*selected_mesh_, pos_aus_[0], 1.);
+			
 							setup_csv_matrix(matrix_incr, pos_aus_[matrix_incr], weight_for_jacob_matrix);
 						}
 						else
 						{
-							blending(*selected_mesh_, pos_aus_[0], 1.);
+			
 							setup_csv_matrix(matrix_incr, pos_aus_[matrix_incr], weight_for_jacob_matrix);
 							if (matrix_incr >= 2)
 								create_matrix_test_and_jacob(matrix_jacob, matrix_incr, false, true);
@@ -1436,7 +1425,7 @@ protected:
 														  weight_confidence1, weight_confidence2,
 														  vector_confidence_lower_bound, vector_confidence_upper_bound,
 														  "./results_confidence.txt");
-							blending(*selected_mesh_, pos_aus_[0], 1.);
+			
 							std::cout << "Jacobian Matrix " << std::endl << matrix_jacob.format(OctaveFmt) << std::endl;
 							write_jacob_to_file("jacob.txt", matrix_jacob, vector_confidence_lower_bound,
 												vector_confidence_upper_bound);
@@ -1494,7 +1483,9 @@ protected:
 					std::mt19937 gen(rd());
 					std::uniform_int_distribution<> distr(1, pos_aus_.size() - 1);
 					std::ostringstream name;
-					blending(*selected_mesh_, pos_aus_[0], 1.);
+					std::vector<std::shared_ptr<Attribute<Vec3>>> attributes_au_used;
+					std::vector<float> weights_used;
+	
 					multi_au_test = true;
 					int nb_rand = 0;
 
@@ -1506,10 +1497,12 @@ protected:
 							nb_rand = distr(gen);
 						}
 						au_used.push_back(nb_rand);
+						attributes_au_used.push_back(pos_aus_[nb_rand]);
+						weights_used.push_back(1.);
 						name << pos_aus_[nb_rand]->name().c_str() << "+";
-						highlight_difference(*selected_mesh_, pos_aus_[nb_rand]);
-						blending(*selected_mesh_, pos_aus_[nb_rand], 1.);
+						//highlight_difference(*selected_mesh_, pos_aus_[nb_rand]);
 					}
+					blending(*selected_mesh_, attributes_au_used, weights_used);
 					name_mix_au = name.str().substr(0, name.str().size() - 1);
 					incr_nb_test--;
 				}
@@ -1543,7 +1536,7 @@ protected:
 
 					if (increment_matrix == pos_aus_.size())
 					{
-						blending(*selected_mesh_, pos_aus_[0], 1.);
+		
 						create_matrix_test_and_jacob(matrix_res_for_jacobian, increment_matrix, false, false);
 						test_matrix(matrix_jacob, matrix_res_for_jacobian, 1, "./results_test_jacobian.txt",
 									vector_confidence_lower_bound, vector_confidence_upper_bound, true);
@@ -1560,22 +1553,24 @@ protected:
 						if (increment_matrix == 1)
 						{
 							matrix_jacob = matrix_jacob.inverse();
-							blending(*selected_mesh_, pos_aus_[0], 1.);
-							for (int i = 1; i < pos_aus_.size(); i++)
-							{
-								highlight_difference(*selected_mesh_, pos_aus_[i]);
-								blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
-							}
+			
+							// for (int i = 1; i < pos_aus_.size(); i++)
+							// {
+							// 	highlight_difference(*selected_mesh_, pos_aus_[i]);
+							// 	blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
+							// }
+							//blending(*selected_mesh_, pos_aus_, matrix_jacob.row(increment_matrix - 1));
 							increment_matrix++;
 						}
 						else
 						{
-							blending(*selected_mesh_, pos_aus_[0], 1.);
-							for (int i = 1; i < pos_aus_.size(); i++)
-							{
-								highlight_difference(*selected_mesh_, pos_aus_[i]);
-								blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
-							}
+			
+							// for (int i = 1; i < pos_aus_.size(); i++)
+							// {
+							// 	highlight_difference(*selected_mesh_, pos_aus_[i]);
+							// 	blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
+							// }
+							//blending(*selected_mesh_, pos_aus_, matrix_jacob.row(increment_matrix - 1));
 							if (increment_matrix >= 2)
 							{
 								create_matrix_test_and_jacob(matrix_res_for_jacobian, increment_matrix, resize, false);
