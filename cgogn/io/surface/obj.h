@@ -195,10 +195,6 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 		return false;
 	}
 
-	std::cout << "nb_normals : " << surface_data_n.vertex_position_.size() << std::endl;
-	std::cout << "nb_position : " << surface_data_p.vertex_position_.size() << std::endl;
-	std::cout << "nb_texture : " << surface_data_tc.vertex_position_.size() << std::endl;
-
 	// rewind
 	ss.clear();
 	ss.seekg(0, std::ios::beg);

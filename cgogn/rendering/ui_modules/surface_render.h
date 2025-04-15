@@ -534,10 +534,11 @@ public:
 	}
 
 	void set_vertex_point_color(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_point_color)
-	{	
+	{
 		Parameters& p = parameters_[&v][&m];
 		if (p.vertex_point_color_ == vertex_point_color)
 			return;
+
 		p.vertex_point_color_ = vertex_point_color;
 		if (p.vertex_point_color_)
 		{
@@ -546,9 +547,11 @@ public:
 		}
 		else
 			p.vertex_point_color_vbo_ = nullptr;
+
 		p.param_point_sprite_color_->set_vbos({p.vertex_position_vbo_, p.vertex_point_color_vbo_});
 		p.param_point_sprite_color_size_->set_vbos(
 			{p.vertex_position_vbo_, p.vertex_point_color_vbo_, p.vertex_radius_vbo_});
+
 		v.request_update();
 	}
 
@@ -1096,16 +1099,16 @@ protected:
 								set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
 							});
 						if (ImGui::InputFloat("Scalar min##vertexcolor",
-											  &p.param_flat_scalar_per_vertex_->color_map_.min_value_, 0.01f, 1.0f,
-											  "%.3f"))
+											  &p.param_flat_scalar_per_vertex_->color_map_.min_value_, 0.000001f, 1.0f,
+											  "%.6f"))
 						{
 							p.param_phong_scalar_per_vertex_->color_map_.min_value_ =
 								p.param_flat_scalar_per_vertex_->color_map_.min_value_;
 							need_update = true;
 						}
 						if (ImGui::InputFloat("Scalar max##vertexcolor",
-											  &p.param_flat_scalar_per_vertex_->color_map_.max_value_, 0.01f, 1.0f,
-											  "%.3f"))
+											  &p.param_flat_scalar_per_vertex_->color_map_.max_value_, 0.000001f, 1.0f,
+											  "%.6f"))
 						{
 							p.param_phong_scalar_per_vertex_->color_map_.max_value_ =
 								p.param_flat_scalar_per_vertex_->color_map_.max_value_;

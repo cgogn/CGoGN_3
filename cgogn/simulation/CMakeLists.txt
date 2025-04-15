@@ -15,11 +15,8 @@ add_library(cgogn::simulation ALIAS ${PROJECT_NAME})
 set(src_list
     "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.h"
             "${CMAKE_CURRENT_LIST_DIR}/algos/shallow_water/riemann_solver.cpp"
-            "${CMAKE_CURRENT_LIST_DIR}/algos/XPBD/XPBD.h"
-            "${CMAKE_CURRENT_LIST_DIR}/algos/XPBD/XPBD.cpp"
 
                     "${CMAKE_CURRENT_LIST_DIR}/ui_modules/shallow_water.h"
-                    "${CMAKE_CURRENT_LIST_DIR}/ui_modules/XPBD.h"
 )
 target_sources(${PROJECT_NAME} PRIVATE ${src_list})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})

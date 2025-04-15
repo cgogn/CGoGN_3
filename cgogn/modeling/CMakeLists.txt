@@ -58,11 +58,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	LINKER_LANGUAGE CXX
 )
 
-target_compile_options(${PROJECT_NAME} PUBLIC -g)
-target_link_options(${PROJECT_NAME} PUBLIC -g)
-#target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
-#target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address -g)
-
 target_include_directories(${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CGOGN_SOURCE_DIR}>

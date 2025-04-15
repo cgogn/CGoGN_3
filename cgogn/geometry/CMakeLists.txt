@@ -48,7 +48,6 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/algos/registration.h"
         "${CMAKE_CURRENT_LIST_DIR}/algos/selection.h"
 		"${CMAKE_CURRENT_LIST_DIR}/algos/invertion.h"
-                "${CMAKE_CURRENT_LIST_DIR}/algos/volume.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/registration.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/surface_differential_properties.h"

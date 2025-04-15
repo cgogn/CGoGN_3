@@ -173,10 +173,11 @@ public:
 		mesh_provider_->emit_attribute_changed(m, vertex_position);
 	}
 
-	void remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position, Scalar edge_length_ratio,
-				bool preserve_features, bool lfs_adaptive)
+	void remesh(MESH& m, std::shared_ptr<Attribute<Vec3>>& vertex_position, Scalar density_factor,
+				bool preserve_features, bool adaptive, Scalar adaptive_tolerance_factor)
 	{
-		modeling::pliant_remeshing(m, vertex_position, edge_length_ratio, preserve_features, lfs_adaptive);
+		modeling::pliant_remeshing(m, vertex_position, density_factor, preserve_features, adaptive,
+								   adaptive_tolerance_factor);
 		mesh_provider_->emit_connectivity_changed(m);
 		mesh_provider_->emit_attribute_changed(m, vertex_position.get());
 	}
@@ -263,15 +264,18 @@ protected:
 				if (ImGui::Button("Simplify"))
 					simplify_mesh(*selected_mesh_, selected_vertex_position_.get());
 				ImGui::Separator();
-				static float remesh_edge_length_ratio = 1.0f;
-				ImGui::SliderFloat("Edge length target w.r.t. mean", &remesh_edge_length_ratio, 0.0, 3.0);
-				static bool preserve_features = false;
-				static bool lfs_adaptive = true;
+				static float density_factor = 1.0f;
+				ImGui::SliderFloat("Density factor", &density_factor, 0.1, 2.0, "%.4f");
+				static bool adaptive = true;
+				static float adaptive_tolerance_factor = 1.0f;
+				ImGui::Checkbox("Adaptive", &adaptive);
+				if (adaptive)
+					ImGui::SliderFloat("Tolerance factor", &adaptive_tolerance_factor, 0.0001, 2.0, "%.4f");
+				static bool preserve_features = true;
 				ImGui::Checkbox("Preserve features", &preserve_features);
-				ImGui::Checkbox("LFS adaptive", &lfs_adaptive);
 				if (ImGui::Button("Remesh"))
-					remesh(*selected_mesh_, selected_vertex_position_, remesh_edge_length_ratio, preserve_features,
-						   lfs_adaptive);
+					remesh(*selected_mesh_, selected_vertex_position_, density_factor, preserve_features, adaptive,
+						   adaptive_tolerance_factor);
 				ImGui::Separator();
 				if (ImGui::Button("Quad remesh"))
 					quad_remesh(*selected_mesh_, selected_vertex_position_);
