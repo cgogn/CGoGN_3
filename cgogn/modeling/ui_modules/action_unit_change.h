@@ -52,6 +52,7 @@ namespace ui
 
 using geometry::Scalar;
 using geometry::Vec3;
+using geometry::Vec4;
 
 const Vec3 GREEN = Vec3(0, 128, 0);
 const Vec3 BLUE = Vec3(0, 0, 255);
@@ -132,8 +133,10 @@ public:
 	{
 		std::shared_ptr<Attribute<Vec3>> vertex_position = cgogn::get_attribute<Vec3, Vertex>(m, "position");
 		Attribute<Vec3>* vertex_pos_value = vertex_position.get();
+		Vec3 tmp = Vec3(0,0,0);
 		parallel_foreach_cell(m, [&](Vertex v) -> bool {
 			value<Vec3>(m, vertex_pos_value, v) = value<Vec3>(m, au_position, v);
+			tmp = value<Vec3>(m, au_position, v);
 			return true;
 		});
 		mesh_provider_->emit_attribute_changed(m, vertex_pos_value);
@@ -240,7 +243,6 @@ public:
 
 				std::ostringstream matrix_csv_path;
 				matrix_csv_path << directory_ << "CSV/Matrix.csv";
-				// path_csv_.push_back(matrix_csv_path.str());
 				std::string path = matrix_csv_path.str();
 				csv_parser(path, ',', csv_weights_detected_, csv_weights_confirm_, vector_OF_rest_csv_);
 				set_matrix_jacob();
@@ -963,7 +965,8 @@ public:
 		Vec3 diff_distance_repos = Vec3(0, 0, 0);
 		float epsilon = 0.0001;
 
-		parallel_foreach_cell(m, [&](Vertex v) -> bool {
+		// need to check if parallel_foreach_cell messes with the calculations 
+		foreach_cell(m, [&](Vertex v) -> bool {
 			value<Vec3>(m, vertex_position, v) = value<Vec3>(m, repos_position, v);
 			Vec3 result = Vec3(0, 0, 0);
 			float nb_au_influence = 0.;
@@ -1018,7 +1021,6 @@ public:
 				weight_list.push_back((csv_weights_detected_(incr - 1, i - 1) * (1 - poids_frame)) +
 						 (csv_weights_detected_(incr, i - 1) * poids_frame));
 		}
-		//highlight_difference(*selected_mesh_, pos_aus_[i]);
 		blending(*selected_mesh_, attributes_csv, weight_list);
 	}
 
@@ -1098,14 +1100,13 @@ protected:
 				static const char* current_item_mesh = NULL;
 				if (ImGui::BeginCombo(
 						"Meshes to blend",
-						current_item_mesh)) // The second parameter is the label previewed before opening the combo.
+						current_item_mesh))
 				{
 
 					for (int n = 0; n < pos_aus_.size(); n++)
 					{
 						bool is_selected = (current_item_mesh ==
-											pos_aus_[n]->name().c_str()); // You can store your selection however you
-																		  // want, outside or inside your objects
+											pos_aus_[n]->name().c_str()); 
 						if (ImGui::Selectable(pos_aus_[n]->name().c_str(), is_selected))
 						{
 							current_item_mesh = pos_aus_[n]->name().c_str();
@@ -1113,12 +1114,11 @@ protected:
 											pos_aus_[n]) != std::end(attribute_to_blend_)))
 							{
 								attribute_to_blend_.push_back(pos_aus_[n]);
-								weights.push_back(1.5);
+								weights.push_back(1.);
 							}
 						}
 						if (is_selected)
-							ImGui::SetItemDefaultFocus(); // You may set the initial focus when opening the combo
-														  // (scrolling + for keyboard navigation support)
+							ImGui::SetItemDefaultFocus();
 					}
 					ImGui::EndCombo();
 				}
@@ -1140,7 +1140,6 @@ protected:
 						for (int i = 0; i < attribute_to_blend_.size(); i++)
 						{
 							new_attribute_name << attribute_to_blend_[i]->name().c_str() << 'w' << weights[i] << '+';
-							// highlight_difference(*selected_mesh_, attribute_to_blend_[i]);
 						}
 						blending(*selected_mesh_, attribute_to_blend_, weights);
 
@@ -1148,7 +1147,6 @@ protected:
 							*selected_mesh_,
 							new_attribute_name.str().substr(0, new_attribute_name.str().size() - 1).c_str());
 
-						// highlight_difference(*selected_mesh_,attribute_to_blend_[0].get());
 						// start = true;
 						attribute_to_blend_.clear();
 						weights.clear();
@@ -1159,8 +1157,6 @@ protected:
 				{
 					highlight_difference(*selected_mesh_, pos_aus_[1]);
 					start = true;
-					// attribute_to_blend_.clear();
-					// weights.clear();
 				}
 
 				if (ImGui::Button("Clear"))
@@ -1205,8 +1201,6 @@ protected:
 						else
 						{
 							weight = 0.;
-							// blending(*selected_mesh_, pos_aus_[0], weight);
-							// highlight_difference(*selected_mesh_, pos_aus_[nb_au]);
 							blending(*selected_mesh_, {pos_aus_[nb_au]}, {weight});
 							i = 0;
 						}
@@ -1282,10 +1276,10 @@ protected:
 						poids_frame =
 							(timer - timestamp_csv_[incr - 1]) / (timestamp_csv_[incr] - timestamp_csv_[incr - 1]);
 					}
-					if (nb_screen > 0)
-					{
-						take_screenshot(nb_screen - 1, "CSV");
-					}
+					// if (nb_screen > 0)
+					// {
+					// 	take_screenshot(nb_screen - 1, "CSV");
+					// }
 					std::cout << "timer : " << timer << std::endl;
 					std::cout << "poids_frame : " << poids_frame << std::endl;
 					std::cout << "timestamp_csv : " << timestamp_csv_[incr] << std::endl;
@@ -1568,7 +1562,7 @@ protected:
 			
 							// for (int i = 1; i < pos_aus_.size(); i++)
 							// {
-							// 	highlight_difference(*selected_mesh_, pos_aus_[i]);
+							//
 							// 	blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
 							// }
 							//blending(*selected_mesh_, pos_aus_, matrix_jacob.row(increment_matrix - 1));
@@ -1579,7 +1573,7 @@ protected:
 			
 							// for (int i = 1; i < pos_aus_.size(); i++)
 							// {
-							// 	highlight_difference(*selected_mesh_, pos_aus_[i]);
+							//
 							// 	blending(*selected_mesh_, pos_aus_[i], matrix_jacob(increment_matrix - 1, i - 1));
 							// }
 							//blending(*selected_mesh_, pos_aus_, matrix_jacob.row(increment_matrix - 1));
