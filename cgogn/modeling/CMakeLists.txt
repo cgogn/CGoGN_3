@@ -47,6 +47,7 @@ set(src_list
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/tubular_mesh_module.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_deformation.h"
 		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/volume_mr_modeling.h"
+		"${CMAKE_CURRENT_LIST_DIR}/ui_modules/action_unit_change.h"
 )
 target_sources(${PROJECT_NAME} PRIVATE ${src_list})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${src_list})

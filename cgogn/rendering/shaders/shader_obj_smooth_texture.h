@@ -21,25 +21,24 @@
  *                                                                              *
  *******************************************************************************/
 
-#ifndef CGOGN_RENDERING_SHADERS_OBJ_MESHUV_TEXTURE_H_
-#define CGOGN_RENDERING_SHADERS_OBJ_MESHUV_TEXTURE_H_
+#ifndef CGOGN_RENDERING_SHADERS_OBJ_SMOOTH_TEXTURE_H_
+#define CGOGN_RENDERING_SHADERS_OBJ_SMOOTH_TEXTURE_H_
 
 #include <cgogn/rendering/cgogn_rendering_export.h>
 #include <cgogn/rendering/shader_program.h>
 #include <cgogn/rendering/texture.h>
-
 namespace cgogn
 {
 
 namespace rendering
 {
-DECLARE_SHADER_CLASS(ObjMeshUV, true, CGOGN_STR(ObjMeshUV))
+DECLARE_SHADER_CLASS(ObjSmoothTexture, true, CGOGN_STR(ObjSmoothTexture))
 
-class CGOGN_RENDERING_EXPORT ShaderParamObjMeshUV : public ShaderParam
+class CGOGN_RENDERING_EXPORT ShaderParamObjSmoothTexture : public ShaderParam
 {
 	void set_uniforms() override;
 
-	std::array<VBO*, 1> vbos_;
+	std::array<VBO*, 2> vbos_;
 	inline void set_texture_buffer_vbo(uint32 i, VBO* vbo) override
 	{
 		vbos_[i] = vbo;
@@ -49,15 +48,20 @@ class CGOGN_RENDERING_EXPORT ShaderParamObjMeshUV : public ShaderParam
 
 	enum VBOName : uint32
 	{
-		VERTEX_TC = 0,
+		VERTEX_POSITION = 0,
+		VERTEX_TC,
 	};
 
 public:
-	using ShaderType = ShaderObjMeshUV;
-	GLVec2 ratio_;
+	GLVec3 light_position_;
+    std::shared_ptr<Texture2D> texture_;
+    std::shared_ptr<Texture2D> texture_norm;
+	bool draw_param_;
 
-	ShaderParamObjMeshUV(ShaderType* sh)
-		: ShaderParam(sh)
+    using ShaderType = ShaderObjSmoothTexture;
+
+    ShaderParamObjSmoothTexture(ShaderType* sh)
+		: ShaderParam(sh), light_position_(1000, 10000, 100000), texture_(nullptr), draw_param_(false)
 	{
 		for (auto& v : vbos_)
 			v = nullptr;
@@ -68,4 +72,4 @@ public:
 
 } // namespace cgogn
 
-#endif // CGOGN_RENDERING_SHADERS_OBJ_MESHUV_TEXTURE_H__
+#endif // CGOGN_RENDERING_SHADERS_OBJ_SMOOTH_TEXTURE_H__

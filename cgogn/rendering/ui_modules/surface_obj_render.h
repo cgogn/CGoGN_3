@@ -33,6 +33,7 @@
 
 
 #include <cgogn/rendering/shaders/shader_obj_flat_texture.h>
+#include <cgogn/rendering/shaders/shader_obj_smooth_texture.h>
 #include <cgogn/rendering/shaders/shader_obj_meshuv.h>
 #include <cgogn/rendering/shaders/shader_mesh_2d_edges.h>
 #include <cgogn/rendering/texture.h>
@@ -76,7 +77,8 @@ class SurfaceObjRender : public ViewModule
 			: vertex_position_(nullptr), vertex_position_vbo_(nullptr), vertex_tc_(nullptr), vertex_tc_vbo_(nullptr),
 			  draw_flatten_(false), draw_bound_(BoundaryNONE)
 		{
-			param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
+            param_textured_ = rendering::ShaderObjFlatTexture::generate_param();
+            param_textured_norm_ = rendering::ShaderObjSmoothTexture::generate_param();
 			param_flatten_ = rendering::ShaderObjMeshUV::generate_param();
 			param_boundary_edges_ = rendering::ShaderMesh2DEdges::generate_param();
 		}
@@ -84,7 +86,8 @@ class SurfaceObjRender : public ViewModule
 		CGOGN_NOT_COPYABLE_NOR_MOVABLE(Parameters);
 
 		std::unique_ptr<rendering::ShaderObjMeshUV::Param> param_flatten_;
-		std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_textured_;
+        std::unique_ptr<rendering::ShaderObjFlatTexture::Param> param_textured_;
+        std::unique_ptr<rendering::ShaderObjSmoothTexture::Param> param_textured_norm_;
 		std::unique_ptr<rendering::ShaderMesh2DEdges::Param> param_boundary_edges_;		
 
 		std::shared_ptr<Attribute<Vec3>> vertex_position_;
@@ -290,6 +293,17 @@ public:
 		tex_->load(img);
 	}
 
+    void load_texture_norm(const std::string& img_name)
+    {
+        rendering::GLImage img(img_name);
+        tex_n->load(img);
+    }
+
+    void load_texture_norm(const rendering::GLImage& img)
+    {
+        tex_n->load(img);
+    }
+
 	void set_vertex_position(View& v, const MESH& m, const std::shared_ptr<Attribute<Vec3>>& vertex_position)
 	{
 		Parameters& p = parameters_[&v][&m];
@@ -314,6 +328,7 @@ public:
 		}
 
 		p.param_textured_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
+        p.param_textured_norm_->set_vbos({p.vertex_position_vbo_, p.vertex_tc_vbo_});
 		p.param_flatten_->set_vbos({p.vertex_tc_vbo_});
 		p.param_boundary_edges_->set_vbos({p.vertex_tc_vbo_});
 		v.request_update();	
@@ -330,6 +345,10 @@ public:
 			std::vector<std::pair<GLenum, GLint>>{
 			{GL_TEXTURE_MIN_FILTER, GL_LINEAR}, {GL_TEXTURE_MAG_FILTER, GL_NEAREST}, {GL_TEXTURE_WRAP_S, GL_REPEAT},
 													   {GL_TEXTURE_WRAP_T, GL_REPEAT}});
+        tex_n = std::make_shared<rendering::Texture2D>(
+            std::vector<std::pair<GLenum, GLint>>{
+            {GL_TEXTURE_MIN_FILTER, GL_LINEAR}, {GL_TEXTURE_MAG_FILTER, GL_NEAREST}, {GL_TEXTURE_WRAP_S, GL_REPEAT},
+                                                       {GL_TEXTURE_WRAP_T, GL_REPEAT}});
 	}
 
 	void draw(View* view) override
@@ -379,7 +398,18 @@ public:
 			}
 			else
 			{
-				if (p.param_textured_->attributes_initialized())
+                if(p.param_textured_norm_->attributes_initialized() && tex_n->width() != 0){
+                    p.param_textured_norm_->texture_ = tex_;
+                    p.param_textured_norm_->texture_norm = tex_n;
+                    p.tri_ebos_[0].bind_texture_buffer(10);
+                    p.tri_ebos_[1].bind_texture_buffer(11);
+                    p.param_textured_norm_->bind(proj_matrix, view_matrix);
+                    //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, p.tri_ebos_[0].size() / 3);
+                    glDrawArrays(GL_TRIANGLES, 0, p.tri_ebos_[0].size());
+                    p.param_textured_norm_->release();
+                    p.tri_ebos_[1].release_texture_buffer(11);
+                    p.tri_ebos_[0].release_texture_buffer(10);
+                }else if (p.param_textured_->attributes_initialized())
 				{
 					p.param_textured_->texture_ = tex_;
 					p.tri_ebos_[0].bind_texture_buffer(10);
@@ -459,6 +489,7 @@ private:
 	std::unordered_map<const MESH*, std::vector<std::shared_ptr<boost::synapse::connection>>> mesh_connections_;
 	MeshProvider<MESH>* mesh_provider_;
 	std::shared_ptr<rendering::Texture2D> tex_;
+    std::shared_ptr<rendering::Texture2D> tex_n;
 	std::unordered_map<const MESH*, std::pair<MESH*,MESH*>> attached_meshes_;
 };
 
