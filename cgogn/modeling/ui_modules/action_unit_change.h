@@ -227,13 +227,14 @@ public:
 			blendingFile << "then\n";
 			blendingFile << "	for au in \"${AU[@]}\"; do \n";
 			blendingFile << "		tmp=$au\n";
-			blendingFile << "		${EXECDIR}FeatureExtraction -aus -out_dir ${OUTDIR} -fdir ${FDIR}${tmp}/\n\n";
+			blendingFile << "		${EXECDIR}FeatureExtraction -aus -out_dir ${OUTDIR} -fdir ${FDIR}${tmp}/ -of ${tmp}\n\n";
 			blendingFile << "		${EXECDIR}FeatureExtraction -aus -au_static -out_dir ${OUTDIR} -fdir ${FDIR}${tmp}/ -of ${tmp}_static\n\n";
 			blendingFile << "	done\n";
 			blendingFile << "else\n";
 			blendingFile << "	for au in \"${AU[@]}\"; do \n";
 			blendingFile << "		tmp=$au\n";
-			blendingFile << "		${EXECDIR}FeatureExtraction -aus -au_static -out_dir ${OUTDIR} -fdir ${FDIR}${tmp}/\n\n";
+			blendingFile << "		${EXECDIR}FeatureExtraction -aus -au_static -out_dir ${OUTDIR} -fdir ${FDIR}${tmp}/ -of ${tmp}\n\n";
+			blendingFile << "		echo ${OUTDIR}\n\n";
 			blendingFile << "	done\n";
 			blendingFile << "fi\n";
 
@@ -941,7 +942,7 @@ protected:
 			
 		}
 
-		static int nb_au = 1;
+		static int nb_au = pos_aus_.size() - 1;
 		if (do_blending)
 		{
 			take_screenshot(nb_screenshot, pos_aus_[nb_au]->name());
@@ -962,7 +963,7 @@ protected:
 							<< " " << directory_ << "CSV_VIDEO/" << " " << path_openface_ << "build/bin/"
 							<< " "
 							<< "-python" << " " << DEFAULT_PATH << "CGoGN_3/data/jacob_alphas.py"
-							<< " -static" << " " << directory_ << "CSV_VIDEO/";
+							<< " -static" << " " << DEFAULT_PATH << "CGoGN_3/data/";
 					if (system(command.str().c_str()) == 0) 
 					{
 						std::cout << "Command succesfully executed" << std::endl;
