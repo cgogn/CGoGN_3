@@ -123,6 +123,60 @@ public:
 	bool intersect(Ray ray, Hit* hit_ptr = nullptr) const;
 	bool closest_point(Vec3fType vertex, std::pair<IdxType, Vec3fType>* cp_ptr, double max_dist = inf) const;
 	Vec3fType closest_point(Vec3fType vertex);
+	size_t node_count() const
+	{
+		return num_nodes;
+	}
+	size_t triangle_count() const
+	{
+		return tris.size();
+	}
+	bool is_leaf(size_t nid) const
+	{
+		return nodes[nid].left == NAI && nodes[nid].right == NAI;
+	}
+	std::pair<size_t, size_t> children(size_t nid) const
+	{
+		const Node& n = nodes[nid];
+		return {(size_t)n.left, (size_t)n.right};
+	}
+	const acc::AABB<Vec3fType>& node_aabb(size_t nid) const
+	{
+		return nodes[nid].aabb;
+	}
+	std::pair<size_t, size_t> range(size_t nid) const
+	{
+		const Node& n = nodes[nid];
+		return {(size_t)n.first, (size_t)n.last};
+	}
+	std::size_t get_primitive_index(std::size_t internal_idx) const
+	{
+		return indices[internal_idx];
+	}
+
+	template <typename Fucn>
+	void for_each_primitive_in_node(std::size_t node_id, Fucn&& f) const
+	{
+		if (is_leaf(node_id))
+		{
+			auto [first, last] = range(node_id);
+			for (std::size_t i = first; i < last; ++i)
+			{
+				std::size_t prim =get_primitive_index(i);
+				f(prim);
+			}
+			return;
+		}
+		auto [L, R] = children(node_id);
+		for_each_primitive_in_node(L, f);
+		for_each_primitive_in_node(R, f);
+	}
+
+	void collect_primitives_id(std::size_t node_id, std::vector<std::size_t>& out) const
+	{
+		out.clear();
+		for_each_primitive_in_node(node_id, [&](std::size_t pid) { out.push_back(pid); });
+	}
 };
 
 template <typename IdxType, typename Vec3fType>
@@ -311,7 +365,7 @@ std::pair<typename BVHTree<IdxType, Vec3fType>::Node::ID, typename BVHTree<IdxTy
 	std::vector<AABB> right_aabbs(n);
 	for (char d = 0; d < 3; ++d)
 	{
-		std::sort(&indices[node.first], &indices[node.last], [&aabbs, d](IdxType first, IdxType second) -> bool {
+		std::sort(&indices[node.first], &indices[node.last-1], [&aabbs, d](IdxType first, IdxType second) -> bool {
 			return mid(aabbs[first], d) < mid(aabbs[second], d) ||
 				   (mid(aabbs[first], d) == mid(aabbs[second], d) && first < second);
 		});
@@ -346,7 +400,7 @@ std::pair<typename BVHTree<IdxType, Vec3fType>::Node::ID, typename BVHTree<IdxTy
 	char d;
 	IdxType i;
 	std::tie(d, i) = split;
-	std::sort(&indices[node.first], &indices[node.last], [&aabbs, d](std::size_t first, std::size_t second) -> bool {
+	std::sort(&indices[node.first], &indices[node.last-1], [&aabbs, d](std::size_t first, std::size_t second) -> bool {
 		return mid(aabbs[first], d) < mid(aabbs[second], d) ||
 			   (mid(aabbs[first], d) == mid(aabbs[second], d) && first < second);
 	});
