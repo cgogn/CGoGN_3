@@ -24,6 +24,8 @@
 #ifndef CGOGN_UI_IMGUI_HELPERS_H_
 #define CGOGN_UI_IMGUI_HELPERS_H_
 
+#include <optional>
+
 #include <imgui/imgui.h>
 
 #include <cgogn/core/ui_modules/mesh_data.h>
@@ -83,6 +85,44 @@ void imgui_combo_attribute(const MESH& m, const AttributeP& selected_attribute,
 		if (ImGui::Button(("X##" + label).c_str()))
 			on_change(nullptr);
 	}
+}
+
+template <typename CELL, typename MESH, typename FUNCB, typename FUNC>
+void imgui_combo_any_attribute(const MESH& m,
+                           const std::shared_ptr<typename mesh_traits<MESH>::AttributeGen>& selected_attribute,
+                           const std::string& label, const FUNCB& should_show, const FUNC& on_change)
+{
+    using AttributeGen = typename mesh_traits<MESH>::AttributeGen;
+    static_assert(is_func_parameter_same<FUNC, const std::shared_ptr<AttributeGen>&>::value,
+                  "Wrong function attribute parameter type");
+
+    std::optional<const std::shared_ptr<AttributeGen>> new_attribute = {};
+
+    if (ImGui::BeginCombo(label.c_str(), selected_attribute ? selected_attribute->name().c_str() : "-- select --"))
+    {
+        foreach_attribute<CELL>(m, [&](const std::shared_ptr<AttributeGen>& attribute) {
+            if (!should_show(attribute))
+                return;
+            bool is_selected = attribute == selected_attribute;
+            if (ImGui::Selectable(attribute->name().c_str(), is_selected))
+            {
+                if (attribute != selected_attribute)
+                    new_attribute.emplace(attribute);
+            }
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        });
+        ImGui::EndCombo();
+    }
+    if (new_attribute)
+        on_change(std::move(*new_attribute));
+    if (selected_attribute)
+    {
+        double X_button_width = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2;
+        ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - float32(X_button_width));
+        if (ImGui::Button(("X##" + label).c_str()))
+            on_change(nullptr);
+    }
 }
 
 template <typename CELL, typename MESH, typename FUNC>

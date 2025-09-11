@@ -80,6 +80,8 @@ int main(int argc, char** argv)
 	}
 	else
 		sor.load_texture(std::string(argv[2]));
+	if (argc >= 4)
+        sor.load_texture_norm(std::string(argv[3]));
 
 
 	cgogn::ui::View* v1 = app.current_view();

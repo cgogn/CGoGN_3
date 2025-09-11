@@ -27,6 +27,9 @@
 #include <cgogn/io/surface/surface_import.h>
 #include <cgogn/io/utils.h>
 
+#include <cgogn/core/functions/attributes.h>
+#include <cgogn/core/functions/mesh_info.h>
+
 #include <fstream>
 using namespace std::literals::string_literals;
 
@@ -335,14 +338,70 @@ bool import_OBJ_tn(MESH& m_p, MESH& m_tc, MESH& m_n, const std::string& filename
 	return true;
 }
 
-
+// Changes connectivity between obj files but when you load again the file the new connectivity works
+// It works but it also kinda doesn't
 template <typename MESH>
-void export_OBJ(MESH& m, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
-				const std::string& filename)
+void export_OBJ(MESH& m_p, MESH& m_no, MESH& m_tc, const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* vertex_position,
+			const typename mesh_traits<MESH>::template Attribute<geometry::Vec3>* normal,
+			const typename mesh_traits<MESH>::template Attribute<geometry::Vec2>* texture_coord,
+			const std::string& filename)
 {
 	static_assert(mesh_traits<MESH>::dimension == 2, "MESH dimension should be 2");
 
-	// TODO
+	using Vertex = typename mesh_traits<MESH>::Vertex;
+	using Face = typename mesh_traits<MESH>::Face;
+
+	using Vec3 = geometry::Vec3;
+	using Vec2 = geometry::Vec2;
+
+	auto vertex_id = add_attribute<uint32, Vertex>(m_p, "__vertex_id");
+	auto normal_id = add_attribute<uint32, Vertex>(m_no, "__normal_id");
+	auto texture_id = add_attribute<uint32, Vertex>(m_tc, "__texture_id");
+
+	std::ofstream out_file;
+	out_file.open(filename);
+	out_file << "mtllib "<< filename.substr(0,filename.size() - 4) << ".mtl" << "\n";
+	out_file << "g default\n";
+
+	uint32 id = 1;
+	foreach_cell(m_p, [&](Vertex v) -> bool {
+		const geometry::Vec3& p = value<geometry::Vec3>(m_p, vertex_position, v);
+		value<uint32>(m_p, vertex_id, v) = id++;
+		out_file << "v " << p[0] << " " << p[1] << " " << p[2] << "\n";
+		return true;
+	});
+
+	id = 1;
+	foreach_cell(m_tc, [&](Vertex v) -> bool {
+		const geometry::Vec2& p = value<geometry::Vec2>(m_tc, texture_coord, v);
+		value<uint32>(m_tc, texture_id, v) = id++;
+		out_file << "vt " << p[0] << " " << p[1] << "\n";
+		return true;
+	});
+
+	id = 1;
+	foreach_cell(m_no, [&](Vertex v) -> bool {
+		const geometry::Vec3& p = value<geometry::Vec3>(m_no, normal, v);
+		value<uint32>(m_no, normal_id, v) = id++;
+		out_file << "vn " << p[0] << " " << p[1] << " " << p[2] << "\n";
+		return true;
+	});
+
+	foreach_cell(m_p, [&](Face f) -> bool {
+		out_file << "f";
+		foreach_incident_vertex(m_p, f, [&](Vertex v) -> bool {
+			out_file << " " << value<uint32>(m_p, vertex_id, v) << "/" << value<uint32>(m_tc, texture_id, v) << "/" <<value<uint32>(m_no, normal_id, v) ;
+			return true;
+		});
+		out_file << "\n";
+		return true;
+	});
+
+	remove_attribute<Vertex>(m_p, vertex_id);
+	remove_attribute<Vertex>(m_tc, texture_id);
+	remove_attribute<Vertex>(m_no, normal_id);
+
+	out_file.close();
 }
 
 } // namespace io
