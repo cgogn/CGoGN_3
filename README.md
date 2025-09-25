@@ -1,4 +1,3 @@
-# CGoGN_3
 
 CGoGN is a C++ library that provides:
 - an implementation of several mesh data structures (with a versatile cells attributes mechanism):
@@ -38,3 +37,4 @@ VS 2013 or better required
 - Push your branch with its commits in your GitHub for
 - Create a Pull Request from your "[user]" branch to the "develop" branch of this repository
 - If you want to update your repository with commits from other contributors, with your "[user]" branch as current branch, you can pull the "develop" branch of this repository. This will fetch new commits and merge them in your branch.
+
