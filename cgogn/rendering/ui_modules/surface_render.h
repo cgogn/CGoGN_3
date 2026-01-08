@@ -1099,16 +1099,16 @@ protected:
 								set_vertex_scalar(*selected_view_, *selected_mesh_, attribute);
 							});
 						if (ImGui::InputFloat("Scalar min##vertexcolor",
-											  &p.param_flat_scalar_per_vertex_->color_map_.min_value_, 0.01f, 1.0f,
-											  "%.3f"))
+											  &p.param_flat_scalar_per_vertex_->color_map_.min_value_, 0.000001f, 1.0f,
+											  "%.6f"))
 						{
 							p.param_phong_scalar_per_vertex_->color_map_.min_value_ =
 								p.param_flat_scalar_per_vertex_->color_map_.min_value_;
 							need_update = true;
 						}
 						if (ImGui::InputFloat("Scalar max##vertexcolor",
-											  &p.param_flat_scalar_per_vertex_->color_map_.max_value_, 0.01f, 1.0f,
-											  "%.3f"))
+											  &p.param_flat_scalar_per_vertex_->color_map_.max_value_, 0.000001f, 1.0f,
+											  "%.6f"))
 						{
 							p.param_phong_scalar_per_vertex_->color_map_.max_value_ =
 								p.param_flat_scalar_per_vertex_->color_map_.max_value_;

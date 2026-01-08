@@ -158,6 +158,8 @@ class SphereFitting : public ViewModule
 
 		// bool auto_split_outside_spheres_ = false;
 
+		bool use_sqem_term_ = true;
+
 		bool sphere_correction_ = true;
 		CorrectionMode sphere_correction_mode_ = CORRECT_ALWAYS;
 
@@ -727,9 +729,15 @@ public:
 				Scalar dist_eucl = ((vp - center).norm() - radius);
 				dist_eucl *= dist_eucl;
 				dist_eucl *= a;
-				Scalar dist_sqem =
-					(*p.surface_vertex_quadric_)[v_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
-				Scalar dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
+				Scalar dist;
+				if (p.use_sqem_term_)
+				{
+					Scalar dist_sqem =
+						(*p.surface_vertex_quadric_)[v_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
+					dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
+				}
+				else
+					dist = dist_eucl;
 				if (dist < min_distance)
 				{
 					min_distance = dist;
@@ -793,10 +801,15 @@ public:
 				Scalar dist_eucl = ((*p.surface_vertex_position_)[sv_index] - center).norm() - radius;
 				dist_eucl *= dist_eucl;
 				dist_eucl *= a;
-				Scalar dist_sqem =
-					(*p.surface_vertex_quadric_)[sv_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
-				Scalar dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
-				// Scalar dist = dist_sqem + p.sqem_update_lambda_ * dist_eucl;
+				Scalar dist;
+				if (p.use_sqem_term_)
+				{
+					Scalar dist_sqem =
+						(*p.surface_vertex_quadric_)[sv_index].eval(Vec4(center.x(), center.y(), center.z(), radius));
+					dist = dist_sqem + p.sqem_clustering_lambda_ * dist_eucl;
+				}
+				else
+					dist = dist_eucl;
 				(*p.surface_vertex_error_)[sv_index] = dist;
 				cluster_error += dist;
 			}
@@ -960,6 +973,61 @@ public:
 	// 	(*p.spheres_radius_)[sphere_index] = radius;
 	// }
 
+	void update_sphere_euclidean(SurfaceParameters& p, PVertex sphere)
+	{
+		uint32 sphere_index = index_of(*p.spheres_, sphere);
+
+		const std::vector<SVertex>& cluster = (*p.spheres_cluster_)[sphere_index];
+
+		Vec3 c = (*p.spheres_position_)[sphere_index];
+		Scalar r = (*p.spheres_radius_)[sphere_index];
+
+		Eigen::MatrixXd J(cluster.size(), 4);
+		J.setZero();
+		Eigen::VectorXd b(cluster.size());
+		b.setZero();
+		uint32 idx = 0;
+		Eigen::VectorXd s(4);
+		s << c[0], c[1], c[2], r;
+		for (uint32 i = 0; i < 10; ++i)
+		{
+			idx = 0;
+			for (SVertex v : cluster)
+			{
+				uint32 v_index = index_of(*p.surface_, v);
+				const Vec3& pos = (*p.surface_vertex_position_)[v_index];
+
+				Vec3 d = pos - Vec3(s(0), s(1), s(2));
+				Scalar l = d.norm();
+				if (p.point_cloud_mode_)
+				{
+					Scalar a = sqrt((*p.surface_vertex_area_pc_)[v_index]);
+					J.row(idx) = Eigen::Vector4d(-(d[0] / l), -(d[1] / l), -(d[2] / l), -1.0) * a;
+					b(idx) = -(l - s(3)) * a;
+				}
+				else
+				{
+					Scalar a = sqrt((*p.surface_vertex_area_surf_)[v_index]);
+					J.row(idx) = Eigen::Vector4d(-(d[0] / l), -(d[1] / l), -(d[2] / l), -1.0) * a;
+					b(idx) = -(l - s(3)) * a;
+				}
+				++idx;
+			};
+
+			Eigen::LDLT<Eigen::MatrixXd> solver(J.transpose() * J);
+			Eigen::VectorXd delta_s = solver.solve(J.transpose() * b);
+			s += delta_s;
+			if (delta_s.norm() < 1e-6) // stop early if converged
+				break;
+		}
+
+		c = s.head<3>();
+		r = s[3];
+
+		(*p.spheres_position_)[sphere_index] = c;
+		(*p.spheres_radius_)[sphere_index] = r;
+	}
+
 	void update_sphere_sqem(SurfaceParameters& p, PVertex sphere)
 	{
 		uint32 sphere_index = index_of(*p.spheres_, sphere);
@@ -1121,7 +1189,10 @@ public:
 		// }
 		// case SQEM: {
 		parallel_foreach_cell(*p.spheres_, [&](PVertex v) -> bool {
-			update_sphere_sqem(p, v);
+			if (p.use_sqem_term_)
+				update_sphere_sqem(p, v);
+			else
+				update_sphere_euclidean(p, v);
 			if (p.sphere_correction_ && p.sphere_correction_mode_ == CORRECT_ALWAYS)
 				correct_sphere(p, v);
 			value<bool>(*p.spheres_, p.spheres_do_not_split_, v) = false;
@@ -1675,6 +1746,8 @@ protected:
 				// }
 
 				// ImGui::Checkbox("Auto split outside spheres", &p.auto_split_outside_spheres_);
+
+				ImGui::Checkbox("Use SQEM term", &p.use_sqem_term_);
 
 				if (ImGui::Button("Update spheres"))
 				{
