@@ -6,7 +6,7 @@ project(cgogn_core
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
-find_package(Eigen3 3.2)
+find_package(Eigen3 3.2...<9.9 REQUIRED NO_MODULE)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

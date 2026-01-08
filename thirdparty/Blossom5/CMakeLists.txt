@@ -3,7 +3,7 @@ project(Blossom5 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 
-# find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# find_package(Eigen3 3.3.. REQUIRED NO_MODULE)
 
 set(HEADER_FILES
         LCA.h
