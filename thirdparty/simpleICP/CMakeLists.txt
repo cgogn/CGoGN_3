@@ -3,7 +3,7 @@ project(simpleICP LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(Eigen3 3.3...<9.9 REQUIRED NO_MODULE)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 set(HEADER_FILES
         simpleicp.h
