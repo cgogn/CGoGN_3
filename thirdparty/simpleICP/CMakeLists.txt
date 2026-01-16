@@ -3,8 +3,7 @@ project(simpleICP LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(Eigen3 3.3.0 REQUIRED NO_MODULE)
-
+find_package(Eigen3 3.3...5.9 REQUIRED NO_MODULE)
 set(HEADER_FILES
         simpleicp.h
         pointcloud.h
