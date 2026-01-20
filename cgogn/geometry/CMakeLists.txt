@@ -9,7 +9,9 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 # find_package(Eigen3 3.2...<9.9  REQUIRED NO_MODULE)
-find_package(Eigen3 3.2...5.9  REQUIRED NO_MODULE)
+#find_package(Eigen3 3.2...5.9  REQUIRED NO_MODULE)
+find_package(${FIND_EIGEN_PARAM})
+
 
 add_library(${PROJECT_NAME} STATIC "")
 add_library(cgogn::geometry ALIAS ${PROJECT_NAME})
