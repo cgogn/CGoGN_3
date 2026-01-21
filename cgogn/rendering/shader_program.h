@@ -32,6 +32,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <cassert>
 
 #define DECLARE_SHADER_CLASS(NAME, TB, STRNAME)                                                                 \
 	class ShaderParam##NAME;                                                                                    \

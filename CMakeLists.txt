@@ -8,6 +8,12 @@ project(CGoGN
 	VERSION ${CGOGN_VERSION_MAJOR}.${CGOGN_VERSION_MINOR}.${CGOGN_VERSION_PATCH}
 	LANGUAGES CXX C
 )
+if (UNIX AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	set (FIND_EIGEN_PARAM Eigen3 3.3 REQUIRED NO_MODULE)
+else()
+	set (FIND_EIGEN_PARAM Eigen3 3.3...<9.9 REQUIRED NO_MODULE)
+endif()
+
 
 foreach(p
 	CMP0048 # version
@@ -35,6 +41,7 @@ add_definitions("-DCGOGN_DATA_PATH=${CGOGN_DATA_PATH}")
 #### Here are located the FindPackages that we need
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
+
 
 #### Compile Options
 include(GNUInstallDirs)

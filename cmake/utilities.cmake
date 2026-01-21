@@ -145,3 +145,4 @@ function(APPS_COMPILATION)
 	target_link_libraries(${COMPILATION_PREFIX_EXEC} PRIVATE ${MODULES_LIST} ${CMAKE_DL_LIBS} ${CORE_FOUNDATION} ${CARBON})
 
 endfunction()
+
