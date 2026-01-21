@@ -11,7 +11,7 @@ project(CGoGN
 if (UNIX)
 	set (FIND_EIGEN_PARAM Eigen3 3.3 REQUIRED NO_MODULE)
 else()
-	set (FIND_EIGEN_PARAM Eigen3 3.3..<9.9 REQUIRED NO_MODULE)
+	set (FIND_EIGEN_PARAM Eigen3 3.3...<9.9 REQUIRED NO_MODULE)
 endif()
 
 
